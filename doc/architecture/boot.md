@@ -6,29 +6,29 @@ D-050, D-055.** Level 2
 
 No open items. The draft's seventeen, as decided and written into the text:
 
-| Item | Rule | By |
-|---|---|---|
-| 1 | The transfer list is always in a board region, so a DT is copied into it (5.4) | Jonas, D-039 |
-| 2 | Firmware Handoff replaces `simple` (5.4) | Jonas, D-039 |
-| 3 | Speculative mode also starts with no slot enabled, A first; for now (3.6) | Jonas, D-040 |
-| 4 | Preparing the handover is part of a candidate's attempt; a failed lockdown tries no | Level 1, D-038 |
-| | other candidate (2) | |
-| 5 | `boot part` takes only the policy's candidates, with every policy (6) | D-039 |
-| 6 | pb's structure's fields, with room for 16 keys (5.4); the Kconfig names (3.5, 3.6, 5.4) | Jonas, D-040 |
-| | pb's status: a string list in the DT, bit flags in pb's structure (5.6) | Jonas, D-041 |
-| 7 | An image with a part outside the hash is refused (4.2) | Jonas, D-035 |
-| 8 | `boot status` stays "the enabled slot" for A/B (3.4) | Level 1, D-038 |
-| 9 | Speculative mode also starts when this boot's failures leave no candidate (3.6) | Jonas, D-039 |
-| 10 | In place: the header where the format has it in the partition; a part is at its load | Jonas, D-040, |
-| | address, inside the candidate's mapped range (4.1) | D-048 |
-| 11 | The custom source is removed (4.1) | Jonas, D-035 |
-| 12 | A trial whose attempt can't be written is started only when no verified slot is left | Jonas, D-040 |
-| | (3.2) | |
-| 13 | A boot command mode started keeps today's values in the handover (5.6) | Level 1, D-038 |
-| 14 | `BOOT_AB_SPECULATIVE` is the only switch for speculative mode (3.6) | Jonas, D-040 |
-| 15 | pb's structure isn't released before its tag is allocated (5.4) | Level 1, D-038 |
-| 16 | `linux,initrd-*` stay 32 bits where both addresses fit (5.2) | Level 1, D-038 |
-| 17 | The preconditions are checked before `early_boot()` (2) | D-039 |
+| Item | Rule                                                                                    | By             |
+| ---- | --------------------------------------------------------------------------------------- | -------------- |
+| 1    | The transfer list is always in a board region, so a DT is copied into it (5.4)          | Jonas, D-039   |
+| 2    | Firmware Handoff replaces `simple` (5.4)                                                | Jonas, D-039   |
+| 3    | Speculative mode also starts with no slot enabled, A first; for now (3.6)               | Jonas, D-040   |
+| 4    | Preparing the handover is part of a candidate's attempt; a failed lockdown tries no     | Level 1, D-038 |
+|      | other candidate (2)                                                                     |                |
+| 5    | `boot part` takes only the policy's candidates, with every policy (6)                   | D-039          |
+| 6    | pb's structure's fields, with room for 16 keys (5.4); the Kconfig names (3.5, 3.6, 5.4) | Jonas, D-040   |
+|      | pb's status: a string list in the DT, bit flags in pb's structure (5.6)                 | Jonas, D-041   |
+| 7    | An image with a part outside the hash is refused (4.2)                                  | Jonas, D-035   |
+| 8    | `boot status` stays "the enabled slot" for A/B (3.4)                                    | Level 1, D-038 |
+| 9    | Speculative mode also starts when this boot's failures leave no candidate (3.6)         | Jonas, D-039   |
+| 10   | In place: the header where the format has it in the partition; a part is at its load    | Jonas, D-040,  |
+|      | address, inside the candidate's mapped range (4.1)                                      | D-048          |
+| 11   | The custom source is removed (4.1)                                                      | Jonas, D-035   |
+| 12   | A trial whose attempt can't be written is started only when no verified slot is left    | Jonas, D-040   |
+|      | (3.2)                                                                                   |                |
+| 13   | A boot command mode started keeps today's values in the handover (5.6)                  | Level 1, D-038 |
+| 14   | `BOOT_AB_SPECULATIVE` is the only switch for speculative mode (3.6)                     | Jonas, D-040   |
+| 15   | pb's structure isn't released before its tag is allocated (5.4)                         | Level 1, D-038 |
+| 16   | `linux,initrd-*` stay 32 bits where both addresses fit (5.2)                            | Level 1, D-038 |
+| 17   | The preconditions are checked before `early_boot()` (2)                                 | D-039          |
 
 From Jonas's final read: pb's status stays and pb's version joins pb's information (5.6, D-043);
 the flow is written for any image format, and names bpak only in 4.4 (D-044). After the review
@@ -368,22 +368,22 @@ The flow doesn't depend on one image format (D-044). It needs what the table lis
 and nothing else of it. bpak is the one format today (`bpak.md`); another comes next to it and
 gives the same, and every bpak image a released pb accepted stays accepted (D-008, `system.md` 3).
 
-| The flow needs | bpak |
-|---|---|
-| A header of a bounded size, at a place the source alone gives, | `struct bpak_header`, 4 KiB: a partition's last |
-| and a check of it that relies on nothing in the image | 4 KiB, first in the host's stream; |
-| | `bpak_valid_header()` |
-| The id of the key that signed it | `key_id`. `keystore_id` is logged and not |
-| | compared: pb has one keystore, and a check added |
-| | now could refuse images that boot today (D-008) |
-| A signature over the header, and the hash it is made with | In the header, zeroed while the header is hashed; |
-| | `hash_kind`: SHA-256, SHA-384 or SHA-512 |
-| The parts: for each an id, where it is in the source, its size | The part headers; the load address is the part's |
-| and its load address | `pb-load-addr` meta |
-| One hash over the bytes of the parts, in the signed header | `payload_hash`. A part with the `dont-hash` flag |
-| | (`BPAK_FLAG_EXCLUDE_FROM_HASH`) is outside it: |
-| | refused (4.2) |
-| Signed attributes of the image, for a handover | Metas: `optee-arch` (5.3) |
+| The flow needs                                                 | bpak                                              |
+| -------------------------------------------------------------- | ------------------------------------------------- |
+| A header of a bounded size, at a place the source alone gives, | `struct bpak_header`, 4 KiB: a partition's last   |
+| and a check of it that relies on nothing in the image          | 4 KiB, first in the host's stream;                |
+|                                                                | `bpak_valid_header()`                             |
+| The id of the key that signed it                               | `key_id`. `keystore_id` is logged and not         |
+|                                                                | compared: pb has one keystore, and a check added  |
+|                                                                | now could refuse images that boot today (D-008)   |
+| A signature over the header, and the hash it is made with      | In the header, zeroed while the header is hashed; |
+|                                                                | `hash_kind`: SHA-256, SHA-384 or SHA-512          |
+| The parts: for each an id, where it is in the source, its size | The part headers; the load address is the part's  |
+| and its load address                                           | `pb-load-addr` meta                               |
+| One hash over the bytes of the parts, in the signed header     | `payload_hash`. A part with the `dont-hash` flag  |
+|                                                                | (`BPAK_FLAG_EXCLUDE_FROM_HASH`) is outside it:    |
+|                                                                | refused (4.2)                                     |
+| Signed attributes of the image, for a handover                 | Metas: `optee-arch` (5.3)                         |
 
 - A format's code reads and checks its own layout, and answers the table's questions. The steps
   of 4.2, placement (4.3) and the handovers are the core's, the same for every format: a format
@@ -423,10 +423,10 @@ later, opt in.
 
 The Linux boot protocol, which Xen follows too. **Not yet in the code (F-258)**: named `linux`.
 
-| Arch | Registers |
-|---|---|
+| Arch    | Registers                                                                   |
+| ------- | --------------------------------------------------------------------------- |
 | ARMv7-A | r0 = 0, r1 = 0xffffffff (no machine type, the DT describes it), r2 = the DT |
-| ARMv8-A | x0 = the DT, x1 to x3 = 0 |
+| ARMv8-A | x0 = the DT, x1 to x3 = 0                                                   |
 
 The board gives: the kernel's part (its load address is the entry), the DT's and the ramdisk's
 (both optional), its DT hook (optional, 5.5) and `set_dtb_boot_arg`. Without `set_dtb_boot_arg`
@@ -546,24 +546,24 @@ Collected once by the core, written by each handover in its format. **Not yet in
 identity, the life cycle and the keys not revoked are collected before the loop (2); the system,
 the partition, the mode and the image's key belong to the candidate.
 
-| Information | `/chosen`, and its encoding | pb's structure | From |
-|---|---|---|---|
-| The device's identity | `pb,device-uuid`, string | `device_uuid` | `device_uuid()` |
-| The booted system | `pb,active-system`, string: "A", "B" or | `system_name` | The policy |
-| | "?"; A/B only | | |
-| The boot partition | `pb,boot-partition`, string (a UUID), new | `boot_partition_uuid` | The policy, or |
-| | | | command mode |
-| How it was chosen | `pb,boot-mode`, string: "normal", | `boot_mode`: 0, 1, 2 | `boot_policy_mode()` |
-| | "fallback", "speculative", new | | |
-| The life cycle | `pb,slc`, u32, the wire's `pb_slc` values; | `slc` | `slc_read_status()` |
-| | absent without an SLC | | |
-| The image's key | `pb,slc-active-key`, u32 (a key id) | `active_key` | The header |
-| The keys not revoked | `pb,slc-available-keys`, u32 list (key | `available_keys` | The RoT |
-| | ids) | | |
-| What pb booted without | `pb,status`, string list, new, always | `status`, bit flags | The preconditions |
-| | written | | (2), the board |
-| pb's version | `pb,version`, string, new | `version` | The build |
-| | | | (`version.txt`) |
+| Information            | `/chosen`, and its encoding                | pb's structure        | From                 |
+| ---------------------- | ------------------------------------------ | --------------------- | -------------------- |
+| The device's identity  | `pb,device-uuid`, string                   | `device_uuid`         | `device_uuid()`      |
+| The booted system      | `pb,active-system`, string: "A", "B" or    | `system_name`         | The policy           |
+|                        | "?"; A/B only                              |                       |                      |
+| The boot partition     | `pb,boot-partition`, string (a UUID), new  | `boot_partition_uuid` | The policy, or       |
+|                        |                                            |                       | command mode         |
+| How it was chosen      | `pb,boot-mode`, string: "normal",          | `boot_mode`: 0, 1, 2  | `boot_policy_mode()` |
+|                        | "fallback", "speculative", new             |                       |                      |
+| The life cycle         | `pb,slc`, u32, the wire's `pb_slc` values; | `slc`                 | `slc_read_status()`  |
+|                        | absent without an SLC                      |                       |                      |
+| The image's key        | `pb,slc-active-key`, u32 (a key id)        | `active_key`          | The header           |
+| The keys not revoked   | `pb,slc-available-keys`, u32 list (key     | `available_keys`      | The RoT              |
+|                        | ids)                                       |                       |                      |
+| What pb booted without | `pb,status`, string list, new, always      | `status`, bit flags   | The preconditions    |
+|                        | written                                    |                       | (2), the board       |
+| pb's version           | `pb,version`, string, new                  | `version`             | The build            |
+|                        |                                            |                       | (`version.txt`)      |
 
 New entries are appended (section 7). The encodings are part of what section 7 fixes.
 
@@ -577,10 +577,10 @@ the next stage can report it or act on it. **Not yet in the code (F-248).** A li
 the DT, its own idiom and readable without a table; bit flags in pb's structure, whose fields
 have a fixed size (Jonas, D-041):
 
-| Condition | String in `pb,status` | Bit in `status` |
-|---|---|---|
-| The watchdog didn't arm (`platform.md` 2.3) | `watchdog-not-armed` | 0 |
-| The board reported a failure the boot goes on without (`board.md` 2.3) | `board-degraded` | 1 |
+| Condition                                                              | String in `pb,status` | Bit in `status` |
+| ---------------------------------------------------------------------- | --------------------- | --------------- |
+| The watchdog didn't arm (`platform.md` 2.3)                            | `watchdog-not-armed`  | 0               |
+| The board reported a failure the boot goes on without (`board.md` 2.3) | `board-degraded`      | 1               |
 
 - A condition gets its string and its bit together, when its precondition is added (F-248,
   `platform.md` 3.8). Neither is reused or renamed afterwards (section 7).
@@ -645,20 +645,21 @@ Like the wire (D-008, `compatibility.md`):
 
 ## 9. Not yet in the code
 
-| Finding | What |
-|---|---|
-| F-256 | The policy interface (3.1 to 3.4), fixed and staggered, their Kconfig names, the loop with |
-| | the fallback (F-174), each policy marking its candidates (F-215) |
-| F-265 | The policy's, the handover's and the delivery's objects in the board's data (3, 5.1) |
-| F-257 | Speculative mode (3.6, F-177): nothing enabled, Kconfig as its only switch |
-| F-258 | The handover and delivery model, `image`, TF-A's BL33 and BL32, `bl_params` from the |
-| | platform, the DXL |
-| F-259 | Firmware Handoff (5.4): the list, the region, pb's structure and its tag |
-| F-260 | pb's information collected once, before the loop; `pb,version`, `pb,boot-partition`, |
-| | `pb,boot-mode`, the hook's order |
-| F-253, F-219 | The in place source (4.1), its rules; the custom source's removal |
-| F-254, F-255 | Placement (4.3), the initrd above 4 GiB (5.2) |
-| F-243, F-248 | The watchdog per chunk, the boot's preconditions in the flow (2), pb's status in the |
-| | handover (5.6) |
-| F-173, F-175, F-176, F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate` |
-| F-252, F-076 | A stop in a boot command mode started; a part outside the hash refused (4.2) |
+| Finding                           | What                                                                            |
+| --------------------------------- | ------------------------------------------------------------------------------- |
+| F-256                             | The policy interface (3.1 to 3.4), fixed and staggered, their Kconfig names,    |
+|                                   | the loop with the fallback (F-174), each policy marking its candidates (F-215)  |
+| F-265                             | The policy's, the handover's and the delivery's objects in the board's data (3, |
+|                                   | 5.1)                                                                            |
+| F-257                             | Speculative mode (3.6, F-177): nothing enabled, Kconfig as its only switch      |
+| F-258                             | The handover and delivery model, `image`, TF-A's BL33 and BL32, `bl_params`     |
+|                                   | from the platform, the DXL                                                      |
+| F-259                             | Firmware Handoff (5.4): the list, the region, pb's structure and its tag        |
+| F-260                             | pb's information collected once, before the loop; `pb,version`,                 |
+|                                   | `pb,boot-partition`, `pb,boot-mode`, the hook's order                           |
+| F-253, F-219                      | The in place source (4.1), its rules; the custom source's removal               |
+| F-254, F-255                      | Placement (4.3), the initrd above 4 GiB (5.2)                                   |
+| F-243, F-248                      | The watchdog per chunk, the boot's preconditions in the flow (2), pb's status   |
+|                                   | in the handover (5.6)                                                           |
+| F-173, F-175, F-176, F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate`                   |
+| F-252, F-076                      | A stop in a boot command mode started; a part outside the hash refused (4.2)    |

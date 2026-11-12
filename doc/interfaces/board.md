@@ -17,19 +17,19 @@ configuration: one member per concept, an object the module provides (section 1)
 **No open items.** What the pass (D-045) left open and what the review added, as decided and
 written into the text:
 
-| Item | Rule | By |
-|---|---|---|
-| The policy's and the handover's fields | One member per concept, a variant is an object; a | Jonas, D-046 |
-| | module's configuration is documented with the module (1, 2.5, 2.7) | |
-| The in place source | A flag in the static table's entry, the device's mapped base, the | Jonas, D-048 |
-| | header where the format has it (2.4) | |
-| bpak in `late_boot()` | No header argument; `boot_image_get_bpak_header()` (5.3) | Jonas, D-047 |
-| A board's condition in pb's status | `board_report_degraded()`, `board-degraded` in the | Jonas, D-050 |
-| | handover (2.3) | |
-| `cm_init()` and `cm_transport` | Both leave the board: command mode's USB is the platform's, | Jonas, D-049 |
-| | the transport is chosen at link time (4.1, 4.2) | |
-| What runs while pb is stopped | Tasks, `DEFINE_TASK()`, in a loop of the core's; command | Jonas, D-051 |
-| | mode is one of them, and its `process` hook goes (4.6) | |
+| Item                                   | Rule                                                        | By           |
+| -------------------------------------- | ----------------------------------------------------------- | ------------ |
+| The policy's and the handover's fields | One member per concept, a variant is an object; a module's  | Jonas, D-046 |
+|                                        | configuration is documented with the module (1, 2.5, 2.7)   |              |
+| The in place source                    | A flag in the static table's entry, the device's mapped     | Jonas, D-048 |
+|                                        | base, the header where the format has it (2.4)              |              |
+| bpak in `late_boot()`                  | No header argument; `boot_image_get_bpak_header()` (5.3)    | Jonas, D-047 |
+| A board's condition in pb's status     | `board_report_degraded()`, `board-degraded` in the handover | Jonas, D-050 |
+|                                        | (2.3)                                                       |              |
+| `cm_init()` and `cm_transport`         | Both leave the board: command mode's USB is the platform's, | Jonas, D-049 |
+|                                        | the transport is chosen at link time (4.1, 4.2)             |              |
+| What runs while pb is stopped          | Tasks, `DEFINE_TASK()`, in a loop of the core's; command    | Jonas, D-051 |
+|                                        | mode is one of them, and its `process` hook goes (4.6)      |              |
 
 Changing or adding a board: read this, then go through the review checklist (section 9). A board
 that runs Linux also gets its test bench defconfig (`testbench/README.md`, "Adding a board").
@@ -193,12 +193,12 @@ The partition table on a bio device that `init()` set up. The core reads it afte
 **Not yet in the code (F-265)**: today a GPT is three members (`gpt_dev_uu`, `gpt_tables`,
 `gpt_tables_length`) and the RT calls `static_ptbl_init()` from its `init()`.
 
-| Object | What the board gives |
-|---|---|
-| `PTBL_GPT(device, tables)` | The device's UUID, and the layouts command mode can install |
-| | (`part install`), each with a name and a variant (`struct gpt_table_list`) |
-| `PTBL_STATIC(device, table)` | The device's UUID and the partitions themselves |
-| | (`struct static_part_table`): for a device without a table on it (the RT's NOR) |
+| Object                       | What the board gives                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `PTBL_GPT(device, tables)`   | The device's UUID, and the layouts command mode can install                     |
+|                              | (`part install`), each with a name and a variant (`struct gpt_table_list`)      |
+| `PTBL_STATIC(device, table)` | The device's UUID and the partitions themselves                                 |
+|                              | (`struct static_part_table`): for a device without a table on it (the RT's NOR) |
 
 Failure: no valid table: 2.1. Command mode installs a GPT.
 
@@ -236,12 +236,12 @@ the board's configuration for it. `boot_policy_init()` runs after the partition 
 **Not yet in the code (F-256, F-257, F-215, F-265)**: today the member is `ab`, A/B is the only
 policy, a board without it can't boot from storage, and its configuration has a `rollback_mode`.
 
-| Object | What the board gives (`boot.md` 3.5) |
-|---|---|
-| `BOOT_POLICY_FIXED(part)` | The one partition's UUID |
-| `BOOT_POLICY_CHAIN(parts)` | The partitions' UUIDs, in the order they are tried |
-| `BOOT_POLICY_AB(&config)` | `struct boot_ab_state_config`: the primary and backup state partitions, |
-| | System A and B |
+| Object                     | What the board gives (`boot.md` 3.5)                                    |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `BOOT_POLICY_FIXED(part)`  | The one partition's UUID                                                |
+| `BOOT_POLICY_CHAIN(parts)` | The partitions' UUIDs, in the order they are tried                      |
+| `BOOT_POLICY_AB(&config)`  | `struct boot_ab_state_config`: the primary and backup state partitions, |
+|                            | System A and B                                                          |
 
 - A/B's configuration has no `rollback_mode`: `BOOT_AB_SPECULATIVE` is the only switch for
   speculative mode (`boot.md` 3.6, D-040).
@@ -272,15 +272,15 @@ and never by the image.
 `boot_atf` and `boot_simple` (`boot/linux.h`, `boot/atf.h`, `boot/simple.h`), exactly one is
 set, and `boot_atf` carries its own copy of the Linux handover's fields.
 
-| Member | Object | What the board gives |
-|---|---|---|
-| `boot_handover` | `BOOT_HANDOVER_IMAGE(&config)` | The image handover (`boot.md` 5.2): the kernel's part, |
-| | | the DT's and the ramdisk's, the DT hook, |
-| | | `set_dtb_boot_arg` |
-| | `BOOT_HANDOVER_FH(&config)` | Firmware Handoff (`boot.md` 5.4): the entry's part, the |
-| | | DT's, the DT hook |
-| `boot_delivery` | `BOOT_DELIVERY_TFA(&config)` | Through TF-A (`boot.md` 5.3): BL31's part and BL32's. |
-| | | BL33 is the handover's entry. Absent: directly |
+| Member          | Object                         | What the board gives                                    |
+| --------------- | ------------------------------ | ------------------------------------------------------- |
+| `boot_handover` | `BOOT_HANDOVER_IMAGE(&config)` | The image handover (`boot.md` 5.2): the kernel's part,  |
+|                 |                                | the DT's and the ramdisk's, the DT hook,                |
+|                 |                                | `set_dtb_boot_arg`                                      |
+|                 | `BOOT_HANDOVER_FH(&config)`    | Firmware Handoff (`boot.md` 5.4): the entry's part, the |
+|                 |                                | DT's, the DT hook                                       |
+| `boot_delivery` | `BOOT_DELIVERY_TFA(&config)`   | Through TF-A (`boot.md` 5.3): BL31's part and BL32's.   |
+|                 |                                | BL33 is the handover's entry. Absent: directly          |
 
 - `BOOT_HANDOVER_FH()` replaces `boot_simple` (`boot.md` 5.4, D-039). Its region is an address
   the build needs, so it is Kconfig's (`BOOT_FH_REGION_BASE` and `_SIZE`), like the board's DRAM.
@@ -310,12 +310,12 @@ select, an FPGA), a memory mapped flash, a SoC peripheral outside the buses the 
 It is a list of regions, read once by `pb_mmu_init()` in `plat_init()`, so before any other
 member of the board's but `console_init()`. The rules and an example are `platform.md` 5.2.
 
-| Region | Mapped as |
-|---|---|
-| `PB_MAP_DEVICE(base, size)` | Device memory, read and write |
+| Region                         | Mapped as                                                       |
+| ------------------------------ | --------------------------------------------------------------- |
+| `PB_MAP_DEVICE(base, size)`    | Device memory, read and write                                   |
 | `PB_MAP_MEMORY_RO(base, size)` | Normal memory, read only: a flash that is booted in place (2.4) |
-| `PB_MAP_MEMORY_RW(base, size)` | Normal memory, read and write: RAM on an external bus |
-| `PB_MAP_END` | Ends the list |
+| `PB_MAP_MEMORY_RW(base, size)` | Normal memory, read and write: RAM on an external bus           |
+| `PB_MAP_END`                   | Ends the list                                                   |
 
 - Never executable, flat, whole pages, and outside what the core and the platform map: pb
   itself, the board's DRAM, the platform's regions.
@@ -373,17 +373,17 @@ NULL: nothing is loaded. Only a partition that is booted in place boots.
 `board_setup()` and `cm_board_init()` check the board's data before they use it, a few lines tested
 on the host:
 
-| Field | Rule |
-|---|---|
-| `name` | Mandatory, 1 to 16 characters: the wire's `board_id` |
-| `rot`, `slc` | Mandatory. Until F-247 moves them to the platform (`plat_rot`, `plat_slc`). |
-| | A board without a life cycle has an `slc` without `read_status`: its command mode is |
-| | open (`system.md` 4) |
-| `boot_policy`, `boot_handover` | Mandatory |
-| `ptbl` | A GPT has at least one layout |
-| `password_auth` | Mandatory with `CONFIG_CM_AUTH_PASSWORD` |
-| `image_regions` | No region is empty or wraps, and each is inside what the arch can address. |
-| | None overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region (2.9) |
+| Field                          | Rule                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| `name`                         | Mandatory, 1 to 16 characters: the wire's `board_id`                               |
+| `rot`, `slc`                   | Mandatory. Until F-247 moves them to the platform (`plat_rot`, `plat_slc`). A      |
+|                                | board without a life cycle has an `slc` without `read_status`: its command mode is |
+|                                | open (`system.md` 4)                                                               |
+| `boot_policy`, `boot_handover` | Mandatory                                                                          |
+| `ptbl`                         | A GPT has at least one layout                                                      |
+| `password_auth`                | Mandatory with `CONFIG_CM_AUTH_PASSWORD`                                           |
+| `image_regions`                | No region is empty or wraps, and each is inside what the arch can address. None    |
+|                                | overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region (2.9) |
 
 `mmap` isn't in the table: `pb_mmu_init()` checks it earlier, in `plat_init()` (2.8).
 
@@ -674,13 +674,13 @@ OK means "loaded and verified", not "booted".
 
 A board directory holds:
 
-| File | What |
-|---|---|
-| `board.c` | `const struct board board`, the hooks |
+| File          | What                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `board.c`     | `const struct board board`, the hooks                                                   |
 | `makefile.mk` | `src-y` for its sources, image stage overrides (`platform.md` 6.2), included before the |
-| | platform's makefile |
-| `Kconfig` | Optional, the board's options (`osource "$(BOARD)/Kconfig"` in `src/Kconfig`) |
-| `include/` | Optional, on the include path |
+|               | platform's makefile                                                                     |
+| `Kconfig`     | Optional, the board's options (`osource "$(BOARD)/Kconfig"` in `src/Kconfig`)           |
+| `include/`    | Optional, on the include path                                                           |
 
 The defconfig selects the arch, the platform and the keys: `configs/<b>_defconfig` in the tree,
 any file out of it, passed as `KCONFIG_CONFIG` (`build-and-test.md`). The build directory is
@@ -689,16 +689,16 @@ any file out of it, passed as `KCONFIG_CONFIG` (`build-and-test.md`). The build 
 The defconfig compiles in what the board's objects name, and holds the product's choices that
 aren't the board's data (`system.md` 6):
 
-| What | Options |
-|---|---|
+| What                        | Options                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------ |
 | The modules the board names | `BOOT_POLICY_FIXED`, `_CHAIN` or `_AB`; `BOOT_LINUX` or `BOOT_FH`; `BOOT_ATF`; |
-| | the partition table's driver |
-| Speculative mode | `BOOT_AB_SPECULATIVE` (`boot.md` 3.6) |
-| Addresses the build needs | `BOOT_FH_REGION_BASE` and `_SIZE` (`boot.md` 5.4); the board's DRAM and entry |
-| | (`platform.md` 5.1) |
-| Command mode | The USB port (4.1); `CM_ON_SERIAL_DOWNLOAD` (5.1); the authentication methods, |
-| | `CM_AUTH_TOKEN` and `CM_AUTH_PASSWORD` |
-| The keys and the life cycle | `KEYSTORE_SLOTS` (D-027); EOL, off by default (`system.md` 4) |
+|                             | the partition table's driver                                                   |
+| Speculative mode            | `BOOT_AB_SPECULATIVE` (`boot.md` 3.6)                                          |
+| Addresses the build needs   | `BOOT_FH_REGION_BASE` and `_SIZE` (`boot.md` 5.4); the board's DRAM and entry  |
+|                             | (`platform.md` 5.1)                                                            |
+| Command mode                | The USB port (4.1); `CM_ON_SERIAL_DOWNLOAD` (5.1); the authentication methods, |
+|                             | `CM_AUTH_TOKEN` and `CM_AUTH_PASSWORD`                                         |
+| The keys and the life cycle | `KEYSTORE_SLOTS` (D-027); EOL, off by default (`system.md` 4)                  |
 
 **Not yet in the code (F-256, F-257, F-259, F-251, F-263, F-267)**: the policies' options,
 `BOOT_FH` and its region, `CM_ON_SERIAL_DOWNLOAD`, the EOL option, the USB port's.
@@ -770,18 +770,18 @@ For a new board, and for a change to one:
 Where each board is (2026-11-11). The host board is the tests' (`testing.md`) and follows the
 contract too, so that the order of section 2 is tested end to end (F-217).
 
-| Requirement | jiffy | 8MP EVK | MEK | DXL EVK | RT1060 EVK | imx8mevk | host | Finding |
-|---|---|---|---|---|---|---|---|---|
-| Data (3) | no | yes | yes | yes | no | no | no | F-249 |
-| A policy (2.5) | yes | yes | yes | yes | yes | no | yes | F-215, F-256 |
-| Image data regions (2.9) | no | no | no | no | no | no | no | F-254 |
-| Only the headers of section 6 | yes | yes | no | no | yes | yes | yes | F-270 |
-| No `BIO_FLAG_BOOTABLE` (2.5) | yes | yes | yes | yes | no | yes | yes | F-256 |
-| No serial download check (5.1) | yes | yes | no | no | no | yes | yes | F-251, F-264 |
-| `status()` (4.3) | no | default | no | no | default | default | default | F-250 |
-| `password_auth()` (4.5) | n/a | n/a | no | no | n/a | n/a | n/a | F-004 |
-| The order of section 2 | yes | yes | yes | yes | yes | yes | no | F-217 |
-| Test bench defconfig | yes | yes | yes | no | n/a | no | n/a | F-033 |
+| Requirement                    | jiffy | 8MP EVK | MEK | DXL EVK | RT1060 EVK | imx8mevk | host    | Finding      |
+| ------------------------------ | ----- | ------- | --- | ------- | ---------- | -------- | ------- | ------------ |
+| Data (3)                       | no    | yes     | yes | yes     | no         | no       | no      | F-249        |
+| A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-215, F-256 |
+| Image data regions (2.9)       | no    | no      | no  | no      | no         | no       | no      | F-254        |
+| Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270        |
+| No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | no         | yes      | yes     | F-256        |
+| No serial download check (5.1) | yes   | yes     | no  | no      | no         | yes      | yes     | F-251, F-264 |
+| `status()` (4.3)               | no    | default | no  | no      | default    | default  | default | F-250        |
+| `password_auth()` (4.5)        | n/a   | n/a     | no  | no      | n/a        | n/a      | n/a     | F-004        |
+| The order of section 2         | yes   | yes     | yes | yes     | yes        | yes      | no      | F-217        |
+| Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-033        |
 
 Data: jiffy, the RT and the host set `CONFIG_CM_AUTH_PASSWORD` without a callback; imx8mevk has
 `CONFIG_BOOT_LINUX` without `boot_linux`.

@@ -32,7 +32,7 @@ Punchboot is written in C and some assembler. Currently armv7a and armv8 is supp
 
 The directory layout is as follows:
 
-| Folder       | Description             |
+| Folder       | Description             |
 | ------------ | ----------------------- |
 | /doc         | Documentation           |
 | /pki         | Crypto keys for testing |
@@ -45,19 +45,19 @@ The directory layout is as follows:
 
 Supported architectures:
 
-| Architecture | Supported               |
-| ------------ | ----------------------- |
-| armv7a       | Yes                     |
-| armv8a       | Yes                     |
-| armv7m       | Yes                     |
+| Architecture | Supported |
+| ------------ | --------- |
+| armv7a       | Yes       |
+| armv8a       | Yes       |
+| armv7m       | Yes       |
 
 Supported platforms:
 
-| Platform        | Supported            | USB | EMMC | HW Crypto | Secure Boot | Fusebox |
-| --------------- | -------------------- | --- | ---- | --------- | ----------- | ------- |
-| NXP imx6ul      | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
-| NXP imx8m       | Yes                  | Yes | Yes  | Yes       | No          | Yes     |
-| NXP imx8x       | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
+| Platform   | Supported | USB | EMMC | HW Crypto | Secure Boot | Fusebox |
+| ---------- | --------- | --- | ---- | --------- | ----------- | ------- |
+| NXP imx6ul | Yes       | Yes | Yes  | Yes       | Yes         | Yes     |
+| NXP imx8m  | Yes       | Yes | Yes  | Yes       | No          | Yes     |
+| NXP imx8x  | Yes       | Yes | Yes  | Yes       | Yes         | Yes     |
 
 
 Supported boards:
@@ -71,21 +71,21 @@ Supported boards:
 
 Hardware accelerated signature verification
 
-| Platform        | RSA4096 | EC secp256r1 | EC secp384r1 | EC secp521 |
-| --------------- | ------- | ------------ | ------------ | ---------- |
-| NXP imx6ul      | Yes     | Yes          | No           | No         |
-| NXP imx8m       | Yes     | Yes          | No           | No         |
-| nxp imx8x       | yes     | yes          | yes          | yes        |
-| nxp imx RT      | no      | no           | no           | no         |
+| Platform   | RSA4096 | EC secp256r1 | EC secp384r1 | EC secp521 |
+| ---------- | ------- | ------------ | ------------ | ---------- |
+| NXP imx6ul | Yes     | Yes          | No           | No         |
+| NXP imx8m  | Yes     | Yes          | No           | No         |
+| nxp imx8x  | yes     | yes          | yes          | yes        |
+| nxp imx RT | no      | no           | no           | no         |
 
 Hardware accelerated hash algorithms
 
-| Platform        | MD5 | SHA256 | SHA384 | SHA512 |
-| --------------- | --- | ------ | ------ | ------ |
-| NXP imx6ul      | Yes | Yes    | No     | No     |
-| NXP imx8m       | Yes | Yes    | No     | No     |
-| NXP imx8x       | Yes | Yes    | Yes    | Yes    |
-| NXP imx RT      | No  | No     | No     | No     |
+| Platform   | MD5 | SHA256 | SHA384 | SHA512 |
+| ---------- | --- | ------ | ------ | ------ |
+| NXP imx6ul | Yes | Yes    | No     | No     |
+| NXP imx8m  | Yes | Yes    | No     | No     |
+| NXP imx8x  | Yes | Yes    | Yes    | Yes    |
+| NXP imx RT | No  | No     | No     | No     |
 
 ## Secure Boot
 
@@ -150,15 +150,15 @@ the device tree (below). The device identity can be found in
 
 The Linux and ATF boot drivers add to `/chosen` in the image's device tree:
 
-| Property | |
-| -------- | - |
-| `pb,device-uuid` | the device identity |
-| `pb,active-system` | the system booted (A or B), if the board has A/B |
-| `pb,slc` | the security life cycle state |
-| `pb,slc-active-key` | the id of the key the image is signed with |
-| `pb,slc-available-keys` | the ids of the keys that aren't revoked |
-| `linux,initrd-start`, `linux,initrd-end` | the ramdisk, if the image has one |
-| `bootargs` and others | whatever the board's callback sets |
+| Property                                 |                                                  |
+| ---------------------------------------- | ------------------------------------------------ |
+| `pb,device-uuid`                         | the device identity                              |
+| `pb,active-system`                       | the system booted (A or B), if the board has A/B |
+| `pb,slc`                                 | the security life cycle state                    |
+| `pb,slc-active-key`                      | the id of the key the image is signed with       |
+| `pb,slc-available-keys`                  | the ids of the keys that aren't revoked          |
+| `linux,initrd-start`, `linux,initrd-end` | the ramdisk, if the image has one                |
+| `bootargs` and others                    | whatever the board's callback sets               |
 
 The device tree doesn't need any of them, nor `/chosen`: pb adds what is
 missing. Before that it grows the device tree in place, into the RAM after
@@ -256,14 +256,14 @@ the host and pb's RAM log, then a signed image loaded from eMMC in 1 MiB
 chunks, the hash of one chunk running while the next is read. Medians of 5
 runs, with a 10 MiB image.
 
-| Parameter                                       | i.MX6UL (jiffy) | i.MX8M Plus EVK | Unit |
-| ----------------------------------------------- | --------------- | --------------- | ---- |
-| Boot ROM: load pb from eMMC (HAB on jiffy only) | 128             | 25              | ms   |
-| Bootloader init (clocks, DDR, CAAM, eMMC, GPT)  | 27              | 91              | ms   |
-| Image header read, ECDSA P-256 signature        | 7               | 7               | ms   |
-| 10 MiB eMMC read, SHA-256 overlapped            | 132             | 115             | ms   |
-| SHA-256 of the last chunk                       | 9               | 8               | ms   |
-| Total, reset to verified image                  | 302             | 247             | ms   |
+| Parameter                                       | i.MX6UL (jiffy) | i.MX8M Plus EVK | Unit  |
+| ----------------------------------------------- | --------------- | --------------- | ----- |
+| Boot ROM: load pb from eMMC (HAB on jiffy only) | 128             | 25              | ms    |
+| Bootloader init (clocks, DDR, CAAM, eMMC, GPT)  | 27              | 91              | ms    |
+| Image header read, ECDSA P-256 signature        | 7               | 7               | ms    |
+| 10 MiB eMMC read, SHA-256 overlapped            | 132             | 115             | ms    |
+| SHA-256 of the last chunk                       | 9               | 8               | ms    |
+| Total, reset to verified image                  | 302             | 247             | ms    |
 | eMMC read                                       | 77              | 87              | MiB/s |
 | SHA-256 (CAAM)                                  | 116             | 122             | MiB/s |
 
@@ -275,13 +275,13 @@ Measurements taken on IMX8QXP, loading a 14296kByte binary.
 
 Using hardware accelerators for SHA and RSA signatures:
 
-| Parameter            | Value    | Unit |
-| -------------------- | -------- | ---- |
-| Power On Reset       | 175      | ms   |
-| Bootloader init      | 6.358    | ms   |
-| Blockdev read / hash | 107      | ms   |
-| RSA 4096 Signature   | 0.676    | ms   |
-| Total                | 288      | ms   |
+| Parameter            | Value | Unit |
+| -------------------- | ----- | ---- |
+| Power On Reset       | 175   | ms   |
+| Bootloader init      | 6.358 | ms   |
+| Blockdev read / hash | 107   | ms   |
+| RSA 4096 Signature   | 0.676 | ms   |
+| Total                | 288   | ms   |
 
 The POR time is off due to some unidentified problem with the SCU firmware.
  A guess would be that this metric should be in the 20ms -range.

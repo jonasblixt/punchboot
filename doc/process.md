@@ -26,19 +26,19 @@ against and what it promises, which no document says yet.
 The folders under `doc/` are the levels (D-037). `README.md` there is the map, with every
 document's state.
 
-| Level | Answers | Folder and documents |
-|---|---|---|
-| 0 Purpose | What wins when goals conflict | `principles.md` |
-| 1 System | What pb promises to the outside, and against whom | `system/`: `system.md`, `security.md`, |
-| | | `compatibility.md` |
-| 2 Architecture | How pb is divided, what happens in which order, | `architecture/`: `boot.md`, |
-| | and who owns each step | `command-mode.md`, `arch-firmware.md`, |
-| | | `arch-host-tools.md` |
-| 3 Interfaces | What a layer provides and may rely on | `interfaces/`: `platform.md`, `board.md`, |
-| | | the drivers' contracts (new) |
-| 4 Ports | How an implementation meets its contract; | `ports/`: `plat-imx.md`, `imx8m-ddr.md`, |
-| | the SoC's facts and their sources | `spec-dwc-ddrphy.md` |
-| 5 Code | | The headers, the tests, the guards |
+| Level          | Answers                                           | Folder and documents                      |
+| -------------- | ------------------------------------------------- | ----------------------------------------- |
+| 0 Purpose      | What wins when goals conflict                     | `principles.md`                           |
+| 1 System       | What pb promises to the outside, and against whom | `system/`: `system.md`, `security.md`,    |
+|                |                                                   | `compatibility.md`                        |
+| 2 Architecture | How pb is divided, what happens in which order,   | `architecture/`: `boot.md`,               |
+|                | and who owns each step                            | `command-mode.md`, `arch-firmware.md`,    |
+|                |                                                   | `arch-host-tools.md`                      |
+| 3 Interfaces   | What a layer provides and may rely on             | `interfaces/`: `platform.md`, `board.md`, |
+|                |                                                   | the drivers' contracts (new)              |
+| 4 Ports        | How an implementation meets its contract;         | `ports/`: `plat-imx.md`, `imx8m-ddr.md`,  |
+|                | the SoC's facts and their sources                 | `spec-dwc-ddrphy.md`                      |
+| 5 Code         |                                                   | The headers, the tests, the guards        |
 
 - **`system.md`**: pb's place in the boot chain and its outside interfaces: the ROM before
   it, the host on the wire, the image, the next stage (the handover), the OS (`pbstate`, the DT
@@ -114,14 +114,14 @@ Every document's level and state: `README.md`.
 Level 1 was written after three drafts below it. Their open items that it owns moved up and
 were decided there (D-035, D-036):
 
-| Below | In level 1 |
-|---|---|
-| `platform.md` Open (1), the bypassed filter | Decided: always (`security.md` 4.5) |
-| `platform.md` 2.3, the preconditions' policy | `security.md` 4.5 |
-| `platform.md` Open (2), a failed lockdown | `security.md` 4.6: no jump; what follows is the flow's |
-| `boot.md` Open (7), `dont-hash` | Decided: refused (`security.md` 4.2) |
-| `boot.md` Open (11), the custom source | Decided: removed (`security.md` 4.1) |
-| `boot.md` Open (3), (9), speculative mode | `security.md` 2.5: availability ranks below integrity |
+| Below                                        | In level 1                                             |
+| -------------------------------------------- | ------------------------------------------------------ |
+| `platform.md` Open (1), the bypassed filter  | Decided: always (`security.md` 4.5)                    |
+| `platform.md` 2.3, the preconditions' policy | `security.md` 4.5                                      |
+| `platform.md` Open (2), a failed lockdown    | `security.md` 4.6: no jump; what follows is the flow's |
+| `boot.md` Open (7), `dont-hash`              | Decided: refused (`security.md` 4.2)                   |
+| `boot.md` Open (11), the custom source       | Decided: removed (`security.md` 4.1)                   |
+| `boot.md` Open (3), (9), speculative mode    | `security.md` 2.5: availability ranks below integrity  |
 
 The review order from here: `boot.md`, `board.md`, `platform.md`.
 

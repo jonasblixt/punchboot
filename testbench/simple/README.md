@@ -6,8 +6,8 @@ built for each board in the dev container, and a pytest runner on the host
 that drives pb over USB and reads the console. No RTOS and no vendor SDK:
 what is tested is what pb hands over, not someone's startup code.
 
-| Board | Status |
-| ----- | ------ |
+| Board           | Status                      |
+| --------------- | --------------------------- |
 | i.MX RT1060 EVK | all tests pass (2026-11-08) |
 
 ## What it tests
@@ -36,11 +36,11 @@ PASS|FAIL ...`, then `MCUTEST SYSTEM`, `MCUTEST STATE` (the boot state as
 pb left it) and `MCUTEST RESULT`. It is built in three modes, one boot image
 each:
 
-| Image | Does |
-| ----- | ---- |
-| `app-good.bpak` | marks the system verified, then resets into pb's command mode |
-| `app-noverify.bpak` | doesn't mark it, resets: pb boots it again, a boot attempt |
-| `app-hang.bpak` | stops petting the watchdog |
+| Image               | Does                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `app-good.bpak`     | marks the system verified, then resets into pb's command mode                      |
+| `app-noverify.bpak` | doesn't mark it, resets: pb boots it again, a boot attempt                         |
+| `app-hang.bpak`     | stops petting the watchdog                                                         |
 | `app-boottime.bpak` | times the warm reset to its own entry 10 times (`APP_BOOT_RUNS`), then like `good` |
 
 The reset into command mode is a request in a register that survives a warm
@@ -104,14 +104,14 @@ size (`-s 4K,8K`), which reads and verifies it without starting it.
 i.MX RT1060 EVK (2026-11-08), the 5.2 KiB test application, pb at 600 MHz,
 medians of 10 warm resets (`SYSRESETREQ`), spread one SRTC tick:
 
-| Step | ms |
-| ---- | -: |
-| ROM (pb, 75 KiB, from the NOR) and pb up to its timer | 12.7 |
-| pb init: clocks, FlexSPI, NOR partitions, boot state | 0.3 |
-| Image header read | 0.3 |
-| Signature: SHA-256 of the header, ECDSA P-256 (Mbed TLS, software) | 25.9 |
-| Image read (14 MiB/s) and hash | 0.9 |
-| **Warm reset to the image's entry** | **40.1** |
+| Step                                                               |       ms |
+| ------------------------------------------------------------------ | -------: |
+| ROM (pb, 75 KiB, from the NOR) and pb up to its timer              |     12.7 |
+| pb init: clocks, FlexSPI, NOR partitions, boot state               |      0.3 |
+| Image header read                                                  |      0.3 |
+| Signature: SHA-256 of the header, ECDSA P-256 (Mbed TLS, software) |     25.9 |
+| Image read (14 MiB/s) and hash                                     |      0.9 |
+| **Warm reset to the image's entry**                                | **40.1** |
 
 The signature is two thirds of it. Bigger images add their read and hash:
 59 ms to verify 200 KiB.

@@ -10,14 +10,14 @@ tree pb builds against (`build-tfa/src`, v2.12).
 
 ## 1. Ports and variants
 
-| Port | SoCs (Kconfig) | Arch | Boards |
-|---|---|---|---|
-| imx6ul | i.MX6UL (`PLAT_IMX6UL`) | ARMv7-A | jiffy |
-| imx8m | i.MX8MQ, i.MX8M Plus (`PLAT_IMX8MQ`, `PLAT_IMX8MP`, both select | ARMv8-A | imx8mevk, imx8mpevk |
-| | `PLAT_IMX8M_COMMON`; per-variant code in `plat_imx8mq.c`, `plat_imx8mp.c`) | | |
-| imx8x | i.MX8QXP, i.MX8DXL (`PLAT_IMX8X`, `PLAT_IMX8XL`, both select | ARMv8-A | imx8qxmek, imx8dxlevk |
-| | `PLAT_IMX8X_COMMON`) | | |
-| imxrt | i.MX RT10xx (`PLAT_IMXRT`) | ARMv7-M | imxrt1060evk |
+| Port   | SoCs (Kconfig)                                                             | Arch    | Boards              |
+| ------ | -------------------------------------------------------------------------- | ------- | ------------------- |
+| imx6ul | i.MX6UL (`PLAT_IMX6UL`)                                                    | ARMv7-A | jiffy               |
+| imx8m  | i.MX8MQ, i.MX8M Plus (`PLAT_IMX8MQ`, `PLAT_IMX8MP`, both select            | ARMv8-A | imx8mevk, imx8mpevk |
+|        | `PLAT_IMX8M_COMMON`; per-variant code in `plat_imx8mq.c`, `plat_imx8mp.c`) |         |                     |
+| imx8x  | i.MX8QXP, i.MX8DXL (`PLAT_IMX8X`, `PLAT_IMX8XL`, both select               | ARMv8-A | imx8qxmek,          |
+|        | `PLAT_IMX8X_COMMON`)                                                       |         | imx8dxlevk          |
+| imxrt  | i.MX RT10xx (`PLAT_IMXRT`)                                                 | ARMv7-M | imxrt1060evk        |
 
 All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx_hab_fuses`
 (HABv4 fuses), `imx_rom_log` (the ROM's event log, NXP AN12853), `imx_hab_log` (the ROM's HAB API),
@@ -25,16 +25,16 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 
 ## 2. Lifecycle
 
-| | imx6ul | imx8m | imx8x | imxrt |
-|---|---|---|---|---|
-| Who sets up DRAM | The ROM, from the board's DCD | `plat_init()` trains it | The SCFW (container) | None used |
-| pb runs from | DRAM (jiffy: 0x80001000) | OCRAM | DRAM, a reset stub at | OCRAM |
-| | | | 0x80000000 | |
-| Watchdog | WDOG1 (`imx_wdog`) | WDOG1 | The SCFW (`sc_timer_*`) | WDOG1 |
-| Reset reason | SRC_SRSR | not implemented | `sc_pm_reset_reason()` | WDOG1 WRSR |
-| ROM state saved | ROM log, the serial | ROM log | - | - |
-| | downloader's USB address | | | |
-| HAB log | yes | yes | - (AHAB) | yes |
+|                  | imx6ul                        | imx8m                   | imx8x                   | imxrt      |
+| ---------------- | ----------------------------- | ----------------------- | ----------------------- | ---------- |
+| Who sets up DRAM | The ROM, from the board's DCD | `plat_init()` trains it | The SCFW (container)    | None used  |
+| pb runs from     | DRAM (jiffy: 0x80001000)      | OCRAM                   | DRAM, a reset stub at   | OCRAM      |
+|                  |                               |                         | 0x80000000              |            |
+| Watchdog         | WDOG1 (`imx_wdog`)            | WDOG1                   | The SCFW (`sc_timer_*`) | WDOG1      |
+| Reset reason     | SRC_SRSR                      | not implemented         | `sc_pm_reset_reason()`  | WDOG1 WRSR |
+| ROM state saved  | ROM log, the serial           | ROM log                 | -                       | -          |
+|                  | downloader's USB address      |                         |                         |            |
+| HAB log          | yes                           | yes                     | - (AHAB)                | yes        |
 
 - **Watchdog power-down counters.** Each WDOG's power-down counter is enabled out of every reset
   and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3); whether that resets
@@ -68,16 +68,17 @@ its SRK_REVOKE word is verified (D-027, the 8MP RM marks it reserved). AHAB thro
 
 ### 4.2 The TrustZone DRAM filter
 
-| Port | pb's part | Protects the enable | Then |
-|---|---|---|---|
-| imx6ul | The DCD sets TZASC1_BYP (GPR9, RM 30.4.7), or the ROM with the TZASC_ENABLE | No lock bit. pb's | OP-TEE |
-| | fuse (RM p. 209, a board configuration fuse). pb checks it and opens DRAM in | comments say it's | |
-| | region 1 | sticky until POR: | |
-| | | not in the RM | |
-| imx8m | Before `imx8m_ddr_init()`: GPR10 ID_SWAP_BYPASS, TZASC_EN and both locks (8MP | GPR10[17:16] | BL31, then |
-| | RM 4.9, p. 1328). After it the DDR window in region 1, region 0 left secure | | OP-TEE |
-| imx8x | Nothing: BL31 partitions memory through the SCFW (`imx8qx_bl31_setup.c`) | The SCFW | BL31 |
-| imxrt | Nothing: the Cortex-M7 has no TrustZone | - | - |
+| Port   | pb's part                                                            | Protects the enable      | Then   |
+| ------ | -------------------------------------------------------------------- | ------------------------ | ------ |
+| imx6ul | The DCD sets TZASC1_BYP (GPR9, RM 30.4.7), or the ROM with the       | No lock bit. pb's        | OP-TEE |
+|        | TZASC_ENABLE fuse (RM p. 209, a board configuration fuse). pb checks | comments say it's sticky |        |
+|        | it and opens DRAM in region 1                                        | until POR: not in the RM |        |
+| imx8m  | Before `imx8m_ddr_init()`: GPR10 ID_SWAP_BYPASS, TZASC_EN and both   | GPR10[17:16]             | BL31,  |
+|        | locks (8MP RM 4.9, p. 1328). After it the DDR window in region 1,    |                          | then   |
+|        | region 0 left secure                                                 |                          | OP-TEE |
+| imx8x  | Nothing: BL31 partitions memory through the SCFW                     | The SCFW                 | BL31   |
+|        | (`imx8qx_bl31_setup.c`)                                              |                          |        |
+| imxrt  | Nothing: the Cortex-M7 has no TrustZone                              | -                        | -      |
 
 What the stages around pb do with it:
 
@@ -130,21 +131,28 @@ keys, and CAAM's MID for OP-TEE.
 
 ### 4.4 Other first-stage duties
 
-| Duty (`platform.md` 4.5) | imx6ul | imx8m | imx8x | imxrt |
-|---|---|---|---|---|
-| Bus access control | AIPS-TZ: "should be programmed before use" (RM 14.6; | BL31: CSU, AIPS-TZ, | BL31, through | - |
-| | reset MPR 0x77000000, OPACR 0x44444444); U-Boot opens | RDC, the OCRAM's secure | the SCFW | |
-| | them (`init_aips()`), pb doesn't (F-246). CSU: OP-TEE | range (GPR11) | | |
-| | sets it and locks it; without it the reset defaults | | | |
-| | (SRM, CSU_SA) | | | |
-| Hardware RNG | pb instantiates the CAAM's RNG4 (in the boards today) | pb (boards) | unchecked | - (no CAAM) |
-| Crypto engine | OP-TEE sets the job rings to the normal world | BL31 | The SCFW/SECO | - |
-| handover | (`imx_caam.c`); the CSF unlocks CAAM MID for it | (`imx8m_caam_init()`) | | |
-| Architected timer | unchecked | pb: the system counter and | unchecked | - |
-| | | `CNTFRQ` in `plat_init()` | | |
-| SNVS | unchecked | U-Boot inits the glitch detector, clears LPSR | unchecked | unchecked |
-| | | (`imx8m_setup_snvs()`): who needs it, unchecked | | |
-| Cortex-A7 SMP bit | F-135 (arch) | - | - | - |
+| Duty (`platform.md` 4.5) | imx6ul                             | imx8m                       | imx8x     | imxrt     |
+| ------------------------ | ---------------------------------- | --------------------------- | --------- | --------- |
+| Bus access control       | AIPS-TZ: "should be programmed     | BL31: CSU, AIPS-TZ, RDC,    | BL31,     | -         |
+|                          | before use" (RM 14.6; reset MPR    | the OCRAM's secure range    | through   |           |
+|                          | 0x77000000, OPACR 0x44444444);     | (GPR11)                     | the SCFW  |           |
+|                          | U-Boot opens them (`init_aips()`), |                             |           |           |
+|                          | pb doesn't (F-246). CSU: OP-TEE    |                             |           |           |
+|                          | sets it and locks it; without it   |                             |           |           |
+|                          | the reset defaults (SRM, CSU_SA)   |                             |           |           |
+| Hardware RNG             | pb instantiates the CAAM's RNG4    | pb (boards)                 | unchecked | - (no     |
+|                          | (in the boards today)              |                             |           | CAAM)     |
+| Crypto engine            | OP-TEE sets the job rings to the   | BL31                        | The       | -         |
+|                          | normal world                       |                             | SCFW/SECO |           |
+| handover                 | (`imx_caam.c`); the CSF unlocks    | (`imx8m_caam_init()`)       |           |           |
+|                          | CAAM MID for it                    |                             |           |           |
+| Architected timer        | unchecked                          | pb: the system counter and  | unchecked | -         |
+|                          |                                    | `CNTFRQ` in `plat_init()`   |           |           |
+| SNVS                     | unchecked                          | U-Boot inits the glitch     | unchecked | unchecked |
+|                          |                                    | detector, clears LPSR       |           |           |
+|                          |                                    | (`imx8m_setup_snvs()`): who |           |           |
+|                          |                                    | needs it, unchecked         |           |           |
+| Cortex-A7 SMP bit        | F-135 (arch)                       | -                           | -         | -         |
 
 ## 5. Memory
 
@@ -159,14 +167,16 @@ keys, and CAAM's MID for OP-TEE.
 
 ## 6. Image stages
 
-| Port | Container | Image header | Signing | Today in |
-|---|---|---|---|---|
-| imx6ul | `mkimage -T imximage`, the board's DCD | IVT at `PB_ENTRY - 0xC00` | HABv4 CSF, CST; a serial | jiffy |
-| | | | download CSF (0x00910000) | |
-| imx8m | `mkimage -T imx8mimage` | 8MQ: `PB_ENTRY - 0x40` | HABv4 CSF (8MQ) | the boards |
-| imx8x | `mkimage_imx8`, the SCFW, the AHAB container | - | AHAB CSF, CST | MEK, DXL (same) |
-| imxrt | `mkimage -T imximage`, a flash image: FCB at 0, | - | - | the board |
-| | the image at 4 KiB (FCB from the board's NOR) | | | |
+| Port   | Container                           | Image header           | Signing                   | Today in        |
+| ------ | ----------------------------------- | ---------------------- | ------------------------- | --------------- |
+| imx6ul | `mkimage -T imximage`, the board's  | IVT at                 | HABv4 CSF, CST; a serial  | jiffy           |
+|        | DCD                                 | `PB_ENTRY - 0xC00`     | download CSF (0x00910000) |                 |
+| imx8m  | `mkimage -T imx8mimage`             | 8MQ: `PB_ENTRY - 0x40` | HABv4 CSF (8MQ)           | the boards      |
+| imx8x  | `mkimage_imx8`, the SCFW, the AHAB  | -                      | AHAB CSF, CST             | MEK, DXL (same) |
+|        | container                           |                        |                           |                 |
+| imxrt  | `mkimage -T imximage`, a flash      | -                      | -                         | the board       |
+|        | image: FCB at 0, the image at 4 KiB |                        |                           |                 |
+|        | (FCB from the board's NOR)          |                        |                           |                 |
 
 Outputs today: `pb.imx`, `pb.csf`, `pb_signed.imx` (`pb_signed_uuu.imx` on the 6UL), the RT's
 `pb_flash.bin`. Kconfig: `IMX6UL_CREATE_IMX_IMAGE`, `IMX6UL_SIGN_IMAGE`, `IMX8X_*`. Signing inputs
@@ -176,30 +186,36 @@ are Kconfig strings on the 6UL, make variables on the 8X (F-240).
 
 Where each port is (2026-11-11).
 
-| Requirement | imx6ul | imx8m | imx8x | imxrt | Finding |
-|---|---|---|---|---|---|
-| Tick and log time from early init | yes | no | yes | no | F-238 |
-| Watchdog armed in early init | yes | yes | yes | yes | F-233 |
-| Power-down counters disabled | yes | yes | n/a | yes | F-245 |
-| `plat_reset()` without the watchdog | yes | yes | yes | yes | F-234 |
-| `plat_reset()` before early init | unchecked | unchecked | no | unchecked | F-262 |
-| `plat_wdog_kick()` before arming | yes | yes | unchecked | yes | F-234 |
-| `plat_get_boot_reason()` | no | no | no | no | F-236 |
-| The unique id fails on a failed read | no | no | unchecked | no | F-200 |
-| Serial download in `plat_get_boot_source()` | USB only | no | no | no | F-251 |
-| `plat_init()` errors only for command mode | yes | yes | yes | partly | F-235 |
-| `plat_get_status()` | no | no | no | no | F-248 |
-| `plat_cm_init()` | no | no | no | no | F-267 |
-| The board's regions in the map (5.2) | no | no | no | n/a | F-269, F-158 |
-| SoC memory for image data, `bl_params`' region (5.3) | no | no | no | no | F-254, F-258 |
-| The system controller's API through the platform header (7) | n/a | n/a | partly | n/a | F-270 |
-| TrustZone filter | partly | partly | n/a (BL31) | n/a | F-241, F-208, F-261 |
-| `plat_lockdown()` | yes | yes (nothing yet) | unchecked | unchecked | F-244 |
-| Bus access control | no (AIPS-TZ) | n/a (BL31) | n/a (BL31) | n/a | F-246 |
-| `plat_rot`, `plat_slc` | no | no (no HAB) | no | no | F-247 |
-| EOL as the SoC's own state | no | no | no | no | F-263 |
-| Crypto engine and RNG in `plat_init()` | no | no | no | yes | F-247 |
-| MMU from `pb_mmu_init()` | no | no | no | n/a | F-158 |
-| Link script without addresses | no | partly | no | no | F-239 |
-| Image stages | no | no | no | no | F-240 |
-| `<p>_plat()` accessor | yes | no | yes | no | |
+| Requirement                          | imx6ul       | imx8m             | imx8x      | imxrt     | Finding       |
+| ------------------------------------ | ------------ | ----------------- | ---------- | --------- | ------------- |
+| Tick and log time from early init    | yes          | no                | yes        | no        | F-238         |
+| Watchdog armed in early init         | yes          | yes               | yes        | yes       | F-233         |
+| Power-down counters disabled         | yes          | yes               | n/a        | yes       | F-245         |
+| `plat_reset()` without the watchdog  | yes          | yes               | yes        | yes       | F-234         |
+| `plat_reset()` before early init     | unchecked    | unchecked         | no         | unchecked | F-262         |
+| `plat_wdog_kick()` before arming     | yes          | yes               | unchecked  | yes       | F-234         |
+| `plat_get_boot_reason()`             | no           | no                | no         | no        | F-236         |
+| The unique id fails on a failed read | no           | no                | unchecked  | no        | F-200         |
+| Serial download in                   | USB only     | no                | no         | no        | F-251         |
+| `plat_get_boot_source()`             |              |                   |            |           |               |
+| `plat_init()` errors only for        | yes          | yes               | yes        | partly    | F-235         |
+| command mode                         |              |                   |            |           |               |
+| `plat_get_status()`                  | no           | no                | no         | no        | F-248         |
+| `plat_cm_init()`                     | no           | no                | no         | no        | F-267         |
+| The board's regions in the map (5.2) | no           | no                | no         | n/a       | F-269, F-158  |
+| SoC memory for image data,           | no           | no                | no         | no        | F-254, F-258  |
+| `bl_params`' region (5.3)            |              |                   |            |           |               |
+| The system controller's API through  | n/a          | n/a               | partly     | n/a       | F-270         |
+| the platform header (7)              |              |                   |            |           |               |
+| TrustZone filter                     | partly       | partly            | n/a (BL31) | n/a       | F-241, F-208, |
+|                                      |              |                   |            |           | F-261         |
+| `plat_lockdown()`                    | yes          | yes (nothing yet) | unchecked  | unchecked | F-244         |
+| Bus access control                   | no (AIPS-TZ) | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
+| `plat_rot`, `plat_slc`               | no           | no (no HAB)       | no         | no        | F-247         |
+| EOL as the SoC's own state           | no           | no                | no         | no        | F-263         |
+| Crypto engine and RNG in             | no           | no                | no         | yes       | F-247         |
+| `plat_init()`                        |              |                   |            |           |               |
+| MMU from `pb_mmu_init()`             | no           | no                | no         | n/a       | F-158         |
+| Link script without addresses        | no           | partly            | no         | no        | F-239         |
+| Image stages                         | no           | no                | no         | no        | F-240         |
+| `<p>_plat()` accessor                | yes          | no                | yes        | no        |               |

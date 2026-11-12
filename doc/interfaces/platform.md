@@ -23,34 +23,37 @@ finding removes the marker here and updates the port's conformance table (`plat-
 
 **No open items.** What the review decided and added, as written into the text:
 
-| Item | Rule | By |
-|---|---|---|
-| Hardware the platform didn't map | The board's `mmap`, data that `pb_mmu_init()` maps (5.2) | Jonas, D-054 |
-| Memory for images | The board's image data regions; the platform declares none, | Jonas, D-055 |
-| | its header names the SoC memory a board may list and `bl_params`' region (5.3) | |
-| What a board may include | The four folders of section 7. The arch through `include/pb/arch.h`; | Jonas, D-056 |
-| | a system controller's API through the platform header, not by its own path | |
-| The filter's text (4.3) | No fact of one port's in the rule | Jonas |
+| Item                             | Rule                                                            | By           |
+| -------------------------------- | --------------------------------------------------------------- | ------------ |
+| Hardware the platform didn't map | The board's `mmap`, data that `pb_mmu_init()` maps (5.2)        | Jonas, D-054 |
+| Memory for images                | The board's image data regions; the platform declares none, its | Jonas, D-055 |
+|                                  | header names the SoC memory a board may list and `bl_params`'   |              |
+|                                  | region (5.3)                                                    |              |
+| What a board may include         | The four folders of section 7. The arch through                 | Jonas, D-056 |
+|                                  | `include/pb/arch.h`; a system controller's API through the      |              |
+|                                  | platform header, not by its own path                            |              |
+| The filter's text (4.3)          | No fact of one port's in the rule                               | Jonas        |
 
 The pass (D-053) closed five of the seven items of 2026-11-11, because the documents above and
 beside this one leave one answer:
 
-| Item | Rule | By |
-|---|---|---|
-| A bypassed DRAM filter (2.3) | Refuses every boot, in every life cycle state | `security.md` 4.5 |
-| A failed `plat_lockdown()` (4.4) | pb stops; a boot command mode started resets | `boot.md` 2, |
-| | | `board.md` 5.4 |
-| Who clears the reset reason (3.4) | Not pb: the OS reads the same register | `system.md` 5.1 |
-| `plat_get_boot_source()`'s tag (3.9) | Mandatory when the ROM has a serial downloader | `board.md` 5.1 |
-| Who stops DMA before the jump (4.5) | Whoever started it | `board.md` 5.3 |
+| Item                                 | Rule                                           | By                |
+| ------------------------------------ | ---------------------------------------------- | ----------------- |
+| A bypassed DRAM filter (2.3)         | Refuses every boot, in every life cycle state  | `security.md` 4.5 |
+| A failed `plat_lockdown()` (4.4)     | pb stops; a boot command mode started resets   | `boot.md` 2,      |
+|                                      |                                                | `board.md` 5.4    |
+| Who clears the reset reason (3.4)    | Not pb: the OS reads the same register         | `system.md` 5.1   |
+| `plat_get_boot_source()`'s tag (3.9) | Mandatory when the ROM has a serial downloader | `board.md` 5.1    |
+| Who stops DMA before the jump (4.5)  | Whoever started it                             | `board.md` 5.3    |
 
 ## 1. Scope
 
-| Layer | Owns | Where |
-|---|---|---|
-| Arch | The CPU core: entry, vectors, caches, enabling the MMU, the handover state (D-028) | `src/arch/<a>/` |
-| Platform | What the SoC decides | `src/plat/<p>/`, `include/plat/<p>/` |
-| Board | What the PCB and the product decide (D-026, `board.md`) | `src/board/<b>/`, out of tree too |
+| Layer    | Owns                                                        | Where                                |
+| -------- | ----------------------------------------------------------- | ------------------------------------ |
+| Arch     | The CPU core: entry, vectors, caches, enabling the MMU, the | `src/arch/<a>/`                      |
+|          | handover state (D-028)                                      |                                      |
+| Platform | What the SoC decides                                        | `src/plat/<p>/`, `include/plat/<p>/` |
+| Board    | What the PCB and the product decide (D-026, `board.md`)     | `src/board/<b>/`, out of tree too    |
 
 - **A platform is a SoC family.** A SoC variant is a sub-level of it: each variant has its own
   Kconfig symbol, which selects the family's common symbol (`PLAT_<FAMILY>_COMMON`); the variant's
@@ -154,14 +157,14 @@ showed it.
 `early_boot()` and before anything is loaded (`boot.md` 2). The core decides, not the platform.
 The conditions are sorted by what rests on them (`security.md` 4.5):
 
-| Condition | Rests on it | When it failed |
-|---|---|---|
-| The DRAM filter is bypassed | The secure world's isolation | No boot |
-| The crypto engine failed | What runs next: the image's verification | No boot. A fallback that |
-| | | verifies the same would boot; no build has one today |
-| The watchdog didn't arm | Availability | Boots, and reports `watchdog-not-armed` in pb's |
-| (with `CONFIG_ENABLE_WATCHDOG`) | | status (`boot.md` 5.6) |
-| The ROM's logs are missing | Nothing of the boot's | Logged only |
+| Condition                       | Rests on it                  | When it failed                                  |
+| ------------------------------- | ---------------------------- | ----------------------------------------------- |
+| The DRAM filter is bypassed     | The secure world's isolation | No boot                                         |
+| The crypto engine failed        | What runs next: the image's  | No boot. A fallback that verifies the same      |
+|                                 | verification                 | would boot; no build has one today              |
+| The watchdog didn't arm         | Availability                 | Boots, and reports `watchdog-not-armed` in pb's |
+| (with `CONFIG_ENABLE_WATCHDOG`) |                              | status (`boot.md` 5.6)                          |
+| The ROM's logs are missing      | Nothing of the boot's        | Logged only                                     |
 
 - **The same rule in every life cycle state**, without a development override: a development
   board is where a bypassed filter goes unnoticed (F-096).
@@ -498,18 +501,22 @@ and link scripts repeat them as constants.
 Two different memories: the one pb runs in (`pb` region, usually on-chip RAM, or a part of DRAM
 the ROM set up) and the board's DRAM (where images are loaded). Their names say which.
 
-| Value | From | What | Used by |
-|---|---|---|---|
-| `CONFIG_PB_ENTRY` | Board defconfig | Where pb is loaded and linked | Linker, image stages |
-| `CONFIG_BOARD_DRAM_BASE`, `_SIZE` | Board defconfig, with DRAM | The board's DRAM | MMU layer 1, linker checks |
-| `CONFIG_PB_BUFFERS_BASE`, `_SIZE` | Board, default from the platform | The `buffers` region | Linker |
-| `CONFIG_BOOT_FH_REGION_BASE`, `_SIZE` | Board defconfig, with Firmware | The transfer list's region | Placement, |
-| | Handoff | (`boot.md` 5.4) | linker checks |
-| The ROM's load windows | Platform | Where the ROM may load pb | Linker checks, `pb` size |
-| `PLAT_*_ADDR_SPACE_SIZE` | Platform | The translation tables | xlat_tables |
-| `MAX_XLAT_TABLES`, `MAX_MMAP_REGIONS` | Board, default from the platform | Their number, with | xlat_tables |
-| | | the board's regions (5.2) | |
-| `PB_SECTION_ALIGNMENT` | Arch | Section alignment | Linker |
+| Value                                 | From                  | What                   | Used by                  |
+| ------------------------------------- | --------------------- | ---------------------- | ------------------------ |
+| `CONFIG_PB_ENTRY`                     | Board defconfig       | Where pb is loaded and | Linker, image stages     |
+|                                       |                       | linked                 |                          |
+| `CONFIG_BOARD_DRAM_BASE`, `_SIZE`     | Board defconfig, with | The board's DRAM       | MMU layer 1, linker      |
+|                                       | DRAM                  |                        | checks                   |
+| `CONFIG_PB_BUFFERS_BASE`, `_SIZE`     | Board, default from   | The `buffers` region   | Linker                   |
+|                                       | the platform          |                        |                          |
+| `CONFIG_BOOT_FH_REGION_BASE`, `_SIZE` | Board defconfig, with | The transfer list's    | Placement, linker checks |
+|                                       | Firmware Handoff      | region (`boot.md` 5.4) |                          |
+| The ROM's load windows                | Platform              | Where the ROM may load | Linker checks, `pb` size |
+|                                       |                       | pb                     |                          |
+| `PLAT_*_ADDR_SPACE_SIZE`              | Platform              | The translation tables | xlat_tables              |
+| `MAX_XLAT_TABLES`, `MAX_MMAP_REGIONS` | Board, default from   | Their number, with the | xlat_tables              |
+|                                       | the platform          | board's regions (5.2)  |                          |
+| `PB_SECTION_ALIGNMENT`                | Arch                  | Section alignment      | Linker                   |
 
 Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
 
@@ -651,11 +658,11 @@ Not the platform's to declare:
 
 `src/plat/<p>/makefile.mk` provides the SoC's stages, in `$(BUILD_DIR)`:
 
-| Stage | Target | In, out | Kconfig |
-|---|---|---|---|
-| Package | `<p>_image` | `pb.bin`, the SoC's container | `<P>_CREATE_IMAGE` |
-| Signing description | `<p>_sign_desc` | the container, the description | `<P>_SIGN_IMAGE` |
-| Sign | `<p>_sign_image` | the description, the signed container | `<P>_SIGN_IMAGE` |
+| Stage               | Target           | In, out                               | Kconfig            |
+| ------------------- | ---------------- | ------------------------------------- | ------------------ |
+| Package             | `<p>_image`      | `pb.bin`, the SoC's container         | `<P>_CREATE_IMAGE` |
+| Signing description | `<p>_sign_desc`  | the container, the description        | `<P>_SIGN_IMAGE`   |
+| Sign                | `<p>_sign_image` | the description, the signed container | `<P>_SIGN_IMAGE`   |
 
 The platform's documentation names the files. A platform may have more outputs (a variant for the
 ROM's serial downloader). The SoC's knowledge is in the stages: the container format, where the
@@ -778,11 +785,11 @@ For a new platform, and for a change to one:
 
 ## 9. Ports
 
-| Port | Documented in |
-|---|---|
-| imx6ul, imx8m (MQ, MP), imx8x (QXP, DXL), imxrt (RT10xx) | `plat-imx.md`, with each port's conformance |
-| host (test only) | `testing.md`. It implements what the tests need: the tick, the unique id, the |
-| | console, reset as `exit()` |
+| Port                                                     | Documented in                                        |
+| -------------------------------------------------------- | ---------------------------------------------------- |
+| imx6ul, imx8m (MQ, MP), imx8x (QXP, DXL), imxrt (RT10xx) | `plat-imx.md`, with each port's conformance          |
+| host (test only)                                         | `testing.md`. It implements what the tests need: the |
+|                                                          | tick, the unique id, the console, reset as `exit()`  |
 
 The core's part of this contract, not yet in the code:
 

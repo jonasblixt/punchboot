@@ -6,19 +6,21 @@ CI runs these tests (D-006).
 
 ## Layout
 
-| Path | What |
-|---|---|
-| `CMakeLists.txt` | Host build only. The firmware for targets is still built by the `Makefile`. |
-| `configs/host_defconfig` | Kconfig for the host build (`ARCH_HOST`, `PLAT_HOST`) |
-| `src/arch/host/` | No-op cache/MMU. `arch_jump` exits. |
-| `src/plat/host/` | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode transport |
-| `src/board/host/` | Test board (partitions, keys, board commands, fuses on disk) |
-| `tests/unit/` | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`, `fakes/plat.c`) |
-| `tests/integration/` | pytest tests that drive `pb-host` through the `punchboot` Python package |
-| `tests/compat/` | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in `bpak/`, |
-| | wire transcripts in `transcripts/`. See `compatibility.md` |
-| `tests/doc/` | The document lint (`process.md` 7): `check_docs.py`, the test `doc.lint` |
-| `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest |
+| Path                      | What                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| `CMakeLists.txt`          | Host build only. The firmware for targets is still built by the `Makefile`.            |
+| `configs/host_defconfig`  | Kconfig for the host build (`ARCH_HOST`, `PLAT_HOST`)                                  |
+| `src/arch/host/`          | No-op cache/MMU. `arch_jump` exits.                                                    |
+| `src/plat/host/`          | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode |
+|                           | transport                                                                              |
+| `src/board/host/`         | Test board (partitions, keys, board commands, fuses on disk)                           |
+| `tests/unit/`             | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`,            |
+|                           | `fakes/plat.c`)                                                                        |
+| `tests/integration/`      | pytest tests that drive `pb-host` through the `punchboot` Python package               |
+| `tests/compat/`           | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in        |
+|                           | `bpak/`, wire transcripts in `transcripts/`. See `compatibility.md`                    |
+| `tests/doc/`              | The document lint (`process.md` 7): `check_docs.py`, the test `doc.lint`               |
+| `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest                                    |
 
 ## Running
 
@@ -135,42 +137,51 @@ All 43 bash tests in the QEMU run list were ported (63 pytest cases plus 7 CMock
 in total). The bash suite, `src/board/test`, `src/plat/qemu` (including the semihosting gcov hack)
 and `configs/test_defconfig` were then removed.
 
-| pytest module | Ported from |
-|---|---|
-| `test_part.py` | test_part, test_part_flash, test_part_verify_fh, test_verify_bpak, test_part_dump, |
-| | test_part_dump2 (+ size limits, F-050) |
-| `test_gpt.py` | test_corrupt_gpt{,2,3,4,5}, test_corrupt_backup_gpt, test_gpt_variants |
-| `test_boot.py` | test_boot_bpak{,2..10}, test_invalid_key_index, test_overlapping_region, |
-| | test_all_sig_formats, test_gpt_boot_activate{,_step2..5} |
-| `test_ab_state.py` | test_switch, test_rollback, test_corrupt_primary_config, |
-| | test_corrupt_backup_config, test_board_regs |
-| `test_security.py` | test_device_setup, test_authentication, test_revoke_key |
-| `test_board.py` | test_board, test_board_status |
-| `test_cli.py` | test_cli, test_reset |
-| `test_stream.py` | new: stream bounds (F-053, F-054) |
-| `test_commands.py` | new: boot status, erase, end of life, bpak read, F-072 |
-| `test_log.py` | new: `PB_CMD_LOG_READ` and `punchboot log` (in chunks, wrapped) |
-| `test_compat.py` | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 (xfail) |
-| `test_transcripts.py` | new: recorded wire transcripts served to the current host (D-008, guard 4) |
+| pytest module         | Ported from                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `test_part.py`        | test_part, test_part_flash, test_part_verify_fh, test_verify_bpak, test_part_dump,      |
+|                       | test_part_dump2 (+ size limits, F-050)                                                  |
+| `test_gpt.py`         | test_corrupt_gpt{,2,3,4,5}, test_corrupt_backup_gpt, test_gpt_variants                  |
+| `test_boot.py`        | test_boot_bpak{,2..10}, test_invalid_key_index, test_overlapping_region,                |
+|                       | test_all_sig_formats, test_gpt_boot_activate{,_step2..5}                                |
+| `test_ab_state.py`    | test_switch, test_rollback, test_corrupt_primary_config,                                |
+|                       | test_corrupt_backup_config, test_board_regs                                             |
+| `test_security.py`    | test_device_setup, test_authentication, test_revoke_key                                 |
+| `test_board.py`       | test_board, test_board_status                                                           |
+| `test_cli.py`         | test_cli, test_reset                                                                    |
+| `test_stream.py`      | new: stream bounds (F-053, F-054)                                                       |
+| `test_commands.py`    | new: boot status, erase, end of life, bpak read, F-072                                  |
+| `test_log.py`         | new: `PB_CMD_LOG_READ` and `punchboot log` (in chunks, wrapped)                         |
+| `test_compat.py`      | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 (xfail) |
+| `test_transcripts.py` | new: recorded wire transcripts served to the current host (D-008, guard 4)              |
 
 Unit tests, by module under test:
 
-| Test | Module | Fakes |
-|---|---|---|
-| `test_bio.c`, `test_gpt.c`, `test_fuse_bio.c` | `bio.c`, `gpt.c`, `test_fuse_bio.c` | ramdisk |
-| `test_bpak.c`, `test_der.c`, `test_wire.c`, | `bpak.c`, `der_helpers.c`, `wire.c`, | clock (`test_delay.c`) |
-| `test_delay.c` | `delay.c` | |
-| `test_crypto.c`, `test_mbedtls.c` | `crypto.c`, `mbedtls_pb.c` | providers / none (real keys and the auth token) |
-| `test_rot.c`, `test_device_uuid.c` | `rot.c`, `slc.c`, `device_uuid.c` | board callbacks, unique id |
-| `test_ab_state.c`, `test_boot.c` | `ab_state.c`, `boot.c` | ramdisk, image helpers, boot driver |
-| `test_image_helpers.c` | `image_helpers.c` | hash, DSA, root of trust (memory regions via `--defsym`) |
-| `test_linux.c` | `linux.c` | arch, SLC, root of trust, device UUID; builds DTBs with libfdt |
-| `test_cm.c` | `cm_main.c` | transport, boot, root of trust, SLC, crypto providers |
-| `test_mmc_core.c` | `mmc_core.c` (boot partition updates, power loss) | fake card |
-| `test_mmc_emmc.c` | `mmc_core.c`, `mmc_emmc.c` | e.MMC model, `hal_model` |
-| `test_mmc_sd.c` | `mmc_core.c`, `mmc_sd.c` | SD card model, `hal_model` |
-| `test_imx_usdhc.c` | `imx_usdhc.c`, `mmc_core.c` | uSDHC model, e.MMC and SD models |
-| `test_mmc_models.c` | the card models | scripted host |
+| Test                                          | Module                       | Fakes                            |
+| --------------------------------------------- | ---------------------------- | -------------------------------- |
+| `test_bio.c`, `test_gpt.c`, `test_fuse_bio.c` | `bio.c`, `gpt.c`,            | ramdisk                          |
+|                                               | `test_fuse_bio.c`            |                                  |
+| `test_bpak.c`, `test_der.c`, `test_wire.c`,   | `bpak.c`, `der_helpers.c`,   | clock (`test_delay.c`)           |
+|                                               | `wire.c`,                    |                                  |
+| `test_delay.c`                                | `delay.c`                    |                                  |
+| `test_crypto.c`, `test_mbedtls.c`             | `crypto.c`, `mbedtls_pb.c`   | providers / none (real keys and  |
+|                                               |                              | the auth token)                  |
+| `test_rot.c`, `test_device_uuid.c`            | `rot.c`, `slc.c`,            | board callbacks, unique id       |
+|                                               | `device_uuid.c`              |                                  |
+| `test_ab_state.c`, `test_boot.c`              | `ab_state.c`, `boot.c`       | ramdisk, image helpers, boot     |
+|                                               |                              | driver                           |
+| `test_image_helpers.c`                        | `image_helpers.c`            | hash, DSA, root of trust (memory |
+|                                               |                              | regions via `--defsym`)          |
+| `test_linux.c`                                | `linux.c`                    | arch, SLC, root of trust, device |
+|                                               |                              | UUID; builds DTBs with libfdt    |
+| `test_cm.c`                                   | `cm_main.c`                  | transport, boot, root of trust,  |
+|                                               |                              | SLC, crypto providers            |
+| `test_mmc_core.c`                             | `mmc_core.c` (boot partition | fake card                        |
+|                                               | updates, power loss)         |                                  |
+| `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |
+| `test_mmc_sd.c`                               | `mmc_core.c`, `mmc_sd.c`     | SD card model, `hal_model`       |
+| `test_imx_usdhc.c`                            | `imx_usdhc.c`, `mmc_core.c`  | uSDHC model, e.MMC and SD models |
+| `test_mmc_models.c`                           | the card models              | scripted host                    |
 
 Where the ports differ from the bash tests:
 - **Self-contained.** The bash tests depended on disk state and on the `/tmp/pb_force_command_mode`

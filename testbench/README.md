@@ -5,25 +5,27 @@ Linux: punchboot from this tree, Linux, kickstart as the initramfs and a
 small read only root file system that kickstart verifies and mounts with
 dm-verity.
 
-| Board | Defconfig | Status |
-| ----- | --------- | ------ |
+| Board           | Defconfig                     | Status                                                            |
+| --------------- | ----------------------------- | ----------------------------------------------------------------- |
 | i.MX8M Plus EVK | `configs/imx8mpevk_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-10-30) |
-| jiffy (i.MX6UL) | `configs/jiffy_defconfig` | boots: kickstart, dm-verity root, login (2026-10-29) |
-| i.MX8QXP MEK | `configs/imx8qxmek_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-11-08) |
+| jiffy (i.MX6UL) | `configs/jiffy_defconfig`     | boots: kickstart, dm-verity root, login (2026-10-29)              |
+| i.MX8QXP MEK    | `configs/imx8qxmek_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-11-08) |
 
-| Component | Version |
-| --------- | ------- |
-| Buildroot | 2026.02.3 (LTS) |
-| Toolchain | Buildroot internal: GCC 14, musl (kickstart is linked statically, see its `doc/licensing.md`) |
-| Linux     | 6.18.58 (longterm) |
-| TF-A      | v2.12 (imx8mpevk, imx8qxmek with `board/imx8qxmek/patches`, BL31 only) |
-| punchboot | this tree (`..`) |
-| kickstart | branch `master` of `../../kickstart` |
-| bpak      | branch `master` of `../../bpak`: libbpak for kickstart, the `bpak` python package as the host tool |
-| NXP CST   | 3.4.1 (host, Debian source, jiffy's HAB and the MEK's AHAB signature) |
-| firmware-imx | 8.27, the LPDDR4 training firmware FW2020.06 (imx8mpevk) |
-| imx-sc-firmware, imx-seco | 1.18.0, 5.9.4.1: the SCU firmware and the SECO firmware (B0) |
-| | in the MEK's boot container |
+| Component                 | Version                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| Buildroot                 | 2026.02.3 (LTS)                                                                      |
+| Toolchain                 | Buildroot internal: GCC 14, musl (kickstart is linked statically, see its            |
+|                           | `doc/licensing.md`)                                                                  |
+| Linux                     | 6.18.58 (longterm)                                                                   |
+| TF-A                      | v2.12 (imx8mpevk, imx8qxmek with `board/imx8qxmek/patches`, BL31 only)               |
+| punchboot                 | this tree (`..`)                                                                     |
+| kickstart                 | branch `master` of `../../kickstart`                                                 |
+| bpak                      | branch `master` of `../../bpak`: libbpak for kickstart, the `bpak` python package as |
+|                           | the host tool                                                                        |
+| NXP CST                   | 3.4.1 (host, Debian source, jiffy's HAB and the MEK's AHAB signature)                |
+| firmware-imx              | 8.27, the LPDDR4 training firmware FW2020.06 (imx8mpevk)                             |
+| imx-sc-firmware, imx-seco | 1.18.0, 5.9.4.1: the SCU firmware and the SECO firmware (B0) in the MEK's boot       |
+|                           | container                                                                            |
 
 No OP-TEE.
 
@@ -74,16 +76,16 @@ imx-sc-firmware and imx-seco.
 
 ## Output (`output/<board>/images/`)
 
-| File | |
-| ---- | - |
-| `punchboot/` | punchboot: `pb.imx` (imx8mpevk), `pb_signed.imx` and `pb_signed_uuu.imx` (jiffy, HAB |
-| | signed with the test keys), `pb.imx` and `pb_signed.imx` (imx8qxmek: the boot container with |
-| | the SECO and SCU firmware, AHAB signed) |
-| `boot.bpak` | the boot image, for System A/B |
-| `root.bpak` | the root image, for Root A/B |
-| `kickstart.cpio.gz` | the initramfs: kickstart as `/init` |
-| `rootfs.squashfs` | the root file system in `root.bpak` |
-| `zImage`/`Image`, `*.dtb`, `bl31.bin` | what `boot.bpak` is made of |
+| File                                  |                                                                             |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| `punchboot/`                          | punchboot: `pb.imx` (imx8mpevk), `pb_signed.imx` and `pb_signed_uuu.imx`    |
+|                                       | (jiffy, HAB signed with the test keys), `pb.imx` and `pb_signed.imx`        |
+|                                       | (imx8qxmek: the boot container with the SECO and SCU firmware, AHAB signed) |
+| `boot.bpak`                           | the boot image, for System A/B                                              |
+| `root.bpak`                           | the root image, for Root A/B                                                |
+| `kickstart.cpio.gz`                   | the initramfs: kickstart as `/init`                                         |
+| `rootfs.squashfs`                     | the root file system in `root.bpak`                                         |
+| `zImage`/`Image`, `*.dtb`, `bl31.bin` | what `boot.bpak` is made of                                                 |
 
 ## Boot flow
 
@@ -95,12 +97,12 @@ ROM (HAB) -> punchboot -> [TF-A BL31] -> Linux -> kickstart (/init) -> /sbin/ini
 
 `boot.bpak`, verified by punchboot:
 
-| Part | Content | jiffy | imx8mpevk | imx8qxmek |
-| ---- | ------- | ----- | --------- | --------- |
-| `atf` | `bl31.bin` | | 0x970000 (OCRAM) | 0x80000000 |
-| `kernel` | Linux | `zImage`, 0x82000000 | `Image`, 0x42000000 | `Image`, 0x80200000 |
-| `dt` | device tree | 0x83f00000 | 0x50000000 | 0x83000000 |
-| `ramdisk` | `kickstart.cpio.gz` | 0x84000000 | 0x50100000 | 0x83100000 |
+| Part      | Content             | jiffy                | imx8mpevk           | imx8qxmek           |
+| --------- | ------------------- | -------------------- | ------------------- | ------------------- |
+| `atf`     | `bl31.bin`          |                      | 0x970000 (OCRAM)    | 0x80000000          |
+| `kernel`  | Linux               | `zImage`, 0x82000000 | `Image`, 0x42000000 | `Image`, 0x80200000 |
+| `dt`      | device tree         | 0x83f00000           | 0x50000000          | 0x83000000          |
+| `ramdisk` | `kickstart.cpio.gz` | 0x84000000           | 0x50100000          | 0x83100000          |
 
 The addresses keep clear of what punchboot itself uses while it loads
 (`src/plat/*/link.lds`). The part names are the bpak ids that the boards'
@@ -197,10 +199,10 @@ resets the board. A panic with `panic=5` saves two records, at the panic and
 at the emergency restart 5 s later; `linux` shows the second, which has the
 panic too.
 
-| Reset | jiffy | imx8mpevk |
-| ----- | ----- | --------- |
-| `reboot` | `Shutdown#1` | lost (F-156) |
-| panic, `panic=5` restart | `Emergency#2` | lost (F-156) |
+| Reset                                         | jiffy                       | imx8mpevk                   |
+| --------------------------------------------- | --------------------------- | --------------------------- |
+| `reboot`                                      | `Shutdown#1`                | lost (F-156)                |
+| panic, `panic=5` restart                      | `Emergency#2`               | lost (F-156)                |
 | hang (`kill -STOP` pb-watchdog), the watchdog | `Panic#1`, pretimeout, 60 s | `Panic#1`, pretimeout, 58 s |
 
 On the EVK, Linux's PCA9450 driver restarts through the PMIC with a cold
@@ -292,24 +294,25 @@ Warm resets (`reboot` in Linux, the watchdog), System A enabled, timed on the
 console from the host (FTDI latency timer 16 ms) to a temporary first
 `inittab` line that prints `/proc/uptime`, medians of 5 runs (2026-10-29):
 
-| Kernel | zImage | Reset to BusyBox init | Kernel uptime at init |
-| ------ | ------ | --------------------- | --------------------- |
-| `imx_v6_v7_defconfig` | 10.2 MB | 2939 ms | 1520 ms |
-| only jiffy's hardware (`board/jiffy/linux.fragment`) | 4.6 MB | 2108 ms | 1220 ms |
-| and no jitter entropy RNG, RAM disks or preallocated loop devices | 4.6 MB | 1629 ms | 740 ms |
-| and LZ4 instead of gzip (`BR2_LINUX_KERNEL_LZ4`) | 5.4 MB | **1326 ms** | 730 ms |
+| Kernel                                                    | zImage  | Reset to BusyBox init | Kernel uptime at init |
+| --------------------------------------------------------- | ------- | --------------------- | --------------------- |
+| `imx_v6_v7_defconfig`                                     | 10.2 MB | 2939 ms               | 1520 ms               |
+| only jiffy's hardware (`board/jiffy/linux.fragment`)      | 4.6 MB  | 2108 ms               | 1220 ms               |
+| and no jitter entropy RNG, RAM disks or preallocated loop | 4.6 MB  | 1629 ms               | 740 ms                |
+| devices                                                   |         |                       |                       |
+| and LZ4 instead of gzip (`BR2_LINUX_KERNEL_LZ4`)          | 5.4 MB  | **1326 ms**           | 730 ms                |
 
 From the reset (the slim LZ4 kernel; from the console timing, pb's RAM log
 and `initcall_debug`):
 
-| Step | ms |
-| ---- | -- |
-| Boot ROM with HAB, to pb's banner (128 when reset from pb) | 144 |
-| pb init: clocks, DDR, CAAM, eMMC, GPT | 27 |
-| pb loads and verifies `boot.bpak` (77 MiB/s read, SHA-256 overlapped) | ~80 |
+| Step                                                                          | ms   |
+| ----------------------------------------------------------------------------- | ---- |
+| Boot ROM with HAB, to pb's banner (128 when reset from pb)                    | 144  |
+| pb init: clocks, DDR, CAAM, eMMC, GPT                                         | 27   |
+| pb loads and verifies `boot.bpak` (77 MiB/s read, SHA-256 overlapped)         | ~80  |
 | zImage decompressing itself (LZ4; gzip was ~650), the kernel before its clock | ~350 |
-| kernel to `Run /init` | ~650 |
-| kickstart: boot state 18, signature 54, dm-verity and mount 41, exec init | ~120 |
+| kernel to `Run /init`                                                         | ~650 |
+| kickstart: boot state 18, signature 54, dm-verity and mount 41, exec init     | ~120 |
 
 `initcall_debug` (it needs the command line in the kernel, pb sets
 `bootargs`: `CONFIG_CMDLINE_EXTEND` with `initcall_debug`) found the jitter
@@ -324,12 +327,13 @@ Warm resets as for jiffy, medians of 5 (2026-10-30). Reset to pb's banner is
 ~420 ms here: arm64 Linux resets through TF-A's PSCI, not a watchdog right
 away; pb's own boot ROM time is 25 ms (README Metrics).
 
-| Kernel | Image | Reset to BusyBox init | Kernel uptime at init |
-| ------ | ----- | --------------------- | --------------------- |
-| arm64 `defconfig`, other SoC families off | 25.9 MB | 1939 ms | 880 ms |
-| only the EVK's hardware, no jitter RNG (`board/imx8mpevk/linux.fragment`) | 14.6 MB | 1323 ms | 400 ms |
-| and unused devices off in the DTS (`imx8mp-evk-pb.dts`) | 14.6 MB | 1243 ms | 320 ms |
-| and the CAAM, thermal, RTC and cpufreq built in | 14.7 MB | **1218 ms** | 290 ms |
+| Kernel                                                  | Image   | Reset to BusyBox init | Kernel uptime at init |
+| ------------------------------------------------------- | ------- | --------------------- | --------------------- |
+| arm64 `defconfig`, other SoC families off               | 25.9 MB | 1939 ms               | 880 ms                |
+| only the EVK's hardware, no jitter RNG                  | 14.6 MB | 1323 ms               | 400 ms                |
+| (`board/imx8mpevk/linux.fragment`)                      |         |                       |                       |
+| and unused devices off in the DTS (`imx8mp-evk-pb.dts`) | 14.6 MB | 1243 ms               | 320 ms                |
+| and the CAAM, thermal, RTC and cpufreq built in         | 14.7 MB | **1218 ms**           | 290 ms                |
 
 The `Image` isn't compressed on arm64: pb reads it at ~89 MiB/s, ~165 ms for
 14.7 MB. `initcall_debug`: all initcalls 241 ms; the SD slot (uSDHC2) took
@@ -349,11 +353,12 @@ the ROM, the SECO and the SCU firmware. pb prints only errors on the UART.
 eth0 had no cable: the login prompt comes ~4 s after init, when the DHCP
 client gives up, so the table has reset to init.
 
-| Kernel | Image | Reset to BusyBox init | Kernel uptime at init |
-| ------ | ----- | --------------------- | --------------------- |
-| arm64 `defconfig`, other SoC families off | 25.9 MB | 1429 ms | 890 ms |
-| only the MEK's hardware, no jitter RNG (`board/imx8qxmek/linux.fragment`) | 14.6 MB | 1125 ms | 670 ms |
-| and unused devices off in the DTS (`imx8qxp-mek-pb.dts`) | 14.6 MB | **1064 ms** | 610 ms |
+| Kernel                                                   | Image   | Reset to BusyBox init | Kernel uptime at init |
+| -------------------------------------------------------- | ------- | --------------------- | --------------------- |
+| arm64 `defconfig`, other SoC families off                | 25.9 MB | 1429 ms               | 890 ms                |
+| only the MEK's hardware, no jitter RNG                   | 14.6 MB | 1125 ms               | 670 ms                |
+| (`board/imx8qxmek/linux.fragment`)                       |         |                       |                       |
+| and unused devices off in the DTS (`imx8qxp-mek-pb.dts`) | 14.6 MB | **1064 ms**           | 610 ms                |
 
 `VT` and `IO_URING` stay on, as on the 8MP EVK (they need `CONFIG_EXPERT`).
 In the DTS: the base board's TCA6416 at the CM40 I2C's 0x20 doesn't answer

@@ -16,17 +16,17 @@ computed the header checksum differently from 1.0's text).
 
 A header of 0x18 bytes, then entries, each 8-byte aligned. Everything is little-endian.
 
-| Header field | Size | Value |
-|---|---|---|
-| `signature` | 4 | 0x4a0fb10b |
-| `checksum` | 1 | A byte sum modulo 256 over the used part; 0 when checksums are off. See below |
-| `version` | 1 | 2 |
-| `hdr_size` | 1 | 0x18 |
-| `alignment` | 1 | The largest alignment an entry needs, as a power of two; 3 for a new list |
-| `used_size` | 4 | Header, entries and padding; a multiple of 8 |
-| `total_size` | 4 | The whole area, with the spare room after `used_size` |
-| `flags` | 4 | Bit 0: the list uses checksums |
-| reserved | 4 | 0 |
+| Header field | Size | Value                                                                         |
+| ------------ | ---- | ----------------------------------------------------------------------------- |
+| `signature`  | 4    | 0x4a0fb10b                                                                    |
+| `checksum`   | 1    | A byte sum modulo 256 over the used part; 0 when checksums are off. See below |
+| `version`    | 1    | 2                                                                             |
+| `hdr_size`   | 1    | 0x18                                                                          |
+| `alignment`  | 1    | The largest alignment an entry needs, as a power of two; 3 for a new list     |
+| `used_size`  | 4    | Header, entries and padding; a multiple of 8                                  |
+| `total_size` | 4    | The whole area, with the spare room after `used_size`                         |
+| `flags`      | 4    | Bit 0: the list uses checksums                                                |
+| reserved     | 4    | 0                                                                             |
 
 An entry is a 3-byte `tag_id`, a 1-byte `hdr_size` (8), a 4-byte `data_size`, then the data. The
 next entry starts at the next 8-byte boundary.
@@ -45,12 +45,12 @@ next entry starts at the next 8-byte boundary.
 
 ## Tags
 
-| Range | Use |
-|---|---|
-| 0 to 0x7fffff | Standard. Allocated in the specification before use |
-| 0x800000 to 0xffefff | Reserved |
-| 0xfff000 to 0xffffff | Not standard, no allocation: "local experimentation or closed-source |
-| | components" under one integrator's control. Strongly discouraged otherwise |
+| Range                | Use                                                                        |
+| -------------------- | -------------------------------------------------------------------------- |
+| 0 to 0x7fffff        | Standard. Allocated in the specification before use                        |
+| 0x800000 to 0xffefff | Reserved                                                                   |
+| 0xfff000 to 0xffffff | Not standard, no allocation: "local experimentation or closed-source       |
+|                      | components" under one integrator's control. Strongly discouraged otherwise |
 
 Allocated today: 0 void (padding), 1 FDT, 2 and 3 HOB, 4 ACPI, 5 TPM event log, 6 TPM CRB base,
 7 DT overlay, and 0x100 to 0x109 for Trusted Firmware (OP-TEE's pageable part, SPMC and FF-A
@@ -67,13 +67,13 @@ tag), it carries no version number of its own, and it has no pointers into the l
 
 ## The registers
 
-| | AArch64 | AArch32 |
-|---|---|---|
-| The devicetree, or 0 | x0 | r2 |
+|                                                | AArch64                      | AArch32                    |
+| ---------------------------------------------- | ---------------------------- | -------------------------- |
+| The devicetree, or 0                           | x0                           | r2                         |
 | The signature and the convention's version (1) | x1: 0x4a0fb10b in bits 31:0, | r1: 0x0fb10b in bits 23:0, |
-| | 1 in bits 39:32, the rest 0 | 1 in bits 31:24 |
-| Reserved, 0 | x2 | r0 |
-| The list's base | x3 | r3 |
+|                                                | 1 in bits 39:32, the rest 0  | 1 in bits 31:24            |
+| Reserved, 0                                    | x2                           | r0                         |
+| The list's base                                | x3                           | r3                         |
 
 The devicetree register and the list are tied together: when the list has an FDT entry (tag 1)
 the register must point to the FDT in that entry, and the register is 0 when the list has none.
