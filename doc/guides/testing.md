@@ -43,7 +43,7 @@ below. After `jiffy-fixes` 18 lines are left, unreachable or behind a known bug:
   the `default:` case (every command id is handled), `boot.c` 96 (the boot device is valid), `rot.c` 114 (`rot_init` checks the key ids) and
   126-127 (the keystore has only EC keys), `main.c` 51, `mbedtls_pb.c` 252 (needs a full DSA table
   with room for a hash provider; both tables hold one entry).
-- Behind a bug: `linux.c` 175-176 (F-071).
+- Behind a bug: `image.c` 175-176 (F-071).
 - `main.c` 29: `plat_init()` failing on the host.
 
 The coverage counts only what the host build compiles: the drivers and platform code for the
@@ -191,7 +191,7 @@ Unit tests, by module under test:
 | `test_simple.c`                               | `simple.c`                   | arch                             |
 | `test_image_helpers.c`                        | `image_helpers.c`            | hash, DSA, root of trust (memory |
 |                                               |                              | regions via `--defsym`)          |
-| `test_linux.c`                                | `linux.c`                    | arch, SLC, root of trust, device |
+| `test_image.c`                                | `image.c`                    | arch, SLC, root of trust, device |
 |                                               |                              | UUID; builds DTBs with libfdt    |
 | `test_cm.c`                                   | `cm_main.c`                  | transport, boot, root of trust,  |
 |                                               |                              | SLC, crypto providers            |

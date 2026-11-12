@@ -12,7 +12,7 @@
 #include <board_defs.h>
 #include <boot/ab_state.h>
 #include <boot/boot.h>
-#include <boot/linux.h>
+#include <boot/image.h>
 #include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <drivers/partition/gpt.h>
@@ -395,7 +395,7 @@ static const struct slc_config slc = {
     .fuse_write = test_fuse_write,
 };
 
-static const struct boot_handover_image_config boot_linux = {
+static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .resolve_part_name = boot_ab_part_uu_to_name,
 };
@@ -481,7 +481,7 @@ const struct board board = {
     .ptbl = PTBL_GPT(PART_disk, gpt_tables),
     .boot_policy = { .ops = &host_policy_ops, .config = &boot_state_cfg },
     .late_init = board_late_init,
-    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_linux),
+    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
     .early_boot = early_boot,
     .late_boot = late_boot,
     .cm_transport = &socket_transport,

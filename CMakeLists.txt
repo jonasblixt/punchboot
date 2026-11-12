@@ -152,7 +152,7 @@ add_library(pb_core STATIC
     src/boot/policy_fixed.c
     src/boot/dtb.c
     src/boot/image_helpers.c
-    src/boot/linux.c
+    src/boot/image.c
     src/cm/cm_main.c
     src/drivers/crypto/mbedtls/mbedtls_pb.c
     src/drivers/fuse/test_fuse_bio.c

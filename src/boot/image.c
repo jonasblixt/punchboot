@@ -9,7 +9,7 @@
 
 #include <arch/arch.h>
 #include <boot/dtb.h>
-#include <boot/linux.h>
+#include <boot/image.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <inttypes.h>
@@ -26,7 +26,7 @@ static uintptr_t jump_addr;
 static uintptr_t ramdisk_addr;
 static uintptr_t dtb_addr;
 
-int boot_driver_linux_init(const struct boot_handover_image_config *cfg_in)
+int boot_handover_image_init(const struct boot_handover_image_config *cfg_in)
 {
     cfg = cfg_in;
 
@@ -36,7 +36,7 @@ int boot_driver_linux_init(const struct boot_handover_image_config *cfg_in)
     return PB_OK;
 }
 
-int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
+int boot_handover_image_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 {
     int rc;
     void *fdt;
@@ -113,7 +113,7 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
     return PB_OK;
 }
 
-void boot_driver_linux_jump(void)
+void boot_handover_image_jump(void)
 {
     arch_clean_cache_range((uintptr_t)&jump_addr, sizeof(jump_addr));
     arch_disable_mmu();
@@ -135,11 +135,11 @@ void boot_driver_linux_jump(void)
 
 static int handover_init(const void *config)
 {
-    return boot_driver_linux_init(config);
+    return boot_handover_image_init(config);
 }
 
 const struct boot_handover_ops boot_handover_image_ops = {
     .init = handover_init,
-    .prepare = boot_driver_linux_prepare,
-    .jump = boot_driver_linux_jump,
+    .prepare = boot_handover_image_prepare,
+    .jump = boot_handover_image_jump,
 };

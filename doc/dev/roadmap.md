@@ -44,7 +44,7 @@ frozen (D-001).
   - Cost: growing the DTB moves its structure and strings blocks, which adds boot time. Measure it on
     jiffy and document it in the user docs (porting guide / Linux boot), including how to avoid it by
     building the DTB with the properties and padding (`dtc -p`).
-  - Tests: unit tests in `test_linux.c` (no `/chosen`, no pb properties, no free space), and at
+  - Tests: unit tests in `test_image.c` (no `/chosen`, no pb properties, no free space), and at
     least one test on a jiffy board: boot a DTB without the pb properties and check
     `/proc/device-tree/chosen/pb,*` from Linux. There is no hardware test setup in the repo yet, so
     this one is manual unless we add one.

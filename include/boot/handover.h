@@ -10,7 +10,7 @@
  * A board's handover and its delivery (board.boot_handover,
  * board.boot_delivery, boot.md 5.1): the module's functions and the board's
  * configuration for it, made by the module's macro: BOOT_HANDOVER_IMAGE()
- * (boot/linux.h), BOOT_HANDOVER_ATF() (boot/atf.h), BOOT_HANDOVER_SIMPLE()
+ * (boot/image.h), BOOT_HANDOVER_ATF() (boot/atf.h), BOOT_HANDOVER_SIMPLE()
  * (boot/simple.h).
  */
 

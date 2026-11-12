@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * The Linux boot driver (src/boot/linux.c): device tree patching and the
+ * The image handover (src/boot/image.c): device tree patching and the
  * jump. The host board has no device tree part, so the integration tests
  * only reach the kernel entry point.
  *
@@ -19,7 +19,7 @@
 #include <cmocka.h>
 
 #include <arch/arch.h>
-#include <boot/linux.h>
+#include <boot/image.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <libfdt.h>
@@ -246,23 +246,23 @@ static void test_init_requires_image_id(void **state)
     static const struct boot_handover_image_config no_image = { 0 };
     (void)state;
 
-    assert_int_equal(boot_driver_linux_init(&no_image), -PB_ERR_PARAM);
-    assert_int_equal(boot_driver_linux_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(boot_handover_image_init(&no_image), -PB_ERR_PARAM);
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
 }
 
 static void test_kernel_only(void **state)
 {
     (void)state;
 
-    assert_int_equal(boot_driver_linux_init(&cfg_kernel_only), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
     /* The device tree is left alone */
     assert_int_equal(fdt_getprop(dtb, chosen(), "pb,slc", NULL), NULL);
     assert_int_equal(cleaned_len, 0);
 
     mmu_disabled = 0;
     if (setjmp(jump_env) == 0) {
-        boot_driver_linux_jump();
+        boot_handover_image_jump();
         fail_msg("arch_jump returned");
     }
     assert_ptr_equal(jump_args[0], (void *)KERNEL_ADDR);
@@ -275,10 +275,10 @@ static void test_kernel_needs_load_addr(void **state)
     struct bpak_meta_header *meta;
     (void)state;
 
-    assert_int_equal(boot_driver_linux_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_KERNEL, &meta), BPAK_OK);
     meta->part_id_ref = 0;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
 }
 
 static void test_dtb_is_patched(void **state)
@@ -287,8 +287,8 @@ static void test_dtb_is_patched(void **state)
     (void)state;
 
     revoked_keys = 1u << 0;
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
 
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     assert_int_equal(chosen_u32("pb,slc"), SLC_CONFIGURATION_LOCKED);
@@ -313,7 +313,7 @@ static void test_dtb_is_patched(void **state)
 
     /* The dtb address is passed to the kernel */
     if (setjmp(jump_env) == 0) {
-        boot_driver_linux_jump();
+        boot_handover_image_jump();
         fail_msg("arch_jump returned");
     }
     assert_ptr_equal(jump_args[0], (void *)KERNEL_ADDR);
@@ -327,8 +327,8 @@ static void test_dtb_without_key_list(void **state)
     (void)state;
 
     make_dtb_keys("chosen", false);
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
 
     const fdt32_t *keys = fdt_getprop(dtb, chosen(), "pb,slc-available-keys", &len);
     assert_non_null(keys);
@@ -340,8 +340,8 @@ static void test_dtb_without_options(void **state)
 {
     (void)state;
 
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb_minimal), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb_minimal), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
     assert_int_equal(chosen_u32("pb,slc"), SLC_CONFIGURATION_LOCKED);
     assert_null(fdt_getprop(dtb, chosen(), "pb,active-system", NULL));
     assert_null(fdt_getprop(dtb, chosen(), "linux,initrd-start", NULL));
@@ -354,26 +354,26 @@ static void test_dtb_errors(void **state)
     struct bpak_meta_header *meta;
     (void)state;
 
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
 
     memset(dtb, 0, 64);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR);
     make_dtb("chosen");
 
     patch_rc = -PB_ERR_IO;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_IO);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_IO);
     patch_rc = PB_OK;
 
     make_dtb("chosen");
     slc_status = -PB_ERR_IO;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_IO);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_IO);
     slc_status = SLC_CONFIGURATION_LOCKED;
 
     /* The ramdisk has a load address, but no part */
     make_dtb("chosen");
     assert_int_equal(bpak_get_part(hdr, ID_RAMDISK, &part), BPAK_OK);
     part->id = 0x12345678;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
     part->id = ID_RAMDISK;
 
     /* The ramdisk has no load address, which used to dereference NULL
@@ -381,18 +381,18 @@ static void test_dtb_errors(void **state)
     make_dtb("chosen");
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_RAMDISK, &meta), BPAK_OK);
     meta->part_id_ref = 0;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
     meta->part_id_ref = ID_RAMDISK;
 
     make_dtb("chosen");
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
     meta->part_id_ref = 0;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
     meta->part_id_ref = ID_DTB;
 
     assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
     part->id = 0x12345678;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
     part->id = ID_DTB;
 }
 
@@ -402,8 +402,8 @@ static void test_dtb_without_slc(void **state)
     (void)state;
 
     slc_status = -PB_ERR_NOT_SUPPORTED;
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
     assert_null(fdt_getprop(dtb, chosen(), "pb,slc", NULL));
     assert_int_equal(chosen_u32("pb,slc-active-key"), KEY_ID_1);
 }
@@ -414,8 +414,8 @@ static void test_dtb_without_chosen(void **state)
     (void)state;
 
     make_dtb_keys("memory", false);
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     assert_true(fdt_path_offset(dtb, "/memory") >= 0);
 }
@@ -438,8 +438,8 @@ static void test_dtb_chosen_not_at_root(void **state)
     assert_int_equal(fdt_finish(dtb), 0);
     assert_int_equal(fdt_open_into(dtb, dtb, DTB_SIZE), 0);
 
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     soc_chosen = fdt_path_offset(dtb, "/soc/chosen");
     assert_true(soc_chosen >= 0);
@@ -456,8 +456,8 @@ static void test_dtb_grown(void **state)
     assert_int_equal(fdt_pack(dtb), 0);
     int packed = fdt_totalsize(dtb);
 
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
     assert_int_equal(fdt_totalsize(dtb), packed + CONFIG_BOOT_DTB_HEADROOM);
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     assert_int_equal(chosen_u32("pb,slc"), SLC_CONFIGURATION_LOCKED);
@@ -483,8 +483,8 @@ check_initrd(uint64_t addr, size_t size, const uint8_t *start, const uint8_t *en
     assert_int_equal(bpak_get_part(hdr, ID_RAMDISK, &part), BPAK_OK);
     part->size = size;
 
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
 
     val = fdt_getprop(dtb, chosen(), "linux,initrd-start", &val_len);
     assert_non_null(val);
@@ -549,18 +549,18 @@ static void test_dtb_headroom_overlap(void **state)
     struct bpak_meta_header *meta;
     (void)state;
 
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
 
     /* The ramdisk right after the device tree part */
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_RAMDISK, &meta), BPAK_OK);
     *bpak_get_meta_ptr(hdr, meta, uint64_t) = (uintptr_t)dtb + DTB_SIZE;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_MEM);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_MEM);
     *bpak_get_meta_ptr(hdr, meta, uint64_t) = RAMDISK_ADDR;
 
     /* The device tree part right before pb's code (_code_start, CMakeLists.txt) */
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
     *bpak_get_meta_ptr(hdr, meta, uint64_t) = 0x40000000 - DTB_SIZE;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_MEM);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_MEM);
 }
 
 /* The device tree's header says it is larger than its part */
@@ -569,10 +569,10 @@ static void test_dtb_larger_than_part(void **state)
     struct bpak_part_header *part;
     (void)state;
 
-    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
     assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
     part->size = DTB_SIZE / 2;
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR);
+    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR);
 }
 
 /* The handover the way src/board.c uses it: only through the board's object */
@@ -591,7 +591,7 @@ static void test_handover_object(void **state)
 
     /* The module has another configuration: the device tree is patched and
      * passed on only when the object's reached it */
-    assert_int_equal(boot_driver_linux_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
 
     assert_int_equal(handover.ops->init(handover.config), PB_OK);
     assert_int_equal(handover.ops->prepare(hdr, boot_part_uu), PB_OK);
@@ -610,28 +610,28 @@ static void test_handover_object(void **state)
     assert_int_equal(mmu_disabled, 1);
 }
 
-#define LINUX_TEST(f) cmocka_unit_test_setup(f, setup)
+#define IMAGE_TEST(f) cmocka_unit_test_setup(f, setup)
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        LINUX_TEST(test_init_requires_image_id),
-        LINUX_TEST(test_kernel_only),
-        LINUX_TEST(test_kernel_needs_load_addr),
-        LINUX_TEST(test_dtb_is_patched),
-        LINUX_TEST(test_dtb_without_key_list),
-        LINUX_TEST(test_dtb_without_options),
-        LINUX_TEST(test_dtb_errors),
-        LINUX_TEST(test_dtb_without_slc),
-        LINUX_TEST(test_dtb_without_chosen),
-        LINUX_TEST(test_dtb_chosen_not_at_root),
-        LINUX_TEST(test_dtb_grown),
-        LINUX_TEST(test_initrd_32_bits),
-        LINUX_TEST(test_initrd_end_at_4_gib),
-        LINUX_TEST(test_initrd_above_4_gib),
-        LINUX_TEST(test_dtb_headroom_overlap),
-        LINUX_TEST(test_dtb_larger_than_part),
-        LINUX_TEST(test_handover_object),
+        IMAGE_TEST(test_init_requires_image_id),
+        IMAGE_TEST(test_kernel_only),
+        IMAGE_TEST(test_kernel_needs_load_addr),
+        IMAGE_TEST(test_dtb_is_patched),
+        IMAGE_TEST(test_dtb_without_key_list),
+        IMAGE_TEST(test_dtb_without_options),
+        IMAGE_TEST(test_dtb_errors),
+        IMAGE_TEST(test_dtb_without_slc),
+        IMAGE_TEST(test_dtb_without_chosen),
+        IMAGE_TEST(test_dtb_chosen_not_at_root),
+        IMAGE_TEST(test_dtb_grown),
+        IMAGE_TEST(test_initrd_32_bits),
+        IMAGE_TEST(test_initrd_end_at_4_gib),
+        IMAGE_TEST(test_initrd_above_4_gib),
+        IMAGE_TEST(test_dtb_headroom_overlap),
+        IMAGE_TEST(test_dtb_larger_than_part),
+        IMAGE_TEST(test_handover_object),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);

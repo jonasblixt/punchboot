@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef INCLUDE_BOOT_LINUX_H
-#define INCLUDE_BOOT_LINUX_H
+#ifndef INCLUDE_BOOT_HANDOVER_IMAGE_H
+#define INCLUDE_BOOT_HANDOVER_IMAGE_H
 
 #include <boot/boot.h>
 #include <boot/dtb.h>
@@ -26,9 +26,9 @@ struct boot_handover_image_config {
     bool set_dtb_boot_arg; /*!< Pass dtb address as first argument */
 };
 
-int boot_driver_linux_init(const struct boot_handover_image_config *cfg);
-int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu);
-void boot_driver_linux_jump(void);
+int boot_handover_image_init(const struct boot_handover_image_config *cfg);
+int boot_handover_image_prepare(struct bpak_header *hdr, uuid_t boot_part_uu);
+void boot_handover_image_jump(void);
 
 extern const struct boot_handover_ops boot_handover_image_ops;
 
@@ -42,4 +42,4 @@ extern const struct boot_handover_ops boot_handover_image_ops;
         .config = PB_CONFIG(_config, const struct boot_handover_image_config), \
     }
 
-#endif /* INCLUDE_BOOT_LINUX_H */
+#endif /* INCLUDE_BOOT_HANDOVER_IMAGE_H */

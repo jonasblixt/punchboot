@@ -179,12 +179,12 @@ target_link_options(test_image_helpers PRIVATE
     -Wl,--defsym=_no_init_end=0x40120000
 )
 
-pb_unit_test(test_linux SOURCES
+pb_unit_test(test_image SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
-    ${PROJECT_SOURCE_DIR}/src/boot/linux.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image.c
 )
 # pb's memory, which the device tree's headroom must not reach
-target_link_options(test_linux PRIVATE
+target_link_options(test_image PRIVATE
     -no-pie
     -Wl,--defsym=_code_start=0x40000000
     -Wl,--defsym=_code_end=0x40080000

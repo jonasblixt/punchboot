@@ -275,7 +275,7 @@ The handover and its delivery (`boot.md` 5.1): one of each per board, chosen by 
 and never by the image.
 
 **Not yet in the code (F-258, F-259, F-260)**: `boot_handover` has three objects today,
-`BOOT_HANDOVER_IMAGE()` (`boot/linux.h`) and two that go: `BOOT_HANDOVER_ATF()` (`boot/atf.h`),
+`BOOT_HANDOVER_IMAGE()` (`boot/image.h`) and two that go: `BOOT_HANDOVER_ATF()` (`boot/atf.h`),
 which becomes the delivery and carries its own copy of the image handover's fields until
 then, and `BOOT_HANDOVER_SIMPLE()` (`boot/simple.h`), which Firmware Handoff replaces. No
 delivery exists: a board that sets `boot_delivery` is refused.
