@@ -468,12 +468,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | D-056, `platform.md` 7: the API stays with the platform; `imx8x.h` includes the services boards | | |
 | | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
 | | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
-| F-274 | `src/cm/cm_main.c`, `tools/punchboot/session.py` | Exchanges that get out of | Verified (code) | open |
-| | | step. (3) Most `cm_write()` results are ignored, and a failed `cm_read()` inside a command | | |
-| | | returns to the loop on the same transport. `command-mode.md` 4.4: a failed transfer ends the | | |
-| | | session. The other parts are fixed: (1) a refused `STREAM_PREPARE_BUFFER` reads the data and | | |
-| | | answers twice, (2) a `BOARD_STATUS_READ` whose `status()` fails sends the error alone, (4) | | |
-| | | `boot bpak` refused before the header reads it (F-128) | | |
 | F-275 | `src/cm/cm_main.c` `pb_command_parse()` | The frame is checked before the gate: | Verified (code) | open |
 | | | a locked device answers INVALID_COMMAND before authentication to a command its build doesn't | | |
 | | | have and to a frame with a wrong magic, which tells a host which commands the build knows. | | |
@@ -750,8 +744,8 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | F-364 | `src/cm/cm_main.c` `cm_run()` | Low. A lost that the transport reports when the read of | Verified (code) | open |
 | | | the next command is started (`usb.md` 4.3: kept for the next `xfer_start`) makes `cm_run()` leave | | |
 | | | and pb reset, where `usb.md` 2.4 restarts the transport and waits for a host (`command-mode.md` | | |
-| | | 2.2). The session ends either way. Inside a command a failed start ends the session since F-185, and | | |
-| | | the command goes on (F-274) | | |
+| | | 2.2). The session ends either way. Inside a command a failed start ends the session and the | | |
+| | | transport is restarted (F-277) | | |
 | F-375 | `src/cm/cm_main.c` `PB_CMD_DEVICE_READ_CAPS`, `command-mode.md` 4.6 | Low. The caps' | Verified (code) | open |
 | | | `part_erase_timeout_ms` stays zero: 4.6 says a device fills it, but pb sets no bound on an erase. | | |
 | | | Its time is the driver's per block (`bio.md` 3, from the driver's header) times the blocks a host | | |

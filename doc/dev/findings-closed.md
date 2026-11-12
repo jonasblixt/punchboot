@@ -613,6 +613,16 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | that read the header the boot flow has sent the results, as before. With F-274 (4). `test_cm.c` | | |
 | | | (`test_boot_bpak_refused_before_the_header`, `test_boot_bpak`). Not covered on pb-host: it has no | | |
 | | | refusal before the header from command mode | | |
+| F-274 | `src/cm/cm_main.c`, `tools/punchboot/session.py` | Exchanges that get out of | Verified (code) | fixed |
+| | | step. (1) A refused `STREAM_PREPARE_BUFFER` (the gate, the size, the id) sent one result, but | | |
+| | | hosts send the data whatever the first result says. (2) `BOARD_STATUS_READ` whose `status()` | | |
+| | | fails sent the error, the data and a second result. (3) Most `cm_write()` results are ignored, | | |
+| | | and a failed `cm_read()` inside a command returned to the loop on the same transport. (4) | | |
+| | | `boot bpak` refused before the header was read. `command-mode.md` 4.4 | | |
+| | | Fixed, a commit per part: (1) the data is read and dropped and the second result has the | | |
+| | | refusal; (2) the error is sent alone, as every released host expects; (3) with F-277: a transfer | | |
+| | | that fails or times out ends the session, the command's later transfers fail at once and the | | |
+| | | loop restarts the transport; (4) with F-128: the header is read and its result has the refusal | | |
 
 ## Dependencies / vendored code
 
