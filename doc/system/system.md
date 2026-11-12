@@ -41,7 +41,7 @@ pb runs the build's tasks in turn (`board.md` 4.6, D-051), and command mode is o
 build without command mode stops for the same reasons and runs its other tasks; with none it
 resets.
 
-The flows: `boot.md`, `command-mode.md` (draft).
+The flows: `boot.md`, `command-mode.md`.
 
 ## 3. The interfaces to the outside
 
@@ -51,7 +51,7 @@ The flows: `boot.md`, `command-mode.md` (draft).
 | The image           | The build that signs       | Like the wire: the format       | `compatibility.md`,            |
 |                     | images                     | (bpak), the meta data pb reads  | `boot.md` 4                    |
 | The wire            | A host in command mode     | Frames, values, sequences,      | `compatibility.md`; behaviour: |
-|                     |                            | meaning                         | `command-mode.md` (draft)      |
+|                     |                            | meaning                         | `command-mode.md`      |
 | The handover        | The next stage             | Like the wire: the entry state, | `boot.md` 5, 7                 |
 |                     |                            | the arguments, pb's information |                                |
 | The OS at run time  | The update client,         | Like the wire: the A/B state's  | `boot.md` 3.7, 7; `board.md` 8 |
@@ -143,6 +143,8 @@ build on changes its form in a major release at most.
 ## 6. What pb leaves to the product
 
 - The signing keys, their custody and when to revoke one.
+- Whether command mode asks for authentication at all (`CONFIG_CM_AUTH`, on by default), and
+  with which methods (`command-mode.md` 3.2).
 - The update client in the OS and its use of the A/B state (`pbstate`).
 - What the next stage verifies (the root file system).
 - The password's secret and where the board keeps it (`board.md` 4.5).

@@ -462,6 +462,9 @@ command (`security.md` 4.7; open in EOL, D-011). `bfr` is the host's request, `b
 - `*rsp_size` is set also when it fails.
 - Command mode kicks the watchdog only between commands (F-189): a command that runs long calls
   `plat_wdog_kick()` as it makes progress.
+- A command may ask for a reset: it calls `cm_board_cmd_request_reboot_on_success()`, and when
+  it then returns PB_OK the core sends its result and resets. A command that fails doesn't
+  reset (`command-mode.md` 5.6).
 - The ids and their answers are the board's wire (section 8).
 
 NULL: the core's default, `-PB_ERR_NOT_SUPPORTED` for every id.

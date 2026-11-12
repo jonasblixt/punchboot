@@ -98,6 +98,10 @@ To discuss (Jonas):
 - **Authentication methods** (`security.md` 4.7): authentication is pluggable. A token limited in
   time, on platforms with secure time. Capabilities: a token for a return analysis that only
   allows reading certain logs.
+  Jonas (2026-11-12, D-058): not designed in `command-mode.md` yet, he wants more time on it.
+  His idea: a manifest of the commands a session may run, sent as the token together with its
+  signature, so that the access control can be as fine as needed. The contract keeps only what
+  that needs: the gate is the one place that decides (`command-mode.md` 3.4).
 - **Boot failure records** (`system.md` 5.4): counters for failed boots that the system reads
   later, and error logs written to flash in some cases, for the analysis of returned devices.
 - **Another image format** (`system.md` 3): bpak solves more than pb needs; a simpler format of
@@ -108,6 +112,24 @@ To discuss (Jonas):
   ids a board names and the host's command.
 - **Erase on the wire**: Jonas may want to change it again (F-075 is accepted, no product used it).
 - pb's own update with a rollback (`security.md` 5; my addition).
+
+## From the command mode contract (2026-11-12, D-057)
+
+To do (Jonas):
+
+- **Implement `AUTH_SET_PASSWORD`** (`command-mode.md` 5.8). The slot is on the wire since 2020
+  and has answered `NOT_SUPPORTED` in every release: it was never implemented, and never
+  retired. Written into `command-mode.md` and `board.md` 4.5 first, with a decision entry. To
+  settle there:
+  - The request is fixed by released hosts (D-008): `punchboot auth password --set` sends the
+    password in the command's request, zero padded, without a length. A transcript has it.
+  - Where the secret is kept is the board's: a hook next to `password_auth()`. A board without
+    it answers `NOT_SUPPORTED`, as every device does today.
+  - Who may set it, and when: it is behind the gate since 2.0.0.
+    Whether a password that is set can be changed, or only in an open life cycle state; until
+    2.0.0 the command was named `AUTH_SET_OTP_PASSWORD`.
+  - The password is never logged and never sent back (`security.md` 4.10).
+  - With the examples for `password_auth()` (above): the same storage, such as the RPMB.
 
 ## Later / to discuss
 
