@@ -25,30 +25,87 @@
 
 ## Core modules (`src/`)
 
-| File | Role |
-|---|---|
-| `bio.c` | Block-device layer; partitions are child bios |
-| `crypto.c` | Hash/DSA op registry. Backends: `drivers/crypto/mbedtls`, `drivers/crypto/caam` (HW hash) |
-| `rot.c` | Root of trust: key map and revocation. Keys come from the generated `keystore.c` |
-| `log.c` | The start of every LOG line: `[ms.us] level function:`, the time since `log_time_start()`, which each platform calls once its timer runs (0 before). There are no separate timestamps any more: compare `punchboot log` outputs to find where boot time went |
-| `ramlog.c` | `CONFIG_RAMLOG`: a copy of the console output in a ring buffer in `.ramlog` (NOLOAD, in the `ram` region pb runs from: on the i.MX8M `.no_init` is DRAM, trained after `ramlog_init()`; symbol `ramlog`, `struct pb_ramlog_hdr`). Read it over JTAG/FEL, from a RAM dump or with `punchboot log` (`PB_CMD_LOG_READ`, positions count bytes since `ramlog_init()`, so they survive a wrap). Prints before `console_init()` only go to the log, and `console_init()` writes them to the UART. `CONFIG_RAMLOG_LOGLEVEL` (default debug) puts levels above `CONFIG_LOGLEVEL` in the log only: the LOG macros mute the UART for them (`console_uart_mute()`), and the replay leaves out the ones muted before `console_init()`. Guard code that only log messages need with `LOG_MAX_LEVEL`, not `LOGLEVEL`. `CONFIG_RAMLOG_SYNC` cleans the D-cache per character, so the log is current even after a hang |
-| `log_source.c` | The logs `PB_CMD_LOG_READ` reads, selected by `pb_id()` of their name (`struct log_source`: `head`, `length`, `read`, like the RAM log). Built in: `pb` (the RAM log, also log 0) and `list` (one line per log). Platforms and boards add others with `log_source_register()` (up to 4), e.g. `rom`. A log that doesn't change has `length() == head()`. The result echoes the log that was read; see `compatibility.md` for old hosts and devices |
-| `slc.c` | Security life cycle. Thin dispatch to `plat/*/slc_helpers.c`, `fusebox.c`, `drivers/fuse/imx_ocotp.c` |
-| `cm/cm_main.c` | Command mode: `cm_run()` loop, `pb_command_parse()` switch over `PB_CMD_*` |
-| `wire.c` | Wire protocol helpers, shared with the host lib |
-| `boot/ab_state.c` | A/B state (primary + backup, CRC32), attempt counters, rollback |
-| `boot/linux_ramoops.c` | `CONFIG_BOOT_LINUX_RAMOOPS` (on for jiffy and imx8mpevk, 1 MiB at 0xbff00000, eight 128 KiB records, no console zone, matching the test bench DTS): set up in `cm_run()`, not on the boot path (D-023). The log `linux` is the newest uncompressed dmesg record Linux's pstore/ramoops saved (the whole kernel log at a panic, oops, emergency restart, or reboot with `max-reason = <4>`), with its `====<sec>.<usec>-D` header: the record with the latest header time, since each boot's first dump goes to record 0 and old records stay until Linux erases them; a compressed (`-C`) record is skipped. The Kconfig values mirror the DT ramoops node (address, size, record-, console-, ftrace-, pmsg-size; ecc-size must be 0), and the records are found the way Linux 6.18 lays the region out (`ramoops_init_przs()`: `size / record_size` zones of an even share each). Read when the log is read, never copied, so read it before anything is loaded there. On the 8MP EVK the PCA9450 power cycles the DRAM on Linux's reboot and panic restart (F-156); a watchdog reset keeps it. jiffy keeps it on reboot, panic and watchdog. The log table (`LOG_SOURCES_MAX`, 4) has rom, hab and linux on both boards |
-| `drivers/partition/gpt.c` | GPT validate/repair/install from variant list |
-| `drivers/rom_log/imx_rom_log.c` | The i.MX boot ROM's event log (NXP AN12853, in `~/work/manuals`). The platform passes a `struct imx_rom_log_config` (pointer address, OCRAM range, size, event definition version) to `imx_rom_log_save()` early in `plat_init()`. Decodes to text, read as the log `rom` (`punchboot log rom`, registered when the save finds a log, decoded at the first read). `imx_rom_log_has_event()` tells `plat_get_boot_source()` how the ROM booted. Event tables per definition version: 0 (i.MX6, IDs in bits 23:0) and 2 (i.MX 8M, IDs in bits 31:24, ticks with an undocumented unit; `0x82` has a tick the table doesn't list). Events have up to two typed parameters. i.MX6UL (pointer 0x1E0, 64 words) and i.MX8M (0x9E0, 128 words, in the ROM's part of the OCRAM below pb) save it. Not yet: i.MX 8QXP/8DXL (four buffers) and i.MX93 (fixed address) |
-| `drivers/rom_log/imx_hab_log.c` | The boot ROM's HABv4 status and events as the log `hab` (i.MX6UL, i.MX8M, i.MX RT10xx), through the ROM's HAB API (`report_status`, `report_event` in its RVT; `struct imx_hab_log_config`: the RVT's address and pointer size, 4 or 8). `imx_hab_log_init()` checks the RVT header (tag 0xdd) before anything is called; the ROM is called at the first read. RVTs: i.MX6UL 0x100, RT1060 0x00200300 (RM 9.12.1), i.MX8M Plus 0x900 and 8MQ 0x880 with 64-bit pointers (U-Boot's; the 8MP one checked on the EVK). The ROM's data must be mapped: on the 8MP the whole 252 KiB ROM |
+| File                            | Role                                                                              |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `bio.c`                         | Block-device layer; partitions are child bios                                     |
+| `crypto.c`                      | Hash/DSA op registry. Backends: `drivers/crypto/mbedtls`, `drivers/crypto/caam`   |
+|                                 | (HW hash)                                                                         |
+| `rot.c`                         | Root of trust: key map and revocation. Keys come from the generated `keystore.c`  |
+| `log.c`                         | The start of every LOG line: `[ms.us] level function:`, the time since            |
+|                                 | `log_time_start()`, which each platform calls once its timer runs (0 before).     |
+|                                 | There are no separate timestamps any more: compare `punchboot log` outputs to     |
+|                                 | find where boot time went                                                         |
+| `ramlog.c`                      | `CONFIG_RAMLOG`: a copy of the console output in a ring buffer in `.ramlog`       |
+|                                 | (NOLOAD, in the `ram` region pb runs from: on the i.MX8M `.no_init` is DRAM,      |
+|                                 | trained after `ramlog_init()`; symbol `ramlog`, `struct pb_ramlog_hdr`). Read it  |
+|                                 | over JTAG/FEL, from a RAM dump or with `punchboot log` (`PB_CMD_LOG_READ`,        |
+|                                 | positions count bytes since `ramlog_init()`, so they survive a wrap). Prints      |
+|                                 | before `console_init()` only go to the log, and `console_init()` writes them to   |
+|                                 | the UART. `CONFIG_RAMLOG_LOGLEVEL` (default debug) puts levels above              |
+|                                 | `CONFIG_LOGLEVEL` in the log only: the LOG macros mute the UART for them          |
+|                                 | (`console_uart_mute()`), and the replay leaves out the ones muted before          |
+|                                 | `console_init()`. Guard code that only log messages need with `LOG_MAX_LEVEL`,    |
+|                                 | not `LOGLEVEL`. `CONFIG_RAMLOG_SYNC` cleans the D-cache per character, so the log |
+|                                 | is current even after a hang                                                      |
+| `log_source.c`                  | The logs `PB_CMD_LOG_READ` reads, selected by `pb_id()` of their name             |
+|                                 | (`struct log_source`: `head`, `length`, `read`, like the RAM log). Built in: `pb` |
+|                                 | (the RAM log, also log 0) and `list` (one line per log). Platforms and boards add |
+|                                 | others with `log_source_register()` (up to 4), e.g. `rom`. A log that doesn't     |
+|                                 | change has `length() == head()`. The result echoes the log that was read; see     |
+|                                 | `compatibility.md` for old hosts and devices                                      |
+| `slc.c`                         | Security life cycle. Thin dispatch to `plat/*/slc_helpers.c`, `fusebox.c`,        |
+|                                 | `drivers/fuse/imx_ocotp.c`                                                        |
+| `cm/cm_main.c`                  | Command mode: `cm_run()` loop, `pb_command_parse()` switch over `PB_CMD_*`        |
+| `wire.c`                        | Wire protocol helpers, shared with the host lib                                   |
+| `boot/ab_state.c`               | A/B state (primary + backup, CRC32), attempt counters, rollback                   |
+| `boot/linux_ramoops.c`          | `CONFIG_BOOT_LINUX_RAMOOPS` (on for jiffy and imx8mpevk, 1 MiB at 0xbff00000,     |
+|                                 | eight 128 KiB records, no console zone, matching the test bench DTS): set up in   |
+|                                 | `cm_run()`, not on the boot path (D-023). The log `linux` is the newest           |
+|                                 | uncompressed dmesg record Linux's pstore/ramoops saved (the whole kernel log at a |
+|                                 | panic, oops, emergency restart, or reboot with `max-reason = <4>`), with its      |
+|                                 | `====<sec>.<usec>-D` header: the record with the latest header time, since each   |
+|                                 | boot's first dump goes to record 0 and old records stay until Linux erases them;  |
+|                                 | a compressed (`-C`) record is skipped. The Kconfig values mirror the DT ramoops   |
+|                                 | node (address, size, record-, console-, ftrace-, pmsg-size; ecc-size must be 0),  |
+|                                 | and the records are found the way Linux 6.18 lays the region out                  |
+|                                 | (`ramoops_init_przs()`: `size / record_size` zones of an even share each). Read   |
+|                                 | when the log is read, never copied, so read it before anything is loaded there.   |
+|                                 | On the 8MP EVK the PCA9450 power cycles the DRAM on Linux's reboot and panic      |
+|                                 | restart (F-156); a watchdog reset keeps it. jiffy keeps it on reboot, panic and   |
+|                                 | watchdog. The log table (`LOG_SOURCES_MAX`, 4) has rom, hab and linux on both     |
+|                                 | boards                                                                            |
+| `drivers/partition/gpt.c`       | GPT validate/repair/install from variant list                                     |
+| `drivers/rom_log/imx_rom_log.c` | The i.MX boot ROM's event log (NXP AN12853, in `~/work/manuals`). The platform    |
+|                                 | passes a `struct imx_rom_log_config` (pointer address, OCRAM range, size, event   |
+|                                 | definition version) to `imx_rom_log_save()` early in `plat_init()`. Decodes to    |
+|                                 | text, read as the log `rom` (`punchboot log rom`, registered when the save finds  |
+|                                 | a log, decoded at the first read). `imx_rom_log_has_event()` tells                |
+|                                 | `plat_get_boot_source()` how the ROM booted. Event tables per definition version: |
+|                                 | 0 (i.MX6, IDs in bits 23:0) and 2 (i.MX 8M, IDs in bits 31:24, ticks with an      |
+|                                 | undocumented unit; `0x82` has a tick the table doesn't list). Events have up to   |
+|                                 | two typed parameters. i.MX6UL (pointer 0x1E0, 64 words) and i.MX8M (0x9E0, 128    |
+|                                 | words, in the ROM's part of the OCRAM below pb) save it. Not yet: i.MX 8QXP/8DXL  |
+|                                 | (four buffers) and i.MX93 (fixed address)                                         |
+| `drivers/rom_log/imx_hab_log.c` | The boot ROM's HABv4 status and events as the log `hab` (i.MX6UL, i.MX8M, i.MX    |
+|                                 | RT10xx), through the ROM's HAB API (`report_status`, `report_event` in its RVT;   |
+|                                 | `struct imx_hab_log_config`: the RVT's address and pointer size, 4 or 8).         |
+|                                 | `imx_hab_log_init()` checks the RVT header (tag 0xdd) before anything is called;  |
+|                                 | the ROM is called at the first read. RVTs: i.MX6UL 0x100, RT1060 0x00200300 (RM   |
+|                                 | 9.12.1), i.MX8M Plus 0x900 and 8MQ 0x880 with 64-bit pointers (U-Boot's; the 8MP  |
+|                                 | one checked on the EVK). The ROM's data must be mapped: on the 8MP the whole 252  |
+|                                 | KiB ROM                                                                           |
 
 ## Platforms and boards (last touched)
 
-| | Status |
-|---|---|
-| Archs | armv7a, armv8a (2026); armv7m (2023) |
-| Plats | imx6ul, imx8m (2026; `PLAT_IMX8MQ`/`PLAT_IMX8MP` + `PLAT_IMX8M_COMMON`, per-SoC clocks in `plat_<soc>.c`, DDR init: `imx8m-ddr.md`); imx8x QXP/DXL (2026-08); imxrt (2023, stale); host (test only, `testing.md`) |
-| Boards | imx8dxlevk, imx8qxmek (2025, the only boards in the Kconfig `choice BOARD`); jiffy (imx6ul), imxrt1060evk (2024); imx8mevk (unfinished, see F-033); imx8mpevk (2026-10, DRAM up on the board, no USB or eMMC yet); host (test only). jiffy, imx8dxlevk, imx8mevk and imx8mpevk (the last two with placeholder DDR firmware in CI) build today (F-051) |
+|        | Status                                                                                                     |
+| ------ | ---------------------------------------------------------------------------------------------------------- |
+| Archs  | armv7a, armv8a (2026); armv7m (2023)                                                                       |
+| Plats  | imx6ul, imx8m (2026; `PLAT_IMX8MQ`/`PLAT_IMX8MP` + `PLAT_IMX8M_COMMON`, per-SoC clocks in `plat_<soc>.c`,  |
+|        | DDR init: `imx8m-ddr.md`); imx8x QXP/DXL (2026-08); imxrt (2023, stale); host (test only, `testing.md`)    |
+| Boards | imx8dxlevk, imx8qxmek (2025, the only boards in the Kconfig `choice BOARD`); jiffy (imx6ul), imxrt1060evk  |
+|        | (2024); imx8mevk (unfinished, see F-033); imx8mpevk (2026-10, DRAM up on the board, no USB or eMMC yet);   |
+|        | host (test only). jiffy, imx8dxlevk, imx8mevk and imx8mpevk (the last two with placeholder DDR firmware in |
+|        | CI) build today (F-051)                                                                                    |
 
 ## Security model (short)
 

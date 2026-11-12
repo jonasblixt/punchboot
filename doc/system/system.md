@@ -26,12 +26,12 @@ ROM -> pb -> secure firmware (-> a secure OS) -> an operating system or a hyperv
           -> an application (a microcontroller)
 ```
 
-| Mode | Entered | Ends with |
-|---|---|---|
-| Boot | Every reset | The jump, or command mode |
+| Mode         | Entered                                              | Ends with                           |
+| ------------ | ---------------------------------------------------- | ----------------------------------- |
+| Boot         | Every reset                                          | The jump, or command mode           |
 | Command mode | A boot that failed or was refused; the board's stop; | A boot the host started, or a reset |
-| | a serial download (`board.md` 5.1) | |
-| Reset | A platform failure; the watchdog; command mode's end | Boot |
+|              | a serial download (`board.md` 5.1)                   |                                     |
+| Reset        | A platform failure; the watchdog; command mode's end | Boot                                |
 
 Command mode without a host ends by itself: when its transport isn't ready in time
 (`CONFIG_CM_TRANSPORT_READY_TIMEOUT`, 10 s), pb resets and boots again.
@@ -45,22 +45,24 @@ The flows: `boot.md`, `command-mode.md` (draft).
 
 ## 3. The interfaces to the outside
 
-| Interface | The other side | Fixed | Where |
-|---|---|---|---|
-| The ROM | Loads and authenticates pb | The SoC's, not pb's | `platform.md`, `plat-imx.md` |
-| The image | The build that signs images | Like the wire: the format (bpak), the | `compatibility.md`, |
-| | | meta data pb reads | `boot.md` 4 |
-| The wire | A host in command mode | Frames, values, sequences, meaning | `compatibility.md`; behaviour: |
-| | | | `command-mode.md` (draft) |
-| The handover | The next stage | Like the wire: the entry state, the | `boot.md` 5, 7 |
-| | | arguments, pb's information | |
-| The OS at run time | The update client, `pbstate` | Like the wire: the A/B state's format | `boot.md` 3.7, 7; |
-| | | and meaning, the partition UUIDs | `board.md` 8 |
-| The host tools | Scripts, factory lines | By version: a breaking change is a | `arch-host-tools.md` |
-| | | major release | |
-| The device identity | Hosts, the token, the OS | Like the wire: the UUID's derivation | `platform.md` 3.7 |
-| The porting API | Boards and platforms, out of | By version: `struct board`, the hooks, | `board.md`, `platform.md` |
-| | the tree too | the build interface | |
+| Interface           | The other side             | Fixed                           | Where                          |
+| ------------------- | -------------------------- | ------------------------------- | ------------------------------ |
+| The ROM             | Loads and authenticates pb | The SoC's, not pb's             | `platform.md`, `plat-imx.md`   |
+| The image           | The build that signs       | Like the wire: the format       | `compatibility.md`,            |
+|                     | images                     | (bpak), the meta data pb reads  | `boot.md` 4                    |
+| The wire            | A host in command mode     | Frames, values, sequences,      | `compatibility.md`; behaviour: |
+|                     |                            | meaning                         | `command-mode.md` (draft)      |
+| The handover        | The next stage             | Like the wire: the entry state, | `boot.md` 5, 7                 |
+|                     |                            | the arguments, pb's information |                                |
+| The OS at run time  | The update client,         | Like the wire: the A/B state's  | `boot.md` 3.7, 7; `board.md` 8 |
+|                     | `pbstate`                  | format and meaning, the         |                                |
+|                     |                            | partition UUIDs                 |                                |
+| The host tools      | Scripts, factory lines     | By version: a breaking change   | `arch-host-tools.md`           |
+|                     |                            | is a major release              |                                |
+| The device identity | Hosts, the token, the OS   | Like the wire: the UUID's       | `platform.md` 3.7              |
+|                     |                            | derivation                      |                                |
+| The porting API     | Boards and platforms, out  | By version: `struct board`, the | `board.md`, `platform.md`      |
+|                     | of the tree too            | hooks, the build interface      |                                |
 
 - **The ROM.** pb expects the ROM's state as the port's document records it, and says so when
   the ROM left something else (the logs, the boot source, `security.md` 4.5).
@@ -81,14 +83,15 @@ The flows: `boot.md`, `command-mode.md` (draft).
 The device's security life cycle (SLC), kept in the SoC's fuses. It only moves forward. The
 order is the core's (D-027), the fuses the platform's.
 
-| State | Means | The ROM | Command mode |
-|---|---|---|---|
-| `NOT_CONFIGURED` | Nothing fused | Runs any pb | Open |
-| `CONFIGURATION` | The key hash and the board's configuration | Runs any pb | Open |
-| | fuses are written; can be repeated until locked | | |
-| `CONFIGURATION_LOCKED` | The product in the field | Runs only a signed pb | Authentication |
-| `EOL` | End of life, optional | The SoC's | Open (D-011) |
-| Unknown (a read failed) | | | Authentication, and no boot |
+| State                   | Means                            | The ROM               | Command mode                |
+| ----------------------- | -------------------------------- | --------------------- | --------------------------- |
+| `NOT_CONFIGURED`        | Nothing fused                    | Runs any pb           | Open                        |
+| `CONFIGURATION`         | The key hash and the board's     | Runs any pb           | Open                        |
+|                         | configuration fuses are written; |                       |                             |
+|                         | can be repeated until locked     |                       |                             |
+| `CONFIGURATION_LOCKED`  | The product in the field         | Runs only a signed pb | Authentication              |
+| `EOL`                   | End of life, optional            | The SoC's             | Open (D-011)                |
+| Unknown (a read failed) |                                  |                       | Authentication, and no boot |
 
 - pb verifies images the same way in every state (`security.md` 4.1). The states differ in what
   the ROM enforces and in who may use command mode.

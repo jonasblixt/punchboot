@@ -9,19 +9,27 @@ its DRAM trains and passes a write/read test (2026-10-28, see "i.MX8M Plus EVK")
 
 ## Files
 
-| File | What |
-|---|---|
-| `include/drivers/ddr/umctl2.h`, `src/drivers/ddr/umctl2.c` | Synopsys uMCTL2 controller: offsets from the base, FREQ1..3 shadows, fields, controller-only init steps (`DRIVERS_DDR_UMCTL2`) |
-| `include/drivers/ddr/dwc_ddrphy.h`, `src/drivers/ddr/dwc_ddrphy.c` | Synopsys DWC DDR4/LPDDR4 PHY: CSR numbering, PMU mailbox/reset CSRs, message codes; firmware load, training run, calibration, CSR readback (`DRIVERS_DDR_DWC_PHY`) |
-| `include/drivers/ddr/dram_cfg.h` | Table types (`dram_cfg_param`, `dram_fsp_msg`) |
-| `include/plat/imx8m/ddrc.h` | Absolute `DDRC_*(n)` addresses on the i.MX8M, for the board tables |
-| `include/plat/imx8m/dram.h` | PHY base/stride, `struct dram_timing_info` (TF-A ABI), `dram_timing`, `imx8m_ddr_init()` |
-| `include/plat/imx8m/mm.h` | SRC DDRC resets, GPC power up, `DDRC_DDR_SS_GPR0` |
-| `src/plat/imx8m/ddr.c` | The init sequence, common to the i.MX8M SoCs, and the TF-A copy |
-| `src/plat/imx8m/ddr_soc.h`, `ddr_imx8mq.c`, `ddr_imx8mp.c` | Per-SoC hooks: reset hold, DRAM clock (8MQ: SSCG PLL at 3200 MT/s; 8MP: PLL14xx at 4000 MT/s and the DRAM1 clock gate; both: PHY bypass from DRAM_ALT_CLK_ROOT at 400 and 100 MT/s) |
-| `include/plat/imx8m/clock_imx8mp.h` | 8MP PLL14xx registers (the 8MQ's FRAC/SSCG PLLs are in `clock.h`) |
-| `src/board/imx8mevk/lpddr4_timing.c`, `src/board/imx8mpevk/lpddr4_timing.c` | Board tables from NXP's DDR tool: controller, PHY, message blocks, PIE, trained CSR list, `fsp_msg` |
-| `tests/unit/test_imx8m_ddr.c`, `test_imx8mp_ddr.c` | Device model + golden trace per SoC (`tests/unit/data/imx8m{,p}_ddr_init.trace`) |
+| File                                        | What                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| `include/drivers/ddr/umctl2.h`,             | Synopsys uMCTL2 controller: offsets from the base, FREQ1..3        |
+| `src/drivers/ddr/umctl2.c`                  | shadows, fields, controller-only init steps (`DRIVERS_DDR_UMCTL2`) |
+| `include/drivers/ddr/dwc_ddrphy.h`,         | Synopsys DWC DDR4/LPDDR4 PHY: CSR numbering, PMU mailbox/reset     |
+| `src/drivers/ddr/dwc_ddrphy.c`              | CSRs, message codes; firmware load, training run, calibration, CSR |
+|                                             | readback (`DRIVERS_DDR_DWC_PHY`)                                   |
+| `include/drivers/ddr/dram_cfg.h`            | Table types (`dram_cfg_param`, `dram_fsp_msg`)                     |
+| `include/plat/imx8m/ddrc.h`                 | Absolute `DDRC_*(n)` addresses on the i.MX8M, for the board tables |
+| `include/plat/imx8m/dram.h`                 | PHY base/stride, `struct dram_timing_info` (TF-A ABI),             |
+|                                             | `dram_timing`, `imx8m_ddr_init()`                                  |
+| `include/plat/imx8m/mm.h`                   | SRC DDRC resets, GPC power up, `DDRC_DDR_SS_GPR0`                  |
+| `src/plat/imx8m/ddr.c`                      | The init sequence, common to the i.MX8M SoCs, and the TF-A copy    |
+| `src/plat/imx8m/ddr_soc.h`, `ddr_imx8mq.c`, | Per-SoC hooks: reset hold, DRAM clock (8MQ: SSCG PLL at 3200 MT/s; |
+| `ddr_imx8mp.c`                              | 8MP: PLL14xx at 4000 MT/s and the DRAM1 clock gate; both: PHY      |
+|                                             | bypass from DRAM_ALT_CLK_ROOT at 400 and 100 MT/s)                 |
+| `include/plat/imx8m/clock_imx8mp.h`         | 8MP PLL14xx registers (the 8MQ's FRAC/SSCG PLLs are in `clock.h`)  |
+| `src/board/imx8mevk/lpddr4_timing.c`,       | Board tables from NXP's DDR tool: controller, PHY, message blocks, |
+| `src/board/imx8mpevk/lpddr4_timing.c`       | PIE, trained CSR list, `fsp_msg`                                   |
+| `tests/unit/test_imx8m_ddr.c`,              | Device model + golden trace per SoC                                |
+| `test_imx8mp_ddr.c`                         | (`tests/unit/data/imx8m{,p}_ddr_init.trace`)                       |
 
 The training firmware (`lpddr4_pmu_train_{1d,2d}_{imem,dmem}.bin`) comes from NXP under its own
 EULA and is not in the repository. The firmware build needs it (F-051); placeholder files do for a compile check (see "Testing").
@@ -31,13 +39,20 @@ EULA and is not in the repository. The firmware build needs it (F-051); placehol
 The i.MX8M DDR subsystem is two Synopsys DesignWare IPs, and AMD/Xilinx licensed the same
 controller for the Zynq UltraScale+ MPSoC/RFSoC PS, but not the same PHY.
 
-| | i.MX8M (8MQ, also 8MM/8MN/8MP) | Zynq UltraScale+ MPSoC/RFSoC (PS DDR) |
-|---|---|---|
-| Controller | DWC uMCTL2 at 0x3d400000 | DWC uMCTL2 "DDRC" at 0xFD070000 (`xlnx,zynqmp-ddrc-2.40a`) |
-| Controller register map | MSTR 0x000 ... SWCTL 0x320, PCCFG 0x400, PCTRL_n 0x490 + 0xb0·n, FREQ1..3 shadows at +0x1000·(n+1) | Same offsets (PCTRL_1 at 0x540), DFITMG0_SHADOW at 0x2190 |
-| PHY | DWC DDR4/LPDDR4 multiPHY with firmware training: PMU microcontroller, IMEM/DMEM, message block, mailbox, PIE | DWC DDR multiPHY with a PUB (PHY Utility Block) at 0xFD080000: hardware training started through PIR, PGCR/PGSR/DXnGCR/ZQnPR registers |
-| Training | NXP firmware blobs, 1D and 2D, per frequency set point | PUB state machine, no firmware |
-| Versal | n/a | Versal uses AMD's own DDRMC (NoC) and XPHY, neither is Synopsys |
+|                         | i.MX8M (8MQ, also 8MM/8MN/8MP)          | Zynq UltraScale+ MPSoC/RFSoC (PS DDR)           |
+| ----------------------- | --------------------------------------- | ----------------------------------------------- |
+| Controller              | DWC uMCTL2 at 0x3d400000                | DWC uMCTL2 "DDRC" at 0xFD070000                 |
+|                         |                                         | (`xlnx,zynqmp-ddrc-2.40a`)                      |
+| Controller register map | MSTR 0x000 ... SWCTL 0x320, PCCFG       | Same offsets (PCTRL_1 at 0x540), DFITMG0_SHADOW |
+|                         | 0x400, PCTRL_n 0x490 + 0xb0·n, FREQ1..3 | at 0x2190                                       |
+|                         | shadows at +0x1000·(n+1)                |                                                 |
+| PHY                     | DWC DDR4/LPDDR4 multiPHY with firmware  | DWC DDR multiPHY with a PUB (PHY Utility Block) |
+|                         | training: PMU microcontroller,          | at 0xFD080000: hardware training started        |
+|                         | IMEM/DMEM, message block, mailbox, PIE  | through PIR, PGCR/PGSR/DXnGCR/ZQnPR registers   |
+| Training                | NXP firmware blobs, 1D and 2D, per      | PUB state machine, no firmware                  |
+|                         | frequency set point                     |                                                 |
+| Versal                  | n/a                                     | Versal uses AMD's own DDRMC (NoC) and XPHY,     |
+|                         |                                         | neither is Synopsys                             |
 
 So: **same controller, different PHY generation.** Everything in `umctl2.h` can be checked against
 AMD's material; nothing in `dwc_ddrphy.h` can. The ZynqMP DDR_PHY chapter of UG1087 describes the
@@ -58,11 +73,28 @@ How this was checked (2026-10-28):
 
 ## Other SoCs (checked 2026-10-28, against U-Boot master)
 
-| SoC | Controller | PHY | Shares code with this driver? |
-|---|---|---|---|
-| i.MX8M Plus (also 8MM/8MN) | uMCTL2 at 0x3d400000, same map (NXP's 8MP EVK table writes MSTR 0xa3080020 at 0x3d400000) | Same firmware-trained DWC PHY at 0x3c000000, same mailbox; firmware `*_202006`, 4000/400/100 MT/s | Yes. Differences: SRC reset sequence, DRAM PLL (PLL14xx instead of SSCG), PHY bypass mode for data rates <= 625 MT/s (DRAM clock from the CCM instead of the PLL), inline ECC, DDR4 option |
-| Allwinner H5 (also H3/A64/R40/V3s) | One register window with Synopsys-named controller *and* PHY registers at Allwinner offsets (PIR 0x00, PWRCTL 0x04, DRAMTMG 0x58, SCHED 0x1c0, DXn at 0x300); U-Boot `dram_sunxi_dw.c` | PUB-style, hardware training through PIR/PGSR, like the ZynqMP's; DDR3/LPDDR3/DDR2 | No. Different register map, different PHY generation, no firmware |
-| Allwinner H6/H616 | uMCTL2 at the standard offsets (MSTR 0x000, DRAMTMG 0x100, SWCTL 0x320) | ZynqMP-like PUB PHY, different bit fields (U-Boot `dram_sun50i_h6.h`) | Controller only |
+| SoC                                | Controller               | PHY                 | Shares code with this driver? |
+| ---------------------------------- | ------------------------ | ------------------- | ----------------------------- |
+| i.MX8M Plus (also 8MM/8MN)         | uMCTL2 at 0x3d400000,    | Same                | Yes. Differences: SRC reset   |
+|                                    | same map (NXP's 8MP EVK  | firmware-trained    | sequence, DRAM PLL (PLL14xx   |
+|                                    | table writes MSTR        | DWC PHY at          | instead of SSCG), PHY bypass  |
+|                                    | 0xa3080020 at            | 0x3c000000, same    | mode for data rates <= 625    |
+|                                    | 0x3d400000)              | mailbox; firmware   | MT/s (DRAM clock from the CCM |
+|                                    |                          | `*_202006`,         | instead of the PLL), inline   |
+|                                    |                          | 4000/400/100 MT/s   | ECC, DDR4 option              |
+| Allwinner H5 (also H3/A64/R40/V3s) | One register window with | PUB-style, hardware | No. Different register map,   |
+|                                    | Synopsys-named           | training through    | different PHY generation, no  |
+|                                    | controller *and* PHY     | PIR/PGSR, like the  | firmware                      |
+|                                    | registers at Allwinner   | ZynqMP's;           |                               |
+|                                    | offsets (PIR 0x00,       | DDR3/LPDDR3/DDR2    |                               |
+|                                    | PWRCTL 0x04, DRAMTMG     |                     |                               |
+|                                    | 0x58, SCHED 0x1c0, DXn   |                     |                               |
+|                                    | at 0x300); U-Boot        |                     |                               |
+|                                    | `dram_sunxi_dw.c`        |                     |                               |
+| Allwinner H6/H616                  | uMCTL2 at the standard   | ZynqMP-like PUB     | Controller only               |
+|                                    | offsets (MSTR 0x000,     | PHY, different bit  |                               |
+|                                    | DRAMTMG 0x100, SWCTL     | fields (U-Boot      |                               |
+|                                    | 0x320)                   | `dram_sun50i_h6.h`) |                               |
 
 U-Boot's DDR code (`drivers/ddr/imx`, `arch/arm/mach-sunxi/dram_*`) and NXP's timing files in it
 are GPL-2.0+: reference only, no copying into punchboot (BSD-3-Clause). See "Licences and
@@ -88,18 +120,44 @@ published, is GPL-2.0+, so nothing may be copied from it. The DDR code was first
 values matched NXP's GPL-2.0+ files, under a BSD-3-Clause header without NXP's notice. Where each
 part stands now (2026-10-28):
 
-| Part | Basis | Status |
-|---|---|---|
-| Reset release, power up, `DDR_SS_GPR0`, order of the controller and DFI init steps (`ddr.c`, `umctl2.c`, `ddr_imx8mq.c`) | NXP's BSD-3-Clause TF-A DRAM code (`plat/imx/imx8m/ddr/dram_retention.c`, `dram.c`), which re-runs these steps after retention. NXP's copyright is in those files | OK. Some values differ from TF-A's (DFIMISC, PWRCTL, RFSHCTL3, the 8MQ `SRC_DDRC2_RCR` hold value), noted in the files |
-| Register map and fields (`umctl2.h`, `ddrc.h`) | Facts, checked against AMD's MIT licensed ZynqMP FSBL; no code copied | OK |
-| PHY CSRs, mailbox protocol, message codes (`dwc_ddrphy.h`) | Facts about the PHY and its firmware, written up in punchboot's words | OK |
-| Firmware load and training code (`dwc_ddrphy.c`) | Clean-room implementation (2026-10-28) from `doc/ports/spec-dwc-ddrphy.md`, by an implementer that read only the spec and the public headers; record in the commit message (`ee093be7`) | OK. The implementer was a language model: the process was clean room, but its training data may include U-Boot |
-| DRAM clock settings (`ddr_imx8mq.c`) | NXP's DDR tool v4.2.0 output for the EVK (register settings: PLL, DRAM_APB/DRAM_ALT clock roots, DRAM_SEL bypass) | OK |
-| `struct dram_timing_info` layout (`dram.h`) | Interface to TF-A (BSD-3-Clause); comments in punchboot's words | OK |
-| 8MP clocks and resets (`ddr_imx8mp.c`, `clock_imx8mp.h`) | NXP's DDR tool v4.2.0 stress test script for the 8MP EVK (reset values, DRAM_APB clock, PLL setting 0xfa031), the 8MP RM (PLL14xx fields, clock root sources, CCGR5 DRAM1) | OK |
-| 8MP EVK timing (`src/board/imx8mpevk/lpddr4_timing.c`) and its golden trace | NXP's DDR Tool v4.2.0 under BSD-3-Clause, Copyright 2026 NXP, FW2020.06; NXP's notice kept, all 1758 register/value pairs checked identical to the tool's output by script | OK |
-| EVK timing (`src/board/imx8mevk/lpddr4_timing.c`) and its golden trace | Generated by NXP's DDR Tool v4.2.0 under BSD-3-Clause, Copyright 2026 NXP (`c129bbf9`); NXP's notice kept, data as generated. Replaced the GPL-derived table (F-108) | OK |
-| Training firmware | NXP's binaries, not in the repository | Distributed images that contain it follow NXP's firmware licence |
+| Part                                    | Basis                                            | Status                 |
+| --------------------------------------- | ------------------------------------------------ | ---------------------- |
+| Reset release, power up, `DDR_SS_GPR0`, | NXP's BSD-3-Clause TF-A DRAM code                | OK. Some values differ |
+| order of the controller and DFI init    | (`plat/imx/imx8m/ddr/dram_retention.c`,          | from TF-A's (DFIMISC,  |
+| steps (`ddr.c`, `umctl2.c`,             | `dram.c`), which re-runs these steps after       | PWRCTL, RFSHCTL3, the  |
+| `ddr_imx8mq.c`)                         | retention. NXP's copyright is in those files     | 8MQ `SRC_DDRC2_RCR`    |
+|                                         |                                                  | hold value), noted in  |
+|                                         |                                                  | the files              |
+| Register map and fields (`umctl2.h`,    | Facts, checked against AMD's MIT licensed ZynqMP | OK                     |
+| `ddrc.h`)                               | FSBL; no code copied                             |                        |
+| PHY CSRs, mailbox protocol, message     | Facts about the PHY and its firmware, written up | OK                     |
+| codes (`dwc_ddrphy.h`)                  | in punchboot's words                             |                        |
+| Firmware load and training code         | Clean-room implementation (2026-10-28) from      | OK. The implementer    |
+| (`dwc_ddrphy.c`)                        | `doc/ports/spec-dwc-ddrphy.md`, by an            | was a language model:  |
+|                                         | implementer that read only the spec and the      | the process was clean  |
+|                                         | public headers; record in the commit message     | room, but its training |
+|                                         | (`ee093be7`)                                     | data may include       |
+|                                         |                                                  | U-Boot                 |
+| DRAM clock settings (`ddr_imx8mq.c`)    | NXP's DDR tool v4.2.0 output for the EVK         | OK                     |
+|                                         | (register settings: PLL, DRAM_APB/DRAM_ALT clock |                        |
+|                                         | roots, DRAM_SEL bypass)                          |                        |
+| `struct dram_timing_info` layout        | Interface to TF-A (BSD-3-Clause); comments in    | OK                     |
+| (`dram.h`)                              | punchboot's words                                |                        |
+| 8MP clocks and resets (`ddr_imx8mp.c`,  | NXP's DDR tool v4.2.0 stress test script for the | OK                     |
+| `clock_imx8mp.h`)                       | 8MP EVK (reset values, DRAM_APB clock, PLL       |                        |
+|                                         | setting 0xfa031), the 8MP RM (PLL14xx fields,    |                        |
+|                                         | clock root sources, CCGR5 DRAM1)                 |                        |
+| 8MP EVK timing                          | NXP's DDR Tool v4.2.0 under BSD-3-Clause,        | OK                     |
+| (`src/board/imx8mpevk/lpddr4_timing.c`) | Copyright 2026 NXP, FW2020.06; NXP's notice      |                        |
+| and its golden trace                    | kept, all 1758 register/value pairs checked      |                        |
+|                                         | identical to the tool's output by script         |                        |
+| EVK timing                              | Generated by NXP's DDR Tool v4.2.0 under         | OK                     |
+| (`src/board/imx8mevk/lpddr4_timing.c`)  | BSD-3-Clause, Copyright 2026 NXP (`c129bbf9`);   |                        |
+| and its golden trace                    | NXP's notice kept, data as generated. Replaced   |                        |
+|                                         | the GPL-derived table (F-108)                    |                        |
+| Training firmware                       | NXP's binaries, not in the repository            | Distributed images     |
+|                                         |                                                  | that contain it follow |
+|                                         |                                                  | NXP's firmware licence |
 
 **Updating a board timing.** Only NXP's DDR tool (the i.MX8M DDR tool with its register
 programming aid) can produce the tables for a board: the controller values follow from the DRAM part
