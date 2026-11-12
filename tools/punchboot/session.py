@@ -240,7 +240,7 @@ class Session:
         return data
 
     def _stream_finalize(self) -> None:
-        """Finalize a stream after a write or read, which has the verdict."""
+        """Finalize a stream after a read or a failed write, which has the verdict."""
         with contextlib.suppress(Error):
             self._send(Command.PB_CMD_STREAM_FINALIZE)
             self._result()
@@ -256,7 +256,8 @@ class Session:
             file_size = f.seek(0, 2)
             f.seek(0)
             if file_size > part_size:
-                raise ArgumentError
+                # Finalized like every failure, as released hosts do
+                raise ArgumentError  # noqa: TRY301
             self._stream_init(part)
 
             buffer_id = 0
@@ -276,8 +277,13 @@ class Session:
                 self._stream_write_buffer(buffer_id, offset, len(data))
                 buffer_id = (buffer_id + 1) % buffers
                 offset += len(data)
-        finally:
+        except BaseException:
             self._stream_finalize()
+            raise
+        # After a complete write FINALIZE runs the device's last step, on eMMC
+        # it makes a boot partition bootable (command-mode.md 5.4): its result
+        # is the write's verdict (F-223)
+        self._command(Command.PB_CMD_STREAM_FINALIZE)
 
     def _part_read(self, f: IO[bytes], part: uuid.UUID) -> None:
         f.seek(0)
