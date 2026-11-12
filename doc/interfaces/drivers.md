@@ -1,6 +1,6 @@
 # The drivers' contracts: every driver
 
-**State: reviewed (Jonas, 2026-11-12), D-064 to D-066.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064 to D-066, D-073.** Level 3 (`process.md`).
 
 What a driver (`src/drivers/<class>/`, `include/drivers/<class>/`) is, and what every driver does
 whatever its class: when it is set up and stopped, how long it may wait, what it returns, and the
@@ -52,12 +52,15 @@ into the text:
 - **Clocks, pads and power are not the driver's.** Whoever sets it up has done them before
   `init`.
 - **What gets a contract** (`process.md` 2): a class with several implementations, or one that
-  security rests on. The others have their header for a contract, and this document: the DRAM
+  security rests on. The others are covered by their header and by this document: the DRAM
   controller and PHY (`imx8m-ddr.md` records that port's work), the fuse controller, GPIO, the
   pin controller, the timer, the watchdog, the UARTs, the TrustZone filter's driver, the ROM's
   logs. What the core needs from them it asks the platform for (`platform.md` 3, 4).
-- **A second implementation is the moment a class gets its contract.** Until then a new driver
-  doesn't wait for a document (`process.md` 1, D-063).
+- **A second implementation is the moment to ask whether a class gets its contract.** Not
+  every one does: the UARTs are two drivers behind one interface and have none (Jonas,
+  D-073). The interface is one output function, nothing but the log rests on it, and what
+  the console is and when it works is `board.md` 2.2. Until a class has a contract a new
+  driver doesn't wait for a document (`process.md` 1, D-063).
 
 Not here: which driver a board or a platform selects (`board.md` 2, `platform.md` 2.2, 3.10),
 the partition tables' formats (`bio.md` 4), the wire (`compatibility.md`).
@@ -78,9 +81,8 @@ Called by whoever selects the peripheral, once its clocks, pads and power are se
 
 - **Never on the boot path for what only command mode uses** (D-023, `principles.md` 4):
   command mode's USB is set up when its task first runs (`platform.md` 3.10). What the boot uses
-  is set up in `plat_init()` or the board's `init()`, and does there only what the boot needs: a
-  driver defers what can wait (a faster bus mode that the load doesn't need isn't negotiated
-  before the load).
+  is set up in `plat_init()` or the board's `init()`, and only as far as the boot needs it:
+  what can wait is deferred (a device, or a part of one, that nothing on the boot path reads).
 - It resets the device to a known state first: the ROM, a serial download or a boot that
   stopped before may have left it running.
 - It registers what the class's core needs (a block device, the backend's operations, the
@@ -92,14 +94,18 @@ Called by whoever selects the peripheral, once its clocks, pads and power are se
 
 ### 2.2 Calls
 
-Every call of a driver either completes before it returns, or is polled:
+A call of a driver is one of three kinds:
 
 - **Synchronous**: when the call returns, the device has done the work or the call failed. The
   device is idle: nothing of this call is in flight (a block read, a signature check).
 - **Polled**: a call starts the work and returns; a second one says whether it is done, with
-  `-PB_ERR_AGAIN` while it isn't. The class's contract names each such pair and says how long
-  the caller's buffer belongs to the device (a USB transfer, a hash that is fed while the next
-  chunk is read).
+  `-PB_ERR_AGAIN` while it isn't (a USB transfer).
+- **Joined by the next call**: a call starts the work and returns, and the class's next call
+  waits for it before it does anything else (a hash that is fed while the next chunk is
+  read).
+
+For the last two the class's contract names the calls and says how long the caller's buffer
+belongs to the device (`usb.md` 2.3, `crypto.md` 3.3).
 
 No driver calls back into the core, and none calls `plat_wdog_kick()` (3).
 
@@ -110,13 +116,15 @@ Argument : void
 Return   : int, PB_OK or -PB_ERR_*
 ```
 
-Before the jump nothing of pb's runs on in a device (`platform.md` 4.5, "Quiesce all DMA
-capable devices"). Whoever started a driver stops it (`board.md` 5.3): the core its transport,
-the platform what `plat_init()` started, the board what its hooks started.
+Before the jump nothing that pb started is left running in a device (`platform.md` 4.5,
+"Quiesce all DMA capable devices"). Whoever started a driver stops it (`board.md` 5.3): the
+core its transport, the platform what `plat_init()` started, the board what its hooks started.
 
 A driver has a `stop` when its device would otherwise go on by itself: a USB device controller
 that is attached to the bus, a controller with a transfer queued, a device that raises an
-interrupt request the next stage didn't ask for. When `stop` returns:
+interrupt request the next stage didn't ask for. So has one whose device keeps addresses in
+pb's memory that a later event would make it write to (a crypto engine's rings,
+`crypto.md` 6). When `stop` returns:
 
 - The device starts no DMA and completes none: it is halted or held in reset.
 - It holds no address in pb's memory that it would use on a later event. The next stage
@@ -143,10 +151,11 @@ command mode started, the transport is gone by then and pb resets (`board.md` 5.
 - **No driver kicks the watchdog**, and neither do `pb_delay_*()` and `pb_timeout_*()`
   (`platform.md` 3.3): a driver that polls for ever must not keep the board alive. The core
   kicks between a driver's calls, once per chunk.
-- **So one call is short.** A synchronous call returns within a second on every medium the
-  driver supports, for the largest request the class's contract allows; a call that can't
-  (erasing a large range) says in its header how long it takes per unit, and its caller splits
-  the work (`command-mode.md` 4.6).
+- **So the core sizes what it asks for** (Jonas, D-073). A call's time follows from its
+  request. The driver's header gives the longest time per unit on the media it supports (a
+  block read, written, erased), and the core asks in pieces that fit the watchdog with room
+  to spare: a chunk at a time (`platform.md` 3.3, `command-mode.md` 4.6). No driver promises
+  a time for a request of any size.
 - **The timeout's arithmetic** is `pb_timeout_*()`'s. **Not yet in the code (F-211)**: a wait
   that spans the tick's wrap takes 71 minutes more.
 
@@ -170,6 +179,8 @@ What a driver returns:
 - After an error the driver is usable: the next call starts from a known state, and nothing of
   the failed one completes later (F-181: a hash job that was given up answers the next
   operation's wait).
+- A class adds the codes of its own results: a pool that is full (`bio.md` 2.1), a digest
+  that doesn't fit and a signature that doesn't verify (`crypto.md` 3.5 and 4).
 
 ## 4. DMA and caches
 
@@ -258,7 +269,9 @@ Who makes it so depends on whose buffer it is:
 
 - **The class's core checks, once.** `bio_read()` and the transport's read refuse a buffer
   that doesn't start on a line, before the driver is called. Whole blocks are whole lines, so
-  the start is all there is to check. A driver therefore sees only buffers that own their
+  for a block read the start is all there is to check. A transfer's length is any number of
+  bytes: there the last line is the buffer's by its declaration, which nothing can check at
+  run time. A driver therefore sees only buffers that own their
   lines, and bounces only for what its own device needs beyond that (a controller that needs
   page alignment).
 - **A refusal is loud, a shared line is silent.** The wrong declaration fails on the first
@@ -284,14 +297,15 @@ header:
 | ---------------------------- | ---------------------------------------------------------------- |
 | `PB_DMA_ALIGN`               | The line size buffers are declared with (4.1)                    |
 | `PB_DMA_BUFFER(type, name)`, | Declares an object, or an array, that starts on a line and is    |
-| `PB_DMA_ARRAY(...)`          | padded to whole lines, in `.no_init`                             |
+| `PB_DMA_ARRAY(...)`          | padded to whole lines, in `.no_init`, so not initialised         |
 | `dma_out(addr, length)`      | Before the device reads: clean                                   |
 | `dma_in_begin(addr, length)` | Before the device writes: nothing dirty in the range             |
 | `dma_in_end(addr, length)`   | After the device wrote, before the CPU reads: invalidate         |
 | `dma_owns_lines(addr, len)`  | Whether a range starts on a line and is whole lines (4.3)        |
 
-- `dma_in_begin()` and `dma_in_end()` take only ranges that own their lines, and say so with
-  an assertion in a debug build.
+- `dma_in_begin()` and `dma_in_end()` act on whole lines: the start is on a line, which they
+  assert in a debug build, and the end is rounded up to one. That nothing else is in the last
+  line is the buffer's declaration (4.3).
 - `.no_init` is in `buffers`, which works after `plat_init()` (`platform.md` 5.1): a driver that
   runs before it (the console's UART) does no DMA.
 - **The arch gives** clean, invalidate, and clean and invalidate, by range, with the start
@@ -349,7 +363,7 @@ For a new driver, and for a change to one:
 - [ ] `init` is off the boot path unless the boot needs the device, and does only what the
       boot needs.
 - [ ] Every wait has a bound with its source, and returns `-PB_ERR_TIMEOUT`.
-- [ ] No call kicks the watchdog, and a synchronous call returns within a second.
+- [ ] No call kicks the watchdog; the header gives the longest time per unit.
 - [ ] The return codes are section 3's; after an error the next call works.
 - [ ] Out: cleaned before the device starts, descriptors with their last entry; not written
       until the device is done.

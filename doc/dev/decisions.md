@@ -1600,3 +1600,38 @@ Jonas's comments in the draft, one on each of the five open items:
 
 `usb.md` is reviewed, with no open items. With it the four drivers' contracts are reviewed
 (D-064 to D-072), and every document of levels 0 to 3 is reviewed or in force.
+
+## D-073: The final read of the drivers' contracts: seven answers (2026-11-12)
+
+After the four were reviewed I read them together and listed what needed a decision. Jonas:
+"1 to 7: yes, go with your recommendations."
+
+1. **No fixed second for a driver's call.** `drivers.md` 3 said a synchronous call returns
+   within a second, a number of mine, while `bio.md` 3.1 puts no limit on a read's length.
+   A call's time follows from its request: the driver's header gives the longest time per
+   unit, and the core asks in pieces that fit the watchdog (`platform.md` 3.3).
+2. **The UARTs get no contract**, though they are two drivers behind one interface: it is
+   one output function, only the log rests on it, and `board.md` 2.2 says what the console
+   is. `drivers.md` 1 no longer says that a second implementation always brings a contract.
+3. **`bio.md` 2.6, finding a device**: by its UUID, all of them (every handle is tried and
+   the ones that aren't a device are skipped, since a dead handle can lie between two live
+   ones, D-070), what a device is, and how long a handle is good. Two gaps of the code are
+   named with it (F-283): a second device with a taken UUID isn't refused, and the block
+   getters return `int`.
+4. **Three requests the code answers are stalled**: the debug descriptor (answered with the
+   interface descriptor), `SET_IDLE`, and a string index the class doesn't have (answered
+   with an empty string). A host sees the difference; `usb.md` 6 lists it with the stall of
+   unknown requests and the restart that leaves the bus.
+5. **A host's transfers inside a part of `BOOT_BPAK` are whole packets but the part's
+   last.** Released hosts send the caps' largest transfer, which is; `usb.md` 2.3 and
+   `command-mode.md` 4.4 say it now. Without it a read in the device's own pieces meets a
+   short packet.
+6. **`md_length` is exactly the digest size of `md_alg`**, checked in the core. The token's
+   call passes 64 whatever the hash; it is fixed in the same commit, after the tokens that
+   verify today were tried on both backends.
+7. **The lint is to check the drivers' contracts' entries** against their headers, as it
+   does for `platform.md` and `board.md`: F-288.
+
+Not decided, noted in my review and left: a `STREAM_PREPARE_BUFFER` of 0 bytes, USB suspend,
+the pool running out after several installs, how a product selects `HASH_MD5_BROKEN`, and how
+each conformance row is to be verified.

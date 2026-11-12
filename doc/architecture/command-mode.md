@@ -325,7 +325,8 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
   the data is then read as commands.
 - **`BOOT_BPAK`'s parts**: the parts the header lists, in its order, each followed by a
   result. A part's bytes are one stream of the part's size. The host splits it into transfers
-  of at most the caps' largest transfer; the device reads it in pieces of its own
+  of at most the caps' largest transfer, each of whole packets but the part's last, as
+  released hosts send them (`usb.md` 2.3); the device reads it in pieces of its own
   (`CONFIG_BOOT_LOAD_CHUNK_kB`) and relies on the size alone. Not verified on USB where the
   two differ (F-280).
 - **`BOOT_BPAK` after a result that isn't OK**: after the header's, the exchange ends (5.5).

@@ -591,6 +591,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `ab_state.c` writes the state's 512 bytes as a block of any size. `bio.h` says `-PB_ERR_IO` | | |
 | | | for a bad parent and `-PB_TIMEOUT`; the code returns `-PB_ERR_PARAM`. No conformance suite: | | |
 | | | the RAM disk and the host's disk write exact byte counts, the drivers don't (`bio.md` 8) | | |
+| | | D-073, `bio.md` 2.6: nothing refuses a second device with a UUID that is taken; the block | | |
+| | | getters return `int`, so 2^31 blocks or more read as an error (verified in `bio.c`) | | |
 | F-284 | `src/drivers/memc/imx_flexspi.c` | A write copies `size / 4 + 1` | Reported (read) | open |
 | | | words into the FIFO in its last round: 1 to 4 bytes past the caller's buffer (whether they | | |
 | | | reach the flash is unverified, the data size is the exact length). A read whose length isn't | | |
@@ -621,8 +623,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`uuid3.c`), and `HASH_MD5_BROKEN` has no caller in the tree. (10) The RT1060's build has | | |
 | | | SHA-256 and MD5 only, so a P-384 or P-521 key verifies nothing there. (11) No conformance | | |
 | | | suite: no test reaches the CAAM's hash or verify (F-230). (12) Two backends that register | | |
-| | | the same algorithm: the first is used, silently (D-071: refused). (1), (3), (4) and (9) are | | |
-| | | verified in the code, the rest is as reported | | |
+| | | the same algorithm: the first is used, silently (D-071: refused). (13) `dsa_verify()` doesn't | | |
+| | | look at an open hash (D-071: refused, in the core). (1), (3), (4) and (9) are | | |
+| | | verified in the code, the rest is as reported. D-073: `md_length` is the digest size of | | |
+| | | `md_alg`, checked in the core; `auth_token` is fixed in the same commit | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
 | | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |
@@ -636,13 +640,21 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | result, the descriptors say 512 bytes whatever the bus. (5) `usbd_init_hal_ops()` doesn't | | |
 | | | check `xfer_cancel`, `poll_setup_pkt` and `ep0_xfer_zlp`, which are called unchecked. | | |
 | | | `SET_CONFIGURATION`'s value isn't looked at; `SET_IDLE` is answered and then returns an | | |
-| | | error. (6) The stack sends a status from its stack and a string descriptor without alignment | | |
-| | | (F-282). (7) The ChipIdea cleans only endpoint 0's queue heads, `xfer_complete` ignores its | | |
+| | | error. (6) Withdrawn in the final read: what the stack sends is out only and needs no | | |
+| | | alignment (`drivers.md` 4.3). (7) The ChipIdea cleans only endpoint 0's queue heads, | | |
+| | | `xfer_complete` ignores its | | |
 | | | endpoint and returns PB_OK again when called again; the cdns3 overwrites `EP_IEN` per | | |
 | | | endpoint (effect unverified). (8) The socket's `init` blocks in `accept()`. (9) Stale: | | |
 | | | `test_host_usb.py`'s docstring says the cdns3 can't send its serial number (fixed, F-159); | | |
 | | | F-139 names `cm_board_init`, the function is `board_cm_init`. No USB code is compiled by a | | |
 | | | host test (F-230) | | |
+| | | host test (F-230). D-073: the debug descriptor, `SET_IDLE` and a string index the class | | |
+| | | doesn't have are stalled, where today they are answered (`usb.md` 3.2) | | |
+| F-288 | `tests/doc/check_docs.py` | The document lint checks the entries of | Verified (code) | open |
+| | | `platform.md`, `board.md` and `boot.md` against their headers and the other way round, not | | |
+| | | the drivers' contracts'. `bio.md` against `include/pb/bio.h`, `crypto.md` against | | |
+| | | `include/pb/crypto.h`, `usb.md`'s operations against `struct usbd_hal_ops` and its | | |
+| | | transport's functions against `include/pb/cm.h`. D-073, `process.md` 7 | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
 ## Dependencies / vendored code
