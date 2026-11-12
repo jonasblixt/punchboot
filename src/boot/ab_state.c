@@ -418,9 +418,7 @@ int boot_ab_state_set_boot_partition(uuid_t part_uu)
         boot_state.verified = 0;
         boot_state.error = 0;
     } else {
-        boot_state.enable = 0;
-        boot_state.verified = 0;
-        boot_state.error = 0;
+        /* Not a slot: nothing changes (boot.md 3.4) */
         return -PB_ERR_PART_NOT_BOOTABLE;
     }
 

@@ -586,14 +586,53 @@ static void test_set_boot_partition(void **state)
     assert_int_equal(boot_ab_state_set_boot_partition((unsigned char *)UU_SYS_A), PB_OK);
     boot_ab_state_get_boot_partition(uu);
     assert_memory_equal(uu, UU_SYS_A, 16);
+}
 
-    /* An unknown partition disables boot, but isn't committed */
+/*
+ * 'boot activate' with a UUID that isn't a slot's changes nothing (boot.md
+ * 3.4, F-175): not the state in memory, which 'boot status', the next boot
+ * and the next write would act on, nor the state on the disk.
+ */
+static void test_activate_unknown_uuid_changes_nothing(void **state)
+{
+    struct fixture *f = *state;
+    struct pb_boot_state before;
+    uuid_t uu;
+
+    /* A state with every field set: B on trial, A confirmed, an error bit */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, PB_STATE_ERROR_A_ROLLBACK);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_ab_state_write_board_reg(1, 0xb0a4d001), PB_OK);
+    memcpy(&before, state_at(f, PRIMARY_LBA), sizeof(before));
     unsigned int writes = f->disk->writes;
-    assert_int_equal(boot_ab_state_set_boot_partition((unsigned char *)UU_OTHER),
+
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_OTHER),
+                     -PB_ERR_PART_NOT_BOOTABLE);
+    /* A state partition is no slot either */
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_PRIMARY),
                      -PB_ERR_PART_NOT_BOOTABLE);
     assert_int_equal(f->disk->writes, writes);
-    boot_ab_state_get_boot_partition(uu);
-    assert_true(uuid_is_null(uu));
+
+    /* 'boot status' still names the enabled slot */
+    boot_policy_ab_ops.status(uu);
+    assert_memory_equal(uu, UU_SYS_B, 16);
+
+    /* The next write of the state has what was there: all 512 bytes, but
+     * the register it writes and the CRC */
+    assert_int_equal(boot_ab_state_write_board_reg(0, 0xb0a4d000), PB_OK);
+    before.board_regs[PB_STATE_NO_OF_BOARD_REGS - 1] = 0xb0a4d000;
+    before.crc = 0;
+    before.crc = crc32(0, (const uint8_t *)&before, sizeof(before));
+    assert_memory_equal(state_at(f, PRIMARY_LBA), &before, sizeof(before));
+    assert_memory_equal(state_at(f, BACKUP_LBA), &before, sizeof(before));
+
+    /* And the next boot is the trial's, counted */
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_A_VERIFIED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 1);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_A_ROLLBACK);
 }
 
 static void test_part_names(void **state)
@@ -663,10 +702,11 @@ static void test_policy_object(void **state)
     assert_memory_equal(uu, UU_SYS_B, 16);
     assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_A_VERIFIED);
 
-    /* A partition that isn't a system: nothing is active */
+    /* A partition that isn't a system: refused, and System B stays active
+     * (boot.md 3.4) */
     assert_int_equal(policy.ops->activate((unsigned char *)UU_OTHER), -PB_ERR_PART_NOT_BOOTABLE);
     policy.ops->status(uu);
-    assert_true(uuid_is_null(uu));
+    assert_memory_equal(uu, UU_SYS_B, 16);
 }
 
 /* init marks the policy's candidates, the two slots, and nothing else: only
@@ -1891,6 +1931,7 @@ int main(void)
 #endif
         AB_TEST(test_get_commit_error),
         AB_TEST(test_set_boot_partition),
+        AB_TEST(test_activate_unknown_uuid_changes_nothing),
         AB_TEST(test_part_names),
         AB_TEST(test_board_regs),
         AB_TEST(test_policy_object),
