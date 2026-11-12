@@ -21,12 +21,12 @@
 /* AArch32: no machine type, the device tree describes the machine */
 #define LINUX_ARM_MACH_TYPE_DT 0xffffffff
 
-static const struct boot_driver_linux_config *cfg;
+static const struct boot_handover_image_config *cfg;
 static uintptr_t jump_addr;
 static uintptr_t ramdisk_addr;
 static uintptr_t dtb_addr;
 
-int boot_driver_linux_init(const struct boot_driver_linux_config *cfg_in)
+int boot_driver_linux_init(const struct boot_handover_image_config *cfg_in)
 {
     cfg = cfg_in;
 

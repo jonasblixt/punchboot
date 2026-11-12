@@ -119,7 +119,7 @@ void boot_ab_state_get_boot_partition(uuid_t part_uu)
     (void)part_uu;
 }
 
-int boot_driver_linux_init(const struct boot_driver_linux_config *cfg)
+int boot_driver_linux_init(const struct boot_handover_image_config *cfg)
 {
     (void)cfg;
     call("linux");
@@ -191,7 +191,7 @@ static const struct rot_config test_rot = { 0 };
 static const struct slc_config test_slc = { 0 };
 static const struct gpt_table_list test_tables[2];
 static const struct boot_ab_state_config test_ab;
-static const struct boot_driver_linux_config test_linux;
+static const struct boot_handover_image_config test_linux;
 static const struct cm_transport_ops test_transport = { .read = transport_read };
 
 static int setup(void **state)

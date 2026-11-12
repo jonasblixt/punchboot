@@ -395,7 +395,7 @@ static const struct slc_config slc = {
     .fuse_write = test_fuse_write,
 };
 
-static const struct boot_driver_linux_config boot_linux = {
+static const struct boot_handover_image_config boot_linux = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .resolve_part_name = boot_ab_part_uu_to_name,
 };

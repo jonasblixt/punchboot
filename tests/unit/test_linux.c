@@ -117,11 +117,11 @@ static const char *part_name(uuid_t part_uu)
     return "A";
 }
 
-static const struct boot_driver_linux_config cfg_kernel_only = {
+static const struct boot_handover_image_config cfg_kernel_only = {
     .image_bpak_id = ID_KERNEL,
 };
 
-static const struct boot_driver_linux_config cfg_dtb = {
+static const struct boot_handover_image_config cfg_dtb = {
     .image_bpak_id = ID_KERNEL,
     .dtb_bpak_id = ID_DTB,
     .ramdisk_bpak_id = ID_RAMDISK,
@@ -131,7 +131,7 @@ static const struct boot_driver_linux_config cfg_dtb = {
 };
 
 /* No ramdisk, no callbacks */
-static const struct boot_driver_linux_config cfg_dtb_minimal = {
+static const struct boot_handover_image_config cfg_dtb_minimal = {
     .image_bpak_id = ID_KERNEL,
     .dtb_bpak_id = ID_DTB,
 };
@@ -238,7 +238,7 @@ static const char *chosen_string(const char *name)
 
 static void test_init_requires_image_id(void **state)
 {
-    static const struct boot_driver_linux_config no_image = { 0 };
+    static const struct boot_handover_image_config no_image = { 0 };
     (void)state;
 
     assert_int_equal(boot_driver_linux_init(&no_image), -PB_ERR_PARAM);

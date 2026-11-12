@@ -251,7 +251,7 @@ static const struct slc_config slc = {
     .fuse_write = imx_ocotp_fuse_write,
 };
 
-static const struct boot_driver_linux_config boot_linux = {
+static const struct boot_handover_image_config boot_linux = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */

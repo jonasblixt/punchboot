@@ -37,7 +37,7 @@ struct bpak_header;
 struct boot_ab_state_config;
 struct boot_driver_simple_config;
 struct boot_driver_atf_config;
-struct boot_driver_linux_config;
+struct boot_handover_image_config;
 struct cm_transport_ops;
 struct gpt_table_list;
 struct rot_config;
@@ -62,7 +62,7 @@ struct board {
     int (*late_init)(void); /*!< After the partition table and the A/B state */
 
     /* The boot driver: one of them */
-    const struct boot_driver_linux_config *boot_linux;
+    const struct boot_handover_image_config *boot_linux;
     const struct boot_driver_atf_config *boot_atf;
     const struct boot_driver_simple_config *boot_simple;
     int (*early_boot)(void); /*!< Before the image is loaded */
