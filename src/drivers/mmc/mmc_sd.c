@@ -82,7 +82,7 @@ static uint64_t csd_blocks(const uint32_t csd[4])
 /* CMD55 and an application command */
 static int sd_app_cmd(struct mmc_device *dev, struct mmc_cmd *cmd)
 {
-    int rc = mmc_send_cmd_r1(dev, MMC_CMD_APP_CMD, dev->rca << RCA_SHIFT_OFFSET);
+    int rc = mmc_send_cmd_r1(dev, MMC_CMD_APP_CMD, (uint32_t)dev->rca << RCA_SHIFT_OFFSET);
 
     if (rc != PB_OK)
         return rc;
@@ -300,7 +300,8 @@ int mmc_sd_setup(struct mmc_device *dev)
         return rc;
     dev->rca = resp[0] >> SD_R6_RCA_SHIFT;
 
-    rc = mmc_send_cmd(dev, MMC_CMD_SEND_CSD, dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R2, resp);
+    rc = mmc_send_cmd(
+        dev, MMC_CMD_SEND_CSD, (uint32_t)dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R2, resp);
     if (rc != PB_OK)
         return rc;
     memcpy(dev->csd, resp, sizeof(dev->csd));
@@ -310,7 +311,8 @@ int mmc_sd_setup(struct mmc_device *dev)
     if (rc != PB_OK)
         return rc;
 
-    rc = mmc_send_cmd(dev, MMC_CMD_SELECT_CARD, dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R1b, NULL);
+    rc = mmc_send_cmd(
+        dev, MMC_CMD_SELECT_CARD, (uint32_t)dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R1b, NULL);
     if (rc != PB_OK)
         return rc;
 

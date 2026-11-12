@@ -116,8 +116,11 @@ int mmc_device_state(struct mmc_device *dev, unsigned int timeout_ms)
             return -PB_ERR_IO;
         }
 
-        ret = mmc_send_cmd(
-            dev, MMC_CMD_SEND_STATUS, dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R1, resp_data);
+        ret = mmc_send_cmd(dev,
+                           MMC_CMD_SEND_STATUS,
+                           (uint32_t)dev->rca << RCA_SHIFT_OFFSET,
+                           MMC_RSP_R1,
+                           resp_data);
 
         if (ret == PB_OK) {
             if ((resp_data[0] & STATUS_ERROR_MASK) != 0U) {
