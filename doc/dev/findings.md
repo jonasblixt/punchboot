@@ -188,7 +188,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | repair write there. | | |
 | F-194 | `gpt.c:296`, `src/bio.c` | Installing a table from command mode doesn't update | Reported (probe) | open |
 | | | the bio pool: until a reset the old partitions are listed and written at their old LBAs. Not documented | | |
-| | | either. | | |
+| | | either. D-070, `bio.md` 4: in effect at once. An unchanged partition (UUID and blocks) keeps its | | |
+| | | handle and flags, a changed one's handle is dead and its slot unused until the reset, a new one | | |
+| | | gets a new slot; the stream ends and the policy's init runs again; no board hook runs again. For | | |
+| | | the code: `bio_get_part_by_uu()` and `cmd_part_tbl_read()` stop at the first slot that isn't | | |
+| | | valid; the pool needs room for both tables' partitions | | |
 | F-195 | `gpt.c:385,416` | Low. Repairing one copy rewrites PMBR, primary and backup: a power | Reported | open |
 | | | loss while the good copy is rewritten leaves no table. Write only the bad copy. | | |
 | F-196 | `src/drivers/fuse/imx_ocotp.c:73` | The fuse timing is hard-coded for a 66 MHz ipg_clk | Reported | open |
@@ -279,7 +283,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | job may read it (wrong digest, fails closed). `rot.c:117,134` return error codes through unsigned types: | | |
 | | | `slc read` loops ~2^32 times after a failed `rot_init()`. Parts are 512-aligned, a 4 KiB block device | | |
 | | | fails mid-load on a second part. `mbedtls_pb.c:183` skips `mbedtls_pk_free()`. `slc_set_configuration()` | | |
-| | | goes on when the state read is NOT_SUPPORTED. | | |
+| | | goes on when the state read is NOT_SUPPORTED. D-068 (Jonas): no read at a byte offset in `bio` for | | |
+| | | now, so the 4 KiB case stays a limit (`bio.md` 3.1, `roadmap.md`) | | |
 | F-221 | `tools/pbstate/src/main.c` | `-s` with anything but a/b switches to NONE and | Reported (probe) | open |
 | | | exits 0. `counter` is `uint8_t`: `-c 256` is 0, which means verified. `-w 0 zzz` writes 0. `strtol` | | |
 | | | fails from 0x80000000 on 32-bit. Read-only calls end in `sync()`. | | |
@@ -572,12 +577,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | isn't there. Devices write into memory that shares its lines: the CAAM's digest on the user's | | |
 | | | stack, the A/B state's blocks, an image part that starts inside a line. `drivers.md` 4: | | |
 | | | `include/pb/dma.h` (`PB_DMA_ALIGN`, a macro for a buffer that owns its lines, `dma_out()`, | | |
-| | | `dma_in_begin()`, `dma_in_end()`), and the class's core bounces a caller's buffer that | | |
-| | | doesn't own its lines. The root of F-081, F-134, F-184, F-205 and F-220 | | |
+| | | `dma_in_begin()`, `dma_in_end()`); the class's core refuses a caller's buffer that doesn't | | |
+| | | own its lines, and the boot's load loop bounces an image part whose load address doesn't | | |
+| | | (D-066), with a host test that loads an image with such an address. The root of F-081, | | |
+| | | F-134, F-184, F-205 and F-220 | | |
 | F-283 | `src/bio.c`, its users | `bio` against `bio.md`. A length that | Verified (code) | open |
 | | | isn't whole blocks goes to the driver as it is (F-182). A length of 0 reaches the driver, and | | |
 | | | the MMC's returns `-PB_ERR` (`mmc_bio_xfer()` starts with `rc = -1`). No block buffer, no | | |
-| | | largest block size, no read at a byte offset (F-220), and a buffer isn't checked for its | | |
+| | | largest block size, and a buffer isn't checked for its | | |
 | | | lines (F-282). `bio_allocate_parent()` doesn't check the range against the parent (F-193). | | |
 | | | Nothing releases a table's partitions (F-194) or keeps a driver's second `init` from | | |
 | | | registering its devices again. 512 is written out in `gpt.c` (four places), and | | |
@@ -613,7 +620,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | name pb's buffers at the jump. (9) F-020 says MD5 is unused; the device's UUID is an MD5 | | |
 | | | (`uuid3.c`), and `HASH_MD5_BROKEN` has no caller in the tree. (10) The RT1060's build has | | |
 | | | SHA-256 and MD5 only, so a P-384 or P-521 key verifies nothing there. (11) No conformance | | |
-| | | suite: no test reaches the CAAM's hash or verify (F-230). (1), (3), (4) and (9) are | | |
+| | | suite: no test reaches the CAAM's hash or verify (F-230). (12) Two backends that register | | |
+| | | the same algorithm: the first is used, silently (D-071: refused). (1), (3), (4) and (9) are | | |
 | | | verified in the code, the rest is as reported | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
