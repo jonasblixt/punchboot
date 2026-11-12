@@ -209,6 +209,22 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | review: a wrong configuration type, NULL, or a pointer where `PTBL_GPT()` takes the array doesn't | | |
 | | | compile. Every board builds; not run on a board | | |
 | F-293 | `src/boot/linux.c`, `atf.c`, `ab_state.c` | `boot_driver_linux_init()`, `boot_driver_atf_init()` and `boot_ab_state_init()` dereferenced a NULL configuration. No board passes one; found by the test of the handover's object (F-265) | Verified (code) | fixed: `-PB_ERR_PARAM`, as the generic handover; `test_linux.c`, `test_ab_state.c` (`atf.c` isn't built on the host) |
+| F-288 | `tests/doc/check_docs.py` | The document lint checks the entries of | Verified (code) | fixed |
+| | | `platform.md`, `board.md` and `boot.md` against their headers and the other way round, not | | |
+| | | the drivers' contracts'. `bio.md` against `include/pb/bio.h`, `crypto.md` against | | |
+| | | `include/pb/crypto.h`, `usb.md`'s operations against `struct usbd_hal_ops` and its | | |
+| | | transport's functions against `include/pb/cm.h`. D-073, `process.md` 7 | | |
+| | | Fixed: `check_drivers()`, each contract in its own form, both ways. `bio.md` and | | |
+| | | `crypto.md`: the `Function :` entries and every function the text names are declared, and | | |
+| | | what `bio.h` and `crypto.h` declare is named; an operation of `struct hash_ops` or | | |
+| | | `struct dsa_ops` has the entry of its function. `usb.md`: the transport's entries are the | | |
+| | | members of `struct cm_transport_ops` (functions of `cm.h` after F-267); the `Operation :` | | |
+| | | entries and the items an operation leads are the members of `struct usbd_hal_ops`. An | | |
+| | | entry that isn't in its header starts with its marker: one further down, or in the | | |
+| | | section's intro, doesn't excuse it here (F-311 for the other three documents). Found: five | | |
+| | | functions of `bio.h` that `bio.md` doesn't name, the lint's one list of exceptions (F-310). | | |
+| | | `ep0_stall` has its marker (F-138). The lint has no tests of its own: tried by hand on | | |
+| | | copies of the tree with a name changed on either side | | |
 
 ## Dependencies / vendored code
 

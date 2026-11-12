@@ -15,6 +15,9 @@ without building anything:
   paths      Every doc/... path named in the tree exists.
   contracts  The entries of platform.md and board.md are in their headers and
              the other way round; an entry that isn't there yet has a marker.
+  drivers    The same for the drivers' contracts: bio.md and pb/bio.h, crypto.md
+             and pb/crypto.h, usb.md's transport and pb/cm.h, its controller's
+             operations and struct usbd_hal_ops.
 
 The log, the decisions and the closed findings are records: they keep the names
 and numbers of their day and are not checked.
@@ -56,6 +59,27 @@ DECISION_RE = re.compile(r"\bD-\d{3}\b")
 PATH_RE = re.compile(r"\bdoc/[A-Za-z0-9_./-]+\.(?:md|txt|png)\b")
 ENTRY_RE = re.compile(r"(?:Functions?|Data) *: *(.*?)(?: *\[.*)?$")
 STATE_RE = re.compile(r"\*\*State: ([a-z ]+)")
+OPERATION_RE = re.compile(r"Operations? *: *(.*?)(?: *\[.*)?$")
+OPERATIONS_RE = re.compile(r"Operations?\b")
+LEAD_RE = re.compile(r"^- \*\*`(\w+)`\.?\*\*", re.MULTILINE)
+ITEM_START_RE = re.compile(r" *(?:-|\d+\.) ")
+POINTER_RE = re.compile(r"\(\*(\w+)\)\s*\(")
+
+# What a header declares and its contract doesn't name: the one list of exceptions
+# per document. A name leaves it when the contract names it. One that the contract
+# names, or that the header no longer declares, is a problem.
+UNNAMED = {
+    # F-310. bio.md describes them and doesn't name them: "then the callbacks"
+    # (2.1), the driver flags (2.5), "a device without the callback" (3.4), "the
+    # callback is the partition table's" (3.5).
+    "bio.md": {
+        "bio_get_hal_flags",
+        "bio_set_install_partition_cb",
+        "bio_set_ios",
+        "bio_set_ios_erase",
+        "bio_set_write_done_cb",
+    },
+}
 
 
 @dataclasses.dataclass
@@ -323,21 +347,49 @@ def check_paths(path: pathlib.Path, report: Report) -> None:
             report.add(path, text, match.start(), f"{match.group(0)}: no such file")
 
 
-def entries(document: Document) -> list[tuple[Section, list[str]]]:
+def entries(
+    document: Document, pattern: re.Pattern[str] = ENTRY_RE
+) -> list[tuple[Section, list[str]]]:
     """Return a contract's entries: the section and the names it declares."""
     found = []
     for section in document.sections:
-        match = ENTRY_RE.match(section.title)
+        match = pattern.match(section.title)
         if match:
             names = [name.strip().removesuffix("()") for name in match.group(1).split(",")]
             found.append((section, names))
     return found
 
 
-def has_marker(document: Document, section: Section) -> bool:
-    """Return whether an entry, or the intro of the section it is in, has a marker."""
+def has_marker(document: Document, section: Section, opens: bool = False) -> bool:
+    """Return whether an entry, or the intro of the section it is in, has a marker.
+
+    opens: only a marker that the entry's text starts with counts. The drivers'
+    contracts mark what an entry doesn't do yet all through its text, and in the
+    intro of the section it is in; neither says that the entry itself isn't there.
+    """
+    if opens:
+        return bool(MARKER_RE.match(section.body.lstrip("\n* ")))
     parent = document.parent(section)
     return bool(MARKER_RE.search(section.body) or (parent and MARKER_RE.search(parent.intro)))
+
+
+def block(text: str, position: int) -> str:
+    """Return the paragraph or the list item a position of the text is in."""
+    lines = text.split("\n")
+    first = last = text.count("\n", 0, position)
+    while first and lines[first - 1].strip() and not ITEM_START_RE.match(lines[first]):
+        first -= 1
+    while last + 1 < len(lines) and lines[last + 1].strip():
+        if ITEM_START_RE.match(lines[last + 1]):
+            break
+        last += 1
+    return "\n".join(lines[first : last + 1])
+
+
+def section_at(document: Document, position: int) -> Section | None:
+    """Return the numbered section a position of the text is in."""
+    line = document.text.count("\n", 0, position) + 1
+    return next((s for s in reversed(document.sections) if s.line <= line), None)
 
 
 def without_comments(text: str) -> str:
@@ -358,11 +410,46 @@ def struct_members(body: str) -> set[str]:
     return members
 
 
-def check_entries(document: Document, declared: set[str], header: str, report: Report) -> None:
+def struct_body(header: pathlib.Path, name: str, report: Report) -> str:
+    """Return what is between a struct's braces in a header, which must declare it."""
+    text = without_comments(header.read_text(encoding="utf-8"))
+    body = re.search(rf"\bstruct {name} \{{(.*?)\n\}}", text, re.DOTALL)
+    if not body:
+        report.add(header, "", 0, f"struct {name}: not declared")
+    return body.group(1) if body else ""
+
+
+def functions(header: pathlib.Path, names: str) -> set[str]:
+    """Return the functions a header declares whose names match."""
+    text = without_comments(header.read_text(encoding="utf-8"))
+    return set(re.findall(rf"\b({names})\s*\(", text))
+
+
+def operation_leads(document: Document) -> list[re.Match[str]]:
+    """Return the operations that lead an item, alone in bold: "- **`set_address`** takes".
+
+    Only in a section of operations, for the ones its title doesn't name.
+    """
+    found = []
+    for match in LEAD_RE.finditer(document.text):
+        section = section_at(document, match.start())
+        if section and OPERATIONS_RE.match(section.title):
+            found.append(match)
+    return found
+
+
+def check_entries(
+    document: Document,
+    declared: set[str],
+    header: str,
+    report: Report,
+    pattern: re.Pattern[str] = ENTRY_RE,
+    opens: bool = False,
+) -> None:
     """Check that a contract's entries are declared, or marked as not yet in the code."""
-    for section, names in entries(document):
+    for section, names in entries(document, pattern):
         for name in names:
-            if name not in declared and not has_marker(document, section):
+            if name not in declared and not has_marker(document, section, opens):
                 position = len("\n".join(document.text.split("\n")[: section.line - 1])) + 1
                 problem = f"{name}: not in {header} and no 'Not yet in the code' marker"
                 report.add(document.path, document.text, position, problem)
@@ -375,6 +462,116 @@ def check_declared(
     for name in sorted(declared):
         if not re.search(rf"\b{re.escape(name)}\b", document.text):
             report.add(header, "", 0, f"{name}: not in {document.path.name}")
+
+
+def check_calls(
+    document: Document, names: str, declared: set[str], header: str, report: Report
+) -> None:
+    """Check the functions a contract's text names (`name()`), wherever it names them.
+
+    A marker beside one doesn't excuse it: these texts have markers in every other
+    item, for what the code does otherwise. A function that isn't there yet has an
+    entry that opens with its marker, and the text may then name it anywhere.
+    """
+    marked = {
+        name
+        for section, entry in entries(document)
+        if has_marker(document, section, opens=True)
+        for name in entry
+    }
+    for match in re.finditer(rf"`({names})\(\)`", document.text):
+        if match.group(1) not in declared | marked:
+            problem = f"{match.group(1)}: not in {header}, and no entry with a marker says so"
+            report.add(document.path, document.text, match.start(), problem)
+
+
+def check_leads(
+    document: Document,
+    leads: list[re.Match[str]],
+    declared: set[str],
+    header: str,
+    report: Report,
+) -> None:
+    """Check the operations that lead an item. The item is the entry, with its marker."""
+    for match in leads:
+        name = match.group(1)
+        if name not in declared and not MARKER_RE.search(block(document.text, match.start())):
+            problem = f"{name}: not in {header} and no 'Not yet in the code' marker"
+            report.add(document.path, document.text, match.start(), problem)
+
+
+def check_unnamed(
+    document: Document, declared: set[str], header: pathlib.Path, report: Report
+) -> None:
+    """Check that the contract names what its header declares, but its exceptions."""
+    unnamed = UNNAMED.get(document.path.name, set())
+    check_declared(document, declared - unnamed, header, report)
+    for name in sorted(unnamed):
+        named = re.search(rf"\b{re.escape(name)}\b", document.text)
+        if name not in declared:
+            report.add(header, "", 0, f"{name}: not declared, and an exception of the lint's")
+        elif named:
+            problem = f"{name}: named here, and an exception of the lint's"
+            report.add(document.path, document.text, named.start(), problem)
+
+
+def check_listed(
+    document: Document, declared: set[str], listed: set[str], header: pathlib.Path, report: Report
+) -> None:
+    """Check that everything a header declares is one of the contract's entries."""
+    for name in sorted(declared - listed):
+        report.add(header, "", 0, f"{name}: not an entry of {document.path.name}")
+
+
+def check_drivers(root: pathlib.Path, documents: dict[str, Document], report: Report) -> None:
+    """Check the drivers' contracts against their headers, each in its own form."""
+    # bio.md: its entries (3) and every function its text names.
+    bio = documents["bio.md"]
+    bio_h = root / "include" / "pb" / "bio.h"
+    declared = functions(bio_h, r"bio_\w+")
+    check_entries(bio, declared, "include/pb/bio.h", report, opens=True)
+    check_calls(bio, r"bio_\w+", declared, "include/pb/bio.h", report)
+    check_unnamed(bio, declared, bio_h, report)
+
+    # crypto.md: the same. A backend's operation has the entry of the function
+    # that calls it: update_async of struct hash_ops is hash_update_async().
+    crypto = documents["crypto.md"]
+    crypto_h = root / "include" / "pb" / "crypto.h"
+    declared = functions(crypto_h, r"(?:hash|dsa)_\w+")
+    check_entries(crypto, declared, "include/pb/crypto.h", report, opens=True)
+    check_calls(crypto, r"(?:hash|dsa)_\w+", declared, "include/pb/crypto.h", report)
+    check_unnamed(crypto, declared, crypto_h, report)
+    listed = {name for _, names in entries(crypto) for name in names}
+    for prefix in ("hash", "dsa"):
+        members = POINTER_RE.findall(struct_body(crypto_h, f"{prefix}_ops", report))
+        check_listed(crypto, {f"{prefix}_{member}" for member in members}, listed, crypto_h, report)
+
+    # usb.md, the transport (2): cm_transport_<name>() is a function of pb/cm.h.
+    # Until the transport is linked (F-267) it is <name> of struct cm_transport_ops.
+    usb = documents["usb.md"]
+    cm_h = root / "include" / "pb" / "cm.h"
+    declared = functions(cm_h, r"cm_transport_\w+")
+    if not declared:
+        members = POINTER_RE.findall(struct_body(cm_h, "cm_transport_ops", report))
+        declared = {f"cm_transport_{member}" for member in members}
+    check_entries(usb, declared, "include/pb/cm.h", report, opens=True)
+    check_calls(usb, r"cm_transport_\w+", declared, "include/pb/cm.h", report)
+    listed = {name for _, names in entries(usb) for name in names}
+    check_listed(usb, declared, listed, cm_h, report)
+
+    # usb.md, the controller (4): an operation is named in its section's title, or
+    # it leads an item of a section of operations. Of the stack's own functions
+    # only the ones the text names are looked up.
+    usbd_h = root / "include" / "drivers" / "usb" / "usbd.h"
+    where = "struct usbd_hal_ops (include/drivers/usb/usbd.h)"
+    declared = struct_members(struct_body(usbd_h, "usbd_hal_ops", report))
+    leads = operation_leads(usb)
+    check_entries(usb, declared, where, report, OPERATION_RE, opens=True)
+    check_leads(usb, leads, declared, where, report)
+    listed = {name for _, names in entries(usb, OPERATION_RE) for name in names}
+    check_listed(usb, declared, listed | {lead.group(1) for lead in leads}, usbd_h, report)
+    stack = functions(usbd_h, r"usbd_\w+")
+    check_calls(usb, r"usbd_\w+", stack, "include/drivers/usb/usbd.h", report)
 
 
 def check_contracts(root: pathlib.Path, documents: dict[str, Document], report: Report) -> None:
@@ -421,6 +618,7 @@ def main() -> int:
     for path in code_files(root):
         check_paths(path, report)
     check_contracts(root, documents, report)
+    check_drivers(root, documents, report)
     for problem in report.problems:
         sys.stdout.write(problem + "\n")
     sys.stdout.write(f"{len(documents)} documents, {len(report.problems)} problems\n")

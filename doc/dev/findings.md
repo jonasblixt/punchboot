@@ -622,11 +622,22 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | host test (F-230) | | |
 | | | host test (F-230). D-073: the debug descriptor, `SET_IDLE` and a string index the class | | |
 | | | doesn't have are stalled, where today they are answered (`usb.md` 3.2) | | |
-| F-288 | `tests/doc/check_docs.py` | The document lint checks the entries of | Verified (code) | open |
-| | | `platform.md`, `board.md` and `boot.md` against their headers and the other way round, not | | |
-| | | the drivers' contracts'. `bio.md` against `include/pb/bio.h`, `crypto.md` against | | |
-| | | `include/pb/crypto.h`, `usb.md`'s operations against `struct usbd_hal_ops` and its | | |
-| | | transport's functions against `include/pb/cm.h`. D-073, `process.md` 7 | | |
+| F-310 | `doc/interfaces/bio.md`, `include/pb/bio.h` | `bio.md` describes five | Verified (code) | open |
+| | | functions of `bio.h` and doesn't name them: `bio_set_ios()` and `bio_set_ios_erase()` ("then | | |
+| | | the callbacks", 2.1), `bio_get_hal_flags()` (2.5 names the setter), | | |
+| | | `bio_set_write_done_cb()` ("a device without the callback", 3.4) and | | |
+| | | `bio_set_install_partition_cb()` ("the callback is the partition table's", 3.5). Found by | | |
+| | | the lint (F-288), which has them as its exceptions (`UNNAMED` in `check_docs.py`). To name | | |
+| | | them is a change to a reviewed contract; the list is emptied with it | | |
+| F-311 | `tests/doc/check_docs.py` | The lint excuses an entry of `platform.md`, | Verified (code) | open |
+| | | `board.md` or `boot.md` that isn't in its header by any marker in the entry's text or in | | |
+| | | its section's intro (`process.md` 7), and the entries have markers for what the code does | | |
+| | | otherwise: 11 of the platform's 14 entries, 8 of the board's 13 and the boot's 6 would | | |
+| | | pass if their names left the header. The drivers' contracts are checked with a narrow | | |
+| | | rule (F-288): only a marker that the entry starts with. The eight entries of the platform | | |
+| | | and the board that aren't in the code start with theirs. The boot's six are marked by | | |
+| | | section 3's intro, which the narrow rule doesn't read: one rule for all needs that form | | |
+| | | decided | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 | F-291 | `src/boot/linux.c`, `dtb.c` | The image handover can't boot an image with a | Verified (code) | open |
 | | | DT part in place: `boot_dtb_grow()` opens the DT into itself at its load address (`dtb.c`, | | |

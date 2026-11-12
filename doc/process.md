@@ -154,6 +154,13 @@ and a pre-commit hook. It reads the tree and builds nothing. It fails when:
   `board.md` isn't a member of `struct board`, and neither the entry nor its section's intro has
   a marker. The other way round: everything `pb/plat.h` and `struct board` declare is named in
   their contract. `boot.md`'s entries are looked up in `include/boot/`.
+- The same, both ways, for the drivers' contracts, each in its own form: `bio.md` against
+  `pb/bio.h` and `crypto.md` against `pb/crypto.h` (the entries, every function the text
+  names, an entry per operation of `struct hash_ops` and `struct dsa_ops`), `usb.md`'s
+  transport against `pb/cm.h` and its `Operation :` entries and the items an operation leads
+  against `struct usbd_hal_ops`. Here only a marker that an entry starts with excuses it.
+  What a header declares and its contract leaves out is in the lint's list of exceptions,
+  with its finding.
 
 The log, the decisions and the closed findings are records and aren't checked. A document that
 isn't written yet is "Missing" in the map; citing it is allowed.
@@ -167,5 +174,3 @@ Not yet:
   through the simple target (D-025).
 - **A test record per release**: what ran on which board and what never did (fuse writes, the 8X
   closed state), next to `doc/guides/release-checklist.txt`.
-- **The drivers' contracts in the lint** (F-288): the entries of `bio.md`, `crypto.md` and
-  `usb.md` against their headers, both ways, as for `platform.md` and `board.md`.
