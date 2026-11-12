@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-11_
+_Last updated: 2026-11-12_
 
 ## Current focus
 
@@ -14,22 +14,18 @@ the trim is at the end of `log/2026-11-09.md`.
   F-167), the SRK hash from the build, revoke slots in `CONFIG_KEYSTORE_SLOTS`, configuration
   fuses as data, pin tables. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
   8X closed state, imx8mevk and DXL on hardware. `arch-firmware.md` waits for the review.
-- **Platform contract (D-030, `platform.md`, `plat-imx.md`):** reviewed, its bugfixes are in. The
-  rest follows in commits (order in `log/2026-11-10.md`), each removing its "Not yet" marker. A
-  review pass against `board.md`, `boot.md` and the code is written in (2026-11-11): 7 open
-  items at its top, to revisit when the board and boot contracts are final. New: F-261, F-262.
-- **Board contract (D-031, D-045 to D-051, `board.md`):** passed against `boot.md` and level 1,
-  in Jonas's review: no open items. D-046: one member per concept in
-  `struct board`, a variant is an object the module provides (`BOOT_POLICY_AB(&config)`); the
-  board's data chooses, Kconfig compiles in. Its code is F-216, F-178, F-249..F-252, F-265, and
-  with `boot.md`'s F-253, F-256..F-260. New: F-264 (the RT's `late_boot` was never called),
-  F-266 (`late_boot()` loses its header argument, D-047), F-267 (command mode's USB is the
-  platform's, `plat_cm_init()`, the transport linked, D-049), F-268 (tasks while pb is stopped,
-  `DEFINE_TASK()`, command mode one of them, D-051). In place is decided (D-048), and
-  `board-degraded` in pb's status (D-050).
+- **Platform contract (D-030, D-053 to D-056, `platform.md`, `plat-imx.md`):** reviewed (Jonas,
+  2026-11-12), no open items. From the review: a board maps hardware the platform didn't with
+  `mmap` in `struct board` (D-054, F-269); images load only into the board's image data regions,
+  `image_regions` (D-055, F-254; changes `boot.md` 4.3); a board gets a system controller's
+  API through the platform header, not by its own path (D-056, F-270). The first two are new entries in
+  `board.md` (2.8, 2.9). Its bugfixes are in; the rest follows in commits.
+- **Board contract (D-031, D-045 to D-052, `board.md`):** reviewed (Jonas, 2026-11-12), no open
+  items. One member per concept in `struct board`, a variant is an object (D-046); in place is a
+  flag in the static table (D-048); command mode's USB is the platform's (D-049); tasks while
+  pb is stopped (D-051). Its code: F-216, F-178, F-249..F-252, F-264..F-268.
 - **Boot flow contract (D-032, D-038 to D-041, D-043, D-044, `boot.md`):** reviewed (Jonas), no
-  open items; his final read is in (pb's status stays, `pb,version`, any image format, 4.4).
-  Its code is F-253..F-260 and the A/B review's. F-253 (the lost `IN_MEM` source) before
+  open items. Its code is F-253..F-260 and the A/B review's. F-253 (the in place source) before
   `work-3.0.0-plat` merges. Then the drivers' contracts (`log/2026-11-11.md`).
 - **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each
   document's state. The agent instructions are `AGENTS.md`, harness-neutral (D-042). `doc/dev/`
@@ -54,12 +50,11 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-0. **Resume here (2026-11-11): Jonas goes on reviewing `board.md` (draft, D-031, D-045 to
-   D-051).** No open items; the five of the pass and the transport are decided (the table at
-   its top). F-253 no longer waits for a decision (D-048).
-   Then `compatibility.md`'s line for `board.md` 8, `platform.md`'s seven open items (they
-   follow the two), then the code (F-253 first; F-265 reshapes `struct board`). The conformance
-   suites come with each contract's code.
+0. **Resume here (2026-11-12): the three contracts are reviewed (`boot.md`, `board.md`,
+   `platform.md`); this session's documents are not committed yet.**
+   Then the code, a commit per finding: F-253 first (in place, before `work-3.0.0-plat`
+   merges), then F-265 (`struct board`'s objects) with F-256, F-258, F-259; F-267 and F-268
+   (command mode's USB, the tasks). The conformance suites come with each contract's code.
 1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time
@@ -83,8 +78,6 @@ the trim is at the end of `log/2026-11-09.md`.
   check on jiffy), F-182 (eMMC partial blocks), F-183 (stale keystore), then F-184 against F-172.
 - A/B review (F-173..F-180): roll back when a verified slot fails to load (F-174)? One boot or
   two for the speculative fallback (F-177)? The fixes for F-173, F-175, F-176, F-178 wait for a go.
-- No silent boot (`platform.md` 2.3, F-248): per condition, refuse or boot? The watchdog that
-  didn't arm, a failed crypto engine; one rule in every life cycle state; tell the OS in the DT?
 - Platform contract: can "type 1 masters are secure at reset" (6UL SRM, CSU_SA, NDA) be written
   in the public docs, or only the register's name (as now)? Put the Arm specs and the TZC-380
   TRM (DDI0431) on the share?

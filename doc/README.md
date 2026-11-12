@@ -7,7 +7,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 (`dev/decisions.md`), a finding as F-nnn (`dev/findings.md`), a day's log as `log/<date>.md`
 (`dev/log/`). File names are unique across the folders and don't change when a document moves.
 
-| Level | Folder | Document | State (2026-11-11) |
+| Level | Folder | Document | State (2026-11-12) |
 |---|---|---|---|
 | 0 Purpose | | `principles.md` | Reviewed (D-035, D-036) |
 | | | `process.md` | Reviewed (D-036) |
@@ -18,9 +18,8 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 | | | `command-mode.md` | Missing |
 | | | `arch-firmware.md` | Behind the code (waits for the board work's review) |
 | | | `arch-host-tools.md` | Not a contract yet |
-| 3 Interfaces | `interfaces/` | `platform.md` | Draft: reviewed once, 7 open again, follows |
-| | | | `boot.md` and `board.md` |
-| | | `board.md` | Draft: no open items (D-045 to D-051), in Jonas's review |
+| 3 Interfaces | `interfaces/` | `platform.md` | Reviewed (D-056) |
+| | | `board.md` | Reviewed (D-052) |
 | | | The drivers' contracts | Missing |
 | 4 Ports | `ports/` | `plat-imx.md` | Follows `platform.md` |
 | | | `imx8m-ddr.md`, `spec-dwc-ddrphy.md` | Records of one port's work |

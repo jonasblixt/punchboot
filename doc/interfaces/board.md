@@ -1,6 +1,8 @@
 # The board contract
 
-**State: draft, in Jonas's review (2026-11-11), D-031, D-045 to D-051.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-031, D-045 to D-052.** Level 3 (`process.md`). Two
+entries were added after it, in the review of `platform.md`, and reviewed there: `mmap` (2.8,
+D-054) and `image_regions` (2.9, D-055).
 
 What a board (`src/board/<b>/`, or a directory out of the tree) provides, when the core calls it,
 and what it may rely on. Decided in D-031, in the style of the platform contract (`platform.md`,
@@ -12,8 +14,8 @@ flow, and level 1 (`security.md`, `system.md`), whose rules the entries cite. A 
 (D-045) rewrote 2.5, 2.7 and the flow of section 2. D-046 changed how a board gives a module its
 configuration: one member per concept, an object the module provides (section 1).
 
-**No open items.** The pass's five and the review's so far are decided and written into the
-text; Jonas's review goes on.
+**No open items.** What the pass (D-045) left open and what the review added, as decided and
+written into the text:
 
 | Item | Rule | By |
 |---|---|---|
@@ -81,7 +83,7 @@ finding removes the marker here and updates the board's row in the conformance t
 main()
   plat_early_init()
   board.console_init()                     2.2
-  plat_init()
+  plat_init()                              the memory map, with board.mmap: 2.8
   board_setup()                            src/board.c
     the board's data is checked            3
     rot_init(board.rot), slc_init(board.slc)
@@ -298,6 +300,72 @@ set, and `boot_atf` carries its own copy of the Linux handover's fields.
 
 Set up last, and also after a failed step (2.1).
 
+### 2.8 Data : mmap [optional]
+
+**Not yet in the code (F-269).** Added after the review (Jonas, D-054), and reviewed with
+`platform.md`.
+
+The memory the board reaches and the platform didn't map: a device on an external bus (a chip
+select, an FPGA), a memory mapped flash, a SoC peripheral outside the buses the platform maps.
+It is a list of regions, read once by `pb_mmu_init()` in `plat_init()`, so before any other
+member of the board's but `console_init()`. The rules and an example are `platform.md` 5.2.
+
+| Region | Mapped as |
+|---|---|
+| `PB_MAP_DEVICE(base, size)` | Device memory, read and write |
+| `PB_MAP_MEMORY_RO(base, size)` | Normal memory, read only: a flash that is booted in place (2.4) |
+| `PB_MAP_MEMORY_RW(base, size)` | Normal memory, read and write: RAM on an external bus |
+| `PB_MAP_END` | Ends the list |
+
+- Never executable, flat, whole pages, and outside what the core and the platform map: pb
+  itself, the board's DRAM, the platform's regions.
+- A region gives access, nothing else: its clock, power and pads are set up in `init()`.
+- The platform's default for the number of regions and tables has room for a few. A board with
+  more raises `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` in its defconfig.
+
+Valid from: `init()`. `console_init()` runs before the MMU is on and reaches everything.
+
+Failure: a region that breaks a rule or doesn't fit fails `plat_init()`, and `main()` resets
+(`platform.md` 2.2). It is the board's data that is wrong, so it shows on the first boot, on
+the console.
+
+NULL: the board reaches what the platform maps.
+
+### 2.9 Data : image_regions [optional]
+
+**Not yet in the code (F-254).** Added after the review (Jonas, D-055).
+
+The image data regions: the only memory an image's parts are loaded into (`boot.md` 4.3). The
+board names them, because where a product's images land is the product's: its DRAM, and the SoC
+memory a part of its is linked for.
+
+```c
+static const struct boot_image_region board_image_regions[] = {
+    BOOT_IMAGE_REGION(0x40000000, 0x80000000),                /* DRAM */
+    BOOT_IMAGE_REGION(IMX8M_BL31_BASE, IMX8M_BL31_SIZE),      /* BL31's on-chip RAM */
+    BOOT_IMAGE_REGION_END,
+};
+```
+
+- A part lies inside one region, with the room a handover grows it by, and over no other part.
+  Nothing else is checked for a part.
+- A region holds nothing of pb's: not `pb`, not `buffers`, not the Firmware Handoff region
+  (2.7), not `bl_params`' region where the platform has one (`platform.md` 5.3). Where pb runs
+  in DRAM, the region starts above it.
+- A region is memory pb can write: the board's DRAM, SoC memory the platform header names for
+  it (`platform.md` 5.3), or a `PB_MAP_MEMORY_RW` region of the board's (2.8). The core doesn't
+  check that: a load into what isn't mapped faults, and pb resets.
+- There is no default. The board's whole DRAM as one would bring pb's own regions back into
+  the check of every part.
+- A partition that is booted in place needs no region: its mapped range is its allowed memory
+  (2.4, `boot.md` 4.1).
+- Fixed once a product ships (section 8).
+
+Failure: the list is checked with the board's data (section 3), before any image is read. A
+list that fails is a failed step (2.1): no boot, and pb stops.
+
+NULL: nothing is loaded. Only a partition that is booted in place boots.
+
 ## 3. The board's data, checked
 
 **Not yet in the code (F-249)**: nothing is checked.
@@ -314,6 +382,10 @@ on the host:
 | `boot_policy`, `boot_handover` | Mandatory |
 | `ptbl` | A GPT has at least one layout |
 | `password_auth` | Mandatory with `CONFIG_CM_AUTH_PASSWORD` |
+| `image_regions` | No region is empty or wraps, and each is inside what the arch can address. |
+| | None overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region (2.9) |
+
+`mmap` isn't in the table: `pb_mmu_init()` checks it earlier, in `plat_init()` (2.8).
 
 What an object's own configuration must hold (a chain with at least one partition, a handover's
 entry part) is checked by its module when it is set up. That an object's module is compiled in
@@ -575,7 +647,9 @@ OK means "loaded and verified", not "booted".
 ## 6. What a board may use and touch
 
 - It includes `include/pb/`, `include/drivers/`, `include/boot/` and `include/plat/<p>/`, nothing
-  from `src/plat/`. What the platform header documents for boards is `platform.md` 7. A board
+  from `src/plat/`. Not the arch's headers, and a system controller's API only through the
+  platform header, never by its own path (D-056). What the
+  platform header documents for boards is `platform.md` 7. A board
   that asks for the verified header (5.3) also includes the format's header, `<bpak/bpak.h>`.
 - It sets up the clocks and pads of the peripherals it selects: the UART, SD/MMC, Ethernet
   (`platform.md` 7). The platform does the timer, the watchdog, the fuse controller, the TrustZone
@@ -583,6 +657,8 @@ OK means "loaded and verified", not "booted".
 - It reads the ROM's state, the boot source and the boot reason through the platform's services
   (`plat_get_boot_source()`, `plat_get_boot_reason()`). It may show raw registers in `status()`.
 - It may define tasks, which run while pb is stopped (4.6).
+- It may map hardware the platform didn't (`mmap`, 2.8). It never calls xlat_tables itself and
+  never patches the platform's `plat_mmap[]` for its own hardware.
 - The boot flags (`boot_get_flags()`, `boot_clear_set_flags()`): bits 0 to 15 are the core's
   (`BOOT_FLAG_CMD`, `BOOT_FLAG_VERBOSE`), bits 16 to 31 the board's.
 - The A/B state's four board registers (`boot_ab_state_read_board_reg()`, `_write_board_reg()`)
@@ -651,6 +727,8 @@ changes them only for a new product, never in an update:
 - The handover, its delivery and the parts the board names for them (2.7): an image that a
   released pb booted gets the same entry and arguments (`boot.md` 7). With Firmware Handoff also
   the transfer list's region (`boot.md` 5.4): the images' memory maps keep it free.
+- The image data regions (2.9): an image that a released pb loaded still fits. A region is
+  made larger or added, never made smaller or removed.
 - The password, where a product uses one: what the secret is derived from (4.5). An
   authentication method is added, never changed (`security.md` 4.7).
 
@@ -661,7 +739,11 @@ For a new board, and for a change to one:
 - [ ] Only what the PCB and the product decide: no SoC facts, no rules, no platform registers
       outside `status()`.
 - [ ] The data passes section 3, and every object's module is in the defconfig.
+- [ ] The image data regions are what the product's images need and no more, each is memory pb
+      can write, and none holds anything of pb's (2.9).
 - [ ] `console_init()` uses nothing `plat_init()` sets up.
+- [ ] What the board reaches outside the platform's map is in `mmap`, with the least kind that
+      works (read only where nothing is written), and the defconfig has room for it (2.8).
 - [ ] `init()` and `late_init()` fail when the boot can't go on or its security rests on what
       failed; the rest is logged, in `status()` and reported with `board_report_degraded()` (2.3).
 - [ ] Nothing of command mode's USB is set up by the board; its port is in the defconfig.
@@ -692,6 +774,8 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 |---|---|---|---|---|---|---|---|---|
 | Data (3) | no | yes | yes | yes | no | no | no | F-249 |
 | A policy (2.5) | yes | yes | yes | yes | yes | no | yes | F-215, F-256 |
+| Image data regions (2.9) | no | no | no | no | no | no | no | F-254 |
+| Only the headers of section 6 | yes | yes | no | no | yes | yes | yes | F-270 |
 | No `BIO_FLAG_BOOTABLE` (2.5) | yes | yes | yes | yes | no | yes | yes | F-256 |
 | No serial download check (5.1) | yes | yes | no | no | no | yes | yes | F-251, F-264 |
 | `status()` (4.3) | no | default | no | no | default | default | default | F-250 |

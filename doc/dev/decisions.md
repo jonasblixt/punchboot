@@ -980,3 +980,139 @@ Cost: `cm_main.c`'s blocking loop becomes a step function; a section to keep in 
 scripts (with F-239). Where it is written: `system.md` 2 (stopped, and command mode as one
 task), `board.md` 4.6 (what a board may rely on) and `platform.md` 5.1 (the section). Code:
 F-268.
+
+## D-052: The board contract is reviewed (2026-11-12)
+
+Jonas finished his review of `board.md`. No open items are left: what the pass (D-045) left
+open and what the review added is decided in D-046 to D-051, in the table at its top. Its state
+is reviewed (`process.md` 4); the code follows it, a commit per finding.
+
+With it, `compatibility.md`'s "Fixed elsewhere" names what `board.md` 8 fixes for a product in
+the field today: the boot source policy and its partitions, the keystore's slots, the handover
+and the parts named for it, and the password's secret joined the name, the partition UUIDs, the
+GPT variants, the configuration fuses and the board commands. The line is a summary of
+`board.md` 8; no guard changed.
+
+## D-053: The platform contract after the boot flow and board contracts (2026-11-12)
+
+A pass over `platform.md`'s seven open items (2026-11-11) against `boot.md` and `board.md`,
+both reviewed now, and level 1, as D-038 was for `boot.md` and D-045 for `board.md`. Derived by
+me, for Jonas's review of `platform.md`; two items are left for him there.
+
+Closed, because the documents above and beside it leave one answer:
+
+- **A bypassed DRAM filter refuses every boot**, in every life cycle state (`security.md` 4.5,
+  D-036). 2.3's table is sorted by 4.5: the filter and a failed crypto engine refuse the boot
+  (no build has a fallback that verifies the same), a watchdog that didn't arm boots and is
+  reported (`boot.md` 5.6), missing ROM logs are logged. The check sits before `early_boot()`,
+  in every boot (`boot.md` 2).
+- **A failed `plat_lockdown()`**: pb stops; a boot command mode started resets (`boot.md` 2,
+  `board.md` 5.4). Command mode then passes on the driver's error for what a set lock refuses.
+- **pb doesn't clear the reset reason**: the OS reads the same register, and what an OS in the
+  field reads doesn't change in an update (`system.md` 5.1). `kind` is the highest priority
+  cause since the status was last cleared (F-210 stays a fact of the SoC, in the header).
+- **`plat_get_boot_source()` is mandatory when the ROM has a serial downloader**: the core's
+  stop rests on it and a board doesn't check itself (`board.md` 5.1); without it the stop
+  silently never triggers.
+- **Whoever started DMA stops it** (`board.md` 5.3): the core its transport, and with it the
+  USB controller `plat_cm_init()` started, and the device it loaded from; the board what its
+  hooks started; the platform what `plat_init()` started.
+
+Added from this week's decisions: `plat_slc`'s `set_eol` is every port's (`system.md` 4,
+F-263); the Firmware Handoff region is in the link interface's table (D-040's names); a
+partition booted in place is the board's to declare, its range in `plat_mmap[]` (D-048); pb
+"stops" where the text said "enters command mode" (D-051).
+
+Left for Jonas: the form of the loadable regions and of `bl_params`' place (5.3; `boot.md` says
+that the platform declares them, not how); what a board may include beyond section 7's list (the
+two 8X boards include the arch's headers and the system controller's API).
+
+## D-054: A board maps hardware the platform didn't, as data (2026-11-12)
+
+Jonas, reviewing `platform.md` 5.2: board code will want a peripheral the platform hasn't
+mapped, and that must be supported in an elegant way. The requirement is his; the form below is
+mine and waits for his review.
+
+- **`mmap` in `struct board`** (`board.md` 2.8, `platform.md` 5.2): a list of regions,
+  `PB_MAP_DEVICE`, `PB_MAP_MEMORY_RO`, `PB_MAP_MEMORY_RW`, ended by `PB_MAP_END`, from
+  `include/pb/mmu.h`. `pb_mmu_init()` maps it with the board's DRAM, `plat_mmap[]` and pb
+  itself. The platform does nothing for it.
+- **Data, not a call**: the tables are built once in `plat_init()`, before the MMU is on. A
+  call would need xlat_tables' dynamic tables in every build, on the boot path (D-023), and
+  would fail late. It also fits D-046: one member per concept.
+- **Rules**: flat, whole pages (checked in the build), never executable, outside pb, the
+  board's DRAM and the platform's regions. xlat_tables lets a nested region win, so
+  `pb_mmu_init()` refuses the overlap itself.
+- **Room**: `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` become Kconfig values with the platform's
+  default, which a board raises.
+- **Failure**: `pb_mmu_init()` fails, so `plat_init()` does, and `main()` resets. The console
+  is up by then.
+- **The platform's side**: `plat_mmap[]` maps the SoC's peripheral buses whole, so that the
+  usual case (a SoC peripheral the platform has no driver for) needs nothing from the board.
+- An in place partition's range is in `plat_mmap[]` when it is a SoC region and in the board's
+  `mmap` when it isn't (`platform.md` 5.3, D-048).
+
+Not chosen: a run-time `map()` call (above); a linker list as for the tasks (D-051), which
+would spread a board's map over its files where one list can be reviewed.
+
+Code: F-269, with F-158 (`pb_mmu_init()`).
+
+## D-055: Image data regions: placement's allow list is the board's (2026-11-12)
+
+Jonas, reviewing `platform.md` 5.3: turn the placement check around. It named pb's own regions
+one by one; better that a board says where image data may go. I agreed and proposed the form;
+he approved it.
+
+- **The board's list** (`image_regions` in `struct board`, `board.md` 2.9): the only memory an
+  image's parts are loaded into. A part lies inside one region, with the room a handover grows
+  it by, and over no other part (`boot.md` 4.3). The rule names nothing of pb's.
+- **Checked once**, with the board's data: no region overlaps `pb`, `buffers`, the Firmware
+  Handoff region or `bl_params`' region. Everything pb links is in `pb` or `buffers`, so a
+  section added later is covered. A list that fails is the board's failure, found at bring-up,
+  not a refused image.
+- **The platform declares no loadable memory.** Its header names the SoC memory a board may
+  list (BL31's on-chip RAM, a TCM). A list of the platform's would allow those loads on every
+  board of the SoC.
+- **No default.** A board without a list loads nothing and boots only in place. The whole DRAM
+  as a default would bring back the subtraction of pb's regions.
+- **`bl_params`**: in pb's own data, unless BL31 restricts where they may be; then the platform
+  header defines `PLAT_BL_PARAMS_BASE` and `_SIZE` (the names are mine).
+- **Fixed for a product in the field** (`board.md` 8): a region is made larger or added, never
+  made smaller or removed.
+
+This changes `boot.md` 4.3, which was reviewed: its allow list was the board's DRAM and the
+platform's loadable regions, less pb's sections, the Firmware Handoff region and `bl_params`.
+It closes `platform.md`'s open item on the form of those declarations.
+
+What it costs: where pb runs in DRAM (jiffy, the MEK, the DXL) the board's region starts above
+pb, a number that must agree with the link and is checked only at run time. An image that an
+older release loaded outside the regions is refused, as with F-254's allow list before
+(security before compatibility, `principles.md`).
+
+Code: F-254, with F-258 for `bl_params`.
+
+## D-056: The platform contract is reviewed; what a board may include (2026-11-12)
+
+Jonas finished his review of `platform.md` and closed its last open item.
+
+- **A board includes** `include/pb/`, `include/drivers/`, `include/boot/` and
+  `include/plat/<p>/`, and the image format's header when it asks for the verified header
+  (D-047). Nothing else.
+- **Not the arch's headers**: what a board needs from the arch comes through
+  `include/pb/arch.h`.
+- **A system controller's API through the platform header** (Jonas). The API lives with the
+  platform (the 8X's `include/plat/imx8x/sci/`, `src/plat/imx8x/sci/`): it is the SoC's, and
+  the platform is built on it. A board that sets up its clocks and power calls it, and gets it
+  by including the platform header, which includes the services boards need. A board never
+  names the API's headers by their own path.
+
+I first wrote this stricter than Jonas meant: no API in a board at all, with helpers in the
+platform header that wrap each call. He corrected it the same day. Wrappers that mirror the
+API one to one would hide nothing, and clocks are code that whoever selects the peripheral
+writes (Jonas, 2026-11-09), which on such a SoC is a call to the system controller.
+
+The review's other outcomes are D-054 (`mmap`), D-055 (image data regions) and the wording of
+4.3 (no fact of one port's in the rule). The form of D-054 was a proposal of mine; Jonas
+reviewed 5.2 with it in and closed the review, which I take as approval.
+
+Code: F-270 (the MEK's and the DXL's includes, `imx8x.h`).
