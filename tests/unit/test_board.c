@@ -375,8 +375,9 @@ static void test_setup(void **state)
 }
 
 /* Each failure stops the setup there, the RoT and SLC are always set up.
- * None of them gets to boot_init(). A failed init() or late_init() does:
- * test_failed_hook_sets_up_the_handover() */
+ * None of them gets to boot_init(). A failed init() or late_init() does,
+ * test_failed_hook_sets_up_the_handover(), and a failed policy,
+ * test_failed_policy_sets_up_the_handover() */
 static void test_setup_failures(void **state)
 {
     static const struct {
@@ -385,7 +386,6 @@ static void test_setup_failures(void **state)
     } cases[] = {
         { &rc.rot, "rot " },
         { &rc.slc, "rot slc " },
-        { &rc.policy, "rot slc init ptbl policy " },
         { &rc.handover, "rot slc init ptbl policy late handover " },
     };
 
@@ -468,6 +468,51 @@ static void test_failed_hook_sets_up_the_handover(void **state)
     assert_int_equal(board_setup(), -PB_ERR_IO);
     assert_string_equal(calls, "rot slc init ");
     assert_null(driver);
+}
+
+/* board.md 2.1 (F-178): a boot source policy whose init fails (a partition it
+ * names isn't in the table, its state can't be read or repaired) skips
+ * late_init() and sets up the handover all the same: command mode boots an
+ * image from RAM. The policy's error is the one returned.
+ *
+ * What 'boot activate' reaches after it isn't tested here: the policy isn't
+ * called once its init failed, which is F-178's open part. */
+static void test_failed_policy_sets_up_the_handover(void **state)
+{
+    (void)state;
+
+    rc.policy = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ptbl policy handover boot ");
+    assert_ptr_equal(policy_cfg, &test_policy_config);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_driver(true);
+
+    /* With a delivery: both are set up */
+    setup(NULL);
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_delivery.config = &test_delivery_config;
+    rc.policy = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ptbl policy handover delivery boot ");
+    assert_ptr_equal(driver->delivery, &board.boot_delivery);
+
+    /* The policy's error is the one returned, also when the handover can't
+     * be set up either */
+    setup(NULL);
+    rc.policy = -PB_ERR_IO;
+    rc.handover = -PB_ERR_TIMEOUT;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ptbl policy handover ");
+    assert_null(driver);
+
+    /* A board without a table: the same */
+    setup(NULL);
+    board.ptbl.ops = NULL;
+    rc.policy = -PB_ERR_NOT_FOUND;
+    assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
+    assert_string_equal(calls, "rot slc init policy handover boot ");
+    assert_driver(true);
 }
 
 /* Command mode installs the table, its boot commands need the driver */
@@ -1055,6 +1100,7 @@ int main(void)
         cmocka_unit_test_setup(test_setup, setup),
         cmocka_unit_test_setup(test_setup_failures, setup),
         cmocka_unit_test_setup(test_failed_hook_sets_up_the_handover, setup),
+        cmocka_unit_test_setup(test_failed_policy_sets_up_the_handover, setup),
         cmocka_unit_test_setup(test_no_partition_table, setup),
         cmocka_unit_test_setup(test_ptbl_device_flags, setup),
         cmocka_unit_test_setup(test_no_ptbl, setup),

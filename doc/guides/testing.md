@@ -163,7 +163,7 @@ and `configs/test_defconfig` were then removed.
 | `test_ab_state.py`    | test_switch, test_rollback, test_corrupt_primary_config,                                |
 |                       | test_corrupt_backup_config, test_board_regs                                             |
 | `test_security.py`    | test_device_setup, test_authentication, test_revoke_key                                 |
-| `test_board.py`       | test_board, test_board_status                                                           |
+| `test_board.py`       | test_board, test_board_status (+ a failed step of `board_setup()`, F-178)               |
 | `test_cli.py`         | test_cli, test_reset                                                                    |
 | `test_stream.py`      | new: stream bounds (F-053, F-054)                                                       |
 | `test_commands.py`    | new: boot status, erase, end of life, bpak read, F-072                                  |
