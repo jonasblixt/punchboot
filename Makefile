@@ -32,6 +32,15 @@ $(shell BOARD=$(BOARD) KCONFIG_CONFIG=$(KCONFIG_CONFIG) $(PYTHON) scripts/gencon
 
 include $(BUILD_CONFIG)
 
+# $(call value_file,<variable>) gives $(BUILD_DIR)/value/<variable>, a file
+# with the variable's value that is rewritten only when the value changes. What
+# is made from a variable depends on its file, so it is made again when the
+# variable changes, in the configuration or on the command line (F-183).
+value_file = $(shell f=$(BUILD_DIR)/value/$(1); v='$(subst ','\'',$($(1)))'; \
+                 mkdir -p $(BUILD_DIR)/value; \
+                 [ -f $$f ] && [ "$$(cat $$f)" = "$$v" ] || printf '%s\n' "$$v" > $$f; \
+                 echo $$f)
+
 cflags-y   = -std=c99
 cflags-y  += -O$(call unquote,$(CONFIG_OPTIMIZE))
 cflags-$(CONFIG_DEBUG_SYMBOLS) += -g
@@ -121,14 +130,17 @@ all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
 	@echo "Success, final output: $(FINAL_OUTPUT)"
 
-$(BUILD_DIR)/keystore.o:
+# Every object can use PB_VERSION
+$(OBJS): $(call value_file,PB_VERSION)
+
+$(BUILD_DIR)/keystore.o: $(call unquote,$(CONFIG_KEYSTORE)) $(call value_file,CONFIG_KEYSTORE)
 	@echo GEN $(BUILD_DIR)/keystore.c
 	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) --decorate > $(BUILD_DIR)/keystore.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
 SRK_FUSE_FILE := $(patsubst "%",%,$(CONFIG_SRK_FUSE))
 
-$(BUILD_DIR)/srk_fuse.o: $(SRK_FUSE_FILE)
+$(BUILD_DIR)/srk_fuse.o: $(SRK_FUSE_FILE) $(call value_file,CONFIG_SRK_FUSE)
 	@echo GEN $(BUILD_DIR)/srk_fuse.c
 	$(Q)$(PYTHON) scripts/gen-srk-fuse.py $(SRK_FUSE_FILE) > $(BUILD_DIR)/srk_fuse.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/srk_fuse.c -o $@

@@ -20,6 +20,8 @@ CI runs these tests (D-006).
 | `tests/compat/`           | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in        |
 |                           | `bpak/`, wire transcripts in `transcripts/`. See `compatibility.md`                    |
 | `tests/doc/`              | The document lint (`process.md` 7): `check_docs.py`, the test `doc.lint`               |
+| `tests/make/`             | The firmware build: `check_rebuild.py` (`make.rebuild`) runs `make` for jiffy and      |
+|                           | checks that a changed keystore, SRK fuse file or version is made again (F-183)         |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest                                    |
 
 ## Running
@@ -32,6 +34,7 @@ scripts/pbdev run gcovr -r . build-host-cov --filter src/
 CTEST_ARGS="-L unit" scripts/pbdev test      # only unit tests
 CTEST_ARGS="-L compat" scripts/pbdev test    # only the frozen layout check (compatibility.md)
 CTEST_ARGS="-L doc" scripts/pbdev test       # only the document lint (process.md 7)
+CTEST_ARGS="-L make" scripts/pbdev test      # only the firmware build's checks
 python3 tests/doc/check_docs.py              # the same, without the container
 ```
 
