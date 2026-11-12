@@ -28,7 +28,7 @@ the trim is at the end of `log/2026-11-09.md`.
   pb is stopped (D-051). Its code: F-216, F-178, F-249..F-252, F-266..F-268. In: the RT's
   `late_boot` for the charger check (F-264), `struct board`'s objects (F-265).
 - **Boot flow contract (D-032, D-038 to D-041, D-043, D-044, `boot.md`):** reviewed (Jonas), no
-  open items. Its code still to come: F-254, F-257, F-259, F-260 and the A/B review's. In: the
+  open items. Its code still to come: F-259 and the A/B review's. In: the
   in place source (F-253, F-219, F-070), the ramdisk above 4 GiB (F-255), the policy interface
   with the loop and its fallback (F-256, F-215, F-174), the handover and delivery model
   (F-258). Open from them: a DT in place with the image handover (F-291), an entry part of
@@ -61,7 +61,7 @@ the trim is at the end of `log/2026-11-09.md`.
   code that decides nothing (a new driver, a refactoring) needs no document first (D-063).
   Security first, also before compatibility. No custom source, `dont-hash` images refused, EOL
   behind Kconfig (F-263).
-- **Tests:** `scripts/pbdev test`, ~35 s: 46 unit suites, `compat.abi`, `doc.lint` (the
+- **Tests:** `scripts/pbdev test`, ~35 s: 47 unit suites, `compat.abi`, `doc.lint` (the
   document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean again
   (F-290), line coverage 99.2% (2026-10-22, `testing.md`). The host has a memory mapped flash
   (`--nor`), on which the in place source runs end to end (`test_in_place.py`).
@@ -87,7 +87,7 @@ the trim is at the end of `log/2026-11-09.md`.
    the authentication's delay, the argument checks (F-275, F-185, F-276, F-278, F-273, F-188,
    F-279), hidden partitions and `part verify` (F-272, F-186), the exchanges that got out of
    step (F-187, F-274, F-128), the transfer timeout and the watchdog (F-277, F-189), a method
-   with the gate (F-271). Next: F-254 (placement's allow list), F-259 (Firmware Handoff),
+   with the gate (F-271), and placement's allow list (F-254). Next: F-259 (Firmware Handoff),
    then F-267 and F-268 (command mode's USB, the tasks), each a session of its own. No board
    is on this machine: the code is verified on the host and by building every board, and what
    a board has to show is listed in the log under "Not run on a board".
@@ -120,7 +120,8 @@ the trim is at the end of `log/2026-11-09.md`.
 - F-291: the image handover with a DT part, in place. Refuse it, or copy the DT to RAM first
   (where)?
 - From the code so far, each with what was chosen meanwhile: D-074 (an entry in an empty part
-  and a DT part below an FDT header are refused, against D-008), F-375 (what the caps' erase
+  and a DT part below an FDT header are refused, against D-008), F-392 (the boards' image
+  regions leave out the room pb grows in, which old releases loaded into), F-375 (what the caps' erase
   timeout means; 0 for now), F-342 (speculative mode's three cases), F-348 (does pb own the
   `pb,*` names), F-345 (`system_name` in the policy), F-325 and F-331 (sentences for
   `board.md` 5.3 and `boot.md` 5.1), F-335 (where the policy's and handover's checks sit).

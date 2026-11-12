@@ -408,6 +408,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `board_setup()` on the board, not by the linker. The regions also repeat the link scripts' numbers | | |
 | | | (D-055 names the cost). One source for both, and lengths that end where the board's first region | | |
 | | | starts. With F-239 | | |
+| F-392 | `src/board/{jiffy,imx8qxmek,imx8dxlevk,imx8mpevk,imx8mevk}/board.c` | The boards' image | Verified (code) | open |
+| | | data regions (F-254) leave out DRAM that nothing of pb's is in and that every release loaded into: | | |
+| | | jiffy 0x80038000 to 0x80101000 and 0x81847000 to 0x82000000; the MEK and the DXL 0x80053000 to | | |
+| | | 0x80080000 and 0x85826000 to 0x86000000; the 8M boards 0x40020000 to 0x40060000 and 0x40885000 to | | |
+| | | 0x41060000 (what is linked on 2026-11-12). It is the room pb and its buffers grow in, and D-055 | | |
+| | | names the cost; the test benches' images are outside it. An image in the field with a part there | | |
+| | | is refused now (D-008). For Jonas: keep the room, or start each region at the end of a link | | |
+| | | length that is made to fit (F-391), so that the linker holds the limit. Found by the review of F-254 | | |
 | F-259 | `src/boot/simple.c` | The generic handover passes r0 = the system's name, | Verified (code) | open |
 | | | r1 = the boot partition's UUID, and can't grow. `boot.md` 5.4: Arm's Firmware Handoff, a transfer | | |
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
