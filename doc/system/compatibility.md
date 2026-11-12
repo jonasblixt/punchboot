@@ -34,7 +34,9 @@ Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/c
   and old devices send zeros there. The device ignores `rz` content, so a new host must not rely
   on an old device honouring a new field: gate it on a capability.
 - **New command**: append to `pb_commands`. Old devices answer `-PB_RESULT_INVALID_COMMAND`; the
-  host must treat that as "not supported" and fall back or give a clear error.
+  host must treat that as "not supported" and fall back or give a clear error. A locked device
+  answers `-PB_RESULT_NOT_AUTHENTICATED` before authentication, from 3.0.0 also to a command it
+  doesn't have (`command-mode.md` 3.2, D-058): a host asks again once it is authenticated.
 - **Capabilities**: `PB_CMD_DEVICE_READ_CAPS` is the only negotiation. New capabilities go in its
   `rz[18]`. The host must handle zero (an old device) for every caps field, including today's.
 - **Retiring a command** (F-032): the handler may answer `-PB_RESULT_NOT_SUPPORTED`, but the enum
@@ -96,7 +98,7 @@ the same way. New images that old firmware can't read are fine only if they are 
 - The boot flow: the A/B state's format, the `/chosen` properties, each handover's register
   convention, pb's Firmware Handoff structure and tag (`boot.md` 7).
 - Command mode's behaviour: what each command means, its exchange, the gate, the authentication
-  methods, and the USB interface hosts find the device by (`command-mode.md` 7, a draft).
+  methods, and the USB interface hosts find the device by (`command-mode.md` 7).
 
 ## Guards
 

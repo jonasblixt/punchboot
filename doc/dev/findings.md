@@ -49,7 +49,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-113 | `src/drivers/mmc/imx_usdhc.c`, `src/board/imx8mpevk/board.c` (i.MX8M Plus uSDHC3) | eMMC in DDR52 (8-bit DDR) fails at the first data read after the switch (CMD8, INT status 0x208003: DCE, a data CRC error); HS200 works. 2026-10-28, after the DDR_EN fix (F-123): with the board's fixed DLL override tap 35 the CMD8 still fails the same way; with tap 0 init gets through DDR52 (EXT_CSD reads work), but the first CMD18 (GPT read) fails: the auto CMD12 response in CMD_RSP3 is 0x00d00f00 (CC_ERROR, COM_CRC_ERROR, ILLEGAL_COMMAND, state prg), which doesn't fit a read. HS200 with tap 0 fails the same way (2026-10-29) and works with tap 35: a sampling error, the DLL override is in the read path in SDR too. The right tap depends on board and silicon (tuning). | Verified (board) | open: imx8mpevk uses HS200. Next: what CMD_RSP3 holds after auto CMD12 in DDR, and a DLL setting for DDR instead of the fixed override |
 | F-116 | `src/drivers/mmc/mmc_core.c` `mmc_setup` (HS400) | HS400 without Enhanced Strobe selects HS_TIMING 3 without tuning in HS200 first (JESD84-B51 6.6.2.3 steps 5-6). With `MMC_BUS_WIDTH_8BIT_DDR_STROBE` the card is switched to BUS_WIDTH 0x86, then `imx_usdhc_set_bus_width()` rejects the width. No board uses HS400. | Verified (bench, `test_mmc_emmc` `test_hs400`) | open |
 | F-127 | `src/drivers/crypto/caam/imx_caam.c` `caam_wait_for_job` | The job status is read from JRSTAR after the output ring entry is removed, not from the entry's status word, and a mismatching descriptor address is logged as "Job failed". JRSTAR only holds the status of the last job that completed, so this works only while one job is in flight (true today). | Verified (SRM, code) | open (low) |
-| F-128 | `src/cm/cm_main.c` `cmd_boot_bpak`, `src/board/imx8mpevk` | The imx8mpevk has no boot driver, so `boot_load()` returns `-PB_ERR_PARAM` before reading the image. `cmd_boot_bpak` has already answered OK, so the host keeps sending the image, pb parses it as commands (`Invalid command: 0`) and the board resets into the serial downloader. The host sees `Error: Transfer`. | Seen on the board (2026-10-29) | partly fixed: the EVK has a boot driver (2026-10-29), so `boot_load()` gets as far as the image. Open: how the protocol recovers when `boot_load()` fails before the image has been read |
+| F-128 | `src/cm/cm_main.c` `cmd_boot_bpak`, `src/board/imx8mpevk` | The imx8mpevk has no boot driver, so `boot_load()` returns `-PB_ERR_PARAM` before reading the image. `cmd_boot_bpak` has already answered OK, so the host keeps sending the image, pb parses it as commands (`Invalid command: 0`) and the board resets into the serial downloader. The host sees `Error: Transfer`. | Seen on the board (2026-10-29) | partly fixed: the EVK has a boot driver (2026-10-29), so `boot_load()` gets as far as the image. Open: how the protocol recovers when `boot_load()` fails before the image has been read. D-058 (Jonas), `command-mode.md` 5.5: after its first OK the device always reads the header's transfer, and the header's result carries the refusal |
 | F-131 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_start` | For a buffer that isn't 4 KiB aligned, page 0 of the dTD is `align_buffer` at offset 0 with only `align_length` bytes valid, but the controller fills page 0 up to its 4 KiB boundary before page 1, so an unaligned transfer longer than `align_length` sends or receives the wrong bytes. pb's large buffers are aligned, the small ones fit in one page, so nothing hits it today. | Verified (code) | open: point page 0 at `align_buffer + 4096 - align_length` |
 | F-134 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_complete` | For an OUT transfer into a buffer that isn't 4 KiB aligned, the data is copied from `align_buffer` into the buffer and then the buffer is invalidated (DCIMVAC), which architecturally discards the copy while the lines are dirty. Every command read takes this path (`cmd` at 0x81826200 in the jiffy build), yet commands work on jiffy, and the D-cache does hold dirty lines there (the F-130 breadcrumbs in `.no_init` were lost on reset without a clean, log 2026-10-29). Not understood: perhaps the Cortex-A7 performs DCIMVAC as clean and invalidate (unchecked; that would also hide F-081 on jiffy). | Verified (code, symbol map); why it works is open | open: invalidate before the copy, not after; check DCIMVAC on the board (dirty a line, invalidate, read back) |
 | F-135 | `src/arch/armv7a`, `src/plat/imx6ul/plat.c` `plat_mmu_init` | Nothing sets ACTLR.SMP before the MMU and caches are enabled; as I recall it, the Cortex-A7 MPCore TRM asks for that. What it changes on jiffy is unknown: the 2026-10-29 breadcrumbs show write-back caching of `.no_init` works without it, so it doesn't simply leave Shareable memory uncached (first guess in the USB review, withdrawn). | Reported (TRM from memory, not in `~/work/manuals`) | open: read ACTLR on jiffy (`mrc p15, 0, r0, c1, c0, 1`), get the TRM |
@@ -501,16 +501,19 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | D-056, `platform.md` 7: the API stays with the platform; `imx8x.h` includes the services boards | | |
 | | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
 | | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
-| F-271 | `src/cm/cm_main.c` `cm_run()`, `src/cm/Kconfig` | Without `CONFIG_CM_AUTH` | Verified (code) | open |
-| | | every session starts as authenticated (`authenticated = true`): such a build has an open command | | |
-| | | mode on a locked device, against `security.md` 4.7. Every defconfig in the tree has the option on. | | |
-| | | `command-mode.md` 3.2, Open (1): the gate is always compiled in and the option goes; the | | |
-| | | methods stay options. Ask Jonas about out-of-tree builds | | |
+| F-271 | `src/cm/cm_main.c`, `src/cm/Kconfig`, `configs/imx8m{,p}evk_defconfig` | A build | Verified (code) | open |
+| | | with `CONFIG_CM_AUTH` and no method builds: once locked, its command mode answers NOT_SUPPORTED | | |
+| | | to `AUTHENTICATE` for good. The imx8mevk's and the imx8mpevk's defconfigs select none. D-059 | | |
+| | | (Jonas), `command-mode.md` 3.2: a build with authentication selects at least one method, or it | | |
+| | | doesn't build; the two defconfigs get the token. `CONFIG_CM_AUTH` itself stays the product's | | |
+| | | switch: off means no gate, an open command mode also on a locked device, by choice. The | | |
+| | | option's help text says so | | |
 | F-272 | `src/cm/cm_main.c` | Only `cmd_part_tbl_read()` looks at `BIO_FLAG_VISIBLE`. | Verified (code) | open |
 | | | Stream init, erase, verify, bpak read, `boot part` and activate find a hidden partition by its | | |
 | | | UUID (`bio_get_part_by_uu()`). With F-186 (`part verify` reads any partition byte by byte). | | |
-| | | `command-mode.md` 5.3, Open (2): a hidden partition answers NOT_FOUND to every command; | | |
-| | | `READABLE` only gates the bulk read | | |
+| | | `command-mode.md` 5.3, D-058 (Jonas): a hidden partition is internal to pb and answers | | |
+| | | NOT_FOUND to every command; `part verify` needs no `READABLE`. No board in the tree hides a | | |
+| | | partition (children inherit `VISIBLE` from their device) | | |
 | F-273 | `src/cm/cm_main.c` `stream_check()` | The stream's byte offset is divided by | Verified (code) | open |
 | | | the block size and the remainder dropped: an offset that isn't a block multiple reads or writes | | |
 | | | from the block's start and answers OK. The Python host sends multiples (0, the chunk size, the | | |
@@ -523,6 +526,21 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | link. Check what the 2.x C host did (the transcripts) before changing either side. (3) Most | | |
 | | | `cm_write()` results are ignored, and a failed `cm_read()` inside a command returns to the loop | | |
 | | | on the same transport. `command-mode.md` 4.4: a failed transfer ends the session | | |
+| F-275 | `src/cm/cm_main.c` `pb_command_parse()` | The frame is checked before the gate: | Verified (code) | open |
+| | | a locked device answers INVALID_COMMAND before authentication to a command its build doesn't | | |
+| | | have and to a frame with a wrong magic, which tells a host which commands the build knows. | | |
+| | | D-058 (Jonas), `command-mode.md` 3.2: NOT_AUTHENTICATED for everything but the identifier and | | |
+| | | the authentication, from 3.0.0. A change of the wire's meaning, for `security.md` 4.7 | | |
+| F-276 | `src/cm/cm_main.c` `cmd_auth()` | A failed authentication is answered at once: | Verified (code) | open |
+| | | a host can try passwords as fast as the transport carries them. D-058 (Jonas), | | |
+| | | `command-mode.md` 3.3: the result of a failed attempt is sent 1 s after the data arrived, with | | |
+| | | every method, the watchdog kicked meanwhile; no counter, no lockout | | |
+| F-277 | `src/cm/cm_main.c` `cm_read()`, `cm_write()`, `PB_CMD_DEVICE_READ_CAPS` | A | Verified (code) | open |
+| | | transfer inside a command has no timeout: a host that stops (`AUTHENTICATE`, then no data) | | |
+| | | leaves pb waiting without a kick (F-189), for ever without a watchdog. The caps' | | |
+| | | `operation_timeout_ms` and `part_erase_timeout_ms` are never set. D-058 (Jonas), | | |
+| | | `command-mode.md` 4.6: `CONFIG_CM_TRANSFER_TIMEOUT` (10 s), kicking while waiting, then the | | |
+| | | session ends and the transport restarts; the caps carry pb's timeouts (F-226 for the host) | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
 ## Dependencies / vendored code
@@ -538,7 +556,7 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 |---|---|---|
 | F-030 | libc files never compiled: `memcpy.c`, `strncmp.c`, `strlcpy.c`, `strnlen.c`, `strrchr.c`. Also `xlat_tables_v2/aarch32/nonlpae_tables.c`. | open |
 | F-031 | Stale `-I src/libc/include/...` in the armv7a/armv8a makefiles. The gcovr excludes still name `bearssl` and `src/fdt`. | open |
-| F-032 | Deprecated commands still handled: `PART_TBL_INSTALL`, `PART_RESIZE`, `AUTH_SET_PASSWORD`. `pb_wire_command_string`/`pb_wire_slc_string` are stubs. | open: removing them breaks old hosts (D-008); at most answer `NOT_SUPPORTED`, never reuse the slots |
+| F-032 | Deprecated commands still handled: `PART_TBL_INSTALL`, `PART_RESIZE`, `AUTH_SET_PASSWORD`. `pb_wire_command_string`/`pb_wire_slc_string` are stubs. Corrected 2026-11-12 (`command-mode.md` 5.3, 5.8): only `PART_RESIZE` is retired. `PART_TBL_INSTALL` is in use (`board.md` 2.4), and `AUTH_SET_PASSWORD` was never implemented and is to be (`roadmap.md`). | open: removing them breaks old hosts (D-008); at most answer `NOT_SUPPORTED`, never reuse the slots |
 | F-033 | imx8mevk unfinished (`board_init` returns error, no Kconfig). Orphan defconfigs `bebop`, `pico8ml`. imxrt untouched since 2023. | open: ask Jonas |
 | F-035 | The same data is defined in several places: exception names (C ×1, Python ×3, before D-021), partition flags, SLC enum, and the crc32 id table (`helpers.py`, could be `zlib.crc32`). | partly fixed (D-021): exception names are defined once (`errors.py`), and `wire.py` mirrors the wire values checked against `abi.txt`. Left: `pbtest.py`'s `PB_CMD_*`, the crc32 table |
 | F-145 | De-duplication left from the 2026-10-29 slimming review (D-020): board boilerplate (default GPT table and `partitions.h` byte-identical in 5 boards, the same `board_init` sequence and 3 dev keys in all, cm `.tops` in 6), ~900 lines; the write/read/check/print block 42 times in `tools/punchboot/api_*.c` and the validate/call/exception pattern 28 times in `python_wrapper.c`, ~550; `plat_mmu_init` and `plat_get_unique_id` near-identical in imx6ul/imx8m/imx8x; the bpak hash-kind switch 4 times in `image_helpers.c`; one-provider crypto ops tables; `test_mmc_core.c`'s own fake card vs the card models. Porting API: `arch_init()` empty everywhere, single-member `console_ops`, `board_init(struct imx*_platform *)` (imx8m struct empty), cm `command`/`status` stubs in 4 boards. | open; the host tools part is gone with the C library (D-021) |

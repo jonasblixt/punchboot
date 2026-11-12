@@ -129,7 +129,10 @@ flow's (`boot.md` 2, `platform.md` 4.4).
 
 **4.7 A locked device answers nothing but its identity before authentication** (D-011): the
 device and board identifiers, and the authentication command. A life cycle that is unknown counts
-as locked; a board without a life cycle is open. Host input is untrusted in every state,
+as locked; a board without a life cycle is open. A product may build pb without command mode's
+authentication (`CONFIG_CM_AUTH` off, on by default): such a build has no gate and its command
+mode is open in every state, which is the product's explicit choice (`system.md` 6,
+`command-mode.md` 3.2, D-059). Host input is untrusted in every state,
 authenticated or not: every size and offset from the host is checked before it is used.
 Authentication is by method. Methods are added, never changed (D-008): the token
 and the password stay as they are. Today a session is authenticated or not; a new method may

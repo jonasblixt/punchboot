@@ -1152,3 +1152,61 @@ draft names them (`principles.md` 3).
 behaviour, and the USB interface hosts find the device by, which no document had fixed.
 
 New findings: F-271 to F-274. Not changed: any code.
+
+## D-058: The command mode contract, Jonas's review (2026-11-12)
+
+Jonas reviewed `command-mode.md` and answered its eight open items. One stays open.
+
+- **(2) A hidden partition is internal to pb.** A partition without `VISIBLE` isn't reachable
+  over the wire: `NOT_FOUND` for every command. `PART_VERIFY` needs no `READABLE`, and that is
+  right: the host hashes its file and asks pb for the same over the partition. `READABLE` gates
+  the bulk read only. F-272.
+- **(3) No idle timeout.** No benefit, and a change of behaviour that hosts would trip over.
+- **(4) A failed authentication is answered after 1 s.** F-276.
+- **(5) What a method may grant is not designed yet.** The six classes are out of the
+  contract. Jonas isn't comfortable committing to them, and is thinking of a manifest of the
+  allowed commands, signed and sent as the token. `roadmap.md` has it. The contract keeps the
+  one thing that needs: the gate is the only place that decides.
+- **(6) A transfer the host doesn't complete ends the session** after
+  `CONFIG_CM_TRANSFER_TIMEOUT` (10 s), and the caps carry pb's timeouts. F-277.
+- **(7) `BOOT_BPAK` always reads the header** after its first OK, and the header's result
+  carries a refusal. F-128.
+- **(8) A closed device answers `NOT_AUTHENTICATED` to everything but the identifier and the
+  authentication**, from 3.0.0: also to a command its build doesn't have, and (my addition,
+  for one rule) to a frame with a wrong magic. Every release answers `INVALID_COMMAND` there.
+  F-275.
+- **(1) Open.** Jonas: pb can't keep a product from weak authentication, a board's password
+  check is the board's; but a build should have to select at least one method. Whether the
+  switch `CONFIG_CM_AUTH` itself goes is not answered (my proposal: it goes).
+
+What 3.0.0 answers differently from a release, for `security.md` 4.7 and 2 (`principles.md`
+3): (8) changes a result code on a locked device before authentication; (2) refuses a hidden
+partition by its UUID, which no board in the tree has; a stream offset inside a block is
+refused (F-273); (4) delays a failed authentication. `compatibility.md` says what (8) means for
+a host that probes for a command.
+
+`board.md` 4.4 names the reset a board's command can ask for
+(`cm_board_cmd_request_reboot_on_success()`): the draft listed it as missing and the review
+left it so.
+
+The rest of the draft had no comments. Taken as read, not as confirmed: the document stays a
+draft until (1) is closed.
+
+## D-059: `CONFIG_CM_AUTH` stays a switch; the command mode contract is reviewed (2026-11-12)
+
+Jonas closed the last open item of `command-mode.md`: "make it a switch".
+
+- `CONFIG_CM_AUTH` stays, on by default. Off, the build has no gate and command mode is open
+  in every life cycle state, on a locked device too: a product's explicit choice.
+- On, the build selects at least one method (the token, the password), or it doesn't build
+  (D-058, his proposal). F-271.
+- I had proposed that the switch goes and the gate is always compiled in. Why not: pb can't
+  keep a product from weak authentication anyway (a board's password check is the board's), so
+  the choice is the product's either way, and a switch says it plainly.
+
+Level 1 follows: `security.md` 4.7 names the build without authentication as the product's
+choice, and `system.md` 6 lists it among what pb leaves to the product. Both are reviewed
+documents, changed for this.
+
+`command-mode.md` is reviewed, with no open items. Its code: F-271 to F-277 and the findings
+its section 9 lists.
