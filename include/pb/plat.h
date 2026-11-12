@@ -129,6 +129,19 @@ int plat_get_unique_id(uint8_t *output, size_t *length);
 int plat_get_boot_source(struct pb_boot_source *src);
 
 /**
+ * Set up the USB device port command mode uses: its clocks, its power, its
+ * PHY and its controller, so that the transport can start. Called once, when
+ * command mode starts, never on the boot path (D-023). Which of the SoC's
+ * ports is the platform's Kconfig choice, made in the board's defconfig. It
+ * relies on what plat_init() set up and on nothing of the board's: command
+ * mode also runs after a failed board_setup(). Mandatory with CONFIG_CM
+ * (doc/interfaces/platform.md 3.10).
+ *
+ * @return PB_OK, or a negative number: no command mode, and pb resets
+ */
+int plat_cm_init(void);
+
+/**
  * Lock, until the next reset, what only pb may change: key revocation, the
  * fuses that reopen a closed device, the controls the SoC can lock for the
  * boot's lifetime. Called by the core right before the jump, after the last

@@ -1356,6 +1356,15 @@ int cm_run(void)
     int rc;
     LOG_INFO("Initializing command mode");
 
+    /* The USB device port, first (command-mode.md 2.1). Without it there is
+     * no command mode */
+    rc = plat_cm_init();
+
+    if (rc != PB_OK) {
+        LOG_ERR("Platform init failed (%i)", rc);
+        return rc;
+    }
+
 #ifdef CONFIG_BOOT_LINUX_RAMOOPS
     /* Only read through command mode, so not set up on the boot path. It
      * reads the region when the log is read. */

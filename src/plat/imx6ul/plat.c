@@ -402,6 +402,15 @@ int plat_init(void)
     return PB_OK;
 }
 
+#ifdef CONFIG_CM
+/* Command mode's USB (platform.md 3.10). The board's cm_init hook still sets
+ * it up (F-267) */
+int plat_cm_init(void)
+{
+    return PB_OK;
+}
+#endif
+
 int plat_get_boot_source(struct pb_boot_source *src)
 {
     memset(src, 0, sizeof(*src));

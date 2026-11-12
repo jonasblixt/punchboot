@@ -154,6 +154,15 @@ int plat_init(void)
     return rc;
 }
 
+#ifdef CONFIG_CM
+/* Command mode's USB (platform.md 3.10). The board's cm_init hook still sets
+ * it up (F-267) */
+int plat_cm_init(void)
+{
+    return PB_OK;
+}
+#endif
+
 void plat_reset(void)
 {
     imx_wdog_reset_now(IMXRT_WDOG1_BASE);

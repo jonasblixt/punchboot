@@ -101,6 +101,13 @@ int plat_init(void)
     return PB_OK;
 }
 
+/* Command mode's transport is the socket (socket.c): there is no port to
+ * set up (platform.md 3.10) */
+int plat_cm_init(void)
+{
+    return PB_OK;
+}
+
 void plat_reset(void)
 {
     /* exit() rather than _exit(), so that coverage data is written */

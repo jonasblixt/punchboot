@@ -271,12 +271,30 @@ static const struct cm_config cfg_all_callbacks = {
 };
 
 static const struct cm_config *board_cfg;
+static int board_init_calls;
 
 int cm_board_init(void)
 {
+    board_init_calls++;
     if (board_init_rc != PB_OK)
         return board_init_rc;
     return cm_init(board_cfg);
+}
+
+/* The platform's part of the set up: the USB port (platform.md 3.10) */
+static struct {
+    int rc;
+    int calls;
+    int board_inits_before; /* cm_board_init() calls when it was called */
+    int transport_inits_before;
+} plat_cm;
+
+int plat_cm_init(void)
+{
+    plat_cm.calls++;
+    plat_cm.board_inits_before = board_init_calls;
+    plat_cm.transport_inits_before = t.init_calls;
+    return plat_cm.rc;
 }
 
 static int board_status_rc;
@@ -687,6 +705,8 @@ static int setup(void **state)
     crypto.verify_ok = true;
     board_cfg = &cfg_default;
     board_init_rc = PB_OK;
+    board_init_calls = 0;
+    memset(&plat_cm, 0, sizeof(plat_cm));
     board_status_rc = PB_OK;
     /* The clock runs: a failed authentication waits on it (F-276) */
     fake_us_tick_step = TICK_STEP_US;
@@ -2465,6 +2485,42 @@ static void test_run_errors(void **state)
     assert_int_equal(t.disconnect_calls, 1);
 }
 
+/* The set up starts with the platform's (command-mode.md 2.1, platform.md
+ * 3.10): plat_cm_init(), before the board's data is checked and before the
+ * transport is started, and once: not again when the transport is restarted */
+static void test_setup_platform_first(void **state)
+{
+    (void)state;
+
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(plat_cm.calls, 1);
+    assert_int_equal(plat_cm.board_inits_before, 0);
+    assert_int_equal(plat_cm.transport_inits_before, 0);
+    assert_int_equal(board_init_calls, 1);
+}
+
+/* A platform that can't set up the port: no command mode (platform.md 3.10).
+ * Nothing after it is set up, and the error is what pb resets on */
+static void test_setup_platform_fails(void **state)
+{
+    (void)state;
+
+    plat_cm.rc = -PB_ERR_TIMEOUT;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    assert_int_equal(cm_run(), -PB_ERR_TIMEOUT);
+    assert_int_equal(plat_cm.calls, 1);
+    assert_int_equal(board_init_calls, 0);
+    assert_int_equal(t.init_calls, 0);
+    expect_end();
+}
+
 static void test_run_connect(void **state)
 {
     (void)state;
@@ -3319,6 +3375,8 @@ int main(void)
         CM_TEST(test_boot_bpak),
         CM_TEST(test_boot_bpak_refused_before_the_header),
         CM_TEST(test_run_errors),
+        CM_TEST(test_setup_platform_first),
+        CM_TEST(test_setup_platform_fails),
         CM_TEST(test_run_connect),
         CM_TEST(test_run_retries),
         CM_TEST(test_transport_errors_in_commands),
