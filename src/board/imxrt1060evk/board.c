@@ -397,6 +397,22 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .sys_b_uu = PART_sys_b,
 };
 
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the RAM an application
+ * is linked for. OCRAM2 between the ROM's data and pb, which is linked from
+ * 0x20249000 to the end of the OCRAM (link.lds), and the two TCMs, which pb
+ * doesn't use. The SDRAM isn't set up. board_setup() checks the list against
+ * what is linked.
+ */
+#define BOARD_OCRAM2_IMAGE_BASE (IMXRT_OCRAM2_BASE + IMXRT_OCRAM2_ROM_SIZE)
+
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(BOARD_OCRAM2_IMAGE_BASE, 0x20249000 - BOARD_OCRAM2_IMAGE_BASE),
+    BOOT_IMAGE_REGION(IMXRT_ITCM_BASE, IMXRT_ITCM_SIZE),
+    BOOT_IMAGE_REGION(IMXRT_DTCM_BASE, IMXRT_DTCM_SIZE),
+    BOOT_IMAGE_REGION_END,
+};
+
 const struct board board = {
     .name = "imxrt1060evk",
     .console_init = board_console_init,
@@ -406,6 +422,7 @@ const struct board board = {
     .ptbl = PTBL_STATIC(UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068, nor_table),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .boot_handover = BOOT_HANDOVER_SIMPLE(&boot_simple),
+    .image_regions = image_regions,
     .early_boot = board_early_boot,
     .late_boot = board_late_boot,
     .cm_init = board_cm_init,

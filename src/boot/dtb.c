@@ -12,45 +12,17 @@
  */
 
 #include <boot/dtb.h>
+#include <boot/image_regions.h>
 #include <bpak/id.h>
 #include <inttypes.h>
 #include <libfdt.h>
 #include <limits.h>
 #include <pb/pb.h>
 
-IMPORT_SYM(uintptr_t, _code_start, code_start);
-IMPORT_SYM(uintptr_t, _code_end, code_end);
-IMPORT_SYM(uintptr_t, _data_region_start, data_start);
-IMPORT_SYM(uintptr_t, _data_region_end, data_end);
-IMPORT_SYM(uintptr_t, _stack_start, stack_start);
-IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-IMPORT_SYM(uintptr_t, _zero_region_start, bss_start);
-IMPORT_SYM(uintptr_t, _zero_region_end, bss_end);
-IMPORT_SYM(uintptr_t, _no_init_start, no_init_start);
-IMPORT_SYM(uintptr_t, _no_init_end, no_init_end);
-
 /* [a, a + a_len) and [b, b + b_len) share a byte */
 static bool overlaps(uintptr_t a, size_t a_len, uintptr_t b, size_t b_len)
 {
     return a < b + b_len && b < a + a_len;
-}
-
-static bool overlaps_pb(uintptr_t addr, size_t len)
-{
-    const struct {
-        uintptr_t start;
-        uintptr_t end;
-    } regions[] = {
-        { code_start, code_end }, { data_start, data_end },       { stack_start, stack_end },
-        { bss_start, bss_end },   { no_init_start, no_init_end },
-    };
-
-    for (size_t i = 0; i < ARRAY_SIZE(regions); i++) {
-        if (overlaps(addr, len, regions[i].start, regions[i].end - regions[i].start))
-            return true;
-    }
-
-    return false;
 }
 
 int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt)
@@ -87,9 +59,10 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
         return -PB_ERR_MEM;
     }
 
-    /* Before the device tree is read: the parts are only checked against pb */
-    if (overlaps_pb(addr, room)) {
-        LOG_ERR("Device tree with headroom overlaps pb");
+    /* Before the device tree is read: the part was placed without the room
+     * it grows by (boot.md 4.3) */
+    if (!boot_image_in_regions(addr, room)) {
+        LOG_ERR("Device tree with headroom isn't inside an image data region");
         return -PB_ERR_MEM;
     }
 

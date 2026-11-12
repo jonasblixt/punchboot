@@ -623,6 +623,29 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | refusal; (2) the error is sent alone, as every released host expects; (3) with F-277: a transfer | | |
 | | | that fails or times out ends the session, the command's later transfers fail at once and the | | |
 | | | loop restarts the transport; (4) with F-128: the header is read and its result has the refusal | | |
+| F-254 | `src/boot/image_helpers.c` | `boot_image_verify_parts()` checks the parts | Verified (code) | fixed |
+| | | against code, data, stack, bss and `.no_init`, not `.ro_data` (the keystore's keys; `ro_data_start` | | |
+| | | is imported and unused) nor `.ramlog`. `CHECK_OVERLAP` has no wrap-around check (`dtb.c` has its own | | |
+| | | `overlaps()`, which does), parts aren't checked against each other nor against the board's DRAM. A | | |
+| | | signed image is trusted, but unverified payload bytes land there before the payload hash is checked | | |
+| | | (`principles.md` 2). An allow list instead of a deny list. D-055, `boot.md` 4.3, `board.md` | | |
+| | | 2.9: `image_regions` in `struct board`; a part lies inside one region and over no other part; | | |
+| | | that no region overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region is | | |
+| | | checked once, with the board's data. The platform header names the SoC memory a board may list. | | |
+| | | Fixed: `image_regions` in `struct board` (`boot/image_regions.h`), checked first in `board_setup()` | | |
+| | | by `boot_image_set_regions()`: a list that fails is no list. `boot_image_verify_parts()` compares in | | |
+| | | 64 bits: every part inside one region (an empty part too) and over no other part; a range that | | |
+| | | wraps or an address the arch can't hold is in no region. The DT's headroom is asked for in | | |
+| | | `boot_dtb_grow()`, which no longer names pb's sections. `src/link.lds` provides `_pb_start/_end` and | | |
+| | | `_buffers_start/_end`, what is linked, not the lengths of `MEMORY` (F-391). The Firmware Handoff | | |
+| | | region and `bl_params`' region are in the list's check under `CONFIG_BOOT_FH` and | | |
+| | | `PLAT_BL_PARAMS_BASE`, which no build defines yet (F-259, F-294). Every board has its list; the | | |
+| | | headers name the 8M's BL31 OCRAM, the 8X's BL31 place and the RT's TCMs and OCRAM2. Images an | | |
+| | | older release loaded outside a board's list are refused (D-055). `test_image_helpers.c` | | |
+| | | (`test_verify_parts_*`, `test_regions_*`, and `test_image_helpers_handover` for the two regions | | |
+| | | no build has), `test_board.c` (`test_image_regions`), `test_image.c` (the headroom), | | |
+| | | `test_boot.py` (`test_image_outside_the_image_regions_is_refused`). Not run on a board. Left: | | |
+| | | F-390, F-391 | | |
 
 ## Dependencies / vendored code
 

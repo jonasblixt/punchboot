@@ -8,6 +8,7 @@
  */
 
 #include <boot/image_helpers.h>
+#include <boot/image_regions.h>
 #include <bpak/id.h>
 #include <bpak/keystore.h>
 #include <inttypes.h>
@@ -18,18 +19,14 @@
 #include <pb/slc.h>
 #include <string.h>
 
-IMPORT_SYM(uintptr_t, _code_start, code_start);
-IMPORT_SYM(uintptr_t, _code_end, code_end);
-IMPORT_SYM(uintptr_t, _data_region_start, data_start);
-IMPORT_SYM(uintptr_t, _data_region_end, data_end);
-IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
-IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
-IMPORT_SYM(uintptr_t, _stack_start, stack_start);
-IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-IMPORT_SYM(uintptr_t, _zero_region_start, bss_start);
-IMPORT_SYM(uintptr_t, _zero_region_end, bss_end);
-IMPORT_SYM(uintptr_t, _no_init_start, no_init_start);
-IMPORT_SYM(uintptr_t, _no_init_end, no_init_end);
+/* What pb links, all of it in one of the two (platform.md 5.1) */
+IMPORT_SYM(uintptr_t, _pb_start, pb_start);
+IMPORT_SYM(uintptr_t, _pb_end, pb_end);
+IMPORT_SYM(uintptr_t, _buffers_start, buffers_start);
+IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
+
+/* The board's list once it passed its check, or NULL: nothing is loaded */
+static const struct boot_image_region *image_regions;
 
 static uint8_t signature[512];
 
@@ -129,14 +126,87 @@ int boot_image_auth_header(struct bpak_header *hdr)
     return rc;
 }
 
+static bool region_is_end(const struct boot_image_region *r)
+{
+    return r->base == UINT64_MAX && r->size == 0;
+}
+
+int boot_image_set_regions(const struct boot_image_region *regions)
+{
+    /* What no region may hold, [start, end). The check of a part names none
+     * of it (boot.md 4.3) */
+    const struct {
+        const char *name;
+        uint64_t start;
+        uint64_t end;
+    } kept[] = {
+        { "pb", pb_start, pb_end },
+        { "buffers", buffers_start, buffers_end },
+#ifdef CONFIG_BOOT_FH
+        { "the Firmware Handoff region",
+          CONFIG_BOOT_FH_REGION_BASE,
+          (uint64_t)CONFIG_BOOT_FH_REGION_BASE + CONFIG_BOOT_FH_REGION_SIZE },
+#endif
+#ifdef PLAT_BL_PARAMS_BASE
+        { "bl_params", PLAT_BL_PARAMS_BASE, (uint64_t)PLAT_BL_PARAMS_BASE + PLAT_BL_PARAMS_SIZE },
+#endif
+    };
+
+    image_regions = NULL;
+
+    if (regions == NULL)
+        return PB_OK;
+
+    for (unsigned int i = 0; !region_is_end(&regions[i]); i++) {
+        const struct boot_image_region *r = &regions[i];
+        /* The last byte: a region may end where the address space does */
+        uint64_t last = r->base + (r->size - 1);
+
+        if (r->size == 0 || last < r->base || (uintptr_t)last != last) {
+            LOG_ERR("Board data: image region %u is empty, wraps or is above the arch's addresses",
+                    i);
+            return -PB_ERR_PARAM;
+        }
+
+        for (size_t k = 0; k < ARRAY_SIZE(kept); k++) {
+            if (kept[k].start < kept[k].end && r->base < kept[k].end && kept[k].start <= last) {
+                LOG_ERR("Board data: image region %u overlaps %s", i, kept[k].name);
+                return -PB_ERR_PARAM;
+            }
+        }
+    }
+
+    image_regions = regions;
+    return PB_OK;
+}
+
+bool boot_image_in_regions(uint64_t addr, uint64_t size)
+{
+    if (image_regions == NULL)
+        return false;
+
+    for (const struct boot_image_region *r = image_regions; !region_is_end(r); r++) {
+        /* Without a sum of the range's, so nothing wraps */
+        if (addr >= r->base && size <= r->size && addr - r->base <= r->size - size)
+            return true;
+    }
+
+    return false;
+}
+
 int boot_image_verify_parts(struct bpak_header *hdr)
 {
     struct bpak_meta_header *mh;
-    int rc = PB_OK;
 
-    rc = bpak_valid_header(hdr);
+    /* Not on the stack: 512 bytes, of the RT's 4 KiB */
+    static struct {
+        uint64_t addr;
+        uint64_t last;
+    } placed[BPAK_MAX_PARTS];
 
-    if (rc != BPAK_OK) {
+    size_t count = 0;
+
+    if (bpak_valid_header(hdr) != BPAK_OK) {
         return -PB_ERR_BAD_HEADER;
     }
 
@@ -144,49 +214,43 @@ int boot_image_verify_parts(struct bpak_header *hdr)
         if (!p->id)
             break;
 
-        rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh);
-
-        if (rc != BPAK_OK) {
+        if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh) != BPAK_OK) {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
-            rc = -PB_ERR_BAD_META;
-            break;
+            return -PB_ERR_BAD_META;
         }
 
-        uintptr_t load_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
-        size_t bytes_to_read = bpak_part_size(p);
+        /* In 64 bits, as the image has it: an address the arch can't hold is
+         * inside no region */
+        uint64_t addr = *bpak_get_meta_ptr(hdr, mh, uint64_t);
+        uint64_t size = bpak_part_size(p);
 
-        if (CHECK_OVERLAP(load_addr, bytes_to_read, stack_start, stack_end)) {
-            rc = -PB_ERR_MEM;
-            LOG_ERR("Part 0x%x overlapping with stack segment", p->id);
-            break;
+        if (!boot_image_in_regions(addr, size)) {
+            LOG_ERR("Part 0x%x isn't inside an image data region", p->id);
+            return -PB_ERR_MEM;
         }
 
-        if (CHECK_OVERLAP(load_addr, bytes_to_read, data_start, data_end)) {
-            rc = -PB_ERR_MEM;
-            LOG_ERR("Part 0x%x overlapping with data segment", p->id);
-            break;
+        /* An empty part is over nothing */
+        if (size == 0)
+            continue;
+
+        /* The last bytes are compared: both parts are inside a region, so a
+         * last byte doesn't wrap, where an end does in a region that ends
+         * with the address space */
+        uint64_t last = addr + (size - 1);
+
+        for (size_t i = 0; i < count; i++) {
+            if (addr <= placed[i].last && placed[i].addr <= last) {
+                LOG_ERR("Part 0x%x overlaps another part", p->id);
+                return -PB_ERR_MEM;
+            }
         }
 
-        if (CHECK_OVERLAP(load_addr, bytes_to_read, bss_start, bss_end)) {
-            rc = -PB_ERR_MEM;
-            LOG_ERR("Part 0x%x overlapping with bss", p->id);
-            break;
-        }
-
-        if (CHECK_OVERLAP(load_addr, bytes_to_read, code_start, code_end)) {
-            rc = -PB_ERR_MEM;
-            LOG_ERR("Part 0x%x overlapping with code segment", p->id);
-            break;
-        }
-
-        if (CHECK_OVERLAP(load_addr, bytes_to_read, no_init_start, no_init_end)) {
-            rc = -PB_ERR_MEM;
-            LOG_ERR("Part 0x%x overlapping with no_init segment", p->id);
-            break;
-        }
+        placed[count].addr = addr;
+        placed[count].last = last;
+        count++;
     }
 
-    return rc;
+    return PB_OK;
 }
 
 int boot_image_verify_parts_in_place(struct bpak_header *hdr, uintptr_t base, size_t size)

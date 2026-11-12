@@ -422,6 +422,20 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .sys_b_uu = PART_sys_b,
 };
 
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps, from
+ * 0x40000000 to BOARD_RAM_END, above what pb has at its start: the DDR
+ * controller's state and pb's buffers, to 0x41060000
+ * (src/plat/imx8m/link.lds). And the on-chip RAM TF-A's BL31 is linked for,
+ * above pb, which runs from 0x920000. board_setup() checks the list against
+ * what is linked.
+ */
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(0x41060000, BOARD_RAM_END - 0x41060000),
+    BOOT_IMAGE_REGION(IMX8MP_BL31_BASE, IMX8MP_BL31_SIZE),
+    BOOT_IMAGE_REGION_END,
+};
+
 const struct board board = {
     .name = "imx8mpevk",
     .console_init = board_console_init,
@@ -432,6 +446,7 @@ const struct board board = {
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
     .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
+    .image_regions = image_regions,
     .bootargs = "console=ttymxc1,115200 quiet ",
     /* arm64 has no earlyprintk: earlycon, on stdout-path */
     .bootargs_verbose = "console=ttymxc1,115200 earlycon ",

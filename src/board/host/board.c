@@ -471,6 +471,18 @@ static const struct boot_policy_ops host_policy_ops = {
     .system_name = boot_ab_part_uu_to_name,
 };
 
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the emulated RAM above
+ * the fake pb at its start, 'pb' and 'buffers' to 0x40120000 (CMakeLists.txt).
+ * The flash is booted in place and needs no region.
+ */
+#define HOST_PB_SIZE 0x120000
+
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(BOARD_RAM_BASE + HOST_PB_SIZE, BOARD_RAM_SIZE - HOST_PB_SIZE),
+    BOOT_IMAGE_REGION_END,
+};
+
 const struct board board = {
     .name = "host test",
     .rot = &rot,
@@ -480,6 +492,7 @@ const struct board board = {
     .boot_policy = { .ops = &host_policy_ops, .config = &boot_state_cfg },
     .late_init = board_late_init,
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+    .image_regions = image_regions,
     .early_boot = early_boot,
     .late_boot = late_boot,
     .cm_transport = &socket_transport,

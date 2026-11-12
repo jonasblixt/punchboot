@@ -350,8 +350,6 @@ the code (F-076)**: today such an image fails on its payload hash, so none that 
 
 ### 4.3 Placement
 
-**Not yet in the code (F-254)**: the parts are only kept off some of pb's sections.
-
 An allow list: the board's image data regions (`board.md` 2.9, D-055), the only memory an image's
 parts are loaded into. Every part, and the room a handover grows it by (the DT's headroom), lies
 inside one of them and overlaps no other part. Address ranges that wrap are refused. A load
@@ -653,7 +651,6 @@ Like the wire (D-008, `compatibility.md`):
 | Finding                           | What                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------- |
 | F-259                             | Firmware Handoff (5.4): the list, the region, pb's structure and its tag        |
-| F-254                             | Placement (4.3)                                                                 |
 | F-248                             | The boot's preconditions in the flow (2), pb's status in the handover (5.6)     |
 | F-173, F-175, F-176, F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate`                   |
 | F-252, F-076                      | A stop in a boot command mode started; a part outside the hash refused (4.2)    |

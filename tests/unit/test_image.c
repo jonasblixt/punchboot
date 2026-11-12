@@ -25,6 +25,7 @@
 
 #include <arch/arch.h>
 #include <boot/image.h>
+#include <boot/image_regions.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <libfdt.h>
@@ -77,6 +78,14 @@ void arch_clean_cache_range(uintptr_t start, size_t len)
 {
     cleaned_start = start;
     cleaned_len = len;
+}
+
+/* The board's image data regions (image_helpers.c): here one, the test's */
+static struct boot_image_region region;
+
+bool boot_image_in_regions(uint64_t addr, uint64_t size)
+{
+    return addr >= region.base && size <= region.size && addr - region.base <= region.size - size;
 }
 
 static const char *const pbs_properties[] = {
@@ -211,6 +220,9 @@ static int setup(void **state)
     hook_saw_pbs_properties = 0;
     cleaned_start = 0;
     cleaned_len = 0;
+    /* All there is: the parts are where the test binary has them */
+    region.base = 0;
+    region.size = UINT64_MAX;
 
     assert_int_equal(bpak_init_header(hdr), BPAK_OK);
     hdr->key_id = KEY_ID_1;
@@ -1225,8 +1237,8 @@ static void test_empty_parts_that_are_not_the_entry(void **state)
     assert_int_equal(cleaned_len, 0);
 }
 
-/* The headroom must not reach another part or pb's memory, which is checked
- * before the device tree is read */
+/* The headroom must not reach another part or leave the part's image data
+ * region (boot.md 4.3), which is checked before the device tree is read */
 static void test_dtb_headroom_overlap(void **state)
 {
     struct bpak_meta_header *meta;
@@ -1240,10 +1252,19 @@ static void test_dtb_headroom_overlap(void **state)
     assert_int_equal(prepare(), -PB_ERR_MEM);
     *bpak_get_meta_ptr(hdr, meta, uint64_t) = RAMDISK_ADDR;
 
-    /* The device tree part right before pb's code (_code_start, CMakeLists.txt) */
-    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
-    *bpak_get_meta_ptr(hdr, meta, uint64_t) = 0x40000000 - DTB_SIZE;
+    /* A region that ends one byte before the headroom does: the part was
+     * inside it, the room it grows by isn't */
+    region.base = (uintptr_t)dtb;
+    region.size = DTB_SIZE + CONFIG_BOOT_DTB_HEADROOM - 1;
     assert_int_equal(prepare(), -PB_ERR_MEM);
+
+    /* Outside every region, as on a board without a list */
+    region.size = 0;
+    assert_int_equal(prepare(), -PB_ERR_MEM);
+
+    /* A region that is the part and its headroom */
+    region.size = DTB_SIZE + CONFIG_BOOT_DTB_HEADROOM;
+    assert_int_equal(prepare(), PB_OK);
 }
 
 /* The device tree's header says it is larger than its part */

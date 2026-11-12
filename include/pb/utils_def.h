@@ -155,17 +155,15 @@
  * be used as a 64-bit pointer, the value of the linker symbol must also be
  * aligned to 64 bit. This macro makes sure this is the case.
  */
-#define ASSERT_SYM_PTR_ALIGN(sym)            assert(((size_t)(sym) % __alignof__(*(sym))) == 0)
+#define ASSERT_SYM_PTR_ALIGN(sym) assert(((size_t)(sym) % __alignof__(*(sym))) == 0)
 
-#define COMPILER_BARRIER()                   __asm__ volatile("" ::: "memory")
+#define COMPILER_BARRIER()        __asm__ volatile("" ::: "memory")
 
-#define CHECK_OVERLAP(addr, len, start, end) (((addr) <= (end)) && ((addr) + (len) >= (start)))
+#define membersof(array)          (sizeof(array) / sizeof((array)[0]))
 
-#define membersof(array)                     (sizeof(array) / sizeof((array)[0]))
-
-#define SZ_KiB(x)                            ((size_t)(x) << 10)
-#define SZ_MiB(x)                            ((size_t)(x) << 20)
-#define SZ_GiB(x)                            ((size_t)(x) << 30)
-#define MHz(x)                               (x * 1000000UL)
+#define SZ_KiB(x)                 ((size_t)(x) << 10)
+#define SZ_MiB(x)                 ((size_t)(x) << 20)
+#define SZ_GiB(x)                 ((size_t)(x) << 30)
+#define MHz(x)                    (x * 1000000UL)
 
 #endif // INCLUDE_UTILS_DEF_H

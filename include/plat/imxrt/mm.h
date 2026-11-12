@@ -40,6 +40,14 @@
 #define IMXRT_OCRAM2_BASE        0x20200000 /* 512KB OCRAM2 */
 #define IMXRT_OCRAM_BASE         0x20280000 /* 512KB OCRAM FlexRAM */
 
+/* SoC memory a board may list as an image data region (platform.md 5.3): the
+ * two TCMs, with the size the FlexRAM's default configuration gives them
+ * (pb doesn't change it), and OCRAM2 above the ROM's data, which the ROM's
+ * API still uses. The board keeps its region below pb */
+#define IMXRT_ITCM_SIZE          0x00020000
+#define IMXRT_DTCM_SIZE          0x00020000
+#define IMXRT_OCRAM2_ROM_SIZE    0x00008000
+
 /* 0x20300000     512KB OCRAM Reserved */
 
 /* 0x20400000     252MB Reserved */

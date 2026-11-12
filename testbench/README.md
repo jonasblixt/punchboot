@@ -400,7 +400,9 @@ in the board's section under "Boot time" and commit per step.
    board's DTS (`aliases` in the SoC's `.dtsi`), Root A/B and the boot state
    from the board's GPT in `src/board/<board>/board.c`.
 4. `board/common/post-image.sh`: a case for the board with load addresses
-   clear of pb (`src/plat/*/link.lds`, pb's RAM and DRAM buffers), clear of
+   inside the board's image data regions (`image_regions` in
+   `src/board/<board>/board.c`, the only memory pb loads a part into: the
+   DRAM clear of pb, `src/plat/*/link.lds`), clear of
    each other (the kernel's size after decompression, 2 MiB aligned on
    arm64) and, for BL31, of TF-A's `BL31_BASE`. The partition sizes are
    checked there.

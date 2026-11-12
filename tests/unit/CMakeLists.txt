@@ -197,43 +197,41 @@ pb_unit_test(test_image_helpers SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c
     ${PROJECT_SOURCE_DIR}/src/crypto.c
 )
-# The pb memory regions that images must not overlap, same as for pb-host
-target_link_options(test_image_helpers PRIVATE
+# 'pb' and 'buffers', which no image data region may overlap, same as for
+# pb-host
+set(PB_TEST_MEMORY
     -no-pie
-    -Wl,--defsym=_code_start=0x40000000
-    -Wl,--defsym=_code_end=0x40080000
-    -Wl,--defsym=_ro_data_region_start=0x40080000
-    -Wl,--defsym=_ro_data_region_end=0x400a0000
-    -Wl,--defsym=_data_region_start=0x400a0000
-    -Wl,--defsym=_data_region_end=0x400c0000
-    -Wl,--defsym=_zero_region_start=0x400c0000
-    -Wl,--defsym=_zero_region_end=0x400e0000
-    -Wl,--defsym=_stack_start=0x400e0000
-    -Wl,--defsym=_stack_end=0x40100000
-    -Wl,--defsym=_no_init_start=0x40100000
-    -Wl,--defsym=_no_init_end=0x40120000
+    -Wl,--defsym=_pb_start=0x40000000
+    -Wl,--defsym=_pb_end=0x40100000
+    -Wl,--defsym=_buffers_start=0x40100000
+    -Wl,--defsym=_buffers_end=0x40120000
 )
+target_link_options(test_image_helpers PRIVATE ${PB_TEST_MEMORY})
 
-# pb's memory, which the device tree's headroom must not reach
-set(PB_IMAGE_TEST_MEMORY
-    -no-pie
-    -Wl,--defsym=_code_start=0x40000000
-    -Wl,--defsym=_code_end=0x40080000
-    -Wl,--defsym=_data_region_start=0x400a0000
-    -Wl,--defsym=_data_region_end=0x400c0000
-    -Wl,--defsym=_zero_region_start=0x400c0000
-    -Wl,--defsym=_zero_region_end=0x400e0000
-    -Wl,--defsym=_stack_start=0x400e0000
-    -Wl,--defsym=_stack_end=0x40100000
-    -Wl,--defsym=_no_init_start=0x40100000
-    -Wl,--defsym=_no_init_end=0x40120000
+# The same with what a handover writes outside the parts, which pb-host has
+# none of: the Firmware Handoff region (F-259) and a platform's region for
+# bl_params (platform.md 5.3), both between the suite's two image data regions
+add_executable(test_image_helpers_handover test_image_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/crypto.c
 )
+target_compile_definitions(test_image_helpers_handover PRIVATE
+    CONFIG_BOOT_FH=1
+    CONFIG_BOOT_FH_REGION_BASE=0x52000000
+    CONFIG_BOOT_FH_REGION_SIZE=0x10000
+    PLAT_BL_PARAMS_BASE=0x56000000
+    PLAT_BL_PARAMS_SIZE=512
+)
+target_include_directories(test_image_helpers_handover PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_image_helpers_handover PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+target_link_options(test_image_helpers_handover PRIVATE ${PB_TEST_MEMORY})
+add_test(NAME unit.test_image_helpers_handover COMMAND test_image_helpers_handover)
+set_tests_properties(unit.test_image_helpers_handover PROPERTIES LABELS unit TIMEOUT 60)
 
 pb_unit_test(test_image SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
     ${PROJECT_SOURCE_DIR}/src/boot/image.c
 )
-target_link_options(test_image PRIVATE ${PB_IMAGE_TEST_MEMORY})
 
 # Again with AArch32's registers, which the host's configuration doesn't have
 add_executable(test_image_armv7 test_image.c
@@ -243,7 +241,6 @@ add_executable(test_image_armv7 test_image.c
 target_compile_definitions(test_image_armv7 PRIVATE CONFIG_ARCH_ARMV7=1)
 target_include_directories(test_image_armv7 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_image_armv7 PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
-target_link_options(test_image_armv7 PRIVATE ${PB_IMAGE_TEST_MEMORY})
 add_test(NAME unit.test_image_armv7 COMMAND test_image_armv7)
 set_tests_properties(unit.test_image_armv7 PROPERTIES LABELS unit TIMEOUT 60)
 
@@ -283,7 +280,6 @@ pb_unit_test(test_tfa_image SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/image.c
 )
 pb_tfa_test(test_tfa_image)
-target_link_options(test_tfa_image PRIVATE ${PB_IMAGE_TEST_MEMORY})
 
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c

@@ -86,4 +86,11 @@
 
 #define IMX_CSU_BASE                (0x303e0000)
 
+/* SoC memory a board may list as an image data region (platform.md 5.3): the
+ * OCRAM that TF-A's BL31 is linked for, its BL31_BASE to the OCRAM's end */
+#define IMX8MQ_BL31_BASE            (0x00910000)
+#define IMX8MQ_BL31_SIZE            (0x00010000)
+#define IMX8MP_BL31_BASE            (0x00970000)
+#define IMX8MP_BL31_SIZE            (0x00020000)
+
 #endif

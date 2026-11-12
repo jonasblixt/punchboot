@@ -52,7 +52,7 @@ static void call(const char *name)
 }
 
 static struct {
-    int rot, slc, init, part, ptbl, policy, late_init, handover, delivery, cm_init, cm;
+    int regions, rot, slc, init, part, ptbl, policy, late_init, handover, delivery, cm_init, cm;
 } rc;
 
 static const struct rot_config *rot_cfg;
@@ -271,12 +271,28 @@ static const int test_table[2];
 static const int test_policy_config;
 static const int test_handover_config;
 static const int test_delivery_config;
+static const struct boot_image_region test_regions[] = { BOOT_IMAGE_REGION_END };
+
+/* The check of the board's list (image_helpers.c, tested with it): it gets
+ * the board's list, before every other step */
+static const struct boot_image_region *regions_arg;
+static unsigned int regions_calls;
+
+int boot_image_set_regions(const struct boot_image_region *regions)
+{
+    assert_string_equal(calls, "");
+    regions_arg = regions;
+    regions_calls++;
+    return rc.regions;
+}
 
 static int setup(void **state)
 {
     (void)state;
     memset(calls, 0, sizeof(calls));
     memset(&rc, 0, sizeof(rc));
+    regions_arg = NULL;
+    regions_calls = 0;
     ptbl_arg = NULL;
     ptbl_dev = -1;
     policy_cfg = NULL;
@@ -298,6 +314,7 @@ static int setup(void **state)
         .boot_policy = { .ops = &test_policy_ops, .config = &test_policy_config },
         .late_init = board_late_init,
         .boot_handover = { .ops = &test_handover_ops, .config = &test_handover_config },
+        .image_regions = test_regions,
         .early_boot = early_boot,
         .late_boot = late_boot,
         .bootargs = "quiet",
@@ -338,6 +355,9 @@ static void test_setup(void **state)
     assert_string_equal(calls, "rot slc init ptbl policy late handover boot ");
     assert_ptr_equal(rot_cfg, &test_rot);
     assert_ptr_equal(slc_cfg, &test_slc);
+    /* The image data regions are checked once, the board's list */
+    assert_int_equal(regions_calls, 1);
+    assert_ptr_equal(regions_arg, test_regions);
 
     /* The table's init gets the board's object and the device it names */
     assert_int_equal(lookups, 1);
@@ -622,6 +642,49 @@ static void test_no_rot_or_slc(void **state)
     assert_int_equal(board_setup(), -PB_ERR_PARAM);
     assert_string_equal(calls, "handover ");
     assert_null(driver);
+}
+
+/* The image data regions (board.md 2.9, 3) are checked before any other
+ * step: a boot command after a step that failed loads into them too. A list
+ * that fails is a failed step, and the handover is set up all the same */
+static void test_image_regions(void **state)
+{
+    (void)state;
+
+    rc.regions = -PB_ERR_PARAM;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_int_equal(regions_calls, 1);
+    assert_string_equal(calls, "handover boot ");
+    assert_int_equal(lookups, 0);
+    assert_null(policy_cfg);
+    assert_driver(true);
+
+    /* The check's error, not the handover's */
+    setup(NULL);
+    rc.regions = -PB_ERR_PARAM;
+    rc.handover = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "handover ");
+    assert_null(driver);
+
+    /* A board without a list: the check hears it, and it isn't a failure */
+    setup(NULL);
+    board.image_regions = NULL;
+    assert_int_equal(board_setup(), PB_OK);
+    assert_int_equal(regions_calls, 1);
+    assert_null(regions_arg);
+
+    /* Checked also when a step before the partitions fails */
+    setup(NULL);
+    rc.init = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_int_equal(regions_calls, 1);
+    assert_ptr_equal(regions_arg, test_regions);
+
+    setup(NULL);
+    board.rot = NULL;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_int_equal(regions_calls, 1);
 }
 
 /* A board without a life cycle has an slc without read_status: that is
@@ -930,6 +993,7 @@ int main(void)
         cmocka_unit_test_setup(test_optional, setup),
         cmocka_unit_test_setup(test_no_handover, setup),
         cmocka_unit_test_setup(test_no_rot_or_slc, setup),
+        cmocka_unit_test_setup(test_image_regions, setup),
         cmocka_unit_test_setup(test_slc_without_read_status, setup),
         cmocka_unit_test_setup(test_setup_ignores_the_name, setup),
         cmocka_unit_test_setup(test_delivery, setup),

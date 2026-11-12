@@ -9,8 +9,11 @@
  * providers and a fake root of trust, so every step can fail on demand.
  * Real signatures are covered by the integration tests (test_boot.py).
  *
- * The pb memory regions are set with --defsym, like for pb-host, see
- * tests/unit/CMakeLists.txt.
+ * 'pb' and 'buffers' are set with --defsym, like for pb-host, see
+ * tests/unit/CMakeLists.txt. Built twice: as pb-host is, and with a Firmware
+ * Handoff region and a platform's region for bl_params
+ * (test_image_helpers_handover), which no image data region may overlap
+ * either.
  */
 
 #include <setjmp.h>
@@ -21,6 +24,7 @@
 #include <cmocka.h>
 
 #include <boot/image_helpers.h>
+#include <boot/image_regions.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <pb/crypto.h>
@@ -32,17 +36,29 @@
 #include "fakes/plat.h"
 
 /* Must match the --defsym values in CMakeLists.txt */
-#define CODE_START    0x40000000
-#define DATA_START    0x400a0000
-#define BSS_START     0x400c0000
-#define STACK_START   0x400e0000
-#define NO_INIT_START 0x40100000
+#define PB_START      0x40000000
+#define PB_END        0x40100000
+#define BUFFERS_START 0x40100000
+#define BUFFERS_END   0x40120000
+
+/* The board's image data regions: two, with a gap that the handover's
+ * regions of the second build are in (CMakeLists.txt) */
+#define REGION_A      0x48000000
+#define REGION_A_SIZE 0x08000000
+#define REGION_B      0x58000000
+#define REGION_B_SIZE 0x02000000
 #define FREE_RAM      0x49000000
 
 #define ID_KERNEL     0xec103b08
 #define ID_DTB        0x56f91b86
 
 #define FAKE_SIG_OK   0x5a
+
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(REGION_A, REGION_A_SIZE),
+    BOOT_IMAGE_REGION(REGION_B, REGION_B_SIZE),
+    BOOT_IMAGE_REGION_END,
+};
 
 static struct {
     int key_status_rc;
@@ -211,7 +227,7 @@ static int setup(void **state)
     fake.verify_ok = true;
     fake_wdog_kicks = 0;
     make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, FREE_RAM + 0x100000, 512);
-    return 0;
+    return boot_image_set_regions(image_regions) == PB_OK ? 0 : -1;
 }
 
 static void test_auth_header(void **state)
@@ -308,28 +324,294 @@ static void test_verify_parts_needs_load_addr(void **state)
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_BAD_META);
 }
 
-static void test_verify_parts_rejects_pb_memory(void **state)
+/* A part lies inside one region, wherever in it (boot.md 4.3) */
+static void test_verify_parts_inside_a_region(void **state)
 {
-    static const uint64_t regions[] = {
-        CODE_START + 0x1000,
-        DATA_START + 0x1000,
-        BSS_START + 0x1000,
-        STACK_START + 0x1000,
-        NO_INIT_START + 0x1000,
-        /* Ends inside the code */
-        CODE_START - 0x200,
+    (void)state;
+
+    /* One part in each region */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, REGION_B + 0x1000, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* From a region's first byte, and to its last */
+    make_header(BPAK_HASH_SHA256, REGION_A, 1024, REGION_A + REGION_A_SIZE - 1024, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* One part that is the whole region */
+    make_header(BPAK_HASH_SHA256, REGION_B, REGION_B_SIZE, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* A part without bytes is placed like any other */
+    make_header(BPAK_HASH_SHA256, REGION_B + REGION_B_SIZE, 0, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+    make_header(BPAK_HASH_SHA256, REGION_B + REGION_B_SIZE + 1, 0, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+}
+
+/* The regions are the only memory a part is loaded into: pb's own memory is
+ * outside them like any other */
+static void test_verify_parts_outside_the_regions(void **state)
+{
+    static const struct {
+        uint64_t addr;
+        size_t size;
+    } parts[] = {
+        { PB_START + 0x1000, 1024 }, /* pb's own memory */
+        { PB_END - 512, 1024 },
+        { BUFFERS_START + 0x1000, 1024 },
+        { BUFFERS_END, 1024 }, /* RAM that is pb's no more, and in no region */
+        { 0, 1024 },
+        { REGION_A - 0x200, 1024 }, /* Ends inside a region */
+        { REGION_A - 1024, 1024 }, /* Ends where it starts */
+        { REGION_A + REGION_A_SIZE - 512, 1024 }, /* Starts inside */
+        { REGION_A + REGION_A_SIZE, 1024 }, /* The gap between the two */
+        { REGION_A, REGION_A_SIZE + 512 },
+        { REGION_A + 1, REGION_A_SIZE }, /* By one byte */
+        { REGION_B + REGION_B_SIZE, 1024 }, /* Above them */
+        /* Above 4 GiB: not narrowed to an address in a region */
+        { 0x100000000ull + FREE_RAM, 1024 },
+    };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(parts); i++) {
+        /* The second part is outside */
+        make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, parts[i].addr, parts[i].size);
+        assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+        /* And the first */
+        make_header(BPAK_HASH_SHA256, parts[i].addr, parts[i].size, FREE_RAM, 1024);
+        assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    }
+}
+
+/* Inside one region: not across two, also when they are next to each other
+ * and every byte of the part is in one of them */
+static void test_verify_parts_across_two_regions(void **state)
+{
+    static const struct boot_image_region adjacent[] = {
+        BOOT_IMAGE_REGION(FREE_RAM, 0x1000),
+        BOOT_IMAGE_REGION(FREE_RAM + 0x1000, 0x1000),
+        BOOT_IMAGE_REGION_END,
     };
     (void)state;
 
-    for (size_t i = 0; i < ARRAY_SIZE(regions); i++) {
-        /* The second part overlaps */
-        make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, regions[i], 1024);
-        assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
-    }
+    assert_int_equal(boot_image_set_regions(adjacent), PB_OK);
 
-    /* Right after the last region */
-    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, NO_INIT_START + 0x20000 + 1, 1024);
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x1000, FREE_RAM + 0x1000, 0x1000);
     assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 0x800, 0x1000, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x2000, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    /* One byte of it in the second */
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 0xe01, 512, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+}
+
+/* An address range that wraps is in no region, wherever its end lands */
+static void test_verify_parts_wraps(void **state)
+{
+    /* The last 64 KiB of the address space, which a 64-bit arch can have */
+    static const struct boot_image_region top[] = {
+        BOOT_IMAGE_REGION(REGION_A, REGION_A_SIZE),
+        BOOT_IMAGE_REGION(UINT64_MAX - 0xffff, 0x10000),
+        BOOT_IMAGE_REGION_END,
+    };
+    (void)state;
+
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 511, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* Wraps into a region: its end is FREE_RAM + 0x1000 */
+    make_header(BPAK_HASH_SHA256, UINT64_MAX - 0xfff, (size_t)FREE_RAM + 0x2000, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    assert_int_equal(boot_image_set_regions(top), PB_OK);
+
+    /* To the last byte there is */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 1023, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* One byte further wraps, out of the region it starts in */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 1022, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    make_header(BPAK_HASH_SHA256, UINT64_MAX - 0xfff, (size_t)FREE_RAM + 0x2000, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* Two parts over each other at the last byte there is: the end of both
+     * is 0, their last bytes are compared */
+    make_header(BPAK_HASH_SHA256, UINT64_MAX - 1023, 1024, UINT64_MAX - 511, 512);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    make_header(BPAK_HASH_SHA256, UINT64_MAX - 1023, 512, UINT64_MAX - 511, 512);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+}
+
+/* A part overlaps no other part */
+static void test_verify_parts_over_each_other(void **state)
+{
+    (void)state;
+
+    /* The second starts inside the first */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x2000, FREE_RAM + 0x1000, 0x2000);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* The first starts inside the second */
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 0x1000, 0x2000, FREE_RAM, 0x2000);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* By one byte */
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 1, 0x1000, FREE_RAM + 0x1000, 0x1000);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* The same address */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, FREE_RAM, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* One inside the other */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x4000, FREE_RAM + 0x1000, 512);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* Next to each other, in either order */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x1000, FREE_RAM + 0x1000, 0x1000);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 0x1000, 0x1000, FREE_RAM, 0x1000);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+}
+
+/* A board without a list loads nothing (board.md 2.9). The in place source
+ * has its own allowed memory */
+static void test_verify_parts_without_regions(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_image_set_regions(NULL), PB_OK);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    assert_false(boot_image_in_regions(FREE_RAM, 1));
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FREE_RAM, 0x200000), PB_OK);
+}
+
+/* The room a handover grows a part by is asked for with the part */
+static void test_in_regions(void **state)
+{
+    (void)state;
+
+    assert_true(boot_image_in_regions(REGION_A, REGION_A_SIZE));
+    assert_true(boot_image_in_regions(REGION_B + REGION_B_SIZE - 0x1000, 0x1000));
+    assert_false(boot_image_in_regions(REGION_B + REGION_B_SIZE - 0x1000, 0x1001));
+    assert_false(boot_image_in_regions(REGION_A - 1, 2));
+    assert_false(boot_image_in_regions(PB_START, 1));
+    assert_false(boot_image_in_regions(REGION_A, UINT64_MAX));
+    assert_false(boot_image_in_regions(UINT64_MAX, 2));
+}
+
+/* The check of the board's list (board.md 3): the list that passes is the
+ * one in use, and one that fails leaves none */
+static void assert_regions_fail(uint64_t base, uint64_t size)
+{
+    const struct boot_image_region alone[] = {
+        BOOT_IMAGE_REGION(base, size),
+        BOOT_IMAGE_REGION_END,
+    };
+    const struct boot_image_region last[] = {
+        BOOT_IMAGE_REGION(REGION_A, REGION_A_SIZE),
+        BOOT_IMAGE_REGION(base, size),
+        BOOT_IMAGE_REGION_END,
+    };
+
+    assert_int_equal(boot_image_set_regions(image_regions), PB_OK);
+    assert_int_equal(boot_image_set_regions(alone), -PB_ERR_PARAM);
+    /* Nothing is loaded, not even where the list before it allowed */
+    assert_false(boot_image_in_regions(FREE_RAM, 1024));
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* After a region that passes */
+    assert_int_equal(boot_image_set_regions(last), -PB_ERR_PARAM);
+    assert_false(boot_image_in_regions(FREE_RAM, 1024));
+}
+
+static void assert_regions_pass(uint64_t base, uint64_t size)
+{
+    const struct boot_image_region alone[] = {
+        BOOT_IMAGE_REGION(base, size),
+        BOOT_IMAGE_REGION_END,
+    };
+
+    assert_int_equal(boot_image_set_regions(alone), PB_OK);
+    assert_true(boot_image_in_regions(base, size));
+}
+
+static void test_regions_overlap_pb(void **state)
+{
+    (void)state;
+
+    /* The board's whole RAM, with pb at its start */
+    assert_regions_fail(PB_START, 0x20000000);
+    /* Inside pb, over its start, over its end */
+    assert_regions_fail(PB_START + 0x1000, 0x1000);
+    assert_regions_fail(PB_START - 0x1000, 0x1001);
+    assert_regions_fail(PB_END - 1, 0x1000);
+    /* All of pb and more */
+    assert_regions_fail(PB_START - 0x1000, 0x40000000);
+
+    /* 'buffers' */
+    assert_regions_fail(BUFFERS_START + 0x1000, 0x1000);
+    assert_regions_fail(BUFFERS_END - 1, 0x08000000);
+
+    /* Up to pb's first byte, and from the first after 'buffers' */
+    assert_regions_pass(PB_START - 0x1000, 0x1000);
+    assert_regions_pass(BUFFERS_END, 0x1000);
+}
+
+static void test_regions_empty_or_wrapping(void **state)
+{
+    static const struct boot_image_region none[] = { BOOT_IMAGE_REGION_END };
+    (void)state;
+
+    assert_regions_fail(FREE_RAM, 0);
+    assert_regions_fail(0, 0);
+    assert_regions_fail(UINT64_MAX - 0xfff, 0x1001);
+    assert_regions_fail(FREE_RAM, UINT64_MAX);
+    assert_regions_fail(UINT64_MAX, 2);
+
+    /* Memory at address 0, and to the last byte there is */
+    assert_regions_pass(0, 0x20000);
+    assert_regions_pass(UINT64_MAX - 0xfff, 0x1000);
+
+    /* A list without regions passes, and loads nothing */
+    assert_int_equal(boot_image_set_regions(none), PB_OK);
+    assert_false(boot_image_in_regions(FREE_RAM, 1024));
+}
+
+/* What a handover writes outside the parts (boot.md 4.3), in the build that
+ * has it */
+static void test_regions_overlap_handover(void **state)
+{
+    (void)state;
+
+#ifdef CONFIG_BOOT_FH
+    assert_regions_fail(CONFIG_BOOT_FH_REGION_BASE, CONFIG_BOOT_FH_REGION_SIZE);
+    assert_regions_fail(CONFIG_BOOT_FH_REGION_BASE - 0x1000, 0x1001);
+    assert_regions_fail(CONFIG_BOOT_FH_REGION_BASE + CONFIG_BOOT_FH_REGION_SIZE - 1, 0x1000);
+    assert_regions_fail(REGION_A, REGION_B - REGION_A);
+    assert_regions_pass(CONFIG_BOOT_FH_REGION_BASE - 0x1000, 0x1000);
+    assert_regions_pass(CONFIG_BOOT_FH_REGION_BASE + CONFIG_BOOT_FH_REGION_SIZE, 0x1000);
+#endif
+
+#ifdef PLAT_BL_PARAMS_BASE
+    assert_regions_fail(PLAT_BL_PARAMS_BASE, 0x1000);
+    assert_regions_fail(PLAT_BL_PARAMS_BASE - 0x1000, 0x1001);
+    assert_regions_fail(PLAT_BL_PARAMS_BASE + PLAT_BL_PARAMS_SIZE - 1, 0x1000);
+    assert_regions_pass(PLAT_BL_PARAMS_BASE - 0x1000, 0x1000);
+    assert_regions_pass(PLAT_BL_PARAMS_BASE + PLAT_BL_PARAMS_SIZE, 0x1000);
+#endif
+
+#if !defined(CONFIG_BOOT_FH) && !defined(PLAT_BL_PARAMS_BASE)
+    /* Neither: the gap between the suite's regions is the board's to list */
+    assert_regions_pass(REGION_A, REGION_B - REGION_A);
+#endif
 }
 
 /* A partition that is booted in place: its mapped range, without the header */
@@ -361,14 +643,14 @@ static void test_verify_parts_in_place(void **state)
     assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0), PB_OK);
 }
 
-/* Nothing is loaded, so pb's own memory isn't what a part is kept off */
+/* Nothing is loaded, so the image data regions aren't what a part must be in */
 static void test_verify_parts_in_place_ignores_pb_memory(void **state)
 {
     (void)state;
 
-    make_header(BPAK_HASH_SHA256, CODE_START + 0x1000, 1024, STACK_START + 0x1000, 1024);
+    make_header(BPAK_HASH_SHA256, PB_START + 0x1000, 1024, PB_START + 0xe1000, 1024);
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
-    assert_int_equal(boot_image_verify_parts_in_place(hdr, CODE_START, 0x200000), PB_OK);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, PB_START, 0x200000), PB_OK);
 }
 
 static void test_verify_parts_in_place_outside(void **state)
@@ -1026,7 +1308,16 @@ int main(void)
         IMG_TEST(test_auth_header_errors),
         IMG_TEST(test_verify_parts),
         IMG_TEST(test_verify_parts_needs_load_addr),
-        IMG_TEST(test_verify_parts_rejects_pb_memory),
+        IMG_TEST(test_verify_parts_inside_a_region),
+        IMG_TEST(test_verify_parts_outside_the_regions),
+        IMG_TEST(test_verify_parts_across_two_regions),
+        IMG_TEST(test_verify_parts_wraps),
+        IMG_TEST(test_verify_parts_over_each_other),
+        IMG_TEST(test_verify_parts_without_regions),
+        IMG_TEST(test_in_regions),
+        IMG_TEST(test_regions_overlap_pb),
+        IMG_TEST(test_regions_empty_or_wrapping),
+        IMG_TEST(test_regions_overlap_handover),
         IMG_TEST(test_verify_parts_in_place),
         IMG_TEST(test_verify_parts_in_place_ignores_pb_memory),
         IMG_TEST(test_verify_parts_in_place_outside),

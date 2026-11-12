@@ -31,6 +31,19 @@
  */
 int boot_image_auth_header(struct bpak_header *hdr);
 
+/**
+ * Placement of an image that is loaded (boot.md 4.3): every part has a load
+ * address, lies inside one of the board's image data regions
+ * (boot/image_regions.h) and overlaps no other part. Before anything is
+ * loaded.
+ *
+ * @param[in] hdr The image's header
+ *
+ * @return PB_OK when every part is placed
+ *        -PB_ERR_BAD_HEADER, on bad header magic
+ *        -PB_ERR_BAD_META, a part without a load address
+ *        -PB_ERR_MEM, a part outside the regions or over another part
+ */
 int boot_image_verify_parts(struct bpak_header *hdr);
 
 /**

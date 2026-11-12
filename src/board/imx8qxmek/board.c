@@ -409,6 +409,23 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .sys_b_uu = PART_sys_b,
 };
 
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM below 4 GiB,
+ * 2 GiB from 0x80000000, without pb, which runs in it
+ * (src/plat/imx8x/link.lds). BL31 goes where pb's reset stub was. pb is
+ * linked from 0x80020000 and its buffers from 0x85000000, 16 MiB each. pb's
+ * 16 MiB aren't all kept: the build uses less than 256 KiB, and a kernel of
+ * the images in use is at 0x80200000, one with the older text offset at
+ * 0x80080000. board_setup() checks the list against what is linked. The
+ * board's third GiB, at 0x880000000, is above what pb maps.
+ */
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(IMX8X_ATF_BASE, IMX8X_ATF_SIZE),
+    BOOT_IMAGE_REGION(0x80080000, 0x85000000 - 0x80080000), /* Between pb and its buffers */
+    BOOT_IMAGE_REGION(0x86000000, 0x100000000 - 0x86000000),
+    BOOT_IMAGE_REGION_END,
+};
+
 const struct board board = {
     .name = "imx8qxpmek",
     .console_init = board_console_init,
@@ -419,6 +436,7 @@ const struct board board = {
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
     .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
+    .image_regions = image_regions,
     .early_boot = early_boot,
     .bootargs = "console=ttyLP0,115200 quiet ",
     .bootargs_verbose = "console=ttyLP0,115200  "

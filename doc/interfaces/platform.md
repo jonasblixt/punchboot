@@ -611,9 +611,9 @@ const struct board board = {
 
 ### 5.3 Memory for images and handovers
 
-**Not yet in the code (F-254, F-294)**: the image data regions; and `bl_params`' memory is the
-platform's to give (`plat_bl_params`, `PLAT_BL_PARAMS_SIZE` from its makefile), but on the
-i.MX8M it is an object in `pb`'s own data, as it was, not a SoC region of its own.
+**Not yet in the code (F-294)**: `bl_params`' memory is the platform's to give
+(`plat_bl_params`, `PLAT_BL_PARAMS_SIZE` from its makefile), but on the i.MX8M it is an object
+in `pb`'s own data, as it was, not a SoC region of its own.
 
 An image's parts are loaded only into the image data regions, a list the board gives
 (`board.md` 2.9, `boot.md` 4.3, D-055). The platform declares no loadable memory of its own:

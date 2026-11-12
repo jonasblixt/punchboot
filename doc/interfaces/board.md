@@ -338,7 +338,7 @@ NULL: the board reaches what the platform maps.
 
 ### 2.9 Data : image_regions [optional]
 
-**Not yet in the code (F-254).** Added after the review (Jonas, D-055).
+Added after the review (Jonas, D-055).
 
 The image data regions: the only memory an image's parts are loaded into (`boot.md` 4.3). The
 board names them, because where a product's images land is the product's: its DRAM, and the SoC
@@ -373,9 +373,9 @@ NULL: nothing is loaded. Only a partition that is booted in place boots.
 
 ## 3. The board's data, checked
 
-**Not yet in the code (F-254)**: `image_regions`. **Not yet in the code (F-335)**: `boot_policy`
-and `boot_handover` are checked when their step comes, after the partition table, and not at the
-start with `rot` and `slc`: a step before them that fails hides the check.
+**Not yet in the code (F-335)**: `boot_policy` and `boot_handover` are checked when their step
+comes, after the partition table, and not at the start with `rot` and `slc`: a step before them
+that fails hides the check.
 
 `board_setup()` and `cm_board_init()` check the board's data before they use it, a few lines tested
 on the host:
@@ -792,7 +792,6 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | ------------------------------ | ----- | ------- | --- | ------- | ---------- | -------- | ------- | ------------ |
 | Data (3)                       | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300        |
 | A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300        |
-| Image data regions (2.9)       | no    | no      | no  | no      | no         | no       | no      | F-254        |
 | Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270        |
 | No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-301        |
 | No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251        |

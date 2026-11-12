@@ -9,6 +9,7 @@
  */
 
 #include <boot/boot.h>
+#include <boot/image_regions.h>
 #include <pb-tools/wire.h>
 #include <pb/bio.h>
 #include <pb/board.h>
@@ -102,14 +103,24 @@ static int board_data_failed(const char *member)
 }
 
 /*
- * The board's data is checked before it is used (board.md 3): rot and slc
- * first, boot_policy and boot_handover when their step comes, a partition
- * table's by its driver. The name and the rest of command mode's are checked
- * by cm_board_init(): nothing here uses them.
+ * The board's data is checked before it is used (board.md 3): image_regions,
+ * rot and slc first, boot_policy and boot_handover when their step comes, a
+ * partition table's by its driver. The name and the rest of command mode's
+ * are checked by cm_board_init(): nothing here uses them.
  */
 int board_setup(void)
 {
     int rc;
+
+    /* Before any image is read, also by a boot command after a later step
+     * failed. It logs which region and why; a list that fails is no list, so
+     * nothing is loaded */
+    rc = boot_image_set_regions(board.image_regions);
+
+    if (rc != PB_OK) {
+        (void)setup_boot_driver();
+        return rc;
+    }
 
     if (board.rot == NULL)
         return board_data_failed("rot");

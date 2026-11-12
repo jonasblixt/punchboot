@@ -14,6 +14,8 @@ SECTIONS
     .text :
      {
         . = ALIGN(PB_SECTION_ALIGNMENT);
+        /* pb: from here to the end of the RAM log (platform.md 5.1) */
+        PROVIDE (_pb_start = .);
         PROVIDE (_code_start = .);
         KEEP(*(.vectors .vectors.*))
         *(.text .text.*)
@@ -75,17 +77,20 @@ SECTIONS
         . = ALIGN(PB_SECTION_ALIGNMENT);
         *(.ramlog)
         . = ALIGN(PB_SECTION_ALIGNMENT);
+        PROVIDE(_pb_end = .);
     } > ram
 
     .no_init (NOLOAD):
     {
         . = ALIGN(PB_SECTION_ALIGNMENT);
+        PROVIDE(_buffers_start = .);
         PROVIDE(_no_init_start = .);
         *(.no_init .no_init*)
         . = ALIGN(PB_SECTION_ALIGNMENT);
         *(xlat_table)
         . = ALIGN(PB_SECTION_ALIGNMENT);
         PROVIDE(_no_init_end = .);
+        PROVIDE(_buffers_end = .);
     } > buffers
 
     PROVIDE(end = .);

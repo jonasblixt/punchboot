@@ -393,15 +393,21 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | transport's disconnect, a failed `late_boot` or `plat_lockdown()` other than ABORT returns to the | | |
 | | | loop, which reads from the disconnected transport (unchecked). `board.md` 5.4: before the | | |
 | | | disconnect the host gets the error and command mode goes on, after it pb resets | | |
-| F-254 | `src/boot/image_helpers.c` | `boot_image_verify_parts()` checks the parts | Verified (code) | open |
-| | | against code, data, stack, bss and `.no_init`, not `.ro_data` (the keystore's keys; `ro_data_start` | | |
-| | | is imported and unused) nor `.ramlog`. `CHECK_OVERLAP` has no wrap-around check (`dtb.c` has its own | | |
-| | | `overlaps()`, which does), parts aren't checked against each other nor against the board's DRAM. A | | |
-| | | signed image is trusted, but unverified payload bytes land there before the payload hash is checked | | |
-| | | (`principles.md` 2). An allow list instead of a deny list. D-055, `boot.md` 4.3, `board.md` | | |
-| | | 2.9: `image_regions` in `struct board`; a part lies inside one region and over no other part; | | |
-| | | that no region overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region is | | |
-| | | checked once, with the board's data. The platform header names the SoC memory a board may list | | |
+| F-390 | `src/plat/imx8m/link.lds`, `src/plat/imx8x/link.lds` | Not everything pb links is in | Verified (code) | open |
+| | | `pb` or `buffers`, which `platform.md` 5.3 rests the check of a board's image data regions on | | |
+| | | (F-254): the i.MX8M's DDR controller state (`.umctl2`, 128 KiB at the start of the DRAM, 0x40000000) | | |
+| | | and the 8X's reset stub (0x80000000, BL31's place once it ran) have regions of their own. A board | | |
+| | | of the 8M that lists the DRAM from its start passes the check, and an image is loaded over the | | |
+| | | controller's state. The boards in the tree start above it (0x41060000). Link it inside `buffers`, | | |
+| | | or give the check the platform's regions. With F-239 | | |
+| F-391 | `src/plat/{imx6ul,imx8x}/link.lds`, `src/board/*/board.c` | Low. The lengths the link | Verified (code) | open |
+| | | scripts give `pb` and `buffers` reach into memory the boards' images use: jiffy's `buffers` are 16 MiB | | |
+| | | to 0x82021000 and its kernel is at 0x82000000; the 8X's `pb` is 16 MiB to 0x81020000 and the MEK's | | |
+| | | kernel is at 0x80200000. So the boards' image data regions (F-254) start inside those lengths, above | | |
+| | | what is linked today (8 MiB, 200 KiB), and a pb that grows past a region's start is found by | | |
+| | | `board_setup()` on the board, not by the linker. The regions also repeat the link scripts' numbers | | |
+| | | (D-055 names the cost). One source for both, and lengths that end where the board's first region | | |
+| | | starts. With F-239 | | |
 | F-259 | `src/boot/simple.c` | The generic handover passes r0 = the system's name, | Verified (code) | open |
 | | | r1 = the boot partition's UUID, and can't grow. `boot.md` 5.4: Arm's Firmware Handoff, a transfer | | |
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |

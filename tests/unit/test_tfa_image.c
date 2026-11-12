@@ -24,6 +24,7 @@
 #include <arch/arch_helpers.h>
 #include <boot/atf.h>
 #include <boot/image.h>
+#include <boot/image_regions.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <libfdt.h>
@@ -96,6 +97,15 @@ void arch_clean_cache_range(uintptr_t start, size_t len)
 void arch_disable_mmu(void)
 {
     mmu_disabled++;
+}
+
+/* Placement isn't this suite's: the device tree is where the test binary has
+ * it, inside a region (test_image.c has the room it grows by) */
+bool boot_image_in_regions(uint64_t addr, uint64_t size)
+{
+    (void)addr;
+    (void)size;
+    return true;
 }
 
 void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)

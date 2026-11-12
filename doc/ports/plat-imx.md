@@ -216,7 +216,7 @@ Where each port is (2026-11-11).
 | `plat_get_status()`                  | no           | no                | no         | no        | F-248         |
 | `plat_cm_init()`                     | no           | no                | no         | no        | F-267         |
 | The board's regions in the map (5.2) | no           | no                | no         | n/a       | F-269, F-158  |
-| SoC memory for image data,           | no           | partly            | no         | no        | F-254, F-294  |
+| SoC memory for image data,           | n/a          | partly            | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |
 | The system controller's API through  | n/a          | n/a               | partly     | n/a       | F-270         |
 | the platform header (7)              |              |                   |            |           |               |

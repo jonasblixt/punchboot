@@ -31,8 +31,8 @@
  * Hooks are optional (NULL), the rest is required unless it says otherwise.
  *
  * What is required is checked before it is used (board.md 3). board_setup():
- * rot and slc first, boot_policy and boot_handover when their step comes, a
- * GPT's layouts by its driver. A failed check is a failed step,
+ * image_regions, rot and slc first, boot_policy and boot_handover when their
+ * step comes, a GPT's layouts by its driver. A failed check is a failed step,
  * -PB_ERR_PARAM: no boot from storage, and the handover is still set up when
  * its own data passed. cm_board_init(): name, password_auth, cm_transport.
  * A failed check there means no command mode, and pb resets.
@@ -42,6 +42,7 @@
 #define INCLUDE_PB_BOARD_H
 
 #include <boot/handover.h>
+#include <boot/image_regions.h>
 #include <boot/policy.h>
 #include <pb/ptbl.h>
 #include <stddef.h>
@@ -80,6 +81,12 @@ struct board {
     struct boot_handover boot_handover;
     /* Its delivery: BOOT_DELIVERY_TFA(). Absent: directly */
     struct boot_delivery boot_delivery;
+
+    /* The image data regions, the only memory an image's parts are loaded
+     * into: BOOT_IMAGE_REGION() entries, then BOOT_IMAGE_REGION_END
+     * (boot/image_regions.h). None holds anything of pb's. Absent: nothing is
+     * loaded, and only a partition that is booted in place boots */
+    const struct boot_image_region *image_regions;
 
     int (*early_boot)(void); /*!< Before the image is loaded */
     /* Before the jump. The verified header: boot_image_get_bpak_header()
