@@ -191,7 +191,8 @@ NULL: no hardware of the board's own.
 The partition table on a bio device that `init()` set up. The core reads it after `init()`.
 
 **Not yet in the code (F-265)**: today a GPT is three members (`gpt_dev_uu`, `gpt_tables`,
-`gpt_tables_length`) and the RT calls `static_ptbl_init()` from its `init()`.
+`gpt_tables_length`) and the RT calls `static_ptbl_init()` from its `init()`; a board with a
+mapped device calls `static_ptbl_init_mapped()` there.
 
 | Object                       | What the board gives                                                            |
 | ---------------------------- | ------------------------------------------------------------------------------- |
@@ -205,17 +206,16 @@ Failure: no valid table: 2.1. Command mode installs a GPT.
 Absent: no table of the core's. The board's `init()` created its partitions, or it has none.
 
 **The in place source** (`boot.md` 4.1): a partition that is memory mapped, whose image is
-verified where it is and runs there. **Not yet in the code (F-253, F-219)**: since D-026 a
-board can't select it at all, which `work-3.0.0-plat`'s merge waits for.
+verified where it is and runs there.
 
 `boot.md` makes in place a property of a partition, so that any policy can hand one out. How a
 board gives it (Jonas, D-048):
 
 - The static table's object gets the address the device's first byte is mapped at
-  (`PTBL_STATIC_MAPPED(device, base, table)`), and an entry gets a flag: this partition is
-  booted in place. Its mapped address follows from the base and the entry's first block, so no
-  second number has to agree with the first, and no address stands for "not mapped" (flash can
-  be mapped at 0).
+  (`PTBL_STATIC_MAPPED(device, base, table)`), and an entry gets a flag
+  (`STATIC_PART_FLAG_IN_PLACE`): this partition is booted in place. Its mapped address follows
+  from the base and the entry's first block, so no second number has to agree with the first,
+  and no address stands for "not mapped" (flash can be mapped at 0).
 - A candidate with the flag is verified in place, with its mapped range as the allowed memory
   for its parts (`boot.md` 4.1); any other candidate is loaded.
 - The header is where the image's format has it in a partition (`boot.md` 4.4: for bpak the
@@ -223,9 +223,11 @@ board gives it (Jonas, D-048):
   `get_in_mem_image()` doesn't come back. A format with its header first says so itself, for
   every source.
 - A GPT's partitions are never booted in place: the table comes from the storage, an address
-  can't.
-- `boot_simple`'s `image_base_address` and `image_size` go. The entry is the part's load address
-  with every source, never a second address computed from the partition's base (F-219).
+  can't. The mapped range is always the board's table's, also for a device that names itself
+  with the UUID of a partition that is booted in place. A partition that is booted in place
+  stays so: its table isn't replaced by another mapped table.
+- The entry is the part's load address with every source, never a second address computed
+  from the partition's base: `boot_simple` has no `image_base_address` and no `image_size`.
 
 ### 2.5 Data : boot_policy [mandatory]
 
@@ -798,4 +800,4 @@ with.
 
 Not in the table, the same on every board until its finding is fixed: a member per variant
 where an object belongs (F-265), A/B's `rollback_mode` (F-257), `resolve_part_name` (F-258,
-F-259, F-260), no way to boot in place (F-253).
+F-259, F-260).

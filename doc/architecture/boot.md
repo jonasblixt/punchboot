@@ -304,10 +304,8 @@ goes), the other policies in `pbstate`, the fixes of the A/B review.
 | In place    | Boards that run from memory mapped flash | A partition mapped at an address: the image is            |
 |             |                                          | verified where it is and runs there                       |
 
-**Not yet in the code (F-253, F-219)**: the board can't select the in place source since D-026,
-and the generic handover jumps to another address than the one that was hashed. The in place
-source becomes a property of a partition, so that any policy can hand one out: a flag in the
-board's partition table, on a device the board says is mapped (`board.md` 2.4).
+The in place source is a property of a partition, so that any policy can hand one out: a flag
+in the board's partition table, on a device the board says is mapped (`board.md` 2.4).
 
 The in place source's rules:
 
@@ -320,6 +318,9 @@ The in place source's rules:
 - The header is where the format has it in a partition (4.4), read through the map, as for a
   partition that is loaded. The board gives no address for it (D-048): released pb's
   `get_in_mem_image()` doesn't come back.
+- Read as it is now: a flash is written past the cache, so what the cache holds of the
+  partition is dropped before the header is read. What is hashed is what runs, also after a
+  host wrote the partition in the same power cycle.
 - Every image released pb accepted has its parts at their load address, so none is refused.
 
 ### 4.2 The sequence
@@ -659,7 +660,6 @@ Like the wire (D-008, `compatibility.md`):
 | F-259                             | Firmware Handoff (5.4): the list, the region, pb's structure and its tag        |
 | F-260                             | pb's information collected once, before the loop; `pb,version`,                 |
 |                                   | `pb,boot-partition`, `pb,boot-mode`, the hook's order                           |
-| F-253, F-219                      | The in place source (4.1), its rules; the custom source's removal               |
 | F-254, F-255                      | Placement (4.3), the initrd above 4 GiB (5.2)                                   |
 | F-243, F-248                      | The watchdog per chunk, the boot's preconditions in the flow (2), pb's status   |
 |                                   | in the handover (5.6)                                                           |

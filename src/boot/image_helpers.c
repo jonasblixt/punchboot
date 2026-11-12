@@ -189,6 +189,42 @@ int boot_image_verify_parts(struct bpak_header *hdr)
     return rc;
 }
 
+int boot_image_verify_parts_in_place(struct bpak_header *hdr, uintptr_t base, size_t size)
+{
+    struct bpak_meta_header *mh;
+    int rc;
+
+    rc = bpak_valid_header(hdr);
+
+    if (rc != BPAK_OK) {
+        return -PB_ERR_BAD_HEADER;
+    }
+
+    bpak_foreach_part(hdr, p) {
+        if (!p->id)
+            break;
+
+        rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh);
+
+        if (rc != BPAK_OK) {
+            LOG_ERR("Could not read pb-entry for part %x", p->id);
+            return -PB_ERR_BAD_META;
+        }
+
+        /* In 64 bits: nothing wraps, and an address the arch can't hold is
+         * outside the range like any other */
+        uint64_t load_addr = *bpak_get_meta_ptr(hdr, mh, uint64_t);
+        uint64_t part_size = bpak_part_size(p);
+
+        if (load_addr < base || part_size > size || load_addr - base > size - part_size) {
+            LOG_ERR("Part 0x%x isn't inside its partition", p->id);
+            return -PB_ERR_MEM;
+        }
+    }
+
+    return PB_OK;
+}
+
 /*
  * How long a part took to load: the time in read_f and the time in
  * hash_update_async(), which waits for the previous chunk's hash. The two

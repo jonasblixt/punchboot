@@ -7,8 +7,10 @@
  *
  */
 
+#include <arch/arch.h>
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
+#include <drivers/partition/static.h>
 #include <inttypes.h>
 #include <pb/bio.h>
 #include <pb/pb.h>
@@ -17,7 +19,6 @@
 
 static const struct boot_driver *boot_cfg;
 static struct bpak_header header __section(".no_init") __aligned(4096);
-static struct bpak_header *header_ptr = &header;
 static uint32_t boot_flags;
 static bio_dev_t boot_device;
 static enum boot_source boot_source;
@@ -107,10 +108,74 @@ static int boot_bio_read(int64_t offset, size_t length, void *buf)
     return bio_read(boot_device, (lba_t)(byte_offset / (size_t)block_size), length, buf);
 }
 
+/*
+ * The mapped range of a partition that the board's table says is booted in
+ * place (board.md 2.4). Only a static table has such partitions.
+ */
+static int in_place_range(bio_dev_t dev, uintptr_t *base, size_t *size)
+{
+#ifdef CONFIG_PARTITION_STATIC
+    return static_ptbl_in_place(dev, base, size);
+#else
+    (void)dev;
+    (void)base;
+    (void)size;
+    return -PB_ERR_NOT_FOUND;
+#endif
+}
+
+/*
+ * In place (boot.md 4.1): nothing is copied but the header. The parts are
+ * hashed at their load addresses, which lie inside the partition's mapped
+ * range, and the entry is there.
+ */
+static int auth_verify_in_place(uintptr_t base, size_t size)
+{
+    int rc;
+
+    if (size < sizeof(header))
+        return -PB_ERR_BAD_HEADER;
+
+    /* The flash is written past the cache. What the cache holds of the
+     * partition from an earlier read is dropped, so that the image is hashed
+     * as it is now, which is what runs */
+    arch_invalidate_cache_range(base, size);
+
+    size -= sizeof(header);
+
+    /* The header is at the end of the partition, read through the map. It is
+     * authenticated as a copy: bpak clears the signature in it */
+    memcpy(&header, (const void *)(base + size), sizeof(header));
+
+    rc = boot_image_auth_header(&header);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = boot_image_verify_parts_in_place(&header, base, size);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = boot_image_load_and_hash(&header,
+                                  CONFIG_BOOT_LOAD_CHUNK_kB * 1024,
+                                  NULL, /* Nothing to read */
+                                  NULL,
+                                  payload_digest,
+                                  sizeof(payload_digest));
+
+    if (rc != PB_OK)
+        return rc;
+
+    return boot_image_verify_payload(&header, payload_digest);
+}
+
 static int load_auth_verify_from_bio(void)
 {
     int rc;
     lba_t header_lba;
+    uintptr_t in_place_base;
+    size_t in_place_size;
 
     if (boot_cfg->get_boot_bio_device == NULL)
         return -PB_ERR_NOT_SUPPORTED;
@@ -137,6 +202,9 @@ static int load_auth_verify_from_bio(void)
     if (!(bio_get_flags(boot_device) & BIO_FLAG_BOOTABLE)) {
         return -PB_ERR_PART_NOT_BOOTABLE;
     }
+
+    if (in_place_range(boot_device, &in_place_base, &in_place_size) == PB_OK)
+        return auth_verify_in_place(in_place_base, in_place_size);
 
     /* Load header located at the end of the partition */
     header_lba = bio_get_no_of_blocks(boot_device) -
@@ -168,41 +236,6 @@ static int load_auth_verify_from_bio(void)
         return rc;
 
     return boot_image_verify_payload(&header, payload_digest);
-}
-
-static int auth_verify_in_mem(void)
-{
-    int rc;
-
-    if (boot_cfg->get_in_mem_image == NULL)
-        return -PB_ERR_NOT_SUPPORTED;
-
-    rc = boot_cfg->get_in_mem_image(&header_ptr);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = boot_image_auth_header(header_ptr);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = boot_image_verify_parts(header_ptr);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = boot_image_load_and_hash(header_ptr,
-                                  CONFIG_BOOT_LOAD_CHUNK_kB * 1024,
-                                  NULL,
-                                  NULL,
-                                  payload_digest,
-                                  sizeof(payload_digest));
-
-    if (rc != PB_OK)
-        return rc;
-
-    return boot_image_verify_payload(header_ptr, payload_digest);
 }
 
 static int load_auth_verify_from_cb(void)
@@ -287,17 +320,8 @@ int boot_load(uuid_t boot_part_override_uu)
     case BOOT_SOURCE_BIO:
         rc = load_auth_verify_from_bio();
         break;
-    case BOOT_SOURCE_IN_MEM:
-        rc = auth_verify_in_mem();
-        break;
     case BOOT_SOURCE_CB:
         rc = load_auth_verify_from_cb();
-        break;
-    case BOOT_SOURCE_CUSTOM:
-        if (boot_cfg->authenticate_image)
-            rc = boot_cfg->authenticate_image(&header_ptr);
-        else
-            rc = -PB_ERR_NOT_SUPPORTED;
         break;
     default:
         rc = -PB_ERR_PARAM;
@@ -314,7 +338,7 @@ int boot_load(uuid_t boot_part_override_uu)
 
     LOG_DBG("Prepare");
     if (boot_cfg->prepare) {
-        rc = boot_cfg->prepare(header_ptr, boot_part_uu);
+        rc = boot_cfg->prepare(&header, boot_part_uu);
         if (rc != PB_OK) {
             goto err_out;
         }
@@ -333,7 +357,7 @@ int boot_jump(void)
 
     LOG_DBG("Late boot");
     if (boot_cfg->late_boot_cb) {
-        rc = boot_cfg->late_boot_cb(header_ptr, boot_part_uu);
+        rc = boot_cfg->late_boot_cb(&header, boot_part_uu);
         if (rc != PB_OK) {
             boot_flags = 0;
             return rc;

@@ -169,7 +169,10 @@ Unit tests, by module under test:
 | `test_rot.c`, `test_device_uuid.c`            | `rot.c`, `slc.c`,            | board callbacks, unique id       |
 |                                               | `device_uuid.c`              |                                  |
 | `test_ab_state.c`, `test_boot.c`              | `ab_state.c`, `boot.c`       | ramdisk, image helpers, boot     |
-|                                               |                              | driver                           |
+|                                               |                              | driver. In place: `static.c`,    |
+|                                               |                              | the ramdisk's memory as the map  |
+| `test_static_ptbl.c`                          | `static.c`                   | ramdisk                          |
+| `test_simple.c`                               | `simple.c`                   | arch                             |
 | `test_image_helpers.c`                        | `image_helpers.c`            | hash, DSA, root of trust (memory |
 |                                               |                              | regions via `--defsym`)          |
 | `test_linux.c`                                | `linux.c`                    | arch, SLC, root of trust, device |

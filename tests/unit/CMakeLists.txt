@@ -31,6 +31,11 @@ pb_unit_test(test_gpt SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/partition/gpt.c
 )
 
+pb_unit_test(test_static_ptbl SOURCES
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
+)
+
 pb_unit_test(test_bpak)
 
 pb_unit_test(test_delay SOURCES
@@ -141,6 +146,7 @@ pb_unit_test(test_board SOURCES
 pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
 )
 
 pb_unit_test(test_image_helpers SOURCES

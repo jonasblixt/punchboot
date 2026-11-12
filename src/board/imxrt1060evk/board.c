@@ -62,18 +62,6 @@ static const struct static_part_table nor_table[] = {
     },
 };
 
-static int board_get_in_mem_image(struct bpak_header **header)
-{
-#ifdef __NOPE
-    struct bpak_header *flash_header =
-        (struct bpak_header *)(((uint8_t *)MIDDLEWARE_FLASH_ADDRESS) + MIDDLEWARE_IMAGE_SIZE -
-                               sizeof(struct bpak_header));
-
-    memcpy(*header, flash_header, sizeof(struct bpak_header));
-#endif
-    return PB_OK;
-}
-
 static int board_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
 {
     /* If the command interface initiated the boot, skip charger detection,

@@ -609,7 +609,7 @@ const struct board board = {
 
 ### 5.3 Memory for images and handovers
 
-**Not yet in the code (F-254, F-258, F-253).**
+**Not yet in the code (F-254, F-258).**
 
 An image's parts are loaded only into the image data regions, a list the board gives
 (`board.md` 2.9, `boot.md` 4.3, D-055). The platform declares no loadable memory of its own:

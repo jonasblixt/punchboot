@@ -33,6 +33,22 @@ int boot_image_auth_header(struct bpak_header *hdr);
 
 int boot_image_verify_parts(struct bpak_header *hdr);
 
+/**
+ * Placement of an image that is booted in place: every part has a load
+ * address and lies inside the mapped range of its partition, without the
+ * header. Nothing is loaded, so pb's own memory isn't checked.
+ *
+ * @param[in] hdr The image's header
+ * @param[in] base Address of the range's first byte
+ * @param[in] size Size of the range in bytes
+ *
+ * @return PB_OK when every part is inside the range
+ *        -PB_ERR_BAD_HEADER, on bad header magic
+ *        -PB_ERR_BAD_META, a part without a load address
+ *        -PB_ERR_MEM, a part outside the range
+ */
+int boot_image_verify_parts_in_place(struct bpak_header *hdr, uintptr_t base, size_t size);
+
 int boot_image_load_and_hash(struct bpak_header *hdr,
                              size_t load_chunk_size,
                              boot_read_cb_t read_f,

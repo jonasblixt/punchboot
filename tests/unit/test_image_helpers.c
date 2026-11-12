@@ -321,6 +321,118 @@ static void test_verify_parts_rejects_pb_memory(void **state)
     assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
 }
 
+/* A partition that is booted in place: its mapped range, without the header */
+#define FLASH_BASE 0x60080000
+#define FLASH_SIZE 0x000ff000
+
+static void test_verify_parts_in_place(void **state)
+{
+    (void)state;
+
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, FLASH_BASE + 0x1000, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+
+    /* The last part ends where the range ends */
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, FLASH_BASE + FLASH_SIZE - 512, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+
+    /* One part that is the whole range */
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, FLASH_SIZE, 0, 0);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+
+    /* Flash that is mapped at 0 */
+    make_header(BPAK_HASH_SHA256, 0, 1024, 0x2000 - 512, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0x2000), PB_OK);
+
+    /* An image without parts has none outside */
+    assert_int_equal(bpak_init_header(hdr), BPAK_OK);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0), PB_OK);
+}
+
+/* Nothing is loaded, so pb's own memory isn't what a part is kept off */
+static void test_verify_parts_in_place_ignores_pb_memory(void **state)
+{
+    (void)state;
+
+    make_header(BPAK_HASH_SHA256, CODE_START + 0x1000, 1024, STACK_START + 0x1000, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, CODE_START, 0x200000), PB_OK);
+}
+
+static void test_verify_parts_in_place_outside(void **state)
+{
+    static const struct {
+        uint64_t addr;
+        size_t size;
+    } outside[] = {
+        /* Starts one byte below the range */
+        { FLASH_BASE - 1, 512 },
+        /* All of it below */
+        { FLASH_BASE - 0x1000, 512 },
+        /* Ends one byte past the range */
+        { FLASH_BASE + FLASH_SIZE - 511, 512 },
+        /* Starts where the range ends */
+        { FLASH_BASE + FLASH_SIZE, 512 },
+        /* Larger than the range */
+        { FLASH_BASE, FLASH_SIZE + 512 },
+        { FLASH_BASE + 512, (size_t)1 << 62 },
+        /* The address and the size wrap in 64 bits: to 0, and to inside the range */
+        { UINT64_MAX - 511, 512 },
+        { UINT64_MAX - 100, 512 },
+        { UINT64_MAX - 511, 512 + FLASH_BASE + 4096 },
+        /* An address a 32-bit arch can't hold, its low half inside the range */
+        { 0x100000000ULL + FLASH_BASE, 512 },
+    };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(outside); i++) {
+        /* As the second part, the first is inside */
+        make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, outside[i].addr, outside[i].size);
+        assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                         -PB_ERR_MEM);
+
+        /* And as the first */
+        make_header(BPAK_HASH_SHA256, outside[i].addr, outside[i].size, FLASH_BASE, 1024);
+        assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                         -PB_ERR_MEM);
+    }
+
+    /* Mapped at 0: past the end, and wrapped around to the start */
+    make_header(BPAK_HASH_SHA256, 0, 1024, 0x2000 - 511, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0x2000), -PB_ERR_MEM);
+    make_header(BPAK_HASH_SHA256, 0, 1024, UINT64_MAX - 255, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0x2000), -PB_ERR_MEM);
+
+    /* A range at the top of the address space */
+    make_header(BPAK_HASH_SHA256, UINTPTR_MAX - 1023, 1024, 0, 0);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, UINTPTR_MAX - 1023, 1024), PB_OK);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, UINTPTR_MAX - 1023, 1023), -PB_ERR_MEM);
+
+    /* A partition that only holds the header has room for no part */
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 512, 0, 0);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, 0), -PB_ERR_MEM);
+}
+
+static void test_verify_parts_in_place_errors(void **state)
+{
+    struct bpak_meta_header *meta;
+    (void)state;
+
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, FLASH_BASE + 0x1000, 512);
+
+    /* The dtb has no load address */
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
+    meta->part_id_ref = ID_KERNEL + 1;
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                     -PB_ERR_BAD_META);
+
+    hdr->magic = 0;
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                     -PB_ERR_BAD_HEADER);
+}
+
 /* Fake storage: the image payload, read through read_f */
 static uint8_t payload[3 * 1024];
 static uint8_t load_area[3 * 1024];
@@ -399,17 +511,57 @@ static void test_load_and_hash(void **state)
     assert_memory_equal(digest, expected, sizeof(expected));
 }
 
+/*
+ * Without read_f the image is already at its load address (in place): what
+ * is hashed is what is there, nothing is copied and nothing else is read.
+ */
 static void test_load_and_hash_in_memory(void **state)
 {
+    static uint8_t at_load_address[sizeof(load_area)];
     uint8_t digest[64];
+    uint8_t expected[32];
+    uint8_t changed[64];
     (void)state;
 
-    /* Without read_f the image is already at its load address */
+    /* Other bytes at the load address than in the payload's storage, so
+     * that the digest tells which of the two was hashed */
     load_setup();
-    memcpy(load_area, payload, sizeof(payload));
+    for (size_t i = 0; i < sizeof(load_area); i++)
+        load_area[i] = (uint8_t)(i * 13 + 1);
+    memcpy(at_load_address, load_area, sizeof(load_area));
+
     assert_int_equal(boot_image_load_and_hash(hdr, 4096, NULL, NULL, digest, sizeof(digest)),
                      PB_OK);
-    assert_int_equal(fake.hashed_bytes, sizeof(payload));
+    assert_int_equal(fake.hashed_bytes, sizeof(load_area));
+    assert_int_equal(reads, 0);
+    assert_memory_equal(load_area, at_load_address, sizeof(load_area));
+
+    fake_digest(expected, sizeof(expected), expected_sum(load_area, sizeof(load_area)));
+    assert_memory_equal(digest, expected, sizeof(expected));
+    fake_digest(expected, sizeof(expected), expected_sum(payload, sizeof(payload)));
+    assert_memory_not_equal(digest, expected, sizeof(expected));
+
+    /* The payload's storage has no say */
+    payload[100] ^= 0x01;
+    assert_int_equal(boot_image_load_and_hash(hdr, 4096, NULL, NULL, changed, sizeof(changed)),
+                     PB_OK);
+    assert_memory_equal(changed, digest, 32);
+
+    /* One bit at the load address, in each part and in the last byte */
+    static const size_t offsets[] = { 0, 2047, 2048, sizeof(load_area) - 1 };
+
+    for (size_t i = 0; i < ARRAY_SIZE(offsets); i++) {
+        load_area[offsets[i]] ^= 0x01;
+        assert_int_equal(boot_image_load_and_hash(hdr, 4096, NULL, NULL, changed, sizeof(changed)),
+                         PB_OK);
+        assert_memory_not_equal(changed, digest, 32);
+        load_area[offsets[i]] ^= 0x01;
+    }
+
+    /* In chunks, as the boot does it: the same digest */
+    assert_int_equal(boot_image_load_and_hash(hdr, 512, NULL, NULL, changed, sizeof(changed)),
+                     PB_OK);
+    assert_memory_equal(changed, digest, 32);
 }
 
 static void test_load_and_hash_digest_sizes(void **state)
@@ -630,6 +782,10 @@ int main(void)
         IMG_TEST(test_verify_parts),
         IMG_TEST(test_verify_parts_needs_load_addr),
         IMG_TEST(test_verify_parts_rejects_pb_memory),
+        IMG_TEST(test_verify_parts_in_place),
+        IMG_TEST(test_verify_parts_in_place_ignores_pb_memory),
+        IMG_TEST(test_verify_parts_in_place_outside),
+        IMG_TEST(test_verify_parts_in_place_errors),
         IMG_TEST(test_load_and_hash),
         IMG_TEST(test_load_and_hash_in_memory),
         IMG_TEST(test_load_and_hash_digest_sizes),

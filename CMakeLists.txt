@@ -154,6 +154,7 @@ add_library(pb_core STATIC
     src/drivers/crypto/mbedtls/mbedtls_pb.c
     src/drivers/fuse/test_fuse_bio.c
     src/drivers/partition/gpt.c
+    src/drivers/partition/static.c
 )
 target_link_libraries(pb_core PUBLIC pb_lib pb_mbedtls pb_keystore)
 # The host platform provides the process entry point and calls pb_main

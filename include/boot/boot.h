@@ -23,10 +23,9 @@ typedef int (*boot_result_cb_t)(int result);
 /** Boot sources */
 enum boot_source {
     BOOT_SOURCE_INVALID = 0, /*!< Invalid boot mode */
-    BOOT_SOURCE_BIO, /*!< Load from block device */
-    BOOT_SOURCE_IN_MEM, /*!< Authenticate and verify a pre-loaded image */
+    BOOT_SOURCE_BIO, /*!< A partition: loaded, or verified in place when the
+                          board's partition table says so */
     BOOT_SOURCE_CB, /*!< Load through callback functions */
-    BOOT_SOURCE_CUSTOM, /*!< Authenticate using a custom callback */
     BOOT_SOURCE_END,
 };
 
@@ -52,8 +51,6 @@ struct boot_driver {
     bio_dev_t (*get_boot_bio_device)(void);
     int (*set_boot_partition)(uuid_t part_uu);
     void (*get_boot_partition)(uuid_t part_uu);
-    int (*get_in_mem_image)(struct bpak_header **header);
-    int (*authenticate_image)(struct bpak_header **header_ptr);
     int (*prepare)(struct bpak_header *header, uuid_t boot_part_uu);
     int (*late_boot_cb)(struct bpak_header *header, uuid_t boot_part_uu);
     void (*jump)(void);
