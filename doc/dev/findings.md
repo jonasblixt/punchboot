@@ -643,7 +643,7 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | security fix rejects and why: an image whose kernel, BL31, BL32 or generic entry part is empty | | |
 | | | (or, for the kernel and BL31, has a load address and no part) was jumped into by every release, | | |
 | | | and the bpak CLI builds one. `boot.md` 5.1 to 5.4 say where an entry is, not that it lies in | | |
-| | | bytes the payload's hash covers | | |
+| | | bytes the payload's hash covers. D-074 is the entry; the contract's sentence is still open | | |
 | F-294 | `src/plat/imx8m/plat.c`, `makefile.mk`, `link.lds` | `bl_params`' memory on | Verified (code) | open |
 | | | the i.MX8M isn't what `platform.md` 5.3 has: it is `plat_bl_params`, an object in `pb`'s `.data` (where | | |
 | | | `atf.c` had it), with `PLAT_BL_PARAMS_SIZE` from the makefile, not a SoC region outside `pb` that the | | |

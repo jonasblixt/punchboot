@@ -1635,3 +1635,26 @@ After the four were reviewed I read them together and listed what needed a decis
 Not decided, noted in my review and left: a `STREAM_PREPARE_BUFFER` of 0 bytes, USB suspend,
 the pool running out after several installs, how a product selects `HASH_MD5_BROKEN`, and how
 each conformance row is to be verified.
+
+## D-074: An entry in an empty or missing part is refused; security before compatibility (2026-11-12)
+
+Mine, made while Jonas had asked for the code without questions; it waits for his review.
+
+F-292: an image whose entry part is empty passed placement and the payload's hash, since
+nothing is hashed for it, and pb jumped to its load address, into bytes no hash covers. The
+same for a kernel or a BL31 that has a load address and no part at all. Every release did so,
+and the bpak CLI builds such an image. The image needs a valid signature, so it is a signer's
+mistake or a signer's key that is misused, not an open door; what runs is still whatever
+the storage held at that address.
+
+- **Refused**, in the handover's and the delivery's prepare: the image handover's kernel, the
+  TF-A delivery's BL31 and a BL32 the board names, the generic handover's entry part, when the
+  part is missing or shorter than what the jump reads there (4 bytes; 8 for the generic
+  handover, ARMv7-M's two words).
+- **Still accepted**: an empty part nothing jumps to (a ramdisk, a DT or BL32 the board doesn't
+  name).
+- **Why it may break D-008**: `security.md` 4.1 and 4.2, only bytes the signed hash covers may
+  run, and security comes before compatibility (D-035). No golden image has such a part.
+- **Not decided**: the sentence for `boot.md` 5.1 ("Every entry lies in a part of the image,
+  in bytes the payload's hash covers ...") is Jonas's to add; F-331 stays open for it. An empty
+  DT part that the board names is F-330.
