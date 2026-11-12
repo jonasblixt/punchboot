@@ -1,6 +1,6 @@
 """Backward compatibility of the wire protocol and the bpak format (D-008).
 
-See doc/dev/compatibility.md. The golden images in tests/compat/bpak were made
+See doc/system/compatibility.md. The golden images in tests/compat/bpak were made
 once by a released bpak CLI (tests/compat/bpak/generate.sh) and must keep
 booting. The Python mirrors of wire values and the bpak id function are checked
 against tests/compat/abi.txt, which tests/compat/check_abi.py keeps in sync with

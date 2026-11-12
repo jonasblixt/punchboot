@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Creates the golden bpak images (D-008, doc/dev/compatibility.md).
+# Creates the golden bpak images (D-008, doc/system/compatibility.md).
 #
 # Images made by a released bpak CLI must keep booting in every later
 # punchboot, so they are made once, committed, and never regenerated.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the frozen wire protocol and bpak layout (D-008, doc/dev/compatibility.md).
+"""Check the frozen wire protocol and bpak layout (D-008, doc/system/compatibility.md).
 
 abi.txt lists struct sizes, field offsets, enum values, flags and ids, one per
 line, as printed by abi_dump. The file may only grow: a line that changes or

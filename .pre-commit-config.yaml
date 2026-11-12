@@ -45,3 +45,9 @@ repos:
     language: python
     files: ^tests/compat/abi\.txt$
     pass_filenames: false
+  - id: doc-lint
+    name: the documents agree with each other and the headers (doc/process.md 7)
+    entry: python tests/doc/check_docs.py
+    language: python
+    files: ^(doc/|AGENTS\.md$|README\.md$|include/pb/(plat|board|bio|crypto|cm)\.h$|include/boot/|include/drivers/usb/usbd\.h$|tests/doc/)
+    pass_filenames: false
