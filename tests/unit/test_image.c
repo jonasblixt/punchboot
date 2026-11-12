@@ -1258,6 +1258,55 @@ static void test_dtb_larger_than_part(void **state)
     assert_int_equal(prepare(), -PB_ERR);
 }
 
+/* An empty device tree part that the board names: nothing is hashed at its
+ * load address, and a blob there whose header says totalsize 0 fitted the
+ * part. It was grown, got pb's /chosen and was passed on. Refused before the
+ * part is read, and so is a totalsize below the header (security.md 4.2,
+ * F-330) */
+static void test_dtb_smaller_than_its_header_is_refused(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
+
+    /* What an earlier load left there: a header that says 0 bytes */
+    part->size = 0;
+    fdt_set_totalsize(dtb, 0);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+    assert_true(next.dt == 0);
+    assert_int_equal(fdt_totalsize(dtb), 0);
+    assert_int_equal(patch_calls, 0);
+    assert_int_equal(cleaned_len, 0);
+
+    /* A part stored without padding, one byte short of the header */
+    make_dtb("chosen");
+    part->size = sizeof(struct fdt_header) - 1;
+    fdt_set_totalsize(dtb, sizeof(struct fdt_header) - 1);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_int_equal(patch_calls, 0);
+
+    /* The part holds the header, the header says less than itself */
+    part->size = DTB_SIZE;
+    fdt_set_totalsize(dtb, sizeof(struct fdt_header) - 1);
+    assert_int_equal(prepare(), -PB_ERR);
+    fdt_set_totalsize(dtb, 0);
+    assert_int_equal(prepare(), -PB_ERR);
+    assert_true(next.dt == 0);
+    assert_int_equal(patch_calls, 0);
+    assert_int_equal(cleaned_len, 0);
+
+    /* A whole tree in a part of the least size that holds it boots */
+    make_dtb_keys("chosen", false);
+    assert_int_equal(fdt_pack(dtb), 0);
+    part->size = fdt_totalsize(dtb);
+    assert_int_equal(prepare(), PB_OK);
+    assert_true(next.dt == (uintptr_t)dtb);
+    assert_int_equal(patch_calls, 1);
+}
+
 /* The handover the way src/board.c uses it: only through the board's object */
 static void test_handover_object(void **state)
 {
@@ -1330,6 +1379,7 @@ int main(void)
         IMAGE_TEST(test_empty_parts_that_are_not_the_entry),
         IMAGE_TEST(test_dtb_headroom_overlap),
         IMAGE_TEST(test_dtb_larger_than_part),
+        IMAGE_TEST(test_dtb_smaller_than_its_header_is_refused),
         IMAGE_TEST(test_handover_object),
     };
 

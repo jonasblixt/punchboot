@@ -73,6 +73,15 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
     size_t part_size = bpak_part_size(ph);
     size_t room = part_size + headroom;
 
+    /* The header is read at the load address: it is in bytes the payload's
+     * hash covers. bpak_part_size() is what was hashed there, the padding
+     * too; an empty part passes the hash with nothing there (security.md
+     * 4.2, F-330) */
+    if (part_size < sizeof(struct fdt_header)) {
+        LOG_ERR("The device tree's part is smaller than an FDT header");
+        return -PB_ERR_BAD_META;
+    }
+
     if (room < part_size || room > INT_MAX || addr + room < addr) {
         LOG_ERR("Device tree headroom too large");
         return -PB_ERR_MEM;
@@ -108,6 +117,12 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
     }
 
     size_t size = fdt_totalsize(*fdt);
+
+    /* fdt_check_header() checks the magic and the version only */
+    if (size < sizeof(struct fdt_header)) {
+        LOG_ERR("Device tree (%zu bytes) is smaller than its header", size);
+        return -PB_ERR;
+    }
 
     if (size > part_size) {
         LOG_ERR("Device tree (%zu bytes) is larger than its part (%zu)", size, part_size);

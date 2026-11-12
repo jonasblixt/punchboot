@@ -513,6 +513,25 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | (lost while waiting, a lost read and a lost write in a command, the stream, what doesn't end it); | | |
 | | | `test_security.py`: `test_authentication_ends_with_the_connection`. Left: the USB controllers don't | | |
 | | | report a replug or a bus reset (F-363, F-201), a lost at a start makes pb reset (F-364) | | |
+| F-330 | `src/boot/dtb.c` | An empty device tree part that the board names is read | Verified (test) | fixed |
+| | | at its load address, bytes no hash covers: `boot_dtb_grow()` checks the FDT header there (the | | |
+| | | vendored libfdt's `fdt_check_header()`: the magic and the version only) and compares its | | |
+| | | `totalsize` with the part's size, 0. A blob there that says `totalsize` 0 passes, is grown by the | | |
+| | | headroom, gets pb's `/chosen` and is handed to the next stage, and to BL32: a device tree nothing | | |
+| | | authenticated (`security.md` 4.2). Anything else there is refused (`-PB_ERR`). As F-292 it needs a | | |
+| | | signed header, and what an earlier, refused load left at the address. Found with F-292, in a | | |
+| | | throwaway case of `test_image.c`. Refuse a device tree part that is smaller than an FDT header, and | | |
+| | | a `totalsize` below it, before the part is read; Firmware Handoff's device tree (F-259) the same | | |
+| | | Fixed: `boot_dtb_grow()` refuses a part smaller than an FDT header (`sizeof(struct fdt_header)`, | | |
+| | | 40 bytes) with `-PB_ERR_BAD_META`, the error of a missing part, before anything at the load address | | |
+| | | is read; a header whose `totalsize` is below that is refused with `-PB_ERR`, as an invalid device | | |
+| | | tree. `PB_RESULT_ERROR` on the wire either way, no new value, and nothing is jumped to. The size is | | |
+| | | `bpak_part_size()`, the padding too: an empty part, or one stored without padding (transport) and | | |
+| | | shorter than the header. No valid device tree is refused: one is its header, a reservation map's | | |
+| | | terminator and `FDT_END`, more than 40 bytes. Firmware Handoff (F-259) takes the check over. An | | |
+| | | image with an empty device tree that the board names was accepted by every release: no decision | | |
+| | | entry covers it yet (D-074 names F-330). `test_image.c` (and for ARMv7): | | |
+| | | `test_dtb_smaller_than_its_header_is_refused`. Not run on a board | | |
 
 ## Dependencies / vendored code
 
