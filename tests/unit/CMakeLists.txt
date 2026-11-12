@@ -151,6 +151,18 @@ pb_unit_test(test_board SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/policy.c
 )
 
+# The same with the password method, which pb-host is built without: the
+# board's password_auth is then mandatory (board.md 3)
+add_executable(test_board_password test_board.c
+    ${PROJECT_SOURCE_DIR}/src/board.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
+)
+target_compile_definitions(test_board_password PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
+target_include_directories(test_board_password PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_board_password PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_board_password COMMAND test_board_password)
+set_tests_properties(unit.test_board_password PROPERTIES LABELS unit TIMEOUT 60)
+
 pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
@@ -259,6 +271,8 @@ pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/crypto.c
     ${PROJECT_SOURCE_DIR}/src/delay.c
 )
+# Both methods, whatever pb-host is built with: its board has no password
+target_compile_definitions(test_cm PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
 
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c

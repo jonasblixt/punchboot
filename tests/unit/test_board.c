@@ -8,6 +8,9 @@
  * The board setup (src/board.c) with fake RoT, SLC, bio, boot module and
  * command mode, and a board whose partition table, boot policy and handover
  * are fake objects. It records the order of the calls.
+ *
+ * Built twice: as pb-host is, without the password method, and with it
+ * (test_board_password), where the board's password_auth is mandatory.
  */
 
 #include <setjmp.h>
@@ -233,6 +236,15 @@ static int transport_read(void *buf, size_t length)
     return PB_OK;
 }
 
+#ifdef CONFIG_CM_AUTH_PASSWORD
+static int password_auth(const char *password, size_t length)
+{
+    (void)password;
+    (void)length;
+    return -PB_ERR_AUTHENTICATION_FAILED;
+}
+#endif
+
 static const struct rot_config test_rot = { 0 };
 static const struct slc_config test_slc = { 0 };
 static const struct cm_transport_ops test_transport = { .read = transport_read };
@@ -292,6 +304,9 @@ static int setup(void **state)
         .bootargs_verbose = "verbose",
         .cm_init = board_cm_init,
         .cm_transport = &test_transport,
+#ifdef CONFIG_CM_AUTH_PASSWORD
+        .password_auth = password_auth,
+#endif
     };
     return 0;
 }
@@ -452,48 +467,105 @@ static void test_no_ptbl(void **state)
     assert_driver(true);
 }
 
-/* No policy: a boot driver without a boot partition */
+/* The policy is mandatory, checked when its step comes: what is before it
+ * is set up, late_init() isn't called, and the handover is set up all the
+ * same, with a boot driver whose policy has no functions. Command mode then
+ * has the table and "boot bpak". */
 static void test_no_policy(void **state)
 {
     (void)state;
 
     board.boot_policy.ops = NULL;
-    assert_int_equal(board_setup(), PB_OK);
-    assert_string_equal(calls, "rot slc init ptbl late handover boot ");
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl handover boot ");
     assert_null(policy_cfg);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
     assert_driver(false);
 
-    /* Also when the table failed */
+    /* With a delivery: both are set up */
+    setup(NULL);
+    board.boot_policy.ops = NULL;
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_delivery.config = &test_delivery_config;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl handover delivery boot ");
+    assert_ptr_equal(driver->delivery, &board.boot_delivery);
+
+    /* The check's error is the one returned, also when the handover can't
+     * be set up */
+    setup(NULL);
+    board.boot_policy.ops = NULL;
+    rc.handover = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl handover ");
+    assert_null(driver);
+
+    /* A step before it that fails comes first: the table's error */
     setup(NULL);
     board.boot_policy.ops = NULL;
     rc.ptbl = -PB_ERR_NOT_FOUND;
     assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
     assert_string_equal(calls, "rot slc init ptbl handover boot ");
     assert_driver(false);
+
+    setup(NULL);
+    board.boot_policy.ops = NULL;
+    rc.init = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ");
+    assert_null(driver);
 }
 
+/* Neither a policy nor a handover, with a table (the imx8mevk, F-300): the
+ * RoT, the SLC, init() and the table are set up as they were before the
+ * check, and no boot driver. The error is the policy's check. */
+static void test_no_policy_no_handover(void **state)
+{
+    (void)state;
+
+    board.boot_policy.ops = NULL;
+    board.boot_handover.ops = NULL;
+    board.late_init = NULL;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl ");
+    assert_ptr_equal(rot_cfg, &test_rot);
+    assert_ptr_equal(slc_cfg, &test_slc);
+    assert_ptr_equal(ptbl_arg, &board.ptbl);
+    assert_int_equal(disk_flags, BIO_FLAG_VISIBLE);
+    assert_null(driver);
+
+    /* On a blank disk: the table's error, as before */
+    setup(NULL);
+    board.boot_policy.ops = NULL;
+    board.boot_handover.ops = NULL;
+    rc.ptbl = -PB_ERR_NOT_FOUND;
+    assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
+    assert_string_equal(calls, "rot slc init ptbl ");
+    assert_null(driver);
+}
+
+/* The hooks and the table are optional */
 static void test_optional(void **state)
 {
     (void)state;
 
     board.init = NULL;
     board.ptbl.ops = NULL;
-    board.boot_policy.ops = NULL;
     board.late_init = NULL;
     board.early_boot = NULL;
     board.late_boot = NULL;
     assert_int_equal(board_setup(), PB_OK);
-    assert_string_equal(calls, "rot slc handover boot ");
+    assert_string_equal(calls, "rot slc policy handover boot ");
     assert_int_equal(lookups, 0);
     assert_null(driver->early_boot_cb);
     assert_null(driver->late_boot_cb);
     assert_ptr_equal(driver->policy, &board.boot_policy);
-    assert_null(driver->policy->ops);
+    assert_ptr_equal(driver->policy->ops, &test_policy_ops);
     assert_ptr_equal(driver->handover, &board.boot_handover);
     assert_null(driver->delivery);
 }
 
-/* The handover is mandatory */
+/* The handover is mandatory, checked when its step comes */
 static void test_no_handover(void **state)
 {
     (void)state;
@@ -502,6 +574,82 @@ static void test_no_handover(void **state)
     assert_int_equal(board_setup(), -PB_ERR_PARAM);
     assert_string_equal(calls, "rot slc init ptbl policy late ");
     assert_null(driver);
+}
+
+/* rot and slc are mandatory, checked before anything is set up: neither
+ * rot_init() nor slc_init() is called, no hook, no table, no policy. The
+ * handover is set up all the same, its own data passed. */
+static void test_no_rot_or_slc(void **state)
+{
+    (void)state;
+
+    board.rot = NULL;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "handover boot ");
+    assert_int_equal(lookups, 0);
+    assert_null(policy_cfg);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_driver(true);
+
+    setup(NULL);
+    board.slc = NULL;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "handover boot ");
+    assert_int_equal(lookups, 0);
+    assert_driver(true);
+
+    /* With a delivery */
+    setup(NULL);
+    board.slc = NULL;
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_delivery.config = &test_delivery_config;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "handover delivery boot ");
+    assert_ptr_equal(driver->delivery, &board.boot_delivery);
+
+    /* A handover whose own data didn't pass isn't set up */
+    setup(NULL);
+    board.rot = NULL;
+    board.boot_handover.ops = NULL;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "");
+    assert_null(driver);
+
+    /* The check's error, not the handover's */
+    setup(NULL);
+    board.slc = NULL;
+    rc.handover = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "handover ");
+    assert_null(driver);
+}
+
+/* A board without a life cycle has an slc without read_status: that is
+ * valid data (its command mode is open) */
+static void test_slc_without_read_status(void **state)
+{
+    (void)state;
+
+    assert_null(test_slc.read_status);
+    assert_int_equal(board_setup(), PB_OK);
+    assert_ptr_equal(slc_cfg, &test_slc);
+}
+
+/* The name is command mode's (the wire's board_id): board_setup() doesn't
+ * use it, and a bad one stops neither the setup nor the boot */
+static void test_setup_ignores_the_name(void **state)
+{
+    static const char *const names[] = { NULL, "", "17 characters....", "test" };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(names); i++) {
+        setup(NULL);
+        board.name = names[i];
+        assert_int_equal(board_setup(), PB_OK);
+        assert_string_equal(calls, "rot slc init ptbl policy late handover boot ");
+        assert_driver(true);
+    }
 }
 
 /* A board with a delivery: it is set up after the handover, with the
@@ -634,7 +782,11 @@ static void test_cm(void **state)
     assert_string_equal(calls, "cm_init cm ");
     assert_string_equal(cm_cfg->name, "test");
     assert_ptr_equal(cm_cfg->tops.read, transport_read);
+#ifdef CONFIG_CM_AUTH_PASSWORD
+    assert_ptr_equal(cm_cfg->password_auth, password_auth);
+#else
     assert_null(cm_cfg->password_auth);
+#endif
 
     /* The defaults */
     assert_int_equal(cm_cfg->status(buf, &length), PB_OK);
@@ -655,6 +807,114 @@ static void test_cm(void **state)
     rc.cm_init = -PB_ERR_IO;
     assert_int_equal(cm_board_init(), -PB_ERR_IO);
     assert_string_equal(calls, "cm_init ");
+
+    /* No hook: optional */
+    setup(NULL);
+    board.cm_init = NULL;
+    assert_int_equal(cm_board_init(), PB_OK);
+    assert_string_equal(calls, "cm ");
+}
+
+/* A failed check in cm_board_init() means no command mode: -PB_ERR_PARAM,
+ * and neither the board's hook nor cm_init() is called */
+static void assert_no_cm(void)
+{
+    assert_int_equal(cm_board_init(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "");
+    assert_null(cm_cfg);
+}
+
+/* The name is the wire's board_id, 16 bytes without a terminator: 1 to 16
+ * characters */
+static void test_cm_name(void **state)
+{
+    static const char *const valid[] = { "a", "test", "16 characters..." };
+    static const char *const invalid[] = {
+        NULL,
+        "",
+        "17 characters....",
+        "a much longer name than fits",
+    };
+
+    (void)state;
+
+    assert_int_equal(strlen(valid[2]), 16);
+    assert_int_equal(strlen(invalid[2]), 17);
+
+    for (size_t i = 0; i < ARRAY_SIZE(valid); i++) {
+        setup(NULL);
+        board.name = valid[i];
+        assert_int_equal(cm_board_init(), PB_OK);
+        assert_string_equal(calls, "cm_init cm ");
+        assert_ptr_equal(cm_cfg->name, valid[i]);
+    }
+
+    for (size_t i = 0; i < ARRAY_SIZE(invalid); i++) {
+        setup(NULL);
+        board.name = invalid[i];
+        assert_no_cm();
+    }
+}
+
+/* The check reads the field's 16 bytes and one more, never past them: a name
+ * that ends with its array (the sanitizer build sees a longer read) */
+static void test_cm_name_is_read_bounded(void **state)
+{
+    static const char exact[17] = "exactly sixteen.";
+    static const char unterminated[17] = { 'n', 'o', ' ', 't', 'e', 'r', 'm', 'i', 'n',
+                                           'a', 't', 'o', 'r', ' ', '.', '.', '.' };
+
+    (void)state;
+
+    board.name = exact;
+    assert_int_equal(cm_board_init(), PB_OK);
+    assert_ptr_equal(cm_cfg->name, exact);
+
+    setup(NULL);
+    board.name = unterminated;
+    assert_no_cm();
+}
+
+/* The transport is copied: checked only for being there, until it leaves the
+ * board (F-267) */
+static void test_cm_no_transport(void **state)
+{
+    (void)state;
+
+    board.cm_transport = NULL;
+    assert_no_cm();
+}
+
+/* password_auth is mandatory with CONFIG_CM_AUTH_PASSWORD, and optional
+ * without the method */
+static void test_cm_password_auth(void **state)
+{
+    (void)state;
+
+    board.password_auth = NULL;
+#ifdef CONFIG_CM_AUTH_PASSWORD
+    assert_no_cm();
+#else
+    assert_int_equal(cm_board_init(), PB_OK);
+    assert_string_equal(calls, "cm_init cm ");
+    assert_null(cm_cfg->password_auth);
+#endif
+}
+
+/* The boot's data isn't checked by cm_board_init(): a board that can't boot
+ * still gets its command mode */
+static void test_cm_after_a_failed_setup(void **state)
+{
+    (void)state;
+
+    board.rot = NULL;
+    board.slc = NULL;
+    board.boot_policy.ops = NULL;
+    board.boot_handover.ops = NULL;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "");
+    assert_int_equal(cm_board_init(), PB_OK);
+    assert_string_equal(calls, "cm_init cm ");
 }
 
 int main(void)
@@ -666,12 +926,21 @@ int main(void)
         cmocka_unit_test_setup(test_ptbl_device_flags, setup),
         cmocka_unit_test_setup(test_no_ptbl, setup),
         cmocka_unit_test_setup(test_no_policy, setup),
+        cmocka_unit_test_setup(test_no_policy_no_handover, setup),
         cmocka_unit_test_setup(test_optional, setup),
         cmocka_unit_test_setup(test_no_handover, setup),
+        cmocka_unit_test_setup(test_no_rot_or_slc, setup),
+        cmocka_unit_test_setup(test_slc_without_read_status, setup),
+        cmocka_unit_test_setup(test_setup_ignores_the_name, setup),
         cmocka_unit_test_setup(test_delivery, setup),
         cmocka_unit_test_setup(test_delivery_failures, setup),
         cmocka_unit_test_setup(test_patch_bootargs, setup),
         cmocka_unit_test_setup(test_cm, setup),
+        cmocka_unit_test_setup(test_cm_name, setup),
+        cmocka_unit_test_setup(test_cm_name_is_read_bounded, setup),
+        cmocka_unit_test_setup(test_cm_no_transport, setup),
+        cmocka_unit_test_setup(test_cm_password_auth, setup),
+        cmocka_unit_test_setup(test_cm_after_a_failed_setup, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

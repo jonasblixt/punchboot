@@ -118,8 +118,9 @@ policy's state (`boot activate`) or boot an image from RAM (`boot bpak`).
 
 **Not yet in the code (F-216, F-178)**: `board_setup()` returns at the first step that fails. The
 handover is the last step, so a failure before it leaves command mode without one: it can neither
-repair the A/B state nor boot a rescue image from RAM. The one exception today is a failed
-partition table, whose path does set up the boot driver.
+repair the A/B state nor boot a rescue image from RAM. The exceptions today are a failed
+partition table and a failed check of the board's data (section 3), whose paths do set up the
+boot driver.
 
 - A board failure doesn't reset (a platform failure does, `platform.md` 2): command mode has what
   `plat_init()` set up.
@@ -375,7 +376,9 @@ NULL: nothing is loaded. Only a partition that is booted in place boots.
 
 ## 3. The board's data, checked
 
-**Not yet in the code (F-249)**: nothing is checked.
+**Not yet in the code (F-254)**: `image_regions`. **Not yet in the code (F-335)**: `boot_policy`
+and `boot_handover` are checked when their step comes, after the partition table, and not at the
+start with `rot` and `slc`: a step before them that fails hides the check.
 
 `board_setup()` and `cm_board_init()` check the board's data before they use it, a few lines tested
 on the host:
@@ -425,7 +428,8 @@ mux, a VBUS switch).
 ### 4.2 The transport (the core's)
 
 **Not yet in the code (F-267)**: `cm_transport` in `struct board`, a `struct cm_transport_ops`
-that every board sets to `pb_dev_cls_transport`, except the host's, which has a socket.
+that every board sets to `pb_dev_cls_transport`, except the host's, which has a socket. Until
+then `cm_board_init()` checks that it is set, with the board's data (section 3).
 
 The transport is not the board's choice (D-049). Command mode calls the transport's functions
 directly, and the build links one implementation: the USB class driver, or the host platform's
@@ -783,12 +787,12 @@ For a new board, and for a change to one:
 
 ## 10. Boards
 
-Where each board is (2026-11-11). The host board is the tests' (`testing.md`) and follows the
+Where each board is (2026-11-12). The host board is the tests' (`testing.md`) and follows the
 contract too, so that the order of section 2 is tested end to end (F-217).
 
 | Requirement                    | jiffy | 8MP EVK | MEK | DXL EVK | RT1060 EVK | imx8mevk | host    | Finding      |
 | ------------------------------ | ----- | ------- | --- | ------- | ---------- | -------- | ------- | ------------ |
-| Data (3)                       | no    | yes     | yes | yes     | no         | no       | no      | F-249        |
+| Data (3)                       | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300        |
 | A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300        |
 | Image data regions (2.9)       | no    | no      | no  | no      | no         | no       | no      | F-254        |
 | Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270        |
@@ -799,8 +803,10 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | The order of section 2         | yes   | yes     | yes | yes     | yes        | yes      | no      | F-217        |
 | Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-033        |
 
-Data: jiffy, the RT and the host set `CONFIG_CM_AUTH_PASSWORD` without a callback; imx8mevk has
-`CONFIG_BOOT_LINUX` without a handover.
+Data: imx8mevk has neither a policy nor a handover (F-300), so the policy's check fails its
+`board_setup()` with `-PB_ERR_PARAM`. The RoT, the SLC, `init()` and the table are set up before
+it, and the board stops in command mode with what it had there before the check. jiffy, the RT
+and the host have no `password_auth()`, and their builds have no password method.
 
 A policy: every board with one uses A/B; imx8mevk has none (F-300). The host's is an object
 its board file builds by hand, not one made by a module's macro: A/B, whose init also marks

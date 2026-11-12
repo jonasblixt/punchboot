@@ -311,6 +311,28 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `test_boot.py`: an image of the bpak CLI with an empty kernel answers `boot part` with | | |
 | | | `PB_RESULT_ERROR` and `boot bpak` with OK ("loaded and verified", `command-mode.md` 5.5), and | | |
 | | | neither boots. Every board builds; not run on a board | | |
+| F-249 | `src/board.c` | The board's data isn't checked: `cm_board_init()` dereferences | Verified (code) | fixed |
+| | | a NULL `cm_transport`; a name over 16 characters overruns `board_id` (`memcpy` with `strlen`); no | | |
+| | | boot driver, or several (the last wins); `.slc = NULL`. `CONFIG_CM_AUTH_PASSWORD=y` without | | |
+| | | `password_auth` in jiffy's, the RT's and the host's defconfigs; imx8mevk has `CONFIG_BOOT_LINUX` | | |
+| | | without `boot_linux`. `board.md` 3: checked in `board_setup()` and `cm_board_init()`. D-046: | | |
+| | | "one boot driver" becomes a policy and a handover that are set; a module that isn't compiled | | |
+| | | in is a link error, not a check. D-049: `cm_transport` leaves the board, and its check with it | | |
+| | | Fixed: each function checks what it uses, before it uses it, `-PB_ERR_PARAM`. `board_setup()`: `rot` | | |
+| | | and `slc` before anything is set up (an `slc` without `read_status` is a board without a life cycle | | |
+| | | and passes), `boot_policy` and `boot_handover` when their step comes (F-335), a GPT's layouts in | | |
+| | | `gpt_ptbl_init()`, before the device is read. A failed check is a failed step: the steps after it | | |
+| | | are skipped and the handover is set up when its own data passed. `cm_board_init()`: `name` (1 to 16 | | |
+| | | characters, read no further than the 17th byte), `password_auth` with `CONFIG_CM_AUTH_PASSWORD`, | | |
+| | | and that `cm_transport` is set, which goes with F-267; a failed check calls neither the board's | | |
+| | | hook nor `cm_init()`, `cm_run()` returns and pb resets. A bad name doesn't stop a boot: | | |
+| | | `board_setup()` doesn't use it. The copy to `board_id` in `cm_main.c` is unchanged: `cm_board_init()` | | |
+| | | is `cm_init()`'s only caller, so the name it copies has at most 16 characters. The three defconfigs | | |
+| | | lose `CONFIG_CM_AUTH_PASSWORD` and keep the token: their boards have no secret to compare with | | |
+| | | (`board.md` 4.5), and `AUTHENTICATE` with a password answers `NOT_SUPPORTED` without data, as it | | |
+| | | did. imx8mevk fails the policy's check and stops in command mode as before (F-300). `test_board.c`, | | |
+| | | built twice (`test_board_password` with the method), `test_gpt.c`, `test_cm.c` (a name of 16 | | |
+| | | characters on the wire; it gets the method by a definition). Every board builds; not run on a board | | |
 
 ## Dependencies / vendored code
 

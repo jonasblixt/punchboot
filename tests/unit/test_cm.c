@@ -604,6 +604,35 @@ static void test_basic_commands(void **state)
     expect_end();
 }
 
+/* The longest name a board may have (board.md 3: cm_board_init() in
+ * src/board.c lets 1 to 16 characters through) fills the wire's board_id:
+ * its 16 bytes and no terminator. The name is copied with its own length,
+ * so the check is what keeps it inside the field. */
+static void test_board_id_fills_the_field(void **state)
+{
+    static const struct cm_config cfg_longest_name = {
+        .name = "16 characters...",
+        .status = board_status,
+        .command = board_command,
+        .tops = { TOPS },
+    };
+    (void)state;
+
+    board_cfg = &cfg_longest_name;
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_device_identifier *id = (const void *)r->response;
+    assert_int_equal(sizeof(id->board_id), 16);
+    assert_int_equal(strlen(cfg_longest_name.name), sizeof(id->board_id));
+    assert_memory_equal(id->board_id, "16 characters...", sizeof(id->board_id));
+    uuid_t uu;
+    uuid_parse(DEVICE_UUID, uu);
+    assert_memory_equal(id->device_uuid, uu, 16);
+    expect_end();
+}
+
 static void test_invalid_command(void **state)
 {
     struct pb_command cmd;
@@ -1945,6 +1974,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         CM_TEST(test_basic_commands),
+        CM_TEST(test_board_id_fills_the_field),
         CM_TEST(test_invalid_command),
         CM_TEST(test_deprecated_commands),
         CM_TEST(test_part_table_read),

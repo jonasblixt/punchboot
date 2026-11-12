@@ -9,12 +9,14 @@
  */
 
 #include <boot/boot.h>
+#include <pb-tools/wire.h>
 #include <pb/bio.h>
 #include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/pb.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -62,10 +64,12 @@ static int setup_boot_driver(void)
     driver.policy = &board.boot_policy;
 
     /* A handover is mandatory. Without a delivery the core jumps itself */
-    if (board.boot_handover.ops == NULL || board.boot_handover.ops->init == NULL)
+    if (board.boot_handover.ops == NULL || board.boot_handover.ops->init == NULL) {
+        LOG_ERR("Board data: no boot_handover");
         rc = -PB_ERR_PARAM;
-    else
+    } else {
         rc = board.boot_handover.ops->init(board.boot_handover.config);
+    }
 
     if (rc == PB_OK && board.boot_delivery.ops) {
         if (board.boot_delivery.ops->init == NULL)
@@ -85,9 +89,34 @@ static int setup_boot_driver(void)
     return boot_init(&driver);
 }
 
+/*
+ * A failed check of the board's data is a failed step (board.md 3): the
+ * steps after it are skipped, and the handover is set up when its own data
+ * passed, so that command mode has its boot commands.
+ */
+static int board_data_failed(const char *member)
+{
+    LOG_ERR("Board data: no %s", member);
+    (void)setup_boot_driver();
+    return -PB_ERR_PARAM;
+}
+
+/*
+ * The board's data is checked before it is used (board.md 3): rot and slc
+ * first, boot_policy and boot_handover when their step comes, a partition
+ * table's by its driver. The name and the rest of command mode's are checked
+ * by cm_board_init(): nothing here uses them.
+ */
 int board_setup(void)
 {
     int rc;
+
+    if (board.rot == NULL)
+        return board_data_failed("rot");
+
+    /* A board without a life cycle has an slc without read_status */
+    if (board.slc == NULL)
+        return board_data_failed("slc");
 
     rc = rot_init(board.rot);
 
@@ -120,6 +149,9 @@ int board_setup(void)
         (void)setup_boot_driver();
         return rc;
     }
+
+    if (board.boot_policy.ops == NULL)
+        return board_data_failed("boot_policy");
 
     rc = boot_policy_init(&board.boot_policy);
 
@@ -175,10 +207,53 @@ default_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, siz
     return -PB_ERR_NOT_SUPPORTED;
 }
 
+/* The name fills the wire's board_id, which has no terminator: 1 to 16
+ * characters. Only the field's size and one more byte of it are read. */
+#define BOARD_ID_SIZE sizeof(((struct pb_result_device_identifier *)NULL)->board_id)
+
+static bool name_is_valid(const char *name)
+{
+    return name != NULL && name[0] != '\0' && memchr(name, '\0', BOARD_ID_SIZE + 1) != NULL;
+}
+
+/*
+ * Command mode's part of the board's data, checked before any of it is used
+ * (board.md 3). A failed check means no command mode: cm_run() returns the
+ * error and pb resets.
+ */
+static int cm_check_board_data(void)
+{
+    if (!name_is_valid(board.name)) {
+        LOG_ERR("Board data: name is not 1 to %u characters", (unsigned int)BOARD_ID_SIZE);
+        return -PB_ERR_PARAM;
+    }
+
+#ifdef CONFIG_CM_AUTH_PASSWORD
+    if (board.password_auth == NULL) {
+        LOG_ERR("Board data: no password_auth with CONFIG_CM_AUTH_PASSWORD");
+        return -PB_ERR_PARAM;
+    }
+#endif
+
+    /* Only that it is there: it is copied below. The transport leaves the
+     * board, and this check with it (F-267) */
+    if (board.cm_transport == NULL) {
+        LOG_ERR("Board data: no cm_transport");
+        return -PB_ERR_PARAM;
+    }
+
+    return PB_OK;
+}
+
 int cm_board_init(void)
 {
     static struct cm_config cfg;
     int rc;
+
+    rc = cm_check_board_data();
+
+    if (rc != PB_OK)
+        return rc;
 
     if (board.cm_init) {
         rc = board.cm_init();

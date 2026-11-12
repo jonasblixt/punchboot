@@ -29,6 +29,13 @@
  * through them and knows no module.
  *
  * Hooks are optional (NULL), the rest is required unless it says otherwise.
+ *
+ * What is required is checked before it is used (board.md 3). board_setup():
+ * rot and slc first, boot_policy and boot_handover when their step comes, a
+ * GPT's layouts by its driver. A failed check is a failed step,
+ * -PB_ERR_PARAM: no boot from storage, and the handover is still set up when
+ * its own data passed. cm_board_init(): name, password_auth, cm_transport.
+ * A failed check there means no command mode, and pb resets.
  */
 
 #ifndef INCLUDE_PB_BOARD_H
@@ -47,21 +54,24 @@ struct rot_config;
 struct slc_config;
 
 struct board {
-    const char *name; /*!< The board id in command mode, at most 16 characters */
+    const char *name; /*!< The board id in command mode, 1 to 16 characters */
 
     void (*console_init)(void); /*!< The debug UART: clock, pads, console_init() */
 
     const struct rot_config *rot; /*!< Key revocation */
-    const struct slc_config *slc; /*!< Security life cycle */
+    /* Security life cycle. A board without one has an slc without
+     * read_status, and its command mode is open */
+    const struct slc_config *slc;
 
     int (*init)(void); /*!< Hardware: crypto, storage */
 
     /* The partition table: PTBL_GPT(), PTBL_STATIC() or PTBL_STATIC_MAPPED().
-     * Absent: init() created the partitions, or there are none */
+     * Absent: init() created the partitions, or there are none. A GPT has
+     * at least one layout */
     struct ptbl ptbl;
 
     /* The boot source policy: BOOT_POLICY_FIXED(), BOOT_POLICY_CHAIN() or
-     * BOOT_POLICY_AB(). Absent: no boot from storage */
+     * BOOT_POLICY_AB() */
     struct boot_policy boot_policy;
 
     int (*late_init)(void); /*!< After the partition table and the policy */
@@ -85,6 +95,7 @@ struct board {
     const struct cm_transport_ops *cm_transport; /*!< e.g. pb_dev_cls_transport */
     int (*status)(uint8_t *buf, size_t *length); /*!< NULL: "Board status OK!" */
     int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
+    /* Required with CONFIG_CM_AUTH_PASSWORD */
     int (*password_auth)(const char *password, size_t length);
 };
 

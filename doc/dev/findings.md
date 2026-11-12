@@ -362,13 +362,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | handover (`system.md` 3, `boot.md` 5.6: `pb,status` and a `status` field; the encoding is open) | | |
 | | | D-050: a second entry, `board-degraded` (bit 1), set by a board with `board_report_degraded()` | | |
 | | | (`board.md` 2.3) | | |
-| F-249 | `src/board.c` | The board's data isn't checked: `cm_board_init()` dereferences | Verified (code) | open |
-| | | a NULL `cm_transport`; a name over 16 characters overruns `board_id` (`memcpy` with `strlen`); no | | |
-| | | boot driver, or several (the last wins); `.slc = NULL`. `CONFIG_CM_AUTH_PASSWORD=y` without | | |
-| | | `password_auth` in jiffy's, the RT's and the host's defconfigs; imx8mevk has `CONFIG_BOOT_LINUX` | | |
-| | | without `boot_linux`. `board.md` 3: checked in `board_setup()` and `cm_board_init()`. D-046: | | |
-| | | "one boot driver" becomes a policy and a handover that are set; a module that isn't compiled | | |
-| | | in is a link error, not a check. D-049: `cm_transport` leaves the board, and its check with it | | |
 | F-250 | `src/board.c`, `src/board/*/board.c` | `default_status()` and the boards' | Verified (code) | open |
 | | | `status()` set `*length` from `snprintf()`, then append the NUL at `buf[*length]`: a truncated text | | |
 | | | writes past the buffer. Latent, `CM_BUF_SIZE` is 4 MiB. `board.md` 4.3: the board writes at most | | |
@@ -683,7 +676,11 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | a boot source policy nor a handover: `board_setup()` fails on the handover, nothing is bootable | | |
 | | | and nothing boots, by `boot bpak` neither. Its defconfig has `BOOT_AB_DRIVER` and `BOOT_LINUX`. | | |
 | | | With F-033: finish the board (a policy, `BOOT_POLICY_AB()` or `BOOT_POLICY_FIXED()`, and a | | |
-| | | handover) or drop it. `board.md` 2.5 and 3: both are mandatory, checked by F-249 | | |
+| | | handover) or drop it. `board.md` 2.5 and 3: both are mandatory. Since F-249 they are checked: | | |
+| | | `board_setup()` fails on the policy's check, one step earlier, with `-PB_ERR_PARAM` as before | | |
+| | | and with the RoT, the SLC, `init()` and the table set up as before. Its command mode is what | | |
+| | | it was: the table can be installed and written, nothing boots. The log names both. It is the | | |
+| | | one board that fails a check of `board.md` 3, and why the check isn't at the start (F-335) | | |
 | F-301 | `src/board/host/board.c` | The host board's boot source policy is an object | Verified (code) | open |
 | | | its board file builds by hand: A/B's functions, with an init that also sets `BIO_FLAG_BOOTABLE` | | |
 | | | on the flash's two partitions, which only `boot part` boots. `board.md` 2.5: a policy marks its | | |
@@ -691,6 +688,14 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | that can carry candidates it never hands out, or a second policy per board. Since F-256 the | | |
 | | | marks are in the policy's init, which `board_setup()` skips when the table fails: on a blank | | |
 | | | disk the flash's partitions aren't bootable until a table is installed and pb restarts | | |
+| F-335 | `src/board.c` | `boot_policy` and `boot_handover` are checked when their step | Verified (code) | open |
+| | | comes, after the partition table, not at the start of `board_setup()` with `rot` and `slc` | | |
+| | | (`board.md` 2 and 3, F-249). A step before them that fails hides the check: a board without a | | |
+| | | policy gets the table's error on a blank disk, and the missing policy shows only once a table | | |
+| | | is installed. At the start, a failed check would skip the RoT, the SLC, `init()` and the table | | |
+| | | (`board.md` 2.1). imx8mevk fails it (F-300): its life cycle would be unknown, so its command | | |
+| | | mode closed, in a build without a method (F-271), and without storage. Today it can install | | |
+| | | and write its table. Move the check to the start when F-300 is done, with F-216 | | |
 
 ## Dependencies / vendored code
 

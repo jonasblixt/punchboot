@@ -335,6 +335,13 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
 
     LOG_INFO("Init");
 
+    /* The board's data (board.md 3): a GPT has at least one layout that
+     * command mode can install. Checked before the device is touched */
+    if (default_tables == NULL || length == 0) {
+        LOG_ERR("No layout");
+        return -PB_ERR_PARAM;
+    }
+
     gpt_dev = dev;
     tables = default_tables;
     tables_length = length;

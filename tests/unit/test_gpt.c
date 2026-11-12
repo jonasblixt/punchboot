@@ -440,6 +440,45 @@ static void test_object_layouts_reach_the_driver(void **state)
     assert_part(UU_STATE, 2082, 2082, "State");
 }
 
+/* A GPT has at least one layout (board.md 3). The driver checks its own
+ * object: src/board.c doesn't know what 'table' and 'length' are. Without a
+ * layout the init fails before the device is touched, also on a disk with a
+ * valid table: nothing is read, there are no partitions, and no layout can
+ * be installed. */
+static void test_object_without_a_layout(void **state)
+{
+    struct fixture *f = *state;
+    const struct ptbl none = { .ops = &ptbl_gpt_ops, .device = UU_DISK, .table = tables };
+    const struct ptbl null = { .ops = &ptbl_gpt_ops, .device = UU_DISK, .length = 4 };
+    const struct ptbl one = {
+        .ops = &ptbl_gpt_ops, .device = UU_DISK, .table = tables, .length = 1
+    };
+    const struct ptbl *const invalid[] = { &none, &null };
+
+    install_and_reboot(f, 0);
+
+    for (size_t i = 0; i < ARRAY_SIZE(invalid); i++) {
+        f->disk->reads = 0;
+        assert_int_equal(boot_object(f, invalid[i]), -PB_ERR_PARAM);
+        assert_int_equal(f->disk->reads, 0);
+        assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+        assert_int_equal(bio_install_partition_table(UU_DISK, 0), -PB_ERR_NOT_SUPPORTED);
+    }
+
+    /* The direct call */
+    bio_reset();
+    f->dev = ramdisk_attach(f->disk, UU_DISK);
+    assert_int_equal(gpt_ptbl_init(f->dev, tables, 0), -PB_ERR_PARAM);
+    assert_int_equal(gpt_ptbl_init(f->dev, NULL, 1), -PB_ERR_PARAM);
+    assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+
+    /* One layout is enough */
+    assert_int_equal(boot_object(f, &one), PB_OK);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_int_equal(bio_install_partition_table(UU_DISK, 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -467,6 +506,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_object_init_blank_disk, setup, teardown),
         cmocka_unit_test_setup_teardown(test_object_init, setup, teardown),
         cmocka_unit_test_setup_teardown(test_object_layouts_reach_the_driver, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_object_without_a_layout, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
