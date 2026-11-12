@@ -5,9 +5,10 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * The image handover (src/boot/image.c): device tree patching and the
- * jump. The host board has no device tree part, so the integration tests
- * only reach the kernel entry point.
+ * The image handover (src/boot/image.c): device tree patching, the entry
+ * and the arguments. The host board has no device tree part, so the
+ * integration tests only reach the kernel entry point. The jump itself is
+ * the delivery's: test_boot.c (directly), test_tfa.c (through TF-A).
  *
  */
 
@@ -52,9 +53,8 @@ static int patch_rc;
 static int patch_calls;
 static uintptr_t cleaned_start;
 static size_t cleaned_len;
-static int mmu_disabled;
-static jmp_buf jump_env;
-static void *jump_args[2];
+/* What prepare gives the delivery */
+static struct boot_handover_entry next;
 
 int device_uuid(uuid_t uu)
 {
@@ -86,21 +86,6 @@ void arch_clean_cache_range(uintptr_t start, size_t len)
 {
     cleaned_start = start;
     cleaned_len = len;
-}
-
-void arch_disable_mmu(void)
-{
-    mmu_disabled++;
-}
-
-void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
-{
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    jump_args[0] = addr;
-    jump_args[1] = p0;
-    longjmp(jump_env, 1);
 }
 
 static int patch_dtb(void *fdt, int offset)
@@ -241,6 +226,35 @@ static const char *chosen_string(const char *name)
     return val;
 }
 
+/* prepare as the core calls it: with an entry that is all zero */
+static int prepare(void)
+{
+    memset(&next, 0, sizeof(next));
+    return boot_handover_image_prepare(hdr, boot_part_uu, &next);
+}
+
+static void assert_next_args(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3)
+{
+    assert_true(next.arg[0] == a0);
+    assert_true(next.arg[1] == a1);
+    assert_true(next.arg[2] == a2);
+    assert_true(next.arg[3] == a3);
+}
+
+/* The Linux boot protocol's registers with a device tree (boot.md 5.2). The
+ * test is built for both: AArch64's as the host is configured, and AArch32's
+ * with CONFIG_ARCH_ARMV7 (test_image_armv7), which is jiffy's */
+static void assert_next_passes_dtb(void)
+{
+#if defined(CONFIG_ARCH_ARMV7)
+    /* r0 = 0, r1 = no machine type, r2 = the device tree */
+    assert_next_args(0, 0xffffffff, (uintptr_t)dtb, 0);
+#else
+    /* x0 = the device tree, x1 to x3 = 0 */
+    assert_next_args((uintptr_t)dtb, 0, 0, 0);
+#endif
+}
+
 static void test_init_requires_image_id(void **state)
 {
     static const struct boot_handover_image_config no_image = { 0 };
@@ -255,19 +269,16 @@ static void test_kernel_only(void **state)
     (void)state;
 
     assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
     /* The device tree is left alone */
     assert_int_equal(fdt_getprop(dtb, chosen(), "pb,slc", NULL), NULL);
     assert_int_equal(cleaned_len, 0);
 
-    mmu_disabled = 0;
-    if (setjmp(jump_env) == 0) {
-        boot_handover_image_jump();
-        fail_msg("arch_jump returned");
-    }
-    assert_ptr_equal(jump_args[0], (void *)KERNEL_ADDR);
-    assert_null(jump_args[1]);
-    assert_int_equal(mmu_disabled, 1);
+    /* The kernel's load address, and without set_dtb_boot_arg four zeros */
+    assert_int_equal(next.entry, KERNEL_ADDR);
+    assert_next_args(0, 0, 0, 0);
+    /* No device tree: a delivery has none to tell another stage of */
+    assert_true(next.dt == 0);
 }
 
 static void test_kernel_needs_load_addr(void **state)
@@ -278,7 +289,7 @@ static void test_kernel_needs_load_addr(void **state)
     assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_KERNEL, &meta), BPAK_OK);
     meta->part_id_ref = 0;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
 }
 
 static void test_dtb_is_patched(void **state)
@@ -288,7 +299,7 @@ static void test_dtb_is_patched(void **state)
 
     revoked_keys = 1u << 0;
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
 
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     assert_int_equal(chosen_u32("pb,slc"), SLC_CONFIGURATION_LOCKED);
@@ -312,12 +323,9 @@ static void test_dtb_is_patched(void **state)
     assert_int_equal(cleaned_len, DTB_SIZE + CONFIG_BOOT_DTB_HEADROOM);
 
     /* The dtb address is passed to the kernel */
-    if (setjmp(jump_env) == 0) {
-        boot_handover_image_jump();
-        fail_msg("arch_jump returned");
-    }
-    assert_ptr_equal(jump_args[0], (void *)KERNEL_ADDR);
-    assert_ptr_equal(jump_args[1], dtb);
+    assert_int_equal(next.entry, KERNEL_ADDR);
+    assert_next_passes_dtb();
+    assert_true(next.dt == (uintptr_t)dtb);
 }
 
 /* No list to replace: the keys are added (F-071) */
@@ -328,7 +336,7 @@ static void test_dtb_without_key_list(void **state)
 
     make_dtb_keys("chosen", false);
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
 
     const fdt32_t *keys = fdt_getprop(dtb, chosen(), "pb,slc-available-keys", &len);
     assert_non_null(keys);
@@ -341,11 +349,33 @@ static void test_dtb_without_options(void **state)
     (void)state;
 
     assert_int_equal(boot_handover_image_init(&cfg_dtb_minimal), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
     assert_int_equal(chosen_u32("pb,slc"), SLC_CONFIGURATION_LOCKED);
     assert_null(fdt_getprop(dtb, chosen(), "pb,active-system", NULL));
     assert_null(fdt_getprop(dtb, chosen(), "linux,initrd-start", NULL));
     assert_int_equal(patch_calls, 0);
+
+    /* The device tree is patched, and without set_dtb_boot_arg not passed:
+     * the DXL EVK's handover until it went through TF-A. It is still the
+     * handover's device tree */
+    assert_int_equal(next.entry, KERNEL_ADDR);
+    assert_next_args(0, 0, 0, 0);
+    assert_true(next.dt == (uintptr_t)dtb);
+}
+
+/* A failed prepare leaves the entry as the core gave it: nothing to jump to */
+static void test_failed_prepare_gives_no_entry(void **state)
+{
+    struct bpak_meta_header *meta;
+    (void)state;
+
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
+    meta->part_id_ref = 0;
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_int_equal(next.entry, 0);
+    assert_next_args(0, 0, 0, 0);
+    assert_true(next.dt == 0);
 }
 
 static void test_dtb_errors(void **state)
@@ -357,23 +387,23 @@ static void test_dtb_errors(void **state)
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
 
     memset(dtb, 0, 64);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR);
+    assert_int_equal(prepare(), -PB_ERR);
     make_dtb("chosen");
 
     patch_rc = -PB_ERR_IO;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_IO);
+    assert_int_equal(prepare(), -PB_ERR_IO);
     patch_rc = PB_OK;
 
     make_dtb("chosen");
     slc_status = -PB_ERR_IO;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_IO);
+    assert_int_equal(prepare(), -PB_ERR_IO);
     slc_status = SLC_CONFIGURATION_LOCKED;
 
     /* The ramdisk has a load address, but no part */
     make_dtb("chosen");
     assert_int_equal(bpak_get_part(hdr, ID_RAMDISK, &part), BPAK_OK);
     part->id = 0x12345678;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
     part->id = ID_RAMDISK;
 
     /* The ramdisk has no load address, which used to dereference NULL
@@ -381,18 +411,18 @@ static void test_dtb_errors(void **state)
     make_dtb("chosen");
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_RAMDISK, &meta), BPAK_OK);
     meta->part_id_ref = 0;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
     meta->part_id_ref = ID_RAMDISK;
 
     make_dtb("chosen");
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
     meta->part_id_ref = 0;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
     meta->part_id_ref = ID_DTB;
 
     assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
     part->id = 0x12345678;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
     part->id = ID_DTB;
 }
 
@@ -403,7 +433,7 @@ static void test_dtb_without_slc(void **state)
 
     slc_status = -PB_ERR_NOT_SUPPORTED;
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
     assert_null(fdt_getprop(dtb, chosen(), "pb,slc", NULL));
     assert_int_equal(chosen_u32("pb,slc-active-key"), KEY_ID_1);
 }
@@ -415,7 +445,7 @@ static void test_dtb_without_chosen(void **state)
 
     make_dtb_keys("memory", false);
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     assert_true(fdt_path_offset(dtb, "/memory") >= 0);
 }
@@ -439,7 +469,7 @@ static void test_dtb_chosen_not_at_root(void **state)
     assert_int_equal(fdt_open_into(dtb, dtb, DTB_SIZE), 0);
 
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     soc_chosen = fdt_path_offset(dtb, "/soc/chosen");
     assert_true(soc_chosen >= 0);
@@ -457,7 +487,7 @@ static void test_dtb_grown(void **state)
     int packed = fdt_totalsize(dtb);
 
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
     assert_int_equal(fdt_totalsize(dtb), packed + CONFIG_BOOT_DTB_HEADROOM);
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     assert_int_equal(chosen_u32("pb,slc"), SLC_CONFIGURATION_LOCKED);
@@ -484,7 +514,7 @@ check_initrd(uint64_t addr, size_t size, const uint8_t *start, const uint8_t *en
     part->size = size;
 
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
 
     val = fdt_getprop(dtb, chosen(), "linux,initrd-start", &val_len);
     assert_non_null(val);
@@ -554,13 +584,13 @@ static void test_dtb_headroom_overlap(void **state)
     /* The ramdisk right after the device tree part */
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_RAMDISK, &meta), BPAK_OK);
     *bpak_get_meta_ptr(hdr, meta, uint64_t) = (uintptr_t)dtb + DTB_SIZE;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_MEM);
+    assert_int_equal(prepare(), -PB_ERR_MEM);
     *bpak_get_meta_ptr(hdr, meta, uint64_t) = RAMDISK_ADDR;
 
     /* The device tree part right before pb's code (_code_start, CMakeLists.txt) */
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
     *bpak_get_meta_ptr(hdr, meta, uint64_t) = 0x40000000 - DTB_SIZE;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR_MEM);
+    assert_int_equal(prepare(), -PB_ERR_MEM);
 }
 
 /* The device tree's header says it is larger than its part */
@@ -572,7 +602,7 @@ static void test_dtb_larger_than_part(void **state)
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
     assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
     part->size = DTB_SIZE / 2;
-    assert_int_equal(boot_handover_image_prepare(hdr, boot_part_uu), -PB_ERR);
+    assert_int_equal(prepare(), -PB_ERR);
 }
 
 /* The handover the way src/board.c uses it: only through the board's object */
@@ -594,20 +624,15 @@ static void test_handover_object(void **state)
     assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
 
     assert_int_equal(handover.ops->init(handover.config), PB_OK);
-    assert_int_equal(handover.ops->prepare(hdr, boot_part_uu), PB_OK);
+    memset(&next, 0, sizeof(next));
+    assert_int_equal(handover.ops->prepare(hdr, boot_part_uu, &next), PB_OK);
     assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
     assert_string_equal(chosen_string("pb,active-system"), "A");
     assert_int_equal(patch_calls, 1);
     assert_int_equal(cleaned_start, (uintptr_t)dtb);
 
-    mmu_disabled = 0;
-    if (setjmp(jump_env) == 0) {
-        handover.ops->jump();
-        fail_msg("arch_jump returned");
-    }
-    assert_ptr_equal(jump_args[0], (void *)KERNEL_ADDR);
-    assert_ptr_equal(jump_args[1], dtb);
-    assert_int_equal(mmu_disabled, 1);
+    assert_int_equal(next.entry, KERNEL_ADDR);
+    assert_next_passes_dtb();
 }
 
 #define IMAGE_TEST(f) cmocka_unit_test_setup(f, setup)
@@ -621,6 +646,7 @@ int main(void)
         IMAGE_TEST(test_dtb_is_patched),
         IMAGE_TEST(test_dtb_without_key_list),
         IMAGE_TEST(test_dtb_without_options),
+        IMAGE_TEST(test_failed_prepare_gives_no_entry),
         IMAGE_TEST(test_dtb_errors),
         IMAGE_TEST(test_dtb_without_slc),
         IMAGE_TEST(test_dtb_without_chosen),

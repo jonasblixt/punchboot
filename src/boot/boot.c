@@ -12,6 +12,7 @@
 #include <boot/image_helpers.h>
 #include <drivers/partition/static.h>
 #include <inttypes.h>
+#include <pb/arch.h>
 #include <pb/bio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -27,13 +28,18 @@ static uuid_t boot_part_uu;
 static uint8_t payload_digest[64];
 static boot_read_cb_t read_cb;
 static boot_result_cb_t result_cb;
+static struct boot_handover_entry next_stage;
 
 int boot_init(const struct boot_driver *cfg)
 {
     if (cfg == NULL)
         return -PB_ERR_PARAM;
 
-    if (cfg->jump == NULL)
+    /* A handover is mandatory, a delivery isn't: without one the core jumps */
+    if (cfg->handover == NULL || cfg->handover->ops == NULL || cfg->handover->ops->prepare == NULL)
+        return -PB_ERR_PARAM;
+
+    if (cfg->delivery != NULL && (cfg->delivery->ops == NULL || cfg->delivery->ops->jump == NULL))
         return -PB_ERR_PARAM;
 
     boot_cfg = cfg;
@@ -284,14 +290,27 @@ static int load_auth_verify_from_cb(void)
     return rc;
 }
 
+/*
+ * The handover of the verified image (boot.md 5.1): the next stage's entry
+ * and arguments, then what the delivery needs of the image. It is part of a
+ * candidate's attempt, so nothing of an earlier candidate's is left in it.
+ */
 static int prepare(void)
 {
+    int rc;
+
     LOG_DBG("Prepare");
 
-    if (boot_cfg->prepare)
-        return boot_cfg->prepare(&header, boot_part_uu);
+    memset(&next_stage, 0, sizeof(next_stage));
+    rc = boot_cfg->handover->ops->prepare(&header, boot_part_uu, &next_stage);
 
-    return PB_OK;
+    if (rc != PB_OK)
+        return rc;
+
+    if (boot_cfg->delivery && boot_cfg->delivery->ops->prepare)
+        rc = boot_cfg->delivery->ops->prepare(&header, &next_stage);
+
+    return rc;
 }
 
 /*
@@ -342,6 +361,23 @@ static int boot_from_policy(void)
     return rc;
 }
 
+/* The delivery of a board without one: at the exception level pb runs at */
+static void deliver_directly(const struct boot_handover_entry *next)
+{
+    /* The entry and the arguments are read with the cache off */
+    arch_clean_cache_range((uintptr_t)next, sizeof(*next));
+    arch_disable_mmu();
+
+    LOG_DBG("Jumping to %" PRIxPTR, next->entry);
+    arch_jump((void *)next->entry,
+              (void *)next->arg[0],
+              (void *)next->arg[1],
+              (void *)next->arg[2],
+              (void *)next->arg[3]);
+
+    LOG_ERR("Jump returned %" PRIxPTR, next->entry);
+}
+
 int boot_load(uuid_t boot_part_override_uu)
 {
     int rc;
@@ -349,7 +385,7 @@ int boot_load(uuid_t boot_part_override_uu)
     if (!boot_cfg)
         return -PB_ERR_PARAM;
 
-    if (boot_cfg->jump == NULL) {
+    if (boot_cfg->handover == NULL) {
         rc = -PB_ERR_NOT_SUPPORTED;
         goto err_out;
     }
@@ -432,7 +468,12 @@ int boot_jump(void)
     }
 
     LOG_DBG("Jump");
-    boot_cfg->jump();
+
+    if (boot_cfg->delivery)
+        boot_cfg->delivery->ops->jump(&next_stage);
+    else
+        deliver_directly(&next_stage);
+
     boot_flags = 0;
     return -PB_ERR;
 }

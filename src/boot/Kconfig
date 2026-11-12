@@ -33,29 +33,39 @@ config BOOT_DTB
     bool
     select LIB_FDT
     help
-        The device tree helpers of the boot drivers (boot/dtb.h). Selected
-        by the drivers that pass a device tree on.
+        The device tree helpers of the handovers (boot/dtb.h). Selected
+        by the handovers that pass a device tree on.
 
 config BOOT_LINUX
-    bool "Linux boot support"
-    select BOOT_DTB
-
-config BOOT_ATF
-    bool "ATF boot support"
-    depends on ARCH_ARMV8
+    bool "Handover: image (Linux, Xen)"
     select BOOT_DTB
     help
-        This boot driver uses the Arm Trusted Firmware bootloader interface
-        to boot the BL33 (and optional BL32) image.
+        The image handover (boot/image.h, BOOT_HANDOVER_IMAGE()): the Linux
+        boot protocol, which Xen follows too. The next stage gets a device
+        tree with pb's /chosen. A board delivers it directly, or through
+        TF-A (BOOT_ATF).
 
-        NOTE: Currently only supported on armv8.
+config BOOT_ATF
+    bool "Delivery: TF-A"
+    depends on ARCH_ARMV8
+    help
+        The delivery through TF-A (boot/atf.h, BOOT_DELIVERY_TFA()): pb
+        starts BL31 with a bl_params list, in which BL33 is the board's
+        handover and BL32 (optional) gets OP-TEE's arguments.
+
+        The delivery alone: it selects no handover and no device tree
+        code. A board names it next to its handover and enables that
+        too, e.g. the image handover (BOOT_LINUX). Before 3.0.0 this
+        option was the whole TF-A boot driver.
+
+        ARMv8-A only.
 
 config BOOT_DTB_HEADROOM
     int "Device tree headroom (bytes)"
     depends on BOOT_DTB
     default 4096
     help
-        The Linux and ATF boot drivers add /chosen and pb's properties to the
+        The image handover adds /chosen and pb's properties to the
         device tree: pb,device-uuid, pb,slc, pb,slc-active-key,
         pb,slc-available-keys, pb,active-system, the initrd and what the
         board's callback sets (bootargs). First they grow the device tree in

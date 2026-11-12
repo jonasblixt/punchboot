@@ -17,6 +17,19 @@
 #include <pb/utils_def.h>
 #include <uuid.h>
 
+/**
+ * The image handover (boot.md 5.2): the Linux boot protocol, which Xen
+ * follows too. The entry is the load address of the part 'image_bpak_id'.
+ * The device tree, when the board names its part, gets pb's /chosen and,
+ * with a ramdisk, linux,initrd-start and -end.
+ *
+ * The registers, with 'set_dtb_boot_arg' (without it all four are 0):
+ *
+ *  ARMv7-A  r0 = 0, r1 = 0xffffffff (no machine type), r2 = the device tree
+ *  ARMv8-A  x0 = the device tree, x1 to x3 = 0
+ *
+ * Delivered directly, or through TF-A as BL33's entry point (boot/atf.h).
+ */
 struct boot_handover_image_config {
     bpak_id_t image_bpak_id; /*!< BPAK id of bootable part */
     bpak_id_t dtb_bpak_id; /*!< Optional BPAK id of a device tree part */
@@ -27,8 +40,9 @@ struct boot_handover_image_config {
 };
 
 int boot_handover_image_init(const struct boot_handover_image_config *cfg);
-int boot_handover_image_prepare(struct bpak_header *hdr, uuid_t boot_part_uu);
-void boot_handover_image_jump(void);
+int boot_handover_image_prepare(struct bpak_header *hdr,
+                                uuid_t boot_part_uu,
+                                struct boot_handover_entry *next);
 
 extern const struct boot_handover_ops boot_handover_image_ops;
 

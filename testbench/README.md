@@ -123,9 +123,10 @@ UUIDs); remove it to test rollback.
 
 ### imx8mpevk: TF-A
 
-punchboot's `imx8mpevk` board boots with the ATF boot driver
-(`src/boot/atf.c`): it loads BL31 to 0x970000 and starts it with a
-`bl_params` list in x0 that has Linux as BL33 (EL2, x0 = the device tree).
+punchboot's `imx8mpevk` board boots Linux through TF-A (the image handover
+with the TF-A delivery, `src/boot/atf.c`): it loads BL31 to 0x970000 and
+starts it with a `bl_params` list in x0 that has Linux as BL33 (EL2, x0 =
+the device tree).
 Three things it takes on this SoC:
 
 - TF-A v2.12's i.MX8MP BL31 only takes the list from OCRAM or TCM, and it
@@ -150,7 +151,7 @@ The i.MX8QXP's ROM starts the SCU firmware and punchboot from a boot container
 (`pb_signed.imx`: the SECO firmware from imx-seco, B0 silicon, the SCU firmware
 from imx-sc-firmware, AHAB signed with the test keys). punchboot loads BL31 to
 0x80000000, the hole in its own memory map (`src/plat/imx8x/link.lds`), and starts
-it with the ATF boot driver. TF-A v2.12 needs two patches
+it through the TF-A delivery. TF-A v2.12 needs two patches
 (`board/imx8qxmek/patches/arm-trusted-firmware`):
 
 - Upstream imx8qx BL31 always jumps to BL33 at 0x80020000, which is punchboot,
@@ -385,8 +386,9 @@ in the board's section under "Boot time" and commit per step.
 
 ### Bring-up
 
-1. pb: the board must boot Linux the right way: the Linux boot driver on
-   armv7, the ATF boot driver (`src/boot/atf.c`) with TF-A BL31 on aarch64.
+1. pb: the board must boot Linux the right way: the image handover
+   (`BOOT_HANDOVER_IMAGE()`), on armv7 directly, on aarch64 through TF-A's
+   BL31 (`BOOT_DELIVERY_TFA()`, `src/boot/atf.c`).
    Check where the TF-A platform takes BL33 from (see "imx8mpevk: TF-A").
 2. `configs/<board>_defconfig`: copy the closest one. The SoC's kernel
    defconfig, `board/common/linux.fragment` and a `board/<board>/linux.fragment`,

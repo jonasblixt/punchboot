@@ -49,7 +49,7 @@ static void call(const char *name)
 }
 
 static struct {
-    int rot, slc, init, part, ptbl, policy, late_init, handover, cm_init, cm;
+    int rot, slc, init, part, ptbl, policy, late_init, handover, delivery, cm_init, cm;
 } rc;
 
 static const struct rot_config *rot_cfg;
@@ -58,6 +58,7 @@ static const struct ptbl *ptbl_arg;
 static bio_dev_t ptbl_dev;
 static const void *policy_cfg;
 static const void *handover_cfg;
+static const void *delivery_cfg;
 static const struct boot_driver *driver;
 static const struct cm_config *cm_cfg;
 static uint16_t disk_flags;
@@ -152,15 +153,27 @@ static int handover_init(const void *config)
     return rc.handover;
 }
 
-static int handover_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
+static int handover_prepare(struct bpak_header *hdr,
+                            uuid_t boot_part_uu,
+                            struct boot_handover_entry *next)
 {
     (void)hdr;
     (void)boot_part_uu;
+    (void)next;
     return PB_OK;
 }
 
-static void handover_jump(void)
+/* The delivery */
+static int delivery_init(const void *config)
 {
+    call("delivery");
+    delivery_cfg = config;
+    return rc.delivery;
+}
+
+static void delivery_jump(const struct boot_handover_entry *next)
+{
+    (void)next;
 }
 
 int boot_init(const struct boot_driver *driver_)
@@ -236,13 +249,16 @@ static const struct boot_policy_ops test_policy_ops = {
 static const struct boot_handover_ops test_handover_ops = {
     .init = handover_init,
     .prepare = handover_prepare,
-    .jump = handover_jump,
+};
+static const struct boot_delivery_ops test_delivery_ops = {
+    .init = delivery_init,
+    .jump = delivery_jump,
 };
 /* What the objects point at: only the addresses matter */
 static const int test_table[2];
 static const int test_policy_config;
 static const int test_handover_config;
-static const int test_delivery_object;
+static const int test_delivery_config;
 
 static int setup(void **state)
 {
@@ -253,6 +269,7 @@ static int setup(void **state)
     ptbl_dev = -1;
     policy_cfg = NULL;
     handover_cfg = NULL;
+    delivery_cfg = NULL;
     driver = NULL;
     cm_cfg = NULL;
     disk_flags = 0;
@@ -279,17 +296,17 @@ static int setup(void **state)
     return 0;
 }
 
-/* The boot driver boot_init() got: the board's hooks, the handover's
- * functions and the board's policy, which has no functions when the board
- * has none */
+/* The boot driver boot_init() got: the board's hooks, its handover, no
+ * delivery (the core jumps), and the board's policy, which has no functions
+ * when the board has none */
 static void assert_driver(bool policy)
 {
     assert_non_null(driver);
     assert_int_equal(driver->default_boot_source, BOOT_SOURCE_BIO);
     assert_ptr_equal(driver->early_boot_cb, early_boot);
     assert_ptr_equal(driver->late_boot_cb, late_boot);
-    assert_ptr_equal(driver->prepare, handover_prepare);
-    assert_ptr_equal(driver->jump, handover_jump);
+    assert_ptr_equal(driver->handover, &board.boot_handover);
+    assert_null(driver->delivery);
     assert_ptr_equal(driver->policy, &board.boot_policy);
 
     if (policy)
@@ -472,8 +489,8 @@ static void test_optional(void **state)
     assert_null(driver->late_boot_cb);
     assert_ptr_equal(driver->policy, &board.boot_policy);
     assert_null(driver->policy->ops);
-    assert_ptr_equal(driver->prepare, handover_prepare);
-    assert_ptr_equal(driver->jump, handover_jump);
+    assert_ptr_equal(driver->handover, &board.boot_handover);
+    assert_null(driver->delivery);
 }
 
 /* The handover is mandatory */
@@ -487,24 +504,75 @@ static void test_no_handover(void **state)
     assert_null(driver);
 }
 
-/* No delivery exists yet: a board that sets one is refused, before its
- * handover is set up */
+/* A board with a delivery: it is set up after the handover, with the
+ * board's configuration for it, and the boot driver gets both */
 static void test_delivery(void **state)
 {
     (void)state;
 
-    board.boot_delivery.ops = (const struct boot_delivery_ops *)&test_delivery_object;
-    assert_int_equal(board_setup(), -PB_ERR_PARAM);
-    assert_string_equal(calls, "rot slc init ptbl policy late ");
-    assert_null(handover_cfg);
-    assert_null(driver);
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_delivery.config = &test_delivery_config;
+    assert_int_equal(board_setup(), PB_OK);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover delivery boot ");
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_ptr_equal(delivery_cfg, &test_delivery_config);
+    assert_non_null(driver);
+    assert_ptr_equal(driver->handover, &board.boot_handover);
+    assert_ptr_equal(driver->delivery, &board.boot_delivery);
 
-    /* Also when the table failed: the table's error, no boot driver */
+    /* Also when the table failed: command mode's boot commands go through it */
     setup(NULL);
-    board.boot_delivery.ops = (const struct boot_delivery_ops *)&test_delivery_object;
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_delivery.config = &test_delivery_config;
     rc.ptbl = -PB_ERR_NOT_FOUND;
     assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
-    assert_string_equal(calls, "rot slc init ptbl ");
+    assert_string_equal(calls, "rot slc init ptbl handover delivery boot ");
+    assert_ptr_equal(driver->delivery, &board.boot_delivery);
+}
+
+/* A delivery that can't be set up, or a handover: no boot driver */
+static void test_delivery_failures(void **state)
+{
+    (void)state;
+
+    board.boot_delivery.ops = &test_delivery_ops;
+    rc.delivery = -PB_ERR_PARAM;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover delivery ");
+    assert_null(driver);
+
+    /* The handover's failure comes first: the delivery isn't set up */
+    setup(NULL);
+    board.boot_delivery.ops = &test_delivery_ops;
+    rc.handover = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover ");
+    assert_null(delivery_cfg);
+    assert_null(driver);
+
+    /* A delivery, or a handover, without an init is the board's mistake:
+     * refused, not called */
+    static const struct boot_delivery_ops delivery_without_init = { .jump = delivery_jump };
+    static const struct boot_handover_ops handover_without_init = { .prepare = handover_prepare };
+
+    setup(NULL);
+    board.boot_delivery.ops = &delivery_without_init;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover ");
+    assert_null(driver);
+
+    setup(NULL);
+    board.boot_handover.ops = &handover_without_init;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl policy late ");
+    assert_null(driver);
+
+    /* Without a handover there is nothing to deliver */
+    setup(NULL);
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_handover.ops = NULL;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl policy late ");
     assert_null(driver);
 }
 
@@ -601,6 +669,7 @@ int main(void)
         cmocka_unit_test_setup(test_optional, setup),
         cmocka_unit_test_setup(test_no_handover, setup),
         cmocka_unit_test_setup(test_delivery, setup),
+        cmocka_unit_test_setup(test_delivery_failures, setup),
         cmocka_unit_test_setup(test_patch_bootargs, setup),
         cmocka_unit_test_setup(test_cm, setup),
     };

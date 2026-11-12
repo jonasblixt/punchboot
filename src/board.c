@@ -61,19 +61,26 @@ static int setup_boot_driver(void)
 
     driver.policy = &board.boot_policy;
 
-    /* A handover is mandatory, and no delivery exists yet (F-258) */
-    if (board.boot_handover.ops == NULL || board.boot_delivery.ops != NULL)
+    /* A handover is mandatory. Without a delivery the core jumps itself */
+    if (board.boot_handover.ops == NULL || board.boot_handover.ops->init == NULL)
         rc = -PB_ERR_PARAM;
     else
         rc = board.boot_handover.ops->init(board.boot_handover.config);
+
+    if (rc == PB_OK && board.boot_delivery.ops) {
+        if (board.boot_delivery.ops->init == NULL)
+            rc = -PB_ERR_PARAM;
+        else
+            rc = board.boot_delivery.ops->init(board.boot_delivery.config);
+    }
 
     if (rc != PB_OK) {
         LOG_ERR("Boot driver init failed (%i)", rc);
         return rc;
     }
 
-    driver.prepare = board.boot_handover.ops->prepare;
-    driver.jump = board.boot_handover.ops->jump;
+    driver.handover = &board.boot_handover;
+    driver.delivery = board.boot_delivery.ops ? &board.boot_delivery : NULL;
 
     return boot_init(&driver);
 }

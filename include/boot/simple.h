@@ -47,8 +47,9 @@ struct boot_driver_simple_config {
 };
 
 int boot_driver_simple_init(const struct boot_driver_simple_config *cfg);
-int boot_driver_simple_prepare(struct bpak_header *hdr, uuid_t boot_part_uu);
-void boot_driver_simple_jump(void);
+int boot_driver_simple_prepare(struct bpak_header *hdr,
+                               uuid_t boot_part_uu,
+                               struct boot_handover_entry *next);
 
 extern const struct boot_handover_ops boot_handover_simple_ops;
 

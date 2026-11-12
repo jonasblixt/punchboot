@@ -10,6 +10,7 @@
 #include <arch/arch_helpers.h>
 #include <arch/armv8a/timer.h>
 #include <boot/ab_state.h>
+#include <boot/atf.h>
 #include <boot/boot.h>
 #include <boot/image.h>
 #include <drivers/crypto/imx_caam.h>
@@ -278,12 +279,27 @@ static const struct slc_config slc = {
     .fuse_write = imx8x_fuse_write,
 };
 
+/*
+ * Linux, through TF-A (boot.md 5.3): BL31 gets the kernel's part as BL33 in
+ * the bl_params list in x0, with the device tree in x0 there. Until 3.0.0 pb
+ * started the part "atf" directly, with x0 to x3 = 0, and named no BL33.
+ *
+ * Only built, not run on a board, and this tree builds no image for the
+ * board. Not known: what the board's BL31 does with the list, and what an
+ * image in the field has in "atf" and at the address its BL31 starts BL33
+ * at (F-295).
+ */
 static const struct boot_handover_image_config boot_image = {
-    .image_bpak_id = 0xa697d988, /* bpak_id("atf") */
+    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
     .dtb_patch_cb = board_patch_bootargs,
     .resolve_part_name = boot_ab_part_uu_to_name,
+    .set_dtb_boot_arg = true,
+};
+
+static const struct boot_delivery_tfa_config boot_tfa = {
+    .bl31_bpak_id = 0xa697d988, /* bpak_id("atf") */
 };
 
 static const struct gpt_part_table gpt_tbl_default[] = {
@@ -380,6 +396,7 @@ const struct board board = {
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+    .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
     .early_boot = early_boot,
     .bootargs = "console=ttyLP0,115200 quiet ",
     .bootargs_verbose = "console=ttyLP0,115200  "

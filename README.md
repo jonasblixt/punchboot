@@ -148,7 +148,8 @@ the device tree (below). The device identity can be found in
 
 ## Booting Linux: the device tree
 
-The Linux and ATF boot drivers add to `/chosen` in the image's device tree:
+The image handover (Linux, Xen), delivered directly or through TF-A, adds to `/chosen` in the
+image's device tree:
 
 | Property                                 |                                                  |
 | ---------------------------------------- | ------------------------------------------------ |

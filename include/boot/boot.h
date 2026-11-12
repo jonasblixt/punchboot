@@ -10,6 +10,7 @@
 #ifndef INCLUDE_BOOT_H
 #define INCLUDE_BOOT_H
 
+#include <boot/handover.h>
 #include <boot/policy.h>
 #include <bpak/bpak.h>
 #include <pb/bio.h>
@@ -52,9 +53,9 @@ struct boot_driver {
     /* The board's boot source policy (boot/policy.h). NULL, or one without
      * ops: no boot from storage */
     const struct boot_policy *policy;
-    int (*prepare)(struct bpak_header *header, uuid_t boot_part_uu);
+    const struct boot_handover *handover; /*!< The next stage's entry and arguments */
+    const struct boot_delivery *delivery; /*!< How they reach it. NULL: directly */
     int (*late_boot_cb)(struct bpak_header *header, uuid_t boot_part_uu);
-    void (*jump)(void);
 };
 
 /**

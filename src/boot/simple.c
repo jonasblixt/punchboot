@@ -10,13 +10,11 @@
 #include <boot/simple.h>
 #include <bpak/id.h>
 #include <inttypes.h>
-#include <pb/arch.h>
 #include <pb/pb.h>
 
 static const struct boot_driver_simple_config *cfg;
-static uintptr_t jump_addr;
+/* The second argument points here: pb's memory, until the image copied it */
 static uuid_t boot_uu;
-static const char *boot_name;
 
 int boot_driver_simple_init(const struct boot_driver_simple_config *cfg_in)
 {
@@ -27,10 +25,13 @@ int boot_driver_simple_init(const struct boot_driver_simple_config *cfg_in)
     return PB_OK;
 }
 
-int boot_driver_simple_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
+int boot_driver_simple_prepare(struct bpak_header *hdr,
+                               uuid_t boot_part_uu,
+                               struct boot_handover_entry *next)
 {
     struct bpak_part_header *part;
     struct bpak_meta_header *mh;
+    const char *boot_name;
 
     if (cfg == NULL)
         return -PB_ERR_STATE;
@@ -46,23 +47,18 @@ int boot_driver_simple_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         return -PB_ERR_BAD_META;
     }
 
-    jump_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+    next->entry = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
 
     uuid_copy(boot_uu, boot_part_uu);
     boot_name = cfg->resolve_part_name ? cfg->resolve_part_name(boot_part_uu) : NULL;
 
-    LOG_INFO("Boot entry: 0x%" PRIxPTR, jump_addr);
+    /* The booted system's name and the boot partition's UUID */
+    next->arg[0] = (uintptr_t)boot_name;
+    next->arg[1] = (uintptr_t)boot_uu;
+
+    LOG_INFO("Boot entry: 0x%" PRIxPTR, next->entry);
 
     return PB_OK;
-}
-
-void boot_driver_simple_jump(void)
-{
-    LOG_DBG("Jumping to %" PRIxPTR, jump_addr);
-
-    /* Cleans the D-cache, arch_jump() invalidates the I-cache */
-    arch_disable_mmu();
-    arch_jump((void *)jump_addr, (void *)boot_name, (void *)boot_uu, NULL, NULL);
 }
 
 static int handover_init(const void *config)
@@ -73,5 +69,4 @@ static int handover_init(const void *config)
 const struct boot_handover_ops boot_handover_simple_ops = {
     .init = handover_init,
     .prepare = boot_driver_simple_prepare,
-    .jump = boot_driver_simple_jump,
 };

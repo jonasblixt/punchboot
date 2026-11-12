@@ -22,6 +22,7 @@
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
 #include <drivers/partition/static.h>
+#include <pb/arch.h>
 #include <pb/bio.h>
 #include <pb/pb.h>
 #include <stdlib.h>
@@ -126,12 +127,31 @@ static struct {
     int prepare_calls;
     uuid_t prepare_uu;
     struct bpak_header *prepare_hdr;
+    /* The entry prepare() got was all zero, every time */
+    bool prepare_got_zeros;
     int late_rc;
     int late_calls;
     uint32_t late_flags;
+    /* The jump: arch_jump()'s calls and arguments, and what came before it */
     int jump_calls;
     /* prepare fails for this partition */
     const unsigned char *prepare_fail_uu;
+    void *jump_args[5];
+    int cleaned_calls;
+    uintptr_t cleaned_start;
+    size_t cleaned_len;
+    int mmu_disabled;
+    int mmu_disabled_at_clean;
+    int mmu_disabled_at_jump;
+    int lockdown_calls_at_jump;
+    /* The delivery, on a board that has one */
+    int delivery_prepare_rc;
+    int delivery_prepare_calls;
+    int delivery_prepare_after;
+    struct bpak_header *delivery_prepare_hdr;
+    struct boot_handover_entry delivery_prepare_next;
+    int delivery_jump_calls;
+    struct boot_handover_entry delivery_jump_next;
 
     int read_cb_rc;
     int read_cb_calls;
@@ -143,8 +163,9 @@ static struct {
 /* The header as boot_image_auth_header() got it */
 static struct bpak_header auth_seen;
 
-/* test_boot links no arch. The only cache call of the flow is the one that
- * drops what the cache holds of a partition that is verified in place */
+/* test_boot links no arch. The cache calls of the flow: the one that drops
+ * what the cache holds of a partition that is verified in place, and the
+ * direct delivery's before the jump */
 void arch_invalidate_cache_range(uintptr_t start, size_t len)
 {
     fake.invalidate_calls++;
@@ -279,16 +300,97 @@ static const struct boot_policy_ops fake_policy_ops = {
 
 static const struct boot_policy fake_policy = { .ops = &fake_policy_ops };
 
-static int fake_prepare(struct bpak_header *header, uuid_t boot_part_uu)
+/* What the fake handover gives: recognizable in every register */
+#define NEXT_ENTRY 0x40400000
+#define NEXT_ARG0  0x48000000
+#define NEXT_ARG1  0x11111111
+#define NEXT_ARG2  0x22222222
+#define NEXT_ARG3  0x33333333
+#define NEXT_DT    0x43000000
+
+static int fake_prepare(struct bpak_header *header,
+                        uuid_t boot_part_uu,
+                        struct boot_handover_entry *next)
 {
+    static const struct boot_handover_entry zeros;
+
+    if (fake.prepare_calls == 0)
+        fake.prepare_got_zeros = true;
+    if (memcmp(next, &zeros, sizeof(zeros)) != 0)
+        fake.prepare_got_zeros = false;
+
     fake.prepare_calls++;
     fake.prepare_hdr = header;
     uuid_copy(fake.prepare_uu, boot_part_uu);
+
+    /* Also when it fails: nothing of a failed prepare may be jumped to */
+    next->entry = NEXT_ENTRY;
+    next->arg[0] = NEXT_ARG0;
+    next->arg[1] = NEXT_ARG1;
+    next->arg[2] = NEXT_ARG2;
+    next->arg[3] = NEXT_ARG3;
+    next->dt = NEXT_DT;
 
     if (fake.prepare_fail_uu != NULL && uuid_compare(boot_part_uu, fake.prepare_fail_uu) == 0)
         return -PB_ERR_BAD_META;
 
     return fake.prepare_rc;
+}
+
+static int fake_delivery_prepare(struct bpak_header *header, const struct boot_handover_entry *next)
+{
+    fake.delivery_prepare_calls++;
+    fake.delivery_prepare_after = fake.prepare_calls;
+    fake.delivery_prepare_hdr = header;
+    fake.delivery_prepare_next = *next;
+    return fake.delivery_prepare_rc;
+}
+
+/* A delivery's jump returns when it failed, which boot_jump() reports */
+static void fake_delivery_jump(const struct boot_handover_entry *next)
+{
+    fake.delivery_jump_calls++;
+    fake.delivery_jump_next = *next;
+}
+
+void arch_clean_cache_range(uintptr_t start, size_t len)
+{
+    fake.cleaned_calls++;
+    fake.cleaned_start = start;
+    fake.cleaned_len = len;
+    fake.mmu_disabled_at_clean = fake.mmu_disabled;
+}
+
+void arch_disable_mmu(void)
+{
+    fake.mmu_disabled++;
+}
+
+/* arch_jump() doesn't return: the fake leaves through boot_to_the_jump() */
+static jmp_buf jump_env;
+#define JUMPED 1
+
+void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
+{
+    fake.jump_calls++;
+    fake.jump_args[0] = addr;
+    fake.jump_args[1] = p0;
+    fake.jump_args[2] = p1;
+    fake.jump_args[3] = p2;
+    fake.jump_args[4] = p3;
+    fake.mmu_disabled_at_jump = fake.mmu_disabled;
+    fake.lockdown_calls_at_jump = fake_lockdown_calls;
+    longjmp(jump_env, 1);
+}
+
+/* boot(), on a board whose core jumps itself: JUMPED when it got there,
+ * else what boot() returned */
+static int boot_to_the_jump(uuid_t boot_part_override_uu)
+{
+    if (setjmp(jump_env) == 0)
+        return boot(boot_part_override_uu);
+
+    return JUMPED;
 }
 
 static int fake_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
@@ -298,11 +400,6 @@ static int fake_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
     fake.late_calls++;
     fake.late_flags = boot_get_flags();
     return fake.late_rc;
-}
-
-static void fake_jump(void)
-{
-    fake.jump_calls++;
 }
 
 static int fake_read_cb(int64_t offset, size_t length, void *buf)
@@ -320,19 +417,39 @@ static int fake_result_cb(int result)
     return PB_OK;
 }
 
+static const struct boot_handover_ops fake_handover_ops = {
+    .prepare = fake_prepare,
+};
+static const struct boot_handover fake_handover = { .ops = &fake_handover_ops };
+
+static const struct boot_delivery_ops fake_delivery_ops = {
+    .prepare = fake_delivery_prepare,
+    .jump = fake_delivery_jump,
+};
+static const struct boot_delivery fake_delivery = { .ops = &fake_delivery_ops };
+
+/* A board without a delivery: the core jumps itself */
 static const struct boot_driver driver = {
     .default_boot_source = BOOT_SOURCE_BIO,
     .early_boot_cb = fake_early_boot,
     .policy = &fake_policy,
-    .prepare = fake_prepare,
+    .handover = &fake_handover,
     .late_boot_cb = fake_late_boot,
-    .jump = fake_jump,
+};
+
+/* The same board with a delivery */
+static const struct boot_driver delivery_driver = {
+    .default_boot_source = BOOT_SOURCE_BIO,
+    .policy = &fake_policy,
+    .handover = &fake_handover,
+    .delivery = &fake_delivery,
+    .late_boot_cb = fake_late_boot,
 };
 
 /* Only what boot_init() requires: no policy */
 static const struct boot_driver minimal_driver = {
     .default_boot_source = BOOT_SOURCE_BIO,
-    .jump = fake_jump,
+    .handover = &fake_handover,
 };
 
 /* A board without a policy has the object, without ops */
@@ -341,8 +458,7 @@ static const struct boot_policy no_policy;
 static const struct boot_driver no_policy_driver = {
     .default_boot_source = BOOT_SOURCE_BIO,
     .policy = &no_policy,
-    .prepare = fake_prepare,
-    .jump = fake_jump,
+    .handover = &fake_handover,
 };
 
 struct fixture {
@@ -475,11 +591,41 @@ static void test_not_initialized(void **state)
 
 static void test_init_rejects(void **state)
 {
-    static const struct boot_driver no_jump = { .default_boot_source = BOOT_SOURCE_BIO };
+    /* A handover is mandatory: the object, its functions, its prepare */
+    static const struct boot_driver no_handover = { .default_boot_source = BOOT_SOURCE_BIO };
+    static const struct boot_handover no_ops = { .ops = NULL };
+    static const struct boot_driver handover_without_ops = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .handover = &no_ops,
+    };
+    static const struct boot_handover_ops no_prepare_ops = { .prepare = NULL };
+    static const struct boot_handover no_prepare = { .ops = &no_prepare_ops };
+    static const struct boot_driver handover_without_prepare = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .handover = &no_prepare,
+    };
+    /* A delivery isn't, but one that is there can jump */
+    static const struct boot_delivery delivery_no_ops = { .ops = NULL };
+    static const struct boot_driver delivery_without_ops = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .handover = &fake_handover,
+        .delivery = &delivery_no_ops,
+    };
+    static const struct boot_delivery_ops no_jump_ops = { .prepare = fake_delivery_prepare };
+    static const struct boot_delivery delivery_no_jump = { .ops = &no_jump_ops };
+    static const struct boot_driver delivery_without_jump = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .handover = &fake_handover,
+        .delivery = &delivery_no_jump,
+    };
     (void)state;
 
     assert_int_equal(boot_init(NULL), -PB_ERR_PARAM);
-    assert_int_equal(boot_init(&no_jump), -PB_ERR_PARAM);
+    assert_int_equal(boot_init(&no_handover), -PB_ERR_PARAM);
+    assert_int_equal(boot_init(&handover_without_ops), -PB_ERR_PARAM);
+    assert_int_equal(boot_init(&handover_without_prepare), -PB_ERR_PARAM);
+    assert_int_equal(boot_init(&delivery_without_ops), -PB_ERR_PARAM);
+    assert_int_equal(boot_init(&delivery_without_jump), -PB_ERR_PARAM);
 }
 
 static void test_set_source(void **state)
@@ -536,7 +682,7 @@ static void test_bio_boot(void **state)
     struct fixture *f = *state;
 
     boot_clear_set_flags(0, BOOT_FLAG_VERBOSE);
-    assert_int_equal(boot(NULL), -PB_ERR);
+    assert_int_equal(boot_to_the_jump(NULL), JUMPED);
 
     assert_int_equal(fake.load_calls, 1);
     assert_non_null(fake.load_read_f);
@@ -556,13 +702,30 @@ static void test_bio_boot(void **state)
     assert_int_equal(fake.late_flags, BOOT_FLAG_VERBOSE);
     /* The platform locks what only pb may change before the jump (F-244) */
     assert_int_equal(fake_lockdown_calls, 1);
-    /* The fake jump returns, which boot_jump() reports as an error */
+    /* The jump, once */
     assert_int_equal(fake.jump_calls, 1);
+    assert_int_equal(fake.lockdown_calls_at_jump, 1);
+    /* Directly (boot.md 5.1): the handover's entry and its four arguments,
+     * with the cache cleaned and off. The entry itself is cleaned first, it
+     * is read after the cache went off */
+    assert_true(fake.prepare_got_zeros);
+    assert_ptr_equal(fake.jump_args[0], (void *)(uintptr_t)NEXT_ENTRY);
+    assert_ptr_equal(fake.jump_args[1], (void *)(uintptr_t)NEXT_ARG0);
+    assert_ptr_equal(fake.jump_args[2], (void *)(uintptr_t)NEXT_ARG1);
+    assert_ptr_equal(fake.jump_args[3], (void *)(uintptr_t)NEXT_ARG2);
+    assert_ptr_equal(fake.jump_args[4], (void *)(uintptr_t)NEXT_ARG3);
+    assert_int_equal(fake.cleaned_calls, 1);
+    assert_int_equal(fake.cleaned_len, sizeof(struct boot_handover_entry));
+    assert_int_equal(fake.mmu_disabled_at_clean, 0);
+    assert_int_equal(fake.mmu_disabled, 1);
+    assert_int_equal(fake.mmu_disabled_at_jump, 1);
+    assert_int_equal(fake.delivery_jump_calls, 0);
     /* A partition that is loaded is read through bio, not through a map:
      * nothing of it is in the cache */
     assert_int_equal(fake.invalidate_calls, 0);
-    /* A failed boot clears the flags */
-    assert_int_equal(boot_get_flags(), 0);
+    /* The flags are there to the jump: a delivery whose jump comes back
+     * clears them (test_delivery) */
+    assert_int_equal(boot_get_flags(), BOOT_FLAG_VERBOSE);
 
     /* The payload is read at byte offsets, in the device's blocks (F-062) */
     uint8_t buf[RAMDISK_BLOCK_SIZE];
@@ -687,11 +850,11 @@ static void test_bio_boot_needs_a_policy(void **state)
     assert_int_equal(boot_load(NULL), PB_OK);
     assert_int_equal(fake.prepare_calls, 1);
 
-    /* Nor a handover that prepares nothing */
+    /* Nor does the driver with only what boot_init() requires */
     assert_int_equal(boot_init(&minimal_driver), PB_OK);
     assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
     assert_int_equal(boot_load(NULL), PB_OK);
-    assert_int_equal(fake.prepare_calls, 1);
+    assert_int_equal(fake.prepare_calls, 2);
 }
 
 /* The first candidate fails: the policy hears it and the next one is tried
@@ -706,7 +869,7 @@ static void test_policy_next_candidate(void **state)
     fake.candidates[1] = UU_SYS_B;
     fake.no_of_candidates = 2;
 
-    assert_int_equal(boot(NULL), -PB_ERR);
+    assert_int_equal(boot_to_the_jump(NULL), JUMPED);
 
     assert_int_equal(fake.next_calls, 2);
     assert_int_equal(fake.report_calls, 2);
@@ -891,7 +1054,7 @@ static void test_in_place_boot(void **state)
     uint8_t *before = disk_copy(f);
     unsigned int reads = f->disk->reads;
 
-    assert_int_equal(boot(NULL), -PB_ERR);
+    assert_int_equal(boot_to_the_jump(NULL), JUMPED);
 
     assert_verified_in_place(f, reads);
     assert_int_equal(fake.prepare_calls, 1);
@@ -1143,7 +1306,7 @@ static void test_invalid_default_source(void **state)
 {
     static const struct boot_driver bad_source = {
         .default_boot_source = BOOT_SOURCE_INVALID,
-        .jump = fake_jump,
+        .handover = &fake_handover,
     };
     (void)state;
 
@@ -1151,18 +1314,103 @@ static void test_invalid_default_source(void **state)
     assert_int_equal(boot_load(NULL), -PB_ERR_PARAM);
 }
 
-static void test_jump_removed_after_init(void **state)
+static void test_handover_removed_after_init(void **state)
 {
     static struct boot_driver mutable_driver = {
         .default_boot_source = BOOT_SOURCE_BIO,
-        .jump = fake_jump,
+        .handover = &fake_handover,
     };
     (void)state;
 
     assert_int_equal(boot_init(&mutable_driver), PB_OK);
-    mutable_driver.jump = NULL;
+    mutable_driver.handover = NULL;
     assert_int_equal(boot_load(NULL), -PB_ERR_NOT_SUPPORTED);
-    mutable_driver.jump = fake_jump;
+    mutable_driver.handover = &fake_handover;
+}
+
+/* A board with a delivery (boot.md 5.1): it prepares after the handover,
+ * with the handover's entry, and it jumps, not the core */
+static void test_delivery(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_init(&delivery_driver), PB_OK);
+    boot_clear_set_flags(0, BOOT_FLAG_VERBOSE);
+    /* The fake delivery's jump comes back, which is a failed boot: an error,
+     * and the flags are cleared */
+    assert_int_equal(boot(NULL), -PB_ERR);
+    assert_int_equal(fake.late_flags, BOOT_FLAG_VERBOSE);
+    assert_int_equal(boot_get_flags(), 0);
+
+    assert_int_equal(fake.prepare_calls, 1);
+    assert_int_equal(fake.delivery_prepare_calls, 1);
+    assert_int_equal(fake.delivery_prepare_after, 1);
+    assert_ptr_equal(fake.delivery_prepare_hdr, fake.prepare_hdr);
+    assert_true(fake.delivery_prepare_next.entry == NEXT_ENTRY);
+    assert_true(fake.delivery_prepare_next.arg[0] == NEXT_ARG0);
+    assert_true(fake.delivery_prepare_next.arg[3] == NEXT_ARG3);
+    assert_true(fake.delivery_prepare_next.dt == NEXT_DT);
+
+    /* After late_boot and the lockdown, as the direct jump */
+    assert_int_equal(fake.late_calls, 1);
+    assert_int_equal(fake_lockdown_calls, 1);
+    assert_int_equal(fake.delivery_jump_calls, 1);
+    assert_true(fake.delivery_jump_next.entry == NEXT_ENTRY);
+    assert_true(fake.delivery_jump_next.arg[0] == NEXT_ARG0);
+    assert_true(fake.delivery_jump_next.arg[1] == NEXT_ARG1);
+    assert_true(fake.delivery_jump_next.arg[2] == NEXT_ARG2);
+    assert_true(fake.delivery_jump_next.arg[3] == NEXT_ARG3);
+    assert_true(fake.delivery_jump_next.dt == NEXT_DT);
+
+    /* The cache and the jump are the delivery's: the core does neither */
+    assert_int_equal(fake.jump_calls, 0);
+    assert_int_equal(fake.cleaned_calls, 0);
+    assert_int_equal(fake.mmu_disabled, 0);
+}
+
+static void test_delivery_errors(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_init(&delivery_driver), PB_OK);
+
+    /* What the delivery needs isn't in the image: the boot fails in prepare */
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    fake.delivery_prepare_rc = -PB_ERR_BAD_META;
+    assert_int_equal(boot(NULL), -PB_ERR_BAD_META);
+    assert_int_equal(fake.late_calls, 0);
+    assert_int_equal(fake.delivery_jump_calls, 0);
+    assert_int_equal(boot_get_flags(), 0);
+    fake.delivery_prepare_rc = PB_OK;
+
+    /* A failed handover: the delivery isn't asked */
+    fake.delivery_prepare_calls = 0;
+    fake.prepare_rc = -PB_ERR_BAD_META;
+    assert_int_equal(boot(NULL), -PB_ERR_BAD_META);
+    assert_int_equal(fake.delivery_prepare_calls, 0);
+    assert_int_equal(fake.delivery_jump_calls, 0);
+    fake.prepare_rc = PB_OK;
+
+    /* No jump without the lockdown, with a delivery too */
+    fake_lockdown_rc = -PB_ERR_IO;
+    assert_int_equal(boot(NULL), -PB_ERR_IO);
+    assert_int_equal(fake.delivery_jump_calls, 0);
+}
+
+/* Every prepare starts from an entry that is all zero: nothing of an earlier
+ * image's handover is left in it */
+static void test_prepare_starts_from_zeros(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(boot_load(NULL), PB_OK);
+    fake.prepare_rc = -PB_ERR_BAD_META;
+    assert_int_equal(boot_load(NULL), -PB_ERR_BAD_META);
+    fake.prepare_rc = PB_OK;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 4);
+    assert_true(fake.prepare_got_zeros);
 }
 
 #define BOOT_TEST(f)   cmocka_unit_test_setup_teardown(f, setup, teardown)
@@ -1200,7 +1448,10 @@ int main(void)
         BOOT_TEST(test_cb_boot),
         BOOT_TEST(test_cb_boot_errors),
         BOOT_TEST(test_invalid_default_source),
-        BOOT_TEST(test_jump_removed_after_init),
+        BOOT_TEST(test_handover_removed_after_init),
+        BOOT_TEST(test_delivery),
+        BOOT_TEST(test_delivery_errors),
+        BOOT_TEST(test_prepare_starts_from_zeros),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

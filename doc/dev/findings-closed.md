@@ -256,6 +256,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | board's policy is its own object, A/B that also marks the flash's partitions. `boot_policy_mode()` has | | |
 | | | no caller until F-260. `test_policy.c`, `test_boot.c`, `test_ab_state.c`, `test_board.c`, | | |
 | | | `test_ab_state.py`. Every board builds; not run on a board | | |
+| F-258 | `src/boot/{linux,atf}.c`, `src/board/imx8dxlevk` | The handovers compute and | Verified (code) | fixed |
+| | | jump each by itself; TF-A's BL33 gets Linux's arguments, hard coded; `bl_params` sit in `.data` for | | |
+| | | NXP's i.MX8M BL31 (a platform fact); the DXL starts BL31 through the Linux driver, the MEK through | | |
+| | | `bl_params`. `boot.md` 5.1 to 5.3: entry and four arguments, nested BL33 and BL32, `linux` becomes | | |
+| | | `image`, the platform says where `bl_params` go, the DXL uses TF-A | | |
+| | | Fixed: a handover's `prepare` gives `struct boot_handover_entry`, the entry, four arguments and the | | |
+| | | device tree it prepared (`boot/handover.h`). The core jumps with it when the board has no delivery; | | |
+| | | `BOOT_DELIVERY_TFA()` (`boot/atf.h`) makes it BL33's entry point, all four arguments, and gives BL32 | | |
+| | | OP-TEE's, with the handover's device tree. An image without a part at BL33's entry is refused, as | | |
+| | | before. `linux` is `image` (`image.c`, `boot/image.h`), and `atf.c` has no copy of its fields or of the | | |
+| | | `/chosen` code. `bl_params`' memory is the platform's, `plat_bl_params` on the i.MX8M (F-294). The 8MP | | |
+| | | EVK, the MEK and the DXL use the image handover through TF-A; the DXL's BL33 is the kernel's part | | |
+| | | (F-295). `test_tfa.c` pins what BL31 reads, field by field, against what the driver wrote before, and | | |
+| | | `test_tfa_image.c` runs the image handover into the delivery with the 8MP EVK's and the MEK's | | |
+| | | configurations; `test_boot.c` has the direct jump. Not run on a board | | |
 
 ## Dependencies / vendored code
 

@@ -179,12 +179,8 @@ target_link_options(test_image_helpers PRIVATE
     -Wl,--defsym=_no_init_end=0x40120000
 )
 
-pb_unit_test(test_image SOURCES
-    ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
-    ${PROJECT_SOURCE_DIR}/src/boot/image.c
-)
 # pb's memory, which the device tree's headroom must not reach
-target_link_options(test_image PRIVATE
+set(PB_IMAGE_TEST_MEMORY
     -no-pie
     -Wl,--defsym=_code_start=0x40000000
     -Wl,--defsym=_code_end=0x40080000
@@ -198,9 +194,61 @@ target_link_options(test_image PRIVATE
     -Wl,--defsym=_no_init_end=0x40120000
 )
 
+pb_unit_test(test_image SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image.c
+)
+target_link_options(test_image PRIVATE ${PB_IMAGE_TEST_MEMORY})
+
+# Again with AArch32's registers, which the host's configuration doesn't have
+add_executable(test_image_armv7 test_image.c
+    ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image.c
+)
+target_compile_definitions(test_image_armv7 PRIVATE CONFIG_ARCH_ARMV7=1)
+target_include_directories(test_image_armv7 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_image_armv7 PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+target_link_options(test_image_armv7 PRIVATE ${PB_IMAGE_TEST_MEMORY})
+add_test(NAME unit.test_image_armv7 COMMAND test_image_armv7)
+set_tests_properties(unit.test_image_armv7 PROPERTIES LABELS unit TIMEOUT 60)
+
 pb_unit_test(test_simple SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/simple.c
 )
+
+# The delivery through TF-A is ARMv8-A's and isn't in pb-host. Its test gets
+# that arch's names for the registers' fields, the one register it reads from
+# a fake, and TF-A's headers. Built twice: with the bl_params list in pb's own
+# data, and in the platform's memory for it (platform.md 5.3, the i.MX8M)
+function(pb_tfa_test name)
+    target_include_directories(${name} BEFORE PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/fakes/armv8a
+        ${PROJECT_SOURCE_DIR}/src/arch/armv8a/include
+    )
+    target_include_directories(${name} PRIVATE ${PROJECT_SOURCE_DIR}/src/boot)
+endfunction()
+
+pb_unit_test(test_tfa SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/atf.c
+)
+pb_tfa_test(test_tfa)
+
+add_executable(test_tfa_plat test_tfa.c ${PROJECT_SOURCE_DIR}/src/boot/atf.c)
+target_compile_definitions(test_tfa_plat PRIVATE PLAT_BL_PARAMS_SIZE=512)
+target_include_directories(test_tfa_plat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_tfa_plat PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+pb_tfa_test(test_tfa_plat)
+add_test(NAME unit.test_tfa_plat COMMAND test_tfa_plat)
+set_tests_properties(unit.test_tfa_plat PROPERTIES LABELS unit TIMEOUT 60)
+
+# The image handover into the delivery, as the 8MP EVK and the MEK boot
+pb_unit_test(test_tfa_image SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/atf.c
+    ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image.c
+)
+pb_tfa_test(test_tfa_image)
+target_link_options(test_tfa_image PRIVATE ${PB_IMAGE_TEST_MEMORY})
 
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c

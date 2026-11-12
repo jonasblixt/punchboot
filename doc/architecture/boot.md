@@ -405,9 +405,6 @@ by a build that has bpak; a product's build may leave it out (D-061).
 
 ### 5.1 The model
 
-**Not yet in the code (F-258)**: each boot driver computes and jumps by itself; TF-A's BL33
-arguments are Linux's, hard coded.
-
 A handover turns the verified header and pb's information (5.6) into an entry, four arguments and
 what it wrote in memory (a DT's `/chosen`, a transfer list). There are two, image (5.2) and
 Firmware Handoff (5.4), and two deliveries:
@@ -421,14 +418,19 @@ One handover and one delivery per board, chosen by the board's data (D-046, `boa
 `board.boot_handover` is the handover's object with the board's configuration for it
 (`BOOT_HANDOVER_IMAGE(&config)`, `BOOT_HANDOVER_FH(&config)`), `board.boot_delivery` the delivery's
 (`BOOT_DELIVERY_TFA(&config)`; absent: directly). Each section below says what the board gives. Not
-by the image: the same parts mean different things on different boards today (the DXL's `atf` is
-started directly, as an image, the MEK's through `bl_params`), so letting the image choose would
-change what old images do (D-008). A signed attribute of the image (4.4) that chooses can come
-later, opt in.
+by the image: the same parts have meant different things on different boards (the DXL's `atf`
+was started directly, as an image, the MEK's goes through `bl_params`), so letting the image
+choose would change what old images do (D-008). A signed attribute of the image (4.4) that
+chooses can come later, opt in.
+
+In the code (`boot/handover.h`): a handover's `prepare` fills `struct boot_handover_entry`, the
+entry and the four arguments, and says which device tree it prepared, if any. Without a delivery
+the core jumps with it; a delivery gets it in its own `prepare`, after the handover's, and in
+its `jump`. Both prepares are part of a candidate's attempt (2).
 
 ### 5.2 Handover : image (Linux, Xen) [optional, CONFIG_BOOT_LINUX]
 
-The Linux boot protocol, which Xen follows too. **Not yet in the code (F-258)**: named `linux`.
+The Linux boot protocol, which Xen follows too (`boot/image.h`).
 
 | Arch    | Registers                                                                   |
 | ------- | --------------------------------------------------------------------------- |
@@ -458,16 +460,17 @@ ARMv8-A only. The board gives: BL31's part and BL32's (optional). pb jumps to BL
 `bl_params` (v2) and x1 to x3 = 0. `bl_params` hold:
 
 - **BL33**: its entry and SPSR (AArch64; EL2 when the CPU has it, else EL1), and as its arguments
-  the board's handover: image (Linux, Xen) or Firmware Handoff. **Not yet in the code (F-258)**:
-  Linux's only.
+  the board's handover: image (Linux, Xen) or Firmware Handoff. A part of the image is loaded at
+  the entry; an image without it is refused.
 - **BL32** (optional): OP-TEE's convention, as TF-A's opteed reads it. arg0 = OP-TEE's execution
   state as TF-A encodes it (`MODE_RW_64` or `MODE_RW_32`), from the image's attribute for it
   (4.4: 64 or 32; 64 without it). arg1 = 0 (no pageable part), arg2 = 0 (no memory limit),
   arg3 = the DT BL33 gets, or 0 without one. Others can be added.
 
 Where `bl_params` may live is the platform's to say (NXP's i.MX8M BL31 takes them only from low
-OCRAM). **Not yet in the code (F-258)**: `atf.c` puts them in `.data` for it. The DXL moves to this
-delivery (it starts BL31 directly today, as an image). TF-A's own transfer list (tag 0x102, the
+OCRAM): `platform.md` 5.3. The DXL uses this delivery too. Released pb started its BL31 directly,
+as an image, with x0 = 0 and without naming BL33; the kernel's part is BL33 now (F-295).
+TF-A's own transfer list (tag 0x102, the
 AArch64 entry point info) is a later path, for a BL31 that takes it.
 
 ### 5.4 Handover : Firmware Handoff, generic [optional, CONFIG_BOOT_FH]
@@ -658,8 +661,6 @@ Like the wire (D-008, `compatibility.md`):
 | Finding                           | What                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------- |
 | F-257                             | Speculative mode (3.6, F-177): nothing enabled, Kconfig as its only switch      |
-| F-258                             | The handover and delivery model, `image`, TF-A's BL33 and BL32, `bl_params`     |
-|                                   | from the platform, the DXL                                                      |
 | F-259                             | Firmware Handoff (5.4): the list, the region, pb's structure and its tag        |
 | F-260                             | pb's information collected once, before the loop; `pb,version`,                 |
 |                                   | `pb,boot-partition`, `pb,boot-mode`, the hook's order                           |

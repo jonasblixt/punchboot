@@ -188,7 +188,14 @@ Unit tests, by module under test:
 | `test_policy.c`                               | `policy.c`,                  | ramdisk                          |
 |                                               | `policy_fixed.c`,            |                                  |
 |                                               | `policy_chain.c`             |                                  |
-| `test_simple.c`                               | `simple.c`                   | arch                             |
+| `test_simple.c`                               | `simple.c`                   | none                             |
+| `test_tfa.c`                                  | `atf.c` (not in pb-host),    | arch (ARMv8-A's names, the ID    |
+|                                               | twice: the `bl_params` list  | register); pins what BL31 reads, |
+|                                               | in pb's data and in the      | field by field                   |
+|                                               | platform's memory            |                                  |
+| `test_tfa_image.c`                            | `image.c`, `dtb.c`, `atf.c`: | as `test_image.c` and            |
+|                                               | the 8MP EVK's and the MEK's  | `test_tfa.c`                     |
+|                                               | boot                         |                                  |
 | `test_image_helpers.c`                        | `image_helpers.c`            | hash, DSA, root of trust (memory |
 |                                               |                              | regions via `--defsym`)          |
 | `test_image.c`                                | `image.c`                    | arch, SLC, root of trust, device |

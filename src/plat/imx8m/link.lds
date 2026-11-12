@@ -28,3 +28,8 @@ SECTIONS
         PROVIDE(_umctl2_end = .);
     } > umctl2
 }
+
+/* TF-A's bl_params are where BL31 takes them from (plat.c, makefile.mk) */
+_plat_bl_params_end = DEFINED(plat_bl_params) ? plat_bl_params + PLAT_BL_PARAMS_SIZE : 0;
+ASSERT(_plat_bl_params_end <= PLAT_BL_PARAMS_LIMIT,
+       "plat_bl_params is above the memory BL31 takes bl_params from")

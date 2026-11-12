@@ -22,9 +22,6 @@
 #define LINUX_ARM_MACH_TYPE_DT 0xffffffff
 
 static const struct boot_handover_image_config *cfg;
-static uintptr_t jump_addr;
-static uintptr_t ramdisk_addr;
-static uintptr_t dtb_addr;
 
 int boot_handover_image_init(const struct boot_handover_image_config *cfg_in)
 {
@@ -36,11 +33,15 @@ int boot_handover_image_init(const struct boot_handover_image_config *cfg_in)
     return PB_OK;
 }
 
-int boot_handover_image_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
+int boot_handover_image_prepare(struct bpak_header *hdr,
+                                uuid_t boot_part_uu,
+                                struct boot_handover_entry *next)
 {
     int rc;
     void *fdt;
-    size_t dtb_length;
+    uintptr_t jump_addr;
+    uintptr_t ramdisk_addr = 0;
+    uintptr_t dtb_addr = 0;
     struct bpak_part_header *ph;
     struct bpak_meta_header *mh;
 
@@ -91,7 +92,7 @@ int boot_handover_image_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         if (rc != PB_OK)
             return rc;
 
-        dtb_length = fdt_totalsize(fdt);
+        size_t dtb_length = fdt_totalsize(fdt);
 
         struct boot_dtb_chosen chosen = {
             .patch_cb = cfg->dtb_patch_cb,
@@ -104,33 +105,27 @@ int boot_handover_image_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 
         if (rc != PB_OK)
             return rc;
-    }
 
-    if (cfg->dtb_bpak_id) {
         arch_clean_cache_range(dtb_addr, dtb_length);
     }
 
-    return PB_OK;
-}
+    /* The Linux boot protocol's registers (boot.md 5.2). Without
+     * set_dtb_boot_arg all four are 0 */
+    next->entry = jump_addr;
+    next->dt = dtb_addr;
 
-void boot_handover_image_jump(void)
-{
-    arch_clean_cache_range((uintptr_t)&jump_addr, sizeof(jump_addr));
-    arch_disable_mmu();
-
-    LOG_DBG("Jumping to %" PRIxPTR, jump_addr);
     if (cfg->set_dtb_boot_arg) {
 #if defined(CONFIG_ARCH_ARMV7)
-        /* AArch32 Linux boot protocol: r0 = 0, r1 = the machine type (DT only), r2 = DTB */
-        arch_jump((void *)jump_addr, NULL, (void *)LINUX_ARM_MACH_TYPE_DT, (void *)dtb_addr, NULL);
+        /* AArch32: r0 = 0, r1 = the machine type (DT only), r2 = the DT */
+        next->arg[1] = LINUX_ARM_MACH_TYPE_DT;
+        next->arg[2] = dtb_addr;
 #else
-        /* AArch64 Linux boot protocol: x0 = DTB */
-        arch_jump((void *)jump_addr, (void *)dtb_addr, NULL, NULL, NULL);
+        /* AArch64: x0 = the DT */
+        next->arg[0] = dtb_addr;
 #endif
-    } else
-        arch_jump((void *)jump_addr, NULL, NULL, NULL, NULL);
+    }
 
-    LOG_ERR("Jump returned %" PRIxPTR, jump_addr);
+    return PB_OK;
 }
 
 static int handover_init(const void *config)
@@ -141,5 +136,4 @@ static int handover_init(const void *config)
 const struct boot_handover_ops boot_handover_image_ops = {
     .init = handover_init,
     .prepare = boot_handover_image_prepare,
-    .jump = boot_handover_image_jump,
 };

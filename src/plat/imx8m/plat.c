@@ -8,6 +8,7 @@
  */
 
 #include <arch/arch_helpers.h>
+#include <boot/atf.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
@@ -45,6 +46,18 @@ IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 #define SCTR_CNTCR_FCR0 BIT(8) /* Count at the base frequency, CNTFID0 */
 #define SCTR_CNTCR_FCR1 BIT(9) /* ... at CNTFID1 */
 #define SCTR_CNTFID0    0x20
+
+#ifdef CONFIG_BOOT_ATF
+/*
+ * TF-A's bl_params (boot/atf.h, platform.md 5.3). The i.MX8M's BL31 takes
+ * them only from the low part of the OCRAM, and otherwise starts BL33 at
+ * its own fixed address without them: on the i.MX8M Plus below 0x960000
+ * (v2.12 imx8mp_bl31_setup.c swaps base and size in that check). They are
+ * in .data, which follows the code, not at the end of .bss, and link.lds
+ * checks where that is.
+ */
+uint8_t plat_bl_params[PLAT_BL_PARAMS_SIZE] __section(".data") __aligned(PLAT_BL_PARAMS_ALIGN);
+#endif
 
 const char *platform_ns_uuid = "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
 

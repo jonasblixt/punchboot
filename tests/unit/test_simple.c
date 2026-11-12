@@ -35,26 +35,13 @@
 #define FLASH_ADDR 0x60080000
 
 /* The fakes */
-static int mmu_disabled;
 static int name_calls;
 static uuid_t name_uu;
-static jmp_buf jump_env;
+/* What prepare gives the delivery, and the same as arch_jump() will get it:
+ * the entry, then the four arguments. The jump itself is the core's
+ * (test_boot.c) */
+static struct boot_handover_entry next;
 static void *jump_args[5];
-
-void arch_disable_mmu(void)
-{
-    mmu_disabled++;
-}
-
-void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
-{
-    jump_args[0] = addr;
-    jump_args[1] = p0;
-    jump_args[2] = p1;
-    jump_args[3] = p2;
-    jump_args[4] = p3;
-    longjmp(jump_env, 1);
-}
 
 static const char *part_name(uuid_t part_uu)
 {
@@ -100,7 +87,6 @@ static int setup(void **state)
 {
     (void)state;
 
-    mmu_disabled = 0;
     name_calls = 0;
     uuid_clear(name_uu);
     memset(jump_args, 0xff, sizeof(jump_args));
@@ -124,13 +110,23 @@ static int group_teardown(void **state)
     return 0;
 }
 
-/* Returns from arch_jump(), which the handover never does */
+/* prepare as the core calls it: with an entry that is all zero */
+static int prepare(void)
+{
+    memset(&next, 0, sizeof(next));
+    return boot_driver_simple_prepare(hdr, boot_part_uu, &next);
+}
+
+/* What a delivery jumps with */
 static void jump(void)
 {
-    if (setjmp(jump_env) == 0) {
-        boot_driver_simple_jump();
-        fail_msg("boot_driver_simple_jump() returned");
-    }
+    jump_args[0] = (void *)next.entry;
+    jump_args[1] = (void *)next.arg[0];
+    jump_args[2] = (void *)next.arg[1];
+    jump_args[3] = (void *)next.arg[2];
+    jump_args[4] = (void *)next.arg[3];
+    /* The generic handover has no device tree, whatever is in r0 */
+    assert_true(next.dt == 0);
 }
 
 /* Runs first: the module keeps its configuration in a static */
@@ -140,7 +136,7 @@ static void test_prepare_before_init(void **state)
 
     add_part(ID_APP, 8192);
     add_load_addr(ID_APP, APP_ADDR);
-    assert_int_equal(boot_driver_simple_prepare(hdr, boot_part_uu), -PB_ERR_STATE);
+    assert_int_equal(prepare(), -PB_ERR_STATE);
 }
 
 static void test_init_rejects(void **state)
@@ -156,7 +152,7 @@ static void test_init_rejects(void **state)
     /* A refused configuration isn't kept */
     add_part(ID_APP, 8192);
     add_load_addr(ID_APP, APP_ADDR);
-    assert_int_equal(boot_driver_simple_prepare(hdr, boot_part_uu), -PB_ERR_STATE);
+    assert_int_equal(prepare(), -PB_ERR_STATE);
 
     assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
 }
@@ -173,14 +169,11 @@ static void test_entry_is_the_load_address(void **state)
     add_load_addr(ID_APP, APP_ADDR);
 
     assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
-    assert_int_equal(boot_driver_simple_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
     assert_int_equal(name_calls, 1);
     assert_memory_equal(name_uu, boot_part_uu, sizeof(uuid_t));
-    /* Nothing is stopped before the jump */
-    assert_int_equal(mmu_disabled, 0);
 
     jump();
-    assert_int_equal(mmu_disabled, 1);
     assert_ptr_equal(jump_args[0], (void *)(uintptr_t)APP_ADDR);
     assert_string_equal(jump_args[1], "A");
     assert_memory_equal(jump_args[2], boot_part_uu, sizeof(uuid_t));
@@ -202,7 +195,7 @@ static void test_entry_in_place(void **state)
     add_load_addr(ID_APP, FLASH_ADDR + 0x3000);
 
     assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
-    assert_int_equal(boot_driver_simple_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
 
     jump();
     assert_ptr_equal(jump_args[0], (void *)(uintptr_t)(FLASH_ADDR + 0x3000));
@@ -217,10 +210,10 @@ static void test_no_name(void **state)
 
     /* A name from an earlier boot isn't kept */
     assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
-    assert_int_equal(boot_driver_simple_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
 
     assert_int_equal(boot_driver_simple_init(&cfg_no_name), PB_OK);
-    assert_int_equal(boot_driver_simple_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
     assert_int_equal(name_calls, 1);
 
     jump();
@@ -237,7 +230,7 @@ static void test_no_entry_part(void **state)
     add_load_addr(ID_OTHER, APP_ADDR);
 
     assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
-    assert_int_equal(boot_driver_simple_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
     assert_int_equal(name_calls, 0);
 }
 
@@ -251,7 +244,7 @@ static void test_no_load_address(void **state)
     add_part(ID_APP, 8192);
 
     assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
-    assert_int_equal(boot_driver_simple_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
     assert_int_equal(name_calls, 0);
 }
 
@@ -277,15 +270,11 @@ static void test_handover_object(void **state)
     assert_int_equal(handover.ops->init(NULL), -PB_ERR_PARAM);
 
     assert_int_equal(handover.ops->init(handover.config), PB_OK);
-    assert_int_equal(handover.ops->prepare(hdr, boot_part_uu), PB_OK);
+    memset(&next, 0, sizeof(next));
+    assert_int_equal(handover.ops->prepare(hdr, boot_part_uu, &next), PB_OK);
     assert_int_equal(name_calls, 1);
-    assert_int_equal(mmu_disabled, 0);
 
-    if (setjmp(jump_env) == 0) {
-        handover.ops->jump();
-        fail_msg("The handover's jump returned");
-    }
-    assert_int_equal(mmu_disabled, 1);
+    jump();
     /* The entry is the entry part's load address */
     assert_ptr_equal(jump_args[0], (void *)(uintptr_t)APP_ADDR);
     assert_string_equal(jump_args[1], "A");

@@ -274,11 +274,10 @@ the partitions. Failure as in 2.3. NULL: nothing.
 The handover and its delivery (`boot.md` 5.1): one of each per board, chosen by the board's data
 and never by the image.
 
-**Not yet in the code (F-258, F-259, F-260)**: `boot_handover` has three objects today,
-`BOOT_HANDOVER_IMAGE()` (`boot/image.h`) and two that go: `BOOT_HANDOVER_ATF()` (`boot/atf.h`),
-which becomes the delivery and carries its own copy of the image handover's fields until
-then, and `BOOT_HANDOVER_SIMPLE()` (`boot/simple.h`), which Firmware Handoff replaces. No
-delivery exists: a board that sets `boot_delivery` is refused.
+**Not yet in the code (F-259, F-260)**: `boot_handover` has `BOOT_HANDOVER_IMAGE()`
+(`boot/image.h`) and one object that goes, `BOOT_HANDOVER_SIMPLE()` (`boot/simple.h`), which
+Firmware Handoff replaces. `resolve_part_name` is still in both configurations. The delivery is
+`BOOT_DELIVERY_TFA()` (`boot/atf.h`).
 
 | Member          | Object                         | What the board gives                                    |
 | --------------- | ------------------------------ | ------------------------------------------------------- |
@@ -715,6 +714,11 @@ aren't the board's data (`system.md` 6):
 |                             | `CM_AUTH_TOKEN` and `CM_AUTH_PASSWORD`                                         |
 | The keys and the life cycle | `KEYSTORE_SLOTS` (D-027); EOL, off by default (`system.md` 4)                  |
 
+`BOOT_ATF` is the delivery alone: a board that goes through TF-A also has its handover's option
+(`BOOT_LINUX`), as it names both objects. Before 3.0.0 `BOOT_ATF` was a whole boot driver and
+selected the device tree code: a board that is ported sets the handover's option with it, or it
+doesn't link.
+
 **Not yet in the code (F-257, F-259, F-251, F-263, F-267)**: `BOOT_AB_SPECULATIVE`,
 `BOOT_FH` and its region, `CM_ON_SERIAL_DOWNLOAD`, the EOL option, the USB port's.
 
@@ -809,4 +813,4 @@ never hands out, so only `boot part` boots them. The marks are in the policy's i
 aren't bootable until a table is installed and pb restarts.
 
 Not in the table, the same on every board until its finding is fixed: A/B's `rollback_mode`
-(F-257), `resolve_part_name` (F-258, F-259, F-260).
+(F-257), `resolve_part_name` (F-259, F-260).

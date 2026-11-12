@@ -404,11 +404,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | only with no viable candidate, alternate per boot, no attempts, ends when the OS confirms, the | | |
 | | | handover says so, `depends on ENABLE_WATCHDOG`. D-040: it also starts with nothing enabled (A | | |
 | | | first), and `BOOT_AB_SPECULATIVE` is its only switch: the board's `rollback_mode` field goes | | |
-| F-258 | `src/boot/{linux,atf}.c`, `src/board/imx8dxlevk` | The handovers compute and | Verified (code) | open |
-| | | jump each by itself; TF-A's BL33 gets Linux's arguments, hard coded; `bl_params` sit in `.data` for | | |
-| | | NXP's i.MX8M BL31 (a platform fact); the DXL starts BL31 through the Linux driver, the MEK through | | |
-| | | `bl_params`. `boot.md` 5.1 to 5.3: entry and four arguments, nested BL33 and BL32, `linux` becomes | | |
-| | | `image`, the platform says where `bl_params` go, the DXL uses TF-A | | |
 | F-259 | `src/boot/simple.c` | The generic handover passes r0 = the system's name, | Verified (code) | open |
 | | | r1 = the boot partition's UUID, and can't grow. `boot.md` 5.4: Arm's Firmware Handoff, a transfer | | |
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
@@ -627,18 +622,38 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | section 3's intro, which the narrow rule doesn't read: one rule for all needs that form | | |
 | | | decided | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
-| F-291 | `src/boot/linux.c`, `dtb.c` | The image handover can't boot an image with a | Verified (code) | open |
+| F-291 | `src/boot/image.c`, `dtb.c` | The image handover can't boot an image with a | Verified (code) | open |
 | | | DT part in place: `boot_dtb_grow()` opens the DT into itself at its load address (`dtb.c`, | | |
 | | | `fdt_open_into()`) and `/chosen` is patched there, which in place is the flash. On a NOR the | | |
 | | | writes are lost or fault, on the host's flash (mapped read only) pb-host would crash. Found with | | |
 | | | F-253's host tests, whose images have a kernel part only. `boot.md` 4.1 and 5.2 don't say | | |
 | | | what the image handover does with a DT in place; Firmware Handoff (5.4, F-259) copies the DT | | |
 | | | into its region and has no such problem. Until decided: refuse it before the DT is touched | | |
-| F-292 | `src/boot/{simple,linux,atf}.c`, `image_helpers.c` | An entry part of size 0 | Verified (code) | open |
+| F-292 | `src/boot/{simple,image}.c`, `image_helpers.c` | An entry part of size 0 | Verified (code) | open |
 | | | passes placement and the payload hash (nothing is hashed for it), and the handover jumps to its | | |
 | | | load address: bytes no hash covers. It needs a signed header, and both the loaded and the in | | |
 | | | place path have it (the review of F-253). Refuse an entry part that is smaller than an entry in | | |
 | | | the handover's prepare; not empty parts in general (D-008: images with one may boot today) | | |
+| F-294 | `src/plat/imx8m/plat.c`, `makefile.mk`, `link.lds` | `bl_params`' memory on | Verified (code) | open |
+| | | the i.MX8M isn't what `platform.md` 5.3 has: it is `plat_bl_params`, an object in `pb`'s `.data` (where | | |
+| | | `atf.c` had it), with `PLAT_BL_PARAMS_SIZE` from the makefile, not a SoC region outside `pb` that the | | |
+| | | header names with `PLAT_BL_PARAMS_BASE` and that the link script keeps `pb` and `buffers` off. On the | | |
+| | | 8MP every byte of the OCRAM that BL31 takes them from (below 0x960000) is in `pb`'s own region, so a | | |
+| | | region of its own means cutting `pb`'s: not done without a board. New with F-258: `link.lds` fails the | | |
+| | | build when the object ends above the limit. The i.MX8M Quad's limit isn't known (no board of it has | | |
+| | | TF-A). With F-239 | | |
+| F-295 | `src/board/imx8dxlevk/board.c` | The DXL EVK moved to the TF-A delivery | Reported | open |
+| | | (F-258, `boot.md` 5.3). The board has only been built: no DXL is at hand, and this tree builds no image | | |
+| | | for it (the test bench has jiffy, imx8mpevk and imx8qxmek). Before, pb started the part `atf` directly | | |
+| | | with x0 to x3 = 0 and named no BL33; the image needed `atf`, `dt` and `ramdisk`. Two things changed for | | |
+| | | an image in the field. It needs the part `kernel` now, as BL33's entry: an image whose BL33 has another | | |
+| | | name, or is inside `atf`, booted and no longer does (D-008). And whatever is in `atf`, the product's own | | |
+| | | BL31 or another payload, is started with x0 = the `bl_params` list where it got 0: a BL31 that doesn't | | |
+| | | read x0 starts BL33 at its own address as before, one that reads it gets Linux at EL2 with the device | | |
+| | | tree in x0 (`set_dtb_boot_arg` is new for the board), and a payload that takes x0 for something else | | |
+| | | gets a pointer it didn't get. To check with the board and with the images of its products: that they | | |
+| | | boot, and which BL31 it is. If they don't, the board keeps the image handover with `atf` as its entry, | | |
+| | | without a delivery, which is what it had | | |
 | F-300 | `src/board/imx8mevk/board.c` | The board has a partition table and neither | Verified (code) | open |
 | | | a boot source policy nor a handover: `board_setup()` fails on the handover, nothing is bootable | | |
 | | | and nothing boots, by `boot bpak` neither. Its defconfig has `BOOT_AB_DRIVER` and `BOOT_LINUX`. | | |
