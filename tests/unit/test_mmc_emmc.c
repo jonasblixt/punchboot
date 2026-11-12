@@ -276,6 +276,29 @@ static void test_read_write(void **state)
     assert_bench_clean();
 }
 
+/* bio.md 3.1, 3.2: a length of 0 is PB_OK and the driver isn't called. The
+ * driver has no command for it, and answered an error */
+static void test_a_length_of_0_doesnt_reach_the_driver(void **state)
+{
+    static uint8_t out[512];
+    static uint8_t in[512];
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+
+    fill(out, sizeof(out), 9);
+    assert_int_equal(bio_write(part(UU_USER), 5, sizeof(out), out), PB_OK);
+
+    memset(in, 0x5a, sizeof(in));
+    assert_int_equal(bio_read(part(UU_USER), 5, 0, in), PB_OK);
+    assert_int_equal(in[0], 0x5a);
+    assert_int_equal(bio_write(part(UU_USER), 5, 0, in), PB_OK);
+
+    assert_int_equal(bio_read(part(UU_USER), 5, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+    assert_bench_clean();
+}
+
 /* Up to 2 GiB: byte addresses, JESD84-B51 6.4.2 */
 static void test_byte_addressing(void **state)
 {
@@ -491,6 +514,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_length_of_0_doesnt_reach_the_driver, setup, teardown),
         cmocka_unit_test_setup_teardown(test_byte_addressing, setup, teardown),
         cmocka_unit_test_setup_teardown(test_boot_partitions, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),

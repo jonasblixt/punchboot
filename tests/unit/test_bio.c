@@ -120,6 +120,25 @@ static void test_huge_length_rejected(void **state)
     assert_int_equal(f->disk->reads, 0);
 }
 
+/* bio.md 3.1, 3.2: a length of 0 is PB_OK, nothing is read or written and
+ * the driver isn't called */
+static void test_a_length_of_0_doesnt_reach_the_driver(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t before[sizeof(f->buf)];
+
+    memset(ramdisk_block(f->disk, PART_FIRST), 0x3c, RAMDISK_BLOCK_SIZE);
+    memcpy(before, f->buf, sizeof(before));
+
+    assert_int_equal(bio_read(f->part, 0, 0, f->buf), PB_OK);
+    assert_int_equal(f->disk->reads, 0);
+    assert_memory_equal(f->buf, before, sizeof(before));
+
+    assert_int_equal(bio_write(f->part, 0, 0, f->buf), PB_OK);
+    assert_int_equal(f->disk->writes, 0);
+    assert_int_equal(*ramdisk_block(f->disk, PART_FIRST), 0x3c);
+}
+
 static void test_invalid_handles(void **state)
 {
     struct fixture *f = *state;
@@ -162,6 +181,28 @@ static void test_allocate_rejects(void **state)
 
     assert_int_equal(bio_allocate(0, 1, 0, UU_PART, "x"), -PB_ERR_PARAM);
     assert_int_equal(bio_allocate(2, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"), -PB_ERR_PARAM);
+}
+
+/* bio.md 2.3: the largest block is CONFIG_BIO_MAX_BLOCK_SIZE, and a device
+ * with a larger one is refused at registration */
+static void test_a_block_larger_than_the_largest_is_refused(void **state)
+{
+    struct fixture *f = *state;
+    bio_dev_t dev;
+
+    assert_int_equal(bio_allocate(0, 1, CONFIG_BIO_MAX_BLOCK_SIZE + 1, UU_OTHER, "x"),
+                     -PB_ERR_PARAM);
+    assert_int_equal(bio_allocate(0, 1, 2 * CONFIG_BIO_MAX_BLOCK_SIZE, UU_OTHER, "x"),
+                     -PB_ERR_PARAM);
+    assert_int_equal(bio_allocate_parent(0, 0, 1, CONFIG_BIO_MAX_BLOCK_SIZE + 1, UU_OTHER, "x"),
+                     -PB_ERR_PARAM);
+    /* Nothing was registered */
+    assert_int_equal(bio_get_part_by_uu(UU_OTHER), -PB_ERR_NOT_FOUND);
+    assert_false(bio_valid(f->part + 1));
+
+    dev = bio_allocate(0, 1, CONFIG_BIO_MAX_BLOCK_SIZE, UU_OTHER, "x");
+    assert_int_equal(dev, f->part + 1);
+    assert_int_equal(bio_block_size(dev), CONFIG_BIO_MAX_BLOCK_SIZE);
 }
 
 static void test_allocate_pool_full(void **state)
@@ -239,17 +280,31 @@ static int fake_erase(bio_dev_t dev, lba_t first_lba, size_t count)
     return PB_OK;
 }
 
-/* Only the dispatch is tested. The range is not checked and the LBA is not
- * made absolute (F-055). */
+/* F-055: the LBA is relative to the partition, like read and write, and the
+ * range is checked */
 static void test_erase_calls_the_driver(void **state)
 {
     struct fixture *f = *state;
+    lba_t last = PART_LAST - PART_FIRST;
 
     erase_calls = 0;
     assert_int_equal(bio_set_ios_erase(f->part, fake_erase), PB_OK);
     assert_int_equal(bio_erase(f->part, 3, 7), PB_OK);
     assert_int_equal(erase_calls, 1);
+    assert_int_equal(erase_lba, PART_FIRST + 3);
     assert_int_equal(erase_count, 7);
+
+    assert_int_equal(bio_erase(f->part, last, 1), PB_OK);
+    assert_int_equal(erase_lba, PART_LAST);
+    assert_int_equal(bio_erase(f->part, last, 2), -PB_ERR_PARAM);
+    assert_int_equal(bio_erase(f->part, last + 1, 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_erase(f->part, (lba_t)(0 - PART_FIRST), 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_erase(f->part, 0, SIZE_MAX), -PB_ERR_PARAM);
+    assert_int_equal(erase_calls, 2);
+
+    /* Nothing to erase */
+    assert_int_equal(bio_erase(f->part, 0, 0), PB_OK);
+    assert_int_equal(erase_calls, 2);
 }
 
 static void test_set_private(void **state)
@@ -307,8 +362,11 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_past_end_rejected, setup, teardown),
         cmocka_unit_test_setup_teardown(test_lba_wrap_rejected, setup, teardown),
         cmocka_unit_test_setup_teardown(test_huge_length_rejected, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_length_of_0_doesnt_reach_the_driver, setup, teardown),
         cmocka_unit_test_setup_teardown(test_invalid_handles, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_rejects, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_a_block_larger_than_the_largest_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_pool_full, setup, teardown),
         cmocka_unit_test_setup_teardown(test_properties, setup, teardown),
         cmocka_unit_test_setup_teardown(test_flags, setup, teardown),
