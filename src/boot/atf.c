@@ -81,7 +81,7 @@ int boot_driver_atf_init(const struct boot_driver_atf_config *cfg_in)
     cfg = cfg_in;
 
     /* BL32 is optional */
-    if (cfg->atf_bpak_id == 0 || cfg->bl33_bpak_id == 0)
+    if (cfg == NULL || cfg->atf_bpak_id == 0 || cfg->bl33_bpak_id == 0)
         return -PB_ERR_PARAM;
 
     return PB_OK;

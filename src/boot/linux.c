@@ -30,7 +30,7 @@ int boot_driver_linux_init(const struct boot_handover_image_config *cfg_in)
 {
     cfg = cfg_in;
 
-    if (cfg->image_bpak_id == 0)
+    if (cfg == NULL || cfg->image_bpak_id == 0)
         return -PB_ERR_PARAM;
 
     return PB_OK;
