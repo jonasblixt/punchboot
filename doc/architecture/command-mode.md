@@ -540,10 +540,9 @@ host can send one while the other is written.
   answers `STREAM_NOT_INITIALIZED`. **Not yet in the code (F-074, F-190)**: the stream starts
   out as the first block device.
 - **`offset` and `size` are bytes.** The offset is a multiple of the block size, else
-  `INVALID_ARGUMENT`. **Not yet in the code (F-273)**: it is rounded down. A write whose size
-  isn't a multiple of the block writes its last block padded with zeros; a read sends `size`
-  bytes. **Not yet in the code (F-182)**: the tail is lost on eMMC. The range lies inside the
-  partition.
+  `INVALID_ARGUMENT`. A write whose size isn't a multiple of the block writes its last block
+  padded with zeros; a read sends `size` bytes. **Not yet in the code (F-182)**: the tail is
+  lost on eMMC. The range lies inside the partition.
 - **A write is the buffer's bytes**, whatever filled it. The host fills it first.
 - **A write that fails** marks the stream failed and leaves what it wrote. Writing a partition
   isn't atomic, and nothing is verified when it is written: what a partition holds is input
@@ -766,7 +765,7 @@ For a change to command mode, a new command or a new method:
 | F-189, F-226        | The watchdog per chunk; the timeouts (4.6)                                           |
 | F-186, F-272, F-188 | The partitions' flags: hidden partitions, `PART_VERIFY`, `PART_ERASE` (5.3)          |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
-| F-182, F-273, F-074 | Sizes and offsets that aren't block multiples; no stream (5.3, 5.4)                  |
+| F-182, F-074        | Sizes that aren't block multiples; no stream (5.3, 5.4)                              |
 | F-128, F-252        | A boot the host started that is refused or stopped (5.5)                             |
 | F-095               | The board's response fits the host's buffer (5.6)                                    |
 | F-263               | EOL as the product's option (5.2)                                                    |

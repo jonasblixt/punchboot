@@ -1,4 +1,4 @@
-"""Stream commands with requests the punchboot package never sends (F-053, F-054).
+"""Stream commands with requests the punchboot package never sends (F-053, F-054, F-273).
 
 The punchboot package always sends valid buffer ids, sizes and offsets, so
 these tests use the raw wire protocol (pbtest.Wire).
@@ -139,6 +139,24 @@ def test_stream_write_rejects_offset_beyond_32_bit_lba(device: Device, wire: Wir
     assert stream_write(wire, 0, offset, BLOCK_SIZE) == -PB_RESULT_INVALID_ARGUMENT
     assert_responsive(wire)
     assert device.read_blocks(READABLE_LBA + 8) == before
+
+
+@pytest.mark.parametrize("offset", [8 * BLOCK_SIZE + 1, 9 * BLOCK_SIZE - 1])
+def test_stream_write_rejects_offset_inside_a_block(
+    device: Device, wire: Wire, offset: int
+) -> None:
+    """Not rounded down to the block's start (command-mode.md 5.4, F-273)."""
+    before = device.read_blocks(READABLE_LBA + 8, 2)
+
+    assert stream_prepare(wire, 0, b"\xa5" * BLOCK_SIZE) == 0
+    assert stream_write(wire, 0, offset, BLOCK_SIZE) == -PB_RESULT_INVALID_ARGUMENT
+    assert_responsive(wire)
+    assert device.read_blocks(READABLE_LBA + 8, 2) == before
+
+
+def test_stream_read_rejects_offset_inside_a_block(wire: Wire) -> None:
+    assert stream_read(wire, 0, BLOCK_SIZE // 2, BLOCK_SIZE)[0] == -PB_RESULT_INVALID_ARGUMENT
+    assert_responsive(wire)
 
 
 def test_stream_write_past_end_of_partition_fails(device: Device, wire: Wire) -> None:

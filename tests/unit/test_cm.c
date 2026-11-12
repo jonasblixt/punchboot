@@ -1494,6 +1494,39 @@ static void test_stream_errors(void **state)
     expect_end();
 }
 
+/* An offset inside a block is refused, not rounded down to the block's start
+ * (command-mode.md 5.4, F-273) */
+static void test_stream_offset_inside_a_block(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t data[RAMDISK_BLOCK_SIZE];
+    uint8_t before[2 * RAMDISK_BLOCK_SIZE];
+
+    memset(data, 0xa5, sizeof(data));
+    memcpy(before, ramdisk_block(f->disk, RW_FIRST_LBA + 2), sizeof(before));
+
+    stream_init(UU_RW);
+    stream_prepare(0, sizeof(data), data);
+    stream_write(0, sizeof(data), 2 * RAMDISK_BLOCK_SIZE + 1);
+    stream_write(0, sizeof(data), 3 * RAMDISK_BLOCK_SIZE - 1);
+    stream_read(1, sizeof(data), RAMDISK_BLOCK_SIZE / 2);
+    /* The stream is still there */
+    stream_read(1, sizeof(data), 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(PB_RESULT_OK);
+    expect_data(sizeof(data));
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 2), before, sizeof(before));
+}
+
 static unsigned int write_done_calls;
 static bio_dev_t write_done_dev;
 static int write_done_rc;
@@ -2005,6 +2038,7 @@ int main(void)
         CM_TEST(test_part_erase),
         CM_TEST(test_stream),
         CM_TEST(test_stream_errors),
+        CM_TEST(test_stream_offset_inside_a_block),
         CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),

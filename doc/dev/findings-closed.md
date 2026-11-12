@@ -424,6 +424,16 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `test_rollback_keeps_the_other_slots_bit` (both builds: both directions with the other bit set, all | | |
 | | | 512 bytes and the board's registers; no bit set, the bytes as before) and | | |
 | | | `test_speculative_then_rollback_keeps_both_bits` (the history); both fail without the fix | | |
+| F-273 | `src/cm/cm_main.c` `stream_check()` | The stream's byte offset is divided by | Verified (code) | fixed |
+| | | the block size and the remainder dropped: an offset that isn't a block multiple reads or writes | | |
+| | | from the block's start and answers OK. The Python host sends multiples (0, the chunk size, the | | |
+| | | partition's size less 4 KiB). `command-mode.md` 5.4: INVALID_ARGUMENT | | |
+| | | Fixed: `stream_check()` refuses an offset that isn't a multiple of the block with | | |
+| | | INVALID_ARGUMENT, for `STREAM_WRITE_BUFFER` and `STREAM_READ_BUFFER`; nothing is read or written. | | |
+| | | No released host sends one: the Python host and the 2.x C host send 0, multiples of the caps' | | |
+| | | chunk size (`CONFIG_CM_BUF_SIZE_KiB`, 4 KiB on pb-host, 32 KiB on the RT1060 whose NOR has 4 KiB | | |
+| | | blocks, 4 MiB elsewhere) and the partition's size less 4 KiB. `test_cm.c` | | |
+| | | (`test_stream_offset_inside_a_block`), `test_stream.py` | | |
 
 ## Dependencies / vendored code
 

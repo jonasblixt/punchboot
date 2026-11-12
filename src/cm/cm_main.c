@@ -400,6 +400,14 @@ stream_check(uint8_t buffer_id, uint32_t size, uint64_t offset, uint8_t **bfr, l
 
     uint64_t lba = offset / (uint64_t)block_size;
 
+    /* The offset is a whole number of blocks, as hosts send it
+     * (command-mode.md 5.4) */
+    if (offset % (uint64_t)block_size != 0) {
+        LOG_ERR("Offset %" PRIu64 " isn't a multiple of the block", offset);
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);
+        return -PB_ERR_PARAM;
+    }
+
     if (lba > UINT32_MAX) {
         LOG_ERR("Invalid offset");
         pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);

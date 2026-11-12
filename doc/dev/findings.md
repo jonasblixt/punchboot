@@ -497,10 +497,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `command-mode.md` 5.3, D-058 (Jonas): a hidden partition is internal to pb and answers | | |
 | | | NOT_FOUND to every command; `part verify` needs no `READABLE`. No board in the tree hides a | | |
 | | | partition (children inherit `VISIBLE` from their device) | | |
-| F-273 | `src/cm/cm_main.c` `stream_check()` | The stream's byte offset is divided by | Verified (code) | open |
-| | | the block size and the remainder dropped: an offset that isn't a block multiple reads or writes | | |
-| | | from the block's start and answers OK. The Python host sends multiples (0, the chunk size, the | | |
-| | | partition's size less 4 KiB). `command-mode.md` 5.4: INVALID_ARGUMENT | | |
 | F-274 | `src/cm/cm_main.c`, `tools/punchboot/session.py` | Exchanges that get out of | Verified (code) | open |
 | | | step. (1) A refused `STREAM_PREPARE_BUFFER` (the gate, the size, the id) sends one result, | | |
 | | | but hosts send the data whatever the first result says: it is read as commands. As F-187 for | | |
