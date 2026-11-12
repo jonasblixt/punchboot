@@ -327,6 +327,15 @@ add_test(NAME unit.log_disabled_is_a_statement
 )
 set_tests_properties(unit.log_disabled_is_a_statement PROPERTIES LABELS unit TIMEOUT 60)
 
+# Command mode's USB port is the platform's Kconfig choice, in the board's
+# defconfig (platform.md 3.10): its test reads Kconfig
+add_test(
+    NAME unit.cm_usb_kconfig
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_cm_usb_kconfig.py
+            ${PROJECT_SOURCE_DIR}
+)
+set_tests_properties(unit.cm_usb_kconfig PROPERTIES LABELS unit TIMEOUT 60)
+
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c

@@ -70,6 +70,16 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   configuration.
 - **Tick**: GPT1 on the 6UL, 8M and RT, GPT0 through the SCFW on the 8X. The 6UL's runs from the
   24 MHz crystal (F-084).
+- **Command mode's USB** (`plat_cm_init()`, `platform.md` 3.10). The port is a Kconfig choice,
+  `<P>_CM_USB`, in the port's `Kconfig`; an option selects the USB stack, pb's class and the
+  drivers its set up calls. What `plat_cm_init()` does for each, in this order, as the boards'
+  `cm_init` hooks did before it:
+
+| Option               | Port     | Clocks and power         | PHY                      | Controller   |
+| -------------------- | -------- | ------------------------ | ------------------------ | ------------ |
+| `IMX6UL_CM_USB_OTG1` | USB OTG1 | PLL_USB1's `EN_USB_CLKS` | USBPHY1 (`imx_usb2_phy`) | `imx_ci_udc` |
+
+An option exists for the port a board in the tree uses. The 6UL's USB OTG2 has none.
 
 ## 4. Security
 
@@ -214,7 +224,7 @@ Where each port is (2026-11-11).
 | `plat_init()` errors only for        | yes          | yes               | yes        | partly    | F-235         |
 | command mode                         |              |                   |            |           |               |
 | `plat_get_status()`                  | no           | no                | no         | no        | F-248         |
-| `plat_cm_init()`                     | no           | no                | no         | no        | F-267         |
+| `plat_cm_init()`                     | one port     | no                | no         | no        | F-267         |
 | The board's regions in the map (5.2) | no           | no                | no         | n/a       | F-269, F-158  |
 | SoC memory for image data,           | n/a          | partly            | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |

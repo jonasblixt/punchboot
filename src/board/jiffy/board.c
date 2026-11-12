@@ -18,8 +18,6 @@
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_uart.h>
-#include <drivers/usb/imx_ci_udc.h>
-#include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <pb/bio.h>
 #include <pb/board.h>
@@ -226,15 +224,6 @@ static int board_hw_init(void)
     return rc;
 }
 
-static int board_cm_init(void)
-{
-    /* Enable USB PLL */
-    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
-
-    imx_usb2_phy_init(IMX6UL_USBPHY1_BASE);
-    return imx_ci_udc_init(IMX6UL_USB1_BASE);
-}
-
 static const struct rot_config rot = {
     .revoke_key = imx_hab_revoke_key,
     .read_key_status = imx_hab_read_key_status,
@@ -368,7 +357,6 @@ const struct board board = {
     .image_regions = image_regions,
     .bootargs = "console=ttymxc1,115200 quiet ",
     .bootargs_verbose = "console=ttymxc1,115200 earlyprintk ",
-    .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,
     .status = board_status,
 };
