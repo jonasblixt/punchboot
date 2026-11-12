@@ -37,6 +37,8 @@ Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/c
   host must treat that as "not supported" and fall back or give a clear error. A locked device
   answers `-PB_RESULT_NOT_AUTHENTICATED` before authentication, from 3.0.0 also to a command it
   doesn't have (`command-mode.md` 3.2, D-058): a host asks again once it is authenticated.
+  A device whose release defines the command and whose build left it out answers
+  `-PB_RESULT_NOT_SUPPORTED`, never `-PB_RESULT_INVALID_COMMAND` (`command-mode.md` 4.5, D-060).
 - **Capabilities**: `PB_CMD_DEVICE_READ_CAPS` is the only negotiation. New capabilities go in its
   `rz[18]`. The host must handle zero (an old device) for every caps field, including today's.
 - **Retiring a command** (F-032): the handler may answer `-PB_RESULT_NOT_SUPPORTED`, but the enum
@@ -83,6 +85,10 @@ accepted must still be accepted. The one exception is security, which comes firs
 (`principles.md`): a security fix may reject what a release accepted. That needs a decision entry
 naming what is now rejected and why. D-024 is one (the header validation of bpak 1.0), D-035
 another (the custom source, `dont-hash` parts).
+
+The rule is for a build that has bpak. A product may build pb without it, once there is another
+format to build in its place (`system.md` 3, D-061): its own choice for its own devices. bpak is
+in by default, and a release never drops it.
 
 Extensions (new hash/sign kinds, new flags, new meta) are allowed if old images keep verifying
 the same way. New images that old firmware can't read are fine only if they are opt-in.

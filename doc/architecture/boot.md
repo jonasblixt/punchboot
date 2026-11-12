@@ -1,7 +1,7 @@
 # The boot flow contract
 
 **State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041, D-043, D-044, D-046, D-048,
-D-050, D-055.** Level 2
+D-050, D-055, D-061.** Level 2
 (`process.md`).
 
 No open items. The draft's seventeen, as decided and written into the text:
@@ -366,7 +366,8 @@ only a partition that is booted in place boots.
 
 The flow doesn't depend on one image format (D-044). It needs what the table lists from a format,
 and nothing else of it. bpak is the one format today (`bpak.md`); another comes next to it and
-gives the same, and every bpak image a released pb accepted stays accepted (D-008, `system.md` 3).
+gives the same, and every bpak image a released pb accepted stays accepted (D-008, `system.md` 3)
+by a build that has bpak; a product's build may leave it out (D-061).
 
 | The flow needs                                                 | bpak                                              |
 | -------------------------------------------------------------- | ------------------------------------------------- |

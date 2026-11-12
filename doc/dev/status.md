@@ -30,7 +30,10 @@ the trim is at the end of `log/2026-11-09.md`.
 - **Command mode contract (D-057 to D-059, `command-mode.md`):** reviewed (Jonas, 2026-11-12),
   no open items. The session, the gate, each command's exchange and what a failure leaves.
   `CONFIG_CM_AUTH` stays the product's switch, with at least one method when it is on. Its
-  code: F-271 to F-277, F-185 to F-190. Then the drivers' contracts (`log/2026-11-11.md`).
+  code: F-271 to F-280, F-185 to F-190. A second pass (D-060): the three places that mean bpak
+  and how another image format joins (5.9), `INVALID_COMMAND` against `NOT_SUPPORTED` (4.5).
+  A build may leave bpak out, once there is a second format (Jonas, D-061; `system.md` 3).
+  Then the drivers' contracts (`log/2026-11-11.md`).
 - **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each
   document's state. The agent instructions are `AGENTS.md`, harness-neutral (D-042). `doc/dev/`
   keeps status, roadmap, decisions, findings (open; the closed ones in `findings-closed.md`) and

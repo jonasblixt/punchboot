@@ -1,6 +1,6 @@
 # The system
 
-**State: reviewed (Jonas, 2026-11-11), D-034 to D-036, D-051.** Level 1 (`process.md`).
+**State: reviewed (Jonas, 2026-11-11), D-034 to D-036, D-051, D-061.** Level 1 (`process.md`).
 
 What pb is, its interfaces to the outside, the device's life cycle, and what pb promises. The
 documents below say how; this one says what they must add up to. Against whom the promises hold
@@ -51,7 +51,7 @@ The flows: `boot.md`, `command-mode.md`.
 | The image           | The build that signs       | Like the wire: the format       | `compatibility.md`,            |
 |                     | images                     | (bpak), the meta data pb reads  | `boot.md` 4                    |
 | The wire            | A host in command mode     | Frames, values, sequences,      | `compatibility.md`; behaviour: |
-|                     |                            | meaning                         | `command-mode.md`      |
+|                     |                            | meaning                         | `command-mode.md`              |
 | The handover        | The next stage             | Like the wire: the entry state, | `boot.md` 5, 7                 |
 |                     |                            | the arguments, pb's information |                                |
 | The OS at run time  | The update client,         | Like the wire: the A/B state's  | `boot.md` 3.7, 7; `board.md` 8 |
@@ -77,6 +77,10 @@ The flows: `boot.md`, `command-mode.md`.
   enough for that: what it needs from a format is `boot.md` 4.4. bpak images stay accepted
   (D-008), so a new format comes next to bpak. Whether
   one build accepts several formats is to discuss (`roadmap.md`).
+- **A build may leave bpak out** (Jonas, 2026-11-12, D-061), once there is another format to
+  build in its place. That is the product's choice for its own devices, made in its defconfig,
+  like a build without command mode's authentication (section 6). bpak is in by default, and a
+  build that has it accepts every bpak image a release accepted (5.1).
 
 ## 4. The life cycle
 
@@ -145,6 +149,8 @@ build on changes its form in a major release at most.
 - The signing keys, their custody and when to revoke one.
 - Whether command mode asks for authentication at all (`CONFIG_CM_AUTH`, on by default), and
   with which methods (`command-mode.md` 3.2).
+- Which image formats its build accepts, once there is more than one (section 3). bpak is in
+  by default.
 - The update client in the OS and its use of the A/B state (`pbstate`).
 - What the next stage verifies (the root file system).
 - The password's secret and where the board keeps it (`board.md` 4.5).
