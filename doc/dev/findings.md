@@ -439,6 +439,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the next candidate's header is read into the same memory, so a pointer a DT hook kept from a | | |
 | | | candidate that failed later in prepare points at unverified bytes while the next one is | | |
 | | | loaded. For the contract: say (1) to (4) in 5.3 | | |
+| | | From the review of F-266: the header handed out has its signature cleared (`signature` zero, `signature_sz` 0): those are the bytes that were signed, and the text should say so | | |
 | F-326 | `include/boot/boot.h`, `include/pb/board.h`, `src/board/imxrt1060evk/board.c` | bpak | Verified (code) | open |
 | | | is still named where nothing of it is used, since F-266: `boot/boot.h` includes | | |
 | | | `<bpak/bpak.h>`, so every board that includes it for `boot_get_flags()` gets the format's | | |
