@@ -73,6 +73,11 @@ int plat_early_init(void)
         return -PB_ERR_MEM;
     }
 
+    /* The memory mapped flash, for partitions that are booted in place */
+    if (host_opts.nor_path != NULL &&
+        host_nor_map(host_opts.nor_path, BOARD_NOR_BASE, BOARD_NOR_SIZE) != PB_OK)
+        return -PB_ERR_MEM;
+
     /* After the RAM: fopencookie() is the first malloc(), which sets up the
      * brk heap. Its start is randomized over 1 GiB on x86-64, so a heap set
      * up before could be where the RAM has to go. */

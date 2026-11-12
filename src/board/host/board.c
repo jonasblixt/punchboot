@@ -9,12 +9,14 @@
  * partition layout, keys and board commands are available to the tests.
  */
 
+#include <board_defs.h>
 #include <boot/ab_state.h>
 #include <boot/boot.h>
 #include <boot/linux.h>
 #include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <drivers/partition/gpt.h>
+#include <drivers/partition/static.h>
 #include <pb/bio.h>
 #include <pb/board.h>
 #include <pb/cm.h>
@@ -152,6 +154,35 @@ static const struct gpt_table_list gpt_tables[] = {
     },
 };
 
+/*
+ * The memory mapped flash (--nor), mapped at BOARD_NOR_BASE: its first
+ * partition is booted in place, the second is loaded like the disk's, the
+ * third is in place and never made bootable.
+ */
+static const struct static_part_table nor_table[] = {
+    {
+        .uu = PART_nor_in_place,
+        .description = "NOR In place",
+        .first_lba = 8,
+        .size = SZ_KiB(128),
+        .flags = STATIC_PART_FLAG_IN_PLACE,
+    },
+    {
+        .uu = PART_nor_loaded,
+        .description = "NOR Loaded",
+        .size = SZ_KiB(128),
+    },
+    {
+        .uu = PART_nor_not_bootable,
+        .description = "NOR Not bootable",
+        .size = SZ_KiB(64),
+        .flags = STATIC_PART_FLAG_IN_PLACE,
+    },
+    {
+        .uu = NULL,
+    },
+};
+
 static int early_boot(void)
 {
     if (boot_get_flags() & BOOT_FLAG_CMD) {
@@ -177,6 +208,10 @@ static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
         name = 'A';
     else if (uuid_compare(boot_part_uu, PART_sys_b) == 0)
         name = 'B';
+    else if (uuid_compare(boot_part_uu, PART_nor_in_place) == 0)
+        name = 'X';
+    else if (uuid_compare(boot_part_uu, PART_nor_loaded) == 0)
+        name = 'N';
     else
         name = '?';
 
@@ -245,12 +280,37 @@ static const struct slc_fuse config_fuses[] = {
     { FUSE_BOOT1, 0xCAFEEFEE },
 };
 
+static int nor_init(void)
+{
+    int rc;
+    bio_dev_t nor = host_nor_init(PART_nor, "Host NOR");
+
+    if (nor < 0)
+        return nor;
+
+    rc = static_ptbl_init_mapped(nor, BOARD_NOR_BASE, nor_table);
+
+    if (rc != PB_OK)
+        return rc;
+
+    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_nor_in_place), 0, BIO_FLAG_BOOTABLE);
+    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_nor_loaded), 0, BIO_FLAG_BOOTABLE);
+    return PB_OK;
+}
+
 static int board_hw_init(void)
 {
     bio_dev_t disk = host_disk_init(host_opts.disk_path, SZ_MiB(32), PART_disk, "Host disk");
 
     if (disk < 0)
         return disk;
+
+    if (host_opts.nor_path != NULL) {
+        int rc = nor_init();
+
+        if (rc != PB_OK)
+            return rc;
+    }
 
     return mbedtls_pb_init();
 }

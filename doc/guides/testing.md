@@ -67,8 +67,15 @@ A single integration test, inside `scripts/pbdev shell`:
   the path appearing as "command mode is ready".
 - **Disk.** A file. The fuses live in a partition on it (test fuse driver), so device state
   persists across reboots within a test.
+- **Flash.** With `--nor PATH`: a memory mapped flash for the in place source (`boot.md` 4.1),
+  512 KiB at 0x70000000 (`BOARD_NOR_BASE`), a file that is erased (0xff) when new. pb has it
+  mapped read only and writes it through its bio device, so a write through the map faults as
+  it would be lost on a NOR. The host board gives it a static table: "NOR In place" (booted in
+  place), "NOR Loaded" (loaded, like a disk's partition) and "NOR Not bootable". Without the
+  option pb-host has no flash and lists none.
 - **Reset and boot.** `plat_reset()` calls `exit(0)`, which also writes gcov data. On boot, the
-  board's `late_boot` writes the partition name to `--boot-status` and then resets.
+  board's `late_boot` writes the partition name to `--boot-status` and then resets: `A` or `B`,
+  `X` for "NOR In place" and `N` for "NOR Loaded".
 - **System libc.** Host builds use glibc instead of the firmware libc. `src/plat/host/compat.h` is
   force-included and provides the BSD attribute macros (`__section`, `__aligned`, ...).
 
@@ -118,6 +125,9 @@ A single integration test, inside `scripts/pbdev shell`:
   and `sgdisk_verify()`. Fixtures:
   - `blank_device` starts in command mode on a blank disk.
   - `device` also has the default partition table installed.
+  - `nor_device` is `device` with the flash (`--nor`). `read_nor()` and `write_nor()` reach its
+    file. An in place image's `pb-load-addr` is `NOR_BASE` plus the partition's offset plus the
+    part's offset in the payload.
 
   Use `device.session()` (only one at a time) together with `reboot()`, `boot()` (power on without
   command mode, returns 'A'/'B'/'?'), `read_blocks()`/`write_blocks()` (on the disk image) and
@@ -154,6 +164,7 @@ and `configs/test_defconfig` were then removed.
 | `test_log.py`         | new: `PB_CMD_LOG_READ` and `punchboot log` (in chunks, wrapped)                         |
 | `test_compat.py`      | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 (xfail) |
 | `test_transcripts.py` | new: recorded wire transcripts served to the current host (D-008, guard 4)              |
+| `test_in_place.py`    | new: the in place source on the host's flash: boot, placement, verification (F-253)     |
 
 Unit tests, by module under test:
 

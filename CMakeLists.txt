@@ -165,6 +165,7 @@ add_executable(pb-host
     src/arch/host/arch.c
     src/plat/host/disk.c
     src/plat/host/main.c
+    src/plat/host/nor.c
     src/plat/host/plat.c
     src/plat/host/socket.c
     src/board/host/board.c

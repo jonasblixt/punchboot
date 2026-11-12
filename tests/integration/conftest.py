@@ -25,12 +25,8 @@ def pb_host_binary() -> pathlib.Path:
     return binary
 
 
-@pytest.fixture
-def blank_device(
-    pb_host_binary: pathlib.Path, tmp_path: pathlib.Path, request: pytest.FixtureRequest
-) -> Iterator[Device]:
-    """Start a device in command mode, with a blank disk."""
-    dev = Device(pb_host_binary, tmp_path)
+def _run_device(dev: Device, request: pytest.FixtureRequest) -> Iterator[Device]:
+    """Start 'dev' in command mode, and check it when the test is done."""
     try:
         dev.start(command_mode=True)
         yield dev
@@ -48,12 +44,32 @@ def blank_device(
 
 
 @pytest.fixture
+def blank_device(
+    pb_host_binary: pathlib.Path, tmp_path: pathlib.Path, request: pytest.FixtureRequest
+) -> Iterator[Device]:
+    """Start a device in command mode, with a blank disk."""
+    yield from _run_device(Device(pb_host_binary, tmp_path), request)
+
+
+@pytest.fixture
 def device(blank_device: Device) -> Device:
     """Start a device in command mode, with the default partition table installed."""
     with blank_device.session() as s:
         s.part_table_install(DISK_UUID)
     blank_device.reboot()
     return blank_device
+
+
+@pytest.fixture
+def nor_device(
+    pb_host_binary: pathlib.Path, tmp_path: pathlib.Path, request: pytest.FixtureRequest
+) -> Iterator[Device]:
+    """Like 'device', with the memory mapped flash (erased) and its static table."""
+    for dev in _run_device(Device(pb_host_binary, tmp_path, nor=True), request):
+        with dev.session() as s:
+            s.part_table_install(DISK_UUID)
+        dev.reboot()
+        yield dev
 
 
 @pytest.hookimpl(wrapper=True, tryfirst=True)
