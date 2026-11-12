@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if defined(CONFIG_BOOT_LINUX) || defined(CONFIG_BOOT_ATF)
+#ifdef CONFIG_BOOT_DTB
 #include <libfdt.h>
 #endif
 
@@ -160,7 +160,7 @@ int board_setup(void)
     return setup_boot_driver();
 }
 
-#if defined(CONFIG_BOOT_LINUX) || defined(CONFIG_BOOT_ATF)
+#ifdef CONFIG_BOOT_DTB
 int board_patch_bootargs(void *fdt, int offset)
 {
     const char *bootargs = board.bootargs;
