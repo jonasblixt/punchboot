@@ -484,6 +484,20 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | (`NOT_SUPPORTED`), a size of 0 or above 1024 for the token or the password (`INVALID_ARGUMENT`). Data | | |
 | | | that arrived and didn't verify still ends the authentication, and so does a data transfer that failed | | |
 | | | (the session ends, 3.1). `test_cm.c`: `test_auth_data_size`, `test_auth_refusal_keeps_session` | | |
+| F-276 | `src/cm/cm_main.c` `cmd_auth()` | A failed authentication is answered at once: | Verified (code) | fixed |
+| | | a host can try passwords as fast as the transport carries them. D-058 (Jonas), | | |
+| | | `command-mode.md` 3.3: the result of a failed attempt is sent 1 s after the data arrived, with | | |
+| | | every method, the watchdog kicked meanwhile; no counter, no lockout | | |
+| | | Fixed: `cmd_auth()` takes the tick when the data arrived, and after a check that failed | | |
+| | | `auth_failed_wait()` holds the result until 1 s from it: a slow check (ECDSA in software) shortens the | | |
+| | | rest, one longer than 1 s isn't held. Every result after the data is a failure and waits, the token's | | |
+| | | `KEY_REVOKED`, `ERROR` and `NOT_SUPPORTED` too; a success, a refusal before the data (F-278) and a data | | |
+| | | transfer that failed are answered at once. The wait compares differences of `plat_get_us_tick()`, which | | |
+| | | wraps, and kicks the watchdog after the check and every 100 ms (the shortest watchdog is 5 s). It doesn't | | |
+| | | touch the transport: a host that disconnects gets nothing sooner, and its next attempt, on any | | |
+| | | connection, waits its own second. Hosts wait 10 s for a transfer (2.7.1's C host, today's Python one). | | |
+| | | `test_cm.c`: `test_auth_failure_is_delayed`, `test_auth_failure_delay_counts_from_the_data`, | | |
+| | | `test_auth_not_delayed`; `test_security.py`: `test_failed_authentication_is_answered_after_a_second` | | |
 
 ## Dependencies / vendored code
 

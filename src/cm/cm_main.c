@@ -345,6 +345,32 @@ static int auth_read_data(const struct pb_command_authenticate *auth_cmd, bool *
 
     return cm_read(buffer[0], CM_DATA_XFER_SIZE);
 }
+
+#define CM_AUTH_FAILED_DELAY_US 1000000
+#define CM_AUTH_FAILED_KICK_US  100000
+
+/* The result of a failed attempt is sent 1 s after the data arrived, with
+ * every method: the check's own time is part of it (command-mode.md 3.3). No
+ * counter, no lockout. The tick wraps, so only differences count (plat.h).
+ * pb_delay_*() and pb_timeout_*() never kick (platform.md 3.3), this does:
+ * at once, after the check, and every 100 ms (the shortest watchdog is 5 s).
+ * The transport isn't touched: a host that leaves gets nothing sooner. */
+static void auth_failed_wait(unsigned int arrived)
+{
+    unsigned int now = plat_get_us_tick();
+    unsigned int kicked = now;
+
+    plat_wdog_kick();
+
+    while ((now - arrived) < CM_AUTH_FAILED_DELAY_US) {
+        if ((now - kicked) >= CM_AUTH_FAILED_KICK_US) {
+            plat_wdog_kick();
+            kicked = now;
+        }
+
+        now = plat_get_us_tick();
+    }
+}
 #endif
 
 static int cmd_auth(void)
@@ -363,8 +389,14 @@ static int cmd_auth(void)
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
         rc = auth_read_data(auth_cmd, &refused);
 
-        if (rc == PB_OK)
+        if (rc == PB_OK) {
+            unsigned int arrived = plat_get_us_tick();
+
             rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
+
+            if (rc != PB_OK)
+                auth_failed_wait(arrived);
+        }
 
         if (rc == PB_OK)
             authenticated = true;
@@ -379,8 +411,14 @@ static int cmd_auth(void)
     if (auth_cmd->method == PB_AUTH_PASSWORD && cfg->password_auth) {
         rc = auth_read_data(auth_cmd, &refused);
 
-        if (rc == PB_OK)
+        if (rc == PB_OK) {
+            unsigned int arrived = plat_get_us_tick();
+
             rc = cfg->password_auth((char *)buffer[0], auth_cmd->size);
+
+            if (rc != PB_OK)
+                auth_failed_wait(arrived);
+        }
 
         if (rc == PB_OK)
             authenticated = true;

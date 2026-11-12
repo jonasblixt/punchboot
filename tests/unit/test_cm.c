@@ -71,6 +71,12 @@
 #define BOARD_RETURN 2
 #define BOARD_REBOOT 3
 #define BOARD_PREFIX "echo: "
+/* fake_us_tick_step: 1 ms per plat_get_us_tick() */
+#define TICK_STEP_US 1000
+/* A failed authentication's result is sent 1 s after the data (3.3), and the
+ * watchdog is kicked every 100 ms meanwhile */
+#define AUTH_WAIT_US 1000000
+#define AUTH_KICK_US 100000
 
 /* The fake transport */
 static struct {
@@ -97,6 +103,12 @@ static struct {
     int connect_calls;
     int disconnect_calls;
     int process_calls;
+
+    /* fake_us_tick when each read completed and each write was sent */
+    unsigned int read_ticks[64];
+    size_t n_reads;
+    unsigned int write_ticks[64];
+    size_t n_writes;
 } t;
 
 static int fake_init(void)
@@ -141,6 +153,8 @@ static int fake_write(const void *buf, size_t length)
     assert_true(t.out_len + length <= sizeof(t.out));
     memcpy(&t.out[t.out_len], buf, length);
     t.out_len += length;
+    if (t.n_writes < ARRAY_SIZE(t.write_ticks))
+        t.write_ticks[t.n_writes++] = fake_us_tick;
     return PB_OK;
 }
 
@@ -158,6 +172,8 @@ static int fake_complete(void)
         memcpy(t.read_buf, &t.in[t.in_pos], t.read_len);
         t.in_pos += t.read_len;
         t.read_pending = false;
+        if (t.n_reads < ARRAY_SIZE(t.read_ticks))
+            t.read_ticks[t.n_reads++] = fake_us_tick;
     }
 
     return PB_OK;
@@ -380,6 +396,7 @@ static struct {
     hash_t alg;
     hash_t verify_alg;
     bool verify_ok;
+    unsigned int verify_us; /* What a verification takes on the fake clock */
 } crypto;
 
 static int hash_fake_init(hash_t alg)
@@ -438,6 +455,7 @@ static int dsa_fake_verify(const uint8_t *der_signature,
     (void)md;
     (void)md_length;
     crypto.verify_alg = md_alg;
+    fake_us_tick += crypto.verify_us;
     *verified = crypto.verify_ok && der_signature[0] == FAKE_SIG_OK;
     return PB_OK;
 }
@@ -562,7 +580,8 @@ static int setup(void **state)
     crypto.verify_ok = true;
     board_cfg = &cfg_default;
     board_init_rc = PB_OK;
-    fake_us_tick_step = 0;
+    /* The clock runs: a failed authentication waits on it (F-276) */
+    fake_us_tick_step = TICK_STEP_US;
 
     *state = f;
     return 0;
@@ -1226,6 +1245,159 @@ static void test_auth_data_read_fails(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
+}
+
+/* Forgets what the last cm_run() read and sent, for the next one */
+static void clear_transport(void)
+{
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    t.n_reads = t.n_writes = 0;
+}
+
+/* The time from the authentication data's arrival (the second read) to its
+ * result (the second write) */
+static unsigned int auth_answer_us(void)
+{
+    assert_true(t.n_reads >= 2 && t.n_writes >= 2);
+    return t.write_ticks[1] - t.read_ticks[1];
+}
+
+/* command-mode.md 3.3 (F-276): the result of a failed attempt is sent 1 s
+ * after the data arrived, with every method, and the watchdog is kicked
+ * meanwhile */
+static void test_auth_failure_is_delayed(void **state)
+{
+    static const uint8_t bad_token[] = { 0x00 };
+
+    static const struct {
+        int key_status_rc;
+        int get_key_rc;
+        int result;
+    } token_failures[] = {
+        { PB_OK, PB_OK, -PB_RESULT_AUTHENTICATION_FAILED },
+        { -PB_ERR_KEY_REVOKED, PB_OK, -PB_RESULT_KEY_REVOKED },
+        { PB_OK, -PB_ERR_KEY_NOT_FOUND, -PB_RESULT_ERROR },
+    };
+
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+
+    for (size_t i = 0; i <= ARRAY_SIZE(token_failures); i++) {
+        unsigned int kicks = fake_wdog_kicks;
+        int result = -PB_RESULT_AUTHENTICATION_FAILED;
+
+        clear_transport();
+        fake_wdog_kick_tick = fake_us_tick;
+        fake_wdog_max_gap_us = 0;
+
+        if (i < ARRAY_SIZE(token_failures)) {
+            sec.key_status_rc = token_failures[i].key_status_rc;
+            sec.get_key_rc = token_failures[i].get_key_rc;
+            result = token_failures[i].result;
+            host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+        } else {
+            host_auth(PB_AUTH_PASSWORD, "wrong!", 6, 0);
+        }
+        run();
+
+        expect_result(PB_RESULT_OK);
+        expect_result(result);
+        expect_end();
+        assert_in_range(auth_answer_us(), AUTH_WAIT_US, AUTH_WAIT_US + 2 * TICK_STEP_US);
+        /* At once, then every 100 ms */
+        assert_true(fake_wdog_kicks - kicks >= AUTH_WAIT_US / AUTH_KICK_US + 1);
+        assert_true(fake_wdog_max_gap_us <= AUTH_KICK_US + 2 * TICK_STEP_US);
+    }
+}
+
+/* The delay counts from the data's arrival: a slow check shortens the rest of
+ * it, one that took longer than the delay isn't held, and the clock may wrap
+ * meanwhile */
+static void test_auth_failure_delay_counts_from_the_data(void **state)
+{
+    static const uint8_t bad_token[] = { 0x00 };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    /* A check of 300 ms leaves 700 ms */
+    crypto.verify_us = 300000;
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    assert_in_range(auth_answer_us(), AUTH_WAIT_US, AUTH_WAIT_US + 2 * TICK_STEP_US);
+
+    /* A check of 1.5 s is answered when it ends */
+    clear_transport();
+    crypto.verify_us = 1500000;
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    assert_in_range(auth_answer_us(), 1500000, 1500000 + 2 * TICK_STEP_US);
+
+    /* The tick wraps half a second after the data */
+    clear_transport();
+    crypto.verify_us = 0;
+    fake_us_tick = UINT32_MAX - 500000;
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    assert_true(t.read_ticks[1] > t.write_ticks[1]);
+    assert_in_range(auth_answer_us(), AUTH_WAIT_US, AUTH_WAIT_US + 2 * TICK_STEP_US);
+}
+
+/* A success, and a refusal before the data, are answered at once */
+static void test_auth_not_delayed(void **state)
+{
+    struct pb_command_authenticate bad_size = { .method = PB_AUTH_ASYM_TOKEN, .size = 0 };
+    struct pb_command_authenticate unknown = { .method = 0x7f, .size = 6 };
+    struct pb_command_authenticate password = { .method = PB_AUTH_PASSWORD, .size = 6 };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    host_auth_token();
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    assert_true(auth_answer_us() <= 2 * TICK_STEP_US);
+
+    clear_transport();
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+    host_auth(PB_AUTH_PASSWORD, "secret", 6, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    assert_true(auth_answer_us() <= 2 * TICK_STEP_US);
+
+    /* From the command to its only result: a bad size, an unknown method,
+     * and the password on a board without a check */
+    clear_transport();
+    host_cmd(PB_CMD_AUTHENTICATE, &bad_size, sizeof(bad_size));
+    host_cmd(PB_CMD_AUTHENTICATE, &unknown, sizeof(unknown));
+    run();
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_end();
+    assert_true(t.write_ticks[0] - t.read_ticks[0] <= 2 * TICK_STEP_US);
+    assert_true(t.write_ticks[1] - t.read_ticks[1] <= 2 * TICK_STEP_US);
+
+    clear_transport();
+    board_cfg = &cfg_default;
+    host_cmd(PB_CMD_AUTHENTICATE, &password, sizeof(password));
+    run();
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_end();
+    assert_true(t.write_ticks[0] - t.read_ticks[0] <= 2 * TICK_STEP_US);
 }
 
 static void test_slc_commands(void **state)
@@ -2399,6 +2571,9 @@ int main(void)
         CM_TEST(test_auth_data_size),
         CM_TEST(test_auth_refusal_keeps_session),
         CM_TEST(test_auth_data_read_fails),
+        CM_TEST(test_auth_failure_is_delayed),
+        CM_TEST(test_auth_failure_delay_counts_from_the_data),
+        CM_TEST(test_auth_not_delayed),
         CM_TEST(test_slc_commands),
         CM_TEST(test_slc_errors),
         CM_TEST(test_unknown_slc_requires_auth),

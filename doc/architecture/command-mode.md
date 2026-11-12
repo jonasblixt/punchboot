@@ -240,8 +240,7 @@ transfer of 1024 bytes (4.4). Methods are added, never changed (`security.md` 4.
 data arrived, with every method, the watchdog kicked meanwhile. A host can then try a password
 a second, not as fast as the transport carries them. The token can't be guessed; the
 password's strength is the product's (`system.md` 6). No counter and no lockout: a lockout
-would let anyone with a cable close the device for its service staff. **Not yet in the code
-(F-276)**: a failed attempt is answered at once.
+would let anyone with a cable close the device for its service staff.
 
 ### 3.4 What a method grants
 
@@ -748,7 +747,6 @@ For a change to command mode, a new command or a new method:
 | F-268, F-267        | Command mode as a task; the platform sets up the port, the transport is linked (2)   |
 | F-185, F-201        | The session ends with the transport: authentication and the stream are cleared (3.1) |
 | F-271               | A build with `CONFIG_CM_AUTH` selects at least one method (3.2)                      |
-| F-276               | A failed authentication is answered after 1 s (3.3)                                  |
 | F-277               | A transfer timeout that ends the session; the caps' timeouts (4.6)                   |
 | F-181               | The verdict of a token is the verification's own (3.3)                               |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |

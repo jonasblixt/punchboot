@@ -6,6 +6,7 @@ Ported from test_device_setup, test_authentication and test_revoke_key.
 from __future__ import annotations
 
 import struct
+import time
 from typing import TYPE_CHECKING
 
 import punchboot
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from .pbtest import Device
 
 DEVICE_UUID = "02e49231-756e-35ee-a982-378e5ba866a9"
+AUTH_FAILED_DELAY_S = 1.0  # command-mode.md 3.3
 
 # include/pb-tools/wire.h and error.h
 PB_CMD_DEVICE_IDENTIFIER_READ = 2
@@ -150,6 +152,21 @@ def test_authentication_lasts_until_reset(locked_device: Device) -> None:
 def test_authentication_with_wrong_key_fails(locked_device: Device) -> None:
     with locked_device.session() as s, pytest.raises(punchboot.AuthenticationError):
         s.authenticate_dsa_token(AUTH_TOKEN, "pb-development2")
+
+
+def test_failed_authentication_is_answered_after_a_second(locked_device: Device) -> None:
+    # command-mode.md 3.3 (F-276): a failed attempt's result is sent 1 s after
+    # the data arrived, a success's at once
+    with locked_device.session() as s:
+        start = time.monotonic()
+        with pytest.raises(punchboot.AuthenticationError):
+            s.authenticate_dsa_token(AUTH_TOKEN, "pb-development2")
+        assert time.monotonic() - start >= AUTH_FAILED_DELAY_S
+
+        start = time.monotonic()
+        s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        assert time.monotonic() - start < AUTH_FAILED_DELAY_S / 2
+        assert s.part_get_partitions()
 
 
 def test_revoked_key_can_not_authenticate(device: Device) -> None:
