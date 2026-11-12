@@ -16,6 +16,7 @@ from .pbtest import (
     AUTH_TOKEN,
     DEV_KEY_ID,
     NULL_UUID,
+    PB_CMD_BOARD_COMMAND,
     PB_COMMAND_SIZE,
     PB_WIRE_MAGIC,
     SYSTEM_A_UUID,
@@ -121,6 +122,22 @@ def test_locked_device_refuses_every_frame(locked_device: Device) -> None:
             assert w.command(command) == -PB_RESULT_INVALID_COMMAND
         w.send(bad_magic)
         assert w.result() == -PB_RESULT_INVALID_COMMAND
+
+
+def test_locked_device_refuses_board_command_in_step(locked_device: Device) -> None:
+    # command-mode.md 3.2, 4.4 (F-187): hosts send the board command's
+    # request whatever the first result says. The gate reads it and answers
+    # twice, also when there is no request, and the session stays in step.
+    with locked_device.session() as s:
+        with pytest.raises(punchboot.NotAuthenticatedError):
+            s.board_run_command("test-command", b"0x11223344")
+        assert str(s.device_get_uuid()) == DEVICE_UUID
+
+    with locked_device.wire() as w:
+        w.send_command(PB_CMD_BOARD_COMMAND, struct.pack("<III", 0, 0, 0))
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.command(PB_CMD_DEVICE_IDENTIFIER_READ) == 0
 
 
 def test_open_device_answers_invalid_command(device: Device) -> None:

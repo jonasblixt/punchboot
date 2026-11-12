@@ -146,9 +146,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | terminating one at `trb[desc_count]`: for some counts its flags word is in a cache line that isn't | | |
 | | | cleaned, and a stale TRB from a larger transfer stays in memory. The effect on the controller is | | |
 | | | unverified; it fits F-172 (a small write after a large one). Clean `desc_count + 1`. | | |
-| F-187 | `cm_main.c:881` | The auth gate sends one result for `board command`, but hosts send the | Reported | open |
-| | | request anyway (F-095): the device parses it as commands and answers INVALID_COMMAND twice; with an | | |
-| | | empty request the host hangs. Drain the request and send the second result. | | |
 | F-190 | `cm_main.c` | Low. IDENTIFIER_READ sends 23 bytes of `buffer[0]` unauthenticated (`rz` | Reported | open |
 | | | not cleared), the partition table 57 of every 128. `boot_jump()` can return after `disconnect()`. | | |
 | | | `bytes_to_verify -= 4096` underflows for bpak with size < 4096. A failed data read in | | |

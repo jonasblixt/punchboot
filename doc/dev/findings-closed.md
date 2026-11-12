@@ -595,6 +595,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | and asks pb for the same. A secret belongs on a hidden partition. `test_cm.c` | | |
 | | | (`test_part_verify_keeps_the_stream`, `test_hidden_partition`). Left: the two use the stream's | | |
 | | | buffers (F-365) | | |
+| F-187 | `cm_main.c:881` | The auth gate sends one result for `board command`, but hosts send the | Reported | fixed |
+| | | request anyway (F-095): the device parses it as commands and answers INVALID_COMMAND twice; with an | | |
+| | | empty request the host hangs. Drain the request and send the second result. | | |
+| | | Fixed: `cm_gate_refuse()` in `cm_main.c`. For a refused `BOARD_COMMAND` the gate sends | | |
+| | | NOT_AUTHENTICATED, reads the 1024 byte request when `request_size` isn't 0 (as `cmd_board()` does), | | |
+| | | and sends NOT_AUTHENTICATED again with a response size of 0; the board isn't called. `cm_drain()` | | |
+| | | reads the request in pieces into the result frame, so no buffer changes. `command-mode.md` 3.2, 4.4. | | |
+| | | `test_cm.c` (`test_gate_refuses_board_command`, `test_gate_refused_sessions`), `test_security.py` | | |
+| | | (`test_locked_device_refuses_board_command_in_step`) | | |
 
 ## Dependencies / vendored code
 

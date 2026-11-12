@@ -3007,6 +3007,9 @@ static void test_gate_refused_sessions(void **state)
                 expect_gate(kinds[k], PB_WIRE_MAGIC, c, gate_open_results[c]);
             } else {
                 expect_gate(kinds[k], PB_WIRE_MAGIC, c, -PB_RESULT_NOT_AUTHENTICATED);
+                /* Hosts send its request anyway: the second result (4.4) */
+                if (c == PB_CMD_BOARD_COMMAND)
+                    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
                 expect_end();
             }
 
@@ -3016,6 +3019,35 @@ static void test_gate_refused_sessions(void **state)
             expect_end();
         }
     }
+}
+
+/* The gate refuses BOARD_COMMAND, and hosts send its request whatever the
+ * first result says (command-mode.md 3.2, 4.4, F-187): the device reads the
+ * request, answers twice and runs nothing. With no request it answers twice
+ * as well. The session stays in step. */
+static void test_gate_refuses_board_command(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
+    uint8_t arg[1024] = { 0 };
+    (void)state;
+
+    /* A request that is a frame the gate lets through, were it read as one */
+    pb_wire_init_command((struct pb_command *)arg, PB_CMD_DEVICE_IDENTIFIER_READ);
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_send(arg, sizeof(arg));
+    req.request_size = 0;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    const struct pb_result *r = expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, 0);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
 }
 
 /* One session: refused frames leave it able to authenticate, and after that
@@ -3121,6 +3153,7 @@ int main(void)
         CM_TEST(test_log_source_full),
         CM_TEST(test_gate_open_sessions),
         CM_TEST(test_gate_refused_sessions),
+        CM_TEST(test_gate_refuses_board_command),
         CM_TEST(test_gate_refused_then_authenticated),
     };
 

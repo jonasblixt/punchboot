@@ -318,8 +318,8 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
 - **The device keeps the exchange in step also when it refuses.** Where released hosts send
   data whatever the first result says (`STREAM_PREPARE_BUFFER`, `BOARD_COMMAND`), the device
   reads that data and sends the second result, with the refusal. That holds for the gate too.
-  **Not yet in the code (F-187, F-274)**: the gate and the bounds checks send one result, and
-  the data is then read as commands.
+  **Not yet in the code (F-274)**: a refused `STREAM_PREPARE_BUFFER`, by the gate or by its
+  bounds, sends one result, and the data is then read as commands.
 - **`BOOT_BPAK`'s parts**: the parts the header lists, in its order, each followed by a
   result. A part's bytes are one stream of the part's size. The host splits it into transfers
   of at most the caps' largest transfer, each of whole packets but the part's last, as
@@ -750,7 +750,7 @@ For a change to command mode, a new command or a new method:
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-004               | The password is compared whole, in constant time, and not logged (3.3)               |
 | F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |
-| F-187, F-274        | The exchange stays in step after a refusal (4.4)                                     |
+| F-274               | The exchange stays in step after a refusal (4.4)                                     |
 | F-087               | A result code for a payload whose hash differs (4.5)                                 |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
 | F-365               | `PART_VERIFY` and `PART_BPAK_READ` leave the stream's buffers alone (5.3)            |

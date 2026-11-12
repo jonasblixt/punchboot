@@ -279,6 +279,30 @@ static int cm_read(void *buf, size_t length)
     return rc;
 }
 
+/*
+ * Reads a transfer of 'length' bytes that the host sends whatever the first
+ * result said, and drops it: a refused command's exchange still ends as the
+ * host expects (command-mode.md 3.2, 4.4). It is read in pieces into the
+ * result, which the caller sets afterwards, so that no buffer changes.
+ */
+static int cm_drain(size_t length)
+{
+    int rc;
+
+    do {
+        size_t chunk = (length > sizeof(result)) ? sizeof(result) : length;
+
+        rc = cm_read(&result, chunk);
+
+        if (rc != PB_OK)
+            return rc;
+
+        length -= chunk;
+    } while (length > 0);
+
+    return PB_OK;
+}
+
 /* A partition without VISIBLE is internal to pb: it doesn't exist for the
  * host, and every command that names it answers NOT_FOUND (command-mode.md
  * 5.3, D-058) */
@@ -1042,13 +1066,38 @@ static bool cm_gate_allows(void)
     return (cmd.magic == PB_WIRE_MAGIC) && !pb_wire_requires_auth(&cmd);
 }
 
+/*
+ * The gate's refusal. Hosts send BOARD_COMMAND's request whatever the first
+ * result says, so the device sends the first result, reads the request and
+ * leaves the second to the caller, both NOT_AUTHENTICATED (command-mode.md
+ * 3.2, 4.4). Every other refused frame is answered once.
+ */
+static void cm_gate_refuse(void)
+{
+    const struct pb_command_board *board_cmd = (const struct pb_command_board *)cmd.request;
+
+    pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+
+    if (cmd.magic != PB_WIRE_MAGIC)
+        return;
+
+    if (cmd.command == PB_CMD_BOARD_COMMAND) {
+        cm_write(&result, sizeof(result));
+
+        if (board_cmd->request_size)
+            (void)cm_drain(CM_DATA_XFER_SIZE);
+
+        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+    }
+}
+
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
 
     if (!cm_gate_allows()) {
         LOG_ERR("Not authenticated");
-        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+        cm_gate_refuse();
         goto err_out;
     }
 
