@@ -145,6 +145,44 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | on jiffy, on WDOG2 and 3 on the 8MP EVK, on WDOG1 and 2 on the RT1060 EVK; 0 after. The RT's RTWDOG (WDOG3, | | |
 | | | enabled out of reset) comes out of the ROM disabled (CS 0x2520). The 8X's watchdogs are the SCFW's | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/ports/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
+| F-070 | `src/boot/boot.c` | BIO and CB boots load into `header`, but `prepare`/`late_boot` get `header_ptr`, which an IN_MEM or CUSTOM boot repoints. After a failed in-memory boot, a command-mode boot would prepare (jump address, dtb) from the stale, unverified header. Latent: no board uses IN_MEM/CUSTOM. | Verified (code) | fixed with F-253: `header_ptr` is gone with the two sources, every boot verifies and prepares from `header` |
+| F-219 | `src/boot/simple.c`, `boot.c`, `board.c` | The XIP / `BOOT_SOURCE_IN_MEM` path can't be | Reported | fixed |
+| | | reached (nothing sets `get_in_mem_image`), and if wired up it hashes memory at `pb-load-addr` but jumps | | |
+| | | to `image_base_address + offset`. Extends F-070. `boot.md` 4.1 (D-038, D-040): a part is at its | | |
+| | | `pb-load-addr`, hashed and entered there, inside the candidate's mapped range; the header where | | |
+| | | the format has it in the partition (D-048) | | |
+| | | Fixed: `image_base_address` and `image_size` are gone, the entry is the part's `pb-load-addr` with every | | |
+| | | source (`test_simple.c`). The in place source itself is F-253. Not run on a board | | |
+| F-253 | `src/board.c`, `include/pb/board.h` | D-026 lost two boot sources: | Verified (code) | fixed |
+| | | `setup_boot_driver()` sets `default_boot_source = BOOT_SOURCE_BIO`, and `struct board` has no field for | | |
+| | | `get_in_mem_image` or `authenticate_image`. On master the boards built `struct boot_driver` themselves | | |
+| | | and could boot in place (`IN_MEM`) or authenticate themselves (`CUSTOM`). Out-of-tree projects use | | |
+| | | both (Jonas). Before `work-3.0.0-plat` merges: give them a way back (the boot contract decides how) | | |
+| | | D-035 (Jonas): the custom source is removed, nobody uses it. Only the in place source comes | | |
+| | | back; what is left of `CUSTOM` in `boot.c` goes with it. D-048, `board.md` 2.4: a flag in the | | |
+| | | static partition table's entry, the device's mapped base in `PTBL_STATIC_MAPPED()`, the header | | |
+| | | where the format has it; `get_in_mem_image()` doesn't come back | | |
+| | | Fixed: `STATIC_PART_FLAG_IN_PLACE` in the static table's entry and `static_ptbl_init_mapped()` for the | | |
+| | | device's base (the board calls it until F-265 brings `PTBL_STATIC_MAPPED`). `boot.c` asks the table for | | |
+| | | the candidate's mapped range, copies the header from its last 4 KiB, checks that every part lies inside | | |
+| | | the range (`boot_image_verify_parts_in_place()`) and hashes the parts where they are. The range is the | | |
+| | | table's, also for a device that carries the partition's UUID. `BOOT_SOURCE_IN_MEM`, | | |
+| | | `BOOT_SOURCE_CUSTOM`, `get_in_mem_image`, `authenticate_image` and `header_ptr` are gone (F-070). | | |
+| | | `test_static_ptbl.c`, `test_image_helpers.c`, `test_boot.c`, and end to end on the host's flash (`test_in_place.py`). From its review: the cache's copy of the partition is dropped before the header is read, and a mapped table isn't replaced while a partition of it is booted in place. Not run on a board. Where the arch has an | | |
+| | | MMU the range is mapped by the board's `mmap`, F-269 | | |
+| F-264 | `src/board/imxrt1060evk/board.c` | `board_late_boot()` (the charger detection, | Verified (code) | fixed |
+| | | the SBMR2 serial download check, "no pbl in the flash") and `board_get_in_mem_image()` are defined | | |
+| | | and never called: `struct board` has no `.late_boot`, and on master the board registered no boot | | |
+| | | driver either (dead since the board was added, 1275d8ec). `board.md` 5.3 uses the charger detection | | |
+| | | as its example for `late_boot()`. Ask Jonas: wire `late_boot` for the charger check, or remove | | |
+| | | the two functions? The serial download check goes with F-251, the header lookup with F-253 | | |
+| | | Jonas (2026-11-12): wired, for the charger check. Fixed: `.late_boot` is set and the hook keeps the | | |
+| | | charger detection only. The SBMR2 and the blank IVT checks are removed, F-251 has them; | | |
+| | | `board_get_in_mem_image()` went with F-253. Not run on a board: the hook reads the detector's status and | | |
+| | | relies on the detector running from reset (nothing in pb writes its control register), and on a bench | | |
+| | | port that reports as a charger every boot that command mode didn't start would stop | | |
+| F-289 | `src/drivers/partition/static.c` | `static_ptbl_init()` kept `bio_block_size()`'s error code as a block size: an invalid device gave `-PB_ERR_ALIGN` for the first entry and `PB_OK` for an empty table. Found by the tests for F-253 | Verified (test) | fixed: the error is returned; `test_static_ptbl.c` |
+| F-290 | `src/drivers/mmc/mmc_sd.c`, `mmc_core.c` | `dev->rca << RCA_SHIFT_OFFSET` shifts a `uint16_t` as an `int`: an SD card's RCA of 0x8000 and above overflows it (undefined; UBSan: "left shift of 43690 by 16 places"). `unit.test_mmc_sd` and `unit.test_imx_usdhc` failed with `-DPB_SANITIZE=ON`, so the branch wasn't "ASan/UBSan clean" as `status.md` said. An e.MMC's RCA is pb's own, a small number | Verified (UBSan) | fixed: shifted as `uint32_t` where a card's RCA is used (`mmc_sd.c`, `mmc_send_status()`); the suite is clean with sanitizers again |
 
 ## Dependencies / vendored code
 

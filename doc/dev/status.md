@@ -4,12 +4,14 @@ _Last updated: 2026-11-12_
 
 ## Current focus
 
-3.0.0 on `work-3.0.0` (D-018): one branch until the release. Wire and bpak stay compatible (D-008),
+3.0.0 on `work-3.0.0-mega` (D-018): one branch until the release. It is `work-3.0.0` with the
+board work of `work-3.0.0-plat`, rebased onto master after 2.8.0 (the RAM log, PR #70); the two
+old branches are no longer worked on. Wire and bpak stay compatible (D-008),
 the major bump is for the porting API. Each item's history is in `log/`; the full list before
 the trim is at the end of `log/2026-11-09.md`.
 
-- **Board as data (`work-3.0.0-plat`, D-026, D-027):** waits for Jonas's review, then merges into
-  `work-3.0.0`. A board is `const struct board` (`pb/board.h`), `src/board.c` sets it up, RoT and
+- **Board as data (D-026, D-027):** on this branch, waits for Jonas's review.
+  A board is `const struct board` (`pb/board.h`), `src/board.c` sets it up, RoT and
   SLC first. Console split, the SLC order in `slc.c` (F-166), one HABv4 fuse driver (F-165,
   F-167), the SRK hash from the build, revoke slots in `CONFIG_KEYSTORE_SLOTS`, configuration
   fuses as data, pin tables. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
@@ -23,10 +25,12 @@ the trim is at the end of `log/2026-11-09.md`.
 - **Board contract (D-031, D-045 to D-052, `board.md`):** reviewed (Jonas, 2026-11-12), no open
   items. One member per concept in `struct board`, a variant is an object (D-046); in place is a
   flag in the static table (D-048); command mode's USB is the platform's (D-049); tasks while
-  pb is stopped (D-051). Its code: F-216, F-178, F-249..F-252, F-264..F-268.
+  pb is stopped (D-051). Its code: F-216, F-178, F-249..F-252, F-265..F-268. In: the RT's
+  `late_boot` for the charger check (F-264).
 - **Boot flow contract (D-032, D-038 to D-041, D-043, D-044, `boot.md`):** reviewed (Jonas), no
-  open items. Its code is F-253..F-260 and the A/B review's. F-253 (the in place source) before
-  `work-3.0.0-plat` merges.
+  open items. Its code is F-254, F-256..F-260 and the A/B review's. In: the in place source
+  (F-253, F-219, F-070) and the ramdisk above 4 GiB (F-255). Open from it: a DT in place with
+  the image handover (F-291).
 - **Command mode contract (D-057 to D-059, `command-mode.md`):** reviewed (Jonas, 2026-11-12),
   no open items. The session, the gate, each command's exchange and what a failure leaves.
   `CONFIG_CM_AUTH` stays the product's switch, with at least one method when it is on. Its
@@ -53,9 +57,10 @@ the trim is at the end of `log/2026-11-09.md`.
   code that decides nothing (a new driver, a refactoring) needs no document first (D-063).
   Security first, also before compatibility. No custom source, `dont-hash` images refused, EOL
   behind Kconfig (F-263).
-- **Tests:** `scripts/pbdev test`, ~20 s: 35 unit suites, `compat.abi`, `doc.lint` (the
-  document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean, line coverage
-  99.2% (`testing.md`).
+- **Tests:** `scripts/pbdev test`, ~25 s: 37 unit suites, `compat.abi`, `doc.lint` (the
+  document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean again
+  (F-290), line coverage 99.2% (2026-10-22, `testing.md`). The host has a memory mapped flash
+  (`--nor`), on which the in place source runs end to end (`test_in_place.py`).
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a firmware compile
   check, Coverity (master only, unverified until merged).
 - **Boards:** jiffy (i.MX6UL), imx8mpevk, imx8qxmek and imxrt1060evk run on the bench; imx8dxlevk
@@ -69,13 +74,13 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-0. **Resume here (2026-11-12): the documents before the code (Jonas, D-057).** The three
-   contracts, `command-mode.md` and the four drivers' contracts are reviewed and committed:
-   no draft is left. Now the code, a commit per finding: F-253 first (in place, before
-   `work-3.0.0-plat` merges), then F-265 (`struct board`'s objects) with F-256, F-258, F-259;
-   F-267 and F-268 (command mode's USB, the tasks). The conformance suites come with each
-   contract's code.
-1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
+0. **Resume here (2026-11-12): the code, a commit per finding (Jonas, D-057).** Every contract
+   is reviewed. In: F-253 (in place), F-219, F-264, F-255. Next: F-265 (`struct board`'s
+   objects), then F-256, F-258, F-259; F-267 and F-268 (command mode's USB, the tasks). The
+   conformance suites come with each contract's code. No board is on this machine: the code
+   is verified on the host and by building every board, and what a board has to show is
+   listed in `log/2026-11-12.md` ("Not run on a board").
+1. Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time
    to the simple target).
@@ -88,7 +93,7 @@ the trim is at the end of `log/2026-11-09.md`.
    jiffy HAB signing commits, to be split onto their own branch.
 4. Security: F-004. JTAG (`scripts/pbdebug`): F-078, F-079, F-081, F-083, F-089, F-090.
 5. Check the Coverity job on master. Rebase `nanopi-neo-core2` onto master (WIP in a stash).
-   F-010, F-070, F-109, the rest of F-066 and F-067, F-143, F-144, F-147, F-148, F-152.
+   F-010, F-109, the rest of F-066 and F-067, F-143, F-144, F-147, F-148, F-152.
 6. `-Werror` for the host build. Branch `remove-codecov` (D-012). D-023: other boot-path init
    only command mode needs (candidate: the HAB log's registration in `plat_init()`).
 
@@ -101,8 +106,8 @@ the trim is at the end of `log/2026-11-09.md`.
 - Platform contract: can "type 1 masters are secure at reset" (6UL SRM, CSU_SA, NDA) be written
   in the public docs, or only the register's name (as now)? Put the Arm specs and the TZC-380
   TRM (DDI0431) on the share?
-- F-264: wire the RT's `late_boot` (the charger check), or remove it with
-  `board_get_in_mem_image()`?
+- F-291: the image handover with a DT part, in place. Refuse it, or copy the DT to RAM first
+  (where)?
 - Which boards are still in use? bebop and pico8ml only have defconfigs (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Mbed TLS: 3.6 LTS or 4.x?

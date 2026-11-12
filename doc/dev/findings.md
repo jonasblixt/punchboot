@@ -26,7 +26,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-064 | `src/drivers/partition/gpt.c:152` | Header `last_lba` (last usable) is `last - 32`, which is the first backup-entry block; should be `last - 33`. pb's own allocation is unaffected; other tools could overlap the backup array. | Verified (code) | open |
 | F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | open; the `fdt_totalsize` <= part check is done (`39276b9c`) |
 | F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | partly fixed (`jiffy-fixes`): `der_ecsig_to_rs` now pads short r/s and is used by the CAAM (F-057). `der_ec_public_key_data` is still open |
-| F-070 | `src/boot/boot.c` | BIO and CB boots load into `header`, but `prepare`/`late_boot` get `header_ptr`, which an IN_MEM or CUSTOM boot repoints. After a failed in-memory boot, a command-mode boot would prepare (jump address, dtb) from the stale, unverified header. Latent: no board uses IN_MEM/CUSTOM. | Verified (code) | open |
 | F-074 | `src/cm/cm_main.c` stream read/write | After a failed STREAM_INITIALIZE, `block_dev` is an error code, and `bio_get_flags()` of it has the flag bits set, so the readable/writable checks pass. `stream_check()` then fails on the block size, so it's harmless. | Verified (test) | open |
 | F-075 | `cm_main.c` `cmd_part_erase`, `struct pb_command_erase_part` | Wire compat (D-008): `start_lba`/`block_count` were taken from `rz` in 2309738 (v2.0.0). A pre-2.0 host sends zeros, so a current device erases 0 blocks and answers OK: a silent no-op instead of a full erase. Fix: `block_count == 0` means the whole partition. Coordinate with F-055. | Verified (code) | open |
 | F-076 | `src/boot/image_helpers.c` (payload hash and load) | bpak compat (D-008): punchboot hashes every part, while upstream `verify.c` skips parts with `BPAK_FLAG_EXCLUDE_FROM_HASH` (`bpak add --set-flag dont-hash`). Such images verify with the bpak CLI but fail to boot in punchboot. Supporting the flag only accepts more images, so it is a compatible fix. | Verified (code) | open |
@@ -274,11 +273,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | validated, `CM_AUTH_PASSWORD=y` without a callback: moved to F-249. Dead Kconfig symbols | | |
 | | | (`ARMV8_EL3`, `choice BOARD`, `IMXRT_FLASH`). GPT tables can't align partitions. 8X | | |
 | | | `early_boot()` ignores SCU results. | | |
-| F-219 | `src/boot/simple.c`, `boot.c`, `board.c` | The XIP / `BOOT_SOURCE_IN_MEM` path can't be | Reported | open |
-| | | reached (nothing sets `get_in_mem_image`), and if wired up it hashes memory at `pb-load-addr` but jumps | | |
-| | | to `image_base_address + offset`. Extends F-070. `boot.md` 4.1 (D-038, D-040): a part is at its | | |
-| | | `pb-load-addr`, hashed and entered there, inside the candidate's mapped range; the header where | | |
-| | | the format has it in the partition (D-048) | | |
 | F-220 | security core, low | `caam_hash_input()` refills the alignment buffer while its async | Reported | open |
 | | | job may read it (wrong digest, fails closed). `rot.c:117,134` return error codes through unsigned types: | | |
 | | | `slc read` loops ~2^32 times after a failed `rot_init()`. Parts are 512-aligned, a 4 KiB block device | | |
@@ -389,8 +383,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | writes past the buffer. Latent, `CM_BUF_SIZE` is 4 MiB. `board.md` 4.3: the board writes at most | | |
 | | | `*length - 1` bytes, the core clamps and appends the NUL | | |
 | F-251 | `src/board/{imxrt1060evk,imx8qxmek,imx8dxlevk}` | The serial download | Verified (code) | open |
-| | | check is in the boards: the RT reads SBMR2's BMOD in a `late_boot` (never called, F-264), the 8X | | |
-| | | the SCU's boot type in `early_boot`. `plat_get_boot_source()` is `-PB_ERR_NOT_SUPPORTED` on the | | |
+| | | check is in the boards: the 8X reads the SCU's boot type in `early_boot`. The RT had two in a | | |
+| | | `late_boot` that was never called, removed with F-264 and to come back in its | | |
+| | | `plat_get_boot_source()`: SBMR2's BMOD not zero (an EVK set to internal boot reads 0b10 there, so | | |
+| | | BMOD alone doesn't say serial download), and a blank IVT (0 or 0xffffffff) at the NOR's start, for | | |
+| | | a board with fused boot that was loaded over serial. `plat_get_boot_source()` is `-PB_ERR_NOT_SUPPORTED` on the | | |
 | | | RT, 8X and 8M; the 6UL | | |
 | | | reports USB only when the ROM's USB was addressed, a UART download as UNKNOWN. `board.md` 5.1: | | |
 | | | `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default y) in `boot()` before `early_boot()`, the platforms report | | |
@@ -402,15 +399,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | transport's disconnect, a failed `late_boot` or `plat_lockdown()` other than ABORT returns to the | | |
 | | | loop, which reads from the disconnected transport (unchecked). `board.md` 5.4: before the | | |
 | | | disconnect the host gets the error and command mode goes on, after it pb resets | | |
-| F-253 | `src/board.c`, `include/pb/board.h` | D-026 lost two boot sources: | Verified (code) | open |
-| | | `setup_boot_driver()` sets `default_boot_source = BOOT_SOURCE_BIO`, and `struct board` has no field for | | |
-| | | `get_in_mem_image` or `authenticate_image`. On master the boards built `struct boot_driver` themselves | | |
-| | | and could boot in place (`IN_MEM`) or authenticate themselves (`CUSTOM`). Out-of-tree projects use | | |
-| | | both (Jonas). Before `work-3.0.0-plat` merges: give them a way back (the boot contract decides how) | | |
-| | | D-035 (Jonas): the custom source is removed, nobody uses it. Only the in place source comes | | |
-| | | back; what is left of `CUSTOM` in `boot.c` goes with it. D-048, `board.md` 2.4: a flag in the | | |
-| | | static partition table's entry, the device's mapped base in `PTBL_STATIC_MAPPED()`, the header | | |
-| | | where the format has it; `get_in_mem_image()` doesn't come back | | |
 | F-254 | `src/boot/image_helpers.c` | `boot_image_verify_parts()` checks the parts | Verified (code) | open |
 | | | against code, data, stack, bss and `.no_init`, not `.ro_data` (the keystore's keys; `ro_data_start` | | |
 | | | is imported and unused) nor `.ramlog`. `CHECK_OVERLAP` has no wrap-around check (`dtb.c` has its own | | |
@@ -459,12 +447,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
 | | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
 | | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |
-| F-264 | `src/board/imxrt1060evk/board.c` | `board_late_boot()` (the charger detection, | Verified (code) | open |
-| | | the SBMR2 serial download check, "no pbl in the flash") and `board_get_in_mem_image()` are defined | | |
-| | | and never called: `struct board` has no `.late_boot`, and on master the board registered no boot | | |
-| | | driver either (dead since the board was added, 1275d8ec). `board.md` 5.3 uses the charger detection | | |
-| | | as its example for `late_boot()`. Ask Jonas: wire `late_boot` for the charger check, or remove | | |
-| | | the two functions? The serial download check goes with F-251, the header lookup with F-253 | | |
 | F-265 | `include/pb/board.h`, `src/board.c`, the boards | `struct board` has a member | Verified (code) | open |
 | | | per variant (`boot_linux`, `boot_atf`, `boot_simple`; `ab`; three for a GPT, and the RT's static | | |
 | | | table is code in `init()`), and which is set must agree with Kconfig. D-046, `board.md` 1: one | | |
@@ -656,6 +638,18 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `include/pb/crypto.h`, `usb.md`'s operations against `struct usbd_hal_ops` and its | | |
 | | | transport's functions against `include/pb/cm.h`. D-073, `process.md` 7 | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
+| F-291 | `src/boot/linux.c`, `dtb.c` | The image handover can't boot an image with a | Verified (code) | open |
+| | | DT part in place: `boot_dtb_grow()` opens the DT into itself at its load address (`dtb.c`, | | |
+| | | `fdt_open_into()`) and `/chosen` is patched there, which in place is the flash. On a NOR the | | |
+| | | writes are lost or fault, on the host's flash (mapped read only) pb-host would crash. Found with | | |
+| | | F-253's host tests, whose images have a kernel part only. `boot.md` 4.1 and 5.2 don't say | | |
+| | | what the image handover does with a DT in place; Firmware Handoff (5.4, F-259) copies the DT | | |
+| | | into its region and has no such problem. Until decided: refuse it before the DT is touched | | |
+| F-292 | `src/boot/{simple,linux,atf}.c`, `image_helpers.c` | An entry part of size 0 | Verified (code) | open |
+| | | passes placement and the payload hash (nothing is hashed for it), and the handover jumps to its | | |
+| | | load address: bytes no hash covers. It needs a signed header, and both the loaded and the in | | |
+| | | place path have it (the review of F-253). Refuse an entry part that is smaller than an entry in | | |
+| | | the handover's prepare; not empty parts in general (D-008: images with one may boot today) | | |
 
 ## Dependencies / vendored code
 
