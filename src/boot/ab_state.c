@@ -98,6 +98,7 @@ config_commit_err:
 int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
 {
     int rc;
+    int read_rc = PB_OK;
     bio_dev_t dev;
     bool primary_state_ok = false;
     bool backup_state_ok = false;
@@ -136,29 +137,38 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
         LOG_ERR("Backup boot state partition not found");
     }
 
-    (void)bio_read(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
+    /* A copy that can't be read isn't a corrupt one, and nothing of a failed
+     * read is used (bio.md 3.1) */
+    rc = bio_read(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
 
-    rc = validate(&boot_state);
-
-    if (rc == PB_OK) {
+    if (rc != PB_OK) {
+        LOG_ERR("Primary boot state can't be read (%i)", rc);
+        read_rc = rc;
+    } else if (validate(&boot_state) == PB_OK) {
         primary_state_ok = true;
     } else {
         LOG_ERR("Primary boot state data corrupt");
-        primary_state_ok = false;
     }
 
-    (void)bio_read(backup_part, 0, sizeof(struct pb_boot_state), &boot_state_backup);
+    rc = bio_read(backup_part, 0, sizeof(struct pb_boot_state), &boot_state_backup);
 
-    rc = validate(&boot_state_backup);
-
-    if (rc == PB_OK) {
+    if (rc != PB_OK) {
+        LOG_ERR("Backup boot state can't be read (%i)", rc);
+        if (read_rc == PB_OK)
+            read_rc = rc;
+    } else if (validate(&boot_state_backup) == PB_OK) {
         backup_state_ok = true;
     } else {
         LOG_ERR("Backup boot state data corrupt");
-        backup_state_ok = false;
     }
 
-    if (!primary_state_ok && !backup_state_ok) {
+    if (!primary_state_ok && !backup_state_ok && read_rc != PB_OK) {
+        /* The copy that wasn't read may be a good one: nothing is written
+         * over it. In memory nothing is enabled */
+        LOG_ERR("No valid state found, and a copy can't be read");
+        pb_boot_state_defaults(&boot_state);
+        rc = read_rc;
+    } else if (!primary_state_ok && !backup_state_ok) {
         LOG_ERR("No valid state found, installing default");
         pb_boot_state_defaults(&boot_state);
         pb_boot_state_defaults(&boot_state_backup);

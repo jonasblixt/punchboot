@@ -462,5 +462,4 @@ exact byte counts). The FlexSPI's driver has no model: the bench, through the si
 | F-193, F-192, F-006 | A table's entries are checked (4)                                              |
 | F-195, F-191, F-064 | The GPT's repair and its backup's place (4)                                    |
 | F-194               | An installed table is in effect at once (4)                                    |
-| F-173               | Nothing of a failed read is used (3.1)                                         |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

@@ -294,6 +294,143 @@ static void test_init_bad_crc_is_repaired(void **state)
     assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
 }
 
+/*
+ * init reads the state (boot.md 3.1), and a copy that can't be read isn't a
+ * corrupt one (F-173). The defaults are for a state that was read and is bad
+ * in both copies. With a copy that wasn't read and no good one, init fails
+ * with the read's error and writes nothing: the copy may be a good one.
+ */
+static void test_init_read_error_writes_no_defaults(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* Neither copy can be read */
+    attach(f, true, true);
+    f->disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    assert_int_equal(f->disk->writes, 0);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+
+    /* Nothing of a failed read is used (bio.md 3.1), nor what the init
+     * before it had: in memory nothing is enabled */
+    memset(uu, 0xff, sizeof(uu));
+    boot_ab_state_get_boot_partition(uu);
+    assert_true(uuid_is_null(uu));
+
+    /* The fault passes: the state is what it was */
+    f->disk->fail_reads_after = -1;
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(f->disk->writes, 0);
+
+    /* The primary is corrupt and the backup can't be read: the same. The
+     * backup is the good copy here */
+    state_at(f, PRIMARY_LBA)->crc ^= 1;
+    attach(f, true, true);
+    f->disk->fail_reads_after = 1;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    assert_int_equal(f->disk->writes, 0);
+    assert_false(state_valid(f, PRIMARY_LBA));
+    boot_ab_state_get_boot_partition(uu);
+    assert_true(uuid_is_null(uu));
+
+    /* Read again, the primary is repaired from it */
+    f->disk->fail_reads_after = -1;
+    reboot(f, &cfg_normal);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(boot_once(), f->sys_b);
+}
+
+/* Partitions as attach() has them, but the primary state on a disk of its
+ * own, so that it alone can fail */
+static void attach_primary_apart(struct fixture *f, struct ramdisk *primary_disk)
+{
+    bio_dev_t other;
+
+    attach(f, true, false);
+    other = ramdisk_attach(primary_disk, UU_OTHER);
+    assert_true(other >= 0);
+    assert_true(bio_allocate_parent(other, 0, 0, RAMDISK_BLOCK_SIZE, UU_PRIMARY, "Primary") >= 0);
+    assert_true(bio_allocate_parent(bio_get_part_by_uu(UU_DISK),
+                                    BACKUP_LBA,
+                                    BACKUP_LBA,
+                                    RAMDISK_BLOCK_SIZE,
+                                    UU_BACKUP,
+                                    "Backup") >= 0);
+}
+
+/* The same when it is the primary that can't be read */
+static void test_init_primary_read_error(void **state)
+{
+    struct fixture *f = *state;
+    struct ramdisk *primary_disk = ramdisk_new(1);
+    uuid_t uu;
+
+    assert_non_null(primary_disk);
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    memcpy(ramdisk_block(primary_disk, 0), state_at(f, BACKUP_LBA), RAMDISK_BLOCK_SIZE);
+
+    /* The backup is corrupt: no defaults over a primary that wasn't read */
+    state_at(f, BACKUP_LBA)->crc ^= 1;
+    attach_primary_apart(f, primary_disk);
+    primary_disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    assert_int_equal(primary_disk->writes, 0);
+    assert_int_equal(f->disk->writes, 0);
+    boot_ab_state_get_boot_partition(uu);
+    assert_true(uuid_is_null(uu));
+
+    /* Read again, it repairs the backup */
+    primary_disk->fail_reads_after = -1;
+    attach_primary_apart(f, primary_disk);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_memory_equal(
+        state_at(f, BACKUP_LBA), ramdisk_block(primary_disk, 0), RAMDISK_BLOCK_SIZE);
+    assert_true(state_valid(f, BACKUP_LBA));
+    assert_int_equal(boot_once(), f->sys_b);
+
+    ramdisk_free(primary_disk);
+}
+
+/* One copy is good and the other can't be read: the state is the good
+ * copy's, which is written to both, as for a copy that is corrupt */
+static void test_init_read_error_with_a_good_copy(void **state)
+{
+    struct fixture *f = *state;
+    struct ramdisk *primary_disk = ramdisk_new(1);
+
+    assert_non_null(primary_disk);
+
+    /* The backup can't be read */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    f->disk->fail_reads_after = 1;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(f->disk->writes, 2);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* The primary can't be read: the backup's state, not what the primary's
+     * buffer holds from the init above */
+    f->disk->fail_reads_after = -1;
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    attach_primary_apart(f, primary_disk);
+    primary_disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(primary_disk->writes, 1);
+    assert_memory_equal(
+        ramdisk_block(primary_disk, 0), state_at(f, BACKUP_LBA), RAMDISK_BLOCK_SIZE);
+    assert_true(state_valid(f, BACKUP_LBA));
+    assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_A_ENABLED);
+    assert_int_equal(boot_once(), f->sys_a);
+
+    ramdisk_free(primary_disk);
+}
+
 static void test_commit_write_errors(void **state)
 {
     struct fixture *f = *state;
@@ -1742,6 +1879,9 @@ int main(void)
         AB_TEST(test_init_blank_installs_defaults),
 #endif
         AB_TEST(test_init_bad_crc_is_repaired),
+        AB_TEST(test_init_read_error_writes_no_defaults),
+        AB_TEST(test_init_primary_read_error),
+        AB_TEST(test_init_read_error_with_a_good_copy),
         AB_TEST(test_commit_write_errors),
         AB_TEST(test_commit_erases_first),
         AB_TEST(test_verified_system_boots),
