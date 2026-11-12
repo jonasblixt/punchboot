@@ -849,9 +849,13 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
+/* Set when the boot has read from the host: the header comes first */
+static bool bpak_boot_read_any;
+
 static int bpak_boot_read_f(int64_t offset, size_t length, void *buf)
 {
     (void)offset;
+    bpak_boot_read_any = true;
     return cm_read(buf, length);
 }
 
@@ -878,9 +882,18 @@ static int cmd_boot_bpak(void)
     boot_set_source(BOOT_SOURCE_CB);
     boot_configure_load_cb(bpak_boot_read_f, bpak_boot_result_f);
 
+    bpak_boot_read_any = false;
     rc = boot_load(bpak_boot_cmd->uuid);
-    if (rc != PB_OK)
+
+    if (rc != PB_OK) {
+        /* Refused before the header was read (a precondition, early_boot()'s
+         * stop, no handover): the host sends it after the OK all the same,
+         * so it is read and its result carries the refusal (command-mode.md
+         * 5.5, D-058) */
+        if (!bpak_boot_read_any && cm_drain(sizeof(struct bpak_header)) == PB_OK)
+            bpak_boot_result_f(rc);
         return rc;
+    }
 
     if (cfg->tops.disconnect) {
         cfg->tops.disconnect();

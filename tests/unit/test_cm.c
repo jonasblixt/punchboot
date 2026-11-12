@@ -321,6 +321,9 @@ static struct {
     uuid_t set_part_uu;
     uint32_t flags;
     enum boot_source source;
+    bool reads_header; /* boot_load() reads the header and answers it */
+    boot_read_cb_t read_f;
+    boot_result_cb_t result_f;
 } fake_boot;
 
 void boot_clear_set_flags(uint32_t clear, uint32_t set)
@@ -336,14 +339,24 @@ int boot_set_source(enum boot_source source)
 
 void boot_configure_load_cb(boot_read_cb_t read_f, boot_result_cb_t result_f)
 {
-    (void)read_f;
-    (void)result_f;
+    fake_boot.read_f = read_f;
+    fake_boot.result_f = result_f;
 }
 
 int boot_load(uuid_t boot_part_override_uu)
 {
     fake_boot.load_calls++;
     uuid_copy(fake_boot.load_uu, boot_part_override_uu);
+
+    if (fake_boot.reads_header) {
+        static struct bpak_header header;
+        int rc = fake_boot.read_f(-(int64_t)sizeof(header), sizeof(header), &header);
+
+        if (rc != PB_OK)
+            return rc;
+        fake_boot.result_f(fake_boot.load_rc);
+    }
+
     return fake_boot.load_rc;
 }
 
@@ -2268,13 +2281,20 @@ static void test_boot_part(void **state)
 static void test_boot_bpak(void **state)
 {
     struct pb_command_bpak_boot req = { .verbose = 0 };
+    static struct bpak_header header;
     (void)state;
 
     memcpy(req.uuid, UU_RW, 16);
     fake_boot.load_rc = -PB_ERR_SIGNATURE;
+    fake_boot.reads_header = true;
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
+    host_send(&header, sizeof(header));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
     run();
-    /* The image transfer and its results are handled by the boot flow */
+    /* The image transfer and its results are handled by the boot flow, and
+     * the header isn't read again */
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_SIGNATURE_ERROR);
     expect_result(PB_RESULT_OK);
     expect_end();
     assert_int_equal(fake_boot.source, BOOT_SOURCE_CB);
@@ -2282,6 +2302,7 @@ static void test_boot_bpak(void **state)
 
     t.init_calls = 0;
     fake_boot.load_rc = PB_OK;
+    fake_boot.reads_header = false;
     board_cfg = &cfg_all_callbacks;
     t.connect_ok_after = 0;
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
@@ -2296,6 +2317,30 @@ static void test_boot_bpak(void **state)
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
     run();
     assert_int_equal(fake_boot.load_calls, 0);
+}
+
+/* A boot refused before the header is read (command-mode.md 5.5, D-058,
+ * F-128): the host sends the header after the first OK, the device reads it
+ * and the header's result carries the refusal. The header is a frame, were it
+ * read as one. */
+static void test_boot_bpak_refused_before_the_header(void **state)
+{
+    struct pb_command_bpak_boot req = { .verbose = 0 };
+    static uint8_t header[sizeof(struct bpak_header)];
+    (void)state;
+
+    pb_wire_init_command((struct pb_command *)header, PB_CMD_BOOTLOADER_VERSION_READ);
+    fake_boot.load_rc = -PB_ERR_NOT_SUPPORTED;
+    host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
+    host_send(header, sizeof(header));
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_boot.jump_calls, 0);
 }
 
 static void test_run_errors(void **state)
@@ -3169,6 +3214,7 @@ int main(void)
         CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
+        CM_TEST(test_boot_bpak_refused_before_the_header),
         CM_TEST(test_run_errors),
         CM_TEST(test_run_connect),
         CM_TEST(test_run_retries),

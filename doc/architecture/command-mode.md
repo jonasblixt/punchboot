@@ -572,8 +572,7 @@ before the header is read (a precondition, `early_boot()`'s stop, a board withou
 the device still reads the header's transfer, and the header's result carries the refusal.
 Hosts stop at an error there. Nothing changes in the sequence, and it doesn't rest on a host
 checking the first result. `boot.md` 2 puts more before the load than the code has today, so
-this becomes the common refusal. **Not yet in the code (F-128)**: the header is read as
-commands.
+this becomes the common refusal.
 
 ### 5.6 The board
 
@@ -754,6 +753,6 @@ For a change to command mode, a new command or a new method:
 | F-365               | `PART_VERIFY` and `PART_BPAK_READ` leave the stream's buffers alone (5.3)            |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
 | F-182, F-074        | Sizes that aren't block multiples; no stream (5.3, 5.4)                              |
-| F-128, F-252        | A boot the host started that is refused or stopped (5.5)                             |
+| F-252               | A boot the host started that is refused or stopped (5.5)                             |
 | F-095               | The board's response fits the host's buffer (5.6)                                    |
 | F-263               | EOL as the product's option (5.2)                                                    |

@@ -604,6 +604,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | reads the request in pieces into the result frame, so no buffer changes. `command-mode.md` 3.2, 4.4. | | |
 | | | `test_cm.c` (`test_gate_refuses_board_command`, `test_gate_refused_sessions`), `test_security.py` | | |
 | | | (`test_locked_device_refuses_board_command_in_step`) | | |
+| F-128 | `src/cm/cm_main.c` `cmd_boot_bpak`, `src/board/imx8mpevk` | The imx8mpevk has no boot driver, so `boot_load()` returns `-PB_ERR_PARAM` before reading the image. `cmd_boot_bpak` has already answered OK, so the host keeps sending the image, pb parses it as commands (`Invalid command: 0`) and the board resets into the serial downloader. The host sees `Error: Transfer`. | Seen on the board (2026-10-29) | fixed |
+| | | The EVK got a boot driver (2026-10-29), so `boot_load()` gets as far as the image there. | | |
+| | | Fixed (D-058, `command-mode.md` 5.5): `cmd_boot_bpak()` notes whether the boot read from the host. | | |
+| | | When `boot_load()` fails before it read anything (`early_boot()`'s stop, pb's information that can't | | |
+| | | be collected (F-260), no handover, no boot config), the device reads the header's 4096 bytes with | | |
+| | | `cm_drain()` and sends the header's result with the refusal; the host stops there. After a failure | | |
+| | | that read the header the boot flow has sent the results, as before. With F-274 (4). `test_cm.c` | | |
+| | | (`test_boot_bpak_refused_before_the_header`, `test_boot_bpak`). Not covered on pb-host: it has no | | |
+| | | refusal before the header from command mode | | |
 
 ## Dependencies / vendored code
 
