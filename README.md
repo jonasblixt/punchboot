@@ -160,6 +160,9 @@ The Linux and ATF boot drivers add to `/chosen` in the image's device tree:
 | `linux,initrd-start`, `linux,initrd-end` | the ramdisk, if the image has one                |
 | `bootargs` and others                    | whatever the board's callback sets               |
 
+The ramdisk's two addresses are one cell (32 bits) each. Only a ramdisk that
+reaches 4 GiB or above gets two cells (64 bits) for both.
+
 The device tree doesn't need any of them, nor `/chosen`: pb adds what is
 missing. Before that it grows the device tree in place, into the RAM after
 its part, by `CONFIG_BOOT_DTB_HEADROOM` (4 KiB by default). Keep that RAM free

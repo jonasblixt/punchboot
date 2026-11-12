@@ -166,7 +166,8 @@ static int
 set_initrd(void *fdt, int offset, struct bpak_header *hdr, const struct boot_dtb_chosen *chosen)
 {
     struct bpak_part_header *ph;
-    uintptr_t end;
+    uint64_t start = chosen->ramdisk_addr;
+    uint64_t end;
     int rc;
 
     if (bpak_get_part(hdr, chosen->ramdisk_id, &ph) != BPAK_OK) {
@@ -174,18 +175,28 @@ set_initrd(void *fdt, int offset, struct bpak_header *hdr, const struct boot_dtb
         return -PB_ERR_BAD_META;
     }
 
-    end = chosen->ramdisk_addr + bpak_part_size(ph);
-    rc = fdt_setprop_u32(fdt, offset, "linux,initrd-start", chosen->ramdisk_addr);
+    end = start + bpak_part_size(ph);
 
-    if (rc == 0)
-        rc = fdt_setprop_u32(fdt, offset, "linux,initrd-end", end);
+    /* One cell each where both fit, the bytes every release wrote. Two cells
+     * each when one doesn't: it used to be truncated (boot.md 5.2) */
+    if (start <= UINT32_MAX && end <= UINT32_MAX) {
+        rc = fdt_setprop_u32(fdt, offset, "linux,initrd-start", (uint32_t)start);
+
+        if (rc == 0)
+            rc = fdt_setprop_u32(fdt, offset, "linux,initrd-end", (uint32_t)end);
+    } else {
+        rc = fdt_setprop_u64(fdt, offset, "linux,initrd-start", start);
+
+        if (rc == 0)
+            rc = fdt_setprop_u64(fdt, offset, "linux,initrd-end", end);
+    }
 
     if (rc != 0) {
         LOG_ERR("fdt error: ramdisk (%i)", rc);
         return -PB_ERR;
     }
 
-    LOG_DBG("Ramdisk %" PRIxPTR " -> %" PRIxPTR, chosen->ramdisk_addr, end);
+    LOG_DBG("Ramdisk %" PRIx64 " -> %" PRIx64, start, end);
     return PB_OK;
 }
 

@@ -183,6 +183,14 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | port that reports as a charger every boot that command mode didn't start would stop | | |
 | F-289 | `src/drivers/partition/static.c` | `static_ptbl_init()` kept `bio_block_size()`'s error code as a block size: an invalid device gave `-PB_ERR_ALIGN` for the first entry and `PB_OK` for an empty table. Found by the tests for F-253 | Verified (test) | fixed: the error is returned; `test_static_ptbl.c` |
 | F-290 | `src/drivers/mmc/mmc_sd.c`, `mmc_core.c` | `dev->rca << RCA_SHIFT_OFFSET` shifts a `uint16_t` as an `int`: an SD card's RCA of 0x8000 and above overflows it (undefined; UBSan: "left shift of 43690 by 16 places"). `unit.test_mmc_sd` and `unit.test_imx_usdhc` failed with `-DPB_SANITIZE=ON`, so the branch wasn't "ASan/UBSan clean" as `status.md` said. An e.MMC's RCA is pb's own, a small number | Verified (UBSan) | fixed: shifted as `uint32_t` where a card's RCA is used (`mmc_sd.c`, `mmc_send_status()`); the suite is clean with sanitizers again |
+| F-255 | `src/boot/dtb.c` `set_initrd()` | `linux,initrd-start` and `-end` are written | Verified (code) | fixed (work-3.0.0-mega) |
+| | | with `fdt_setprop_u32()`: a ramdisk above 4 GiB gets a truncated address. Use the root's | | |
+| | | `#address-cells`. The encoding (D-038, `boot.md` 5.2): 32 bits where both fit, as today, 64 | | |
+| | | bits only above 4 GiB. Fixed: `set_initrd()` computes start and end in 64 bits and writes one | | |
+| | | cell each when both fit, two cells each when one doesn't (an end at 4 GiB too, which was | | |
+| | | written as 0). `test_linux.c`: `test_initrd_32_bits` pins the released bytes, | | |
+| | | `test_initrd_end_at_4_gib`, `test_initrd_above_4_gib`. On a 32-bit arch the load address is | | |
+| | | narrowed earlier, in `linux.c` (`uintptr_t`): refusing it is F-254's | | |
 
 ## Dependencies / vendored code
 

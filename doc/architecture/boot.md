@@ -436,8 +436,9 @@ The board gives: the kernel's part (its load address is the entry), the DT's and
 all four registers are 0. The DT gets pb's `/chosen` (5.5) and,
 with a ramdisk, `linux,initrd-start` and `-end`.
 
-**Not yet in the code (F-255)**: a ramdisk above 4 GiB gets a truncated address. The encoding: 32
-bits when both addresses fit, as today, and 64 bits only when one doesn't, which never worked. The
+The encoding of the two: 32 bits each when both addresses fit, the bytes every release wrote, and
+64 bits each only when one doesn't, which never worked: an address at 4 GiB or above was truncated
+(F-255). The end counts too, so a ramdisk that ends at 4 GiB gets 64 bits for both. The
 root's `#address-cells`, as U-Boot does, would turn today's 4 bytes into 8 on every 64-bit board;
 Linux reads both, another next stage may not, and an image that boots today gets the same bytes
 (`system.md` 5.1).
@@ -660,7 +661,7 @@ Like the wire (D-008, `compatibility.md`):
 | F-259                             | Firmware Handoff (5.4): the list, the region, pb's structure and its tag        |
 | F-260                             | pb's information collected once, before the loop; `pb,version`,                 |
 |                                   | `pb,boot-partition`, `pb,boot-mode`, the hook's order                           |
-| F-254, F-255                      | Placement (4.3), the initrd above 4 GiB (5.2)                                   |
+| F-254                             | Placement (4.3)                                                                 |
 | F-243, F-248                      | The watchdog per chunk, the boot's preconditions in the flow (2), pb's status   |
 |                                   | in the handover (5.6)                                                           |
 | F-173, F-175, F-176, F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate`                   |

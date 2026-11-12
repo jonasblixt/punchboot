@@ -463,6 +463,80 @@ static void test_dtb_grown(void **state)
     assert_non_null(fdt_getprop(dtb, chosen(), "pb,slc-available-keys", NULL));
 }
 
+/* Prepares with the ramdisk at 'addr' and checks the two properties' bytes */
+static void
+check_initrd(uint64_t addr, size_t size, const uint8_t *start, const uint8_t *end, int len)
+{
+    struct bpak_part_header *part;
+    struct bpak_meta_header *meta;
+    const void *val;
+    int val_len;
+
+    make_dtb("chosen");
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_RAMDISK, &meta), BPAK_OK);
+    *bpak_get_meta_ptr(hdr, meta, uint64_t) = addr;
+    assert_int_equal(bpak_get_part(hdr, ID_RAMDISK, &part), BPAK_OK);
+    part->size = size;
+
+    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+
+    val = fdt_getprop(dtb, chosen(), "linux,initrd-start", &val_len);
+    assert_non_null(val);
+    assert_int_equal(val_len, len);
+    assert_memory_equal(val, start, len);
+
+    val = fdt_getprop(dtb, chosen(), "linux,initrd-end", &val_len);
+    assert_non_null(val);
+    assert_int_equal(val_len, len);
+    assert_memory_equal(val, end, len);
+}
+
+/* Both addresses fit 32 bits: one cell each, the bytes every release wrote
+ * (D-008, boot.md 5.2) */
+static void test_initrd_32_bits(void **state)
+{
+    (void)state;
+
+    check_initrd(RAMDISK_ADDR,
+                 RAMDISK_SIZE,
+                 (const uint8_t[]){ 0x48, 0x00, 0x00, 0x00 },
+                 (const uint8_t[]){ 0x48, 0x00, 0x10, 0x00 },
+                 4);
+
+    /* The last end that fits */
+    check_initrd(0xfffff000,
+                 0xfff,
+                 (const uint8_t[]){ 0xff, 0xff, 0xf0, 0x00 },
+                 (const uint8_t[]){ 0xff, 0xff, 0xff, 0xff },
+                 4);
+}
+
+/* The end is 4 GiB, which doesn't fit: both get two cells. It was written
+ * as 0 (F-255) */
+static void test_initrd_end_at_4_gib(void **state)
+{
+    (void)state;
+
+    check_initrd(0xfffff000,
+                 0x1000,
+                 (const uint8_t[]){ 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xf0, 0x00 },
+                 (const uint8_t[]){ 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 },
+                 8);
+}
+
+/* A ramdisk above 4 GiB keeps its address (F-255) */
+static void test_initrd_above_4_gib(void **state)
+{
+    (void)state;
+
+    check_initrd(0x880000000,
+                 0x2000,
+                 (const uint8_t[]){ 0x00, 0x00, 0x00, 0x08, 0x80, 0x00, 0x00, 0x00 },
+                 (const uint8_t[]){ 0x00, 0x00, 0x00, 0x08, 0x80, 0x00, 0x20, 0x00 },
+                 8);
+}
+
 /* The headroom must not reach another part or pb's memory, which is checked
  * before the device tree is read */
 static void test_dtb_headroom_overlap(void **state)
@@ -512,6 +586,9 @@ int main(void)
         LINUX_TEST(test_dtb_without_chosen),
         LINUX_TEST(test_dtb_chosen_not_at_root),
         LINUX_TEST(test_dtb_grown),
+        LINUX_TEST(test_initrd_32_bits),
+        LINUX_TEST(test_initrd_end_at_4_gib),
+        LINUX_TEST(test_initrd_above_4_gib),
         LINUX_TEST(test_dtb_headroom_overlap),
         LINUX_TEST(test_dtb_larger_than_part),
     };

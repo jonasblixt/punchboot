@@ -408,10 +408,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2.9: `image_regions` in `struct board`; a part lies inside one region and over no other part; | | |
 | | | that no region overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region is | | |
 | | | checked once, with the board's data. The platform header names the SoC memory a board may list | | |
-| F-255 | `src/boot/dtb.c` `set_initrd()` | `linux,initrd-start` and `-end` are written | Verified (code) | open |
-| | | with `fdt_setprop_u32()`: a ramdisk above 4 GiB gets a truncated address. Use the root's | | |
-| | | `#address-cells`. The encoding (D-038, `boot.md` 5.2): 32 bits where both fit, as today, 64 | | |
-| | | bits only above 4 GiB | | |
 | F-256 | `src/boot/boot.c`, `ab_state.c`, `src/board.c` | No boot source policy | Verified (code) | open |
 | | | interface: A/B is wired into `struct boot_driver` through three callbacks, it is the only policy, | | |
 | | | and only it marks partitions bootable (F-215). `boot.md` 3: `boot_policy_*()`, fixed and staggered | | |
