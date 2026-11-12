@@ -32,7 +32,7 @@ document's state.
 | 1 System | What pb promises to the outside, and against whom | `system/`: `system.md`, `security.md`, |
 | | | `compatibility.md` |
 | 2 Architecture | How pb is divided, what happens in which order, | `architecture/`: `boot.md`, |
-| | and who owns each step | `command-mode.md` (new), `arch-firmware.md`, |
+| | and who owns each step | `command-mode.md`, `arch-firmware.md`, |
 | | | `arch-host-tools.md` |
 | 3 Interfaces | What a layer provides and may rely on | `interfaces/`: `platform.md`, `board.md`, |
 | | | the drivers' contracts (new) |
@@ -47,7 +47,7 @@ document's state.
 - **`security.md`**: the threat model. What is protected, the attackers per life cycle
   state (physical access, the wire, the storage, a compromised OS), what pb defends and what it
   leaves to the ROM, the next stage or the product. The security clauses below cite it.
-- **`command-mode.md`** (new): each command's meaning, in which state and with which
+- **`command-mode.md`**: each command's meaning, in which state and with which
   authentication it runs, what a failure leaves behind (F-186..F-190). `compatibility.md` freezes
   the bytes, this the behaviour.
 - **The drivers' contracts** (new): per class with several implementations (block devices, the

@@ -26,7 +26,10 @@ the trim is at the end of `log/2026-11-09.md`.
   pb is stopped (D-051). Its code: F-216, F-178, F-249..F-252, F-264..F-268.
 - **Boot flow contract (D-032, D-038 to D-041, D-043, D-044, `boot.md`):** reviewed (Jonas), no
   open items. Its code is F-253..F-260 and the A/B review's. F-253 (the in place source) before
-  `work-3.0.0-plat` merges. Then the drivers' contracts (`log/2026-11-11.md`).
+  `work-3.0.0-plat` merges.
+- **Command mode contract (D-057, `command-mode.md`):** a draft, waits for Jonas's review. The
+  session, the gate, each command's exchange and what a failure leaves. Eight open items at its
+  top. New findings F-271 to F-274. Then the drivers' contracts (`log/2026-11-11.md`).
 - **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each
   document's state. The agent instructions are `AGENTS.md`, harness-neutral (D-042). `doc/dev/`
   keeps status, roadmap, decisions, findings (open; the closed ones in `findings-closed.md`) and
@@ -50,8 +53,10 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-0. **Resume here (2026-11-12): the three contracts are reviewed (`boot.md`, `board.md`,
-   `platform.md`); this session's documents are not committed yet.**
+0. **Resume here (2026-11-12): the documents before the code (Jonas, D-057).** The three
+   contracts are reviewed and committed. `command-mode.md` is a draft, not committed: Jonas's
+   review, its eight open items. After it the drivers' contracts (block devices, the crypto
+   backends, the USB device controllers, DMA and caches).
    Then the code, a commit per finding: F-253 first (in place, before `work-3.0.0-plat`
    merges), then F-265 (`struct board`'s objects) with F-256, F-258, F-259; F-267 and F-268
    (command mode's USB, the tasks). The conformance suites come with each contract's code.

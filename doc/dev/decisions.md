@@ -1116,3 +1116,39 @@ The review's other outcomes are D-054 (`mmap`), D-055 (image data regions) and t
 reviewed 5.2 with it in and closed the review, which I take as approval.
 
 Code: F-270 (the MEK's and the DXL's includes, `imx8x.h`).
+
+## D-057: The command mode contract, as a draft (2026-11-12)
+
+Jonas: the documents that guide the code come before the code. After the three contracts
+(`boot.md`, `board.md`, `platform.md`) the next two are `command-mode.md` (level 2) and the
+drivers' contracts (level 3), in that order (`process.md` 1: top down). The code (F-253 first)
+waits for them.
+
+`doc/architecture/command-mode.md` is a draft with eight open items. What it takes from the
+documents above it, and so doesn't decide:
+
+- Command mode is a task (D-051), its USB is the platform's and its transport is linked
+  (D-049). Who may use it in which state is `system.md` 4 and `security.md` 4.7.
+- The gate is the core's and the only place that decides (`security.md` 4.8). The device is
+  open or closed by its life cycle alone; a closed device answers the identifier and the
+  authentication, nothing else.
+- A session ends with the transport, and its authentication and stream with it (F-185).
+- The exchanges are the released ones (D-008), written down for the first time (4.4). Where
+  released hosts send data after a refusal, the device stays in step.
+- The watchdog is kicked per chunk inside a command (`system.md` 5.4, `platform.md` 3.3).
+
+What it proposes, for Jonas (its Open (1) to (8)): no build without the gate (`CONFIG_CM_AUTH`
+goes); a hidden partition doesn't exist for the host, and `READABLE` only gates the bulk read;
+no idle timeout; a failed authentication is answered after 1 s; six classes of commands that a
+future method may grant; a transfer timeout that ends the session, and the caps' timeout
+fields filled; `boot bpak` always reads the header and answers a refusal in its result;
+`INVALID_COMMAND` before authentication stays.
+
+Three of them refuse what a release did (a build without the gate, a hidden partition by its
+UUID, a stream offset inside a block). Each is `security.md`'s; the entry that closes the
+draft names them (`principles.md` 3).
+
+`compatibility.md`, "Fixed elsewhere", gets a line for its section 7: command mode's
+behaviour, and the USB interface hosts find the device by, which no document had fixed.
+
+New findings: F-271 to F-274. Not changed: any code.

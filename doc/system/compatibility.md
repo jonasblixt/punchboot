@@ -95,6 +95,8 @@ the same way. New images that old firmware can't read are fine only if they are 
   (`board.md` 8).
 - The boot flow: the A/B state's format, the `/chosen` properties, each handover's register
   convention, pb's Firmware Handoff structure and tag (`boot.md` 7).
+- Command mode's behaviour: what each command means, its exchange, the gate, the authentication
+  methods, and the USB interface hosts find the device by (`command-mode.md` 7, a draft).
 
 ## Guards
 
