@@ -193,5 +193,6 @@ target_link_options(pb-host PRIVATE
 enable_testing()
 add_subdirectory(tests/unit)
 add_subdirectory(tests/compat)
+add_subdirectory(tests/doc)
 add_subdirectory(tests/make)
 add_subdirectory(tests/integration)

@@ -1,6 +1,6 @@
 """Punchboot wire protocol, a mirror of include/pb-tools/wire.h and error.h.
 
-The layout is frozen (D-008, doc/dev/compatibility.md): test_compat.py checks
+The layout is frozen (D-008, doc/system/compatibility.md): test_compat.py checks
 every value, struct size and field offset here against tests/compat/abi.txt.
 """
 

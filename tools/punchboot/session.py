@@ -2,7 +2,7 @@
 
 This is the main interface to the punchboot library.
 
-The command sequences are frozen (D-008, doc/dev/compatibility.md): which
+The command sequences are frozen (D-008, doc/system/compatibility.md): which
 transfers follow a command, in which order and with which sizes. The
 transcripts in tests/compat/transcripts check them against what the hosts
 before this one sent.
