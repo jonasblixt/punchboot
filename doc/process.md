@@ -44,7 +44,8 @@ document's state.
 | 2 Architecture | How pb is divided, what happens in which order,   | `architecture/`: `boot.md`,               |
 |                | and who owns each step                            | `command-mode.md`                         |
 | 3 Interfaces   | What a layer provides and may rely on             | `interfaces/`: `platform.md`, `board.md`, |
-|                |                                                   | the drivers' contracts (new)              |
+|                |                                                   | `drivers.md`, `bio.md`, `crypto.md`,      |
+|                |                                                   | `usb.md`                                  |
 | 4 Ports        | How an implementation meets its contract;         | `ports/`: `plat-imx.md`, `imx8m-ddr.md`,  |
 |                | the SoC's facts and their sources                 | `spec-dwc-ddrphy.md`                      |
 | 5 Code         |                                                   | The headers, the tests, the guards        |
@@ -59,8 +60,10 @@ document's state.
 - **`command-mode.md`**: each command's meaning, in which state and with which
   authentication it runs, what a failure leaves behind (F-186..F-190). `compatibility.md` freezes
   the bytes, this the behaviour.
-- **The drivers' contracts** (new): per class with several implementations (block devices, the
-  crypto backends, the USB device controllers, DMA and caches; `log/2026-11-11.md`).
+- **The drivers' contracts**: `drivers.md` for what every driver does, with the one rule for
+  DMA and caches, and one per class with several implementations: `bio.md` (block devices),
+  `crypto.md` (the crypto backends), `usb.md` (the USB device controllers and command mode's
+  transport). D-064, `log/2026-11-11.md`.
 
 Beside the levels, not normative: `dev/` holds the working records, `decisions.md` (why),
 `findings.md` (the gaps between a document and the code), `status.md` and `log/` (where the work

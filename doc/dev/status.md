@@ -33,7 +33,10 @@ the trim is at the end of `log/2026-11-09.md`.
   code: F-271 to F-280, F-185 to F-190. A second pass (D-060): the three places that mean bpak
   and how another image format joins (5.9), `INVALID_COMMAND` against `NOT_SUPPORTED` (4.5).
   A build may leave bpak out, once there is a second format (Jonas, D-061; `system.md` 3).
-  Then the drivers' contracts (`log/2026-11-11.md`).
+- **The drivers' contracts (D-064):** four drafts, waiting for Jonas's review, five open
+  items each: `drivers.md` (every driver: set up and stop, bounded waits, the one DMA and
+  cache rule), `bio.md` (block devices), `crypto.md` (the backends), `usb.md` (the transport
+  and the controllers). From the reading: F-281 to F-287.
 - **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each
   document's state. The agent instructions are `AGENTS.md`, harness-neutral (D-042). `doc/dev/`
   keeps status, roadmap, decisions, findings (open; the closed ones in `findings-closed.md`) and
@@ -60,8 +63,9 @@ the trim is at the end of `log/2026-11-09.md`.
 ## Next steps
 
 0. **Resume here (2026-11-12): the documents before the code (Jonas, D-057).** The three
-   contracts and `command-mode.md` are reviewed and committed. Next the drivers' contracts
-   (block devices, the crypto backends, the USB device controllers, DMA and caches).
+   contracts and `command-mode.md` are reviewed and committed. The drivers' contracts are
+   drafts (D-064): Jonas's review, by comments in the text, `drivers.md` first since the
+   other three build on its DMA rule.
    Then the code, a commit per finding: F-253 first (in place, before `work-3.0.0-plat`
    merges), then F-265 (`struct board`'s objects) with F-256, F-258, F-259; F-267 and F-268
    (command mode's USB, the tasks). The conformance suites come with each contract's code.
@@ -72,7 +76,7 @@ the trim is at the end of `log/2026-11-09.md`.
 2. Open from the 3.0.0 work: MMC UHS-I, DDR52 on the EVK (F-113), HS400 tuning (F-116). Boot time:
    MMU/caches on early, the eMMC power-up early. jiffy USB F-134 (before any cache work), F-136.
    CAAM F-127, F-128. The 8MP EVK: F-100, F-102, F-104, F-110, the FEC (F-155), F-156. The MEK:
-   F-159. imx8mevk: F-106, F-107, the CAAM RNG untried.
+   F-172, F-204. imx8mevk: F-106, F-107, the CAAM RNG untried.
 3. Compatibility guards 3 (old PyPI wheels against pb-host), 4's device side, 5 (CODEOWNERS),
    older bpak CLI images; then F-075 (erase), F-076 (dont-hash). `compat-guards` also carries the
    jiffy HAB signing commits, to be split onto their own branch.

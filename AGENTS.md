@@ -35,6 +35,11 @@ Do not read these up front. Open only what the task needs.
 |                                    | link scripts)                                                              |
 | `doc/interfaces/board.md`          | **Changing or adding a board** (`src/board/`, `board.h`, `src/board.c`,    |
 |                                    | out-of-tree boards)                                                        |
+| `doc/interfaces/drivers.md`        | **Changing or adding any driver** (`src/drivers/`): set up and stop,       |
+|                                    | timeouts, errors, the DMA and cache rule                                   |
+| `doc/interfaces/bio.md`            | Block devices: `bio`, the storage drivers, the partition tables            |
+| `doc/interfaces/crypto.md`         | Hashing and signature verification: `crypto.h`, the CAAM, Mbed TLS         |
+| `doc/interfaces/usb.md`            | Command mode's transport, the USB stack and the device controllers         |
 | `doc/ports/plat-imx.md`            | Working on an i.MX port: its SoC facts, sources, conformance to            |
 |                                    | `platform.md`                                                              |
 | `doc/ports/imx8m-ddr.md`           | i.MX8M DRAM init (uMCTL2, DWC LPDDR4 PHY), its golden trace test           |

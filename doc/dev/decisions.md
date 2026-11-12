@@ -1354,3 +1354,50 @@ is not a rule that every change waits for a document.
 
 Mine, not asked of Jonas: the title of `process.md` ("documents first, top down") and D-033's
 name stay.
+
+## D-064: The drivers' contracts, as drafts (2026-11-12)
+
+Jonas: the remaining contract work, after `command-mode.md` (D-057). Four drafts in
+`doc/interfaces/`, level 3:
+
+- `drivers.md`: what every driver does, and the one rule for DMA and caches.
+- `bio.md`: block devices, the storage drivers and the partition tables.
+- `crypto.md`: hashing and signature verification, the CAAM and Mbed TLS.
+- `usb.md`: command mode's transport, pb's USB device and the device controllers.
+
+What they take from the documents above, and so don't decide:
+
+- Whoever started a driver stops it before the jump (`platform.md` 4.5, `board.md` 5.3).
+- No driver kicks the watchdog; the core kicks per chunk (`platform.md` 3.3). A failure is
+  never a hang (`system.md` 5.4), so every wait is bounded.
+- Command mode's USB is the platform's and its transport is linked (D-049). What command mode
+  needs of the transport is `command-mode.md` 6; a transfer that fails ends the session.
+- Partial blocks: a write's last block is padded with zeros (`command-mode.md` 5.4).
+- A failed verification engine refuses the boot (`security.md` 4.5); a check that can't be
+  made is a no (4.4); the storage and the host are input (3).
+- The device's identity never changes (`system.md` 5.5): its MD5 stays in every backend.
+
+What they propose, for Jonas (twenty open items, five in each):
+
+- `drivers.md`: one common document and one per class; `include/pb/dma.h` as the only place
+  the cache is handled for DMA; a caller's buffer that doesn't own its cache lines is bounced
+  by the class's core, so that no image is refused for its load addresses; the line size is a
+  constant, 64; only a driver whose device acts without being asked has a `stop`.
+- `bio.md`: the core owns partial blocks, drivers see whole blocks; a read at a byte offset
+  for the boot (F-220); an installed table is in effect at once; `bio_write()` never erases,
+  as released; a storage driver leaves its device as it is at the jump.
+- `crypto.md`: no abort, `hash_init()` and `dsa_verify()` start from an idle engine (F-181);
+  PB_OK if and only if `*verified`, and a bad signature is `-PB_ERR_SIGNATURE`; no
+  verification while a hash is open; one backend per algorithm, no fallback at run time;
+  `HASH_MD5_BROKEN` stays.
+- `usb.md`: the transport's six functions by name; every error from `complete` is "lost", and
+  a controller reports a bus reset and an unplug as a transfer's error; high speed or not
+  ready; an unknown request is stalled (a new operation); a request on endpoint 0 leaves a
+  bulk transfer alone.
+
+None of them refuses what a release accepted. What changes for a host: an unknown control
+request is stalled where it timed out, and a restart of the transport leaves the bus first.
+
+Mine, not asked of Jonas: the four file names; that the conformance suites are named in each
+draft and not designed; `command-mode.md` 6 no longer says that the 8X's controller can't
+send its serial number (F-159 is fixed).
