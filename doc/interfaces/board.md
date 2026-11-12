@@ -116,11 +116,10 @@ which, skips the steps after it, sets up the handover all the same, and returns 
 `main()` then enters command mode, where the host can install the partition table, repair the
 policy's state (`boot activate`) or boot an image from RAM (`boot bpak`).
 
-**Not yet in the code (F-216, F-178)**: `board_setup()` returns at the first step that fails. The
-handover is the last step, so a failure before it leaves command mode without one: it can neither
-repair the A/B state nor boot a rescue image from RAM. The exceptions today are a failed
-partition table and a failed check of the board's data (section 3), whose paths do set up the
-boot driver.
+**Not yet in the code (F-216, F-178)**: a failed `rot_init()` or `slc_init()` (F-216) and a
+failed `boot_policy_init()` (F-178) return before the handover, the last step, and leave command
+mode without one: it can neither repair the A/B state nor boot a rescue image from RAM. Every
+other step that fails sets up the boot driver.
 
 - A board failure doesn't reset (a platform failure does, `platform.md` 2): command mode has what
   `plat_init()` set up.

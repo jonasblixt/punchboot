@@ -375,7 +375,8 @@ static void test_setup(void **state)
 }
 
 /* Each failure stops the setup there, the RoT and SLC are always set up.
- * None of them gets to boot_init(). */
+ * None of them gets to boot_init(). A failed init() or late_init() does:
+ * test_failed_hook_sets_up_the_handover() */
 static void test_setup_failures(void **state)
 {
     static const struct {
@@ -384,9 +385,7 @@ static void test_setup_failures(void **state)
     } cases[] = {
         { &rc.rot, "rot " },
         { &rc.slc, "rot slc " },
-        { &rc.init, "rot slc init " },
         { &rc.policy, "rot slc init ptbl policy " },
-        { &rc.late_init, "rot slc init ptbl policy late " },
         { &rc.handover, "rot slc init ptbl policy late handover " },
     };
 
@@ -399,6 +398,76 @@ static void test_setup_failures(void **state)
         assert_string_equal(calls, cases[i].calls);
         assert_null(driver);
     }
+}
+
+/* board.md 2.1 (F-216): a failed init() or late_init() skips the steps after
+ * it and sets up the handover all the same. Command mode then has its boot
+ * commands: a boot from RAM needs neither the storage nor its table. The
+ * hook's error is the one returned. */
+static void test_failed_hook_sets_up_the_handover(void **state)
+{
+    (void)state;
+
+    /* init(): no table, no policy, no late_init() */
+    rc.init = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init handover boot ");
+    assert_int_equal(lookups, 0);
+    assert_null(ptbl_arg);
+    assert_null(policy_cfg);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_driver(true);
+
+    /* late_init(): the table and the policy are set up before it */
+    setup(NULL);
+    rc.late_init = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover boot ");
+    assert_ptr_equal(policy_cfg, &test_policy_config);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_driver(true);
+
+    /* With a delivery: both are set up */
+    setup(NULL);
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_delivery.config = &test_delivery_config;
+    rc.init = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init handover delivery boot ");
+    assert_ptr_equal(driver->delivery, &board.boot_delivery);
+
+    setup(NULL);
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_delivery.config = &test_delivery_config;
+    rc.late_init = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover delivery boot ");
+    assert_ptr_equal(driver->delivery, &board.boot_delivery);
+
+    /* The hook's error is the one returned, also when the handover can't be
+     * set up either */
+    setup(NULL);
+    rc.init = -PB_ERR_IO;
+    rc.handover = -PB_ERR_TIMEOUT;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init handover ");
+    assert_null(driver);
+
+    setup(NULL);
+    rc.late_init = -PB_ERR_IO;
+    rc.handover = -PB_ERR_TIMEOUT;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover ");
+    assert_null(driver);
+
+    /* A board without a handover (the imx8mevk, F-300) has none to set up:
+     * the hook's error, and what was set up before it */
+    setup(NULL);
+    board.boot_handover.ops = NULL;
+    rc.init = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ");
+    assert_null(driver);
 }
 
 /* Command mode installs the table, its boot commands need the driver */
@@ -532,8 +601,8 @@ static void test_no_policy(void **state)
     board.boot_policy.ops = NULL;
     rc.init = -PB_ERR_IO;
     assert_int_equal(board_setup(), -PB_ERR_IO);
-    assert_string_equal(calls, "rot slc init ");
-    assert_null(driver);
+    assert_string_equal(calls, "rot slc init handover boot ");
+    assert_driver(false);
 }
 
 /* Neither a policy nor a handover, with a table (the imx8mevk, F-300): the
@@ -985,6 +1054,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_setup, setup),
         cmocka_unit_test_setup(test_setup_failures, setup),
+        cmocka_unit_test_setup(test_failed_hook_sets_up_the_handover, setup),
         cmocka_unit_test_setup(test_no_partition_table, setup),
         cmocka_unit_test_setup(test_ptbl_device_flags, setup),
         cmocka_unit_test_setup(test_no_ptbl, setup),

@@ -148,6 +148,9 @@ int board_setup(void)
 
         if (rc != PB_OK) {
             LOG_ERR("Board init failed (%i)", rc);
+            /* The handover all the same (board.md 2.1): a boot from RAM
+             * needs neither the storage nor its table */
+            (void)setup_boot_driver();
             return rc;
         }
     }
@@ -176,6 +179,8 @@ int board_setup(void)
 
         if (rc != PB_OK) {
             LOG_ERR("Board late init failed (%i)", rc);
+            /* As after init(): the table and the policy are there */
+            (void)setup_boot_driver();
             return rc;
         }
     }
