@@ -1,6 +1,6 @@
 # Command mode
 
-**State: reviewed (Jonas, 2026-11-12), D-057 to D-059.** Level 2 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-057 to D-061.** Level 2 (`process.md`).
 
 What pb does for a host on the cable: when command mode runs, what a session is, which commands
 a host may run and when, what each command means and what a failure leaves behind.
@@ -28,13 +28,20 @@ into the text:
 | 6    | A transfer the host doesn't complete ends the session; the caps carry pb's timeouts (4.6) | Jonas |
 | 7    | `BOOT_BPAK` always reads the header, and its result carries a refusal (5.5)               | Jonas |
 | 8    | A closed device answers `NOT_AUTHENTICATED` to everything but its two commands, from      | Jonas |
-|      | 3.0.0 (3.2). It was `INVALID_COMMAND` for a command the build doesn't have                |       |
+|      | 3.0.0 (3.2). It was `INVALID_COMMAND` for a command the release doesn't define            |       |
+
+A second pass after the review (D-060, written in on Jonas's go): the three places that mean
+bpak and how another image format joins (5.9); `INVALID_COMMAND` against `NOT_SUPPORTED` (4.5);
+the UUID `BOOT_BPAK` carries against hidden partitions (5.3); `BOOT_BPAK`'s parts as a stream
+and what follows a part's result (4.1, 4.4, section 6); a refusal before the authentication
+data (3.3); the caps' `bpak_stream_support` (5.1). A build may leave bpak out (Jonas, D-061):
+5.9 says what its commands answer then.
 
 What it changed in the documents beside it:
 
 - `board.md` 4.4 names the reset a board's command can ask for (5.6), added with this review.
 - `compatibility.md`: "Fixed elsewhere" has a line for section 7, and "New command" says what
-  a closed device answers (3.2).
+  a closed device answers (3.2) and what a build that left the command out answers (4.5).
 
 ## 1. Words and scope
 
@@ -151,7 +158,7 @@ the device is closed and the session isn't authenticated:
     DEVICE_IDENTIFIER_READ, AUTHENTICATE            run
     any other frame                                 NOT_AUTHENTICATED
 otherwise:
-    not a command, or not one of this build's       INVALID_COMMAND
+    not a command, or a number pb doesn't define    INVALID_COMMAND (4.5)
     any command                                     run
 ```
 
@@ -168,11 +175,11 @@ authentication (`CONFIG_CM_AUTH`, below):
 
 - **Before authentication a closed device answers two commands**: `DEVICE_IDENTIFIER_READ` and
   `AUTHENTICATE` (`security.md` 4.7). The set never grows.
-- **Everything else answers `NOT_AUTHENTICATED`**, also a command the build doesn't have and a
-  frame that isn't a command: a closed device doesn't tell which commands it has (Jonas,
-  D-058). **Not yet in the code (F-275)**: the frame is checked before the gate, so those two
-  answer `INVALID_COMMAND`, as every release does. A host that wants to know whether a closed
-  device has a command authenticates first (`compatibility.md`).
+- **Everything else answers `NOT_AUTHENTICATED`**, also a command this release of pb doesn't
+  define and a frame that isn't a command: a closed device doesn't tell which commands it has
+  (Jonas, D-058). **Not yet in the code (F-275)**: the frame is checked before the gate, so
+  those two answer `INVALID_COMMAND`, as every release does. A host that wants to know whether
+  a closed device has a command authenticates first (`compatibility.md`).
 - **The gate follows the life cycle at once.** The life cycle is read again after every command
   that changes it. A session that locks the device is behind the gate from its next command, as
   every later session is.
@@ -191,7 +198,8 @@ authentication (`CONFIG_CM_AUTH`, below):
   (`CONFIG_CM_AUTH_TOKEN`, `CONFIG_CM_AUTH_PASSWORD`), or it doesn't build. **Not yet in the
   code (F-271)**: a build with no method builds, and once locked its command mode answers
   `NOT_SUPPORTED` to `AUTHENTICATE` for good (the imx8mevk's and the 8MP EVK's defconfigs
-  today). The token costs a product nothing: whoever signs its images can sign a token.
+  today). The token costs a product nothing: whoever signs its images can sign a token, with
+  the EC keys pb verifies today (3.3).
 - pb can't keep a product from weak authentication, and doesn't try (Jonas): what a board's
   `password_auth()` accepts is the board's (`board.md` 4.5).
 
@@ -210,15 +218,21 @@ transfer of 1024 bytes (4.4). Methods are added, never changed (`security.md` 4.
   command names. The key is in the keystore and not revoked (`security.md` 4.3); a key whose
   status can't be read is unusable (4.4). Only EC keys; another kind answers `NOT_SUPPORTED`.
   The token is static (`security.md` 5).
+- **The token's signature fits the 1024 bytes**, which every EC signature does. A key whose
+  signature doesn't (ML-DSA's is 2420 bytes or more) gets a new method next to this one, with
+  the key kind that needs it (`roadmap.md`). The transfer of this one doesn't grow.
 - **The verdict is the verification's own.** A result left over from an earlier job of the
   crypto engine is never read as this one's. **Not yet in the code (F-181).**
 - **Success** authenticates the session (3.4).
-- **Failure** leaves the session not authenticated, also one that was. It answers
+- **Failure**, data that arrived and didn't verify, leaves the session not authenticated, also
+  one that was. It answers
   `AUTHENTICATION_FAILED`; for a token whose key is revoked `KEY_REVOKED`, and `ERROR` for a
   key the keystore doesn't have. That tells an unauthenticated host which key ids the build
   has and which are revoked, which the images' headers and the fuses tell too.
 - **A method that isn't in the build**, or a size of 0 or above 1024: the first result is the
-  error and no data follows.
+  error and no data follows. Nothing was tried, so it changes nothing: a session that was
+  authenticated stays so, and the answer isn't delayed. **Not yet in the code (F-278)**: a
+  bad size ends the authentication of a session that had it, an unknown method doesn't.
 - **Secrets**: the data is compared whole and in constant time, and never logged
   (`security.md` 4.10, F-004). The buffer that held it is not sent to a host (4.3).
 - A device that is open accepts `AUTHENTICATE` like any command; it changes nothing a host
@@ -253,7 +267,9 @@ What this contract keeps for it:
 - The host sends a command: one frame of 512 bytes. The device answers with a result: one
   frame of 512 bytes. The device never sends anything unasked.
 - A command may have data transfers, in either direction, whose sizes both sides know before
-  the transfer starts: from the command, from a result, or fixed.
+  the transfer starts: from the command, from a result, or fixed. One more for `BOOT_BPAK`:
+  the sizes of its parts are in the header the host sent, which the device verified before
+  it reads the first part (4.4).
 - **Every exchange ends with a result**, and the last result is the command's verdict.
 - One exchange at a time. The device reads the next command when the last result is sent.
 
@@ -307,6 +323,16 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
   reads that data and sends the second result, with the refusal. That holds for the gate too.
   **Not yet in the code (F-187, F-274)**: the gate and the bounds checks send one result, and
   the data is then read as commands.
+- **`BOOT_BPAK`'s parts**: the parts the header lists, in its order, each followed by a
+  result. A part's bytes are one stream of the part's size. The host splits it into transfers
+  of at most the caps' largest transfer; the device reads it in pieces of its own
+  (`CONFIG_BOOT_LOAD_CHUNK_kB`) and relies on the size alone. Not verified on USB where the
+  two differ (F-280).
+- **`BOOT_BPAK` after a result that isn't OK**: after the header's, the exchange ends (5.5).
+  After a part's, hosts send the remaining parts all the same and act on the last result
+  only: the device reads every part, answers each, and the last result is the verdict. A
+  part's result isn't OK when the hash engine failed; a payload whose hash differs is the last
+  result's.
 - **`BOARD_STATUS_READ` that fails**: the device sends the data and the second result after an
   error, and the Python host stops at the first result. Which side is right is the 2.x hosts'
   to say (F-274); until then the device's sequence stays.
@@ -321,26 +347,32 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
 The result's code is what the host acts on. What released devices answer is frozen with the
 command's meaning (section 7).
 
-| Code                             | When                                                                        |
-| -------------------------------- | --------------------------------------------------------------------------- |
-| `INVALID_COMMAND`                | The frame isn't a command, or the build doesn't have it. A host reads it as |
-|                                  | "not supported by this device"                                              |
-| `NOT_AUTHENTICATED`              | The gate refused (3.2)                                                      |
-| `NOT_SUPPORTED`                  | The command is retired (5.8), or the build or the board lacks what it needs |
-| `AUTHENTICATION_FAILED`          | 3.3                                                                         |
-| `KEY_REVOKED`, `SIGNATURE_ERROR` | A key is revoked; a signature doesn't verify (3.3, `boot.md` 4.2)           |
-| `NOT_FOUND`                      | No such partition or log, or no image header                                |
-| `PART_NOT_BOOTABLE`              | `boot.md` 6                                                                 |
-| `INVALID_ARGUMENT`               | A size, offset, count or id that the command can't take                     |
-| `NO_MEMORY`                      | A buffer id or a size the buffers don't have                                |
-| `STREAM_NOT_INITIALIZED`         | A stream command without a stream (5.4)                                     |
-| `PART_VERIFY_FAILED`             | The hash differs, or the partition couldn't be read (5.3)                   |
-| `IO_ERROR`                       | The storage failed, or the partition's flags forbid it (5.3)                |
-| `TIMEOUT`, `MEM_ERROR`, `ERROR`  | A driver's timeout; pb's memory; everything else                            |
+| Code                             | When                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `INVALID_COMMAND`                | The frame isn't a command, or its number is one this release of pb doesn't |
+|                                  | define. A host reads it as "the device is older than the command"          |
+| `NOT_AUTHENTICATED`              | The gate refused (3.2)                                                     |
+| `NOT_SUPPORTED`                  | pb defines the command and this device can't do it: the command is retired |
+|                                  | (5.8), or the build or the board lacks what it needs                       |
+| `AUTHENTICATION_FAILED`          | 3.3                                                                        |
+| `KEY_REVOKED`, `SIGNATURE_ERROR` | A key is revoked; a signature doesn't verify (3.3, `boot.md` 4.2)          |
+| `NOT_FOUND`                      | No such partition or log; no bpak header for `PART_BPAK_READ` (5.3)        |
+| `PART_NOT_BOOTABLE`              | `boot.md` 6                                                                |
+| `INVALID_ARGUMENT`               | A size, offset, count or id that the command can't take                    |
+| `NO_MEMORY`                      | A buffer id or a size the buffers don't have                               |
+| `STREAM_NOT_INITIALIZED`         | A stream command without a stream (5.4)                                    |
+| `PART_VERIFY_FAILED`             | The hash differs, or the partition couldn't be read (5.3)                  |
+| `IO_ERROR`                       | The storage failed, or the partition's flags forbid it (5.3)               |
+| `TIMEOUT`, `MEM_ERROR`, `ERROR`  | A driver's timeout; pb's memory; everything else                           |
 
+- **`INVALID_COMMAND` is never a build's answer.** A command pb defines is answered by every
+  build of that release: one that left it out (a method that isn't selected, no RAM log, EOL
+  without the product's option, an image format that isn't built in, 5.9) answers
+  `NOT_SUPPORTED`. A host then tells a device that is older than a command, where it falls
+  back (`compatibility.md`), from one that has it switched off.
 - An error that has no code of its own is `ERROR`: a key the keystore doesn't have, a payload
-  whose hash differs (F-087). A new code is appended, and old hosts must take an unknown code
-  as an error.
+  whose hash differs (F-087), an image header that isn't valid in a boot. A new code is
+  appended, and old hosts must take an unknown code as an error.
 - A refusal by the life cycle's order (5.2) is `ERROR` today, and stays.
 - The reason for an error is in pb's log, which the host reads (5.7).
 
@@ -391,6 +423,9 @@ beyond the gate is said with the command (5.2, 5.5).
 
 None of them fails for a reason of its own, and none changes anything.
 
+The caps' `bpak_stream_support` is zero in every release and stays zero: what it was meant
+for, a stream of concatenated bpak archives, was never implemented, and no host reads it.
+
 ### 5.2 The life cycle and the keys
 
 The order of the life cycle and the keystore are the core's, the fuses the platform's
@@ -433,8 +468,11 @@ flags, which the board's partition table and the drivers set (`board.md` 2.4):
 | `BOOTABLE` | A candidate for `BOOT_PART` and `PART_ACTIVATE` (`boot.md` 6, 3.4)          |
 
 **A hidden partition is internal to pb** (Jonas, D-058). A partition without `VISIBLE`
-doesn't exist for the host: it isn't in the table, and every command that names it answers
-`NOT_FOUND`, the boot commands too. A board hides what no host may reach. **Not yet in the
+doesn't exist for the host: it isn't in the table, and every command that reaches a partition
+by its UUID answers `NOT_FOUND` for it, `BOOT_PART` and `PART_ACTIVATE` too. A board hides
+what no host may reach. The UUID `BOOT_BPAK` carries reaches no partition: it is a label for
+the handover, taken as given (`boot.md` 5.6), and the device doesn't say whether a partition
+has it. **Not yet in the
 code (F-272)**: only the table leaves hidden partitions out, every other command finds them by
 UUID. No board in the tree hides a partition, and the device a table is installed on is
 visible, so no released flow changes.
@@ -455,7 +493,8 @@ sets `READABLE`, which is why `part read` fails on them (F-083).
 | `PART_ERASE`       | Erases `block_count` blocks from `start_lba`                     | `WRITABLE` (F-188)     |
 | `PART_VERIFY`      | Compares the SHA-256 of `size` bytes of the partition with the   |                        |
 |                    | host's                                                           |                        |
-| `PART_BPAK_READ`   | The image header a partition holds, when it is a valid one       |                        |
+| `PART_BPAK_READ`   | The bpak header in a partition's last 4 KiB, when it is a valid  |                        |
+|                    | one (5.9)                                                        |                        |
 
 - **`PART_TBL_INSTALL`**: the new table is in effect for the commands that follow, and the
   stream ends. **Not yet in the code (F-194)**: until a reset the old partitions are listed and
@@ -471,9 +510,13 @@ sets `READABLE`, which is why `part read` fails on them (F-083).
   the start. `size` is any number of bytes inside the partition, at least 4 KiB with `bpak`,
   and exactly those bytes are hashed. **Not yet in the code (F-182, F-190)**: a size that
   isn't a multiple of the block hashes stale bytes, and a `bpak` size below 4 KiB wraps. It
-  changes nothing, the stream neither (F-186).
+  changes nothing, the stream neither (F-186). The flag is bpak's layout in a partition and
+  nothing more: the header isn't parsed. Without it the command hashes bytes, whatever they
+  are (5.9).
 - **`PART_BPAK_READ`**: the header is what the partition holds. Nothing verified it: the host
-  treats it as input.
+  treats it as input. A partition without a valid bpak header, one that holds another
+  format's image and one smaller than 4 KiB all answer `NOT_FOUND`. **Not yet in the code
+  (F-279)**: a partition below 4 KiB answers `INVALID_ARGUMENT`.
 
 ### 5.4 Streams
 
@@ -515,7 +558,7 @@ The flow is `boot.md` 6's, a stop in it `board.md` 5.4's. Here: what the host se
 | Command         | Means                                                              |
 | --------------- | ------------------------------------------------------------------ |
 | `BOOT_PART`     | Boots the partition the host names, one of the policy's candidates |
-| `BOOT_BPAK`     | Boots the image the host sends                                     |
+| `BOOT_BPAK`     | Boots the bpak image the host sends (5.9)                          |
 | `PART_ACTIVATE` | The policy's: which system boots next (`boot.md` 3.4)              |
 | `BOOT_STATUS`   | The policy's: which system is active (`boot.md` 3.4)               |
 
@@ -583,6 +626,42 @@ slots are never reused (`compatibility.md`, F-032).
 A command is retired, never removed: its handler answers `NOT_SUPPORTED`, and a decision entry
 says why.
 
+### 5.9 Image formats
+
+Command mode carries bytes and names partitions. It knows one image format, bpak, in three
+places, and those are the wire's (section 7):
+
+| Where                  | What is bpak's                                                        |
+| ---------------------- | --------------------------------------------------------------------- |
+| `BOOT_BPAK`            | The header, 4096 bytes, and the parts as that header lists them (4.4) |
+| `PART_BPAK_READ`       | The header, 4096 bytes from the partition's last 4 KiB (5.3)          |
+| `PART_VERIFY`'s `bpak` | The layout in a partition: the header last, the payload first (5.3)   |
+
+Everything else is the same for every format. The streams write and read bytes, and where a
+file's bytes go in a partition is the host's (5.4). `PART_VERIFY` without the flag hashes
+bytes. `BOOT_PART` boots what the partition holds, in whichever format the build accepts
+(`boot.md` 4.2). `PART_ACTIVATE` and `BOOT_STATUS` are the policy's. A key is its id.
+
+Another format comes next to bpak (`system.md` 3, `boot.md` 4.4, D-044). It is on the roadmap
+and not designed here. What this contract keeps for it:
+
+- **The three places mean bpak, always.** They aren't widened to another format: a raw
+  `struct bpak_header` crosses the wire in each (`compatibility.md`). For an image of another
+  format they answer as for no bpak image: `PART_BPAK_READ` with `NOT_FOUND`, `BOOT_BPAK` with
+  the error in the header's result.
+- **A format's own commands are new commands**, appended, each with its exchange in 4.4: a
+  boot from the host's stream, reading its header. No command of today's changes for it.
+- **Which formats a build accepts** a host learns through the capabilities (5.1,
+  `compatibility.md`). A device that says nothing accepts bpak alone, as every release.
+- **A build that leaves a format out** answers `NOT_SUPPORTED` to that format's commands
+  (4.5). That goes for bpak too, which a product's build may leave out (Jonas, D-061,
+  `system.md` 3). `PART_BPAK_READ` and a `PART_VERIFY` with the `bpak` flag then answer
+  `NOT_SUPPORTED` as their first result. `BOOT_BPAK` is refused like any boot that is refused
+  before the image is read (5.5): the header's transfer is read, and its result is
+  `NOT_SUPPORTED`.
+- **Writing and verifying** an image whose file is the partition's bytes needs nothing new:
+  the streams and `PART_VERIFY`.
+
 ## 6. The transport
 
 One transport per build, linked, not chosen by the board (`board.md` 4.2, D-049): USB on a
@@ -592,7 +671,9 @@ the drivers' contract (later). What command mode needs from it:
 - **Ready and lost.** It says when a host is there and when it is gone. A bus reset, an unplug
   and a failed transfer are all "lost", and each ends the session (3.1).
 - **Whole transfers of a size both sides know**, in order, each way. A transfer of 0 bytes is
-  one (4.4).
+  one (4.4). The exception is a part of `BOOT_BPAK` (4.4), where the two sides know the
+  part's size and each splits it its own way: a read is filled from as many of the host's
+  transfers as it takes, and a transfer may fill several reads.
 - **Start and poll.** A transfer is started and then polled, so that the tasks run and the
   watchdog is kicked while command mode waits for a command.
 - **Disconnect** before a jump and before a reset, so that the host sees the device leave.
@@ -625,8 +706,10 @@ Like the wire (D-008, `compatibility.md`), from the 1.0.0 release on (`system.md
   `NOT_AUTHENTICATED`.
 - The methods: what a token signs and with which hash, the password's bytes (3.3). Both grant
   every command.
-- The results a host acts on (4.5): `INVALID_COMMAND` for a command the build doesn't have,
-  `NOT_SUPPORTED` for a retired one, `NOT_AUTHENTICATED` from the gate.
+- The results a host acts on (4.5): `INVALID_COMMAND` for a command the release doesn't
+  define, `NOT_SUPPORTED` for a retired one and for one the build left out,
+  `NOT_AUTHENTICATED` from the gate.
+- The three places that mean bpak (5.9): they keep meaning bpak.
 - Which life cycle states are open (3.2).
 - The USB interface (section 6).
 - The partition flags' meaning (5.3), which boards in the field rely on.
@@ -654,6 +737,10 @@ For a change to command mode, a new command or a new method:
 - [ ] What does a failure leave behind? It is written in section 5.
 - [ ] Old host and new device, new host and old device (`compatibility.md`'s checklist).
 - [ ] A new command is appended and has a transcript; a new result code is appended.
+- [ ] A command a build can leave out answers `NOT_SUPPORTED` there, never `INVALID_COMMAND`
+      (4.5).
+- [ ] Does it name an image format? Only the three places of 5.9 mean bpak; another format
+      gets its own commands.
 - [ ] Nothing of it runs on the boot path (D-023).
 
 ## 9. Not yet in the code
@@ -667,6 +754,9 @@ For a change to command mode, a new command or a new method:
 | F-276               | A failed authentication is answered after 1 s (3.3)                                  |
 | F-277               | A transfer timeout that ends the session; the caps' timeouts (4.6)                   |
 | F-181               | The verdict of a token is the verification's own (3.3)                               |
+| F-278               | A refusal before the authentication data changes nothing (3.3)                       |
+| F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
+| F-279               | `PART_BPAK_READ` on a partition below 4 KiB (5.3)                                    |
 | F-004               | The password is compared whole, in constant time, and not logged (3.3)               |
 | F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |
 | F-187, F-274        | The exchange stays in step after a refusal; a failed transfer ends the session (4.4) |

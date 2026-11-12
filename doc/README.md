@@ -15,7 +15,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 |                |                 | `security.md`                        | Reviewed (D-036)                     |
 |                |                 | `compatibility.md`                   | In force (the guards)                |
 | 2 Architecture | `architecture/` | `boot.md`                            | Reviewed (D-041)                     |
-|                |                 | `command-mode.md`                    | Reviewed (D-059)                     |
+|                |                 | `command-mode.md`                    | Reviewed (D-059 to D-061)            |
 |                |                 | `arch-firmware.md`                   | Behind the code (waits for the board |
 |                |                 |                                      | work's review)                       |
 |                |                 | `arch-host-tools.md`                 | Not a contract yet                   |

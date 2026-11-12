@@ -109,7 +109,10 @@ To discuss (Jonas):
   without the round trip through the bpak CLI at build time (key ids unchanged, the bpak input
   still accepted). The parked `pbi-image-format` branch belongs here. What the boot flow needs
   from a format is `boot.md` 4.4 (D-044); with the format come its interface in the code, the part
-  ids a board names and the host's command.
+  ids a board names and the host's command. What command mode keeps for it is `command-mode.md`
+  5.9 (D-060): the bpak commands keep meaning bpak, the format gets its own, the capabilities
+  tell which formats a build accepts. A build may leave bpak out (Jonas, D-061). With keys whose
+  signature is above 1024 bytes (ML-DSA) comes a new token method (`command-mode.md` 3.3).
 - **Erase on the wire**: Jonas may want to change it again (F-075 is accepted, no product used it).
 - pb's own update with a rollback (`security.md` 5; my addition).
 

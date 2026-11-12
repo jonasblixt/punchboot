@@ -1210,3 +1210,82 @@ documents, changed for this.
 
 `command-mode.md` is reviewed, with no open items. Its code: F-271 to F-277 and the findings
 its section 9 lists.
+
+## D-060: Command mode and another image format; a second pass over the contract (2026-11-12)
+
+Jonas asked for another review pass over `command-mode.md` and whether it is loose enough for
+other image formats than bpak. The findings are mine; he read them and said "write them in".
+Nothing in the code changes.
+
+**Another image format** (`command-mode.md` 5.9, new). Command mode knows bpak in three places,
+and those are the wire's: `BOOT_BPAK` (a header of 4096 bytes, then the parts it lists),
+`PART_BPAK_READ` (4096 bytes from the partition's end) and `PART_VERIFY`'s `bpak` flag (the
+layout in a partition). Everything else carries bytes or names partitions, and `BOOT_PART` boots
+whichever format the build accepts (`boot.md` 4.2).
+
+- The three keep meaning bpak and aren't widened: the contract had worded two of them as any
+  format's ("the image header a partition holds", "the image the host sends"), under a section
+  7 that fixes each command's meaning. For another format's image they answer as for no bpak
+  image.
+- A format's own commands (a boot from the host's stream, its header) are new commands,
+  appended. The capabilities tell a host which formats a build accepts; saying nothing means
+  bpak alone.
+- Not decided: whether a build may leave bpak out (level 1's, `roadmap.md`), and the second
+  format itself (D-044, the parked `pbi-image-format` branch).
+
+Why not widen `BOOT_BPAK`: its header transfer is 4096 bytes for ever (D-008), and the pbi
+draft's header is variable, up to 8 KiB.
+
+**`INVALID_COMMAND` against `NOT_SUPPORTED`** (4.5). `INVALID_COMMAND` is a frame that isn't a
+command or a number the release doesn't define: "the device is older than the command", where
+a host falls back. A command the release defines and the build left out answers
+`NOT_SUPPORTED`. That is what the code does (`pb_wire_valid_command()` only checks the range;
+no RAM log, no method and EOL without the option answer `NOT_SUPPORTED`); the contract had
+"the build doesn't have it" for the first and "the build lacks what it needs" for the second.
+`compatibility.md`, "New command", has the sentence for hosts.
+
+**The rest of the pass:**
+
+- The UUID `BOOT_BPAK` carries isn't a lookup, so the hidden partitions' rule (5.3, D-058)
+  doesn't apply to it: it is the handover's label, taken as given (`boot.md` 5.6). 5.3 had
+  "every command that names it ... the boot commands too".
+- `BOOT_BPAK`'s parts are a stream of the part's size, which the host and the device split
+  each their own way (4.1, 4.4, section 6). After a part's result that isn't OK the host sends
+  the rest and the device reads it; the last result is the verdict. Both are what the code
+  and the hosts do. Whether every USB controller driver takes it where the two sizes differ
+  isn't verified: F-280.
+- A refusal before the authentication data (an unknown method, a bad size) changes nothing
+  and isn't delayed (3.3). F-278.
+- The token's transfer stays 1024 bytes; a key whose signature is larger (ML-DSA) gets a new
+  method (3.3, `roadmap.md`).
+- The caps' `bpak_stream_support` stays zero (5.1). `PART_BPAK_READ` answers `NOT_FOUND` for
+  a partition below 4 KiB (F-279). `NOT_FOUND` for "no image header" is `PART_BPAK_READ`'s;
+  a boot answers `ERROR` for a header that isn't valid (4.5).
+
+## D-061: A build may leave bpak out (2026-11-12)
+
+Jonas, on the question `command-mode.md` 5.9 left for level 1 (D-060), may a build leave bpak
+out: "I'd say so."
+
+- A product may build pb without bpak, once there is another format to build in its place.
+  It is the product's choice for its own devices, in its defconfig, like a build without
+  command mode's authentication (D-059).
+- D-008 is unchanged for a build that has bpak: every bpak image a release accepted is
+  accepted. bpak is in by default, and a release doesn't drop it.
+
+Written in, top down: `system.md` 3 and 6, `compatibility.md` ("bpak format: what is frozen"),
+`boot.md` 4.4, `command-mode.md` 5.9, `roadmap.md`.
+
+Derived by me, not asked of Jonas:
+
+- "Once there is another format": today bpak is the only one, so the switch comes with the
+  second format and no code changes now. No finding.
+- What the bpak commands answer in such a build (`command-mode.md` 5.9, from its 4.5 and
+  5.5): `PART_BPAK_READ` and `PART_VERIFY` with the `bpak` flag answer `NOT_SUPPORTED`;
+  `BOOT_BPAK` reads the header's transfer and answers `NOT_SUPPORTED` in its result, so
+  that hosts which send the header at once stay in step (D-058, item 7).
+
+It answers item 3's question in the parked pbi draft's discussion state (branch
+`pbi-image-format`, `doc/dev/pbi.md`). The rest of that item (the deprecation plan, the
+defaults for new boards, the time scale) and whether one build accepts several formats stay
+open.
