@@ -2045,14 +2045,22 @@ static void test_part_verify_keeps_the_stream(void **state)
 static void test_stream_errors(void **state)
 {
     struct fixture *f = *state;
+    static uint8_t frames[BUF_SIZE + 1];
     (void)state;
+
+    /* Data that are frames, were they read as commands */
+    for (size_t i = 0; i + sizeof(struct pb_command) <= sizeof(frames);
+         i += sizeof(struct pb_command))
+        pb_wire_init_command((struct pb_command *)&frames[i], PB_CMD_BOOTLOADER_VERSION_READ);
 
     /* The stream_check() bounds are covered by test_stream.py */
     stream_init(UU_MISSING);
     /* Without a partition the stream is not initialized */
     stream_write(0, RAMDISK_BLOCK_SIZE, 0);
-    stream_prepare(0, BUF_SIZE + 1, NULL);
-    stream_prepare(2, 16, NULL);
+    /* A size or an id the buffers don't have: hosts send the data anyway,
+     * the device reads it and answers twice (command-mode.md 4.4, F-274) */
+    stream_prepare(0, BUF_SIZE + 1, frames);
+    stream_prepare(2, 16, frames);
     stream_init(UU_RO);
     stream_write(0, RAMDISK_BLOCK_SIZE, 0);
     stream_read(0, RAMDISK_BLOCK_SIZE, 0);
@@ -2060,6 +2068,8 @@ static void test_stream_errors(void **state)
 
     expect_result(-PB_RESULT_NOT_FOUND);
     expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+    expect_result(-PB_RESULT_NO_MEMORY);
+    expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(PB_RESULT_OK);
@@ -2136,6 +2146,7 @@ static void stream_write_block(uint8_t buffer_id)
 static void test_stream_write_done(void **state)
 {
     struct fixture *f = *state;
+    static const uint8_t too_large[BUF_SIZE + 1];
 
     write_done_calls = 0;
     write_done_dev = -1;
@@ -2152,7 +2163,7 @@ static void test_stream_write_done(void **state)
     host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
     /* A stream with a failed buffer, then a good write */
     stream_init(UU_RW);
-    stream_prepare(0, BUF_SIZE + 1, NULL);
+    stream_prepare(0, BUF_SIZE + 1, too_large);
     stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
     stream_write(1, RAMDISK_BLOCK_SIZE, 0);
     host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
@@ -2170,7 +2181,8 @@ static void test_stream_write_done(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK); /* finalize */
     expect_result(PB_RESULT_OK); /* init */
-    expect_result(-PB_RESULT_NO_MEMORY); /* prepare */
+    expect_result(-PB_RESULT_NO_MEMORY); /* prepare, its data read anyway */
+    expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(PB_RESULT_OK); /* prepare */
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK); /* write */
@@ -3007,8 +3019,8 @@ static void test_gate_refused_sessions(void **state)
                 expect_gate(kinds[k], PB_WIRE_MAGIC, c, gate_open_results[c]);
             } else {
                 expect_gate(kinds[k], PB_WIRE_MAGIC, c, -PB_RESULT_NOT_AUTHENTICATED);
-                /* Hosts send its request anyway: the second result (4.4) */
-                if (c == PB_CMD_BOARD_COMMAND)
+                /* Hosts send their data anyway: the second result (4.4) */
+                if (c == PB_CMD_BOARD_COMMAND || c == PB_CMD_STREAM_PREPARE_BUFFER)
                     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
                 expect_end();
             }
@@ -3044,6 +3056,27 @@ static void test_gate_refuses_board_command(void **state)
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     const struct pb_result *r = expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     assert_int_equal(((const struct pb_result_board *)r->response)->size, 0);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+/* The gate refuses STREAM_PREPARE_BUFFER, and hosts send its data whatever
+ * the first result says (command-mode.md 3.2, 4.4, F-274): the device reads
+ * the data, answers twice and fills no buffer. */
+static void test_gate_refuses_stream_prepare(void **state)
+{
+    struct pb_command frame;
+    (void)state;
+
+    /* Data that is a frame the gate lets through, were it read as one */
+    pb_wire_init_command(&frame, PB_CMD_DEVICE_IDENTIFIER_READ);
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    stream_prepare(0, sizeof(frame), &frame);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_result(PB_RESULT_OK);
@@ -3154,6 +3187,7 @@ int main(void)
         CM_TEST(test_gate_open_sessions),
         CM_TEST(test_gate_refused_sessions),
         CM_TEST(test_gate_refuses_board_command),
+        CM_TEST(test_gate_refuses_stream_prepare),
         CM_TEST(test_gate_refused_then_authenticated),
     };
 

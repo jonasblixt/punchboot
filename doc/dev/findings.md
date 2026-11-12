@@ -470,11 +470,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
 | | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
 | F-274 | `src/cm/cm_main.c`, `tools/punchboot/session.py` | Exchanges that get out of | Verified (code) | open |
-| | | step. (1) A refused `STREAM_PREPARE_BUFFER` (the gate, the size, the id) sends one result, | | |
-| | | but hosts send the data whatever the first result says: it is read as commands. As F-187 for | | |
-| | | `board command`. (2) `BOARD_STATUS_READ` whose `status()` fails sends the error result, the | | |
-| | | data and a second result; the Python host raises at the first and leaves two transfers on the | | |
-| | | link. Check what the 2.x C host did (the transcripts) before changing either side. (3) Most | | |
+| | | step (the parts keep their first numbers; (1), a refused `STREAM_PREPARE_BUFFER`, is fixed). | | |
+| | | (2) `BOARD_STATUS_READ` whose `status()` fails sends the error result, the data and a second | | |
+| | | result; the Python host raises at the first and leaves two transfers on the link. Check what the 2.x C host did (the transcripts) before changing either side. (3) Most | | |
 | | | `cm_write()` results are ignored, and a failed `cm_read()` inside a command returns to the loop | | |
 | | | on the same transport. `command-mode.md` 4.4: a failed transfer ends the session. | | |
 | | | (4) Since F-260 `boot bpak` is also refused before the header is read when pb's information can't be | | |

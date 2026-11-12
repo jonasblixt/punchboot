@@ -999,12 +999,12 @@ static int cmd_stream_prep_buffer(void)
 
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-    if (stream_prep->size > CM_BUF_SIZE) {
+    /* Hosts send the data whatever the first result says: it is read and
+     * dropped, and the second result has the refusal (command-mode.md 4.4) */
+    if (stream_prep->size > CM_BUF_SIZE || stream_prep->id > 1) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
-        return -PB_ERR_MEM;
-    }
-
-    if (stream_prep->id > 1) {
+        cm_write(&result, sizeof(result));
+        (void)cm_drain(stream_prep->size);
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_ERR_MEM;
     }
@@ -1067,14 +1067,17 @@ static bool cm_gate_allows(void)
 }
 
 /*
- * The gate's refusal. Hosts send BOARD_COMMAND's request whatever the first
- * result says, so the device sends the first result, reads the request and
- * leaves the second to the caller, both NOT_AUTHENTICATED (command-mode.md
- * 3.2, 4.4). Every other refused frame is answered once.
+ * The gate's refusal. Hosts send BOARD_COMMAND's request and
+ * STREAM_PREPARE_BUFFER's data whatever the first result says, so the device
+ * sends the first result, reads the data and leaves the second to the caller,
+ * both NOT_AUTHENTICATED (command-mode.md 3.2, 4.4). Every other refused
+ * frame is answered once.
  */
 static void cm_gate_refuse(void)
 {
     const struct pb_command_board *board_cmd = (const struct pb_command_board *)cmd.request;
+    const struct pb_command_stream_prepare_buffer *stream_prep =
+        (const struct pb_command_stream_prepare_buffer *)cmd.request;
 
     pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
 
@@ -1087,6 +1090,10 @@ static void cm_gate_refuse(void)
         if (board_cmd->request_size)
             (void)cm_drain(CM_DATA_XFER_SIZE);
 
+        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+    } else if (cmd.command == PB_CMD_STREAM_PREPARE_BUFFER) {
+        cm_write(&result, sizeof(result));
+        (void)cm_drain(stream_prep->size);
         pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
     }
 }

@@ -17,6 +17,7 @@ from .pbtest import (
     DEV_KEY_ID,
     NULL_UUID,
     PB_CMD_BOARD_COMMAND,
+    PB_CMD_STREAM_PREPARE_BUFFER,
     PB_COMMAND_SIZE,
     PB_WIRE_MAGIC,
     SYSTEM_A_UUID,
@@ -136,6 +137,19 @@ def test_locked_device_refuses_board_command_in_step(locked_device: Device) -> N
     with locked_device.wire() as w:
         w.send_command(PB_CMD_BOARD_COMMAND, struct.pack("<III", 0, 0, 0))
         assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.command(PB_CMD_DEVICE_IDENTIFIER_READ) == 0
+
+
+def test_locked_device_refuses_stream_prepare_in_step(locked_device: Device) -> None:
+    # command-mode.md 3.2, 4.4 (F-274): hosts send the data whatever the
+    # first result says. The gate reads it and answers twice. The data is a
+    # frame the gate lets through, were it read as one.
+    frame = struct.pack("<IB3x", PB_WIRE_MAGIC, PB_CMD_DEVICE_IDENTIFIER_READ)
+    with locked_device.wire() as w:
+        w.send_command(PB_CMD_STREAM_PREPARE_BUFFER, struct.pack("<IB", PB_COMMAND_SIZE, 0))
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        w.send(frame.ljust(PB_COMMAND_SIZE, b"\0"))
         assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
         assert w.command(PB_CMD_DEVICE_IDENTIFIER_READ) == 0
 

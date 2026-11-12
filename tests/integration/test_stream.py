@@ -44,12 +44,13 @@ def stream_init(wire: Wire, part: uuid.UUID) -> int:
 
 
 def stream_prepare(wire: Wire, buffer_id: int, data: bytes) -> int:
+    """Send the data whatever the first result says, as released hosts do."""
     wire.send_command(PB_CMD_STREAM_PREPARE_BUFFER, struct.pack("<IB", len(data), buffer_id))
-    rc = wire.result()
-    if rc != 0:
-        return rc
+    first = wire.result()
     wire.send(data)
-    return wire.result()
+    second = wire.result()
+    assert first in (second, 0)
+    return second
 
 
 def stream_write(wire: Wire, buffer_id: int, offset: int, size: int) -> int:
@@ -97,6 +98,23 @@ def test_stream_write_rejects_bad_buffer_id(wire: Wire, buffer_id: int) -> None:
 def test_stream_read_rejects_bad_buffer_id(wire: Wire, buffer_id: int) -> None:
     assert stream_read(wire, buffer_id, 0, BLOCK_SIZE)[0] == -PB_RESULT_NO_MEMORY
     assert_responsive(wire)
+
+
+@pytest.mark.parametrize(
+    ("buffer_id", "size"),
+    [(N_BUFFERS, BLOCK_SIZE), (255, BLOCK_SIZE), (1, BUFFER_SIZE + BLOCK_SIZE)],
+)
+def test_stream_prepare_refusal_reads_the_data(
+    device: Device, wire: Wire, buffer_id: int, size: int
+) -> None:
+    # command-mode.md 4.4 (F-274): hosts send the data whatever the first
+    # result says. The device reads it, answers twice and fills no buffer.
+    kept = b"\x5a" * BLOCK_SIZE
+    assert stream_prepare(wire, 0, kept) == 0
+    assert stream_prepare(wire, buffer_id, b"\xa5" * size) == -PB_RESULT_NO_MEMORY
+    assert_responsive(wire)
+    assert stream_write(wire, 0, 0, BLOCK_SIZE) == 0
+    assert device.read_blocks(READABLE_LBA, 1) == kept
 
 
 @pytest.mark.parametrize("buffer_id", [0, 1])

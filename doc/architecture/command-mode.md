@@ -318,8 +318,6 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
 - **The device keeps the exchange in step also when it refuses.** Where released hosts send
   data whatever the first result says (`STREAM_PREPARE_BUFFER`, `BOARD_COMMAND`), the device
   reads that data and sends the second result, with the refusal. That holds for the gate too.
-  **Not yet in the code (F-274)**: a refused `STREAM_PREPARE_BUFFER`, by the gate or by its
-  bounds, sends one result, and the data is then read as commands.
 - **`BOOT_BPAK`'s parts**: the parts the header lists, in its order, each followed by a
   result. A part's bytes are one stream of the part's size. The host splits it into transfers
   of at most the caps' largest transfer, each of whole packets but the part's last, as
