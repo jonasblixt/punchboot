@@ -164,6 +164,28 @@ static void test_allocate_rejects(void **state)
     assert_int_equal(bio_allocate(2, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"), -PB_ERR_PARAM);
 }
 
+/* bio.md 2.3: the largest block is CONFIG_BIO_MAX_BLOCK_SIZE, and a device
+ * with a larger one is refused at registration */
+static void test_a_block_larger_than_the_largest_is_refused(void **state)
+{
+    struct fixture *f = *state;
+    bio_dev_t dev;
+
+    assert_int_equal(bio_allocate(0, 1, CONFIG_BIO_MAX_BLOCK_SIZE + 1, UU_OTHER, "x"),
+                     -PB_ERR_PARAM);
+    assert_int_equal(bio_allocate(0, 1, 2 * CONFIG_BIO_MAX_BLOCK_SIZE, UU_OTHER, "x"),
+                     -PB_ERR_PARAM);
+    assert_int_equal(bio_allocate_parent(0, 0, 1, CONFIG_BIO_MAX_BLOCK_SIZE + 1, UU_OTHER, "x"),
+                     -PB_ERR_PARAM);
+    /* Nothing was registered */
+    assert_int_equal(bio_get_part_by_uu(UU_OTHER), -PB_ERR_NOT_FOUND);
+    assert_false(bio_valid(f->part + 1));
+
+    dev = bio_allocate(0, 1, CONFIG_BIO_MAX_BLOCK_SIZE, UU_OTHER, "x");
+    assert_int_equal(dev, f->part + 1);
+    assert_int_equal(bio_block_size(dev), CONFIG_BIO_MAX_BLOCK_SIZE);
+}
+
 static void test_allocate_pool_full(void **state)
 {
     struct fixture *f = *state;
@@ -323,6 +345,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_huge_length_rejected, setup, teardown),
         cmocka_unit_test_setup_teardown(test_invalid_handles, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_rejects, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_a_block_larger_than_the_largest_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_pool_full, setup, teardown),
         cmocka_unit_test_setup_teardown(test_properties, setup, teardown),
         cmocka_unit_test_setup_teardown(test_flags, setup, teardown),

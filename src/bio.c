@@ -53,7 +53,8 @@ bio_dev_t bio_allocate(lba_t first_lba,
 {
     if (n_bios == CONFIG_BIO_MAX_DEVS)
         return -PB_ERR_MEM;
-    if (block_size == 0)
+    /* The largest block a device may have (bio.md 2.3) */
+    if (block_size == 0 || block_size > CONFIG_BIO_MAX_BLOCK_SIZE)
         return -PB_ERR_PARAM;
     if (first_lba > last_lba)
         return -PB_ERR_PARAM;

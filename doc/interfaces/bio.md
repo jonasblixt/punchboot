@@ -89,8 +89,7 @@ the RT1060 EVK's).
 - **A user asks `bio_block_size()`** and never assumes 512. **Not yet in the code (F-283)**:
   the GPT has 512 written out in four places, and the A/B state writes 512 bytes as one block.
 - **The largest block is `CONFIG_BIO_MAX_BLOCK_SIZE`** (4 KiB), the size of the core's block
-  buffer (3.1). A device with a larger one is refused at registration. **Not yet in the code
-  (F-283).**
+  buffer (3.1). A device with a larger one is refused at registration.
 - A format that puts something at a fixed byte position (bpak's header in a partition's last
   4 KiB, `boot.md` 4.4) needs a block size that divides that position. What doesn't start on
   a block isn't read (3.1).
@@ -427,7 +426,7 @@ The core:
 | A length that isn't whole blocks is the core's      | no: it goes to the driver    | F-182   |
 | A length of 0 doesn't reach the driver              | no                           | F-283   |
 | A buffer that doesn't start on a line is refused    | no                           | F-282   |
-| A block larger than the block buffer is refused     | no: there is no block buffer | F-283   |
+| A block larger than the block buffer is refused     | yes (`test_bio`)             |         |
 | A partition lies inside its parent                  | no: not checked              | F-193   |
 
 The partition tables:
