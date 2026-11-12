@@ -527,6 +527,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | false` after `auth_read_data()` refused), one with a method that isn't in the build leaves it. | | |
 | | | `command-mode.md` 3.3 (D-060): a refusal before the data changes nothing and isn't delayed; | | |
 | | | with F-276 | | |
+| F-279 | `src/cm/cm_main.c` `cmd_bpak_read()`, `cmd_part_verify()` | Low. The header's | Verified (code) | open |
+| | | block is the partition's block count less 4 KiB of blocks, unsigned: on a partition below | | |
+| | | 4 KiB it wraps, `bio_read()` refuses the range and the host gets INVALID_ARGUMENT. | | |
+| | | `command-mode.md` 5.3 (D-060): NOT_FOUND for `PART_BPAK_READ`. `boot.c` has the same | | |
+| | | arithmetic for a bootable partition | | |
 | F-280 | `src/boot/image_helpers.c` `boot_image_load_and_hash()`, the USB drivers | `boot | Reported | open |
 | | | bpak`: the device reads a part `CONFIG_BOOT_LOAD_CHUNK_kB` at a time (1 MiB on the imx8mpevk | | |
 | | | and jiffy, 4 KiB on the RT1060 with a 32 KiB buffer, 4 MiB elsewhere), hosts send it in | | |

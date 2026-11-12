@@ -473,6 +473,17 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | and after a token, and an open device. No recorded transcript has INVALID_COMMAND. Before | | |
 | | | authentication, `AUTHENTICATE`'s data sent after a refusal is read as two frames with a wrong | | |
 | | | magic, NOT_AUTHENTICATED where it was INVALID_COMMAND; released hosts don't send it (4.4, F-274) | | |
+| F-278 | `src/cm/cm_main.c` `cmd_auth()`, `auth_read_data()` | Low. An `AUTHENTICATE` with | Verified (code) | fixed |
+| | | a size of 0 or above 1024 ends the authentication of a session that had it (`authenticated = | | |
+| | | false` after `auth_read_data()` refused), one with a method that isn't in the build leaves it. | | |
+| | | `command-mode.md` 3.3 (D-060): a refusal before the data changes nothing and isn't delayed; | | |
+| | | with F-276 | | |
+| | | Fixed: `auth_read_data()` says when it refused before the data, and `cmd_auth()` then leaves the | | |
+| | | session as it was. The refusals before the data, each with its result as before: a method that isn't | | |
+| | | in the build or isn't defined (`NOT_SUPPORTED`), the password on a board without `password_auth` | | |
+| | | (`NOT_SUPPORTED`), a size of 0 or above 1024 for the token or the password (`INVALID_ARGUMENT`). Data | | |
+| | | that arrived and didn't verify still ends the authentication, and so does a data transfer that failed | | |
+| | | (the session ends, 3.1). `test_cm.c`: `test_auth_data_size`, `test_auth_refusal_keeps_session` | | |
 
 ## Dependencies / vendored code
 

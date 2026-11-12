@@ -230,8 +230,7 @@ transfer of 1024 bytes (4.4). Methods are added, never changed (`security.md` 4.
   has and which are revoked, which the images' headers and the fuses tell too.
 - **A method that isn't in the build**, or a size of 0 or above 1024: the first result is the
   error and no data follows. Nothing was tried, so it changes nothing: a session that was
-  authenticated stays so, and the answer isn't delayed. **Not yet in the code (F-278)**: a
-  bad size ends the authentication of a session that had it, an unknown method doesn't.
+  authenticated stays so, and the answer isn't delayed.
 - **Secrets**: the data is compared whole and in constant time, and never logged
   (`security.md` 4.10, F-004). The buffer that held it is not sent to a host (4.3).
 - A device that is open accepts `AUTHENTICATE` like any command; it changes nothing a host
@@ -752,7 +751,6 @@ For a change to command mode, a new command or a new method:
 | F-276               | A failed authentication is answered after 1 s (3.3)                                  |
 | F-277               | A transfer timeout that ends the session; the caps' timeouts (4.6)                   |
 | F-181               | The verdict of a token is the verification's own (3.3)                               |
-| F-278               | A refusal before the authentication data changes nothing (3.3)                       |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-004               | The password is compared whole, in constant time, and not logged (3.3)               |
 | F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |

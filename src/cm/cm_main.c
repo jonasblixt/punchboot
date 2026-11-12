@@ -328,11 +328,15 @@ static int cmd_bpak_read(void)
 
 #if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
 /* Hosts send the authentication data after an OK result, and check that
- * result first. */
-static int auth_read_data(const struct pb_command_authenticate *auth_cmd)
+ * result first. A bad size is refused before the data and sets *refused:
+ * nothing was tried, so the session stays as it was (command-mode.md 3.3). */
+static int auth_read_data(const struct pb_command_authenticate *auth_cmd, bool *refused)
 {
+    *refused = false;
+
     if (auth_cmd->size == 0 || auth_cmd->size > CM_DATA_XFER_SIZE) {
         LOG_ERR("Bad authentication data size: %u", auth_cmd->size);
+        *refused = true;
         return -PB_ERR_PARAM;
     }
 
@@ -349,19 +353,22 @@ static int cmd_auth(void)
 
 #if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
     struct pb_command_authenticate *auth_cmd = (struct pb_command_authenticate *)cmd.request;
+    bool refused;
 #endif
+    /* A method that isn't in the build, or a board without a password
+     * check, is refused before the data and changes nothing */
     pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
 #ifdef CONFIG_CM_AUTH_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
-        rc = auth_read_data(auth_cmd);
+        rc = auth_read_data(auth_cmd, &refused);
 
         if (rc == PB_OK)
             rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
             authenticated = true;
-        else
+        else if (!refused)
             authenticated = false;
 
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -370,14 +377,14 @@ static int cmd_auth(void)
 
 #if CONFIG_CM_AUTH_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD && cfg->password_auth) {
-        rc = auth_read_data(auth_cmd);
+        rc = auth_read_data(auth_cmd, &refused);
 
         if (rc == PB_OK)
             rc = cfg->password_auth((char *)buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
             authenticated = true;
-        else
+        else if (!refused)
             authenticated = false;
 
         pb_wire_init_result(&result, error_to_wire(rc));

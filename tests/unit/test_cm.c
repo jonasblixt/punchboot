@@ -1062,7 +1062,8 @@ static void test_auth_password(void **state)
 }
 
 /* F-005: hosts send the data in one 1024 byte transfer, and none for size 0.
- * A bad size is refused before the data, and leaves the device locked. */
+ * A bad size is refused before the data and changes nothing (F-278): an
+ * authenticated session stays so, and one that isn't stays locked. */
 static void test_auth_data_size(void **state)
 {
     static const uint8_t methods[] = { PB_AUTH_ASYM_TOKEN, PB_AUTH_PASSWORD };
@@ -1096,8 +1097,98 @@ static void test_auth_data_size(void **state)
     expect_result(PB_RESULT_OK);
     for (size_t i = 0; i < ARRAY_SIZE(methods) * ARRAY_SIZE(bad_sizes); i++) {
         expect_result(-PB_RESULT_INVALID_ARGUMENT);
+        expect_result(PB_RESULT_OK);
+    }
+    expect_end();
+
+    /* cm_run() again: not authenticated */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    for (size_t m = 0; m < ARRAY_SIZE(methods); m++) {
+        struct pb_command_authenticate auth = { .method = methods[m], .size = 0 };
+        host_cmd(PB_CMD_AUTHENTICATE, &auth, sizeof(auth));
+        host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    }
+    run();
+
+    for (size_t m = 0; m < ARRAY_SIZE(methods); m++) {
+        expect_result(-PB_RESULT_INVALID_ARGUMENT);
         expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     }
+    expect_end();
+}
+
+/* command-mode.md 3.3 (F-278): a refusal before the data (an unknown method,
+ * a board without a password check, a bad size) tried nothing and leaves an
+ * authenticated session so. A failed attempt with data ends it. */
+static void test_auth_refusal_keeps_session(void **state)
+{
+    static const uint8_t bad_token[] = { 0x00 };
+    struct pb_command_authenticate invalid = { .method = PB_AUTH_INVALID, .size = 6 };
+    struct pb_command_authenticate unknown = { .method = 0x7f, .size = 6 };
+    struct pb_command_authenticate password = { .method = PB_AUTH_PASSWORD, .size = 6 };
+    struct pb_command_authenticate token_size = { .method = PB_AUTH_ASYM_TOKEN,
+                                                  .size = 1025,
+                                                  .key_id = KEY_ID };
+    struct pb_command_authenticate password_size = { .method = PB_AUTH_PASSWORD, .size = 0 };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    /* The default board has no password check: no data follows */
+    host_auth_token();
+    host_cmd(PB_CMD_AUTHENTICATE, &password, sizeof(password));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+    host_auth(PB_AUTH_PASSWORD, "secret", 6, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &invalid, sizeof(invalid));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &unknown, sizeof(unknown));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &token_size, sizeof(token_size));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &password_size, sizeof(password_size));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    /* Data that arrived and didn't verify: no longer authenticated */
+    host_auth(PB_AUTH_PASSWORD, "wrong!", 6, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_auth_token();
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(PB_RESULT_OK);
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_end();
 }
 
@@ -2306,6 +2397,7 @@ int main(void)
         CM_TEST(test_auth_token_errors),
         CM_TEST(test_auth_password),
         CM_TEST(test_auth_data_size),
+        CM_TEST(test_auth_refusal_keeps_session),
         CM_TEST(test_auth_data_read_fails),
         CM_TEST(test_slc_commands),
         CM_TEST(test_slc_errors),
