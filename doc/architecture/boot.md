@@ -1,7 +1,7 @@
 # The boot flow contract
 
 **State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041, D-043, D-044, D-046, D-048,
-D-050.** Level 2
+D-050, D-055.** Level 2
 (`process.md`).
 
 No open items. The draft's seventeen, as decided and written into the text:
@@ -35,7 +35,9 @@ the flow is written for any image format, and names bpak only in 4.4 (D-044). Af
 (D-046): the policy, the handover and the delivery are objects the board names in its data, no
 longer a Kconfig choice (3, 5.1). In place, the board gives no address for the header (4.1,
 D-048; D-039 had "or where the board says"). pb's status has a second entry, the board's
-(5.6, D-050).
+(5.6, D-050). Placement's allow list is the board's image data regions, and what keeps a part
+off pb is checked once, on that list (4.3, Jonas, D-055; it was the board's DRAM and the
+platform's loadable regions, less pb's own).
 
 What pb does from `boot()` to the jump: which partition it boots (the boot source policy), how it
 loads and verifies the image, and what it hands the next stage (the handover). For each step:
@@ -348,12 +350,17 @@ the code (F-076)**: today such an image fails on its payload hash, so none that 
 
 **Not yet in the code (F-254)**: the parts are only kept off some of pb's sections.
 
-An allow list. Every part, and the room a handover grows it by (the DT's headroom), lies inside the
-board's DRAM (`BOARD_DRAM_*`, `platform.md` 5.1) or a region the platform declares loadable (on-chip
-RAM, TCM), and overlaps none of: pb's sections (all of them, the keystore and the RAM log too),
-another part, and what a handover writes outside the parts: the Firmware Handoff region (5.4) and
-TF-A's `bl_params` where the platform puts them (5.3). Address ranges that wrap are refused. A load
+An allow list: the board's image data regions (`board.md` 2.9, D-055), the only memory an image's
+parts are loaded into. Every part, and the room a handover grows it by (the DT's headroom), lies
+inside one of them and overlaps no other part. Address ranges that wrap are refused. A load
 address the arch can't hold (above 4 GiB on a 32-bit arch) is refused. The in place source: 4.1.
+
+The rule names nothing of pb's. That no region holds pb's sections (all of them, the keystore
+and the RAM log too) or what a handover writes outside the parts (the Firmware Handoff region,
+5.4, and TF-A's `bl_params` where the platform puts them, 5.3) is checked once, on the board's
+list, before any image is read (`board.md` 3, `platform.md` 5.3). A list that fails is the
+board's failure (`board.md` 2.1), not a refused image. A board without a list loads nothing:
+only a partition that is booted in place boots.
 
 ### 4.4 The image format
 

@@ -88,8 +88,11 @@ the same way. New images that old firmware can't read are fine only if they are 
 ## Fixed elsewhere
 
 - The device identity: `platform_ns_uuid` and the unique id's bytes (`platform.md` 3.7).
-- A board's product in the field: its name (`board_id`), partition UUIDs, GPT variants, A/B state
-  partitions, configuration fuses, the board commands' ids and answers (`board.md` 8).
+- A board's product in the field: its name (`board_id`), partition UUIDs, GPT variants, the boot
+  source policy and its partitions, configuration fuses and keystore slots, the board commands'
+  ids and answers, the handover and the parts named for it, the image data regions, the
+  password's secret
+  (`board.md` 8).
 - The boot flow: the A/B state's format, the `/chosen` properties, each handover's register
   convention, pb's Firmware Handoff structure and tag (`boot.md` 7).
 

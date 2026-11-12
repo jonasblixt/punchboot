@@ -102,6 +102,8 @@ SoC facts for the driver:
   says the DDR controller's "local addresses"; pb passes the physical base (F-241).
 - **Aliasing.** With less DRAM than the controller addresses, DRAM repeats (both RMs): the default
   region stays secure so that the copies are covered.
+- **Non-secure masters (8M).** Some DMA masters are non-secure, the DWC3 among them: without
+  region 1 command mode's USB stops (the comment in `imx8m/plat.c`).
 - **The 8MP's fuse.** Its RM (4.9.1.2) says a TZASC_ENABLE fuse must be blown. On the EVK, unfused,
   GPR10 alone takes it out of bypass (F-208, 2026-11-10): pb, at EL3 through a mapping with the
   NS attribute, had a read refused in a region made secure only, and the same read passed without
@@ -188,10 +190,14 @@ Where each port is (2026-11-11).
 | `plat_init()` errors only for command mode | yes | yes | yes | partly | F-235 |
 | `plat_get_status()` | no | no | no | no | F-248 |
 | `plat_cm_init()` | no | no | no | no | F-267 |
+| The board's regions in the map (5.2) | no | no | no | n/a | F-269, F-158 |
+| SoC memory for image data, `bl_params`' region (5.3) | no | no | no | no | F-254, F-258 |
+| The system controller's API through the platform header (7) | n/a | n/a | partly | n/a | F-270 |
 | TrustZone filter | partly | partly | n/a (BL31) | n/a | F-241, F-208, F-261 |
 | `plat_lockdown()` | yes | yes (nothing yet) | unchecked | unchecked | F-244 |
 | Bus access control | no (AIPS-TZ) | n/a (BL31) | n/a (BL31) | n/a | F-246 |
 | `plat_rot`, `plat_slc` | no | no (no HAB) | no | no | F-247 |
+| EOL as the SoC's own state | no | no | no | no | F-263 |
 | Crypto engine and RNG in `plat_init()` | no | no | no | yes | F-247 |
 | MMU from `pb_mmu_init()` | no | no | no | n/a | F-158 |
 | Link script without addresses | no | partly | no | no | F-239 |

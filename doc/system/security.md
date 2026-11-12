@@ -125,7 +125,7 @@ its new pb refuses to boot. Security before compatibility decides it (`principle
 **4.6 Lock before the jump.** What only pb may change (key revocation, the fuses that reopen a
 locked device, the controller settings the SoC can lock) is locked until the next reset before
 pb jumps (`platform.md` 4.4). When it can't be locked, pb doesn't jump. What follows then is the
-flow's (`boot.md` 2, `platform.md` Open (2)).
+flow's (`boot.md` 2, `platform.md` 4.4).
 
 **4.7 A locked device answers nothing but its identity before authentication** (D-011): the
 device and board identifiers, and the authentication command. A life cycle that is unknown counts

@@ -1,7 +1,7 @@
 # The platform contract
 
-**State: draft (2026-11-11), D-030.** Level 3 (`process.md`). Reviewed once (2026-11-10); seven
-items are open again, below, and it follows `boot.md` and `board.md`.
+**State: reviewed (Jonas, 2026-11-12), D-030, D-053 to D-056.** Level 3 (`process.md`). Reviewed
+once before (2026-11-10), then passed against `boot.md` and `board.md`, and reviewed again.
 
 What a platform (`src/plat/<p>/`, `include/plat/<p>/`) provides, when, and what the rest of pb may
 rely on. Decided in D-030, written in the style of TF-A's porting guide. It is independent of any
@@ -21,22 +21,28 @@ Each entry says what it does, from when it may be called ("valid from") and what
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker here and updates the port's conformance table (`plat-imx.md`).
 
-**Open for the review.** From a review pass (2026-11-11) against `board.md`, `boot.md` and the
-code (`log/2026-11-11.md`). Each is written into the text as a proposal and marked **Open (n)**:
+**No open items.** What the review decided and added, as written into the text:
 
-1. When a bypassed DRAM filter stops the boot (2.3): pb can't tell that an image starts a secure
-   OS. Decided at level 1 (D-036, `security.md` 4.5): always. 2.3's table is sorted by 4.5 too.
-2. What follows a failed `plat_lockdown()` (4.4): command mode with some locks set, or a reset.
-   That pb doesn't jump is `security.md` 4.6.
-3. Who clears the reset reason (3.4): left alone, a sticky cause is reported again (F-210).
-4. `plat_get_boot_source()`'s tag (3.9): the core's serial download stop rests on it.
-5. How a platform declares the memory images may be loaded into, and where `bl_params` live (5.3).
-6. Who stops DMA before the jump (4.5): the drivers, the core or the board.
-7. Which headers a board may include besides the platform's (7): the arch's.
+| Item | Rule | By |
+|---|---|---|
+| Hardware the platform didn't map | The board's `mmap`, data that `pb_mmu_init()` maps (5.2) | Jonas, D-054 |
+| Memory for images | The board's image data regions; the platform declares none, | Jonas, D-055 |
+| | its header names the SoC memory a board may list and `bl_params`' region (5.3) | |
+| What a board may include | The four folders of section 7. The arch through `include/pb/arch.h`; | Jonas, D-056 |
+| | a system controller's API through the platform header, not by its own path | |
+| The filter's text (4.3) | No fact of one port's in the rule | Jonas |
 
-`board.md` and `boot.md` are drafts and still change. What follows them here is marked "follows
-`board.md`" or "follows `boot.md`" and is revisited when they are final: 2.3, 3.9, 4.4, 4.5, 5.3
-and 7.
+The pass (D-053) closed five of the seven items of 2026-11-11, because the documents above and
+beside this one leave one answer:
+
+| Item | Rule | By |
+|---|---|---|
+| A bypassed DRAM filter (2.3) | Refuses every boot, in every life cycle state | `security.md` 4.5 |
+| A failed `plat_lockdown()` (4.4) | pb stops; a boot command mode started resets | `boot.md` 2, |
+| | | `board.md` 5.4 |
+| Who clears the reset reason (3.4) | Not pb: the OS reads the same register | `system.md` 5.1 |
+| `plat_get_boot_source()`'s tag (3.9) | Mandatory when the ROM has a serial downloader | `board.md` 5.1 |
+| Who stops DMA before the jump (4.5) | Whoever started it | `board.md` 5.3 |
 
 ## 1. Scope
 
@@ -68,14 +74,15 @@ arch_init()
 plat_early_init()       fails: reset
 board.console_init()
 plat_init()             fails: reset
-board_setup()           fails: command mode
-boot()                  fails: command mode   (also when a precondition fails, 2.3)
+board_setup()           fails: pb stops
+boot()                  fails: pb stops       (also when a precondition fails, 2.3)
   plat_lockdown()       before the jump (4.4)
 the tasks, in turn      when the boot failed or stopped (5.1); command mode is one; then reset
 ```
 
-A platform failure resets instead of entering command mode: without what `plat_init()` sets up,
-command mode has no console, no MMU or no DRAM for its buffers (F-202, F-235). A deterministic
+A platform failure resets instead of stopping (`system.md` 5.4): stopped, pb runs its tasks, and
+command mode is one of them (`board.md` 4). Without what `plat_init()` sets up, command mode has
+no console, no MMU or no DRAM for its buffers (F-202, F-235). A deterministic
 failure is then a reset loop; the recovery is the ROM's serial download.
 
 ### 2.1 Function : plat_early_init() [mandatory]
@@ -137,47 +144,35 @@ What only command mode needs is set up by command mode's task, not here (D-023):
 
 ### 2.3 No silent boot: the boot's preconditions
 
-**Not yet in the code (F-248). The rule is decided, the policy below is a proposal (open).**
+**Not yet in the code (F-248).**
 
-pb never boots silently when something the boot's security depends on failed. F-096 is the
-example: the DRAM filter was bypassed for years, everything worked, and nothing showed it.
+pb never boots silently when something the boot's security depends on failed (`security.md` 4.5).
+F-096 is the example: the DRAM filter was bypassed for years, everything worked, and nothing
+showed it.
 
-`boot()` checks the platform's status (3.8) before it loads anything, against what this boot
-needs, and the core decides, not the platform. A boot command mode started is checked too. Where
-the check sits in the flow follows `boot.md` 2 and 6 (draft: before `early_boot()`).
+`boot()` checks the platform's status (3.8) in every boot, also one command mode started, before
+`early_boot()` and before anything is loaded (`boot.md` 2). The core decides, not the platform.
+The conditions are sorted by what rests on them (`security.md` 4.5):
 
-| Condition | Matters when | Proposed: when it failed |
+| Condition | Rests on it | When it failed |
 |---|---|---|
-| The DRAM filter is bypassed | **Open (1)**, proposed: always | No boot |
-| The watchdog didn't arm | `CONFIG_ENABLE_WATCHDOG` | Open: A/B's rollback needs it, but |
-| | | refusing means no system at all |
-| The crypto engine failed | The board uses it | Open: no boot, or the software fallback |
-| The ROM's logs are missing | Never | Logged only |
+| The DRAM filter is bypassed | The secure world's isolation | No boot |
+| The crypto engine failed | What runs next: the image's verification | No boot. A fallback that |
+| | | verifies the same would boot; no build has one today |
+| The watchdog didn't arm | Availability | Boots, and reports `watchdog-not-armed` in pb's |
+| (with `CONFIG_ENABLE_WATCHDOG`) | | status (`boot.md` 5.6) |
+| The ROM's logs are missing | Nothing of the boot's | Logged only |
 
-The lockdown (4.4) is not in the table: whether it can be done is known only at the jump, not
-before the load. Its failure stops the boot there (4.4).
-
-**Open (1)**: when a bypassed filter matters. The first version said "the image starts a secure OS
-(BL32)", which pb can't tell:
-
-- Through TF-A the BL32 is named by the board's configuration, not by the image.
-- With the image handover a secure OS is the image's kernel part like any other. That is F-096's
-  own case, and a rule on BL32 would not have caught it.
-- The preconditions are checked before an image is read.
-
-Proposed: always. `PLAT_TZ_DRAM_BYPASSED` refuses every boot: a filter pb owns is never left in
-bypass on purpose. The cost: a product in the field whose ROM setup doesn't take the filter out of
-bypass, and that runs no secure OS, stops booting when it is updated to 3.0.0 (`principles.md` 3
-against 1, and security comes first). The alternative is a board that declares its product has a
-secure world, and the check only then; a board that forgets the declaration is F-096 again.
-
-"No boot" means `boot()` fails: pb enters command mode, which needs authentication on a locked
-device, and reports the reason in its log. Open with it:
-
-- The same rule in every life cycle state, or a development override? Proposed: the same rule; a
-  development board is where a bypassed filter goes unnoticed (F-096).
-- Tell the OS: decided at level 1 (`system.md` 3). What pb booted without is part of pb's
-  information in the handover (`boot.md` 5.6).
+- **The same rule in every life cycle state**, without a development override: a development
+  board is where a bypassed filter goes unnoticed (F-096).
+- **A bypassed filter refuses every boot**, also for a product with nothing in the secure world:
+  pb can't tell that an image starts a secure OS, and a declaration is what a board forgets. The
+  cost is a porting note for 3.0.0: a product whose setup before pb leaves the filter in bypass
+  stops booting with its new pb (`security.md` 4.5).
+- **"No boot"** means `boot()` fails: pb stops, and command mode, which needs authentication on a
+  locked device, has the reason in its log.
+- The lockdown (4.4) is not in the table: whether it can be done is known only at the jump, not
+  before the load. Its failure stops the boot there.
 
 ## 3. Services
 
@@ -268,13 +263,14 @@ The reason is read in `plat_early_init()`, not cleared. When several causes are 
 in the platform header decides `kind`. `raw` is for board code that needs the SoC's detail. It is
 not on the wire.
 
-**Open (3)**: who clears it. A reset status register is usually sticky: left alone, a cause stays
-set over the resets that follow, until a power-on reset, and the priority then reports the old
-one (F-210: the i.MX6UL's). "Not cleared" was chosen because the OS reads the same register.
-Proposed: pb still doesn't clear it. The platform header says which causes survive a reset, `kind`
-means "the highest priority cause since the status was last cleared", and clearing is the OS's.
-The alternative: pb clears it after reading and hands the reason to the next stage with pb's
-information (`boot.md` 5.6), which changes what an OS in the field reads (`principles.md` 3).
+pb doesn't clear it. The OS reads the same register, and what an OS in the field reads doesn't
+change in an update (`system.md` 5.1). A reset status register is usually sticky, so a cause
+stays set over the resets that follow, until a power-on reset (F-210: the i.MX6UL's):
+
+- `kind` means "the highest priority cause since the status was last cleared", not "the cause
+  of this reset".
+- The platform header says which causes survive a reset.
+- Clearing is the OS's.
 
 ### 3.5 Function : plat_get_unique_id() [mandatory]
 
@@ -337,7 +333,7 @@ What `plat_init()` recorded (2.2), for the boot's preconditions (2.3) and for co
 shows it in its log. Valid from `plat_init()`. A platform without a field's feature reports it as
 absent (`PLAT_TZ_DRAM_NONE`, `false`). New fields come with a row in 2.3.
 
-### 3.9 Function : plat_get_boot_source() [optional]
+### 3.9 Function : plat_get_boot_source() [mandatory when the ROM has a serial downloader]
 
 ```
 Argument : struct pb_boot_source *
@@ -345,7 +341,8 @@ Return   : int, PB_OK or -PB_ERR_NOT_SUPPORTED
 ```
 
 Where the ROM (or a debugger) loaded pb from: a bio partition's UUID, USB, UART, the debugger, or
-unknown (with PB_OK: the platform can't tell this time). Without it: -PB_ERR_NOT_SUPPORTED. Only
+unknown (with PB_OK: the platform can't tell this time). On a SoC whose ROM has no serial
+downloader a platform may leave it out: -PB_ERR_NOT_SUPPORTED. Only
 the platform knows how its ROM reports this; drivers only report facts about their device
 (`mmc_get_boot_part_config()`).
 
@@ -353,10 +350,11 @@ Valid from: USB, UART and the debugger from `plat_early_init()`, which saves wha
 (2.1). A partition once the board's storage is set up (`board_setup()`): naming it may need the
 device.
 
-**Open (4)**: its tag. Follows `board.md` 5.1 (draft): the core's serial download stop asks this
-function, so with -PB_ERR_NOT_SUPPORTED the stop never triggers, and nothing shows it (F-251).
-Proposed: `[mandatory when the ROM has a serial downloader]` for USB and UART; the partition and
-the debugger stay optional.
+Why mandatory: the core's serial download stop asks this function, and a board doesn't check
+for a serial download itself (`board.md` 5.1). With -PB_ERR_NOT_SUPPORTED the stop never
+triggers, and nothing shows it. What is mandatory is reporting USB and UART; naming the
+partition and the debugger stays optional (unknown). **Not yet in the code (F-251)**: only the
+6UL reports a serial download, and only over USB.
 
 ### 3.10 Function : plat_cm_init() [mandatory when CONFIG_CM]
 
@@ -368,9 +366,8 @@ Return   : int, PB_OK or -PB_ERR_*
 ```
 
 Called once by command mode's task, when it first runs, never on the boot path (D-023,
-`board.md` 4.6). It sets up the USB
-device port command mode uses (D-049, `board.md` 4.1): its clocks, its power, its PHY and its
-controller, so that the transport can start.
+`board.md` 4.6). It sets up the USB device port command mode uses (D-049, `board.md` 4.1): its
+clocks, its power, its PHY and its controller, so that the transport can start.
 
 - Which port: a Kconfig choice of the platform's, one option per port of the SoC that can be a
   device. The board's defconfig makes it.
@@ -410,10 +407,17 @@ fuse index macro (`<P>_FUSE()`). `board_setup()` passes both to `slc_init()`. Th
 rules (the order of the states, D-011, F-166) are the core's, in `slc.c`; the platform only reads
 and writes fuses.
 
+`set_eol`: every port implements EOL, as the SoC's own end of life state, or its document says
+why the SoC can't (`system.md` 4). A product chooses it with a Kconfig option, off by default.
+**Not yet in the code (F-263)**: only the host platform has it.
+
 ### 4.3 The TrustZone DRAM filter [mandatory when the SoC has one]
 
-**Not yet in the code (F-248, F-241, F-261)**: the state isn't reported; the i.MX6UL's addresses
-are unchecked; the ports open the SoC's whole DRAM window, not the board's DRAM (item 3).
+**Not yet in the code (F-248, F-241, F-261)**: the state isn't reported, a failed set-up is only
+logged, and the ports open the SoC's whole DRAM window, not the board's DRAM (item 3).
+
+This is pb's part of the secure world's isolation (`security.md` 4.9), and a boot without it is
+refused (2.3).
 
 TrustZone is architectural (Secure and Non-secure state, the NS bit on the bus), the filter that
 checks DRAM accesses isn't: it is SoC IP (an Arm TZC-380 or TZC-400, a vendor's own controller, or
@@ -427,8 +431,8 @@ A platform whose SoC has a filter:
 2. Locks the enable where the SoC can, so that the normal world can't switch it off.
 3. Opens the board's DRAM, not the whole address space, to both worlds in a region of its own and
    leaves the default region secure only: where DRAM appears more than once in the address space
-   (aliases), the copies stay protected. Some DMA masters are non-secure, so without that region
-   pb's own USB stops. No lockdown: the secure OS replaces the region with its own and locks.
+   (aliases), the copies stay protected. No lockdown: the secure OS replaces the region with its
+   own and locks.
 4. Passes the SoC's facts to the shared driver as data: the base, how it counts addresses (from 0
    or from the DRAM's base), the aliases, quirks.
 5. Reports the state (`plat_get_status()`).
@@ -446,22 +450,23 @@ Return   : int, PB_OK or -PB_ERR_*
 ```
 
 Called by the core right before the jump, after the last moment command mode could use what it
-locks. Locks, until the next reset, what only pb may change: key revocation (pb revokes keys in
-command mode, so the ROM may have been told to leave it unlocked), the fuses that reopen a closed
-device (field return, debug unlock), and the controller settings the SoC can lock for the boot's
-lifetime. A platform with nothing to lock returns PB_OK and says so in its header.
+locks (`security.md` 4.6). Locks, until the next reset, what only pb may change: key revocation
+(pb revokes keys in command mode, so the ROM may have been told to leave it unlocked), the fuses
+that reopen a closed device (field return, debug unlock), and the controller settings the SoC
+can lock for the boot's lifetime. A platform with nothing to lock returns PB_OK and says so in
+its header.
 
 It may be called more than once before a reset (a boot that stopped after it, then a boot from
 command mode): locking what is already locked is not an error.
 
 Failure: the boot doesn't jump. It is not one of 2.3's preconditions, it is known only here.
 
-**Open (2)**: what follows a failure. Some of the locks may be set by then, and they hold until
-the next reset: command mode can't revoke a key, or do what else they cover, until then. Follows
-`boot.md` 2 (draft: pb enters command mode) and `board.md` 5.4 (draft: pb resets when command mode
-started the boot). Proposed: keep both, and command mode passes on the driver's error for what a
-lock refuses. A reset in every case would turn a lockdown that always fails into a reset loop
-without command mode.
+What follows a failure is the flow's (`boot.md` 2, `board.md` 5.4): pb stops, as after any
+failure outside the loop over the candidates, and a boot command mode started resets, because
+its transport is disconnected by then. Some of the locks may be set, and they hold until the
+next reset: command mode can't revoke a key, or do what else they cover, until then, and passes
+on the driver's error for what a lock refuses. A lockdown that always fails therefore ends in
+command mode, not in a reset loop.
 
 ### 4.5 Other duties of the stage in BL2's place
 
@@ -478,11 +483,10 @@ expects. `plat-imx.md` lists, per port, who does each and where pb stands.
   protocol requires it; only EL3 can write it).
 - **Timers armed out of reset and reset routing**: 2.1.
 - **DMA stopped before the jump** ("Quiesce all DMA capable devices", Linux's booting.rst).
-  **Open (6)**: the owner. The first version gave it to the drivers, through the boot driver;
-  `board.md` (draft) has the core disconnect command mode's transport (4.2) and `late_boot()` stop
-  what the board started (5.3). Proposed: whoever started it stops it. The core its transport and
-  the device it loaded from, the board what its hooks started, the platform what `plat_init()`
-  started. Part of the handover contract, later.
+  Whoever started it stops it (`board.md` 5.3). The core: command mode's transport, which stops
+  the USB controller that `plat_cm_init()` started, and the device it loaded from. The board:
+  what its hooks started, in `late_boot()`. The platform: what `plat_init()` started. How a
+  driver is stopped is the drivers' contract (later).
 
 ## 5. Memory
 
@@ -499,9 +503,12 @@ the ROM set up) and the board's DRAM (where images are loaded). Their names say 
 | `CONFIG_PB_ENTRY` | Board defconfig | Where pb is loaded and linked | Linker, image stages |
 | `CONFIG_BOARD_DRAM_BASE`, `_SIZE` | Board defconfig, with DRAM | The board's DRAM | MMU layer 1, linker checks |
 | `CONFIG_PB_BUFFERS_BASE`, `_SIZE` | Board, default from the platform | The `buffers` region | Linker |
+| `CONFIG_BOOT_FH_REGION_BASE`, `_SIZE` | Board defconfig, with Firmware | The transfer list's region | Placement, |
+| | Handoff | (`boot.md` 5.4) | linker checks |
 | The ROM's load windows | Platform | Where the ROM may load pb | Linker checks, `pb` size |
-| `PLAT_*_ADDR_SPACE_SIZE`, `MAX_XLAT_TABLES`, | Platform | The translation tables | xlat_tables |
-| `MAX_MMAP_REGIONS` | | | |
+| `PLAT_*_ADDR_SPACE_SIZE` | Platform | The translation tables | xlat_tables |
+| `MAX_XLAT_TABLES`, `MAX_MMAP_REGIONS` | Board, default from the platform | Their number, with | xlat_tables |
+| | | the board's regions (5.2) | |
 | `PB_SECTION_ALIGNMENT` | Arch | Section alignment | Linker |
 
 Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
@@ -511,7 +518,8 @@ Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
 - The platform's `link.lds` defines `MEMORY` from these values, with no addresses of its own except
   the SoC's regions (a DRAM controller's save area, a reset stub). It `ASSERT`s that `pb` is in a
   load window, that `buffers` is in memory that works after `plat_init()` (the board's DRAM or the
-  SoC's on-chip RAM), and that they don't overlap.
+  SoC's on-chip RAM), and that they don't overlap. The Firmware Handoff region is checked the
+  same way, and against both. **Not yet in the code (F-259).**
 - `src/link.lds` places pb's sections: code, data, rodata, stack, bss and the RAM log in `pb`,
   `.no_init` and the translation tables in `buffers`. It provides `_pb_start/_end` and
   `_buffers_start/_end`.
@@ -527,14 +535,16 @@ platform trains, so nothing before `plat_init()` uses `.no_init`.
 
 **Not yet in the code (F-158)**: the ports copy the same MMU setup.
 
-`pb_mmu_init(plat_mmap)` (`src/mmu.c`) maps three layers. xlat_tables_v2 accepts fully nested
+`pb_mmu_init(plat_mmap)` (`src/mmu.c`) maps four layers. xlat_tables_v2 accepts fully nested
 flat regions, the innermost wins; partial overlaps are refused.
 
 1. **The board's DRAM**: `[BOARD_DRAM_BASE, +SIZE)`, RW, execute never.
 2. **The platform's `plat_mmap[]`**: devices, the ROM (its APIs), on-chip RAM, SoC regions. A
    region layer 1 already covers stays named when the SoC uses it for something particular (the
-   next stage's load address over a reset stub).
-3. **pb itself**: `.text` RX, `.rodata` RO execute never, the rest of `pb` RW execute never,
+   next stage's load address over a reset stub). The SoC's peripheral buses are mapped whole,
+   not only the peripherals the platform has a driver for: a board uses others.
+3. **The board's `mmap`**: what the board reaches and the platform didn't map (below).
+4. **pb itself**: `.text` RX, `.rodata` RO execute never, the rest of `pb` RW execute never,
    `buffers` RW execute never. `pb` and `buffers` are two regions: one span over the gap between
    them maps the address space in between as memory (F-158).
 
@@ -544,22 +554,87 @@ doesn't call that itself. ARMv7-M has an MPU and no `plat_mmap`. Layer 1 also ma
 touches, such as a secure carve-out: pb runs in the Secure state, and the filter (4.3), not pb's
 MMU, protects it from the normal world.
 
+**The board's regions** `[optional]`. **Not yet in the code (F-269).** A board will want hardware
+the platform didn't map (Jonas, D-054): a device on an external bus (a chip select, an FPGA), a
+memory mapped flash, a SoC peripheral outside the buses of layer 2. The board declares it as
+data, `mmap` in `struct board` (`board.md` 2.8), and `pb_mmu_init()` maps it with the rest. The
+platform does nothing for it, and the board needs no patch to the platform:
+
+```c
+static const struct pb_mmap_region board_mmap[] = {
+    PB_MAP_DEVICE(0x08000000, 0x00010000),    /* The FPGA on chip select 0 */
+    PB_MAP_MEMORY_RO(0x60000000, 0x01000000), /* The NOR flash's window */
+    PB_MAP_END,
+};
+
+const struct board board = {
+    .mmap = board_mmap,
+};
+```
+
+- **Why data, not a call.** The tables are built once, before the MMU is on, and before any of
+  the board's code that needs them. A call that maps at run time would put xlat_tables' dynamic
+  tables into every build, on the boot path (D-023), and its failure would come late. As data,
+  a region is checked with the rest of the map and is there from `board.init()` on.
+- **Three kinds**, from `include/pb/mmu.h`, so a board includes nothing of xlat_tables:
+  `PB_MAP_DEVICE` (device memory, RW), `PB_MAP_MEMORY_RO` and `PB_MAP_MEMORY_RW` (normal
+  memory). None is executable: only pb's `.text` and the platform's ROM are.
+- **Flat**, as everything in pb. The base and the size are multiples of the page size, which the
+  macro checks in the build.
+- **Outside what is mapped already**: `pb`, `buffers`, the board's DRAM and every region of
+  `plat_mmap[]`. xlat_tables would take a nested region and let it win, so a board's region
+  could change what pb or the platform mapped; `pb_mmu_init()` checks and refuses instead. A
+  board that needs other attributes inside a region of the platform's has found an error in
+  `plat_mmap[]`.
+- **Room.** `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` (5.1) count the board's regions too. They
+  are Kconfig values with the platform's default, which a board with many regions raises in
+  its defconfig. The tables are in `buffers`, whose size the linker checks.
+- **Failure.** A region that overlaps, or doesn't fit, fails `pb_mmu_init()` with a log line
+  that names it, and with it `plat_init()` (2.2): `main()` resets. The console is up by then
+  (`board.console_init()`), so it shows on the first boot of a new board. No region is ever
+  left out silently.
+- **Valid from** `board.init()`. `board.console_init()` runs before the MMU is on and reaches
+  everything.
+- **Access only.** A region's clock, power and pads are the board's to set up (section 7).
+- **ARMv7-M**: pb leaves the MPU off and everything is reachable. `mmap` is accepted and not
+  read.
+- NULL: nothing but layers 1, 2 and 4.
+
 ### 5.3 Memory for images and handovers
 
-Follows `boot.md` 4.3, 5.3 and 5.4 (draft). **Not yet in the code (F-254, F-258, F-259).**
+**Not yet in the code (F-254, F-258, F-253).**
 
-The boot's placement check (`boot.md` 4.3) lets an image's parts land in the board's DRAM (5.1)
-and in what the platform declares. **Open (5)**: the form of both declarations.
+An image's parts are loaded only into the image data regions, a list the board gives
+(`board.md` 2.9, `boot.md` 4.3, D-055). The platform declares no loadable memory of its own:
+what a product loads outside DRAM is the product's to say, and a list of the platform's would
+allow those loads on every board of the SoC.
 
-- **Loadable regions** `[optional]`: memory outside the board's DRAM that images may be loaded
-  into, such as on-chip RAM or a TCM. Proposed: a table next to `plat_mmap[]`, base and size,
-  empty on most platforms, and each region is in `plat_mmap[]` too. Without it: only the board's
-  DRAM.
+The platform's part:
+
+- **SoC memory a board may list.** The header names the memory outside DRAM that a part can be
+  loaded into, base and size, with what it is for: the on-chip RAM a BL31 is linked for, a TCM
+  for another core's image. It is in `plat_mmap[]`, read and write.
 - **Where `bl_params` live** `[mandatory when the SoC's BL31 restricts it]`: TF-A's BL31 may take
-  its parameters only from some memory. Proposed: the platform gives the boot driver a region for
-  them, which the placement check keeps free of parts. Without it: pb's own data.
-- **The Firmware Handoff region** is the board's (a Kconfig base and size, `boot.md` 5.4). It gets
-  a row in 5.1's table and its `ASSERT`s when its names are settled.
+  its parameters only from some memory (`boot.md` 5.3). The header then defines
+  `PLAT_BL_PARAMS_BASE` and `PLAT_BL_PARAMS_SIZE`, a SoC region that is in `plat_mmap[]` and
+  that the link script keeps `pb` and `buffers` off (5.1). The TF-A delivery writes them
+  there. Without it: pb's own data.
+
+The check of a part names nothing of pb's: inside one region, over no other part. What keeps a
+part off pb is checked once, on the list, when the board's data is checked (`board.md` 3). No
+image data region overlaps:
+
+- `pb` or `buffers`. Everything pb links is in one of the two (5.1), so a section added later
+  is covered without a change to the check.
+- The Firmware Handoff region, with `CONFIG_BOOT_FH`.
+- `bl_params`' region, where the platform has one.
+
+Not the platform's to declare:
+
+- **The Firmware Handoff region** is the board's (5.1's table).
+- **A partition that is booted in place** is the board's (`board.md` 2.4): the board gives the
+  address its device is mapped at. Where the arch has an MMU that range is mapped readable: in
+  `plat_mmap[]` when it is a SoC region, in the board's `mmap` (5.2) when it isn't.
 
 ## 6. The build interface
 
@@ -622,10 +697,21 @@ The platform's side. What the core promises a board and asks of it is `board.md`
 A board includes `include/pb/`, `include/drivers/`, `include/boot/` and `include/plat/<p>/`,
 nothing from `src/plat/` (the same list as `board.md` 6).
 
-**Open (7)**: the boards also include `<bpak/bpak.h>` and, on one platform, the arch's headers (a
-timer, the register helpers). Proposed: `<bpak/bpak.h>` joins the list, the boot hooks get a
-`struct bpak_header`. The arch's headers don't: what a board needs from the arch comes through
-`include/pb/arch.h` or the platform header.
+A board that asks for the verified header also includes the image format's header,
+`<bpak/bpak.h>` (`board.md` 5.3, D-047).
+
+Nothing else (Jonas, D-056). **Not yet in the code (F-270)**: the two 8X boards include the
+arch's headers, and the system controller's API by its own path.
+
+- **Not the arch's headers** (`arch/arch_helpers.h`, `arch/armv8a/timer.h`). What a board needs
+  from the arch comes through `include/pb/arch.h`.
+- **A system controller's API through the platform header.** A board that sets up its own
+  clocks and power on such a SoC calls the system controller, so its API is part of what the
+  platform gives a board. It lives with the platform (`include/plat/<p>/`, `src/plat/<p>/`):
+  it is the SoC's, and the platform is built on it. The platform header includes the services
+  a board needs, and the board includes the platform header, never the API's headers by their
+  own path. An include path into the API's folder is for the platform's own sources. With
+  command mode's USB in the platform (3.10) the boards' own calls get fewer.
 
 The platform header documents:
 
@@ -636,7 +722,9 @@ The platform header documents:
   except those the header marks as valid from `plat_early_init()`: `board.console_init()` runs
   between the two (`board.md` 2.2) and may need a system controller's handle for its clock and
   pads.
-- Helpers for boards (pad setup through a system controller).
+- Helpers for boards (pad setup through a system controller), and which of a system
+  controller's services the header gives a board.
+- The SoC memory a board may list as an image data region, and `bl_params`' region (5.3).
 - The tick's accuracy, the watchdog's longest stretch without a kick, the boot reason's `raw`
   values and priority, what `plat_lockdown()` locks, and for level 3 builds what the ROM requires
   around `pb.bin`.
@@ -660,8 +748,8 @@ For a new platform, and for a change to one:
       stretch without a kick, measured.
 - [ ] `plat_get_us_tick()` is in microseconds and wraps at 2^32; the header gives its accuracy.
 - [ ] `plat_get_boot_reason()` maps every cause to a `kind`, with the priority in the header, and
-      the header says which causes survive a reset (open 3).
-- [ ] `plat_get_boot_source()` reports a serial download where the ROM has one (open 4).
+      the header says which causes survive a reset. Nothing clears the status.
+- [ ] `plat_get_boot_source()` reports a serial download, USB and UART, where the ROM has one.
 - [ ] `plat_cm_init()` sets up the USB port the defconfig chose, relies on nothing of the
       board's, and nothing of it runs on the boot path.
 - [ ] The device identity is unchanged: `platform_ns_uuid`, the unique id's bytes, order, length.
@@ -672,12 +760,16 @@ For a new platform, and for a change to one:
       reported; or the header says why there is none.
 - [ ] `plat_lockdown()` locks key revocation and what reopens a closed device, or the header says
       why there is nothing. It can be called twice.
-- [ ] The duties of 4.5 are done, or left to a named later stage.
+- [ ] The duties of 4.5 are done, or left to a named later stage. What `plat_init()` started
+      and must not run in the next stage is stopped.
 - [ ] `plat_rot` and `plat_slc` only read and write fuses; the rules stay in `rot.c`, `slc.c`.
+      EOL is the SoC's own state, or the port's document says why there is none.
 - [ ] The link script has no addresses but the SoC's regions; its `ASSERT`s check the windows.
-- [ ] `plat_mmap[]` holds only SoC regions; `pb_mmu_init()` is called after DRAM works.
-- [ ] The loadable regions and the place for `bl_params` are declared where the SoC has them
-      (5.3).
+- [ ] `plat_mmap[]` holds only SoC regions, with the peripheral buses whole; `pb_mmu_init()` is
+      called after DRAM works. Nothing in the platform is written for one board's hardware:
+      that is the board's `mmap` (5.2).
+- [ ] The header names the SoC memory a board may list as an image data region, and
+      `bl_params`' region where BL31 restricts it. The platform itself allows no load (5.3).
 - [ ] The image stages follow 6.2: `?=` inputs, Kconfig gated, all three override levels work.
 - [ ] The header documents what section 7 lists.
 - [ ] Facts from a reference manual are cited by document and section. NDA documents are not

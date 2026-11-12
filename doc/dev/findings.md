@@ -410,7 +410,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | is imported and unused) nor `.ramlog`. `CHECK_OVERLAP` has no wrap-around check (`dtb.c` has its own | | |
 | | | `overlaps()`, which does), parts aren't checked against each other nor against the board's DRAM. A | | |
 | | | signed image is trusted, but unverified payload bytes land there before the payload hash is checked | | |
-| | | (`principles.md` 2). An allow list (the board's load regions minus pb) instead of a deny list | | |
+| | | (`principles.md` 2). An allow list instead of a deny list. D-055, `boot.md` 4.3, `board.md` | | |
+| | | 2.9: `image_regions` in `struct board`; a part lies inside one region and over no other part; | | |
+| | | that no region overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region is | | |
+| | | checked once, with the board's data. The platform header names the SoC memory a board may list | | |
 | F-255 | `src/boot/dtb.c` `set_initrd()` | `linux,initrd-start` and `-end` are written | Verified (code) | open |
 | | | with `fdt_setprop_u32()`: a ramdisk above 4 GiB gets a truncated address. Use the root's | | |
 | | | `#address-cells`. The encoding (D-038, `boot.md` 5.2): 32 bits where both fit, as today, 64 | | |
@@ -483,6 +486,20 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | without `CONFIG_CM`, in no order, until one returns an error; command mode becomes one of them | | |
 | | | (`cm_main_task`: `cm_main.c`'s blocking loop turned into a step); `process` goes. With F-239 | | |
 | | | (the link scripts) and F-267 | | |
+| F-269 | `include/pb/board.h`, `src/plat/*/plat.c`, `src/plat/*/makefile.mk` | A board | Verified (code) | open |
+| | | can't map hardware the platform didn't: the tables are built by each platform's | | |
+| | | `plat_mmu_init()` from its own `imx_mmap[]`, and `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` are | | |
+| | | `-D` flags of the platform's (32 each). D-054, `platform.md` 5.2, `board.md` 2.8: `mmap` in | | |
+| | | `struct board`, a list of `PB_MAP_DEVICE`, `PB_MAP_MEMORY_RO` and `PB_MAP_MEMORY_RW` regions | | |
+| | | (`include/pb/mmu.h`), mapped by `pb_mmu_init()`, which refuses a region that overlaps pb, the | | |
+| | | board's DRAM or a region of the platform's; the two numbers become Kconfig values. With F-158 | | |
+| F-270 | `src/board/{imx8qxmek,imx8dxlevk}/board.c`, `include/plat/imx8x/imx8x.h` | The | Verified (code) | open |
+| | | two 8X boards include the arch's headers (`arch/arch_helpers.h`, `arch/armv8a/timer.h`) and the system | | |
+| | | controller's API by its own path (`sci/svc/{misc,pad,pm,seco}/api.h`, found through the | | |
+| | | platform's `-Iinclude/plat/imx8x/`). `imx8x.h` includes only `sci/ipc.h` and the pad service. | | |
+| | | D-056, `platform.md` 7: the API stays with the platform; `imx8x.h` includes the services boards | | |
+| | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
+| | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
 ## Dependencies / vendored code
