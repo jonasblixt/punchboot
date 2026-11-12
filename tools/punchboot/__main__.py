@@ -569,7 +569,8 @@ def boot_status(_ctx: click.Context, s: Session) -> None:
     "part_uuid",
     type=click.UUID,
     shell_complete=_get_part_completion_helper(filt_boot=True),
-    required=False,
+    # Without it the null UUID went out, which disables boot (F-224)
+    required=True,
 )
 @pb_session
 @click.pass_context

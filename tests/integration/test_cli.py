@@ -87,6 +87,19 @@ def test_not_found_messages(device: Device, tmp_path: pathlib.Path) -> None:
     assert result.stderr.strip() == "Error: Could not connect to device"
 
 
+def test_boot_enable_needs_a_partition(device: Device) -> None:
+    # Without one it sent the null UUID, which disables boot (F-224)
+    with device.session() as s:
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+
+    result = punchboot_cli(device, "boot", "enable")
+
+    assert result.returncode == 2
+    assert "Missing argument" in result.stderr
+    with device.session() as s:
+        assert s.boot_status()[0] == SYSTEM_A_UUID
+
+
 def test_dev_reset(device: Device) -> None:
     result = punchboot_cli(device, "dev", "reset")
 
