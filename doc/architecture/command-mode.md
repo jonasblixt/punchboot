@@ -306,7 +306,7 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
 | `PART_BPAK_READ`        | `C R <4096 R`                               | Ends                               |
 | `SLC_READ`              | `C R <128 R`                                | Ends                               |
 | `LOG_READ`              | `C R`, and `<size R` when the size isn't 0  | Ends                               |
-| `BOARD_STATUS_READ`     | `C R <size R`, a transfer also for size 0   | See below                          |
+| `BOARD_STATUS_READ`     | `C R <size R`, a transfer also for size 0   | Ends                               |
 | `BOARD_COMMAND`         | `C R`, `>1024` when it has a request, `R`,  | The host sends the request anyway  |
 |                         | and `<size R` when the size isn't 0         |                                    |
 | `BOOT_BPAK`             | `C R >4096 R`, then for each part its bytes | Ends (5.5)                         |
@@ -329,9 +329,8 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
   only: the device reads every part, answers each, and the last result is the verdict. A
   part's result isn't OK when the hash engine failed; a payload whose hash differs is the last
   result's.
-- **`BOARD_STATUS_READ` that fails**: the device sends the data and the second result after an
-  error, and the Python host stops at the first result. Which side is right is the 2.x hosts'
-  to say (F-274); until then the device's sequence stays.
+- **`BOARD_STATUS_READ` that fails**: the error result is the verdict, without data or a second
+  result. Every released host stops there: the 1.x and 2.x C libraries and the Python host.
 - **A transfer that fails ends the session** (3.1): the two sides no longer agree on where a
   frame starts. Nothing more is sent on that transport, also where the command goes on, and
   it is restarted.

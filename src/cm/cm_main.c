@@ -1262,6 +1262,13 @@ static int pb_command_parse(void)
         size_t response_size = CM_BUF_SIZE;
         rc = cfg->status(bfr_response, &response_size);
 
+        /* Released hosts stop at an error here: the result is the verdict,
+         * without data or a second result (command-mode.md 4.4) */
+        if (rc != PB_OK) {
+            pb_wire_init_result(&result, error_to_wire(rc));
+            break;
+        }
+
         status_result.size = response_size;
         pb_wire_init_result2(&result, error_to_wire(rc), &status_result, sizeof(status_result));
 

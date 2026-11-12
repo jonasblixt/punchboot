@@ -279,10 +279,12 @@ int cm_board_init(void)
     return cm_init(board_cfg);
 }
 
+static int board_status_rc;
+
 static int board_status(uint8_t *buf, size_t *length)
 {
     *length = snprintf((char *)buf, *length, "status ok");
-    return PB_OK;
+    return board_status_rc;
 }
 
 static int
@@ -685,6 +687,7 @@ static int setup(void **state)
     crypto.verify_ok = true;
     board_cfg = &cfg_default;
     board_init_rc = PB_OK;
+    board_status_rc = PB_OK;
     /* The clock runs: a failed authentication waits on it (F-276) */
     fake_us_tick_step = TICK_STEP_US;
 
@@ -876,6 +879,23 @@ static void test_board_status(void **state)
     const struct pb_result_board_status *status = (const void *)r->response;
     assert_int_equal(status->size, strlen("status ok"));
     assert_memory_equal(expect_data(status->size), "status ok", status->size);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+/* A status that fails is answered with the error alone: released hosts
+ * stop at it (command-mode.md 4.4, F-274) */
+static void test_board_status_fails(void **state)
+{
+    (void)state;
+
+    board_status_rc = -PB_ERR_IO;
+    host_cmd(PB_CMD_BOARD_STATUS_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    const struct pb_result *r = expect_result(-PB_RESULT_IO_ERROR);
+    assert_int_equal(((const struct pb_result_board_status *)r->response)->size, 0);
     expect_result(PB_RESULT_OK);
     expect_end();
 }
@@ -3177,6 +3197,7 @@ int main(void)
         CM_TEST(test_part_activate),
         CM_TEST(test_boot_status),
         CM_TEST(test_board_status),
+        CM_TEST(test_board_status_fails),
         CM_TEST(test_board_command),
         CM_TEST(test_board_command_request_size),
         CM_TEST(test_error_codes),

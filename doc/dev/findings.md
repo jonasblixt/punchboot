@@ -469,12 +469,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
 | | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
 | F-274 | `src/cm/cm_main.c`, `tools/punchboot/session.py` | Exchanges that get out of | Verified (code) | open |
-| | | step (the parts keep their first numbers; (1), a refused `STREAM_PREPARE_BUFFER`, and (4), | | |
-| | | `boot bpak` refused before the header, are fixed). | | |
-| | | (2) `BOARD_STATUS_READ` whose `status()` fails sends the error result, the data and a second | | |
-| | | result; the Python host raises at the first and leaves two transfers on the link. Check what the 2.x C host did (the transcripts) before changing either side. (3) Most | | |
-| | | `cm_write()` results are ignored, and a failed `cm_read()` inside a command returns to the loop | | |
-| | | on the same transport. `command-mode.md` 4.4: a failed transfer ends the session. | | |
+| | | step. (3) Most `cm_write()` results are ignored, and a failed `cm_read()` inside a command | | |
+| | | returns to the loop on the same transport. `command-mode.md` 4.4: a failed transfer ends the | | |
+| | | session. The other parts are fixed: (1) a refused `STREAM_PREPARE_BUFFER` reads the data and | | |
+| | | answers twice, (2) a `BOARD_STATUS_READ` whose `status()` fails sends the error alone, (4) | | |
+| | | `boot bpak` refused before the header reads it (F-128) | | |
 | F-275 | `src/cm/cm_main.c` `pb_command_parse()` | The frame is checked before the gate: | Verified (code) | open |
 | | | a locked device answers INVALID_COMMAND before authentication to a command its build doesn't | | |
 | | | have and to a frame with a wrong magic, which tells a host which commands the build knows. | | |
