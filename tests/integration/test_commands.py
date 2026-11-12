@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import struct
+import uuid
 from typing import TYPE_CHECKING
 
 import punchboot
@@ -34,6 +35,9 @@ PB_CMD_PART_BPAK_READ = 14
 PB_RESULT_NOT_FOUND = 11
 BPAK_HEADER_SIZE = 4096
 BPAK_HEADER_MAGIC = 0x42504132
+
+# 'PB State Primary', 512 bytes: no room for a bpak header
+PB_STATE_PRIMARY_UUID = uuid.UUID("f5f8c9ae-efb5-4071-9ba9-d313b082281e")
 
 # pb-development3, the last key in the host board's key map
 LAST_KEY_ID = 0x52C1EDA0
@@ -103,3 +107,10 @@ def test_bpak_read(device: Device, tmp_path: pathlib.Path) -> None:
     )
     assert last_blocks == header
     assert struct.unpack_from("<I", header)[0] == BPAK_HEADER_MAGIC
+
+
+def test_bpak_read_of_a_partition_below_4_kib(device: Device) -> None:
+    """It has no header (command-mode.md 5.3, F-279)."""
+    with device.wire() as w:
+        assert w.command(PB_CMD_PART_BPAK_READ, PB_STATE_PRIMARY_UUID.bytes) == -PB_RESULT_NOT_FOUND
+        assert w.command(PB_CMD_PART_BPAK_READ, SYSTEM_B_UUID.bytes) == -PB_RESULT_NOT_FOUND

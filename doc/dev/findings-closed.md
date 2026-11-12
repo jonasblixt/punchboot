@@ -442,6 +442,20 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | F-265, so an erase of the raw device's UUID is refused too. A count of 0 still erases nothing and | | |
 | | | answers as before (F-075) whatever the flags, since hosts older than 2.0 send it for every erase. | | |
 | | | `test_cm.c` (`test_part_erase_needs_writable`), `test_commands.py` (the host disk's device) | | |
+| F-279 | `src/cm/cm_main.c` `cmd_bpak_read()`, `cmd_part_verify()` | Low. The header's | Verified (code) | fixed |
+| | | block is the partition's block count less 4 KiB of blocks, unsigned: on a partition below | | |
+| | | 4 KiB it wraps, `bio_read()` refuses the range and the host gets INVALID_ARGUMENT. | | |
+| | | `command-mode.md` 5.3 (D-060): NOT_FOUND for `PART_BPAK_READ`. `boot.c` has the same | | |
+| | | arithmetic for a bootable partition | | |
+| | | Fixed: a partition below 4 KiB is checked by its size before the header's block is computed. | | |
+| | | `PART_BPAK_READ` answers NOT_FOUND (was INVALID_ARGUMENT). `PART_VERIFY` with `bpak` answers | | |
+| | | INVALID_ARGUMENT as before (5.3: with `bpak` the size is at least 4 KiB inside the partition), now | | |
+| | | before the hash starts. `boot.c`'s load from a partition returns `-PB_ERR_BAD_HEADER`, as the in | | |
+| | | place load does (was `-PB_ERR_PARAM` from `bio_read()`): `BOOT_PART` answers ERROR, not | | |
+| | | INVALID_ARGUMENT, and nothing is read. F-190's `bytes_to_verify` underflow is other arithmetic | | |
+| | | (the host's size) and stays there. `test_cm.c` (`test_bpak_read_small_partition`, | | |
+| | | `test_part_verify_small_partition`), `test_boot.c` (`test_bio_boot_smaller_than_a_header`), | | |
+| | | `test_commands.py` (the host's 512 byte 'PB State Primary') | | |
 
 ## Dependencies / vendored code
 

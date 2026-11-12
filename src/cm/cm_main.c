@@ -290,6 +290,13 @@ static int cmd_bpak_read(void)
         return dev;
     }
 
+    /* No room for a header: there is none (command-mode.md 5.3) */
+    if (bio_size(dev) < (int64_t)sizeof(struct bpak_header)) {
+        LOG_ERR("Partition is smaller than a bpak header");
+        pb_wire_init_result(&result, -PB_RESULT_NOT_FOUND);
+        return -PB_ERR_NOT_FOUND;
+    }
+
     lba_t header_lba =
         bio_get_no_of_blocks(dev) - (sizeof(struct bpak_header) / bio_block_size(dev));
 
@@ -517,6 +524,14 @@ static int cmd_part_verify(void)
         LOG_ERR("Could not find partition");
         pb_wire_init_result(&result, error_to_wire(block_dev));
         return block_dev;
+    }
+
+    /* With bpak the size is at least a header, inside the partition
+     * (command-mode.md 5.3): a partition smaller than that takes none */
+    if (verify_cmd->bpak && bio_size(block_dev) < (int64_t)sizeof(struct bpak_header)) {
+        LOG_ERR("Partition is smaller than a bpak header");
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);
+        return -PB_ERR_PARAM;
     }
 
     rc = hash_init(HASH_SHA256);

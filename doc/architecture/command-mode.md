@@ -517,8 +517,7 @@ sets `READABLE`, which is why `part read` fails on them (F-083).
   are (5.9).
 - **`PART_BPAK_READ`**: the header is what the partition holds. Nothing verified it: the host
   treats it as input. A partition without a valid bpak header, one that holds another
-  format's image and one smaller than 4 KiB all answer `NOT_FOUND`. **Not yet in the code
-  (F-279)**: a partition below 4 KiB answers `INVALID_ARGUMENT`.
+  format's image and one smaller than 4 KiB all answer `NOT_FOUND`.
 
 ### 5.4 Streams
 
@@ -757,7 +756,6 @@ For a change to command mode, a new command or a new method:
 | F-181               | The verdict of a token is the verification's own (3.3)                               |
 | F-278               | A refusal before the authentication data changes nothing (3.3)                       |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
-| F-279               | `PART_BPAK_READ` on a partition below 4 KiB (5.3)                                    |
 | F-004               | The password is compared whole, in constant time, and not logged (3.3)               |
 | F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |
 | F-187, F-274        | The exchange stays in step after a refusal; a failed transfer ends the session (4.4) |

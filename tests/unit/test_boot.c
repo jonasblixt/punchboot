@@ -1083,6 +1083,30 @@ static void test_bio_boot_errors(void **state)
     assert_int_equal(fake.jump_calls, 0);
 }
 
+/* A loaded partition without room for a header: refused as in place, before
+ * anything is read (F-279) */
+static void test_bio_boot_smaller_than_a_header(void **state)
+{
+    struct fixture *f = *state;
+    bio_dev_t disk = bio_get_part_by_uu(UU_DISK);
+    bio_dev_t tiny = bio_allocate_parent(disk,
+                                         2 * SYS_BLOCKS + SYS_A_FIRST_BLOCK,
+                                         2 * SYS_BLOCKS + SYS_A_FIRST_BLOCK + 6,
+                                         RAMDISK_BLOCK_SIZE,
+                                         UU_TINY,
+                                         "Tiny");
+    unsigned int reads_before = f->disk->reads;
+
+    assert_true(tiny >= 0);
+    assert_int_equal(bio_clear_set_flags(tiny, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    assert_int_equal(boot_load((unsigned char *)UU_TINY), -PB_ERR_BAD_HEADER);
+
+    assert_int_equal(f->disk->reads, reads_before);
+    assert_int_equal(fake.auth_calls, 0);
+    assert_int_equal(fake.load_calls, 0);
+    assert_int_equal(fake.prepare_calls, 0);
+}
+
 /* Only a policy's candidates are bootable: without one nothing boots from
  * storage, a partition that is named neither */
 static void test_bio_boot_needs_a_policy(void **state)
@@ -2395,6 +2419,7 @@ int main(void)
         BOOT_TEST(test_bio_boot),
         BOOT_TEST(test_bio_boot_override),
         BOOT_TEST(test_bio_boot_errors),
+        BOOT_TEST(test_bio_boot_smaller_than_a_header),
         BOOT_TEST(test_bio_boot_needs_a_policy),
         BOOT_TEST(test_policy_next_candidate),
         BOOT_TEST(test_policy_next_candidate_after_prepare),

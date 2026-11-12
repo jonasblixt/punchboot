@@ -1270,6 +1270,35 @@ static void test_bpak_read_errors(void **state)
     expect_result(-PB_RESULT_IO_ERROR);
 }
 
+/* A partition below 4 KiB has no room for a bpak header (command-mode.md
+ * 5.3, F-279): blocks 50 to 56, 3.5 KiB */
+#define UU_SMALL \
+    (const unsigned char *)"\x6e\x2b\x1f\x0c\x47\x95\x4a\x3e\x9d\x81\x5c\x22\xe7\x40\xb3\x18"
+
+static void add_small_partition(void)
+{
+    bio_dev_t disk = bio_get_part_by_uu(UU_DISK);
+    bio_dev_t small = bio_allocate_parent(disk, 50, 56, RAMDISK_BLOCK_SIZE, UU_SMALL, "Small");
+
+    assert_true(small >= 0);
+    assert_int_equal(bio_set_flags(small, BIO_FLAG_VISIBLE | BIO_FLAG_READABLE | BIO_FLAG_WRITABLE),
+                     PB_OK);
+}
+
+static void test_bpak_read_small_partition(void **state)
+{
+    struct pb_command_read_bpak req = { 0 };
+    (void)state;
+
+    add_small_partition();
+    memcpy(req.uuid, UU_SMALL, 16);
+    host_cmd(PB_CMD_PART_BPAK_READ, &req, sizeof(req));
+    run();
+
+    expect_result(-PB_RESULT_NOT_FOUND);
+    expect_end();
+}
+
 static struct pb_command_verify_part verify_req(size_t size, bool bpak, const uint8_t *data)
 {
     struct pb_command_verify_part req = { .size = size, .bpak = bpak };
@@ -1370,6 +1399,34 @@ static void test_part_verify_errors(void **state)
         run();
         expect_result(cases[i].result);
     }
+    expect_end();
+}
+
+/* With bpak the size is at least 4 KiB inside the partition (command-mode.md
+ * 5.3, F-279): a partition below 4 KiB takes none, and that is checked before
+ * the hash starts. Without bpak its bytes are hashed */
+static void test_part_verify_small_partition(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, 50);
+    (void)state;
+
+    add_small_partition();
+    struct pb_command_verify_part req = verify_req(1024, false, part);
+    memcpy(req.uuid, UU_SMALL, 16);
+    req.bpak = 1;
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_end();
+    assert_int_equal(crypto.alg, 0);
+
+    t.init_calls = 0;
+    req.bpak = 0;
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+    expect_result(PB_RESULT_OK);
     expect_end();
 }
 
@@ -2070,9 +2127,11 @@ int main(void)
         CM_TEST(test_slc_read_key_status),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
+        CM_TEST(test_bpak_read_small_partition),
         CM_TEST(test_part_verify),
         CM_TEST(test_part_verify_bpak),
         CM_TEST(test_part_verify_errors),
+        CM_TEST(test_part_verify_small_partition),
         CM_TEST(test_part_erase),
         CM_TEST(test_part_erase_needs_writable),
         CM_TEST(test_stream),

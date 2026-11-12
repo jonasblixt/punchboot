@@ -244,6 +244,10 @@ static int load_auth_verify_from_bio(void)
     if (in_place_range(boot_device, &in_place_base, &in_place_size) == PB_OK)
         return auth_verify_in_place(in_place_base, in_place_size);
 
+    /* As in place: a partition without room for a header has none */
+    if (bio_size(boot_device) < (int64_t)sizeof(header))
+        return -PB_ERR_BAD_HEADER;
+
     /* Load header located at the end of the partition */
     header_lba = bio_get_no_of_blocks(boot_device) -
                  (sizeof(struct bpak_header) / bio_block_size(boot_device));
