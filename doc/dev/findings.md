@@ -146,10 +146,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | terminating one at `trb[desc_count]`: for some counts its flags word is in a cache line that isn't | | |
 | | | cleaned, and a stale TRB from a larger transfer stays in memory. The effect on the controller is | | |
 | | | unverified; it fits F-172 (a small write after a large one). Clean `desc_count + 1`. | | |
-| F-185 | `src/cm/cm_main.c`, `usbd.c` | `authenticated` survives a USB replug, a bus reset and | Reported | open |
-| | | `restart_command_mode`: the next host on a powered, locked device is authenticated. No idle timeout. | | |
-| | | Clear it on bus reset and transport restart. `command-mode.md` 3.1: the session ends with the | | |
-| | | transport, and the stream is the session's too (`block_dev`, `stream_written`, `stream_failed`) | | |
 | F-186 | `cm_main.c` `cmd_part_verify`, `cmd_bpak_read` | Neither checks | Reported | open |
 | | | `BIO_FLAG_READABLE`/`VISIBLE`: `part verify` with size 1, 2, ... and hash guesses reads any partition | | |
 | | | byte by byte, hidden ones too. It also retargets the stream's `block_dev`. | | |
@@ -166,6 +162,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `cmd_stream_prep_buffer` still answers OK. `block_dev` starts at 0, a valid bio. No build-time bounds | | |
 | | | (buffer size, 16 keys in `cmd_slc_read`, board name). No real board sets `BIO_FLAG_READABLE`: the cause | | |
 | | | of F-083 and F-142. | | |
+| | | `block_dev` at 0 is fixed with F-185: each session starts without a stream (`-PB_ERR_STATE`). | | |
 | F-191 | `src/drivers/partition/gpt.c:353,412` | A valid GPT with fewer than 128 entries: | Reported (probe) | open |
 | | | the backup array is read at `last-32` and the repair writes 33 blocks. Every boot rewrites the PMBR and | | |
 | | | primary, fails on the backup and registers no partitions. | | |
@@ -782,6 +779,23 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | mask and has no command line option; pb clears them only in `boot activate`, a rollback keeps the | | |
 | | | other one. Write into 3.5 (or 3.7, for the OS's side) when a bit is cleared and by whom, before the | | |
 | | | shared core (F-173) fixes it in code | | |
+| F-363 | `src/drivers/usb/` | Since F-185 command mode ends the session on every lost | Verified (code) | open |
+| | | the transport reports, but on USB a replug or a bus reset during a session isn't reported | | |
+| | | (`usb.md` 2.4, 4.3), so on jiffy, the RT1060 and the MEK the next host on a locked device is still | | |
+| | | authenticated and has the stream. What would have to report it as an error of the running transfer, | | |
+| | | or keep it for the next `xfer_start`/`xfer_complete`: the ChipIdea's `imx_ci_udc_xfer_complete()` | | |
+| | | (`imx_ci_udc_irq_process()` flushes on `USBSTS_URI` and returns PB_OK); the cdns3's | | |
+| | | `cdns3_udc_core_xfer_complete()` (`cdns_process_irq()` re-arms endpoint 0 on `ISTS_CFGRESI`, | | |
+| | | `ISTS_U2RESI` isn't looked at); the DWC3's `dwc3_udc_xfer_complete()` reports a reset only for an | | |
+| | | endpoint with a transfer running, and `dwc3_udc_xfer_start()` clears it, so one between two transfers | | |
+| | | of a command is lost; `DEVT_DISCONNECT` is logged only; the stack's `usbd_xfer_complete()` answers a | | |
+| | | SETUP during a session (a new `SET_ADDRESS`, `SET_CONFIGURATION`) and restarts the bulk transfer | | |
+| | | without an error. With F-201 (`enumerated`) and F-287 (1) | | |
+| F-364 | `src/cm/cm_main.c` `cm_run()` | Low. A lost that the transport reports when the read of | Verified (code) | open |
+| | | the next command is started (`usb.md` 4.3: kept for the next `xfer_start`) makes `cm_run()` leave | | |
+| | | and pb reset, where `usb.md` 2.4 restarts the transport and waits for a host (`command-mode.md` | | |
+| | | 2.2). The session ends either way. Inside a command a failed start ends the session since F-185, and | | |
+| | | the command goes on (F-274) | | |
 
 ## Dependencies / vendored code
 

@@ -62,7 +62,8 @@ A single integration test, inside `scripts/pbdev shell`:
   set with `--defsym` (`-no-pie`) at the start of RAM, so the image overlap checks keep working.
 - **Transport.** A unix socket server. `complete()` does the blocking I/O. When a client disconnects,
   `complete()` fails, `cm_run` calls `init()` again, and `init()` accepts the next client, so each
-  CLI or `Session` is one connection.
+  CLI or `Session` is one connection, and one session (`command-mode.md` 3.1): a locked device
+  asks each for authentication.
   The socket is bound to `<path>.tmp` and renamed to `<path>` after `listen()`, so tests can treat
   the path appearing as "command mode is ready".
 - **Disk.** A file. The fuses live in a partition on it (test fuse driver), so device state
@@ -140,8 +141,9 @@ A single integration test, inside `scripts/pbdev shell`:
 - **Raw wire protocol.** `device.wire()` gives a `Wire` connection for requests the punchboot
   package never sends (bad buffer ids, sizes, offsets). See `test_stream.py`.
 - **Teardown checks.** The fixture fails the test if pb-host exits non-zero, doesn't exit on reset,
-  or its log contains an ASan/LeakSanitizer/UBSan report. A locked, unauthenticated device can't be
-  reset, so it is killed without a failure.
+  or its log contains an ASan/LeakSanitizer/UBSan report. The reset authenticates with the
+  development key when a locked device asks for it (`pbtest.device_reset()`); a device that
+  refuses that key can't be reset, so it is killed without a failure.
 
 ## Porting status
 
@@ -235,5 +237,9 @@ list: test_config, test_invalid_key_index2, test_setup_lock, test_bpak_show, tes
 - The 64-bit host build shows `%llu`-with-`uint64_t` format bugs (F-049).
 - `part_write` accepted bpak images whose payload overlapped the header (written to the end of the
   partition), and corrupted them silently. Fixed in the host library (F-050).
-- Authentication lasts until reset, not per connection. That is by design: separate CLI invocations
-  authenticate and then run commands. `test_authentication_lasts_until_reset` documents it.
+- Authentication lasted until reset, not per connection (F-185, fixed). The session ends with the
+  transport (`command-mode.md` 3.1), and on the host's socket a client that closes is lost
+  (`usb.md` 2.6), so each connection starts without authentication and without a stream.
+  `test_authentication_ends_with_the_connection` checks it, and the bench's reset authenticates
+  on a locked device. On USB, separate CLI invocations still share a session: closing and opening
+  the device is no unplug and no bus reset.

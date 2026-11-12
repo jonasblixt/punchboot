@@ -68,6 +68,20 @@ EXIT_TIMEOUT = 10.0
 SANITIZER_MARKERS = ("ERROR: AddressSanitizer", "ERROR: LeakSanitizer", "runtime error:")
 
 
+def device_reset(s: punchboot.Session) -> None:
+    """Reset the device over 's'.
+
+    A session on a locked device starts without authentication, also when an
+    earlier connection authenticated (command-mode.md 3.1), so this
+    authenticates with the development key when the device asks for it.
+    """
+    try:
+        s.device_reset()
+    except punchboot.NotAuthenticatedError:
+        s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        s.device_reset()
+
+
 class Device:
     """A punchboot instance running as a host process."""
 
@@ -180,9 +194,9 @@ class Device:
         if proc.poll() is None:
             try:
                 with self.session() as s:
-                    s.device_reset()
+                    device_reset(s)
             except punchboot.Error:
-                # E.g. a locked device that isn't authenticated
+                # E.g. a locked device whose development key is revoked
                 proc.kill()
                 proc.wait()
                 return
@@ -233,7 +247,7 @@ class Device:
     def reset(self) -> None:
         """Reset the device over command mode and wait for it to go down."""
         with self.session() as s:
-            s.device_reset()
+            device_reset(s)
         rc = self.wait_exit()
         if rc != 0:
             msg = f"pb-host exited with {rc} on reset"

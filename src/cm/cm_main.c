@@ -188,18 +188,40 @@ void cm_board_cmd_request_reboot_on_success(void)
     reboot_requested = true;
 }
 
+/*
+ * The session ends with the transport (command-mode.md 3.1): when it is
+ * (re)started and when a transfer is lost, which is how the transport
+ * reports an unplug and a bus reset (usb.md 2.4). The next host starts
+ * without authentication and without a stream (5.4).
+ */
+static void cm_session_end(void)
+{
+#ifdef CONFIG_CM_AUTH
+    authenticated = false;
+#else
+    authenticated = true;
+#endif
+    /* No stream: not a bio, and no bio_* call accepts it */
+    block_dev = -PB_ERR_STATE;
+    stream_written = false;
+    stream_failed = false;
+}
+
 static int cm_write(const void *buf, size_t length)
 {
     int rc;
 
     rc = cfg->tops.write(buf, length);
 
-    if (rc != PB_OK)
-        return rc;
+    if (rc == PB_OK) {
+        do {
+            rc = cfg->tops.complete();
+        } while (rc == -PB_ERR_AGAIN);
+    }
 
-    do {
-        rc = cfg->tops.complete();
-    } while (rc == -PB_ERR_AGAIN);
+    /* A transfer that failed ends the session (command-mode.md 4.4) */
+    if (rc != PB_OK)
+        cm_session_end();
 
     return rc;
 }
@@ -210,12 +232,15 @@ static int cm_read(void *buf, size_t length)
 
     rc = cfg->tops.read(buf, length);
 
-    if (rc != PB_OK)
-        return rc;
+    if (rc == PB_OK) {
+        do {
+            rc = cfg->tops.complete();
+        } while (rc == -PB_ERR_AGAIN);
+    }
 
-    do {
-        rc = cfg->tops.complete();
-    } while (rc == -PB_ERR_AGAIN);
+    /* A transfer that failed ends the session (command-mode.md 4.4) */
+    if (rc != PB_OK)
+        cm_session_end();
 
     return rc;
 }
@@ -1198,15 +1223,14 @@ int cm_run(void)
         return rc;
     }
 
-#ifdef CONFIG_CM_AUTH
-    authenticated = false;
-#else
-    authenticated = true;
-#endif
     slc = slc_read_status();
     device_uuid(device_uu);
 
 restart_command_mode:
+    /* A session starts with nothing: the last one ended with the transport
+     * that is (re)started here (command-mode.md 3.1) */
+    cm_session_end();
+
     if (cfg->tops.init) {
         rc = cfg->tops.init();
 

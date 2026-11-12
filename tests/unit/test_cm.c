@@ -14,7 +14,8 @@
  * host_*(), runs cm_run() until the queue is empty, and then checks what the
  * device sent back with expect_*(). When the queue runs dry the transport
  * reports a disconnect, cm_run() re-initializes the transport, and the fake
- * fails that, which ends cm_run() with -PB_ERR_IO.
+ * fails that, which ends cm_run() with -PB_ERR_IO. host_lost() and
+ * t.lose_write lose a transfer on the way, as a host that went away.
  */
 
 #include <setjmp.h>
@@ -93,6 +94,12 @@ static struct {
 
     int complete_rcs[8]; /* Returned by complete() before it does anything */
     int n_complete_rcs;
+    size_t lost_at[4]; /* A read that starts at this input position is lost, */
+    int lost_rc[4]; /* complete() returns this for it, once */
+    int n_lost;
+    int lose_write; /* The write with this number (from 1) is lost */
+    int write_calls;
+    bool write_lost;
     int fail_reads_after; /* -1: never, n: read() fails after n calls */
     int fail_writes_after;
 
@@ -109,6 +116,8 @@ static struct {
     size_t n_reads;
     unsigned int write_ticks[64];
     size_t n_writes;
+    struct ramdisk *heal; /* fake_process() ends heal's write faults */
+    int heal_at; /* at this call */
 } t;
 
 static int fake_init(void)
@@ -149,6 +158,10 @@ static int fake_write(const void *buf, size_t length)
         return -PB_ERR_IO;
     if (t.fail_writes_after > 0)
         t.fail_writes_after--;
+    if (++t.write_calls == t.lose_write) {
+        t.write_lost = true; /* complete() fails it, nothing arrives */
+        return PB_OK;
+    }
 
     assert_true(t.out_len + length <= sizeof(t.out));
     memcpy(&t.out[t.out_len], buf, length);
@@ -163,6 +176,21 @@ static int fake_complete(void)
     if (t.n_complete_rcs > 0) {
         int rc = t.complete_rcs[0];
         memmove(&t.complete_rcs[0], &t.complete_rcs[1], sizeof(int) * --t.n_complete_rcs);
+        return rc;
+    }
+
+    if (t.write_lost) {
+        t.write_lost = false;
+        return -PB_ERR_IO;
+    }
+
+    if (t.read_pending && t.n_lost > 0 && t.in_pos == t.lost_at[0]) {
+        int rc = t.lost_rc[0];
+
+        t.n_lost--;
+        memmove(&t.lost_at[0], &t.lost_at[1], sizeof(t.lost_at[0]) * t.n_lost);
+        memmove(&t.lost_rc[0], &t.lost_rc[1], sizeof(t.lost_rc[0]) * t.n_lost);
+        t.read_pending = false;
         return rc;
     }
 
@@ -182,6 +210,8 @@ static int fake_complete(void)
 static void fake_process(void)
 {
     t.process_calls++;
+    if (t.heal != NULL && t.process_calls == t.heal_at)
+        t.heal->fail_writes_after = -1;
 }
 
 /* The board */
@@ -500,6 +530,22 @@ static void host_auth_token(void)
 {
     static const uint8_t token[] = { FAKE_SIG_OK, 0x01 };
     host_auth(PB_AUTH_ASYM_TOKEN, token, sizeof(token), KEY_ID);
+}
+
+/*
+ * The host goes away here: the device's next read fails with 'rc', the way
+ * the transport reports an unplug, a bus reset (usb.md 2.4) or a client
+ * that closed the socket (2.6). When the device waits for a command, cm_run()
+ * starts the transport again, and what is queued after this is the next
+ * host's.
+ */
+static void host_lost(int rc)
+{
+    assert_true(t.n_lost < (int)ARRAY_SIZE(t.lost_at));
+    t.lost_at[t.n_lost] = t.in_len;
+    t.lost_rc[t.n_lost] = rc;
+    t.n_lost++;
+    t.max_inits++;
 }
 
 /* Runs command mode until the host is done */
@@ -1954,20 +2000,18 @@ static void test_stream_write_done(void **state)
     assert_int_equal(write_done_calls, 1);
     assert_int_equal(write_done_dev, f->rw);
 
-    /* A failed write, then a good one */
+    /* A failed write, then a good one in the same stream: the stream is the
+     * session's (command-mode.md 3.1), so both are in one. The disk works
+     * again from the fourth command on. */
     t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
     write_done_calls = 0;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
     f->disk->fail_writes_after = 0;
+    t.heal = f->disk;
+    t.heal_at = t.process_calls + 4;
     stream_write_block(0);
-    run();
-    expect_result(PB_RESULT_OK);
-    expect_result(PB_RESULT_OK);
-    expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
-    expect_end();
-
-    t.init_calls = 0;
-    f->disk->fail_writes_after = -1;
     stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
     stream_write(1, RAMDISK_BLOCK_SIZE, 0);
     host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
@@ -1976,6 +2020,10 @@ static void test_stream_write_done(void **state)
     stream_write_block(0);
     host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
     run();
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR); /* write */
     expect_result(PB_RESULT_OK); /* prepare */
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK); /* write */
@@ -2150,6 +2198,198 @@ static void test_transport_errors_in_commands(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
+}
+
+/* A gated command that a locked device runs once the session is
+ * authenticated: the result, two partitions and the last result */
+static void expect_part_table(void)
+{
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_part_table_read *tbl = (const void *)r->response;
+
+    assert_int_equal(tbl->no_of_entries, 2);
+    expect_data(2 * sizeof(struct pb_result_part_table_entry));
+    expect_result(PB_RESULT_OK);
+}
+
+/*
+ * command-mode.md 3.1: the session ends with the transport. A host that
+ * comes after an unplug or a bus reset (usb.md 2.4), or after a client
+ * closed the socket (2.6), finds a locked device not authenticated. Every
+ * error from complete() other than AGAIN is lost; TIMEOUT is still polled
+ * (F-287).
+ */
+static void test_session_ends_with_the_transport(void **state)
+{
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+
+    host_auth_token();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_auth_token();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_lost(-PB_ERR);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_part_table();
+    /* The next host */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_part_table();
+    /* And the one after it */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    /* The transport was started for each host, and waited for each */
+    assert_int_equal(t.init_calls, 4);
+    assert_int_equal(t.connect_calls, 3);
+}
+
+/* command-mode.md 3.1, 4.4: a transfer inside a command that fails ends the
+ * session too, a read or a write. The transport isn't restarted there yet
+ * (F-274), so the next command comes on the same one, from a host that
+ * isn't authenticated. */
+static void test_session_ends_with_a_lost_transfer(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    /* The board command's request is lost */
+    host_auth_token();
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+
+    /* A result is lost: the third write, the version's */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.write_calls = 0;
+    t.lose_write = 3;
+    host_auth_token();
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+}
+
+/* command-mode.md 3.1, 5.4: the stream is the session's. After the
+ * transport was lost there is no stream: a write and a read without a new
+ * STREAM_INITIALIZE answer STREAM_NOT_INITIALIZED, and a finalize has
+ * nothing written to complete. */
+static void test_session_stream_ends_with_the_transport(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t before[RAMDISK_BLOCK_SIZE];
+
+    write_done_calls = 0;
+    write_done_rc = PB_OK;
+    assert_int_equal(bio_set_write_done_cb(f->rw, fake_write_done), PB_OK);
+
+    stream_write_block(0);
+    host_lost(-PB_ERR_IO);
+    stream_write(0, RAMDISK_BLOCK_SIZE, RAMDISK_BLOCK_SIZE);
+    stream_read(0, RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    memcpy(before, ramdisk_block(f->disk, RW_FIRST_LBA + 1), sizeof(before));
+    run();
+
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    /* The next host */
+    expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+    expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_end();
+    assert_int_equal(write_done_calls, 0);
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 1), before, sizeof(before));
+}
+
+/*
+ * What doesn't end the session (command-mode.md 3.1, 3.3): a command that
+ * fails, and an AUTHENTICATE with a method the build doesn't have, leave it
+ * as it was. A failed authentication leaves it not authenticated and keeps
+ * the stream. The transport that is lost then ends it.
+ */
+static void test_session_survives_failures(void **state)
+{
+    struct fixture *f = *state;
+    struct pb_command_board fail = { .command = BOARD_RETURN, .request_size = 4 };
+    int32_t fail_rc = -PB_ERR_IO;
+    uint8_t fail_req[1024] = { 0 };
+    struct pb_command_authenticate no_method = { .method = 0xee, .size = 2, .key_id = KEY_ID };
+    static const uint8_t bad_token[] = { 0x00 };
+    static const uint8_t data[RAMDISK_BLOCK_SIZE] = { 0x5c };
+
+    write_done_calls = 0;
+    write_done_rc = PB_OK;
+    assert_int_equal(bio_set_write_done_cb(f->rw, fake_write_done), PB_OK);
+    memcpy(fail_req, &fail_rc, sizeof(fail_rc));
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    host_auth_token();
+    stream_init(UU_RW);
+    stream_prepare(1, sizeof(data), data);
+    /* A board command that fails, a method that isn't in the build */
+    host_cmd(PB_CMD_BOARD_COMMAND, &fail, sizeof(fail));
+    host_send(fail_req, sizeof(fail_req));
+    host_cmd(PB_CMD_AUTHENTICATE, &no_method, sizeof(no_method));
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    /* A token that doesn't verify */
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    /* Authenticated again, the stream is still there */
+    host_auth_token();
+    stream_write(1, sizeof(data), 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK); /* auth */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* board command */
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_NOT_SUPPORTED); /* the method, no data read */
+    expect_part_table();
+    expect_result(PB_RESULT_OK); /* the bad token */
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK); /* auth */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* finalize */
+    /* The next host */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(write_done_calls, 1);
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA), data, sizeof(data));
 }
 
 /* The unit tests print with the system printf, so only what a test puts in
@@ -2597,6 +2837,10 @@ int main(void)
         CM_TEST(test_run_connect),
         CM_TEST(test_run_retries),
         CM_TEST(test_transport_errors_in_commands),
+        CM_TEST(test_session_ends_with_the_transport),
+        CM_TEST(test_session_ends_with_a_lost_transfer),
+        CM_TEST(test_session_stream_ends_with_the_transport),
+        CM_TEST(test_session_survives_failures),
         CM_TEST(test_log_read),
         CM_TEST(test_log_read_wrapped),
         CM_TEST(test_log_read_requires_auth),

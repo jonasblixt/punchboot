@@ -133,17 +133,24 @@ def test_open_device_answers_invalid_command(device: Device) -> None:
         assert w.result() == -PB_RESULT_INVALID_COMMAND
 
 
-def test_authentication_lasts_until_reset(locked_device: Device) -> None:
-    # Authentication survives reconnects, so that separate CLI invocations
-    # can authenticate and then run commands, but not a reset.
+def test_authentication_ends_with_the_connection(locked_device: Device) -> None:
+    # command-mode.md 3.1: the session ends with the transport, and its
+    # authentication with it. pb-host's transport is the socket, where a
+    # client that closes is lost (usb.md 2.6), so each connection is a
+    # session. On USB the session lasts until an unplug or a bus reset, and
+    # closing and opening the device between CLI invocations is neither.
     with locked_device.session() as s:
         s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        assert s.part_get_partitions()
 
     with locked_device.session() as s:
-        s.part_get_partitions()
+        with pytest.raises(punchboot.NotAuthenticatedError):
+            s.part_get_partitions()
+        s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        assert s.part_get_partitions()
 
-    locked_device.reset()
-    locked_device.start()
+    # Nor does it survive a reset
+    locked_device.reboot()
 
     with locked_device.session() as s, pytest.raises(punchboot.NotAuthenticatedError):
         s.part_get_partitions()

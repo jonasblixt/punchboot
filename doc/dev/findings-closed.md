@@ -498,6 +498,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | connection, waits its own second. Hosts wait 10 s for a transfer (2.7.1's C host, today's Python one). | | |
 | | | `test_cm.c`: `test_auth_failure_is_delayed`, `test_auth_failure_delay_counts_from_the_data`, | | |
 | | | `test_auth_not_delayed`; `test_security.py`: `test_failed_authentication_is_answered_after_a_second` | | |
+| F-185 | `src/cm/cm_main.c`, `usbd.c` | `authenticated` survives a USB replug, a bus reset and | Reported | fixed |
+| | | `restart_command_mode`: the next host on a powered, locked device is authenticated. No idle timeout. | | |
+| | | Clear it on bus reset and transport restart. `command-mode.md` 3.1: the session ends with the | | |
+| | | transport, and the stream is the session's too (`block_dev`, `stream_written`, `stream_failed`) | | |
+| | | Fixed: `cm_session_end()` in `cm_main.c` is the one place that ends the session: `authenticated` | | |
+| | | (true without `CONFIG_CM_AUTH`), no stream (`block_dev` `-PB_ERR_STATE`, not bio 0), `stream_written`, | | |
+| | | `stream_failed`. `cm_run()` calls it where the transport is started and restarted (a lost transfer while | | |
+| | | waiting for a command), and `cm_read()`/`cm_write()` when a transfer inside a command fails, which is | | |
+| | | how the transport reports an unplug or a bus reset (`usb.md` 2.4). On USB the released CLI keeps working: | | |
+| | | it opens, claims, releases and closes the device between invocations (libusb, 2.x and 3.x alike), | | |
+| | | which is no reset and no `SET_CONFIGURATION`, so `auth` and the commands after it share a session. | | |
+| | | On pb-host's socket each connection is a session (`usb.md` 2.6). `test_cm.c`: `test_session_*` | | |
+| | | (lost while waiting, a lost read and a lost write in a command, the stream, what doesn't end it); | | |
+| | | `test_security.py`: `test_authentication_ends_with_the_connection`. Left: the USB controllers don't | | |
+| | | report a replug or a bus reset (F-363, F-201), a lost at a start makes pb reset (F-364) | | |
 
 ## Dependencies / vendored code
 

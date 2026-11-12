@@ -138,8 +138,9 @@ transfer the host didn't complete (4.6). There is one session at a time and one 
 
 A session's state is: whether it is authenticated; the stream (5.4).
 Both are cleared when a session starts. The next host on a device that stayed powered is not
-authenticated and has no stream. **Not yet in the code (F-185, F-201)**: `authenticated` and
-the stream survive a replug and a bus reset.
+authenticated and has no stream. **Not yet in the code (F-201, F-363)**: on USB `authenticated`
+and the stream survive a replug and a bus reset, which the controllers don't report as lost
+(`usb.md` 2.4).
 
 What isn't the session's: the life cycle (the device's), the buffers' content (4.3).
 
@@ -533,8 +534,7 @@ host can send one while the other is written.
 | `STREAM_FINALIZE`       | Ends a write                                                  | Never                   |
 
 - **No stream**: before a `STREAM_INITIALIZE` that succeeded in this session, a write or a read
-  answers `STREAM_NOT_INITIALIZED`. **Not yet in the code (F-074, F-190)**: the stream starts
-  out as the first block device.
+  answers `STREAM_NOT_INITIALIZED`.
 - **`offset` and `size` are bytes.** The offset is a multiple of the block size, else
   `INVALID_ARGUMENT`. A write whose size isn't a multiple of the block writes its last block
   padded with zeros; a read sends `size` bytes. **Not yet in the code (F-182)**: the tail is
@@ -745,7 +745,7 @@ For a change to command mode, a new command or a new method:
 | Finding             | What                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------ |
 | F-268, F-267        | Command mode as a task; the platform sets up the port, the transport is linked (2)   |
-| F-185, F-201        | The session ends with the transport: authentication and the stream are cleared (3.1) |
+| F-201, F-363        | The session ends with the transport: authentication and the stream are cleared (3.1) |
 | F-271               | A build with `CONFIG_CM_AUTH` selects at least one method (3.2)                      |
 | F-277               | A transfer timeout that ends the session; the caps' timeouts (4.6)                   |
 | F-181               | The verdict of a token is the verification's own (3.3)                               |

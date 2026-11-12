@@ -161,7 +161,7 @@ on the way (3.2) is bounded.
   transport reports each as an error of the transfer that was running. One is always running
   while a session waits for a command. What happens while none runs, inside a command, is
   kept and is the error of the next transfer, so nothing is missed. **Not yet in the code
-  (F-185, F-201, F-287)**: two controllers report
+  (F-201, F-287, F-363)**: two controllers report
   nothing, the third only a bus reset during a bulk transfer; the stack's "enumerated" is never
   cleared; and command mode keeps polling after `-PB_ERR_TIMEOUT`.
 - It is also where the stack answers endpoint 0 (3.2).
@@ -438,7 +438,7 @@ The stack and the transport:
 
 | Requirement                                   | Today                                    | Finding      |
 | --------------------------------------------- | ---------------------------------------- | ------------ |
-| Lost ends the session                         | no                                       | F-185, F-201 |
+| Lost ends the session                         | yes, when the controller reports it      | F-201, F-363 |
 | A restart disconnects first                   | no                                       | F-287        |
 | Unknown requests stalled, control transfers   | no                                       | F-138        |
 | bounded                                       |                                          |              |
@@ -459,7 +459,7 @@ checklist's last item.
 | Finding             | What                                                                         |
 | ------------------- | ---------------------------------------------------------------------------- |
 | F-267               | The transport is linked; the platform sets up the port (2, 4)                |
-| F-185, F-201, F-287 | Lost is reported and ends the session; a restart disconnects first (2.4)     |
+| F-201, F-287, F-363 | Lost is reported and ends the session; a restart disconnects first (2.4)     |
 | F-137, F-205        | An OUT transfer ends at `length`, writes nothing past it, and its result is  |
 |                     | the controller's (2.3, 4.3)                                                  |
 | F-280               | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)        |
