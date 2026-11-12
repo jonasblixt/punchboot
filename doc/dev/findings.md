@@ -156,8 +156,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-187 | `cm_main.c:881` | The auth gate sends one result for `board command`, but hosts send the | Reported | open |
 | | | request anyway (F-095): the device parses it as commands and answers INVALID_COMMAND twice; with an | | |
 | | | empty request the host hangs. Drain the request and send the second result. | | |
-| F-188 | `cm_main.c` `cmd_part_erase` | No `BIO_FLAG_WRITABLE` check. F-055 listed it and is | Reported | open |
-| | | marked fixed, but `6a1a0e23` fixed only the range. | | |
 | F-189 | `cm_main.c`, `usbd.c` | The watchdog is kicked only between commands: a `part verify` or | Reported | open |
 | | | `boot part` of a few hundred MiB against a 5 s watchdog resets the board (timing not measured). | | |
 | | | `cm_read`/`cm_write` spin on AGAIN without a kick or timeout. | | |

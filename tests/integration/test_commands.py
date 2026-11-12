@@ -16,6 +16,7 @@ from .pbtest import (
     AUTH_TOKEN,
     BLOCK_SIZE,
     DEV_KEY_ID,
+    DISK_UUID,
     NULL_UUID,
     SYSTEM_A_LBA,
     SYSTEM_A_UUID,
@@ -49,6 +50,18 @@ def test_boot_status(device: Device) -> None:
 def test_erase_is_not_supported_by_the_host_disk(device: Device) -> None:
     with device.session() as s, pytest.raises(punchboot.NotSupportedError):
         s.part_erase(SYSTEM_A_UUID)
+
+
+def test_erase_of_the_disks_device_is_refused(device: Device) -> None:
+    """The device a partition table is on isn't writable (command-mode.md 5.3, F-188).
+
+    The host disk can't erase, so a partition that is writable gets NOT_SUPPORTED.
+    """
+    with device.session() as s:
+        disk = next(p for p in s.part_get_partitions() if p.uuid == DISK_UUID)
+        assert not disk.writable
+        with pytest.raises(punchboot.IOError):
+            s.part_erase(DISK_UUID)
 
 
 def test_end_of_life(device: Device) -> None:

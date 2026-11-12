@@ -625,6 +625,13 @@ static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
     if (erase_cmd->block_count == 0)
         return bio_erase(dev, 0, 0);
 
+    /* As a stream write: the partition's flags forbid it (command-mode.md
+     * 5.3). The device a partition table is on has only VISIBLE */
+    if (!(bio_get_flags(dev) & BIO_FLAG_WRITABLE)) {
+        LOG_ERR("Partition may not be erased");
+        return -PB_ERR_IO;
+    }
+
     lba_t first = (lba_t)bio_get_first_block(dev);
 
     if (erase_cmd->start_lba < first) {

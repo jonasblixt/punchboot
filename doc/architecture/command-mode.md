@@ -491,7 +491,7 @@ sets `READABLE`, which is why `part read` fails on them (F-083).
 |                    | block size, the flags' low byte                                  |                        |
 | `PART_TBL_INSTALL` | Writes a partition table to the device the command names: the    | A table the board gave |
 |                    | board's layout of that variant (`board.md` 2.4)                  |                        |
-| `PART_ERASE`       | Erases `block_count` blocks from `start_lba`                     | `WRITABLE` (F-188)     |
+| `PART_ERASE`       | Erases `block_count` blocks from `start_lba`                     | `WRITABLE`             |
 | `PART_VERIFY`      | Compares the SHA-256 of `size` bytes of the partition with the   |                        |
 |                    | host's                                                           |                        |
 | `PART_BPAK_READ`   | The bpak header in a partition's last 4 KiB, when it is a valid  |                        |
@@ -763,7 +763,7 @@ For a change to command mode, a new command or a new method:
 | F-187, F-274        | The exchange stays in step after a refusal; a failed transfer ends the session (4.4) |
 | F-087               | A result code for a payload whose hash differs (4.5)                                 |
 | F-189, F-226        | The watchdog per chunk; the timeouts (4.6)                                           |
-| F-186, F-272, F-188 | The partitions' flags: hidden partitions, `PART_VERIFY`, `PART_ERASE` (5.3)          |
+| F-186, F-272        | The partitions' flags: hidden partitions, `PART_VERIFY` (5.3)                        |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
 | F-182, F-074        | Sizes that aren't block multiples; no stream (5.3, 5.4)                              |
 | F-128, F-252        | A boot the host started that is refused or stopped (5.5)                             |

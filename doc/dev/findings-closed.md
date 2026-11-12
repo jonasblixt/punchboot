@@ -434,6 +434,14 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | chunk size (`CONFIG_CM_BUF_SIZE_KiB`, 4 KiB on pb-host, 32 KiB on the RT1060 whose NOR has 4 KiB | | |
 | | | blocks, 4 MiB elsewhere) and the partition's size less 4 KiB. `test_cm.c` | | |
 | | | (`test_stream_offset_inside_a_block`), `test_stream.py` | | |
+| F-188 | `cm_main.c` `cmd_part_erase` | No `BIO_FLAG_WRITABLE` check. F-055 listed it and is | Reported | fixed |
+| | | marked fixed, but `6a1a0e23` fixed only the range. | | |
+| | | Fixed: `cmd_part_erase()` refuses a partition without `WRITABLE` with IO_ERROR, the answer | | |
+| | | `STREAM_WRITE_BUFFER` gets for it (`command-mode.md` 4.5 and 5.3), after the look up and before | | |
+| | | the range check. That includes the device a partition table is on, which has only `VISIBLE` since | | |
+| | | F-265, so an erase of the raw device's UUID is refused too. A count of 0 still erases nothing and | | |
+| | | answers as before (F-075) whatever the flags, since hosts older than 2.0 send it for every erase. | | |
+| | | `test_cm.c` (`test_part_erase_needs_writable`), `test_commands.py` (the host disk's device) | | |
 
 ## Dependencies / vendored code
 

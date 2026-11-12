@@ -1402,6 +1402,44 @@ static void test_part_erase(void **state)
     expect_end();
 }
 
+/* Erase needs WRITABLE (command-mode.md 5.3, F-188), the answer a stream
+ * write gets. The ramdisk can't erase, so NOT_SUPPORTED says the flags let
+ * the erase through */
+static void test_part_erase_needs_writable(void **state)
+{
+    struct pb_command_erase_part req = { .start_lba = 30, .block_count = 1 };
+    bio_dev_t disk = bio_get_part_by_uu(UU_DISK);
+    (void)state;
+
+    /* The device a partition table is on has only VISIBLE (F-265) */
+    assert_true(disk >= 0);
+    assert_int_equal(bio_set_flags(disk, BIO_FLAG_VISIBLE), PB_OK);
+
+    memcpy(req.uuid, UU_RO, 16);
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    /* Refused before the range is checked */
+    req.start_lba = 0;
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    memcpy(req.uuid, UU_DISK, 16);
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    /* A count of 0 erases nothing and answers as it did (F-075), for any
+     * partition */
+    req.block_count = 0;
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    memcpy(req.uuid, UU_RW, 16);
+    req.start_lba = 10;
+    req.block_count = 1;
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    run();
+
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_end();
+}
+
 static void stream_init(const unsigned char *uu)
 {
     struct pb_command_stream_initialize req = { 0 };
@@ -2036,6 +2074,7 @@ int main(void)
         CM_TEST(test_part_verify_bpak),
         CM_TEST(test_part_verify_errors),
         CM_TEST(test_part_erase),
+        CM_TEST(test_part_erase_needs_writable),
         CM_TEST(test_stream),
         CM_TEST(test_stream_errors),
         CM_TEST(test_stream_offset_inside_a_block),
