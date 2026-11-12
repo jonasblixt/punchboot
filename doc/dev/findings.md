@@ -95,12 +95,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (nothing enabled) over a good state and returns `PB_OK`: the next boot has no active | | |
 | | | partition and stays in command mode. Shown on the ramdisk (`fail_reads_after`). Install | | |
 | | | the defaults only when both copies were read and are bad, else return the read error. | | |
-| F-174 | `src/boot/boot.c`, `ab_state.c` | A slot that the A/B state picks and that then fails | Verified | open |
-| | | to load or authenticate isn't reported back. A verified slot is picked again on every | | |
-| | | boot (command mode, the 10 s transport timeout, reset), for good: the other verified | | |
-| | | slot is never tried. An unverified slot loses an attempt each time and rolls back. | | |
-| | | Decided (D-032, `boot.md` 3.5): the other verified slot boots for this boot only, nothing | | |
-| | | is written; the slot is tried again on the next boot. Code: F-256. | | |
 | F-175 | `src/boot/ab_state.c` | `boot activate` with an unknown UUID clears `enable`, | Verified | open |
 | | | `verified` and `error` in RAM, then returns `-PB_ERR_PART_NOT_BOOTABLE`. For the rest of | | |
 | | | command mode `boot status` says none and booting the active slot fails, and the next | | |
@@ -258,9 +252,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | time. | | |
 | F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
-| F-215 | `boot.c:114`, `ab_state.c:108`, `board.h` | `.ab = NULL` is accepted, but such a board | Reported | open |
-| | | can't boot from storage: no `get_boot_bio_device`, and BOOTABLE is only set in `boot_ab_state_init()`. | | |
-| | | Only imx8mevk today. D-046: the fixed policy's object, `BOOT_POLICY_FIXED(part)`. | | |
 | F-216 | `src/board.c:122-158` | F-178 is one of three: a failing `init()` or `late_init()` also | Reported | open |
 | | | returns before `setup_boot_driver()`, so a RAM boot of a rescue image isn't possible when the eMMC | | |
 | | | fails. | | |
@@ -408,11 +399,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2.9: `image_regions` in `struct board`; a part lies inside one region and over no other part; | | |
 | | | that no region overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region is | | |
 | | | checked once, with the board's data. The platform header names the SoC memory a board may list | | |
-| F-256 | `src/boot/boot.c`, `ab_state.c`, `src/board.c` | No boot source policy | Verified (code) | open |
-| | | interface: A/B is wired into `struct boot_driver` through three callbacks, it is the only policy, | | |
-| | | and only it marks partitions bootable (F-215). `boot.md` 3: `boot_policy_*()`, fixed and staggered | | |
-| | | policies in Kconfig (`BOOT_POLICY_FIXED`, `_CHAIN`, `_AB`; `BOOT_AB_DRIVER` still gets A/B), the | | |
-| | | core's loop over the candidates with the fallback of F-174 | | |
 | F-257 | `src/boot/ab_state.c` | Speculative mode differs from `boot.md` 3.6: the | Verified (code) | open |
 | | | fallback gets one trial attempt (two boots, F-177) and a rollback bit is dropped. Per `boot.md`: | | |
 | | | only with no viable candidate, alternate per boot, no attempts, ends when the OS confirms, the | | |
@@ -431,7 +417,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-260 | `src/boot/dtb.c` | `boot_dtb_set_chosen()` reads the RoT, the SLC and the device | Verified (code) | open |
 | | | id itself, and runs the board's hook after `pb,device-uuid` and before pb's other properties. | | |
 | | | `boot.md` 5.5, 5.6: pb's information collected once, the hook first, `pb,version`, | | |
-| | | `pb,boot-partition` and `pb,boot-mode` added (and in the README's table) | | |
+| | | `pb,boot-partition` and `pb,boot-mode` added (and in the README's table). From F-256: the | | |
+| | | boot's mode is the core's: NORMAL for a named partition or the host's stream, the policy's | | |
+| | | after its report; `boot_policy_mode()` alone is stale after a failed fallback | | |
 | F-261 | `plat/{imx6ul,imx8m}/plat.c` | The TrustZone filter's open region is the SoC's | Verified (code) | open |
 | | | whole DRAM window, not the board's DRAM: 2 GiB on the 6UL (`tzasc_init()`), 4 or 8 GiB on the 8M | | |
 | | | (`tzasc_open_dram()`). With less DRAM than the window, the copies of DRAM inside it are open to | | |
@@ -651,6 +639,18 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | load address: bytes no hash covers. It needs a signed header, and both the loaded and the in | | |
 | | | place path have it (the review of F-253). Refuse an entry part that is smaller than an entry in | | |
 | | | the handover's prepare; not empty parts in general (D-008: images with one may boot today) | | |
+| F-300 | `src/board/imx8mevk/board.c` | The board has a partition table and neither | Verified (code) | open |
+| | | a boot source policy nor a handover: `board_setup()` fails on the handover, nothing is bootable | | |
+| | | and nothing boots, by `boot bpak` neither. Its defconfig has `BOOT_AB_DRIVER` and `BOOT_LINUX`. | | |
+| | | With F-033: finish the board (a policy, `BOOT_POLICY_AB()` or `BOOT_POLICY_FIXED()`, and a | | |
+| | | handover) or drop it. `board.md` 2.5 and 3: both are mandatory, checked by F-249 | | |
+| F-301 | `src/board/host/board.c` | The host board's boot source policy is an object | Verified (code) | open |
+| | | its board file builds by hand: A/B's functions, with an init that also sets `BIO_FLAG_BOOTABLE` | | |
+| | | on the flash's two partitions, which only `boot part` boots. `board.md` 2.5: a policy marks its | | |
+| | | candidates, a board doesn't; and one policy per board. To end it: a policy made by a macro | | |
+| | | that can carry candidates it never hands out, or a second policy per board. Since F-256 the | | |
+| | | marks are in the policy's init, which `board_setup()` skips when the table fails: on a blank | | |
+| | | disk the flash's partitions aren't bootable until a table is installed and pb restarts | | |
 
 ## Dependencies / vendored code
 

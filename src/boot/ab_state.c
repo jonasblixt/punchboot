@@ -20,6 +20,10 @@
 static bio_dev_t primary_part, backup_part;
 static struct pb_boot_state boot_state, boot_state_backup;
 static const struct boot_ab_state_config *cfg;
+/* This boot's candidates: how many were handed out, and the first one */
+static unsigned int handed_out;
+static const unsigned char *first_slot;
+static enum boot_policy_mode mode;
 
 static int validate(struct pb_boot_state *state)
 {
@@ -99,6 +103,9 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     bool backup_state_ok = false;
 
     cfg = state_cfg;
+    handed_out = 0;
+    first_slot = NULL;
+    mode = BOOT_POLICY_MODE_NORMAL;
 
     if (cfg == NULL)
         return -PB_ERR_PARAM;
@@ -172,14 +179,16 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     return rc;
 }
 
-bio_dev_t boot_ab_state_get(void)
+/*
+ * The first candidate of a boot (boot.md 3.5, rules 1 and 2): the enabled
+ * slot when it is verified or on trial with attempts left, else the slot it
+ * rolls back to. What the decision changes is written before it returns.
+ */
+static int first_candidate(const unsigned char **part_uu)
 {
     int rc;
     const unsigned char *boot_part_uu = NULL;
     bool commit = false;
-
-    if (cfg == NULL)
-        return -PB_ERR_STATE;
 
     LOG_DBG(
         "A/B boot load state %u %u %u", boot_state.enable, boot_state.verified, boot_state.error);
@@ -203,7 +212,7 @@ bio_dev_t boot_ab_state_get(void)
                     boot_part_uu = cfg->sys_b_uu;
                 } else {
                     LOG_ERR("B system not verified, failing");
-                    return -PB_ERR;
+                    return -PB_ERR_NOT_FOUND;
                 }
             } else {
                 commit = true;
@@ -233,7 +242,7 @@ bio_dev_t boot_ab_state_get(void)
                     boot_part_uu = cfg->sys_a_uu;
                 } else {
                     LOG_ERR("A system not verified, failing");
-                    return -PB_ERR;
+                    return -PB_ERR_NOT_FOUND;
                 }
             }
 
@@ -256,9 +265,84 @@ bio_dev_t boot_ab_state_get(void)
     }
 
     if (boot_part_uu == NULL)
-        return -PB_ERR_NO_ACTIVE_BOOT_PARTITION;
+        return -PB_ERR_NOT_FOUND;
 
-    return bio_get_part_by_uu(boot_part_uu);
+    *part_uu = boot_part_uu;
+    return PB_OK;
+}
+
+/*
+ * The candidate after the first one failed in this boot (boot.md 3.5, rule
+ * 3): the other slot, when it is verified. Nothing is written: the first
+ * one is tried again on the next boot.
+ */
+static int fallback_candidate(const unsigned char **part_uu)
+{
+    if (first_slot == cfg->sys_a_uu && (boot_state.verified & PB_STATE_B_VERIFIED)) {
+        *part_uu = cfg->sys_b_uu;
+        return PB_OK;
+    }
+
+    if (first_slot == cfg->sys_b_uu && (boot_state.verified & PB_STATE_A_VERIFIED)) {
+        *part_uu = cfg->sys_a_uu;
+        return PB_OK;
+    }
+
+    return -PB_ERR_NOT_FOUND;
+}
+
+static int policy_ab_next(uuid_t part_uu)
+{
+    const unsigned char *candidate = NULL;
+    int rc;
+
+    if (cfg == NULL)
+        return -PB_ERR_STATE;
+
+    switch (handed_out) {
+    case 0:
+        rc = first_candidate(&candidate);
+        first_slot = candidate;
+        mode = BOOT_POLICY_MODE_NORMAL;
+        break;
+    case 1:
+        rc = fallback_candidate(&candidate);
+        if (rc == PB_OK) {
+            LOG_ERR("System %s failed, trying %s for this boot",
+                    boot_ab_part_uu_to_name((unsigned char *)first_slot),
+                    boot_ab_part_uu_to_name((unsigned char *)candidate));
+            mode = BOOT_POLICY_MODE_FALLBACK;
+        }
+        break;
+    default:
+        rc = -PB_ERR_NOT_FOUND;
+    }
+
+    if (rc != PB_OK) {
+        /* This boot has no more: the next one starts over */
+        handed_out = 0;
+        return rc;
+    }
+
+    handed_out++;
+    uuid_copy(part_uu, candidate);
+    return PB_OK;
+}
+
+static void policy_ab_report(const uuid_t part_uu, int result)
+{
+    (void)part_uu;
+
+    /* Nothing is persisted on a failure. The boot goes on with a candidate
+     * that succeeded: the next boot starts over. The mode stays, the
+     * handover reads it */
+    if (result == PB_OK)
+        handed_out = 0;
+}
+
+static enum boot_policy_mode policy_ab_mode(void)
+{
+    return mode;
 }
 
 int boot_ab_state_set_boot_partition(uuid_t part_uu)
@@ -337,14 +421,16 @@ int boot_ab_state_write_board_reg(unsigned int index, uint32_t value)
     return pb_boot_state_commit();
 }
 
-static int policy_ab_init(const void *config)
+static int policy_ab_init(const struct boot_policy *policy)
 {
-    return boot_ab_state_init(config);
+    return boot_ab_state_init(policy->config);
 }
 
 const struct boot_policy_ops boot_policy_ab_ops = {
     .init = policy_ab_init,
-    .get = boot_ab_state_get,
+    .next = policy_ab_next,
+    .report = policy_ab_report,
+    .mode = policy_ab_mode,
     .activate = boot_ab_state_set_boot_partition,
     .status = boot_ab_state_get_boot_partition,
 };

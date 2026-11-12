@@ -1,5 +1,8 @@
 src-y  += src/boot/boot.c
-src-$(CONFIG_BOOT_AB_DRIVER) += src/boot/ab_state.c
+src-y  += src/boot/policy.c
+src-$(CONFIG_BOOT_POLICY_FIXED) += src/boot/policy_fixed.c
+src-$(CONFIG_BOOT_POLICY_CHAIN) += src/boot/policy_chain.c
+src-$(CONFIG_BOOT_POLICY_AB) += src/boot/ab_state.c
 src-y  += src/boot/image_helpers.c
 src-$(CONFIG_BOOT_LINUX) += src/boot/linux.c
 src-$(CONFIG_BOOT_ATF) += src/boot/atf.c

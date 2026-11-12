@@ -63,6 +63,9 @@ static const struct boot_ab_state_config cfg_speculative = {
 /* The board's object for the policy, the way a board has it in its data
  * (board.boot_policy, F-265): BOOT_POLICY_AB() stays a constant initializer */
 static const struct boot_policy policy = BOOT_POLICY_AB(&cfg_speculative);
+static const struct boot_policy policy_normal = BOOT_POLICY_AB(&cfg_normal);
+/* What a board can't write with the macro: an object without a configuration */
+static const struct boot_policy no_config = { .ops = &boot_policy_ab_ops };
 
 struct fixture {
     struct ramdisk *disk;
@@ -133,6 +136,35 @@ static void reboot(struct fixture *f, const struct boot_ab_state_config *cfg)
     assert_int_equal(boot_ab_state_init(cfg), PB_OK);
 }
 
+/*
+ * One boot that goes well: the policy's first candidate, which loads and
+ * verifies. Returns its device, or the policy's error when it has none.
+ */
+static bio_dev_t boot_once(void)
+{
+    uuid_t uu;
+    int rc = boot_policy_ab_ops.next(uu);
+
+    if (rc != PB_OK)
+        return rc;
+
+    boot_policy_ab_ops.report(uu, PB_OK);
+    return bio_get_part_by_uu(uu);
+}
+
+/* The candidate the policy hands out, which then fails to load or verify */
+static bio_dev_t candidate_fails(void)
+{
+    uuid_t uu;
+    int rc = boot_policy_ab_ops.next(uu);
+
+    if (rc != PB_OK)
+        return rc;
+
+    boot_policy_ab_ops.report(uu, -PB_ERR_BAD_PAYLOAD);
+    return bio_get_part_by_uu(uu);
+}
+
 static int setup(void **state)
 {
     struct fixture *f = calloc(1, sizeof(*f));
@@ -161,9 +193,10 @@ static void test_not_initialized(void **state)
 
     /* Without a configuration there is no state either */
     assert_int_equal(boot_ab_state_init(NULL), -PB_ERR_PARAM);
-    assert_int_equal(boot_policy_ab_ops.init(NULL), -PB_ERR_PARAM);
+    assert_int_equal(boot_policy_ab_ops.init(&no_config), -PB_ERR_PARAM);
 
-    assert_int_equal(boot_ab_state_get(), -PB_ERR_STATE);
+    assert_int_equal(boot_once(), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
     assert_int_equal(boot_ab_state_set_boot_partition((unsigned char *)UU_SYS_A), -PB_ERR_STATE);
     memset(uu, 0xff, sizeof(uu));
     boot_ab_state_get_boot_partition(uu);
@@ -204,7 +237,8 @@ static void test_init_blank_installs_defaults(void **state)
     assert_true(state_valid(f, PRIMARY_LBA));
     assert_true(state_valid(f, BACKUP_LBA));
     assert_int_equal(state_at(f, PRIMARY_LBA)->enable, 0);
-    assert_int_equal(boot_ab_state_get(), -PB_ERR_NO_ACTIVE_BOOT_PARTITION);
+    /* Nothing enabled: no candidate */
+    assert_int_equal(boot_once(), -PB_ERR_NOT_FOUND);
 }
 
 static void test_init_bad_crc_is_repaired(void **state)
@@ -302,11 +336,11 @@ static void test_verified_system_boots(void **state)
 
     write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
     reboot(f, &cfg_normal);
-    assert_int_equal(boot_ab_state_get(), f->sys_a);
+    assert_int_equal(boot_once(), f->sys_a);
 
     write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
     reboot(f, &cfg_normal);
-    assert_int_equal(boot_ab_state_get(), f->sys_b);
+    assert_int_equal(boot_once(), f->sys_b);
     /* Nothing to commit */
     assert_int_equal(f->disk->writes, 0);
 }
@@ -318,13 +352,13 @@ static void test_b_boot_attempts(void **state)
     write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, 0);
     reboot(f, &cfg_normal);
 
-    assert_int_equal(boot_ab_state_get(), f->sys_b);
+    assert_int_equal(boot_once(), f->sys_b);
     assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 1);
-    assert_int_equal(boot_ab_state_get(), f->sys_b);
+    assert_int_equal(boot_once(), f->sys_b);
     assert_int_equal(state_at(f, BACKUP_LBA)->remaining_boot_attempts, 0);
 
     /* Out of attempts: roll back to the verified A */
-    assert_int_equal(boot_ab_state_get(), f->sys_a);
+    assert_int_equal(boot_once(), f->sys_a);
     assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
     assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_B_ROLLBACK);
     assert_true(state_valid(f, PRIMARY_LBA));
@@ -335,13 +369,15 @@ static void test_no_rollback_to_unverified_system(void **state)
 {
     struct fixture *f = *state;
 
+    /* No viable candidate, and nothing is written */
     write_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
     reboot(f, &cfg_normal);
-    assert_int_equal(boot_ab_state_get(), -PB_ERR);
+    assert_int_equal(boot_once(), -PB_ERR_NOT_FOUND);
 
     write_state(f, PB_STATE_B_ENABLED, 0, 0, 0);
     reboot(f, &cfg_normal);
-    assert_int_equal(boot_ab_state_get(), -PB_ERR);
+    assert_int_equal(boot_once(), -PB_ERR_NOT_FOUND);
+    assert_int_equal(f->disk->writes, 0);
 }
 
 static void test_speculative_rollback_from_a(void **state)
@@ -352,12 +388,12 @@ static void test_speculative_rollback_from_a(void **state)
     reboot(f, &cfg_speculative);
 
     /* B gets one attempt, then it's A's turn again */
-    assert_int_equal(boot_ab_state_get(), f->sys_b);
+    assert_int_equal(boot_once(), f->sys_b);
     assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
     assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 1);
     assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_A_ROLLBACK);
-    assert_int_equal(boot_ab_state_get(), f->sys_b);
-    assert_int_equal(boot_ab_state_get(), f->sys_a);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(boot_once(), f->sys_a);
 }
 
 static void test_speculative_rollback_from_b(void **state)
@@ -367,7 +403,7 @@ static void test_speculative_rollback_from_b(void **state)
     write_state(f, PB_STATE_B_ENABLED, 0, 0, 0);
     reboot(f, &cfg_speculative);
 
-    assert_int_equal(boot_ab_state_get(), f->sys_a);
+    assert_int_equal(boot_once(), f->sys_a);
     assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
     assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 1);
     assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_B_ROLLBACK);
@@ -381,7 +417,7 @@ static void test_get_commit_error(void **state)
     reboot(f, &cfg_normal);
 
     f->disk->fail_writes_after = 0;
-    assert_int_equal(boot_ab_state_get(), -PB_ERR_IO);
+    assert_int_equal(boot_once(), -PB_ERR_IO);
 }
 
 static void test_set_boot_partition(void **state)
@@ -454,20 +490,20 @@ static void test_policy_object(void **state)
 
     /* An error of the module's is init's answer */
     attach(f, false, true);
-    assert_int_equal(policy.ops->init(policy.config), -PB_ERR_NOT_FOUND);
+    assert_int_equal(policy.ops->init(&policy), -PB_ERR_NOT_FOUND);
 
     attach(f, true, true);
-    assert_int_equal(policy.ops->init(policy.config), PB_OK);
+    assert_int_equal(policy.ops->init(&policy), PB_OK);
 
     /* B isn't verified and has no attempts left: only the speculative mode
      * boots A */
-    assert_int_equal(policy.ops->get(), f->sys_a);
+    assert_int_equal(boot_once(), f->sys_a);
     policy.ops->status(uu);
     assert_memory_equal(uu, UU_SYS_A, 16);
 
     /* A host activates B */
     assert_int_equal(policy.ops->activate((unsigned char *)UU_SYS_B), PB_OK);
-    assert_int_equal(policy.ops->get(), f->sys_b);
+    assert_int_equal(boot_once(), f->sys_b);
     policy.ops->status(uu);
     assert_memory_equal(uu, UU_SYS_B, 16);
     assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_B_VERIFIED);
@@ -476,6 +512,247 @@ static void test_policy_object(void **state)
     assert_int_equal(policy.ops->activate((unsigned char *)UU_OTHER), -PB_ERR_PART_NOT_BOOTABLE);
     policy.ops->status(uu);
     assert_true(uuid_is_null(uu));
+}
+
+/* init marks the policy's candidates, the two slots, and nothing else: only
+ * they can be booted, also by 'boot part' (boot.md 3.1, F-215) */
+static void test_init_marks_the_candidates(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_false(bio_get_flags(f->sys_a) & BIO_FLAG_BOOTABLE);
+    assert_false(bio_get_flags(f->sys_b) & BIO_FLAG_BOOTABLE);
+
+    assert_int_equal(policy_normal.ops->init(&policy_normal), PB_OK);
+
+    assert_true(bio_get_flags(f->sys_a) & BIO_FLAG_BOOTABLE);
+    assert_true(bio_get_flags(f->sys_b) & BIO_FLAG_BOOTABLE);
+    assert_false(bio_get_flags(bio_get_part_by_uu(UU_PRIMARY)) & BIO_FLAG_BOOTABLE);
+    assert_false(bio_get_flags(bio_get_part_by_uu(UU_BACKUP)) & BIO_FLAG_BOOTABLE);
+    assert_false(bio_get_flags(bio_get_part_by_uu(UU_DISK)) & BIO_FLAG_BOOTABLE);
+
+    /* It can run again (after a table is installed, boot.md 3.1) */
+    assert_int_equal(policy_normal.ops->init(&policy_normal), PB_OK);
+    assert_true(bio_get_flags(f->sys_a) & BIO_FLAG_BOOTABLE);
+}
+
+/* The first candidate fails in this boot: the other slot, when it is
+ * verified, for this boot only and with nothing written (boot.md 3.5, rule
+ * 3, F-174) */
+static void test_fallback_to_the_verified_slot(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+
+    assert_int_equal(candidate_fails(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+
+    assert_int_equal(boot_policy_ab_ops.next(uu), PB_OK);
+    assert_memory_equal(uu, UU_SYS_B, 16);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+    boot_policy_ab_ops.report(uu, PB_OK);
+    /* The handover reads the mode after the report */
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+
+    /* Nothing was written: A is still the enabled slot */
+    assert_int_equal(f->disk->writes, 0);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
+    boot_policy_ab_ops.status(uu);
+    assert_memory_equal(uu, UU_SYS_A, 16);
+
+    /* The next boot tries A first again, also without a reset in between */
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_a);
+
+    /* The same from B */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(candidate_fails(), f->sys_b);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+    assert_int_equal(f->disk->writes, 0);
+}
+
+/* Both fail: no third candidate, and the next boot starts over */
+static void test_fallback_fails_too(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+
+    assert_int_equal(candidate_fails(), f->sys_a);
+    assert_int_equal(candidate_fails(), f->sys_b);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_NOT_FOUND);
+    assert_int_equal(f->disk->writes, 0);
+
+    assert_int_equal(candidate_fails(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+}
+
+/* No fallback to a slot the OS never confirmed */
+static void test_no_fallback_to_unverified_slot(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    /* What 'boot activate A' leaves: only A verified */
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+
+    assert_int_equal(candidate_fails(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_NOT_FOUND);
+    assert_int_equal(f->disk->writes, 0);
+
+    /* The next boot: A again */
+    assert_int_equal(boot_once(), f->sys_a);
+}
+
+/* A trial that fails to load spent its attempt, and the verified slot boots
+ * for this boot. The trial is tried again on the next boots until its
+ * attempts run out, then it rolls back */
+static void test_trial_that_fails_falls_back(void **state)
+{
+    struct fixture *f = *state;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, 0);
+    reboot(f, &cfg_normal);
+
+    assert_int_equal(candidate_fails(), f->sys_b);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 1);
+    unsigned int writes = f->disk->writes;
+
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+    /* The fallback wrote nothing: B is still enabled, on trial */
+    assert_int_equal(f->disk->writes, writes);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, 0);
+
+    /* The next boot: B's last attempt */
+    assert_int_equal(candidate_fails(), f->sys_b);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 0);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
+
+    /* Out of attempts: the rollback, which is written, and mode normal */
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_B_ROLLBACK);
+}
+
+/* A trial that fails to load, and no slot the OS confirmed: the attempt is
+ * spent and written, and there is nothing else to try */
+static void test_trial_that_fails_without_a_verified_slot(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    write_state(f, PB_STATE_B_ENABLED, 0, 2, 0);
+    reboot(f, &cfg_normal);
+
+    assert_int_equal(candidate_fails(), f->sys_b);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 1);
+    assert_int_equal(state_at(f, BACKUP_LBA)->remaining_boot_attempts, 1);
+    unsigned int writes = f->disk->writes;
+
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_NOT_FOUND);
+    assert_int_equal(f->disk->writes, writes);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, 0);
+
+    /* The next boot: its last attempt, the same */
+    assert_int_equal(candidate_fails(), f->sys_b);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 0);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_NOT_FOUND);
+
+    /* Out of attempts and nothing to roll back to: no candidate at all, and
+     * nothing more is written */
+    writes = f->disk->writes;
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_NOT_FOUND);
+    assert_int_equal(f->disk->writes, writes);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
+}
+
+/* With the board's rollback_mode set to speculative, as released. F-257
+ * replaces that mode (boot.md 3.6): these pin what the code does today */
+static void test_fallback_with_speculative_rollback_mode(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    /* Rule 3 doesn't depend on the mode: the verified slot, nothing written */
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_speculative);
+    assert_int_equal(candidate_fails(), f->sys_a);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+    assert_int_equal(f->disk->writes, 0);
+
+    /* The speculative rollback hands out the slot that was never confirmed
+     * as the boot's first candidate, written, with one attempt. Its mode
+     * reads normal: speculative is F-257's */
+    write_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
+    reboot(f, &cfg_speculative);
+    assert_int_equal(candidate_fails(), f->sys_b);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 1);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_A_ROLLBACK);
+
+    /* It fails: A isn't verified, so it is no fallback in the same boot.
+     * The mode alternates only over boots */
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_NOT_FOUND);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
+
+    /* The next boot spends B's one attempt, the one after goes back to A */
+    assert_int_equal(candidate_fails(), f->sys_b);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 0);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_NOT_FOUND);
+    assert_int_equal(candidate_fails(), f->sys_a);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_B_ROLLBACK);
+}
+
+/* The slot a rollback handed out fails: the other one is the trial that
+ * ran out, no candidate */
+static void test_rollback_target_fails(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+
+    assert_int_equal(candidate_fails(), f->sys_a);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_NOT_FOUND);
+}
+
+/* A state write that fails ends the candidates (F-179 changes that): the
+ * next boot starts over */
+static void test_next_starts_over_after_an_error(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, 3, 0);
+    reboot(f, &cfg_normal);
+
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
+    f->disk->fail_writes_after = -1;
+
+    /* Not B as a fallback: A, as the first candidate of a new boot */
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
 }
 
 #define AB_TEST(f) cmocka_unit_test_setup_teardown(f, setup, teardown)
@@ -500,6 +777,15 @@ int main(void)
         AB_TEST(test_part_names),
         AB_TEST(test_board_regs),
         AB_TEST(test_policy_object),
+        AB_TEST(test_init_marks_the_candidates),
+        AB_TEST(test_fallback_to_the_verified_slot),
+        AB_TEST(test_fallback_fails_too),
+        AB_TEST(test_no_fallback_to_unverified_slot),
+        AB_TEST(test_trial_that_fails_falls_back),
+        AB_TEST(test_trial_that_fails_without_a_verified_slot),
+        AB_TEST(test_fallback_with_speculative_rollback_mode),
+        AB_TEST(test_rollback_target_fails),
+        AB_TEST(test_next_starts_over_after_an_error),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

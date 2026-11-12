@@ -71,7 +71,9 @@ A single integration test, inside `scripts/pbdev shell`:
   512 KiB at 0x70000000 (`BOARD_NOR_BASE`), a file that is erased (0xff) when new. pb has it
   mapped read only and writes it through its bio device, so a write through the map faults as
   it would be lost on a NOR. The host board gives it a static table: "NOR In place" (booted in
-  place), "NOR Loaded" (loaded, like a disk's partition) and "NOR Not bootable". Without the
+  place), "NOR Loaded" (loaded, like a disk's partition) and "NOR Not bootable". The host
+  board's boot source policy is A/B on the disk; its init also marks the first two bootable,
+  so `boot part` boots them and the policy never hands them out. Without the
   option pb-host has no flash and lists none.
 - **Reset and boot.** `plat_reset()` calls `exit(0)`, which also writes gcov data. On boot, the
   board's `late_boot` writes the partition name to `--boot-status` and then resets: `A` or `B`,
@@ -183,6 +185,9 @@ Unit tests, by module under test:
 |                                               |                              | driver. In place: `static.c`,    |
 |                                               |                              | the ramdisk's memory as the map  |
 | `test_static_ptbl.c`                          | `static.c`                   | ramdisk                          |
+| `test_policy.c`                               | `policy.c`,                  | ramdisk                          |
+|                                               | `policy_fixed.c`,            |                                  |
+|                                               | `policy_chain.c`             |                                  |
 | `test_simple.c`                               | `simple.c`                   | arch                             |
 | `test_image_helpers.c`                        | `image_helpers.c`            | hash, DSA, root of trust (memory |
 |                                               |                              | regions via `--defsym`)          |

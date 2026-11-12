@@ -59,11 +59,7 @@ static int setup_boot_driver(void)
     driver.early_boot_cb = board.early_boot;
     driver.late_boot_cb = board.late_boot;
 
-    if (board.boot_policy.ops) {
-        driver.get_boot_bio_device = board.boot_policy.ops->get;
-        driver.set_boot_partition = board.boot_policy.ops->activate;
-        driver.get_boot_partition = board.boot_policy.ops->status;
-    }
+    driver.policy = &board.boot_policy;
 
     /* A handover is mandatory, and no delivery exists yet (F-258) */
     if (board.boot_handover.ops == NULL || board.boot_delivery.ops != NULL)
@@ -118,13 +114,11 @@ int board_setup(void)
         return rc;
     }
 
-    if (board.boot_policy.ops) {
-        rc = board.boot_policy.ops->init(board.boot_policy.config);
+    rc = boot_policy_init(&board.boot_policy);
 
-        if (rc != PB_OK) {
-            LOG_ERR("Boot policy init failed (%i)", rc);
-            return rc;
-        }
+    if (rc != PB_OK) {
+        LOG_ERR("Boot policy init failed (%i)", rc);
+        return rc;
     }
 
     if (board.late_init) {

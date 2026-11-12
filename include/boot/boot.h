@@ -10,6 +10,7 @@
 #ifndef INCLUDE_BOOT_H
 #define INCLUDE_BOOT_H
 
+#include <boot/policy.h>
 #include <bpak/bpak.h>
 #include <pb/bio.h>
 #include <pb/utils_def.h>
@@ -48,9 +49,9 @@ enum boot_source {
 struct boot_driver {
     enum boot_source default_boot_source;
     int (*early_boot_cb)(void);
-    bio_dev_t (*get_boot_bio_device)(void);
-    int (*set_boot_partition)(uuid_t part_uu);
-    void (*get_boot_partition)(uuid_t part_uu);
+    /* The board's boot source policy (boot/policy.h). NULL, or one without
+     * ops: no boot from storage */
+    const struct boot_policy *policy;
     int (*prepare)(struct bpak_header *header, uuid_t boot_part_uu);
     int (*late_boot_cb)(struct bpak_header *header, uuid_t boot_part_uu);
     void (*jump)(void);
@@ -121,34 +122,39 @@ void boot_clear_set_flags(uint32_t clear, uint32_t set);
 uint32_t boot_get_flags(void);
 
 /**
- * Proxy function to set/activate a boot partition. This function will
- * call the 'set_boot_partition' callback in the config struct if it's
- * populated.
+ * Command mode's 'boot activate': the board's policy activates 'part_uu'
+ * (boot_policy_activate()).
  *
  * @param[in] part_uu UUID of partition to set as active
  *
- * @return PB_OK on success all other codes are errors
+ * @return PB_OK on success,
+ *        -PB_ERR_NOT_SUPPORTED before boot_init(), without a policy, and
+ *         where the policy has nothing to activate
  */
 int boot_set_boot_partition(uuid_t part_uu);
 
 /**
- * Proxy function to get active boot partition. This function will
- * call the 'get_boot_partition' callback in the config struct if it's
- * populated.
+ * Command mode's 'boot status': the board's policy's partition
+ * (boot_policy_status()).
  *
- * @param[out] part_uu UUID of active partition
- *
- * @return PB_OK on success all other codes are errors
+ * @param[out] part_uu UUID of the partition, or the null UUID
  */
 void boot_get_boot_partition(uuid_t part_uu);
 
 /**
  * Boot the system. This fuction tries to load/auth and execute a boot image
  *
- * @param[in] boot_part_override_uu Optional partition UUID to boot.
- *  Set this to NULL for default behaviour.
+ * Without 'boot_part_override_uu' the board's boot source policy hands out
+ * the candidates (boot.md 2, 3): each is loaded, verified and prepared, the
+ * policy hears the result, and the first that succeeds is booted. With it,
+ * that partition is the one candidate; the policy isn't asked.
  *
- * @return This function will not return on sucess
+ * @param[in] boot_part_override_uu Optional partition UUID to boot.
+ *  NULL or the null UUID: the policy's candidates.
+ *
+ * @return This function will not return on sucess. The first candidate's
+ *  error when every candidate failed, -PB_ERR_NO_ACTIVE_BOOT_PARTITION when
+ *  the policy had none.
  */
 int boot(uuid_t boot_part_override_uu);
 

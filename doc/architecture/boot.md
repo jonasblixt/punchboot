@@ -152,9 +152,8 @@ the policy the board chose, the policy's functions (3.1 to 3.4) with the board's
 for it (3.5, `board.md` 2.5). The core calls the board's policy. Kconfig compiles a policy in
 (`BOOT_POLICY_FIXED`, `BOOT_POLICY_CHAIN`, `BOOT_POLICY_AB`), more than one where a build wants
 them (the host's tests), and a board that names one that isn't compiled in doesn't link.
-**Not yet in the code (F-256)**: A/B is the only policy, and its object has the three
-callbacks the core had before (get, activate, status), not the functions below; without it no
-partition is bootable (F-215).
+`BOOT_AB_DRIVER`, A/B's name before 3.0.0, still compiles A/B in. The functions are in
+`include/boot/policy.h`.
 
 ### 3.1 Function : boot_policy_init() [mandatory]
 
@@ -178,6 +177,10 @@ Return   : int, PB_OK with a candidate, -PB_ERR_NOT_FOUND when none is left
 Hands out the next candidate of this boot. A policy with state writes what the decision changes
 before it returns (a trial's attempt, a rollback, speculative mode's slot): a hang during the load
 then still counts.
+
+A boot's candidates start over after a candidate was reported with `PB_OK` and after `next`
+returned none: a boot that command mode starts later (`boot part` with the null UUID, 6) begins
+with the first candidate again, and counts like any boot.
 
 When that write fails (**not yet in the code, F-179**: today any failed write ends the boot), the
 write decides only where skipping it would be unsafe:
@@ -612,6 +615,8 @@ A boot command mode started keeps today's values (`compatibility.md`):
   does today (`boot.c` refuses a partition without `BIO_FLAG_BOOTABLE`), so it stays
   (`compatibility.md`), and the fixed and the chain policy get the same rule: what else a host
   wants to boot it sends with `boot bpak`.
+- `boot part` with the null UUID names no partition: the policy's candidates, the same loop as
+  a boot without command mode, counted and reported (the wire's, D-008).
 - `boot bpak`: the host stream (4.1), the partition the host names in the handover (5.6).
 - Both go through the preconditions, `early_boot()`, 4.2 and 4.3 like any boot (2); only the
   serial download stop is skipped.
@@ -652,8 +657,6 @@ Like the wire (D-008, `compatibility.md`):
 
 | Finding                           | What                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------- |
-| F-256                             | The policy interface (3.1 to 3.4), fixed and staggered, their Kconfig names,    |
-|                                   | the loop with the fallback (F-174), each policy marking its candidates (F-215)  |
 | F-257                             | Speculative mode (3.6, F-177): nothing enabled, Kconfig as its only switch      |
 | F-258                             | The handover and delivery model, `image`, TF-A's BL33 and BL32, `bl_params`     |
 |                                   | from the platform, the DXL                                                      |

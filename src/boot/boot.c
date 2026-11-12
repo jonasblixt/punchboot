@@ -15,6 +15,7 @@
 #include <pb/bio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <stdbool.h>
 #include <string.h>
 
 static const struct boot_driver *boot_cfg;
@@ -36,6 +37,7 @@ int boot_init(const struct boot_driver *cfg)
         return -PB_ERR_PARAM;
 
     boot_cfg = cfg;
+    boot_policy_set(cfg->policy);
     boot_device = -1;
     boot_source = cfg->default_boot_source;
     boot_flags = 0;
@@ -70,10 +72,10 @@ int boot_set_boot_partition(uuid_t part_uu)
 {
     if (part_uu == NULL)
         return -PB_ERR_PARAM;
-    if (!boot_cfg || boot_cfg->set_boot_partition == NULL)
+    if (!boot_cfg)
         return -PB_ERR_NOT_SUPPORTED;
 
-    return boot_cfg->set_boot_partition(part_uu);
+    return boot_policy_activate(part_uu);
 }
 
 void boot_get_boot_partition(uuid_t part_uu)
@@ -81,12 +83,12 @@ void boot_get_boot_partition(uuid_t part_uu)
     if (part_uu == NULL)
         return;
 
-    if (!boot_cfg || boot_cfg->get_boot_partition == NULL) {
+    if (!boot_cfg) {
         uuid_clear(part_uu);
         return;
     }
 
-    boot_cfg->get_boot_partition(part_uu);
+    boot_policy_status(part_uu);
 }
 
 static int boot_bio_read(int64_t offset, size_t length, void *buf)
@@ -170,6 +172,12 @@ static int auth_verify_in_place(uintptr_t base, size_t size)
     return boot_image_verify_payload(&header, payload_digest);
 }
 
+static bool has_policy(void)
+{
+    return boot_cfg->policy != NULL && boot_cfg->policy->ops != NULL;
+}
+
+/* The candidate is the partition 'boot_part_uu' */
 static int load_auth_verify_from_bio(void)
 {
     int rc;
@@ -177,21 +185,9 @@ static int load_auth_verify_from_bio(void)
     uintptr_t in_place_base;
     size_t in_place_size;
 
-    if (boot_cfg->get_boot_bio_device == NULL)
-        return -PB_ERR_NOT_SUPPORTED;
-
-    if (uuid_is_null(boot_part_uu)) {
-        boot_device = boot_cfg->get_boot_bio_device();
-
-        if (boot_device < 0)
-            return boot_device;
-
-        uuid_copy(boot_part_uu, bio_get_uu(boot_device));
-    } else {
-        boot_device = bio_get_part_by_uu(boot_part_uu);
-        if (boot_device < 0)
-            return boot_device;
-    }
+    boot_device = bio_get_part_by_uu(boot_part_uu);
+    if (boot_device < 0)
+        return boot_device;
 
 #if LOG_MAX_LEVEL >= 3
     char boot_device_uu_str[37];
@@ -288,6 +284,64 @@ static int load_auth_verify_from_cb(void)
     return rc;
 }
 
+static int prepare(void)
+{
+    LOG_DBG("Prepare");
+
+    if (boot_cfg->prepare)
+        return boot_cfg->prepare(&header, boot_part_uu);
+
+    return PB_OK;
+}
+
+/*
+ * The board's boot source policy hands out the candidates (boot.md 2, 3).
+ * Load, verify and prepare are one attempt: the policy hears its result, and
+ * after a failure the next candidate is tried.
+ */
+static int boot_from_policy(void)
+{
+    uuid_t candidate_uu;
+    int first_rc = PB_OK;
+    bool tried = false;
+    int rc;
+
+    rc = boot_policy_next(candidate_uu);
+
+    while (rc == PB_OK) {
+        uuid_copy(boot_part_uu, candidate_uu);
+
+        rc = load_auth_verify_from_bio();
+
+        if (rc == PB_OK)
+            rc = prepare();
+
+        boot_policy_report(candidate_uu, rc);
+
+        if (rc == PB_OK)
+            return PB_OK;
+
+        LOG_ERR("The candidate failed (%i)", rc);
+
+        if (!tried) {
+            first_rc = rc;
+            tried = true;
+        }
+
+        rc = boot_policy_next(candidate_uu);
+    }
+
+    /* Every candidate failed: the first one's error */
+    if (tried)
+        return first_rc;
+
+    /* The policy had none, or its state couldn't be written */
+    if (rc == -PB_ERR_NOT_FOUND)
+        rc = -PB_ERR_NO_ACTIVE_BOOT_PARTITION;
+
+    return rc;
+}
+
 int boot_load(uuid_t boot_part_override_uu)
 {
     int rc;
@@ -318,10 +372,25 @@ int boot_load(uuid_t boot_part_override_uu)
     LOG_DBG("Load");
     switch (boot_source) {
     case BOOT_SOURCE_BIO:
-        rc = load_auth_verify_from_bio();
+        if (!has_policy()) {
+            /* Only a policy's candidates are bootable */
+            rc = -PB_ERR_NOT_SUPPORTED;
+        } else if (uuid_is_null(boot_part_uu)) {
+            rc = boot_from_policy();
+        } else {
+            /* One candidate, the partition that was named: the policy
+             * isn't asked and hears nothing */
+            rc = load_auth_verify_from_bio();
+
+            if (rc == PB_OK)
+                rc = prepare();
+        }
         break;
     case BOOT_SOURCE_CB:
         rc = load_auth_verify_from_cb();
+
+        if (rc == PB_OK)
+            rc = prepare();
         break;
     default:
         rc = -PB_ERR_PARAM;
@@ -330,18 +399,8 @@ int boot_load(uuid_t boot_part_override_uu)
 
     if (rc == -PB_ERR_NO_ACTIVE_BOOT_PARTITION) {
         printf("No active boot partition\n\r");
-        goto err_out;
     } else if (rc != PB_OK) {
         LOG_ERR("Load/Auth/Verify failed (%i)", rc);
-        goto err_out;
-    }
-
-    LOG_DBG("Prepare");
-    if (boot_cfg->prepare) {
-        rc = boot_cfg->prepare(&header, boot_part_uu);
-        if (rc != PB_OK) {
-            goto err_out;
-        }
     }
 
 err_out:

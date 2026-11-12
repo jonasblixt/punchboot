@@ -147,6 +147,9 @@ add_library(pb_core STATIC
     src/wire.c
     src/boot/ab_state.c
     src/boot/boot.c
+    src/boot/policy.c
+    src/boot/policy_chain.c
+    src/boot/policy_fixed.c
     src/boot/dtb.c
     src/boot/image_helpers.c
     src/boot/linux.c

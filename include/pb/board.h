@@ -60,7 +60,8 @@ struct board {
      * Absent: init() created the partitions, or there are none */
     struct ptbl ptbl;
 
-    /* The boot source policy: BOOT_POLICY_AB(). Absent: no boot from storage */
+    /* The boot source policy: BOOT_POLICY_FIXED(), BOOT_POLICY_CHAIN() or
+     * BOOT_POLICY_AB(). Absent: no boot from storage */
     struct boot_policy boot_policy;
 
     int (*late_init)(void); /*!< After the partition table and the policy */

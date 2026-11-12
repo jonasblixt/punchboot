@@ -43,18 +43,6 @@ struct boot_ab_state_config {
 int boot_ab_state_init(const struct boot_ab_state_config *cfg);
 
 /**
- * Compute which block device that should be used for booting.
- * This advances the boot counters if needed and may trigger rollback
- * on un-verified partitions.
- *
- * @return A valid block device on success,
- *        -PB_ERR_PARAM, bad block device UUID's
- *        -PB_ERR_IO, on read/write errors
- *        -PB_ERR_NOT_FOUND, when can't partitions can't be found
- */
-bio_dev_t boot_ab_state_get(void);
-
-/**
  * For partition 'part_uu' to be active and verified.
  *
  * @param[in] part_uu Partition to activate

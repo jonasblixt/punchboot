@@ -295,8 +295,6 @@ static int nor_init(void)
     if (rc != PB_OK)
         return rc;
 
-    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_nor_in_place), 0, BIO_FLAG_BOOTABLE);
-    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_nor_loaded), 0, BIO_FLAG_BOOTABLE);
     return PB_OK;
 }
 
@@ -417,13 +415,71 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
 };
 
+/*
+ * The tests' boot source policy: A/B on the disk, and with a flash (--nor)
+ * its two bootable partitions as well. A policy marks what can be booted
+ * (boot.md 3.1): the flash's partitions are candidates that the policy
+ * never hands out, so only 'boot part' boots them.
+ */
+static int host_policy_init(const struct boot_policy *policy)
+{
+    int rc = boot_policy_ab_ops.init(policy);
+    bio_dev_t dev;
+
+    dev = bio_get_part_by_uu(PART_nor_in_place);
+
+    if (dev >= 0)
+        (void)bio_clear_set_flags(dev, 0, BIO_FLAG_BOOTABLE);
+
+    dev = bio_get_part_by_uu(PART_nor_loaded);
+
+    if (dev >= 0)
+        (void)bio_clear_set_flags(dev, 0, BIO_FLAG_BOOTABLE);
+
+    return rc;
+}
+
+static int host_policy_next(uuid_t part_uu)
+{
+    return boot_policy_ab_ops.next(part_uu);
+}
+
+static void host_policy_report(const uuid_t part_uu, int result)
+{
+    boot_policy_ab_ops.report(part_uu, result);
+}
+
+static enum boot_policy_mode host_policy_mode(void)
+{
+    return boot_policy_ab_ops.mode();
+}
+
+static int host_policy_activate(uuid_t part_uu)
+{
+    return boot_policy_ab_ops.activate(part_uu);
+}
+
+static void host_policy_status(uuid_t part_uu)
+{
+    boot_policy_ab_ops.status(part_uu);
+}
+
+static const struct boot_policy_ops host_policy_ops = {
+    .init = host_policy_init,
+    .next = host_policy_next,
+    .report = host_policy_report,
+    .mode = host_policy_mode,
+    .activate = host_policy_activate,
+    .status = host_policy_status,
+};
+
 const struct board board = {
     .name = "host test",
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_disk, gpt_tables),
-    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
+    .boot_policy = { .ops = &host_policy_ops, .config = &boot_state_cfg },
     .late_init = board_late_init,
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_linux),
     .early_boot = early_boot,

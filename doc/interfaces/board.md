@@ -239,13 +239,13 @@ The board's boot source policy (`boot.md` 3): the object of the policy the board
 the board's configuration for it. `boot_policy_init()` runs after the partition table
 (`boot.md` 3.1).
 
-**Not yet in the code (F-256, F-257, F-215)**: A/B is the only policy, a board without it
-can't boot from storage, and its configuration has a `rollback_mode`.
+**Not yet in the code (F-257)**: A/B's configuration has a `rollback_mode`.
 
 | Object                     | What the board gives (`boot.md` 3.5)                                    |
 | -------------------------- | ----------------------------------------------------------------------- |
 | `BOOT_POLICY_FIXED(part)`  | The one partition's UUID                                                |
-| `BOOT_POLICY_CHAIN(parts)` | The partitions' UUIDs, in the order they are tried                      |
+| `BOOT_POLICY_CHAIN(parts)` | The partitions' UUIDs, in the order they are tried: an array of         |
+|                            | pointers to UUIDs, whose size the macro takes                           |
 | `BOOT_POLICY_AB(&config)`  | `struct boot_ab_state_config`: the primary and backup state partitions, |
 |                            | System A and B                                                          |
 
@@ -254,7 +254,7 @@ can't boot from storage, and its configuration has a `rollback_mode`.
 - The A/B state's format is shared with `pbstate` in the OS (`boot.md` 3.7). Its four board
   registers are the board's (section 6).
 - The policy marks its candidates bootable (`boot.md` 3.1). A board doesn't set
-  `BIO_FLAG_BOOTABLE` itself (the host does today, for its flash's partitions, F-256).
+  `BIO_FLAG_BOOTABLE` itself (the host does, in a policy object of its own, F-301).
 
 Failure: a partition the configuration names isn't in the table, or the policy's state can't be
 read or repaired: 2.1.
@@ -715,7 +715,7 @@ aren't the board's data (`system.md` 6):
 |                             | `CM_AUTH_TOKEN` and `CM_AUTH_PASSWORD`                                         |
 | The keys and the life cycle | `KEYSTORE_SLOTS` (D-027); EOL, off by default (`system.md` 4)                  |
 
-**Not yet in the code (F-256, F-257, F-259, F-251, F-263, F-267)**: the policies' options,
+**Not yet in the code (F-257, F-259, F-251, F-263, F-267)**: `BOOT_AB_SPECULATIVE`,
 `BOOT_FH` and its region, `CM_ON_SERIAL_DOWNLOAD`, the EOL option, the USB port's.
 
 **Not yet in the code (F-239)**: the board's addresses (`PB_ENTRY`, `BOARD_RAM_BASE`, `_END`) are
@@ -788,10 +788,10 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | Requirement                    | jiffy | 8MP EVK | MEK | DXL EVK | RT1060 EVK | imx8mevk | host    | Finding      |
 | ------------------------------ | ----- | ------- | --- | ------- | ---------- | -------- | ------- | ------------ |
 | Data (3)                       | no    | yes     | yes | yes     | no         | no       | no      | F-249        |
-| A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-215, F-256 |
+| A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300        |
 | Image data regions (2.9)       | no    | no      | no  | no      | no         | no       | no      | F-254        |
 | Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270        |
-| No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-256        |
+| No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-301        |
 | No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251        |
 | `status()` (4.3)               | no    | default | no  | no      | default    | default  | default | F-250        |
 | `password_auth()` (4.5)        | n/a   | n/a     | no  | no      | n/a        | n/a      | n/a     | F-004        |
@@ -801,8 +801,12 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 Data: jiffy, the RT and the host set `CONFIG_CM_AUTH_PASSWORD` without a callback; imx8mevk has
 `CONFIG_BOOT_LINUX` without a handover.
 
-A policy: every board with one uses A/B; imx8mevk has none, and no policy to boot from storage
-with.
+A policy: every board with one uses A/B; imx8mevk has none (F-300). The host's is an object
+its board file builds by hand, not one made by a module's macro: A/B, whose init also marks
+the flash's two bootable partitions (`testing.md`, F-301). They are candidates the policy
+never hands out, so only `boot part` boots them. The marks are in the policy's init, which
+`board_setup()` doesn't reach when the table fails: on a blank disk the flash's partitions
+aren't bootable until a table is installed and pb restarts.
 
 Not in the table, the same on every board until its finding is fixed: A/B's `rollback_mode`
 (F-257), `resolve_part_name` (F-258, F-259, F-260).

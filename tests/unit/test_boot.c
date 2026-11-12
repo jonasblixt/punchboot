@@ -108,7 +108,20 @@ static struct {
     boot_result_cb_t load_result_f;
 
     int early_rc;
-    bio_dev_t boot_dev;
+
+    /* The fake policy: it hands out candidates[], then -PB_ERR_NOT_FOUND */
+    const unsigned char *candidates[3];
+    size_t no_of_candidates;
+    size_t next_candidate;
+    int next_rc;
+    /* This call of next fails with -PB_ERR_IO, 0: none */
+    int next_fail_call;
+    int next_calls;
+    int report_calls;
+    uuid_t report_uu[3];
+    int report_result[3];
+    int activate_calls;
+
     int prepare_rc;
     int prepare_calls;
     uuid_t prepare_uu;
@@ -117,7 +130,8 @@ static struct {
     int late_calls;
     uint32_t late_flags;
     int jump_calls;
-    int set_part_calls;
+    /* prepare fails for this partition */
+    const unsigned char *prepare_fail_uu;
 
     int read_cb_rc;
     int read_cb_calls;
@@ -196,28 +210,84 @@ static int fake_early_boot(void)
     return fake.early_rc;
 }
 
-static bio_dev_t fake_get_boot_bio_device(void)
+static int fake_policy_init(const struct boot_policy *policy)
 {
-    return fake.boot_dev;
-}
-
-static int fake_set_boot_partition(uuid_t part_uu)
-{
-    (void)part_uu;
-    fake.set_part_calls++;
+    (void)policy;
     return PB_OK;
 }
 
-static void fake_get_boot_partition(uuid_t part_uu)
+static int fake_policy_next(uuid_t part_uu)
+{
+    fake.next_calls++;
+
+    if (fake.next_rc != PB_OK)
+        return fake.next_rc;
+
+    if (fake.next_calls == fake.next_fail_call) {
+        fake.next_candidate = 0;
+        return -PB_ERR_IO;
+    }
+
+    if (fake.next_candidate >= fake.no_of_candidates) {
+        fake.next_candidate = 0;
+        return -PB_ERR_NOT_FOUND;
+    }
+
+    uuid_copy(part_uu, fake.candidates[fake.next_candidate++]);
+    return PB_OK;
+}
+
+static void fake_policy_report(const uuid_t part_uu, int result)
+{
+    /* The first three are kept */
+    if (fake.report_calls < 3) {
+        uuid_copy(fake.report_uu[fake.report_calls], part_uu);
+        fake.report_result[fake.report_calls] = result;
+    }
+
+    fake.report_calls++;
+
+    if (result == PB_OK)
+        fake.next_candidate = 0;
+}
+
+static enum boot_policy_mode fake_policy_mode(void)
+{
+    return BOOT_POLICY_MODE_NORMAL;
+}
+
+static int fake_policy_activate(uuid_t part_uu)
+{
+    (void)part_uu;
+    fake.activate_calls++;
+    return PB_OK;
+}
+
+static void fake_policy_status(uuid_t part_uu)
 {
     uuid_copy(part_uu, UU_SYS_B);
 }
+
+static const struct boot_policy_ops fake_policy_ops = {
+    .init = fake_policy_init,
+    .next = fake_policy_next,
+    .report = fake_policy_report,
+    .mode = fake_policy_mode,
+    .activate = fake_policy_activate,
+    .status = fake_policy_status,
+};
+
+static const struct boot_policy fake_policy = { .ops = &fake_policy_ops };
 
 static int fake_prepare(struct bpak_header *header, uuid_t boot_part_uu)
 {
     fake.prepare_calls++;
     fake.prepare_hdr = header;
     uuid_copy(fake.prepare_uu, boot_part_uu);
+
+    if (fake.prepare_fail_uu != NULL && uuid_compare(boot_part_uu, fake.prepare_fail_uu) == 0)
+        return -PB_ERR_BAD_META;
+
     return fake.prepare_rc;
 }
 
@@ -253,17 +323,25 @@ static int fake_result_cb(int result)
 static const struct boot_driver driver = {
     .default_boot_source = BOOT_SOURCE_BIO,
     .early_boot_cb = fake_early_boot,
-    .get_boot_bio_device = fake_get_boot_bio_device,
-    .set_boot_partition = fake_set_boot_partition,
-    .get_boot_partition = fake_get_boot_partition,
+    .policy = &fake_policy,
     .prepare = fake_prepare,
     .late_boot_cb = fake_late_boot,
     .jump = fake_jump,
 };
 
-/* Only what boot_init() requires */
+/* Only what boot_init() requires: no policy */
 static const struct boot_driver minimal_driver = {
     .default_boot_source = BOOT_SOURCE_BIO,
+    .jump = fake_jump,
+};
+
+/* A board without a policy has the object, without ops */
+static const struct boot_policy no_policy;
+
+static const struct boot_driver no_policy_driver = {
+    .default_boot_source = BOOT_SOURCE_BIO,
+    .policy = &no_policy,
+    .prepare = fake_prepare,
     .jump = fake_jump,
 };
 
@@ -303,7 +381,10 @@ static void reset_fakes(struct fixture *f)
 {
     memset(&fake, 0, sizeof(fake));
     memset(&auth_seen, 0, sizeof(auth_seen));
-    fake.boot_dev = f->sys_a;
+    (void)f;
+    /* The policy's one candidate is System A */
+    fake.candidates[0] = UU_SYS_A;
+    fake.no_of_candidates = 1;
     fake_lockdown_calls = 0;
     fake_lockdown_rc = PB_OK;
     assert_int_equal(boot_init(&driver), PB_OK);
@@ -419,17 +500,25 @@ static void test_boot_partition(void **state)
 
     assert_int_equal(boot_set_boot_partition(NULL), -PB_ERR_PARAM);
     assert_int_equal(boot_set_boot_partition((unsigned char *)UU_SYS_A), PB_OK);
-    assert_int_equal(fake.set_part_calls, 1);
+    assert_int_equal(fake.activate_calls, 1);
 
     boot_get_boot_partition(NULL);
     boot_get_boot_partition(uu);
     assert_memory_equal(uu, UU_SYS_B, 16);
 
+    /* Without a policy: nothing to activate, no partition */
     assert_int_equal(boot_init(&minimal_driver), PB_OK);
     assert_int_equal(boot_set_boot_partition((unsigned char *)UU_SYS_A), -PB_ERR_NOT_SUPPORTED);
     memset(uu, 0xff, sizeof(uu));
     boot_get_boot_partition(uu);
     assert_true(uuid_is_null(uu));
+
+    assert_int_equal(boot_init(&no_policy_driver), PB_OK);
+    assert_int_equal(boot_set_boot_partition((unsigned char *)UU_SYS_A), -PB_ERR_NOT_SUPPORTED);
+    memset(uu, 0xff, sizeof(uu));
+    boot_get_boot_partition(uu);
+    assert_true(uuid_is_null(uu));
+    assert_int_equal(fake.activate_calls, 1);
 }
 
 static void test_flags(void **state)
@@ -457,6 +546,11 @@ static void test_bio_boot(void **state)
     assert_int_equal(fake.in_place_calls, 0);
     assert_int_equal(fake.prepare_calls, 1);
     assert_memory_equal(fake.prepare_uu, UU_SYS_A, 16);
+    /* The policy handed out one candidate and heard that it succeeded */
+    assert_int_equal(fake.next_calls, 1);
+    assert_int_equal(fake.report_calls, 1);
+    assert_memory_equal(fake.report_uu[0], UU_SYS_A, 16);
+    assert_int_equal(fake.report_result[0], PB_OK);
     assert_int_equal(fake.late_calls, 1);
     /* late_boot sees the flags (F-060) */
     assert_int_equal(fake.late_flags, BOOT_FLAG_VERBOSE);
@@ -489,6 +583,23 @@ static void test_bio_boot_override(void **state)
     assert_memory_equal(fake.prepare_uu, UU_SYS_B, 16);
 
     assert_int_equal(boot_load((unsigned char *)UU_OTHER), -PB_ERR_NOT_FOUND);
+
+    /* A partition that is named is the one candidate: the policy isn't
+     * asked and hears nothing, also when it fails (boot.md 6) */
+    fake.auth_rc = -PB_ERR_AUTHENTICATION_FAILED;
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_B), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(fake.next_calls, 0);
+    assert_int_equal(fake.report_calls, 0);
+    fake.auth_rc = PB_OK;
+
+    /* The null UUID names none: the policy's candidates, as with NULL */
+    uuid_t null_uu;
+
+    uuid_clear(null_uu);
+    assert_int_equal(boot_load(null_uu), PB_OK);
+    assert_memory_equal(fake.prepare_uu, UU_SYS_A, 16);
+    assert_int_equal(fake.next_calls, 1);
+    assert_int_equal(fake.report_calls, 1);
 }
 
 static void test_bio_boot_errors(void **state)
@@ -498,11 +609,29 @@ static void test_bio_boot_errors(void **state)
     /* B is not bootable */
     assert_int_equal(boot_load((unsigned char *)UU_SYS_B), -PB_ERR_PART_NOT_BOOTABLE);
 
-    fake.boot_dev = -PB_ERR_NO_ACTIVE_BOOT_PARTITION;
+    /* The policy has no candidate */
+    fake.no_of_candidates = 0;
     assert_int_equal(boot_load(NULL), -PB_ERR_NO_ACTIVE_BOOT_PARTITION);
-    fake.boot_dev = -PB_ERR;
-    assert_int_equal(boot_load(NULL), -PB_ERR);
-    fake.boot_dev = f->sys_a;
+    assert_int_equal(fake.report_calls, 0);
+    fake.no_of_candidates = 1;
+
+    /* Its state couldn't be written: its error */
+    fake.next_rc = -PB_ERR_IO;
+    assert_int_equal(boot_load(NULL), -PB_ERR_IO);
+    fake.next_rc = -PB_ERR_STATE;
+    assert_int_equal(boot_load(NULL), -PB_ERR_STATE);
+    fake.next_rc = PB_OK;
+    assert_int_equal(fake.report_calls, 0);
+    assert_int_equal(fake.auth_calls, 0);
+
+    /* A candidate that isn't in the table */
+    fake.candidates[0] = UU_OTHER;
+    assert_int_equal(boot_load(NULL), -PB_ERR_NOT_FOUND);
+    assert_int_equal(fake.report_calls, 1);
+    assert_memory_equal(fake.report_uu[0], UU_OTHER, 16);
+    assert_int_equal(fake.report_result[0], -PB_ERR_NOT_FOUND);
+    fake.candidates[0] = UU_SYS_A;
+    fake.report_calls = 0;
 
     f->disk->fail_reads_after = 0;
     assert_int_equal(boot_load(NULL), -PB_ERR_IO);
@@ -524,20 +653,146 @@ static void test_bio_boot_errors(void **state)
     assert_int_equal(boot_load(NULL), -PB_ERR_BAD_PAYLOAD);
     fake.verify_payload_rc = PB_OK;
 
+    fake.report_calls = 0;
     fake.prepare_rc = -PB_ERR_BAD_META;
     assert_int_equal(boot_load(NULL), -PB_ERR_BAD_META);
     fake.prepare_rc = PB_OK;
+    /* Preparing the handover is part of the attempt: the policy hears it */
+    assert_int_equal(fake.report_calls, 1);
+    assert_int_equal(fake.report_result[0], -PB_ERR_BAD_META);
 
     assert_int_equal(fake.late_calls, 0);
     assert_int_equal(fake.jump_calls, 0);
 }
 
-static void test_bio_boot_needs_a_device_callback(void **state)
+/* Only a policy's candidates are bootable: without one nothing boots from
+ * storage, a partition that is named neither */
+static void test_bio_boot_needs_a_policy(void **state)
 {
-    (void)state;
+    struct fixture *f = *state;
 
     assert_int_equal(boot_init(&minimal_driver), PB_OK);
     assert_int_equal(boot_load(NULL), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), -PB_ERR_NOT_SUPPORTED);
+
+    assert_int_equal(boot_init(&no_policy_driver), PB_OK);
+    assert_int_equal(boot_load(NULL), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(fake.auth_calls, 0);
+    assert_int_equal(f->disk->reads, 0);
+
+    /* The host's stream needs none */
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 1);
+
+    /* Nor a handover that prepares nothing */
+    assert_int_equal(boot_init(&minimal_driver), PB_OK);
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 1);
+}
+
+/* The first candidate fails: the policy hears it and the next one is tried
+ * (boot.md 2, 3.5 rule 3, F-174) */
+static void test_policy_next_candidate(void **state)
+{
+    struct fixture *f = *state;
+
+    /* A isn't bootable, B is */
+    assert_int_equal(bio_clear_set_flags(f->sys_a, BIO_FLAG_BOOTABLE, 0), PB_OK);
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+
+    assert_int_equal(boot(NULL), -PB_ERR);
+
+    assert_int_equal(fake.next_calls, 2);
+    assert_int_equal(fake.report_calls, 2);
+    assert_memory_equal(fake.report_uu[0], UU_SYS_A, 16);
+    assert_int_equal(fake.report_result[0], -PB_ERR_PART_NOT_BOOTABLE);
+    assert_memory_equal(fake.report_uu[1], UU_SYS_B, 16);
+    assert_int_equal(fake.report_result[1], PB_OK);
+    /* B is what is prepared and started */
+    assert_int_equal(fake.prepare_calls, 1);
+    assert_memory_equal(fake.prepare_uu, UU_SYS_B, 16);
+    assert_int_equal(fake.late_calls, 1);
+    assert_int_equal(fake.jump_calls, 1);
+}
+
+/* A failed prepare is the candidate's too: the next one is tried */
+static void test_policy_next_candidate_after_prepare(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.prepare_fail_uu = UU_SYS_A;
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+
+    assert_int_equal(fake.report_calls, 2);
+    assert_int_equal(fake.report_result[0], -PB_ERR_BAD_META);
+    assert_int_equal(fake.report_result[1], PB_OK);
+    assert_int_equal(fake.prepare_calls, 2);
+    assert_memory_equal(fake.prepare_uu, UU_SYS_B, 16);
+    /* Each was loaded and verified */
+    assert_int_equal(fake.auth_calls, 2);
+    assert_int_equal(fake.load_calls, 2);
+}
+
+/* Every candidate failed: the first one's error, and each was reported */
+static void test_policy_every_candidate_fails(void **state)
+{
+    struct fixture *f = *state;
+
+    /* A fails on its signature, B isn't bootable, the third isn't there */
+    (void)f;
+    fake.candidates[1] = UU_SYS_B;
+    fake.candidates[2] = UU_OTHER;
+    fake.no_of_candidates = 3;
+    fake.auth_rc = -PB_ERR_AUTHENTICATION_FAILED;
+
+    assert_int_equal(boot(NULL), -PB_ERR_AUTHENTICATION_FAILED);
+
+    /* Three candidates, then none */
+    assert_int_equal(fake.next_calls, 4);
+    assert_int_equal(fake.report_calls, 3);
+    assert_int_equal(fake.report_result[0], -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(fake.report_result[1], -PB_ERR_PART_NOT_BOOTABLE);
+    assert_int_equal(fake.report_result[2], -PB_ERR_NOT_FOUND);
+    assert_int_equal(fake.prepare_calls, 0);
+    assert_int_equal(fake.late_calls, 0);
+    assert_int_equal(fake.jump_calls, 0);
+    assert_int_equal(boot_get_flags(), 0);
+
+    /* The next boot starts with the first candidate again */
+    fake.auth_rc = PB_OK;
+    fake.report_calls = 0;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_memory_equal(fake.report_uu[0], UU_SYS_A, 16);
+    assert_memory_equal(fake.prepare_uu, UU_SYS_A, 16);
+}
+
+/* The policy's state write fails after the first candidate failed: the
+ * boot ends with the candidate's error, not the policy's */
+static void test_policy_next_fails_after_a_candidate(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.next_fail_call = 2;
+    fake.auth_rc = -PB_ERR_AUTHENTICATION_FAILED;
+
+    assert_int_equal(boot_load(NULL), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(fake.next_calls, 2);
+    assert_int_equal(fake.report_calls, 1);
+    /* B was never handed out */
+    assert_int_equal(fake.auth_calls, 1);
 }
 
 static void test_early_boot_abort(void **state)
@@ -659,8 +914,10 @@ static void test_in_place_boot_override(void **state)
     unsigned int reads = f->disk->reads;
 
     /* Not the policy's */
-    fake.boot_dev = -PB_ERR_NO_ACTIVE_BOOT_PARTITION;
+    fake.no_of_candidates = 0;
     assert_int_equal(boot_load((unsigned char *)UU_SYS_A), PB_OK);
+    assert_int_equal(fake.next_calls, 0);
+    assert_int_equal(fake.report_calls, 0);
 
     assert_verified_in_place(f, reads);
     assert_int_equal(fake.prepare_calls, 1);
@@ -922,7 +1179,11 @@ int main(void)
         BOOT_TEST(test_bio_boot),
         BOOT_TEST(test_bio_boot_override),
         BOOT_TEST(test_bio_boot_errors),
-        BOOT_TEST(test_bio_boot_needs_a_device_callback),
+        BOOT_TEST(test_bio_boot_needs_a_policy),
+        BOOT_TEST(test_policy_next_candidate),
+        BOOT_TEST(test_policy_next_candidate_after_prepare),
+        BOOT_TEST(test_policy_every_candidate_fails),
+        BOOT_TEST(test_policy_next_fails_after_a_candidate),
         BOOT_TEST(test_early_boot_abort),
         BOOT_TEST(test_late_boot_error),
         BOOT_TEST(test_lockdown_error),

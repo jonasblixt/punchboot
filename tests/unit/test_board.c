@@ -106,17 +106,31 @@ static int ptbl_init(const struct ptbl *ptbl, bio_dev_t dev)
     return rc.ptbl;
 }
 
-/* The boot source policy */
-static int policy_init(const void *config)
+/* The boot source policy. The core's calls to it (src/boot/policy.c) are
+ * linked in: board_setup() sets it up through boot_policy_init() */
+static int policy_init(const struct boot_policy *policy)
 {
     call("policy");
-    policy_cfg = config;
+    assert_ptr_equal(policy, &board.boot_policy);
+    policy_cfg = policy->config;
     return rc.policy;
 }
 
-static bio_dev_t policy_get(void)
+static int policy_next(uuid_t part_uu)
 {
-    return 0;
+    (void)part_uu;
+    return -PB_ERR_NOT_FOUND;
+}
+
+static void policy_report(const uuid_t part_uu, int result)
+{
+    (void)part_uu;
+    (void)result;
+}
+
+static enum boot_policy_mode policy_mode(void)
+{
+    return BOOT_POLICY_MODE_NORMAL;
 }
 
 static int policy_activate(uuid_t part_uu)
@@ -213,7 +227,9 @@ static const struct cm_transport_ops test_transport = { .read = transport_read }
 static const struct ptbl_ops test_ptbl_ops = { .init = ptbl_init };
 static const struct boot_policy_ops test_policy_ops = {
     .init = policy_init,
-    .get = policy_get,
+    .next = policy_next,
+    .report = policy_report,
+    .mode = policy_mode,
     .activate = policy_activate,
     .status = policy_status,
 };
@@ -264,7 +280,8 @@ static int setup(void **state)
 }
 
 /* The boot driver boot_init() got: the board's hooks, the handover's
- * functions and the policy's, when the board has one */
+ * functions and the board's policy, which has no functions when the board
+ * has none */
 static void assert_driver(bool policy)
 {
     assert_non_null(driver);
@@ -273,16 +290,12 @@ static void assert_driver(bool policy)
     assert_ptr_equal(driver->late_boot_cb, late_boot);
     assert_ptr_equal(driver->prepare, handover_prepare);
     assert_ptr_equal(driver->jump, handover_jump);
+    assert_ptr_equal(driver->policy, &board.boot_policy);
 
-    if (policy) {
-        assert_ptr_equal(driver->get_boot_bio_device, policy_get);
-        assert_ptr_equal(driver->set_boot_partition, policy_activate);
-        assert_ptr_equal(driver->get_boot_partition, policy_status);
-    } else {
-        assert_null(driver->get_boot_bio_device);
-        assert_null(driver->set_boot_partition);
-        assert_null(driver->get_boot_partition);
-    }
+    if (policy)
+        assert_ptr_equal(driver->policy->ops, &test_policy_ops);
+    else
+        assert_null(driver->policy->ops);
 }
 
 static void test_setup(void **state)
@@ -457,9 +470,8 @@ static void test_optional(void **state)
     assert_int_equal(lookups, 0);
     assert_null(driver->early_boot_cb);
     assert_null(driver->late_boot_cb);
-    assert_null(driver->get_boot_bio_device);
-    assert_null(driver->set_boot_partition);
-    assert_null(driver->get_boot_partition);
+    assert_ptr_equal(driver->policy, &board.boot_policy);
+    assert_null(driver->policy->ops);
     assert_ptr_equal(driver->prepare, handover_prepare);
     assert_ptr_equal(driver->jump, handover_jump);
 }

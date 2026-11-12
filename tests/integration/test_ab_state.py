@@ -9,17 +9,25 @@ The state is manipulated with the pbstate tool, like from Linux on a target.
 from __future__ import annotations
 
 import os
+import struct
 from typing import TYPE_CHECKING
 
+import punchboot
 import pytest
 
 from .pbtest import (
     BACKUP_STATE_LBA,
+    NULL_UUID,
     PRIMARY_STATE_LBA,
+    SYSTEM_A_LBA,
     SYSTEM_A_UUID,
     SYSTEM_B_UUID,
     make_bpak,
 )
+
+# struct pb_boot_state: magic, enable, verified, attempts, error (u32 each)
+STATE_A = 1
+STATE_B = 2
 
 if TYPE_CHECKING:
     import pathlib
@@ -82,3 +90,117 @@ def test_board_registers(device: Device) -> None:
     device.reboot()
 
     assert "3: 00000001" in device.pbstate("--info")
+
+
+def _state(device: Device) -> tuple[int, int, int, int]:
+    """Enable, verified, remaining attempts and error of the primary state."""
+    raw = device.read_blocks(PRIMARY_STATE_LBA)
+    enable, verified, attempts, error = struct.unpack_from("<4I", raw, 4)
+    return enable, verified, attempts, error
+
+
+def _flip_payload_byte(device: Device, lba: int) -> None:
+    """Change one byte of the image's payload: it no longer verifies."""
+    block = bytearray(device.read_blocks(lba))
+    block[0] ^= 0xFF
+    device.write_blocks(lba, bytes(block))
+
+
+def test_fallback_when_enabled_system_fails_to_verify(ab_device: Device) -> None:
+    # Both systems are confirmed by the OS, A is the enabled one
+    ab_device.pbstate("-v", "b")
+    ab_device.pbstate("-s", "a")
+    ab_device.pbstate("-v", "a")
+    ab_device.reset()
+    assert _state(ab_device) == (STATE_A, STATE_A | STATE_B, 0, 0)
+    primary = ab_device.read_blocks(PRIMARY_STATE_LBA)
+    backup = ab_device.read_blocks(BACKUP_STATE_LBA)
+
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+
+    # A doesn't verify: B boots, for this boot. Nothing is written: A is
+    # still the enabled system, and it is tried first on every boot
+    assert [ab_device.boot() for _ in range(2)] == ["B", "B"]
+    assert ab_device.read_blocks(PRIMARY_STATE_LBA) == primary
+    assert ab_device.read_blocks(BACKUP_STATE_LBA) == backup
+
+    # A is whole again: it boots
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+    assert ab_device.boot() == "A"
+
+
+def test_fallback_when_trial_fails_to_verify(ab_device: Device) -> None:
+    # B is confirmed. A is on trial with three attempts, and doesn't verify
+    ab_device.pbstate("-v", "b")
+    ab_device.pbstate("-s", "a", "-c", "3")
+    ab_device.reset()
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+
+    # Each boot spends one of A's attempts, then B boots for that boot
+    for attempts_left in (2, 1, 0):
+        assert ab_device.boot() == "B"
+        assert _state(ab_device) == (STATE_A, STATE_B, attempts_left, 0)
+
+    # Out of attempts: the rollback to B, which is written
+    assert ab_device.boot() == "B"
+    assert _state(ab_device) == (STATE_B, STATE_B, 0, STATE_A)
+
+
+def test_no_fallback_to_a_system_that_is_not_confirmed(ab_device: Device) -> None:
+    # 'boot activate A' leaves only A verified: B is no fallback
+    with ab_device.session() as s:
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+    ab_device.reset()
+    assert _state(ab_device) == (STATE_A, STATE_A, 0, 0)
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+
+    ab_device.start(command_mode=False)
+    ab_device.wait_command_mode()
+    assert ab_device.boot_status is None
+    assert _state(ab_device) == (STATE_A, STATE_A, 0, 0)
+
+
+def test_boot_part_without_a_uuid_falls_back(ab_device: Device) -> None:
+    # 'boot part' with the null UUID is the policy's boot, as without
+    # command mode. Both systems are confirmed, A is enabled and doesn't verify
+    ab_device.pbstate("-v", "b")
+    ab_device.pbstate("-s", "a")
+    ab_device.pbstate("-v", "a")
+    ab_device.reset()
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+    primary = ab_device.read_blocks(PRIMARY_STATE_LBA)
+
+    ab_device.start()
+    with ab_device.session() as s:
+        # The host gets OK: an image was loaded and verified, B's
+        s.boot_partition(NULL_UUID)
+    assert ab_device.wait_exit() == 0
+    assert ab_device.boot_status == "B"
+    assert ab_device.read_blocks(PRIMARY_STATE_LBA) == primary
+
+
+def test_boot_part_without_a_uuid_and_no_fallback(ab_device: Device) -> None:
+    # Only A is verified ('boot activate A'), and it doesn't verify: the host
+    # gets the error of the one candidate, as before there was a fallback
+    with ab_device.session() as s:
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+    ab_device.reset()
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+    primary = ab_device.read_blocks(PRIMARY_STATE_LBA)
+
+    ab_device.start()
+    with ab_device.session() as s, pytest.raises(punchboot.GenericError):
+        s.boot_partition(NULL_UUID)
+    # Still in command mode, nothing booted and nothing written
+    assert ab_device.boot_status is None
+    ab_device.reset()
+    assert ab_device.read_blocks(PRIMARY_STATE_LBA) == primary
+
+    # A boots once it is whole again
+
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+    ab_device.start()
+    with ab_device.session() as s:
+        s.boot_partition(NULL_UUID)
+    assert ab_device.wait_exit() == 0
+    assert ab_device.boot_status == "A"

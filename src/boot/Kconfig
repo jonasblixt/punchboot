@@ -1,9 +1,33 @@
-config BOOT_AB_DRIVER
-    bool "A/B boot driver"
+comment "Boot source policies: the board's data names the one it uses"
+
+config BOOT_POLICY_FIXED
+    bool "Fixed: one partition"
     help
-        This is the default boot driver. It uses two block devices to store
-        primary an backup configuration. It has support for rollback and
-        error reporting.
+        The board gives one partition (BOOT_POLICY_FIXED(), boot/policy_fixed.h).
+        No state, nothing to activate.
+
+config BOOT_POLICY_CHAIN
+    bool "Staggered chain: a list of partitions"
+    help
+        The board gives a list of partitions, tried in its order
+        (BOOT_POLICY_CHAIN(), boot/policy_chain.h). No state. It protects
+        against an image that doesn't load or verify, not against one that
+        verifies and then fails.
+
+config BOOT_POLICY_AB
+    bool "A/B: two slots, with rollback"
+    help
+        Two slots and a state in two partitions, a primary and a backup
+        (BOOT_POLICY_AB(), boot/ab_state.h). An update is booted on trial
+        and rolled back when the OS doesn't confirm it. The OS's side is
+        pbstate.
+
+config BOOT_AB_DRIVER
+    bool "A/B boot driver (the name of BOOT_POLICY_AB before 3.0.0)"
+    select BOOT_POLICY_AB
+    help
+        Kept so that a configuration from before 3.0.0 builds unchanged.
+        Use BOOT_POLICY_AB.
 
 config BOOT_DTB
     bool

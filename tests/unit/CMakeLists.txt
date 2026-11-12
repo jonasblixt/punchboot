@@ -139,13 +139,22 @@ pb_unit_test(test_ab_state SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
 )
 
+pb_unit_test(test_policy SOURCES
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy_chain.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy_fixed.c
+)
+
 pb_unit_test(test_board SOURCES
     ${PROJECT_SOURCE_DIR}/src/board.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
 )
 
 pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
     ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
 )
 

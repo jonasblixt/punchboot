@@ -225,6 +225,37 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | functions of `bio.h` that `bio.md` doesn't name, the lint's one list of exceptions (F-310). | | |
 | | | `ep0_stall` has its marker (F-138). The lint has no tests of its own: tried by hand on | | |
 | | | copies of the tree with a name changed on either side | | |
+| F-174 | `src/boot/boot.c`, `ab_state.c` | A slot that the A/B state picks and that then fails | Verified | fixed |
+| | | to load or authenticate isn't reported back. A verified slot is picked again on every | | |
+| | | boot (command mode, the 10 s transport timeout, reset), for good: the other verified | | |
+| | | slot is never tried. An unverified slot loses an attempt each time and rolls back. | | |
+| | | Decided (D-032, `boot.md` 3.5): the other verified slot boots for this boot only, nothing | | |
+| | | is written; the slot is tried again on the next boot. Code: F-256. | | |
+| | | Fixed with F-256: the core's loop reports a failed candidate to the policy and asks for the next. A/B | | |
+| | | hands out the other slot when it is verified, for this boot, with nothing written and mode fallback. | | |
+| | | `test_ab_state.c` (`test_fallback_*`, `test_trial_that_fails_falls_back`), `test_ab_state.py` | | |
+| | | (`test_fallback_when_*`, `test_no_fallback_to_a_system_that_is_not_confirmed`) | | |
+| F-215 | `boot.c:114`, `ab_state.c:108`, `board.h` | `.ab = NULL` is accepted, but such a board | Reported | fixed |
+| | | can't boot from storage: no `get_boot_bio_device`, and BOOTABLE is only set in `boot_ab_state_init()`. | | |
+| | | Only imx8mevk today. D-046: the fixed policy's object, `BOOT_POLICY_FIXED(part)`. | | |
+| | | Fixed with F-256: `BOOT_POLICY_FIXED(part)` and `BOOT_POLICY_CHAIN(parts)` exist, and each policy's init | | |
+| | | marks its candidates. A board without a policy still boots nothing from storage, by `boot part` neither | | |
+| | | (`-PB_ERR_NOT_SUPPORTED`, as before). imx8mevk has none: F-300 | | |
+| F-256 | `src/boot/boot.c`, `ab_state.c`, `src/board.c` | No boot source policy | Verified (code) | fixed |
+| | | interface: A/B is wired into `struct boot_driver` through three callbacks, it is the only policy, | | |
+| | | and only it marks partitions bootable (F-215). `boot.md` 3: `boot_policy_*()`, fixed and staggered | | |
+| | | policies in Kconfig (`BOOT_POLICY_FIXED`, `_CHAIN`, `_AB`; `BOOT_AB_DRIVER` still gets A/B), the | | |
+| | | core's loop over the candidates with the fallback of F-174 | | |
+| | | Fixed: `include/boot/policy.h` has the policy's functions (`init`, `next`, `report`, `mode`, `activate`, | | |
+| | | `status`) and the core's calls `boot_policy_*()` (`src/boot/policy.c`). `boot_load()` loops over the | | |
+| | | candidates: load, verify and prepare are one attempt, the policy hears the result, and `boot()` returns | | |
+| | | the first candidate's error when all failed. `struct boot_driver` has the board's policy, not three | | |
+| | | callbacks. New: `policy_fixed.c`, `policy_chain.c` (`BOOT_POLICY_FIXED`, `BOOT_POLICY_CHAIN`, | | |
+| | | `BOOT_POLICY_AB` in Kconfig; `BOOT_AB_DRIVER` selects A/B). A/B is behind the interface with rule 3's | | |
+| | | fallback (F-174); its first candidate, its state writes and `boot activate` are as they were. The host | | |
+| | | board's policy is its own object, A/B that also marks the flash's partitions. `boot_policy_mode()` has | | |
+| | | no caller until F-260. `test_policy.c`, `test_boot.c`, `test_ab_state.c`, `test_board.c`, | | |
+| | | `test_ab_state.py`. Every board builds; not run on a board | | |
 
 ## Dependencies / vendored code
 
