@@ -25,6 +25,10 @@
 
 #define BPAK_ID_OPTEE_ARCH 0x99e5e80a /* bpak_id("optee-arch"), holds 64 or 32 */
 
+/* The least of BL31's and BL32's parts that the hash covers: the instruction
+ * at the entry, A64 or A32 */
+#define TFA_ENTRY_MIN_SIZE 4
+
 /* Everything BL31 reads, in one piece of memory */
 struct tfa_params {
     bl_params_t params;
@@ -145,6 +149,16 @@ int boot_delivery_tfa_prepare(struct bpak_header *hdr, const struct boot_handove
 
     LOG_INFO("BL31: 0x%" PRIxPTR, bl31_addr);
 
+    /* pb jumps there: BL31 has a part and its entry is in bytes the payload's
+     * hash covers (security.md 4.1). bpak_part_size() is what was hashed at
+     * the load address, the padding too; an empty part passes the hash with
+     * nothing there (F-292). BL33's entry is the handover's to check */
+    if (bpak_get_part(hdr, cfg->bl31_bpak_id, &ph) != BPAK_OK ||
+        bpak_part_size(ph) < TFA_ENTRY_MIN_SIZE) {
+        LOG_ERR("BL31's part has no entry: it is missing or empty");
+        return -PB_ERR_BAD_META;
+    }
+
     /* BL33 is the handover's entry, and its image info is the part that is
      * loaded there. An entry without a part is refused: the image has a load
      * address for BL33 and nothing to load */
@@ -178,6 +192,13 @@ int boot_delivery_tfa_prepare(struct bpak_header *hdr, const struct boot_handove
 
         bl32_size = bpak_part_size(ph);
         bl32_rw = optee_rw(hdr);
+
+        /* BL31 starts BL32 where pb says, in the secure world, and verifies
+         * nothing: as for BL31 */
+        if (bl32_size < TFA_ENTRY_MIN_SIZE) {
+            LOG_ERR("BL32's part has no entry: it is empty");
+            return -PB_ERR_BAD_META;
+        }
 
         LOG_INFO("BL32: %" PRIxPTR " (%" PRIu32 " bytes)", bl32_addr, bl32_size);
     }

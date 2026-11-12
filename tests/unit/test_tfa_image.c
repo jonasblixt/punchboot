@@ -437,8 +437,9 @@ static void test_image_without_a_named_part(void **state)
     assert_int_equal(mmu_disabled, 0);
 }
 
-/* A kernel with a load address and no part: the image handover only asks
- * for the address, the delivery refuses it, as the one driver did */
+/* A kernel with a load address and no part is refused, as the one driver
+ * did: by the image handover now, which asked for the address only and left
+ * it to the delivery (F-292) */
 static void test_kernel_without_a_part(void **state)
 {
     struct bpak_meta_header *meta;
@@ -455,6 +456,64 @@ static void test_kernel_without_a_part(void **state)
     assert_int_equal(run_boot(&handover, &delivery), -PB_ERR_BAD_META);
     assert_int_equal(jump_calls, 0);
     assert_int_equal(mmu_disabled, 0);
+}
+
+/* An entry in an empty part is refused, whoever jumps there: nothing was
+ * hashed at its load address (security.md 4.1, F-292). The kernel is BL33,
+ * the handover's entry; BL31 and BL32 are the delivery's. Nothing is started */
+static void test_empty_entry_parts(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    /* The kernel: before the device tree is touched */
+    assert_int_equal(bpak_get_part(hdr, ID_KERNEL, &part), BPAK_OK);
+    part->size = 0;
+    assert_int_equal(run_boot(&handover, &delivery), -PB_ERR_BAD_META);
+    assert_null(chosen_prop("pb,slc", NULL));
+    assert_int_equal(cleaned_calls, 0);
+
+    make_image(&imx8mpevk);
+    assert_int_equal(bpak_get_part(hdr, ID_ATF, &part), BPAK_OK);
+    part->size = 0;
+    assert_int_equal(run_boot(&handover, &delivery), -PB_ERR_BAD_META);
+
+    /* BL32, on a board that names one */
+    make_image(&imx8mpevk);
+    add_part(ID_TEE, TEE_ADDR, 0);
+    assert_int_equal(run_boot(&handover, &delivery_with_bl32), -PB_ERR_BAD_META);
+
+    assert_int_equal(jump_calls, 0);
+    assert_int_equal(mmu_disabled, 0);
+}
+
+/* Parts that nothing jumps to may be empty, as before (D-008): the boards'
+ * ramdisk, which then starts and ends at its load address, and a BL32 that
+ * the board doesn't name */
+static void test_empty_parts_that_are_not_an_entry(void **state)
+{
+    const bl_params_node_t *bl33;
+    struct bpak_part_header *part;
+    const fdt32_t *initrd;
+    int len;
+    (void)state;
+
+    assert_int_equal(bpak_get_part(hdr, ID_RAMDISK, &part), BPAK_OK);
+    part->size = 0;
+    add_part(ID_TEE, TEE_ADDR, 0);
+    assert_int_equal(run_boot(&handover, &delivery), PB_OK);
+
+    bl33 = assert_bl31_and_bl33(&imx8mpevk);
+    assert_null(bl33->next_params_info);
+    assert_args(bl33->ep_info, (uintptr_t)dtb, 0, 0, 0);
+    initrd = chosen_prop("linux,initrd-start", &len);
+    assert_non_null(initrd);
+    assert_int_equal(len, 4);
+    assert_true(fdt32_to_cpu(*initrd) == imx8mpevk.ramdisk);
+    initrd = chosen_prop("linux,initrd-end", &len);
+    assert_non_null(initrd);
+    assert_int_equal(len, 4);
+    assert_true(fdt32_to_cpu(*initrd) == imx8mpevk.ramdisk);
 }
 
 /* A board whose handover names no device tree: BL33 gets four zeros, and
@@ -514,6 +573,8 @@ int main(void)
         TFA_IMAGE_TEST(test_imx8qxmek),
         TFA_IMAGE_TEST(test_image_without_a_named_part),
         TFA_IMAGE_TEST(test_kernel_without_a_part),
+        TFA_IMAGE_TEST(test_empty_entry_parts),
+        TFA_IMAGE_TEST(test_empty_parts_that_are_not_an_entry),
         TFA_IMAGE_TEST(test_board_without_a_device_tree),
         TFA_IMAGE_TEST(test_bl32),
     };

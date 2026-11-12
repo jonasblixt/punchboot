@@ -110,6 +110,30 @@ def test_image_overlapping_punchboot_is_rejected(
     assert device.boot_status is None
 
 
+def test_image_with_empty_kernel_is_rejected(device: Device, tmp_path: pathlib.Path) -> None:
+    """A signed image whose kernel part is empty isn't booted (F-292).
+
+    Nothing is hashed for the part, so the image verifies with nothing of it
+    at the entry. The handover refuses it.
+    """
+    img = make_bpak(tmp_path / "img.bpak", b"")
+
+    with device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        # From a partition the result is the boot's: PB_RESULT_ERROR
+        with pytest.raises(punchboot.GenericError):
+            s.boot_partition(SYSTEM_A_UUID)
+        # From the host the last result means "loaded and verified", and the
+        # boot fails after it: command mode stays as it was
+        s.boot_bpak(img, NULL_UUID)
+        assert s.device_get_boardname()
+
+    assert device.running
+    assert device.boot_status is None
+    # Both were refused by the handover, not on the way to it
+    assert device.log.read_text(errors="replace").count("The kernel's part has no entry") == 2
+
+
 def test_image_signed_with_wrong_key_is_rejected(device: Device, tmp_path: pathlib.Path) -> None:
     img = make_bpak(
         tmp_path / "img.bpak", os.urandom(64 * 1024), sign_key="pki/secp256r1-key-pair2.pem"

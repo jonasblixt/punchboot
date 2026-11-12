@@ -271,6 +271,30 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | (F-295). `test_tfa.c` pins what BL31 reads, field by field, against what the driver wrote before, and | | |
 | | | `test_tfa_image.c` runs the image handover into the delivery with the 8MP EVK's and the MEK's | | |
 | | | configurations; `test_boot.c` has the direct jump. Not run on a board | | |
+| F-292 | `src/boot/{simple,image}.c`, `image_helpers.c` | An entry part of size 0 | Verified (code) | fixed |
+| | | passes placement and the payload hash (nothing is hashed for it), and the handover jumps to its | | |
+| | | load address: bytes no hash covers. It needs a signed header, and both the loaded and the in | | |
+| | | place path have it (the review of F-253). Refuse an entry part that is smaller than an entry in | | |
+| | | the handover's prepare; not empty parts in general (D-008: images with one may boot today) | | |
+| | | Fixed: every address pb passes control to lies in a part of which at least an entry was hashed, | | |
+| | | else the prepare fails with `-PB_ERR_BAD_META`, the error of a missing part (`PB_RESULT_ERROR` on | | |
+| | | the wire, no new value), and nothing is jumped to. The image handover (`image.c`): the kernel's | | |
+| | | part, 4 bytes, the instruction at the entry. It asked for the kernel's load address only, so a | | |
+| | | kernel without a part is refused there too. The TF-A delivery (`atf.c`): BL31's part, 4 bytes, | | |
+| | | which had the same hole and for which a load address was enough, and BL32's when the board names | | |
+| | | one: BL31 starts it where pb says, in the secure world, and verifies nothing. BL33 is the | | |
+| | | handover's entry. The generic handover (`simple.c`): 8 bytes on every arch, what ARMv7-M's | | |
+| | | `arch_jump()` reads (the initial stack pointer and the reset vector, D-028); Firmware Handoff | | |
+| | | (F-259) takes the check over. The size is `bpak_part_size()`, what was loaded and hashed at the | | |
+| | | load address (`compatibility.md`), the padding too: one byte of content is 512 hashed bytes and | | |
+| | | passes, and only an empty part, or one stored without padding (transport) and shorter than the | | |
+| | | entry, is refused. Empty parts that nothing jumps to boot as before: a ramdisk (`linux,initrd-start` | | |
+| | | and `-end` are its load address), a device tree or a BL32 that the board doesn't name. An empty | | |
+| | | device tree that the board names: F-330. No decision entry and no contract text yet: F-331. | | |
+| | | `test_image.c` (and for ARMv7), `test_tfa.c`, `test_tfa_image.c`, `test_simple.c`; | | |
+| | | `test_boot.py`: an image of the bpak CLI with an empty kernel answers `boot part` with | | |
+| | | `PB_RESULT_ERROR` and `boot bpak` with OK ("loaded and verified", `command-mode.md` 5.5), and | | |
+| | | neither boots. Every board builds; not run on a board | | |
 
 ## Dependencies / vendored code
 

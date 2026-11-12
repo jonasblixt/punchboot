@@ -629,11 +629,21 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | F-253's host tests, whose images have a kernel part only. `boot.md` 4.1 and 5.2 don't say | | |
 | | | what the image handover does with a DT in place; Firmware Handoff (5.4, F-259) copies the DT | | |
 | | | into its region and has no such problem. Until decided: refuse it before the DT is touched | | |
-| F-292 | `src/boot/{simple,image}.c`, `image_helpers.c` | An entry part of size 0 | Verified (code) | open |
-| | | passes placement and the payload hash (nothing is hashed for it), and the handover jumps to its | | |
-| | | load address: bytes no hash covers. It needs a signed header, and both the loaded and the in | | |
-| | | place path have it (the review of F-253). Refuse an entry part that is smaller than an entry in | | |
-| | | the handover's prepare; not empty parts in general (D-008: images with one may boot today) | | |
+| F-330 | `src/boot/dtb.c` | An empty device tree part that the board names is read | Verified (test) | open |
+| | | at its load address, bytes no hash covers: `boot_dtb_grow()` checks the FDT header there (the | | |
+| | | vendored libfdt's `fdt_check_header()`: the magic and the version only) and compares its | | |
+| | | `totalsize` with the part's size, 0. A blob there that says `totalsize` 0 passes, is grown by the | | |
+| | | headroom, gets pb's `/chosen` and is handed to the next stage, and to BL32: a device tree nothing | | |
+| | | authenticated (`security.md` 4.2). Anything else there is refused (`-PB_ERR`). As F-292 it needs a | | |
+| | | signed header, and what an earlier, refused load left at the address. Found with F-292, in a | | |
+| | | throwaway case of `test_image.c`. Refuse a device tree part that is smaller than an FDT header, and | | |
+| | | a `totalsize` below it, before the part is read; Firmware Handoff's device tree (F-259) the same | | |
+| F-331 | `doc/dev/decisions.md`, `doc/architecture/boot.md` | F-292's refusal has no | Verified (code) | open |
+| | | decision entry and no contract text. `compatibility.md` asks for an entry that names what a | | |
+| | | security fix rejects and why: an image whose kernel, BL31, BL32 or generic entry part is empty | | |
+| | | (or, for the kernel and BL31, has a load address and no part) was jumped into by every release, | | |
+| | | and the bpak CLI builds one. `boot.md` 5.1 to 5.4 say where an entry is, not that it lies in | | |
+| | | bytes the payload's hash covers | | |
 | F-294 | `src/plat/imx8m/plat.c`, `makefile.mk`, `link.lds` | `bl_params`' memory on | Verified (code) | open |
 | | | the i.MX8M isn't what `platform.md` 5.3 has: it is `plat_bl_params`, an object in `pb`'s `.data` (where | | |
 | | | `atf.c` had it), with `PLAT_BL_PARAMS_SIZE` from the makefile, not a SoC region outside `pb` that the | | |

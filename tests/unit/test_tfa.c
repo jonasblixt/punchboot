@@ -598,6 +598,112 @@ static void test_missing_parts(void **state)
     assert_int_equal(mmu_disabled, 0);
 }
 
+/* pb jumps to BL31's load address, and BL31 to BL32's in the secure world,
+ * where pb says. A part of size 0 passes the payload's hash with nothing
+ * hashed at its load address: what is there isn't the image's. Refused in
+ * prepare, nothing jumps (security.md 4.1, F-292). BL33's entry is the
+ * handover's to check: test_tfa_image.c */
+static void test_empty_bl31_or_bl32_is_refused(void **state)
+{
+    struct bpak_part_header *part;
+    struct bpak_meta_header *meta;
+    (void)state;
+
+    assert_int_equal(bpak_get_part(hdr, ID_ATF, &part), BPAK_OK);
+    part->size = 0;
+    assert_int_equal(boot(&cfg_bl31), -PB_ERR_BAD_META);
+
+    /* BL31 has a load address and no part: nothing was hashed there either */
+    assert_int_equal(bpak_init_header(hdr), BPAK_OK);
+    assert_int_equal(bpak_add_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_ATF, 8, &meta), BPAK_OK);
+    *bpak_get_meta_ptr(hdr, meta, uint64_t) = ATF_ADDR;
+    add_part(ID_KERNEL, KERNEL_SIZE, KERNEL_ADDR);
+    assert_int_equal(boot(&cfg_bl31), -PB_ERR_BAD_META);
+
+    /* The board names a BL32, and the image's is empty */
+    make_image(true);
+    assert_int_equal(bpak_get_part(hdr, ID_TEE, &part), BPAK_OK);
+    part->size = 0;
+    assert_int_equal(boot(&cfg_bl32), -PB_ERR_BAD_META);
+
+    assert_int_equal(jump_calls, 0);
+    assert_int_equal(mmu_disabled, 0);
+}
+
+/* What counts is what was hashed at the load address, bpak_part_size(): the
+ * content and its padding. The least is the instruction at the entry */
+static void test_bl31_and_bl32_of_the_minimum(void **state)
+{
+    const bl_params_node_t *bl32;
+    struct bpak_part_header *atf;
+    struct bpak_part_header *tee;
+    (void)state;
+
+    /* One byte of content is 512 bytes with its padding, all of them hashed */
+    make_image(true);
+    assert_int_equal(bpak_get_part(hdr, ID_ATF, &atf), BPAK_OK);
+    assert_int_equal(bpak_get_part(hdr, ID_TEE, &tee), BPAK_OK);
+    atf->size = 1;
+    atf->pad_bytes = 511;
+    tee->size = 1;
+    tee->pad_bytes = 511;
+    assert_int_equal(boot(&cfg_bl32), PB_OK);
+    bl32 = assert_jump_and_bl33(0x3c9)->next_params_info;
+    assert_non_null(bl32);
+    assert_true(bl32->ep_info->pc == TEE_ADDR);
+    assert_int_equal(bl32->image_info->image_size, 512);
+
+    /* Parts that are stored without padding (transport encoded): the stored
+     * size is what was loaded and hashed */
+    setup(NULL);
+    make_image(true);
+    atf->flags = BPAK_FLAG_TRANSPORT;
+    atf->transport_size = 4;
+    tee->flags = BPAK_FLAG_TRANSPORT;
+    tee->transport_size = 4;
+    assert_int_equal(boot(&cfg_bl32), PB_OK);
+    bl32 = assert_jump_and_bl33(0x3c9)->next_params_info;
+    assert_non_null(bl32);
+    assert_true(bl32->ep_info->pc == TEE_ADDR);
+
+    setup(NULL);
+    make_image(true);
+    atf->flags = BPAK_FLAG_TRANSPORT;
+    atf->transport_size = 3;
+    assert_int_equal(boot(&cfg_bl32), -PB_ERR_BAD_META);
+
+    atf->transport_size = 4;
+    tee->flags = BPAK_FLAG_TRANSPORT;
+    tee->transport_size = 3;
+    assert_int_equal(boot(&cfg_bl32), -PB_ERR_BAD_META);
+
+    assert_int_equal(jump_calls, 0);
+    assert_int_equal(mmu_disabled, 0);
+}
+
+/* Parts that nothing jumps to may be empty, as before (D-008): the device
+ * tree, the ramdisk, and a BL32 that the board doesn't name */
+static void test_empty_parts_that_are_not_an_entry(void **state)
+{
+    static const bpak_id_t ids[] = { ID_DTB, ID_RAMDISK, ID_TEE };
+    const bl_params_node_t *bl33;
+    struct bpak_part_header *part;
+    (void)state;
+
+    make_image(true);
+
+    for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
+        assert_int_equal(bpak_get_part(hdr, ids[i], &part), BPAK_OK);
+        part->size = 0;
+    }
+
+    assert_int_equal(boot(&cfg_bl31), PB_OK);
+    bl33 = assert_jump_and_bl33(0x3c9);
+    assert_null(bl33->next_params_info);
+    assert_true(bl33->ep_info->pc == KERNEL_ADDR);
+    assert_int_equal(bl33->image_info->image_size, KERNEL_SIZE);
+}
+
 /* The list is written with the MMU off, all of it and nothing before: what
  * the last boot left there is gone, a BL32 that isn't in this image too */
 static void test_list_is_written_after_the_mmu_is_off(void **state)
@@ -667,6 +773,9 @@ int main(void)
         TFA_TEST(test_bl32_device_tree_is_the_handovers),
         TFA_TEST(test_optee_arch_without_bl32),
         TFA_TEST(test_missing_parts),
+        TFA_TEST(test_empty_bl31_or_bl32_is_refused),
+        TFA_TEST(test_bl31_and_bl32_of_the_minimum),
+        TFA_TEST(test_empty_parts_that_are_not_an_entry),
         TFA_TEST(test_list_is_written_after_the_mmu_is_off),
         TFA_TEST(test_delivery_object),
     };

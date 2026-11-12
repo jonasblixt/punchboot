@@ -292,6 +292,82 @@ static void test_kernel_needs_load_addr(void **state)
     assert_int_equal(prepare(), -PB_ERR_BAD_META);
 }
 
+/* A kernel part of size 0 passes placement and the payload's hash with
+ * nothing hashed at its load address: what is there isn't the image's.
+ * Refused in prepare, before the device tree is touched, and with nothing to
+ * jump to (security.md 4.1, F-292) */
+static void test_empty_kernel_is_refused(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    assert_int_equal(bpak_get_part(hdr, ID_KERNEL, &part), BPAK_OK);
+    part->size = 0;
+
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+    assert_next_args(0, 0, 0, 0);
+    assert_true(next.dt == 0);
+    assert_null(fdt_getprop(dtb, chosen(), "pb,slc", NULL));
+    assert_int_equal(patch_calls, 0);
+    assert_int_equal(cleaned_len, 0);
+
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+}
+
+/* A kernel with a load address and no part: nothing was hashed there either.
+ * The handover asked for the address only */
+static void test_kernel_without_a_part_is_refused(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    assert_int_equal(bpak_get_part(hdr, ID_KERNEL, &part), BPAK_OK);
+    part->id = 0x12345678;
+
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+}
+
+/* What counts is what was hashed at the load address, bpak_part_size(): the
+ * content and its padding. The least is the instruction at the entry */
+static void test_kernel_of_the_minimum(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    assert_int_equal(bpak_get_part(hdr, ID_KERNEL, &part), BPAK_OK);
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
+
+    /* One byte of content is 512 bytes with its padding, all of them hashed */
+    part->size = 1;
+    part->pad_bytes = 511;
+    assert_int_equal(prepare(), PB_OK);
+    assert_true(next.entry == KERNEL_ADDR);
+
+    /* A part that is stored without padding (transport encoded): its stored
+     * size is what was loaded and hashed */
+    part->size = 8192;
+    part->pad_bytes = 0;
+    part->flags = BPAK_FLAG_TRANSPORT;
+    part->transport_size = 4;
+    assert_int_equal(prepare(), PB_OK);
+    assert_true(next.entry == KERNEL_ADDR);
+
+    part->transport_size = 3;
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+
+    /* The size of the content says nothing when nothing of it was hashed */
+    part->transport_size = 0;
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+}
+
 static void test_dtb_is_patched(void **state)
 {
     int len;
@@ -572,6 +648,35 @@ static void test_initrd_above_4_gib(void **state)
                  8);
 }
 
+/* Parts that nothing jumps to may be empty, as before (D-008). An empty
+ * device tree that the board names isn't here: F-330 */
+static void test_empty_parts_that_are_not_the_entry(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    /* An empty ramdisk: it starts and ends at its load address */
+    check_initrd(RAMDISK_ADDR,
+                 0,
+                 (const uint8_t[]){ 0x48, 0x00, 0x00, 0x00 },
+                 (const uint8_t[]){ 0x48, 0x00, 0x00, 0x00 },
+                 4);
+    assert_true(next.entry == KERNEL_ADDR);
+    assert_next_passes_dtb();
+
+    /* A board that names neither: the image's device tree and ramdisk are
+     * empty and left alone */
+    assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
+    part->size = 0;
+    make_dtb("chosen");
+    cleaned_len = 0;
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_true(next.entry == KERNEL_ADDR);
+    assert_null(fdt_getprop(dtb, chosen(), "pb,slc", NULL));
+    assert_int_equal(cleaned_len, 0);
+}
+
 /* The headroom must not reach another part or pb's memory, which is checked
  * before the device tree is read */
 static void test_dtb_headroom_overlap(void **state)
@@ -643,6 +748,9 @@ int main(void)
         IMAGE_TEST(test_init_requires_image_id),
         IMAGE_TEST(test_kernel_only),
         IMAGE_TEST(test_kernel_needs_load_addr),
+        IMAGE_TEST(test_empty_kernel_is_refused),
+        IMAGE_TEST(test_kernel_without_a_part_is_refused),
+        IMAGE_TEST(test_kernel_of_the_minimum),
         IMAGE_TEST(test_dtb_is_patched),
         IMAGE_TEST(test_dtb_without_key_list),
         IMAGE_TEST(test_dtb_without_options),
@@ -655,6 +763,7 @@ int main(void)
         IMAGE_TEST(test_initrd_32_bits),
         IMAGE_TEST(test_initrd_end_at_4_gib),
         IMAGE_TEST(test_initrd_above_4_gib),
+        IMAGE_TEST(test_empty_parts_that_are_not_the_entry),
         IMAGE_TEST(test_dtb_headroom_overlap),
         IMAGE_TEST(test_dtb_larger_than_part),
         IMAGE_TEST(test_handover_object),

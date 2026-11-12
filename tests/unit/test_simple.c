@@ -248,6 +248,81 @@ static void test_no_load_address(void **state)
     assert_int_equal(name_calls, 0);
 }
 
+/* An entry part of size 0 passes placement and the payload's hash with
+ * nothing hashed at its load address: what is there isn't the image's, and
+ * on ARMv7-M the jump reads the stack pointer and the reset vector from it.
+ * Refused in prepare, with nothing to jump to (security.md 4.1, F-292) */
+static void test_empty_entry_part_is_refused(void **state)
+{
+    (void)state;
+
+    add_part(ID_OTHER, 4096);
+    add_load_addr(ID_OTHER, APP_ADDR + 0x100000);
+    add_part(ID_APP, 0);
+    add_load_addr(ID_APP, APP_ADDR);
+
+    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+    assert_true(next.arg[0] == 0);
+    assert_true(next.arg[1] == 0);
+    assert_int_equal(name_calls, 0);
+}
+
+/* What counts is what was hashed at the load address, bpak_part_size(): the
+ * content and its padding. The least is the 8 bytes ARMv7-M's jump reads */
+static void test_entry_part_of_the_minimum(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    add_part(ID_APP, 1);
+    add_load_addr(ID_APP, APP_ADDR);
+    assert_int_equal(bpak_get_part(hdr, ID_APP, &part), BPAK_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_no_name), PB_OK);
+
+    /* One byte of content is 512 bytes with its padding, all of them hashed */
+    part->pad_bytes = 511;
+    assert_int_equal(prepare(), PB_OK);
+    assert_true(next.entry == APP_ADDR);
+
+    /* A part that is stored without padding (transport encoded): its stored
+     * size is what was loaded and hashed. 8 bytes hold the two words */
+    part->size = 8192;
+    part->pad_bytes = 0;
+    part->flags = BPAK_FLAG_TRANSPORT;
+    part->transport_size = 8;
+    assert_int_equal(prepare(), PB_OK);
+    assert_true(next.entry == APP_ADDR);
+
+    part->transport_size = 7;
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+
+    /* The size of the content says nothing when nothing of it was hashed */
+    part->transport_size = 0;
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+}
+
+/* A part that nothing jumps to may be empty, as before (D-008) */
+static void test_empty_part_that_is_not_the_entry(void **state)
+{
+    (void)state;
+
+    add_part(ID_OTHER, 0);
+    add_load_addr(ID_OTHER, APP_ADDR + 0x100000);
+    add_part(ID_APP, 8192);
+    add_load_addr(ID_APP, APP_ADDR);
+
+    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+
+    jump();
+    assert_ptr_equal(jump_args[0], (void *)(uintptr_t)APP_ADDR);
+    assert_string_equal(jump_args[1], "A");
+}
+
 /* The handover the way src/board.c uses it: only through the board's object
  * (F-265) */
 static void test_handover_object(void **state)
@@ -293,6 +368,9 @@ int main(void)
         cmocka_unit_test_setup(test_no_name, setup),
         cmocka_unit_test_setup(test_no_entry_part, setup),
         cmocka_unit_test_setup(test_no_load_address, setup),
+        cmocka_unit_test_setup(test_empty_entry_part_is_refused, setup),
+        cmocka_unit_test_setup(test_entry_part_of_the_minimum, setup),
+        cmocka_unit_test_setup(test_empty_part_that_is_not_the_entry, setup),
         cmocka_unit_test_setup(test_handover_object, setup),
     };
 

@@ -21,6 +21,10 @@
 /* AArch32: no machine type, the device tree describes the machine */
 #define LINUX_ARM_MACH_TYPE_DT 0xffffffff
 
+/* The least of the kernel's part that the hash covers: the instruction at
+ * the entry, A32 or A64 */
+#define IMAGE_ENTRY_MIN_SIZE   4
+
 static const struct boot_handover_image_config *cfg;
 
 int boot_handover_image_init(const struct boot_handover_image_config *cfg_in)
@@ -55,6 +59,16 @@ int boot_handover_image_prepare(struct bpak_header *hdr,
     jump_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
 
     LOG_INFO("Boot entry: 0x%" PRIxPTR, jump_addr);
+
+    /* What runs there is in bytes the payload's hash covers (security.md
+     * 4.1): the kernel has a part and the entry's first instruction is in
+     * it. bpak_part_size() is what was hashed at the load address, the
+     * padding too. An empty part passes the hash with nothing there (F-292) */
+    if (bpak_get_part(hdr, cfg->image_bpak_id, &ph) != BPAK_OK ||
+        bpak_part_size(ph) < IMAGE_ENTRY_MIN_SIZE) {
+        LOG_ERR("The kernel's part has no entry: it is missing or empty");
+        return -PB_ERR_BAD_META;
+    }
 
     if (cfg->ramdisk_bpak_id) {
         rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, cfg->ramdisk_bpak_id, &mh);
