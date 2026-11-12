@@ -2005,6 +2005,43 @@ static void test_stream(void **state)
     assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 2), data, sizeof(data));
 }
 
+/* PART_VERIFY changes nothing, the stream neither (command-mode.md 5.3,
+ * F-186): a write after a verify of another partition, and after one that
+ * found none, goes to the stream's partition */
+static void test_part_verify_keeps_the_stream(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t data[RAMDISK_BLOCK_SIZE];
+    struct pb_command_verify_part verify = verify_req(1024, false, ramdisk_block(f->disk, 30));
+    struct pb_command_verify_part missing = verify;
+    (void)state;
+
+    memset(data, 0x5a, sizeof(data));
+    memcpy(verify.uuid, UU_RO, 16);
+    memcpy(missing.uuid, UU_MISSING, 16);
+
+    stream_init(UU_RW);
+    stream_prepare(0, sizeof(data), data);
+    host_cmd(PB_CMD_PART_VERIFY, &verify, sizeof(verify));
+    stream_write(0, sizeof(data), 0);
+    host_cmd(PB_CMD_PART_VERIFY, &missing, sizeof(missing));
+    stream_write(0, sizeof(data), RAMDISK_BLOCK_SIZE);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_FOUND);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA), data, sizeof(data));
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 1), data, sizeof(data));
+}
+
 static void test_stream_errors(void **state)
 {
     struct fixture *f = *state;
@@ -3061,6 +3098,7 @@ int main(void)
         CM_TEST(test_part_erase_needs_writable),
         CM_TEST(test_hidden_partition),
         CM_TEST(test_stream),
+        CM_TEST(test_part_verify_keeps_the_stream),
         CM_TEST(test_stream_errors),
         CM_TEST(test_stream_offset_inside_a_block),
         CM_TEST(test_stream_write_done),

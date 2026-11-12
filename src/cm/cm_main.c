@@ -640,17 +640,18 @@ static int cmd_part_verify(void)
 
     LOG_DBG("Verify part");
 
-    block_dev = cm_part_by_uu(verify_cmd->uuid);
+    /* The stream stays on its partition (command-mode.md 5.3) */
+    bio_dev_t dev = cm_part_by_uu(verify_cmd->uuid);
 
-    if (block_dev < 0) {
+    if (dev < 0) {
         LOG_ERR("Could not find partition");
-        pb_wire_init_result(&result, error_to_wire(block_dev));
-        return block_dev;
+        pb_wire_init_result(&result, error_to_wire(dev));
+        return dev;
     }
 
     /* With bpak the size is at least a header, inside the partition
      * (command-mode.md 5.3): a partition smaller than that takes none */
-    if (verify_cmd->bpak && bio_size(block_dev) < (int64_t)sizeof(struct bpak_header)) {
+    if (verify_cmd->bpak && bio_size(dev) < (int64_t)sizeof(struct bpak_header)) {
         LOG_ERR("Partition is smaller than a bpak header");
         pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);
         return -PB_ERR_PARAM;
@@ -666,10 +667,10 @@ static int cmd_part_verify(void)
     if (verify_cmd->bpak) {
         LOG_DBG("Bpak header");
 
-        lba_t header_lba = bio_get_no_of_blocks(block_dev) -
-                           (sizeof(struct bpak_header) / bio_block_size(block_dev));
+        lba_t header_lba =
+            bio_get_no_of_blocks(dev) - (sizeof(struct bpak_header) / bio_block_size(dev));
 
-        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header), buffer[buffer_id]);
+        rc = bio_read(dev, header_lba, sizeof(struct bpak_header), buffer[buffer_id]);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
@@ -695,7 +696,7 @@ static int cmd_part_verify(void)
 
         buffer_id = !buffer_id;
 
-        rc = bio_read(block_dev, lba_offset, chunk_len, buffer[buffer_id]);
+        rc = bio_read(dev, lba_offset, chunk_len, buffer[buffer_id]);
 
         if (rc != PB_OK) {
             LOG_ERR("read error");
@@ -716,7 +717,7 @@ static int cmd_part_verify(void)
         plat_wdog_kick();
 
         bytes_to_verify -= chunk_len;
-        lba_offset += chunk_len / bio_block_size(block_dev);
+        lba_offset += chunk_len / bio_block_size(dev);
     }
 
     if (rc != PB_OK)

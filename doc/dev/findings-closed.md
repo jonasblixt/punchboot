@@ -585,6 +585,16 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | UUID that names no partition goes on as before (activate and `boot part` pass it to the policy). | | |
 | | | `BOOT_BPAK`'s UUID is a label and isn't checked (5.3). `test_cm.c` (`test_hidden_partition`; | | |
 | | | `test_part_table_install` makes the disk visible, as F-265's devices are) | | |
+| F-186 | `cm_main.c` `cmd_part_verify`, `cmd_bpak_read` | Neither checks | Reported | fixed |
+| | | `BIO_FLAG_READABLE`/`VISIBLE`: `part verify` with size 1, 2, ... and hash guesses reads any partition | | |
+| | | byte by byte, hidden ones too. It also retargets the stream's `block_dev`. | | |
+| | | Fixed: `cmd_part_verify()` looks the partition up into a local `dev`; the stream's `block_dev` stays | | |
+| | | on its partition, also when the verify finds none. The flags as `command-mode.md` 5.3 has them | | |
+| | | (D-058): a hidden partition answers NOT_FOUND to both commands (F-272); `PART_VERIFY` and | | |
+| | | `PART_BPAK_READ` need no `READABLE`, which gates only the bulk read, since the host hashes its file | | |
+| | | and asks pb for the same. A secret belongs on a hidden partition. `test_cm.c` | | |
+| | | (`test_part_verify_keeps_the_stream`, `test_hidden_partition`). Left: the two use the stream's | | |
+| | | buffers (F-365) | | |
 
 ## Dependencies / vendored code
 

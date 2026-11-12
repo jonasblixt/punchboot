@@ -146,9 +146,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | terminating one at `trb[desc_count]`: for some counts its flags word is in a cache line that isn't | | |
 | | | cleaned, and a stale TRB from a larger transfer stays in memory. The effect on the controller is | | |
 | | | unverified; it fits F-172 (a small write after a large one). Clean `desc_count + 1`. | | |
-| F-186 | `cm_main.c` `cmd_part_verify`, `cmd_bpak_read` | Neither checks | Reported | open |
-| | | `BIO_FLAG_READABLE`/`VISIBLE`: `part verify` with size 1, 2, ... and hash guesses reads any partition | | |
-| | | byte by byte, hidden ones too. It also retargets the stream's `block_dev`. | | |
 | F-187 | `cm_main.c:881` | The auth gate sends one result for `board command`, but hosts send the | Reported | open |
 | | | request anyway (F-095): the device parses it as commands and answers INVALID_COMMAND twice; with an | | |
 | | | empty request the host hangs. Drain the request and send the second result. | | |
@@ -769,6 +766,11 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | Its time is the driver's per block (`bio.md` 3, from the driver's header) times the blocks a host | | |
 | | | names. To decide: what the field means (a whole partition, a block, the largest erase pb takes in | | |
 | | | one command), then fill it. Released hosts ignore it (F-226) | | |
+| F-365 | `src/cm/cm_main.c` `cmd_part_verify`, `cmd_bpak_read` | Low. Both read the partition | Verified (code) | open |
+| | | into the stream's buffers (`buffer[0]`, `buffer[1]`), so a buffer a host filled with | | |
+| | | `STREAM_PREPARE_BUFFER` is overwritten, and a `STREAM_WRITE_BUFFER` after them writes the | | |
+| | | partition's bytes. `command-mode.md` 5.3: `PART_VERIFY` changes nothing, the stream neither. | | |
+| | | Released hosts prepare before every write, so no released flow meets it | | |
 
 ## Dependencies / vendored code
 
