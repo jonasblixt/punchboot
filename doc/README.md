@@ -40,7 +40,7 @@ Beside the levels, not normative:
 |           | `release-checklist.txt` | The steps of a release                                   |
 | `dev/`    | `status.md`             | Where the work is: read first                            |
 |           | `roadmap.md`            | What comes next, and what is to be discussed             |
-|           | `decisions.md`          | Why: D-nnn, appended, never edited                       |
+|           | `decisions.md`          | Why: D-nnn, appended; the index says what still holds    |
 |           | `findings.md`           | The gaps between the documents and the code: F-nnn, open |
 |           | `findings-closed.md`    | The fixed and rejected findings                          |
 |           | `log/`                  | What was done, per day                                   |

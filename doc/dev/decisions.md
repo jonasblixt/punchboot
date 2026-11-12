@@ -3,6 +3,96 @@
 Short records of decisions and why they were made. Add new ones at the bottom,
 and never edit old ones; supersede them with a new entry instead.
 
+## Index
+
+Which entries still hold. This table is the one part of the file that is edited (D-075): an
+entry that replaces, narrows or closes an older one changes the older one's row with it.
+
+- **In force**: holds as written. What follows a semicolon is what to know with it.
+- **Narrowed by**: holds, except where the named entries say otherwise.
+- **Replaced by**: no longer holds.
+- **Closed by**: a draft, or a step of a review. The named entries decided what it left open,
+  and not always as it proposed.
+- **Waits**: made without Jonas, not confirmed.
+
+| ID    | Decision                                         | State                                              |
+| ----- | ------------------------------------------------ | -------------------------------------------------- |
+| D-001 | bpak format unchanged "for now"                  | Replaced by D-008                                  |
+| D-002 | AI working context in `doc/dev/`                 | Narrowed by D-037, D-042                           |
+| D-003 | Release flow                                     | In force                                           |
+| D-004 | Host tests replace the QEMU suite                | In force                                           |
+| D-005 | Tooling for the host tests                       | In force                                           |
+| D-006 | CI runs the host tests; QEMU suite removed       | In force                                           |
+| D-007 | Unit tests fake neighbours; no bug as a pass     | In force                                           |
+| D-008 | Never break the wire or the bpak format          | Narrowed by D-035 (security first), D-061          |
+| D-009 | The boot source: a kind and a bio partition      | In force                                           |
+| D-011 | Command mode is open in EOL                      | Narrowed by D-036 (EOL is the SoC's state)         |
+| D-012 | No Codecov                                       | In force                                           |
+| D-013 | A golden register trace for hardware init        | In force                                           |
+| D-014 | DDR IP in `src/drivers/ddr`                      | In force                                           |
+| D-017 | MMC/SD tested against card models                | In force                                           |
+| D-018 | The next release is 3.0.0, for the porting API   | In force                                           |
+| D-019 | No boot-time self tests                          | In force                                           |
+| D-020 | Slimming limited to dead files (temporary)       | In force; its revisit is open (`roadmap.md`)       |
+| D-021 | The host tools are pure Python                   | In force                                           |
+| D-022 | One Buildroot test bench                         | In force                                           |
+| D-023 | Keep the boot path short                         | In force                                           |
+| D-024 | bpak 1.0.1, and the headers it rejects           | In force                                           |
+| D-025 | An MCU test bench                                | Narrowed by D-029 (its name), D-039 (the handover) |
+| D-026 | A board is data, `struct board`                  | Narrowed by D-046, D-047, D-049                    |
+| D-027 | The core owns the security rules                 | In force                                           |
+| D-028 | One handover state; the `simple` boot driver     | Narrowed by D-039 (Firmware Handoff for `simple`)  |
+| D-029 | The simple target test bench, also Cortex-A      | In force                                           |
+| D-030 | The platform contract                            | Closed by D-053 to D-056                           |
+| D-031 | The board contract                               | Closed by D-045 to D-052                           |
+| D-032 | The boot flow contract (draft)                   | Closed by D-038 to D-041; changed by D-035, D-046, |
+|       |                                                  | D-048, D-055                                       |
+| D-033 | Documents first, top down (draft)                | Closed by D-036; narrowed by D-063                 |
+| D-034 | Level 1: system and security (draft)             | Closed by D-035, D-036                             |
+| D-035 | The level 1 review: security first               | In force                                           |
+| D-036 | Level 1 and the process are reviewed             | In force                                           |
+| D-037 | The documents' folders are the levels            | In force; D-062 removed two documents              |
+| D-038 | The boot flow contract after level 1             | In force                                           |
+| D-039 | The boot flow, Jonas's first answers             | Narrowed by D-048 (the in place header's address)  |
+| D-040 | The boot flow, Jonas's second answers            | Narrowed by D-046 (the policy is no Kconfig        |
+|       |                                                  | choice)                                            |
+| D-041 | pb's status; the boot flow contract is reviewed  | In force                                           |
+| D-042 | The agent instructions are `AGENTS.md`           | In force                                           |
+| D-043 | pb's status stays, pb's version joins            | In force                                           |
+| D-044 | The boot flow is written for any image format    | In force                                           |
+| D-045 | The board contract after the levels above        | In force; its open items closed by D-046 to D-051  |
+| D-046 | One member per concept in `struct board`         | Narrowed by D-049 (`cm_transport` leaves)          |
+| D-047 | `late_boot()` gets no image header               | In force                                           |
+| D-048 | In place: a flag in the static table             | In force                                           |
+| D-049 | Command mode's USB is the platform's             | In force                                           |
+| D-050 | `board-degraded` in pb's status                  | In force                                           |
+| D-051 | Tasks                                            | In force                                           |
+| D-052 | The board contract is reviewed                   | In force                                           |
+| D-053 | The platform contract after the ones beside it   | In force; its open items closed by D-054 to D-056  |
+| D-054 | A board maps hardware as data (`mmap`)           | In force; its form taken as approved (D-056)       |
+| D-055 | Image data regions                               | In force                                           |
+| D-056 | The platform contract is reviewed                | In force                                           |
+| D-057 | The command mode contract (draft)                | Closed by D-058, D-059                             |
+| D-058 | Command mode, Jonas's review                     | In force; its item (1) closed by D-059             |
+| D-059 | `CONFIG_CM_AUTH` stays; the contract is reviewed | In force                                           |
+| D-060 | Command mode and another image format            | In force; its open question answered by D-061      |
+| D-061 | A build may leave bpak out                       | In force                                           |
+| D-062 | No overviews of the code at level 2              | In force                                           |
+| D-063 | Code that decides nothing needs no document      | In force                                           |
+| D-064 | The drivers' contracts (drafts)                  | Closed by D-065 to D-073                           |
+| D-065 | `drivers.md`, the first answers                  | In force                                           |
+| D-066 | `drivers.md` is reviewed                         | In force; Open (5), which drivers have a `stop`,   |
+|       |                                                  | is my reading                                      |
+| D-067 | `bio.md`, Jonas's review                         | Narrowed by D-068 (the uncommented items)          |
+| D-068 | `bio.md`, the uncommented items                  | In force                                           |
+| D-069 | `bio.md`: an erase counts blocks                 | In force; the installed table decided by D-070     |
+| D-070 | `bio.md` is reviewed                             | In force; which form of "A" is my reading          |
+| D-071 | `crypto.md` is reviewed                          | In force                                           |
+| D-072 | `usb.md` is reviewed                             | In force                                           |
+| D-073 | The drivers' contracts, the final read           | In force                                           |
+| D-074 | An entry in an empty part is refused             | Waits for Jonas's review                           |
+| D-075 | The decisions have an index                      | In force                                           |
+
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
 The modernization works around the bpak format. Refactoring how punchboot
@@ -1662,3 +1752,19 @@ the storage held at that address.
   header whose `totalsize` is below that. Every release accepted such an image: what was at
   the address got pb's `/chosen` and was handed on as the device tree. The same reasons, and
   no valid device tree is that small.
+
+## D-075: The decisions have an index, the one part that is edited (2026-11-12)
+
+Jonas, after a review of the working records against the reviewed contracts: yes to an index.
+
+The entries are never edited (this file's first lines), so an entry that a later one replaced,
+narrowed or closed reads as if it held as written: by this entry that is 18 of 71. The
+newer entry names the older one, never the other way round. The table at the top gives each
+entry its state, and it is the one part of this file that is edited: an entry that replaces,
+narrows or closes an older one changes the older one's row with it.
+
+The states' words and each row's state are mine, read from the entries. A row that is wrong
+is corrected in the table; it needs no entry.
+
+From the same review (`log/2026-11-12.md`): `roadmap.md` starts with what 3.0.0 waits for
+besides the code, and `status.md` is short again.
