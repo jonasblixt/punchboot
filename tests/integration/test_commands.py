@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import struct
+import uuid
 from typing import TYPE_CHECKING
 
 import punchboot
@@ -16,6 +17,7 @@ from .pbtest import (
     AUTH_TOKEN,
     BLOCK_SIZE,
     DEV_KEY_ID,
+    DISK_UUID,
     NULL_UUID,
     SYSTEM_A_LBA,
     SYSTEM_A_UUID,
@@ -34,6 +36,9 @@ PB_RESULT_NOT_FOUND = 11
 BPAK_HEADER_SIZE = 4096
 BPAK_HEADER_MAGIC = 0x42504132
 
+# 'PB State Primary', 512 bytes: no room for a bpak header
+PB_STATE_PRIMARY_UUID = uuid.UUID("f5f8c9ae-efb5-4071-9ba9-d313b082281e")
+
 # pb-development3, the last key in the host board's key map
 LAST_KEY_ID = 0x52C1EDA0
 
@@ -49,6 +54,18 @@ def test_boot_status(device: Device) -> None:
 def test_erase_is_not_supported_by_the_host_disk(device: Device) -> None:
     with device.session() as s, pytest.raises(punchboot.NotSupportedError):
         s.part_erase(SYSTEM_A_UUID)
+
+
+def test_erase_of_the_disks_device_is_refused(device: Device) -> None:
+    """The device a partition table is on isn't writable (command-mode.md 5.3, F-188).
+
+    The host disk can't erase, so a partition that is writable gets NOT_SUPPORTED.
+    """
+    with device.session() as s:
+        disk = next(p for p in s.part_get_partitions() if p.uuid == DISK_UUID)
+        assert not disk.writable
+        with pytest.raises(punchboot.IOError):
+            s.part_erase(DISK_UUID)
 
 
 def test_end_of_life(device: Device) -> None:
@@ -90,3 +107,10 @@ def test_bpak_read(device: Device, tmp_path: pathlib.Path) -> None:
     )
     assert last_blocks == header
     assert struct.unpack_from("<I", header)[0] == BPAK_HEADER_MAGIC
+
+
+def test_bpak_read_of_a_partition_below_4_kib(device: Device) -> None:
+    """It has no header (command-mode.md 5.3, F-279)."""
+    with device.wire() as w:
+        assert w.command(PB_CMD_PART_BPAK_READ, PB_STATE_PRIMARY_UUID.bytes) == -PB_RESULT_NOT_FOUND
+        assert w.command(PB_CMD_PART_BPAK_READ, SYSTEM_B_UUID.bytes) == -PB_RESULT_NOT_FOUND

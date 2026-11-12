@@ -12,12 +12,30 @@ config CM_TRANSPORT_READY_TIMEOUT
     default 10
     depends on CM
 
+config CM_TRANSFER_TIMEOUT
+    int "Timeout in seconds for a transfer inside a command"
+    default 10
+    range 1 65
+    depends on CM
+    help
+        How long command mode waits for the host to complete a transfer
+        inside a command, kicking the watchdog meanwhile. Then the session
+        ends and the transport is restarted (command-mode.md 4.6). The caps
+        carry it in milliseconds, in 16 bits, hence at most 65 s.
+
 config CM_AUTH
     bool "Enable command mode authentication"
     default y
     depends on CM
     help
-        This will enable authentication when the security life cycle is >= LOCKED
+        Command mode's gate (command-mode.md 3.2). On: a closed device (a
+        locked or an unknown life cycle) answers only DEVICE_IDENTIFIER_READ
+        and AUTHENTICATE until the session authenticates, and the build
+        selects at least one method below, or it doesn't build.
+
+        Off: no gate. Every session counts as authenticated, so command
+        mode is open in every life cycle state, also on a locked device.
+        That is the product's choice, made in its defconfig (D-059).
 
 config CM_AUTH_TOKEN
     bool "Token based authentication"

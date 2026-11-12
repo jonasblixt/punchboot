@@ -54,6 +54,10 @@ static bool stream_written;
 static bool stream_failed;
 static bool reboot_requested = false;
 static const struct cm_config *cfg;
+/* A transfer inside a command failed or timed out (command-mode.md 4.4,
+ * 4.6): the session is over, the command's other transfers fail at once and
+ * the command loop restarts the transport */
+static bool transfer_lost;
 
 #ifdef CONFIG_CM_AUTH_TOKEN
 static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
@@ -176,18 +180,68 @@ void cm_board_cmd_request_reboot_on_success(void)
     reboot_requested = true;
 }
 
+/*
+ * The session ends with the transport (command-mode.md 3.1): when it is
+ * (re)started and when a transfer is lost, which is how the transport
+ * reports an unplug and a bus reset (usb.md 2.4). The next host starts
+ * without authentication and without a stream (5.4).
+ */
+static void cm_session_end(void)
+{
+#ifdef CONFIG_CM_AUTH
+    authenticated = false;
+#else
+    authenticated = true;
+#endif
+    /* No stream: not a bio, and no bio_* call accepts it */
+    block_dev = -PB_ERR_STATE;
+    stream_written = false;
+    stream_failed = false;
+}
+
+/*
+ * Waits for the transfer that was started, for at most
+ * CONFIG_CM_TRANSFER_TIMEOUT, and kicks the watchdog while it waits
+ * (command-mode.md 4.6): a host that stops in the middle of an exchange
+ * neither holds pb for ever nor resets it.
+ */
+static int cm_transfer_wait(void)
+{
+    struct pb_timeout to;
+    int rc;
+
+    pb_timeout_init_us(&to, CONFIG_CM_TRANSFER_TIMEOUT * 1000000UL);
+
+    do {
+        plat_wdog_kick();
+        rc = cfg->tops.complete();
+
+        if (rc == -PB_ERR_AGAIN && pb_timeout_has_expired(&to)) {
+            LOG_ERR("Transfer timed out");
+            rc = -PB_ERR_TIMEOUT;
+        }
+    } while (rc == -PB_ERR_AGAIN);
+
+    return rc;
+}
+
 static int cm_write(const void *buf, size_t length)
 {
     int rc;
 
+    if (transfer_lost)
+        return -PB_ERR_IO;
+
     rc = cfg->tops.write(buf, length);
 
-    if (rc != PB_OK)
-        return rc;
+    if (rc == PB_OK)
+        rc = cm_transfer_wait();
 
-    do {
-        rc = cfg->tops.complete();
-    } while (rc == -PB_ERR_AGAIN);
+    /* A transfer that failed ends the session (command-mode.md 4.4) */
+    if (rc != PB_OK) {
+        transfer_lost = true;
+        cm_session_end();
+    }
 
     return rc;
 }
@@ -196,16 +250,63 @@ static int cm_read(void *buf, size_t length)
 {
     int rc;
 
+    if (transfer_lost)
+        return -PB_ERR_IO;
+
     rc = cfg->tops.read(buf, length);
 
-    if (rc != PB_OK)
-        return rc;
+    if (rc == PB_OK)
+        rc = cm_transfer_wait();
 
-    do {
-        rc = cfg->tops.complete();
-    } while (rc == -PB_ERR_AGAIN);
+    /* A transfer that failed ends the session (command-mode.md 4.4) */
+    if (rc != PB_OK) {
+        transfer_lost = true;
+        cm_session_end();
+    }
 
     return rc;
+}
+
+/*
+ * Reads a transfer of 'length' bytes that the host sends whatever the first
+ * result said, and drops it: a refused command's exchange still ends as the
+ * host expects (command-mode.md 3.2, 4.4). It is read in pieces into the
+ * result, which the caller sets afterwards, so that no buffer changes.
+ */
+static int cm_drain(size_t length)
+{
+    int rc;
+
+    do {
+        size_t chunk = (length > sizeof(result)) ? sizeof(result) : length;
+
+        rc = cm_read(&result, chunk);
+
+        if (rc != PB_OK)
+            return rc;
+
+        length -= chunk;
+    } while (length > 0);
+
+    return PB_OK;
+}
+
+/* A partition without VISIBLE is internal to pb: it doesn't exist for the
+ * host, and every command that names it answers NOT_FOUND (command-mode.md
+ * 5.3, D-058) */
+static bool cm_part_hidden(const uuid_t uu)
+{
+    bio_dev_t dev = bio_get_part_by_uu(uu);
+
+    return (dev >= 0) && !(bio_get_flags(dev) & BIO_FLAG_VISIBLE);
+}
+
+static bio_dev_t cm_part_by_uu(const uuid_t uu)
+{
+    if (cm_part_hidden(uu))
+        return -PB_ERR_NOT_FOUND;
+
+    return bio_get_part_by_uu(uu);
 }
 
 static int cmd_board(void)
@@ -270,12 +371,19 @@ static int cmd_bpak_read(void)
 
     LOG_DBG("Read bpak");
 
-    bio_dev_t dev = bio_get_part_by_uu(read_cmd->uuid);
+    bio_dev_t dev = cm_part_by_uu(read_cmd->uuid);
 
     if (dev < 0) {
         LOG_ERR("Could not find partition");
         pb_wire_init_result(&result, error_to_wire(dev));
         return dev;
+    }
+
+    /* No room for a header: there is none (command-mode.md 5.3) */
+    if (bio_size(dev) < (int64_t)sizeof(struct bpak_header)) {
+        LOG_ERR("Partition is smaller than a bpak header");
+        pb_wire_init_result(&result, -PB_RESULT_NOT_FOUND);
+        return -PB_ERR_NOT_FOUND;
     }
 
     lba_t header_lba =
@@ -309,11 +417,15 @@ static int cmd_bpak_read(void)
 
 #if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
 /* Hosts send the authentication data after an OK result, and check that
- * result first. */
-static int auth_read_data(const struct pb_command_authenticate *auth_cmd)
+ * result first. A bad size is refused before the data and sets *refused:
+ * nothing was tried, so the session stays as it was (command-mode.md 3.3). */
+static int auth_read_data(const struct pb_command_authenticate *auth_cmd, bool *refused)
 {
+    *refused = false;
+
     if (auth_cmd->size == 0 || auth_cmd->size > CM_DATA_XFER_SIZE) {
         LOG_ERR("Bad authentication data size: %u", auth_cmd->size);
+        *refused = true;
         return -PB_ERR_PARAM;
     }
 
@@ -321,6 +433,32 @@ static int auth_read_data(const struct pb_command_authenticate *auth_cmd)
     cm_write(&result, sizeof(result));
 
     return cm_read(buffer[0], CM_DATA_XFER_SIZE);
+}
+
+#define CM_AUTH_FAILED_DELAY_US 1000000
+#define CM_AUTH_FAILED_KICK_US  100000
+
+/* The result of a failed attempt is sent 1 s after the data arrived, with
+ * every method: the check's own time is part of it (command-mode.md 3.3). No
+ * counter, no lockout. The tick wraps, so only differences count (plat.h).
+ * pb_delay_*() and pb_timeout_*() never kick (platform.md 3.3), this does:
+ * at once, after the check, and every 100 ms (the shortest watchdog is 5 s).
+ * The transport isn't touched: a host that leaves gets nothing sooner. */
+static void auth_failed_wait(unsigned int arrived)
+{
+    unsigned int now = plat_get_us_tick();
+    unsigned int kicked = now;
+
+    plat_wdog_kick();
+
+    while ((now - arrived) < CM_AUTH_FAILED_DELAY_US) {
+        if ((now - kicked) >= CM_AUTH_FAILED_KICK_US) {
+            plat_wdog_kick();
+            kicked = now;
+        }
+
+        now = plat_get_us_tick();
+    }
 }
 #endif
 
@@ -330,19 +468,28 @@ static int cmd_auth(void)
 
 #if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
     struct pb_command_authenticate *auth_cmd = (struct pb_command_authenticate *)cmd.request;
+    bool refused;
 #endif
+    /* A method that isn't in the build, or a board without a password
+     * check, is refused before the data and changes nothing */
     pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
 #ifdef CONFIG_CM_AUTH_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
-        rc = auth_read_data(auth_cmd);
+        rc = auth_read_data(auth_cmd, &refused);
 
-        if (rc == PB_OK)
+        if (rc == PB_OK) {
+            unsigned int arrived = plat_get_us_tick();
+
             rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
+
+            if (rc != PB_OK)
+                auth_failed_wait(arrived);
+        }
 
         if (rc == PB_OK)
             authenticated = true;
-        else
+        else if (!refused)
             authenticated = false;
 
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -351,14 +498,20 @@ static int cmd_auth(void)
 
 #if CONFIG_CM_AUTH_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD && cfg->password_auth) {
-        rc = auth_read_data(auth_cmd);
+        rc = auth_read_data(auth_cmd, &refused);
 
-        if (rc == PB_OK)
+        if (rc == PB_OK) {
+            unsigned int arrived = plat_get_us_tick();
+
             rc = cfg->password_auth((char *)buffer[0], auth_cmd->size);
+
+            if (rc != PB_OK)
+                auth_failed_wait(arrived);
+        }
 
         if (rc == PB_OK)
             authenticated = true;
-        else
+        else if (!refused)
             authenticated = false;
 
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -387,6 +540,14 @@ stream_check(uint8_t buffer_id, uint32_t size, uint64_t offset, uint8_t **bfr, l
     }
 
     uint64_t lba = offset / (uint64_t)block_size;
+
+    /* The offset is a whole number of blocks, as hosts send it
+     * (command-mode.md 5.4) */
+    if (offset % (uint64_t)block_size != 0) {
+        LOG_ERR("Offset %" PRIu64 " isn't a multiple of the block", offset);
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);
+        return -PB_ERR_PARAM;
+    }
 
     if (lba > UINT32_MAX) {
         LOG_ERR("Invalid offset");
@@ -491,12 +652,21 @@ static int cmd_part_verify(void)
 
     LOG_DBG("Verify part");
 
-    block_dev = bio_get_part_by_uu(verify_cmd->uuid);
+    /* The stream stays on its partition (command-mode.md 5.3) */
+    bio_dev_t dev = cm_part_by_uu(verify_cmd->uuid);
 
-    if (block_dev < 0) {
+    if (dev < 0) {
         LOG_ERR("Could not find partition");
-        pb_wire_init_result(&result, error_to_wire(block_dev));
-        return block_dev;
+        pb_wire_init_result(&result, error_to_wire(dev));
+        return dev;
+    }
+
+    /* With bpak the size is at least a header, inside the partition
+     * (command-mode.md 5.3): a partition smaller than that takes none */
+    if (verify_cmd->bpak && bio_size(dev) < (int64_t)sizeof(struct bpak_header)) {
+        LOG_ERR("Partition is smaller than a bpak header");
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);
+        return -PB_ERR_PARAM;
     }
 
     rc = hash_init(HASH_SHA256);
@@ -509,10 +679,10 @@ static int cmd_part_verify(void)
     if (verify_cmd->bpak) {
         LOG_DBG("Bpak header");
 
-        lba_t header_lba = bio_get_no_of_blocks(block_dev) -
-                           (sizeof(struct bpak_header) / bio_block_size(block_dev));
+        lba_t header_lba =
+            bio_get_no_of_blocks(dev) - (sizeof(struct bpak_header) / bio_block_size(dev));
 
-        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header), buffer[buffer_id]);
+        rc = bio_read(dev, header_lba, sizeof(struct bpak_header), buffer[buffer_id]);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
@@ -526,6 +696,8 @@ static int cmd_part_verify(void)
             return rc;
         }
 
+        plat_wdog_kick(); /* Once per chunk (command-mode.md 4.6) */
+
         bytes_to_verify -= sizeof(struct bpak_header);
     }
 
@@ -536,7 +708,7 @@ static int cmd_part_verify(void)
 
         buffer_id = !buffer_id;
 
-        rc = bio_read(block_dev, lba_offset, chunk_len, buffer[buffer_id]);
+        rc = bio_read(dev, lba_offset, chunk_len, buffer[buffer_id]);
 
         if (rc != PB_OK) {
             LOG_ERR("read error");
@@ -552,8 +724,12 @@ static int cmd_part_verify(void)
             break;
         }
 
+        /* Once per chunk, after it is read and its hash started, as the
+         * boot's load does (command-mode.md 4.6) */
+        plat_wdog_kick();
+
         bytes_to_verify -= chunk_len;
-        lba_offset += chunk_len / bio_block_size(block_dev);
+        lba_offset += chunk_len / bio_block_size(dev);
     }
 
     if (rc != PB_OK)
@@ -593,7 +769,7 @@ static int cmd_part_verify(void)
 static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
 {
     LOG_DBG("Erase: lba=%" PRIu32 " count=%" PRIu32, erase_cmd->start_lba, erase_cmd->block_count);
-    bio_dev_t dev = bio_get_part_by_uu(erase_cmd->uuid);
+    bio_dev_t dev = cm_part_by_uu(erase_cmd->uuid);
 
     if (dev < 0)
         return dev;
@@ -604,6 +780,13 @@ static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
      * older than 2.0 send (F-075), erases nothing, as before. */
     if (erase_cmd->block_count == 0)
         return bio_erase(dev, 0, 0);
+
+    /* As a stream write: the partition's flags forbid it (command-mode.md
+     * 5.3). The device a partition table is on has only VISIBLE */
+    if (!(bio_get_flags(dev) & BIO_FLAG_WRITABLE)) {
+        LOG_ERR("Partition may not be erased");
+        return -PB_ERR_IO;
+    }
 
     lba_t first = (lba_t)bio_get_first_block(dev);
 
@@ -654,9 +837,13 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
+/* Set when the boot has read from the host: the header comes first */
+static bool bpak_boot_read_any;
+
 static int bpak_boot_read_f(int64_t offset, size_t length, void *buf)
 {
     (void)offset;
+    bpak_boot_read_any = true;
     return cm_read(buf, length);
 }
 
@@ -683,9 +870,18 @@ static int cmd_boot_bpak(void)
     boot_set_source(BOOT_SOURCE_CB);
     boot_configure_load_cb(bpak_boot_read_f, bpak_boot_result_f);
 
+    bpak_boot_read_any = false;
     rc = boot_load(bpak_boot_cmd->uuid);
-    if (rc != PB_OK)
+
+    if (rc != PB_OK) {
+        /* Refused before the header was read (a precondition, early_boot()'s
+         * stop, no handover): the host sends it after the OK all the same,
+         * so it is read and its result carries the refusal (command-mode.md
+         * 5.5, D-058) */
+        if (!bpak_boot_read_any && cm_drain(sizeof(struct bpak_header)) == PB_OK)
+            bpak_boot_result_f(rc);
         return rc;
+    }
 
     if (cfg->tops.disconnect) {
         cfg->tops.disconnect();
@@ -777,7 +973,7 @@ static int cmd_stream_init(void)
     struct pb_command_stream_initialize *stream_init =
         (struct pb_command_stream_initialize *)cmd.request;
 
-    block_dev = bio_get_part_by_uu(stream_init->part_uuid);
+    block_dev = cm_part_by_uu(stream_init->part_uuid);
     stream_written = false;
     stream_failed = false;
 
@@ -799,12 +995,12 @@ static int cmd_stream_prep_buffer(void)
 
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-    if (stream_prep->size > CM_BUF_SIZE) {
+    /* Hosts send the data whatever the first result says: it is read and
+     * dropped, and the second result has the refusal (command-mode.md 4.4) */
+    if (stream_prep->size > CM_BUF_SIZE || stream_prep->id > 1) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
-        return -PB_ERR_MEM;
-    }
-
-    if (stream_prep->id > 1) {
+        cm_write(&result, sizeof(result));
+        (void)cm_drain(stream_prep->size);
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_ERR_MEM;
     }
@@ -836,19 +1032,81 @@ static int cmd_stream_final(void)
     return rc;
 }
 
+/*
+ * A locked device requires authentication, and so does one whose life cycle
+ * is unknown: the SLC was never set up (the board init failed before
+ * slc_init()) or couldn't be read. Only a board without SLC support
+ * (-PB_ERR_NOT_SUPPORTED) and the states before locking are open, and EOL
+ * (D-011).
+ */
+static bool slc_requires_auth(void)
+{
+    if (slc == PB_SLC_CONFIGURATION_LOCKED)
+        return true;
+
+    return (slc < 0) && (slc != -PB_ERR_NOT_SUPPORTED);
+}
+
+/*
+ * The gate (command-mode.md 3.2), before anything looks at the frame. A
+ * closed device runs two commands before authentication and answers every
+ * other frame with NOT_AUTHENTICATED: also a number pb doesn't define and a
+ * frame with a wrong magic, so that it doesn't tell which commands it has
+ * (D-058).
+ */
+static bool cm_gate_allows(void)
+{
+    if (authenticated || !slc_requires_auth())
+        return true;
+
+    return (cmd.magic == PB_WIRE_MAGIC) && !pb_wire_requires_auth(&cmd);
+}
+
+/*
+ * The gate's refusal. Hosts send BOARD_COMMAND's request and
+ * STREAM_PREPARE_BUFFER's data whatever the first result says, so the device
+ * sends the first result, reads the data and leaves the second to the caller,
+ * both NOT_AUTHENTICATED (command-mode.md 3.2, 4.4). Every other refused
+ * frame is answered once.
+ */
+static void cm_gate_refuse(void)
+{
+    const struct pb_command_board *board_cmd = (const struct pb_command_board *)cmd.request;
+    const struct pb_command_stream_prepare_buffer *stream_prep =
+        (const struct pb_command_stream_prepare_buffer *)cmd.request;
+
+    pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+
+    if (cmd.magic != PB_WIRE_MAGIC)
+        return;
+
+    if (cmd.command == PB_CMD_BOARD_COMMAND) {
+        cm_write(&result, sizeof(result));
+
+        if (board_cmd->request_size)
+            (void)cm_drain(CM_DATA_XFER_SIZE);
+
+        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+    } else if (cmd.command == PB_CMD_STREAM_PREPARE_BUFFER) {
+        cm_write(&result, sizeof(result));
+        (void)cm_drain(stream_prep->size);
+        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+    }
+}
+
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
 
-    if (!pb_wire_valid_command(&cmd)) {
-        LOG_ERR("Invalid command: %i\n", cmd.command);
-        pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
+    if (!cm_gate_allows()) {
+        LOG_ERR("Not authenticated");
+        cm_gate_refuse();
         goto err_out;
     }
 
-    if (pb_wire_requires_auth(&cmd) && (!authenticated) && (slc == PB_SLC_CONFIGURATION_LOCKED)) {
-        LOG_ERR("Not authenticated");
-        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+    if (!pb_wire_valid_command(&cmd)) {
+        LOG_ERR("Invalid command: %i\n", cmd.command);
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
         goto err_out;
     }
 
@@ -880,6 +1138,9 @@ static int pb_command_parse(void)
         caps.stream_no_of_buffers = 2;
         caps.stream_buffer_size = CM_BUF_SIZE;
         caps.chunk_transfer_max_bytes = CM_BUF_SIZE;
+        /* pb's timeout for a transfer (command-mode.md 4.6). pb sets no bound
+         * on an erase, so a host uses its own (F-375) */
+        caps.operation_timeout_ms = CONFIG_CM_TRANSFER_TIMEOUT * 1000;
 
         pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
     } break;
@@ -891,7 +1152,10 @@ static int pb_command_parse(void)
     {
         struct pb_command_install_part_table *install_cmd =
             (struct pb_command_install_part_table *)cmd.request;
-        rc = bio_install_partition_table(install_cmd->uu, install_cmd->variant);
+        if (cm_part_hidden(install_cmd->uu))
+            rc = -PB_ERR_NOT_FOUND;
+        else
+            rc = bio_install_partition_table(install_cmd->uu, install_cmd->variant);
         pb_wire_init_result(&result, error_to_wire(rc));
     } break;
     case PB_CMD_STREAM_INITIALIZE:
@@ -924,9 +1188,13 @@ static int pb_command_parse(void)
     case PB_CMD_BOOT_PART: {
         struct pb_command_boot_part *boot_cmd = (struct pb_command_boot_part *)cmd.request;
 
-        boot_set_source(BOOT_SOURCE_BIO);
-        boot_clear_set_flags(0, BOOT_FLAG_CMD | (boot_cmd->verbose ? BOOT_FLAG_VERBOSE : 0));
-        rc = boot_load(boot_cmd->uuid);
+        if (cm_part_hidden(boot_cmd->uuid)) {
+            rc = -PB_ERR_NOT_FOUND;
+        } else {
+            boot_set_source(BOOT_SOURCE_BIO);
+            boot_clear_set_flags(0, BOOT_FLAG_CMD | (boot_cmd->verbose ? BOOT_FLAG_VERBOSE : 0));
+            rc = boot_load(boot_cmd->uuid);
+        }
 
         pb_wire_init_result(&result, error_to_wire(rc));
         cm_write(&result, sizeof(result));
@@ -954,7 +1222,10 @@ static int pb_command_parse(void)
     case PB_CMD_PART_ACTIVATE: {
         struct pb_command_activate_part *activate_cmd =
             (struct pb_command_activate_part *)cmd.request;
-        rc = boot_set_boot_partition(activate_cmd->uuid);
+        if (cm_part_hidden(activate_cmd->uuid))
+            rc = -PB_ERR_NOT_FOUND;
+        else
+            rc = boot_set_boot_partition(activate_cmd->uuid);
         pb_wire_init_result(&result, error_to_wire(rc));
     } break;
     case PB_CMD_AUTHENTICATE:
@@ -973,6 +1244,13 @@ static int pb_command_parse(void)
 
         size_t response_size = CM_BUF_SIZE;
         rc = cfg->status(bfr_response, &response_size);
+
+        /* Released hosts stop at an error here: the result is the verdict,
+         * without data or a second result (command-mode.md 4.4) */
+        if (rc != PB_OK) {
+            pb_wire_init_result(&result, error_to_wire(rc));
+            break;
+        }
 
         status_result.size = response_size;
         pb_wire_init_result2(&result, error_to_wire(rc), &status_result, sizeof(status_result));
@@ -1068,15 +1346,15 @@ int cm_run(void)
         return rc;
     }
 
-#ifdef CONFIG_CM_AUTH
-    authenticated = false;
-#else
-    authenticated = true;
-#endif
     slc = slc_read_status();
     device_uuid(device_uu);
 
 restart_command_mode:
+    /* A session starts with nothing: the last one ended with the transport
+     * that is (re)started here (command-mode.md 3.1) */
+    cm_session_end();
+    transfer_lost = false;
+
     if (cfg->tops.init) {
         rc = cfg->tops.init();
 
@@ -1128,6 +1406,12 @@ restart_command_mode:
 
                 if (rc == -PB_ERR_ABORT) {
                     goto err_out;
+                } else if (transfer_lost) {
+                    /* The session is over: the transport is restarted and
+                     * the device is back at waiting for a host
+                     * (command-mode.md 3.1, 4.4, 4.6) */
+                    LOG_ERR("Transfer lost (%i), restarting the transport", rc);
+                    goto restart_command_mode;
                 } else if (rc != PB_OK) {
                     LOG_ERR("Command error %i", rc);
                     break;

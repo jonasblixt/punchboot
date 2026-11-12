@@ -20,7 +20,11 @@ int slc_init(const struct slc_config *cfg_)
 
 slc_t slc_read_status(void)
 {
-    if (!cfg || !cfg->read_status)
+    /* Not set up: the life cycle is unknown, not unsupported */
+    if (!cfg)
+        return -PB_ERR_STATE;
+
+    if (!cfg->read_status)
         return -PB_ERR_NOT_SUPPORTED;
 
     return cfg->read_status();

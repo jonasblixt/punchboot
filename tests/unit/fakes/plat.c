@@ -16,6 +16,8 @@
 unsigned int fake_us_tick = FAKE_US_TICK_DEFAULT;
 unsigned int fake_us_tick_step;
 unsigned int fake_wdog_kicks;
+unsigned int fake_wdog_kick_tick;
+unsigned int fake_wdog_max_gap_us;
 
 unsigned int plat_get_us_tick(void)
 {
@@ -27,5 +29,8 @@ unsigned int plat_get_us_tick(void)
 
 void plat_wdog_kick(void)
 {
+    if (fake_us_tick - fake_wdog_kick_tick > fake_wdog_max_gap_us)
+        fake_wdog_max_gap_us = fake_us_tick - fake_wdog_kick_tick;
+    fake_wdog_kick_tick = fake_us_tick;
     fake_wdog_kicks++;
 }

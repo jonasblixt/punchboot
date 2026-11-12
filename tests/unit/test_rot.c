@@ -223,7 +223,8 @@ static void test_slc_not_initialized(void **state)
 {
     (void)state;
 
-    assert_int_equal(slc_read_status(), -PB_ERR_NOT_SUPPORTED);
+    /* Unknown, not unsupported: command mode treats it as locked */
+    assert_int_equal(slc_read_status(), -PB_ERR_STATE);
     assert_int_equal(slc_set_configuration(), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(slc_set_configuration_locked(), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(slc_set_eol(), -PB_ERR_NOT_SUPPORTED);
