@@ -275,6 +275,52 @@ int board_init(void)
     int rc;
     LOG_INFO("Board init");
 
+    /* First: command mode needs the life cycle even if the init below fails.
+     * The fuses read as blank until test_fuse_init() has loaded them. */
+    static const struct rot_config rot_config = {
+        .revoke_key = board_revoke_key,
+        .read_key_status = board_read_key_status,
+        .key_map_length = 3,
+        .key_map = {
+            {
+                .name = "pb-development",
+                .id = 0xa90f9680,
+                .param1 = 0,
+            },
+            {
+                .name = "pb-development2",
+                .id = 0x25c6dd36,
+                .param1 = 1,
+            },
+            {
+                .name = "pb-development3",
+                .id = 0x52c1eda0,
+                .param1 = 2,
+            },
+        },
+    };
+
+    rc = rot_init(&rot_config);
+
+    if (rc != PB_OK) {
+        LOG_ERR("RoT init failed (%i)", rc);
+        return rc;
+    }
+
+    static const struct slc_config slc_config = {
+        .read_status = board_slc_read_status,
+        .set_configuration = board_set_slc_configuration,
+        .set_configuration_locked = board_slc_set_configuration_locked,
+        .set_eol = board_slc_set_eol,
+    };
+
+    rc = slc_init(&slc_config);
+
+    if (rc != PB_OK) {
+        LOG_ERR("SLC init failed (%i)", rc);
+        return rc;
+    }
+
     bio_dev_t disk = host_disk_init(host_opts.disk_path, SZ_MiB(32), PART_disk, "Host disk");
 
     if (disk < 0)
@@ -352,50 +398,6 @@ int board_init(void)
 
     if (rc != PB_OK) {
         LOG_ERR("Fusebox init failed");
-        return rc;
-    }
-
-    static const struct rot_config rot_config = {
-        .revoke_key = board_revoke_key,
-        .read_key_status = board_read_key_status,
-        .key_map_length = 3,
-        .key_map = {
-            {
-                .name = "pb-development",
-                .id = 0xa90f9680,
-                .param1 = 0,
-            },
-            {
-                .name = "pb-development2",
-                .id = 0x25c6dd36,
-                .param1 = 1,
-            },
-            {
-                .name = "pb-development3",
-                .id = 0x52c1eda0,
-                .param1 = 2,
-            },
-        },
-    };
-
-    rc = rot_init(&rot_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("RoT init failed (%i)", rc);
-        return rc;
-    }
-
-    static const struct slc_config slc_config = {
-        .read_status = board_slc_read_status,
-        .set_configuration = board_set_slc_configuration,
-        .set_configuration_locked = board_slc_set_configuration_locked,
-        .set_eol = board_slc_set_eol,
-    };
-
-    rc = slc_init(&slc_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SLC init failed (%i)", rc);
         return rc;
     }
 

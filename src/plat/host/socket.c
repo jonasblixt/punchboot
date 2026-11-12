@@ -8,8 +8,10 @@
  * Command mode transport over a unix domain socket.
  *
  * The command mode loop uses an asynchronous API: 'read'/'write' queue a
- * transfer and 'complete' finishes it. Here the transfer is performed
- * synchronously in 'complete'. When the client disconnects, 'complete'
+ * transfer and 'complete' polls it (usb.md 2.4): it moves what the socket
+ * has, waits at most POLL_MS for more, and returns -PB_ERR_AGAIN until the
+ * transfer is whole, so that command mode's transfer timeout and watchdog
+ * kicks run (command-mode.md 4.6). When the client disconnects, 'complete'
  * fails, which makes the command mode loop call 'init' again, and that
  * waits for the next client.
  */
@@ -17,12 +19,16 @@
 #include <errno.h>
 #include <pb/pb.h>
 #include <plat/host/host.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+
+/* The longest a call to 'complete' waits for the socket */
+#define POLL_MS 10
 
 static int listen_fd = -1;
 static int client_fd = -1;
@@ -32,6 +38,7 @@ static struct {
     bool is_read;
     void *buf;
     size_t length;
+    size_t done;
 } xfer;
 
 /* Listens on a temporary path and then renames it to the socket path, so
@@ -107,6 +114,7 @@ int host_socket_read(void *buf, size_t length)
     xfer.is_read = true;
     xfer.buf = buf;
     xfer.length = length;
+    xfer.done = 0;
     return PB_OK;
 }
 
@@ -116,38 +124,50 @@ int host_socket_write(const void *buf, size_t length)
     xfer.is_read = false;
     xfer.buf = (void *)buf;
     xfer.length = length;
+    xfer.done = 0;
     return PB_OK;
 }
 
 int host_socket_complete(void)
 {
-    uint8_t *p = xfer.buf;
-    size_t remaining = xfer.length;
+    struct pollfd pfd = { .fd = client_fd };
 
     if (!xfer.pending)
         return PB_OK;
 
-    xfer.pending = false;
+    pfd.events = xfer.is_read ? POLLIN : POLLOUT;
 
-    while (remaining > 0) {
+    while (xfer.done < xfer.length) {
+        uint8_t *p = (uint8_t *)xfer.buf + xfer.done;
+        size_t remaining = xfer.length - xfer.done;
         ssize_t bytes;
+        int ready = poll(&pfd, 1, POLL_MS);
+
+        if (ready == 0 || (ready < 0 && errno == EINTR))
+            return -PB_ERR_AGAIN;
+
+        if (ready < 0) {
+            xfer.pending = false;
+            return -PB_ERR_IO;
+        }
 
         if (xfer.is_read)
-            bytes = read(client_fd, p, remaining);
+            bytes = recv(client_fd, p, remaining, MSG_DONTWAIT);
         else
-            bytes = write(client_fd, p, remaining);
+            bytes = send(client_fd, p, remaining, MSG_DONTWAIT);
 
-        if (bytes < 0 && errno == EINTR)
+        if (bytes < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK))
             continue;
 
         if (bytes <= 0) {
             /* Error, or the client disconnected */
+            xfer.pending = false;
             return -PB_ERR_IO;
         }
 
-        p += bytes;
-        remaining -= (size_t)bytes;
+        xfer.done += (size_t)bytes;
     }
 
+    xfer.pending = false;
     return PB_OK;
 }

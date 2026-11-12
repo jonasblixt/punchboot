@@ -14,7 +14,9 @@
  * host_*(), runs cm_run() until the queue is empty, and then checks what the
  * device sent back with expect_*(). When the queue runs dry the transport
  * reports a disconnect, cm_run() re-initializes the transport, and the fake
- * fails that, which ends cm_run() with -PB_ERR_IO.
+ * fails that, which ends cm_run() with -PB_ERR_IO. host_lost() and
+ * t.lose_write lose a transfer on the way, as a host that went away.
+ * host_stops() and t.stop_write leave one pending, as a host that stopped.
  */
 
 #include <setjmp.h>
@@ -60,15 +62,24 @@
 #define UU_MISSING \
     (const unsigned char *)"\x44\xac\xdc\xbe\xdc\xb0\x4d\x89\xb0\xad\x8f\x96\x96\x7f\x8c\x95"
 
-#define RW_FIRST_LBA 10
-#define RW_BLOCKS    20
-#define DEVICE_UUID  "02e49231-756e-35ee-a982-378e5ba866a9"
-#define KEY_ID       0xa90f9680
-#define FAKE_SIG_OK  0x5a
-#define BOARD_ECHO   1
-#define BOARD_RETURN 2
-#define BOARD_REBOOT 3
-#define BOARD_PREFIX "echo: "
+#define RW_FIRST_LBA        10
+#define RW_BLOCKS           20
+#define DEVICE_UUID         "02e49231-756e-35ee-a982-378e5ba866a9"
+#define KEY_ID              0xa90f9680
+#define FAKE_SIG_OK         0x5a
+#define BOARD_ECHO          1
+#define BOARD_RETURN        2
+#define BOARD_REBOOT        3
+#define BOARD_PREFIX        "echo: "
+/* fake_us_tick_step: 1 ms per plat_get_us_tick() */
+#define TICK_STEP_US        1000
+/* A failed authentication's result is sent 1 s after the data (3.3), and the
+ * watchdog is kicked every 100 ms meanwhile */
+#define AUTH_WAIT_US        1000000
+#define AUTH_KICK_US        100000
+#define TRANSFER_TIMEOUT_US (CONFIG_CM_TRANSFER_TIMEOUT * 1000000U)
+/* A stopped transfer polled this often was waited for past the timeout */
+#define STOPPED_POLLS_MAX   (2 * TRANSFER_TIMEOUT_US / TICK_STEP_US)
 
 /* The fake transport */
 static struct {
@@ -85,8 +96,23 @@ static struct {
 
     int complete_rcs[8]; /* Returned by complete() before it does anything */
     int n_complete_rcs;
+    size_t lost_at[4]; /* A read that starts at this input position is lost, */
+    int lost_rc[4]; /* complete() returns this for it, once */
+    int n_lost;
+    int lose_write; /* The write with this number (from 1) is lost */
+    int write_calls;
+    bool write_lost;
     int fail_reads_after; /* -1: never, n: read() fails after n calls */
     int fail_writes_after;
+    /* The host stops: a read that starts at input position stop_at, or the
+     * write with the number stop_write, stays pending until the transport is
+     * started again */
+    bool stop_reads;
+    size_t stop_at;
+    int stop_write;
+    bool write_stopped;
+    bool stopped;
+    unsigned int stopped_polls;
 
     int max_inits;
     int init_calls;
@@ -95,10 +121,25 @@ static struct {
     int connect_calls;
     int disconnect_calls;
     int process_calls;
+
+    /* fake_us_tick when each read completed and each write was sent */
+    unsigned int read_ticks[64];
+    size_t n_reads;
+    unsigned int write_ticks[64];
+    size_t n_writes;
+    struct ramdisk *heal; /* fake_process() ends heal's write faults */
+    int heal_at; /* at this call */
 } t;
 
 static int fake_init(void)
 {
+    if (t.stopped) {
+        /* The next host */
+        t.stopped = false;
+        t.stop_reads = false;
+        t.write_stopped = false;
+        t.stopped_polls = 0;
+    }
     t.init_calls++;
     return (t.init_calls > t.max_inits) ? -PB_ERR_IO : PB_OK;
 }
@@ -135,10 +176,20 @@ static int fake_write(const void *buf, size_t length)
         return -PB_ERR_IO;
     if (t.fail_writes_after > 0)
         t.fail_writes_after--;
+    if (++t.write_calls == t.lose_write) {
+        t.write_lost = true; /* complete() fails it, nothing arrives */
+        return PB_OK;
+    }
+    if (t.write_calls == t.stop_write) {
+        t.write_stopped = true; /* complete() never ends it */
+        return PB_OK;
+    }
 
     assert_true(t.out_len + length <= sizeof(t.out));
     memcpy(&t.out[t.out_len], buf, length);
     t.out_len += length;
+    if (t.n_writes < ARRAY_SIZE(t.write_ticks))
+        t.write_ticks[t.n_writes++] = fake_us_tick;
     return PB_OK;
 }
 
@@ -150,12 +201,36 @@ static int fake_complete(void)
         return rc;
     }
 
+    if (t.write_lost) {
+        t.write_lost = false;
+        return -PB_ERR_IO;
+    }
+
+    if (t.write_stopped || (t.read_pending && t.stop_reads && t.in_pos == t.stop_at)) {
+        t.stopped = true;
+        /* pb gives up after its timeout instead of polling for ever */
+        assert_true(++t.stopped_polls < STOPPED_POLLS_MAX);
+        return -PB_ERR_AGAIN;
+    }
+
+    if (t.read_pending && t.n_lost > 0 && t.in_pos == t.lost_at[0]) {
+        int rc = t.lost_rc[0];
+
+        t.n_lost--;
+        memmove(&t.lost_at[0], &t.lost_at[1], sizeof(t.lost_at[0]) * t.n_lost);
+        memmove(&t.lost_rc[0], &t.lost_rc[1], sizeof(t.lost_rc[0]) * t.n_lost);
+        t.read_pending = false;
+        return rc;
+    }
+
     if (t.read_pending) {
         if (t.in_pos + t.read_len > t.in_len)
             return -PB_ERR_IO; /* The host is gone */
         memcpy(t.read_buf, &t.in[t.in_pos], t.read_len);
         t.in_pos += t.read_len;
         t.read_pending = false;
+        if (t.n_reads < ARRAY_SIZE(t.read_ticks))
+            t.read_ticks[t.n_reads++] = fake_us_tick;
     }
 
     return PB_OK;
@@ -164,6 +239,8 @@ static int fake_complete(void)
 static void fake_process(void)
 {
     t.process_calls++;
+    if (t.heal != NULL && t.process_calls == t.heal_at)
+        t.heal->fail_writes_after = -1;
 }
 
 /* The board */
@@ -200,10 +277,12 @@ int cm_board_init(void)
     return cm_init(board_cfg);
 }
 
+static int board_status_rc;
+
 static int board_status(uint8_t *buf, size_t *length)
 {
     *length = snprintf((char *)buf, *length, "status ok");
-    return PB_OK;
+    return board_status_rc;
 }
 
 static int
@@ -242,6 +321,9 @@ static struct {
     uuid_t set_part_uu;
     uint32_t flags;
     enum boot_source source;
+    bool reads_header; /* boot_load() reads the header and answers it */
+    boot_read_cb_t read_f;
+    boot_result_cb_t result_f;
 } fake_boot;
 
 void boot_clear_set_flags(uint32_t clear, uint32_t set)
@@ -257,14 +339,24 @@ int boot_set_source(enum boot_source source)
 
 void boot_configure_load_cb(boot_read_cb_t read_f, boot_result_cb_t result_f)
 {
-    (void)read_f;
-    (void)result_f;
+    fake_boot.read_f = read_f;
+    fake_boot.result_f = result_f;
 }
 
 int boot_load(uuid_t boot_part_override_uu)
 {
     fake_boot.load_calls++;
     uuid_copy(fake_boot.load_uu, boot_part_override_uu);
+
+    if (fake_boot.reads_header) {
+        static struct bpak_header header;
+        int rc = fake_boot.read_f(-(int64_t)sizeof(header), sizeof(header), &header);
+
+        if (rc != PB_OK)
+            return rc;
+        fake_boot.result_f(fake_boot.load_rc);
+    }
+
     return fake_boot.load_rc;
 }
 
@@ -378,6 +470,8 @@ static struct {
     hash_t alg;
     hash_t verify_alg;
     bool verify_ok;
+    unsigned int verify_us; /* What a verification takes on the fake clock */
+    unsigned int update_kicks[8]; /* fake_wdog_kicks at each update */
 } crypto;
 
 static int hash_fake_init(hash_t alg)
@@ -392,6 +486,8 @@ static int hash_fake_update(const void *buf, size_t length)
 {
     const uint8_t *p = buf;
 
+    if (crypto.updates < (int)ARRAY_SIZE(crypto.update_kicks))
+        crypto.update_kicks[crypto.updates] = fake_wdog_kicks;
     if (crypto.updates++ >= crypto.update_rc_after && crypto.update_rc != PB_OK)
         return crypto.update_rc;
     for (size_t i = 0; i < length; i++)
@@ -436,6 +532,7 @@ static int dsa_fake_verify(const uint8_t *der_signature,
     (void)md;
     (void)md_length;
     crypto.verify_alg = md_alg;
+    fake_us_tick += crypto.verify_us;
     *verified = crypto.verify_ok && der_signature[0] == FAKE_SIG_OK;
     return PB_OK;
 }
@@ -480,6 +577,34 @@ static void host_auth_token(void)
 {
     static const uint8_t token[] = { FAKE_SIG_OK, 0x01 };
     host_auth(PB_AUTH_ASYM_TOKEN, token, sizeof(token), KEY_ID);
+}
+
+/*
+ * The host goes away here: the device's next read fails with 'rc', the way
+ * the transport reports an unplug, a bus reset (usb.md 2.4) or a client
+ * that closed the socket (2.6). When the device waits for a command, cm_run()
+ * starts the transport again, and what is queued after this is the next
+ * host's.
+ */
+static void host_lost(int rc)
+{
+    assert_true(t.n_lost < (int)ARRAY_SIZE(t.lost_at));
+    t.lost_at[t.n_lost] = t.in_len;
+    t.lost_rc[t.n_lost] = rc;
+    t.n_lost++;
+    t.max_inits++;
+}
+
+/*
+ * The host stops here, the connection still up: the device's next read
+ * stays pending. Once the transport is started again, what is queued after
+ * this is the next host's.
+ */
+static void host_stops(void)
+{
+    t.stop_reads = true;
+    t.stop_at = t.in_len;
+    t.max_inits++;
 }
 
 /* Runs command mode until the host is done */
@@ -560,7 +685,9 @@ static int setup(void **state)
     crypto.verify_ok = true;
     board_cfg = &cfg_default;
     board_init_rc = PB_OK;
-    fake_us_tick_step = 0;
+    board_status_rc = PB_OK;
+    /* The clock runs: a failed authentication waits on it (F-276) */
+    fake_us_tick_step = TICK_STEP_US;
 
     *state = f;
     return 0;
@@ -592,6 +719,9 @@ static void test_basic_commands(void **state)
     const struct pb_result_device_caps *caps = (const void *)r->response;
     assert_int_equal(caps->stream_no_of_buffers, 2);
     assert_int_equal(caps->stream_buffer_size, BUF_SIZE);
+    /* pb's transfer timeout; no bound on an erase (command-mode.md 4.6) */
+    assert_int_equal(caps->operation_timeout_ms, CONFIG_CM_TRANSFER_TIMEOUT * 1000);
+    assert_int_equal(caps->part_erase_timeout_ms, 0);
 
     r = expect_result(PB_RESULT_OK);
     const struct pb_result_device_identifier *id = (const void *)r->response;
@@ -664,6 +794,9 @@ static void test_part_table_install(void **state)
     struct pb_command_install_part_table req = { .variant = 1 };
     (void)state;
 
+    /* The device a partition table is on has only VISIBLE (F-265); a hidden
+     * one isn't there for the host (F-272) */
+    assert_int_equal(bio_set_flags(bio_get_part_by_uu(UU_DISK), BIO_FLAG_VISIBLE), PB_OK);
     memcpy(req.uu, UU_MISSING, 16);
     host_cmd(PB_CMD_PART_TBL_INSTALL, &req, sizeof(req));
     memcpy(req.uu, UU_DISK, 16);
@@ -715,6 +848,23 @@ static void test_board_status(void **state)
     const struct pb_result_board_status *status = (const void *)r->response;
     assert_int_equal(status->size, strlen("status ok"));
     assert_memory_equal(expect_data(status->size), "status ok", status->size);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+/* A status that fails is answered with the error alone: released hosts
+ * stop at it (command-mode.md 4.4, F-274) */
+static void test_board_status_fails(void **state)
+{
+    (void)state;
+
+    board_status_rc = -PB_ERR_IO;
+    host_cmd(PB_CMD_BOARD_STATUS_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    const struct pb_result *r = expect_result(-PB_RESULT_IO_ERROR);
+    assert_int_equal(((const struct pb_result_board_status *)r->response)->size, 0);
     expect_result(PB_RESULT_OK);
     expect_end();
 }
@@ -873,6 +1023,34 @@ static void test_locked_device_requires_auth(void **state)
     assert_int_equal(crypto.alg, HASH_SHA256);
 }
 
+/*
+ * A board init that failed before slc_init(), or an SLC that can't be read:
+ * the device may be locked, so command mode must not be open. A board
+ * without SLC support stays open.
+ */
+static void test_unknown_slc_requires_auth(void **state)
+{
+    static const slc_t unknown[] = { -PB_ERR_STATE, -PB_ERR_IO };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(unknown); i++) {
+        sec.slc = unknown[i];
+        host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+        host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+        run();
+        expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+        expect_result(PB_RESULT_OK);
+        expect_end();
+        t.init_calls = 0;
+    }
+
+    sec.slc = -PB_ERR_NOT_SUPPORTED;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 static void test_auth_token_key_kinds(void **state)
 {
     static const struct {
@@ -973,10 +1151,10 @@ static void test_auth_password(void **state)
     host_auth(PB_AUTH_PASSWORD, "secret", 6, 0);
     run();
     expect_result(-PB_RESULT_NOT_SUPPORTED);
-    /* The 1024 bytes of password data are read as two commands, which are
-     * invalid */
-    expect_result(-PB_RESULT_INVALID_COMMAND);
-    expect_result(-PB_RESULT_INVALID_COMMAND);
+    /* The 1024 bytes of password data are read as two frames, with a wrong
+     * magic, which the closed device refuses before authentication (F-275) */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_end();
 
     t.init_calls = 0;
@@ -1003,7 +1181,8 @@ static void test_auth_password(void **state)
 }
 
 /* F-005: hosts send the data in one 1024 byte transfer, and none for size 0.
- * A bad size is refused before the data, and leaves the device locked. */
+ * A bad size is refused before the data and changes nothing (F-278): an
+ * authenticated session stays so, and one that isn't stays locked. */
 static void test_auth_data_size(void **state)
 {
     static const uint8_t methods[] = { PB_AUTH_ASYM_TOKEN, PB_AUTH_PASSWORD };
@@ -1037,13 +1216,104 @@ static void test_auth_data_size(void **state)
     expect_result(PB_RESULT_OK);
     for (size_t i = 0; i < ARRAY_SIZE(methods) * ARRAY_SIZE(bad_sizes); i++) {
         expect_result(-PB_RESULT_INVALID_ARGUMENT);
+        expect_result(PB_RESULT_OK);
+    }
+    expect_end();
+
+    /* cm_run() again: not authenticated */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    for (size_t m = 0; m < ARRAY_SIZE(methods); m++) {
+        struct pb_command_authenticate auth = { .method = methods[m], .size = 0 };
+        host_cmd(PB_CMD_AUTHENTICATE, &auth, sizeof(auth));
+        host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    }
+    run();
+
+    for (size_t m = 0; m < ARRAY_SIZE(methods); m++) {
+        expect_result(-PB_RESULT_INVALID_ARGUMENT);
         expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     }
     expect_end();
 }
 
+/* command-mode.md 3.3 (F-278): a refusal before the data (an unknown method,
+ * a board without a password check, a bad size) tried nothing and leaves an
+ * authenticated session so. A failed attempt with data ends it. */
+static void test_auth_refusal_keeps_session(void **state)
+{
+    static const uint8_t bad_token[] = { 0x00 };
+    struct pb_command_authenticate invalid = { .method = PB_AUTH_INVALID, .size = 6 };
+    struct pb_command_authenticate unknown = { .method = 0x7f, .size = 6 };
+    struct pb_command_authenticate password = { .method = PB_AUTH_PASSWORD, .size = 6 };
+    struct pb_command_authenticate token_size = { .method = PB_AUTH_ASYM_TOKEN,
+                                                  .size = 1025,
+                                                  .key_id = KEY_ID };
+    struct pb_command_authenticate password_size = { .method = PB_AUTH_PASSWORD, .size = 0 };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    /* The default board has no password check: no data follows */
+    host_auth_token();
+    host_cmd(PB_CMD_AUTHENTICATE, &password, sizeof(password));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+    host_auth(PB_AUTH_PASSWORD, "secret", 6, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &invalid, sizeof(invalid));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &unknown, sizeof(unknown));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &token_size, sizeof(token_size));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &password_size, sizeof(password_size));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    /* Data that arrived and didn't verify: no longer authenticated */
+    host_auth(PB_AUTH_PASSWORD, "wrong!", 6, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_auth_token();
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(PB_RESULT_OK);
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+}
+
 /* F-005: when the data doesn't arrive, the device must not check whatever the
- * buffer held from the last authentication */
+ * buffer held from the last authentication. The transfer failed, so nothing
+ * more is sent and the transport is restarted (command-mode.md 4.4) */
 static void test_auth_data_read_fails(void **state)
 {
     struct pb_command_authenticate token = { .method = PB_AUTH_ASYM_TOKEN,
@@ -1059,7 +1329,6 @@ static void test_auth_data_read_fails(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
 
     t.init_calls = 0;
@@ -1074,8 +1343,160 @@ static void test_auth_data_read_fails(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
+}
+
+/* Forgets what the last cm_run() read and sent, for the next one */
+static void clear_transport(void)
+{
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    t.n_reads = t.n_writes = 0;
+}
+
+/* The time from the authentication data's arrival (the second read) to its
+ * result (the second write) */
+static unsigned int auth_answer_us(void)
+{
+    assert_true(t.n_reads >= 2 && t.n_writes >= 2);
+    return t.write_ticks[1] - t.read_ticks[1];
+}
+
+/* command-mode.md 3.3 (F-276): the result of a failed attempt is sent 1 s
+ * after the data arrived, with every method, and the watchdog is kicked
+ * meanwhile */
+static void test_auth_failure_is_delayed(void **state)
+{
+    static const uint8_t bad_token[] = { 0x00 };
+
+    static const struct {
+        int key_status_rc;
+        int get_key_rc;
+        int result;
+    } token_failures[] = {
+        { PB_OK, PB_OK, -PB_RESULT_AUTHENTICATION_FAILED },
+        { -PB_ERR_KEY_REVOKED, PB_OK, -PB_RESULT_KEY_REVOKED },
+        { PB_OK, -PB_ERR_KEY_NOT_FOUND, -PB_RESULT_ERROR },
+    };
+
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+
+    for (size_t i = 0; i <= ARRAY_SIZE(token_failures); i++) {
+        unsigned int kicks = fake_wdog_kicks;
+        int result = -PB_RESULT_AUTHENTICATION_FAILED;
+
+        clear_transport();
+        fake_wdog_kick_tick = fake_us_tick;
+        fake_wdog_max_gap_us = 0;
+
+        if (i < ARRAY_SIZE(token_failures)) {
+            sec.key_status_rc = token_failures[i].key_status_rc;
+            sec.get_key_rc = token_failures[i].get_key_rc;
+            result = token_failures[i].result;
+            host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+        } else {
+            host_auth(PB_AUTH_PASSWORD, "wrong!", 6, 0);
+        }
+        run();
+
+        expect_result(PB_RESULT_OK);
+        expect_result(result);
+        expect_end();
+        assert_in_range(auth_answer_us(), AUTH_WAIT_US, AUTH_WAIT_US + 2 * TICK_STEP_US);
+        /* At once, then every 100 ms */
+        assert_true(fake_wdog_kicks - kicks >= AUTH_WAIT_US / AUTH_KICK_US + 1);
+        assert_true(fake_wdog_max_gap_us <= AUTH_KICK_US + 2 * TICK_STEP_US);
+    }
+}
+
+/* The delay counts from the data's arrival: a slow check shortens the rest of
+ * it, one that took longer than the delay isn't held, and the clock may wrap
+ * meanwhile */
+static void test_auth_failure_delay_counts_from_the_data(void **state)
+{
+    static const uint8_t bad_token[] = { 0x00 };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    /* A check of 300 ms leaves 700 ms */
+    crypto.verify_us = 300000;
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    assert_in_range(auth_answer_us(), AUTH_WAIT_US, AUTH_WAIT_US + 2 * TICK_STEP_US);
+
+    /* A check of 1.5 s is answered when it ends */
+    clear_transport();
+    crypto.verify_us = 1500000;
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    assert_in_range(auth_answer_us(), 1500000, 1500000 + 2 * TICK_STEP_US);
+
+    /* The tick wraps half a second after the data */
+    clear_transport();
+    crypto.verify_us = 0;
+    fake_us_tick = UINT32_MAX - 500000;
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    assert_true(t.read_ticks[1] > t.write_ticks[1]);
+    assert_in_range(auth_answer_us(), AUTH_WAIT_US, AUTH_WAIT_US + 2 * TICK_STEP_US);
+}
+
+/* A success, and a refusal before the data, are answered at once */
+static void test_auth_not_delayed(void **state)
+{
+    struct pb_command_authenticate bad_size = { .method = PB_AUTH_ASYM_TOKEN, .size = 0 };
+    struct pb_command_authenticate unknown = { .method = 0x7f, .size = 6 };
+    struct pb_command_authenticate password = { .method = PB_AUTH_PASSWORD, .size = 6 };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    host_auth_token();
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    assert_true(auth_answer_us() <= 2 * TICK_STEP_US);
+
+    clear_transport();
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+    host_auth(PB_AUTH_PASSWORD, "secret", 6, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    assert_true(auth_answer_us() <= 2 * TICK_STEP_US);
+
+    /* From the command to its only result: a bad size, an unknown method,
+     * and the password on a board without a check */
+    clear_transport();
+    host_cmd(PB_CMD_AUTHENTICATE, &bad_size, sizeof(bad_size));
+    host_cmd(PB_CMD_AUTHENTICATE, &unknown, sizeof(unknown));
+    run();
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_end();
+    assert_true(t.write_ticks[0] - t.read_ticks[0] <= 2 * TICK_STEP_US);
+    assert_true(t.write_ticks[1] - t.read_ticks[1] <= 2 * TICK_STEP_US);
+
+    clear_transport();
+    board_cfg = &cfg_default;
+    host_cmd(PB_CMD_AUTHENTICATE, &password, sizeof(password));
+    run();
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_end();
+    assert_true(t.write_ticks[0] - t.read_ticks[0] <= 2 * TICK_STEP_US);
 }
 
 static void test_slc_commands(void **state)
@@ -1124,10 +1545,14 @@ static void test_slc_errors(void **state)
     expect_result(-PB_RESULT_IO_ERROR);
     assert_int_equal(sec.slc, SLC_CONFIGURATION);
 
+    /* An SLC that can't be read counts as locked */
     t.init_calls = 0;
     sec.slc = -PB_ERR_IO;
+    host_auth_token();
     host_cmd(PB_CMD_SLC_READ, NULL, 0);
     run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
     expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
 }
@@ -1207,6 +1632,35 @@ static void test_bpak_read_errors(void **state)
     expect_result(-PB_RESULT_IO_ERROR);
 }
 
+/* A partition below 4 KiB has no room for a bpak header (command-mode.md
+ * 5.3, F-279): blocks 50 to 56, 3.5 KiB */
+#define UU_SMALL \
+    (const unsigned char *)"\x6e\x2b\x1f\x0c\x47\x95\x4a\x3e\x9d\x81\x5c\x22\xe7\x40\xb3\x18"
+
+static void add_small_partition(void)
+{
+    bio_dev_t disk = bio_get_part_by_uu(UU_DISK);
+    bio_dev_t small = bio_allocate_parent(disk, 50, 56, RAMDISK_BLOCK_SIZE, UU_SMALL, "Small");
+
+    assert_true(small >= 0);
+    assert_int_equal(bio_set_flags(small, BIO_FLAG_VISIBLE | BIO_FLAG_READABLE | BIO_FLAG_WRITABLE),
+                     PB_OK);
+}
+
+static void test_bpak_read_small_partition(void **state)
+{
+    struct pb_command_read_bpak req = { 0 };
+    (void)state;
+
+    add_small_partition();
+    memcpy(req.uuid, UU_SMALL, 16);
+    host_cmd(PB_CMD_PART_BPAK_READ, &req, sizeof(req));
+    run();
+
+    expect_result(-PB_RESULT_NOT_FOUND);
+    expect_end();
+}
+
 static struct pb_command_verify_part verify_req(size_t size, bool bpak, const uint8_t *data)
 {
     struct pb_command_verify_part req = { .size = size, .bpak = bpak };
@@ -1265,6 +1719,50 @@ static void test_part_verify_bpak(void **state)
     expect_end();
 }
 
+/* command-mode.md 4.6 (F-189): part verify kicks the watchdog once per
+ * chunk, after the chunk is read and its hash started, the bpak header
+ * included: one kick between two updates of the hash */
+static void test_part_verify_kicks_per_chunk(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, RW_FIRST_LBA);
+    const size_t part_size = RW_BLOCKS * RAMDISK_BLOCK_SIZE;
+    uint8_t image[2 * BUF_SIZE + 1024];
+    (void)state;
+
+    for (size_t i = 0; i < part_size; i++)
+        part[i] = (uint8_t)(i * 7);
+
+    /* Three chunks, the last a short one */
+    struct pb_command_verify_part req = verify_req(2 * BUF_SIZE + 1024, false, part);
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(crypto.updates, 3);
+    assert_int_equal(crypto.update_kicks[1] - crypto.update_kicks[0], 1);
+    assert_int_equal(crypto.update_kicks[2] - crypto.update_kicks[1], 1);
+
+    /* A bpak image: the header, then two chunks of payload */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    crypto.updates = 0;
+    crypto.sum = 0;
+    memcpy(image, ramdisk_block(f->disk, RW_FIRST_LBA + RW_BLOCKS - 8), sizeof(struct bpak_header));
+    memcpy(image + sizeof(struct bpak_header), part, sizeof(image) - sizeof(struct bpak_header));
+    req = verify_req(sizeof(image), true, image);
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(crypto.updates, 3);
+    assert_int_equal(crypto.update_kicks[1] - crypto.update_kicks[0], 1);
+    assert_int_equal(crypto.update_kicks[2] - crypto.update_kicks[1], 1);
+}
+
 static void test_part_verify_errors(void **state)
 {
     struct fixture *f = *state;
@@ -1310,6 +1808,34 @@ static void test_part_verify_errors(void **state)
     expect_end();
 }
 
+/* With bpak the size is at least 4 KiB inside the partition (command-mode.md
+ * 5.3, F-279): a partition below 4 KiB takes none, and that is checked before
+ * the hash starts. Without bpak its bytes are hashed */
+static void test_part_verify_small_partition(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, 50);
+    (void)state;
+
+    add_small_partition();
+    struct pb_command_verify_part req = verify_req(1024, false, part);
+    memcpy(req.uuid, UU_SMALL, 16);
+    req.bpak = 1;
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_end();
+    assert_int_equal(crypto.alg, 0);
+
+    t.init_calls = 0;
+    req.bpak = 0;
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 /* Hosts send the partition's first block from the partition table (10 for
  * UU_RW) plus the blocks already erased (F-055) */
 static void test_part_erase(void **state)
@@ -1335,6 +1861,44 @@ static void test_part_erase(void **state)
     expect_result(-PB_RESULT_NOT_FOUND);
     expect_result(-PB_RESULT_NOT_SUPPORTED);
     expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_end();
+}
+
+/* Erase needs WRITABLE (command-mode.md 5.3, F-188), the answer a stream
+ * write gets. The ramdisk can't erase, so NOT_SUPPORTED says the flags let
+ * the erase through */
+static void test_part_erase_needs_writable(void **state)
+{
+    struct pb_command_erase_part req = { .start_lba = 30, .block_count = 1 };
+    bio_dev_t disk = bio_get_part_by_uu(UU_DISK);
+    (void)state;
+
+    /* The device a partition table is on has only VISIBLE (F-265) */
+    assert_true(disk >= 0);
+    assert_int_equal(bio_set_flags(disk, BIO_FLAG_VISIBLE), PB_OK);
+
+    memcpy(req.uuid, UU_RO, 16);
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    /* Refused before the range is checked */
+    req.start_lba = 0;
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    memcpy(req.uuid, UU_DISK, 16);
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    /* A count of 0 erases nothing and answers as it did (F-075), for any
+     * partition */
+    req.block_count = 0;
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    memcpy(req.uuid, UU_RW, 16);
+    req.start_lba = 10;
+    req.block_count = 1;
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    run();
+
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
     expect_result(-PB_RESULT_NOT_SUPPORTED);
     expect_end();
 }
@@ -1368,6 +1932,53 @@ static void stream_read(uint8_t id, uint32_t size, uint64_t offset)
     host_cmd(PB_CMD_STREAM_READ_BUFFER, &req, sizeof(req));
 }
 
+/* A hidden partition is internal to pb (command-mode.md 5.3, D-058, F-272):
+ * every command that names it answers NOT_FOUND, whatever its other flags
+ * allow. BOOT_BPAK's UUID is a label and reaches no partition. */
+static void test_hidden_partition(void **state)
+{
+    struct fixture *f = *state;
+    bio_dev_t hidden = bio_get_part_by_uu(UU_HIDDEN);
+    struct pb_command_erase_part erase = { .start_lba = 40, .block_count = 1 };
+    struct pb_command_read_bpak bpak_read = { 0 };
+    struct pb_command_boot_part boot = { 0 };
+    struct pb_command_activate_part activate = { 0 };
+    struct pb_command_install_part_table install = { .variant = 0 };
+    struct pb_command_bpak_boot bpak_boot = { 0 };
+    struct pb_command_verify_part verify = verify_req(1024, false, ramdisk_block(f->disk, 40));
+
+    assert_true(hidden >= 0);
+    assert_int_equal(
+        bio_set_flags(hidden, BIO_FLAG_READABLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE), PB_OK);
+    bpak_init_header((struct bpak_header *)ramdisk_block(f->disk, 50 - 8));
+
+    stream_init(UU_HIDDEN);
+    memcpy(erase.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_ERASE, &erase, sizeof(erase));
+    memcpy(verify.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_VERIFY, &verify, sizeof(verify));
+    memcpy(bpak_read.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_BPAK_READ, &bpak_read, sizeof(bpak_read));
+    memcpy(boot.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_BOOT_PART, &boot, sizeof(boot));
+    memcpy(activate.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_ACTIVATE, &activate, sizeof(activate));
+    memcpy(install.uu, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_TBL_INSTALL, &install, sizeof(install));
+    memcpy(bpak_boot.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_BOOT_BPAK, &bpak_boot, sizeof(bpak_boot));
+    run();
+
+    for (int i = 0; i < 7; i++)
+        expect_result(-PB_RESULT_NOT_FOUND);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    /* Neither the boot nor the policy heard of it, but BOOT_BPAK's label */
+    assert_int_equal(fake_boot.load_calls, 1);
+    assert_memory_equal(fake_boot.load_uu, UU_HIDDEN, 16);
+    assert_memory_equal(fake_boot.set_part_uu, (uint8_t[16]){ 0 }, 16);
+}
+
 static void test_stream(void **state)
 {
     struct fixture *f = *state;
@@ -1396,17 +2007,62 @@ static void test_stream(void **state)
     assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 2), data, sizeof(data));
 }
 
+/* PART_VERIFY changes nothing, the stream neither (command-mode.md 5.3,
+ * F-186): a write after a verify of another partition, and after one that
+ * found none, goes to the stream's partition */
+static void test_part_verify_keeps_the_stream(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t data[RAMDISK_BLOCK_SIZE];
+    struct pb_command_verify_part verify = verify_req(1024, false, ramdisk_block(f->disk, 30));
+    struct pb_command_verify_part missing = verify;
+    (void)state;
+
+    memset(data, 0x5a, sizeof(data));
+    memcpy(verify.uuid, UU_RO, 16);
+    memcpy(missing.uuid, UU_MISSING, 16);
+
+    stream_init(UU_RW);
+    stream_prepare(0, sizeof(data), data);
+    host_cmd(PB_CMD_PART_VERIFY, &verify, sizeof(verify));
+    stream_write(0, sizeof(data), 0);
+    host_cmd(PB_CMD_PART_VERIFY, &missing, sizeof(missing));
+    stream_write(0, sizeof(data), RAMDISK_BLOCK_SIZE);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_FOUND);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA), data, sizeof(data));
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 1), data, sizeof(data));
+}
+
 static void test_stream_errors(void **state)
 {
     struct fixture *f = *state;
+    static uint8_t frames[BUF_SIZE + 1];
     (void)state;
+
+    /* Data that are frames, were they read as commands */
+    for (size_t i = 0; i + sizeof(struct pb_command) <= sizeof(frames);
+         i += sizeof(struct pb_command))
+        pb_wire_init_command((struct pb_command *)&frames[i], PB_CMD_BOOTLOADER_VERSION_READ);
 
     /* The stream_check() bounds are covered by test_stream.py */
     stream_init(UU_MISSING);
     /* Without a partition the stream is not initialized */
     stream_write(0, RAMDISK_BLOCK_SIZE, 0);
-    stream_prepare(0, BUF_SIZE + 1, NULL);
-    stream_prepare(2, 16, NULL);
+    /* A size or an id the buffers don't have: hosts send the data anyway,
+     * the device reads it and answers twice (command-mode.md 4.4, F-274) */
+    stream_prepare(0, BUF_SIZE + 1, frames);
+    stream_prepare(2, 16, frames);
     stream_init(UU_RO);
     stream_write(0, RAMDISK_BLOCK_SIZE, 0);
     stream_read(0, RAMDISK_BLOCK_SIZE, 0);
@@ -1414,6 +2070,8 @@ static void test_stream_errors(void **state)
 
     expect_result(-PB_RESULT_NOT_FOUND);
     expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+    expect_result(-PB_RESULT_NO_MEMORY);
+    expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(PB_RESULT_OK);
@@ -1429,6 +2087,39 @@ static void test_stream_errors(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
+}
+
+/* An offset inside a block is refused, not rounded down to the block's start
+ * (command-mode.md 5.4, F-273) */
+static void test_stream_offset_inside_a_block(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t data[RAMDISK_BLOCK_SIZE];
+    uint8_t before[2 * RAMDISK_BLOCK_SIZE];
+
+    memset(data, 0xa5, sizeof(data));
+    memcpy(before, ramdisk_block(f->disk, RW_FIRST_LBA + 2), sizeof(before));
+
+    stream_init(UU_RW);
+    stream_prepare(0, sizeof(data), data);
+    stream_write(0, sizeof(data), 2 * RAMDISK_BLOCK_SIZE + 1);
+    stream_write(0, sizeof(data), 3 * RAMDISK_BLOCK_SIZE - 1);
+    stream_read(1, sizeof(data), RAMDISK_BLOCK_SIZE / 2);
+    /* The stream is still there */
+    stream_read(1, sizeof(data), 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(PB_RESULT_OK);
+    expect_data(sizeof(data));
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 2), before, sizeof(before));
 }
 
 static unsigned int write_done_calls;
@@ -1457,6 +2148,7 @@ static void stream_write_block(uint8_t buffer_id)
 static void test_stream_write_done(void **state)
 {
     struct fixture *f = *state;
+    static const uint8_t too_large[BUF_SIZE + 1];
 
     write_done_calls = 0;
     write_done_dev = -1;
@@ -1473,7 +2165,7 @@ static void test_stream_write_done(void **state)
     host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
     /* A stream with a failed buffer, then a good write */
     stream_init(UU_RW);
-    stream_prepare(0, BUF_SIZE + 1, NULL);
+    stream_prepare(0, BUF_SIZE + 1, too_large);
     stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
     stream_write(1, RAMDISK_BLOCK_SIZE, 0);
     host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
@@ -1491,7 +2183,8 @@ static void test_stream_write_done(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK); /* finalize */
     expect_result(PB_RESULT_OK); /* init */
-    expect_result(-PB_RESULT_NO_MEMORY); /* prepare */
+    expect_result(-PB_RESULT_NO_MEMORY); /* prepare, its data read anyway */
+    expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(PB_RESULT_OK); /* prepare */
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK); /* write */
@@ -1500,20 +2193,18 @@ static void test_stream_write_done(void **state)
     assert_int_equal(write_done_calls, 1);
     assert_int_equal(write_done_dev, f->rw);
 
-    /* A failed write, then a good one */
+    /* A failed write, then a good one in the same stream: the stream is the
+     * session's (command-mode.md 3.1), so both are in one. The disk works
+     * again from the fourth command on. */
     t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
     write_done_calls = 0;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
     f->disk->fail_writes_after = 0;
+    t.heal = f->disk;
+    t.heal_at = t.process_calls + 4;
     stream_write_block(0);
-    run();
-    expect_result(PB_RESULT_OK);
-    expect_result(PB_RESULT_OK);
-    expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
-    expect_end();
-
-    t.init_calls = 0;
-    f->disk->fail_writes_after = -1;
     stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
     stream_write(1, RAMDISK_BLOCK_SIZE, 0);
     host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
@@ -1522,6 +2213,10 @@ static void test_stream_write_done(void **state)
     stream_write_block(0);
     host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
     run();
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR); /* write */
     expect_result(PB_RESULT_OK); /* prepare */
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK); /* write */
@@ -1575,13 +2270,20 @@ static void test_boot_part(void **state)
 static void test_boot_bpak(void **state)
 {
     struct pb_command_bpak_boot req = { .verbose = 0 };
+    static struct bpak_header header;
     (void)state;
 
     memcpy(req.uuid, UU_RW, 16);
     fake_boot.load_rc = -PB_ERR_SIGNATURE;
+    fake_boot.reads_header = true;
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
+    host_send(&header, sizeof(header));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
     run();
-    /* The image transfer and its results are handled by the boot flow */
+    /* The image transfer and its results are handled by the boot flow, and
+     * the header isn't read again */
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_SIGNATURE_ERROR);
     expect_result(PB_RESULT_OK);
     expect_end();
     assert_int_equal(fake_boot.source, BOOT_SOURCE_CB);
@@ -1589,6 +2291,7 @@ static void test_boot_bpak(void **state)
 
     t.init_calls = 0;
     fake_boot.load_rc = PB_OK;
+    fake_boot.reads_header = false;
     board_cfg = &cfg_all_callbacks;
     t.connect_ok_after = 0;
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
@@ -1603,6 +2306,30 @@ static void test_boot_bpak(void **state)
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
     run();
     assert_int_equal(fake_boot.load_calls, 0);
+}
+
+/* A boot refused before the header is read (command-mode.md 5.5, D-058,
+ * F-128): the host sends the header after the first OK, the device reads it
+ * and the header's result carries the refusal. The header is a frame, were it
+ * read as one. */
+static void test_boot_bpak_refused_before_the_header(void **state)
+{
+    struct pb_command_bpak_boot req = { .verbose = 0 };
+    static uint8_t header[sizeof(struct bpak_header)];
+    (void)state;
+
+    pb_wire_init_command((struct pb_command *)header, PB_CMD_BOOTLOADER_VERSION_READ);
+    fake_boot.load_rc = -PB_ERR_NOT_SUPPORTED;
+    host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
+    host_send(header, sizeof(header));
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_boot.jump_calls, 0);
 }
 
 static void test_run_errors(void **state)
@@ -1686,7 +2413,8 @@ static void test_transport_errors_in_commands(void **state)
     run();
     expect_result(PB_RESULT_OK);
 
-    /* The data read can't be started, and neither can the next command's */
+    /* The data read can't be started: a failed transfer, so nothing more is
+     * sent and the transport is restarted (command-mode.md 4.4) */
     t.init_calls = 0;
     t.out_len = t.out_pos = 0;
     t.read_pending = false;
@@ -1694,8 +2422,288 @@ static void test_transport_errors_in_commands(void **state)
     t.fail_reads_after = 1;
     run();
     expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
+    assert_int_equal(t.init_calls, 2);
+}
+
+/* A gated command that a locked device runs once the session is
+ * authenticated: the result, two partitions and the last result */
+static void expect_part_table(void)
+{
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_part_table_read *tbl = (const void *)r->response;
+
+    assert_int_equal(tbl->no_of_entries, 2);
+    expect_data(2 * sizeof(struct pb_result_part_table_entry));
+    expect_result(PB_RESULT_OK);
+}
+
+/*
+ * command-mode.md 3.1: the session ends with the transport. A host that
+ * comes after an unplug or a bus reset (usb.md 2.4), or after a client
+ * closed the socket (2.6), finds a locked device not authenticated. Every
+ * error from complete() other than AGAIN is lost; TIMEOUT is still polled
+ * (F-287).
+ */
+static void test_session_ends_with_the_transport(void **state)
+{
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+
+    host_auth_token();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_auth_token();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_lost(-PB_ERR);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_part_table();
+    /* The next host */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_part_table();
+    /* And the one after it */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    /* The transport was started for each host, and waited for each */
+    assert_int_equal(t.init_calls, 4);
+    assert_int_equal(t.connect_calls, 3);
+}
+
+/* command-mode.md 3.1, 4.4: a transfer inside a command that fails ends the
+ * session too, a read or a write. Nothing more is sent on that transport,
+ * also where the command ignores the failure, and the transport is
+ * restarted: the next command is the next host's, which isn't
+ * authenticated. */
+static void test_session_ends_with_a_lost_transfer(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    /* The board command's request is lost: no second result */
+    host_auth_token();
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+
+    /* A result is lost: the third write, the version's */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.write_calls = 0;
+    t.lose_write = 3;
+    host_auth_token();
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+
+    /* The partition table's data is lost, a write whose result the command
+     * doesn't look at: its last result isn't sent */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.write_calls = 0;
+    t.lose_write = 4;
+    host_auth_token();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* the table's first */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(t.write_calls, 5);
+    assert_int_equal(t.init_calls, 3);
+}
+
+/*
+ * command-mode.md 4.6 (F-277): a host that stops in the middle of an
+ * exchange, here an AUTHENTICATE without its data. pb waits
+ * CONFIG_CM_TRANSFER_TIMEOUT for the transfer and kicks the watchdog while
+ * it waits; then the session ends and the transport is restarted, so the
+ * next host is answered and isn't authenticated.
+ */
+static void test_transfer_timeout_read(void **state)
+{
+    struct pb_command_authenticate auth = { .method = PB_AUTH_ASYM_TOKEN,
+                                            .size = 2,
+                                            .key_id = KEY_ID };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    host_auth_token();
+    host_cmd(PB_CMD_AUTHENTICATE, &auth, sizeof(auth));
+    host_stops();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    fake_wdog_kick_tick = fake_us_tick;
+    fake_wdog_max_gap_us = 0;
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* the second AUTHENTICATE's first */
+    /* The next host */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+
+    /* Reads: the token's command and data, the second command, the next
+     * host's command. Between the last two: the timeout, and little else */
+    assert_int_equal(t.n_reads, 4);
+    assert_true(t.read_ticks[3] - t.read_ticks[2] >= TRANSFER_TIMEOUT_US);
+    assert_true(t.read_ticks[3] - t.read_ticks[2] <= TRANSFER_TIMEOUT_US + 100 * TICK_STEP_US);
+    assert_true(fake_wdog_max_gap_us <= 10 * TICK_STEP_US);
+}
+
+/* command-mode.md 4.6 (F-277): a host that stops reading. The partition
+ * table's data isn't taken: pb waits the timeout once, doesn't send the last
+ * result, and restarts the transport. */
+static void test_transfer_timeout_write(void **state)
+{
+    (void)state;
+
+    t.stop_write = 2;
+    t.max_inits = 2;
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    fake_wdog_kick_tick = fake_us_tick;
+    fake_wdog_max_gap_us = 0;
+    run();
+
+    expect_result(PB_RESULT_OK); /* the table's first */
+    /* The next host */
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.write_calls, 3);
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.n_writes, 2);
+    assert_true(t.write_ticks[1] - t.write_ticks[0] >= TRANSFER_TIMEOUT_US);
+    assert_true(t.write_ticks[1] - t.write_ticks[0] <= TRANSFER_TIMEOUT_US + 100 * TICK_STEP_US);
+    assert_true(fake_wdog_max_gap_us <= 10 * TICK_STEP_US);
+}
+
+/* command-mode.md 3.1, 5.4: the stream is the session's. After the
+ * transport was lost there is no stream: a write and a read without a new
+ * STREAM_INITIALIZE answer STREAM_NOT_INITIALIZED, and a finalize has
+ * nothing written to complete. */
+static void test_session_stream_ends_with_the_transport(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t before[RAMDISK_BLOCK_SIZE];
+
+    write_done_calls = 0;
+    write_done_rc = PB_OK;
+    assert_int_equal(bio_set_write_done_cb(f->rw, fake_write_done), PB_OK);
+
+    stream_write_block(0);
+    host_lost(-PB_ERR_IO);
+    stream_write(0, RAMDISK_BLOCK_SIZE, RAMDISK_BLOCK_SIZE);
+    stream_read(0, RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    memcpy(before, ramdisk_block(f->disk, RW_FIRST_LBA + 1), sizeof(before));
+    run();
+
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    /* The next host */
+    expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+    expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_end();
+    assert_int_equal(write_done_calls, 0);
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 1), before, sizeof(before));
+}
+
+/*
+ * What doesn't end the session (command-mode.md 3.1, 3.3): a command that
+ * fails, and an AUTHENTICATE with a method the build doesn't have, leave it
+ * as it was. A failed authentication leaves it not authenticated and keeps
+ * the stream. The transport that is lost then ends it.
+ */
+static void test_session_survives_failures(void **state)
+{
+    struct fixture *f = *state;
+    struct pb_command_board fail = { .command = BOARD_RETURN, .request_size = 4 };
+    int32_t fail_rc = -PB_ERR_IO;
+    uint8_t fail_req[1024] = { 0 };
+    struct pb_command_authenticate no_method = { .method = 0xee, .size = 2, .key_id = KEY_ID };
+    static const uint8_t bad_token[] = { 0x00 };
+    static const uint8_t data[RAMDISK_BLOCK_SIZE] = { 0x5c };
+
+    write_done_calls = 0;
+    write_done_rc = PB_OK;
+    assert_int_equal(bio_set_write_done_cb(f->rw, fake_write_done), PB_OK);
+    memcpy(fail_req, &fail_rc, sizeof(fail_rc));
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    host_auth_token();
+    stream_init(UU_RW);
+    stream_prepare(1, sizeof(data), data);
+    /* A board command that fails, a method that isn't in the build */
+    host_cmd(PB_CMD_BOARD_COMMAND, &fail, sizeof(fail));
+    host_send(fail_req, sizeof(fail_req));
+    host_cmd(PB_CMD_AUTHENTICATE, &no_method, sizeof(no_method));
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    /* A token that doesn't verify */
+    host_auth(PB_AUTH_ASYM_TOKEN, bad_token, sizeof(bad_token), KEY_ID);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    /* Authenticated again, the stream is still there */
+    host_auth_token();
+    stream_write(1, sizeof(data), 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK); /* auth */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* board command */
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(-PB_RESULT_NOT_SUPPORTED); /* the method, no data read */
+    expect_part_table();
+    expect_result(PB_RESULT_OK); /* the bad token */
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK); /* auth */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* finalize */
+    /* The next host */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(write_done_calls, 1);
+    assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA), data, sizeof(data));
 }
 
 /* The unit tests print with the system printf, so only what a test puts in
@@ -1799,6 +2807,245 @@ static void test_log_read_requires_auth(void **state)
     expect_end();
 }
 
+/*
+ * The gate over every frame (command-mode.md 3.2, 4.1, 4.5, F-275): each
+ * command id the wire's byte can carry, with the right magic and with a wrong
+ * one, in each kind of session. Each frame is a session of its own with a
+ * zeroed request, and the first result is the one checked.
+ */
+enum gate_session {
+    GATE_OPEN, /* CONFIGURATION: the device is open */
+    GATE_AUTHENTICATED, /* Locked, after a token */
+    GATE_REFUSED, /* Locked, not authenticated */
+    GATE_REFUSED_UNKNOWN, /* The life cycle can't be read, not authenticated */
+};
+
+#define WRONG_MAGIC 0x30424c50 /* 'PBL0' with its bytes the other way round */
+
+static int gate_first_result(enum gate_session kind, uint32_t magic, unsigned int command)
+{
+    struct pb_command frame;
+
+    memset(&t, 0, sizeof(t));
+    t.max_inits = 1;
+    t.fail_reads_after = -1;
+    t.fail_writes_after = -1;
+    t.connect_ok_after = -1;
+    memset(&fake_boot, 0, sizeof(fake_boot));
+    memset(&sec, 0, sizeof(sec));
+    sec.key_kind = DSA_EC_SECP256r1;
+    if (kind == GATE_OPEN)
+        sec.slc = SLC_CONFIGURATION;
+    else if (kind == GATE_REFUSED_UNKNOWN)
+        sec.slc = -PB_ERR_IO;
+    else
+        sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    if (kind == GATE_AUTHENTICATED)
+        host_auth_token();
+
+    memset(&frame, 0, sizeof(frame));
+    frame.magic = magic;
+    frame.command = (uint8_t)command;
+    host_send(&frame, sizeof(frame));
+    (void)cm_run(); /* Some commands reset, jump or wait for data */
+
+    if (kind == GATE_AUTHENTICATED) {
+        expect_result(PB_RESULT_OK);
+        expect_result(PB_RESULT_OK);
+    }
+
+    const struct pb_result *r = (const struct pb_result *)expect_data(sizeof(struct pb_result));
+    assert_int_equal(r->magic, PB_WIRE_MAGIC);
+    return r->result_code;
+}
+
+static void expect_gate(enum gate_session kind, uint32_t magic, unsigned int command, int expected)
+{
+    int got = gate_first_result(kind, magic, command);
+
+    if (got != expected)
+        fail_msg("Session %d, magic %08x, command %u: %d, expected %d",
+                 kind,
+                 (unsigned int)magic,
+                 command,
+                 got,
+                 expected);
+}
+
+/*
+ * What an open or authenticated session gets with a zeroed request, pinned
+ * before F-275 was fixed. The command's own answer to that request: a
+ * partition with the nil UUID isn't found, method 0 isn't in the build.
+ */
+static const int8_t gate_open_results[PB_CMD_END] = {
+    [PB_CMD_INVALID] = -PB_RESULT_INVALID_COMMAND,
+    [PB_CMD_DEVICE_RESET] = PB_RESULT_OK,
+    [PB_CMD_DEVICE_IDENTIFIER_READ] = PB_RESULT_OK,
+    [PB_CMD_DEVICE_READ_CAPS] = PB_RESULT_OK,
+    [PB_CMD_SLC_SET_CONFIGURATION] = PB_RESULT_OK,
+    [PB_CMD_SLC_SET_CONFIGURATION_LOCK] = PB_RESULT_OK,
+    [PB_CMD_SLC_SET_EOL] = PB_RESULT_OK,
+    [PB_CMD_SLC_REVOKE_KEY] = PB_RESULT_OK,
+    [PB_CMD_SLC_READ] = PB_RESULT_OK,
+    [PB_CMD_BOOTLOADER_VERSION_READ] = PB_RESULT_OK,
+    [PB_CMD_PART_TBL_READ] = PB_RESULT_OK,
+    [PB_CMD_PART_TBL_INSTALL] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_PART_VERIFY] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_PART_ACTIVATE] = PB_RESULT_OK,
+    [PB_CMD_PART_BPAK_READ] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_PART_ERASE] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_AUTHENTICATE] = -PB_RESULT_NOT_SUPPORTED,
+    [PB_CMD_AUTH_SET_PASSWORD] = -PB_RESULT_NOT_SUPPORTED,
+    [PB_CMD_STREAM_INITIALIZE] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_STREAM_PREPARE_BUFFER] = PB_RESULT_OK,
+    [PB_CMD_STREAM_WRITE_BUFFER] = -PB_RESULT_STREAM_NOT_INITIALIZED,
+    [PB_CMD_STREAM_FINALIZE] = PB_RESULT_OK,
+    [PB_CMD_BOOT_PART] = PB_RESULT_OK,
+    [PB_CMD_BOOT_BPAK] = PB_RESULT_OK,
+    [PB_CMD_BOARD_COMMAND] = PB_RESULT_OK,
+    [PB_CMD_BOARD_STATUS_READ] = PB_RESULT_OK,
+    [PB_CMD_STREAM_READ_BUFFER] = -PB_RESULT_STREAM_NOT_INITIALIZED,
+    [PB_CMD_PART_RESIZE] = -PB_RESULT_NOT_SUPPORTED,
+    [PB_CMD_BOOT_STATUS] = PB_RESULT_OK,
+    [PB_CMD_LOG_READ] = PB_RESULT_OK,
+};
+
+/* An open or authenticated session: what it got before F-275, in the same
+ * order of checks. A frame that isn't a command, and a number this release
+ * doesn't define, are INVALID_COMMAND (4.5). */
+static void test_gate_open_sessions(void **state)
+{
+    static const enum gate_session kinds[] = { GATE_OPEN, GATE_AUTHENTICATED };
+
+    (void)state;
+
+    for (size_t k = 0; k < ARRAY_SIZE(kinds); k++) {
+        for (unsigned int c = 0; c < 256; c++) {
+            int expected = (c < PB_CMD_END) ? gate_open_results[c] : -PB_RESULT_INVALID_COMMAND;
+
+            expect_gate(kinds[k], PB_WIRE_MAGIC, c, expected);
+            expect_gate(kinds[k], WRONG_MAGIC, c, -PB_RESULT_INVALID_COMMAND);
+            expect_gate(kinds[k], 0, c, -PB_RESULT_INVALID_COMMAND);
+        }
+    }
+}
+
+/* A session the gate refuses: NOT_AUTHENTICATED and nothing else for every
+ * frame but the two commands, also a number pb doesn't define and a frame
+ * whose magic is wrong, so that it doesn't tell which commands it has
+ * (D-058). The two run as in an open session. */
+static void test_gate_refused_sessions(void **state)
+{
+    static const enum gate_session kinds[] = { GATE_REFUSED, GATE_REFUSED_UNKNOWN };
+
+    (void)state;
+
+    for (size_t k = 0; k < ARRAY_SIZE(kinds); k++) {
+        for (unsigned int c = 0; c < 256; c++) {
+            if (c == PB_CMD_DEVICE_IDENTIFIER_READ || c == PB_CMD_AUTHENTICATE) {
+                expect_gate(kinds[k], PB_WIRE_MAGIC, c, gate_open_results[c]);
+            } else {
+                expect_gate(kinds[k], PB_WIRE_MAGIC, c, -PB_RESULT_NOT_AUTHENTICATED);
+                /* Hosts send their data anyway: the second result (4.4) */
+                if (c == PB_CMD_BOARD_COMMAND || c == PB_CMD_STREAM_PREPARE_BUFFER)
+                    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+                expect_end();
+            }
+
+            expect_gate(kinds[k], WRONG_MAGIC, c, -PB_RESULT_NOT_AUTHENTICATED);
+            expect_end();
+            expect_gate(kinds[k], 0, c, -PB_RESULT_NOT_AUTHENTICATED);
+            expect_end();
+        }
+    }
+}
+
+/* The gate refuses BOARD_COMMAND, and hosts send its request whatever the
+ * first result says (command-mode.md 3.2, 4.4, F-187): the device reads the
+ * request, answers twice and runs nothing. With no request it answers twice
+ * as well. The session stays in step. */
+static void test_gate_refuses_board_command(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
+    uint8_t arg[1024] = { 0 };
+    (void)state;
+
+    /* A request that is a frame the gate lets through, were it read as one */
+    pb_wire_init_command((struct pb_command *)arg, PB_CMD_DEVICE_IDENTIFIER_READ);
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_send(arg, sizeof(arg));
+    req.request_size = 0;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    const struct pb_result *r = expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, 0);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+/* The gate refuses STREAM_PREPARE_BUFFER, and hosts send its data whatever
+ * the first result says (command-mode.md 3.2, 4.4, F-274): the device reads
+ * the data, answers twice and fills no buffer. */
+static void test_gate_refuses_stream_prepare(void **state)
+{
+    struct pb_command frame;
+    (void)state;
+
+    /* Data that is a frame the gate lets through, were it read as one */
+    pb_wire_init_command(&frame, PB_CMD_DEVICE_IDENTIFIER_READ);
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    stream_prepare(0, sizeof(frame), &frame);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+/* One session: refused frames leave it able to authenticate, and after that
+ * the same frames get what an open device answers. */
+static void test_gate_refused_then_authenticated(void **state)
+{
+    struct pb_command bad_magic;
+    (void)state;
+
+    pb_wire_init_command(&bad_magic, PB_CMD_DEVICE_IDENTIFIER_READ);
+    bad_magic.magic = WRONG_MAGIC;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_send(&bad_magic, sizeof(bad_magic));
+    host_cmd(PB_CMD_END, NULL, 0);
+    host_cmd(PB_CMD_INVALID, NULL, 0);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    host_auth_token();
+    host_send(&bad_magic, sizeof(bad_magic));
+    host_cmd(PB_CMD_END, NULL, 0);
+    host_cmd(PB_CMD_INVALID, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_COMMAND);
+    expect_result(-PB_RESULT_INVALID_COMMAND);
+    expect_result(-PB_RESULT_INVALID_COMMAND);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 #define CM_TEST(f) cmocka_unit_test_setup_teardown(f, setup, teardown)
 
 int main(void)
@@ -1812,6 +3059,7 @@ int main(void)
         CM_TEST(test_part_activate),
         CM_TEST(test_boot_status),
         CM_TEST(test_board_status),
+        CM_TEST(test_board_status_fails),
         CM_TEST(test_board_command),
         CM_TEST(test_board_command_request_size),
         CM_TEST(test_error_codes),
@@ -1822,28 +3070,52 @@ int main(void)
         CM_TEST(test_auth_token_errors),
         CM_TEST(test_auth_password),
         CM_TEST(test_auth_data_size),
+        CM_TEST(test_auth_refusal_keeps_session),
         CM_TEST(test_auth_data_read_fails),
+        CM_TEST(test_auth_failure_is_delayed),
+        CM_TEST(test_auth_failure_delay_counts_from_the_data),
+        CM_TEST(test_auth_not_delayed),
         CM_TEST(test_slc_commands),
         CM_TEST(test_slc_errors),
+        CM_TEST(test_unknown_slc_requires_auth),
         CM_TEST(test_slc_read_key_status),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
+        CM_TEST(test_bpak_read_small_partition),
         CM_TEST(test_part_verify),
         CM_TEST(test_part_verify_bpak),
+        CM_TEST(test_part_verify_kicks_per_chunk),
         CM_TEST(test_part_verify_errors),
+        CM_TEST(test_part_verify_small_partition),
         CM_TEST(test_part_erase),
+        CM_TEST(test_part_erase_needs_writable),
+        CM_TEST(test_hidden_partition),
         CM_TEST(test_stream),
+        CM_TEST(test_part_verify_keeps_the_stream),
         CM_TEST(test_stream_errors),
+        CM_TEST(test_stream_offset_inside_a_block),
         CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
+        CM_TEST(test_boot_bpak_refused_before_the_header),
         CM_TEST(test_run_errors),
         CM_TEST(test_run_connect),
         CM_TEST(test_run_retries),
         CM_TEST(test_transport_errors_in_commands),
+        CM_TEST(test_session_ends_with_the_transport),
+        CM_TEST(test_session_ends_with_a_lost_transfer),
+        CM_TEST(test_transfer_timeout_read),
+        CM_TEST(test_transfer_timeout_write),
+        CM_TEST(test_session_stream_ends_with_the_transport),
+        CM_TEST(test_session_survives_failures),
         CM_TEST(test_log_read),
         CM_TEST(test_log_read_wrapped),
         CM_TEST(test_log_read_requires_auth),
+        CM_TEST(test_gate_open_sessions),
+        CM_TEST(test_gate_refused_sessions),
+        CM_TEST(test_gate_refuses_board_command),
+        CM_TEST(test_gate_refuses_stream_prepare),
+        CM_TEST(test_gate_refused_then_authenticated),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

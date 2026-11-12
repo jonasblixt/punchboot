@@ -10,8 +10,16 @@
 #ifndef INCLUDE_CM_H
 #define INCLUDE_CM_H
 
+#include <config.h>
 #include <stddef.h>
 #include <stdint.h>
+
+/* With the gate a closed device opens only to a method: a build without one
+ * answers NOT_SUPPORTED to AUTHENTICATE for good once locked
+ * (command-mode.md 3.2, D-059) */
+#if defined(CONFIG_CM_AUTH) && !defined(CONFIG_CM_AUTH_TOKEN) && !defined(CONFIG_CM_AUTH_PASSWORD)
+#error "CONFIG_CM_AUTH needs a method: CONFIG_CM_AUTH_TOKEN or CONFIG_CM_AUTH_PASSWORD"
+#endif
 
 struct cm_transport_ops {
     int (*init)(void);

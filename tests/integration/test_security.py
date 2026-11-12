@@ -5,12 +5,24 @@ Ported from test_device_setup, test_authentication and test_revoke_key.
 
 from __future__ import annotations
 
+import struct
+import time
 from typing import TYPE_CHECKING
 
 import punchboot
 import pytest
 
-from .pbtest import AUTH_TOKEN, DEV_KEY_ID, NULL_UUID, SYSTEM_A_UUID, SYSTEM_B_UUID
+from .pbtest import (
+    AUTH_TOKEN,
+    DEV_KEY_ID,
+    NULL_UUID,
+    PB_CMD_BOARD_COMMAND,
+    PB_CMD_STREAM_PREPARE_BUFFER,
+    PB_COMMAND_SIZE,
+    PB_WIRE_MAGIC,
+    SYSTEM_A_UUID,
+    SYSTEM_B_UUID,
+)
 
 if TYPE_CHECKING:
     import pathlib
@@ -18,6 +30,14 @@ if TYPE_CHECKING:
     from .pbtest import Device
 
 DEVICE_UUID = "02e49231-756e-35ee-a982-378e5ba866a9"
+AUTH_FAILED_DELAY_S = 1.0  # command-mode.md 3.3
+
+# include/pb-tools/wire.h and error.h
+PB_CMD_DEVICE_IDENTIFIER_READ = 2
+PB_CMD_AUTHENTICATE = 16
+PB_CMD_END = 30
+PB_RESULT_NOT_AUTHENTICATED = 3
+PB_RESULT_INVALID_COMMAND = 6
 
 
 def test_device_identity(device: Device) -> None:
@@ -77,17 +97,91 @@ def test_locked_device_requires_authentication(
         assert s.part_get_partitions()
 
 
-def test_authentication_lasts_until_reset(locked_device: Device) -> None:
-    # Authentication survives reconnects, so that separate CLI invocations
-    # can authenticate and then run commands, but not a reset.
+def test_locked_device_refuses_every_frame(locked_device: Device) -> None:
+    # command-mode.md 3.2 (F-275): before authentication a closed device
+    # answers NOT_AUTHENTICATED to a number it doesn't define and to a frame
+    # that isn't a command, so that it doesn't tell which commands it has.
+    # After authentication they get what an open device answers.
+    unknown = (0, PB_CMD_END, 0xFF)
+    bad_magic = struct.pack("<IB3x", PB_WIRE_MAGIC ^ 0xFFFFFFFF, PB_CMD_DEVICE_IDENTIFIER_READ)
+    bad_magic = bad_magic.ljust(PB_COMMAND_SIZE, b"\0")
+    token = AUTH_TOKEN.read_bytes()
+
+    with locked_device.wire() as w:
+        for command in unknown:
+            assert w.command(command) == -PB_RESULT_NOT_AUTHENTICATED
+        w.send(bad_magic)
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.command(PB_CMD_DEVICE_IDENTIFIER_READ) == 0
+
+        w.send_command(PB_CMD_AUTHENTICATE, struct.pack("<BHI", 1, len(token), DEV_KEY_ID))
+        assert w.result() == 0
+        w.send(token.ljust(1024, b"\0"))
+        assert w.result() == 0
+
+        for command in unknown:
+            assert w.command(command) == -PB_RESULT_INVALID_COMMAND
+        w.send(bad_magic)
+        assert w.result() == -PB_RESULT_INVALID_COMMAND
+
+
+def test_locked_device_refuses_board_command_in_step(locked_device: Device) -> None:
+    # command-mode.md 3.2, 4.4 (F-187): hosts send the board command's
+    # request whatever the first result says. The gate reads it and answers
+    # twice, also when there is no request, and the session stays in step.
+    with locked_device.session() as s:
+        with pytest.raises(punchboot.NotAuthenticatedError):
+            s.board_run_command("test-command", b"0x11223344")
+        assert str(s.device_get_uuid()) == DEVICE_UUID
+
+    with locked_device.wire() as w:
+        w.send_command(PB_CMD_BOARD_COMMAND, struct.pack("<III", 0, 0, 0))
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.command(PB_CMD_DEVICE_IDENTIFIER_READ) == 0
+
+
+def test_locked_device_refuses_stream_prepare_in_step(locked_device: Device) -> None:
+    # command-mode.md 3.2, 4.4 (F-274): hosts send the data whatever the
+    # first result says. The gate reads it and answers twice. The data is a
+    # frame the gate lets through, were it read as one.
+    frame = struct.pack("<IB3x", PB_WIRE_MAGIC, PB_CMD_DEVICE_IDENTIFIER_READ)
+    with locked_device.wire() as w:
+        w.send_command(PB_CMD_STREAM_PREPARE_BUFFER, struct.pack("<IB", PB_COMMAND_SIZE, 0))
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        w.send(frame.ljust(PB_COMMAND_SIZE, b"\0"))
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.command(PB_CMD_DEVICE_IDENTIFIER_READ) == 0
+
+
+def test_open_device_answers_invalid_command(device: Device) -> None:
+    bad_magic = struct.pack("<IB3x", PB_WIRE_MAGIC ^ 0xFFFFFFFF, PB_CMD_DEVICE_IDENTIFIER_READ)
+
+    with device.wire() as w:
+        for command in (0, PB_CMD_END, 0xFF):
+            assert w.command(command) == -PB_RESULT_INVALID_COMMAND
+        w.send(bad_magic.ljust(PB_COMMAND_SIZE, b"\0"))
+        assert w.result() == -PB_RESULT_INVALID_COMMAND
+
+
+def test_authentication_ends_with_the_connection(locked_device: Device) -> None:
+    # command-mode.md 3.1: the session ends with the transport, and its
+    # authentication with it. pb-host's transport is the socket, where a
+    # client that closes is lost (usb.md 2.6), so each connection is a
+    # session. On USB the session lasts until an unplug or a bus reset, and
+    # closing and opening the device between CLI invocations is neither.
     with locked_device.session() as s:
         s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        assert s.part_get_partitions()
 
     with locked_device.session() as s:
-        s.part_get_partitions()
+        with pytest.raises(punchboot.NotAuthenticatedError):
+            s.part_get_partitions()
+        s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        assert s.part_get_partitions()
 
-    locked_device.reset()
-    locked_device.start()
+    # Nor does it survive a reset
+    locked_device.reboot()
 
     with locked_device.session() as s, pytest.raises(punchboot.NotAuthenticatedError):
         s.part_get_partitions()
@@ -96,6 +190,21 @@ def test_authentication_lasts_until_reset(locked_device: Device) -> None:
 def test_authentication_with_wrong_key_fails(locked_device: Device) -> None:
     with locked_device.session() as s, pytest.raises(punchboot.AuthenticationError):
         s.authenticate_dsa_token(AUTH_TOKEN, "pb-development2")
+
+
+def test_failed_authentication_is_answered_after_a_second(locked_device: Device) -> None:
+    # command-mode.md 3.3 (F-276): a failed attempt's result is sent 1 s after
+    # the data arrived, a success's at once
+    with locked_device.session() as s:
+        start = time.monotonic()
+        with pytest.raises(punchboot.AuthenticationError):
+            s.authenticate_dsa_token(AUTH_TOKEN, "pb-development2")
+        assert time.monotonic() - start >= AUTH_FAILED_DELAY_S
+
+        start = time.monotonic()
+        s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        assert time.monotonic() - start < AUTH_FAILED_DELAY_S / 2
+        assert s.part_get_partitions()
 
 
 def test_revoked_key_can_not_authenticate(device: Device) -> None:

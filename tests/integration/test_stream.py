@@ -1,4 +1,4 @@
-"""Stream commands with requests the punchboot package never sends (F-053, F-054).
+"""Stream commands with requests the punchboot package never sends (F-053, F-054, F-273).
 
 The punchboot package always sends valid buffer ids, sizes and offsets, so
 these tests use the raw wire protocol (pbtest.Wire).
@@ -44,12 +44,13 @@ def stream_init(wire: Wire, part: uuid.UUID) -> int:
 
 
 def stream_prepare(wire: Wire, buffer_id: int, data: bytes) -> int:
+    """Send the data whatever the first result says, as released hosts do."""
     wire.send_command(PB_CMD_STREAM_PREPARE_BUFFER, struct.pack("<IB", len(data), buffer_id))
-    rc = wire.result()
-    if rc != 0:
-        return rc
+    first = wire.result()
     wire.send(data)
-    return wire.result()
+    second = wire.result()
+    assert first in (second, 0)
+    return second
 
 
 def stream_write(wire: Wire, buffer_id: int, offset: int, size: int) -> int:
@@ -99,6 +100,23 @@ def test_stream_read_rejects_bad_buffer_id(wire: Wire, buffer_id: int) -> None:
     assert_responsive(wire)
 
 
+@pytest.mark.parametrize(
+    ("buffer_id", "size"),
+    [(N_BUFFERS, BLOCK_SIZE), (255, BLOCK_SIZE), (1, BUFFER_SIZE + BLOCK_SIZE)],
+)
+def test_stream_prepare_refusal_reads_the_data(
+    device: Device, wire: Wire, buffer_id: int, size: int
+) -> None:
+    # command-mode.md 4.4 (F-274): hosts send the data whatever the first
+    # result says. The device reads it, answers twice and fills no buffer.
+    kept = b"\x5a" * BLOCK_SIZE
+    assert stream_prepare(wire, 0, kept) == 0
+    assert stream_prepare(wire, buffer_id, b"\xa5" * size) == -PB_RESULT_NO_MEMORY
+    assert_responsive(wire)
+    assert stream_write(wire, 0, 0, BLOCK_SIZE) == 0
+    assert device.read_blocks(READABLE_LBA, 1) == kept
+
+
 @pytest.mark.parametrize("buffer_id", [0, 1])
 def test_stream_write_rejects_oversized_transfer(wire: Wire, buffer_id: int) -> None:
     assert stream_write(wire, buffer_id, 0, BUFFER_SIZE + BLOCK_SIZE) == -PB_RESULT_NO_MEMORY
@@ -139,6 +157,24 @@ def test_stream_write_rejects_offset_beyond_32_bit_lba(device: Device, wire: Wir
     assert stream_write(wire, 0, offset, BLOCK_SIZE) == -PB_RESULT_INVALID_ARGUMENT
     assert_responsive(wire)
     assert device.read_blocks(READABLE_LBA + 8) == before
+
+
+@pytest.mark.parametrize("offset", [8 * BLOCK_SIZE + 1, 9 * BLOCK_SIZE - 1])
+def test_stream_write_rejects_offset_inside_a_block(
+    device: Device, wire: Wire, offset: int
+) -> None:
+    """Not rounded down to the block's start (command-mode.md 5.4, F-273)."""
+    before = device.read_blocks(READABLE_LBA + 8, 2)
+
+    assert stream_prepare(wire, 0, b"\xa5" * BLOCK_SIZE) == 0
+    assert stream_write(wire, 0, offset, BLOCK_SIZE) == -PB_RESULT_INVALID_ARGUMENT
+    assert_responsive(wire)
+    assert device.read_blocks(READABLE_LBA + 8, 2) == before
+
+
+def test_stream_read_rejects_offset_inside_a_block(wire: Wire) -> None:
+    assert stream_read(wire, 0, BLOCK_SIZE // 2, BLOCK_SIZE)[0] == -PB_RESULT_INVALID_ARGUMENT
+    assert_responsive(wire)
 
 
 def test_stream_write_past_end_of_partition_fails(device: Device, wire: Wire) -> None:
