@@ -85,6 +85,7 @@ class Result(IntEnum):
     PB_RESULT_SIGNATURE_ERROR = 15
     PB_RESULT_MEM_ERROR = 16
     PB_RESULT_IO_ERROR = 17
+    PB_RESULT_BAD_PAYLOAD = 18
 
 
 class Slc(IntEnum):

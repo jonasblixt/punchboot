@@ -217,6 +217,8 @@ static int error_to_wire(int error_code)
         return -PB_RESULT_INVALID_ARGUMENT;
     case -PB_ERR_NOT_SUPPORTED:
         return -PB_RESULT_NOT_SUPPORTED;
+    case -PB_ERR_BAD_PAYLOAD:
+        return -PB_RESULT_BAD_PAYLOAD;
     default:
         return -PB_RESULT_ERROR;
     }

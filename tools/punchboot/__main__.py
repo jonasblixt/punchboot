@@ -153,6 +153,7 @@ def pb_session(f: TFunc) -> TFunc:
                 punchboot.KeyRevokedError: "Key is revoked",
                 punchboot.IOError: "I/O error",
                 punchboot.StreamNotInitializedError: "Stream not initialized",
+                punchboot.BadPayloadError: "The image's payload doesn't match its hash",
             }
 
             description = error_descriptions.get(type(e), "Generic error")

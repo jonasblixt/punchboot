@@ -1180,6 +1180,8 @@ static void test_error_codes(void **state)
         { -PB_ERR_PARAM, -PB_RESULT_INVALID_ARGUMENT },
         { -PB_ERR_NOT_SUPPORTED, -PB_RESULT_NOT_SUPPORTED },
         { -PB_ERR_BAD_HEADER, -PB_RESULT_ERROR },
+        /* A code of its own, from 3.0.0 (command-mode.md 4.5, F-087) */
+        { -PB_ERR_BAD_PAYLOAD, -PB_RESULT_BAD_PAYLOAD },
         /* An error like any other: the next one is answered (F-252) */
         { -PB_ERR_ABORT, -PB_RESULT_ERROR },
         { -PB_ERR_STATE, -PB_RESULT_ERROR },
@@ -2966,6 +2968,43 @@ static void test_boot_bpak(void **state)
     assert_int_equal(fake_boot.load_calls, 0);
 }
 
+/* A payload whose hash differs has a result of its own, where a release
+ * answered ERROR (command-mode.md 4.5, F-087): BOOT_PART's result and
+ * BOOT_BPAK's last one. The value is appended: a host that doesn't know it
+ * takes it as an error (compatibility.md) */
+static void test_boot_bad_payload(void **state)
+{
+    struct pb_command_boot_part part_req = { .verbose = 0 };
+    struct pb_command_bpak_boot bpak_req = { .verbose = 0 };
+    static struct bpak_header header;
+    (void)state;
+
+    assert_int_equal(PB_RESULT_BAD_PAYLOAD, 18);
+    assert_true(PB_RESULT_BAD_PAYLOAD < PB_RESULT_END);
+    assert_true(PB_RESULT_END <= INT8_MAX);
+
+    memcpy(part_req.uuid, UU_RW, 16);
+    memcpy(bpak_req.uuid, UU_RW, 16);
+    fake_boot.load_rc = -PB_ERR_BAD_PAYLOAD;
+    host_cmd(PB_CMD_BOOT_PART, &part_req, sizeof(part_req));
+    run();
+    expect_result(-PB_RESULT_BAD_PAYLOAD);
+
+    t.init_calls = 0;
+    fake_boot.reads_header = true;
+    host_cmd(PB_CMD_BOOT_BPAK, &bpak_req, sizeof(bpak_req));
+    host_send(&header, sizeof(header));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK); /* BOOT_BPAK */
+    expect_result(-PB_RESULT_BAD_PAYLOAD); /* The boot's result */
+    expect_result(PB_RESULT_OK); /* Command mode goes on */
+    expect_end();
+    assert_int_equal(fake_boot.jump_calls, 0);
+    assert_int_equal(t.disconnect_calls, 0);
+}
+
 /* A boot refused before the header is read (command-mode.md 5.5, D-058,
  * F-128): the host sends the header after the first OK, the device reads it
  * and the header's result carries the refusal. The header is a frame, were it
@@ -4156,6 +4195,7 @@ int main(void)
         CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
+        CM_TEST(test_boot_bad_payload),
         CM_TEST(test_boot_bpak_refused_before_the_header),
         CM_TEST(test_boot_stopped_before_the_disconnect),
         CM_TEST(test_boot_bpak_load_returns_abort),

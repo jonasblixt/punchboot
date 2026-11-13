@@ -77,6 +77,15 @@ class IOError(Error):  # noqa: A001
     """PB_RESULT_IO_ERROR."""
 
 
+class BadPayloadError(GenericError):
+    """PB_RESULT_BAD_PAYLOAD: an image's payload doesn't have the header's hash.
+
+    From pb 3.0.0. An older device answers PB_RESULT_ERROR, and an older host
+    takes the code it doesn't know as that: both are GenericError, which this
+    is a kind of, so that what catches GenericError catches it as before.
+    """
+
+
 EXCEPTIONS: dict[Result, type[Error]] = {
     Result.PB_RESULT_ERROR: GenericError,
     Result.PB_RESULT_AUTHENTICATION_FAILED: AuthenticationError,
@@ -95,6 +104,7 @@ EXCEPTIONS: dict[Result, type[Error]] = {
     Result.PB_RESULT_SIGNATURE_ERROR: SignatureError,
     Result.PB_RESULT_MEM_ERROR: MemError,
     Result.PB_RESULT_IO_ERROR: IOError,
+    Result.PB_RESULT_BAD_PAYLOAD: BadPayloadError,
 }
 
 

@@ -361,9 +361,9 @@ command's meaning (section 7).
   without the product's option, an image format that isn't built in, 5.9) answers
   `NOT_SUPPORTED`. A host then tells a device that is older than a command, where it falls
   back (`compatibility.md`), from one that has it switched off.
-- An error that has no code of its own is `ERROR`: a key the keystore doesn't have, a payload
-  whose hash differs (F-087), an image header that isn't valid in a boot. A new code is
-  appended, and old hosts must take an unknown code as an error.
+- An error that has no code of its own is `ERROR`: a key the keystore doesn't have, an image
+  header that isn't valid in a boot. A new code is appended, and old hosts must take an
+  unknown code as an error.
 - A refusal by the life cycle's order (5.2) is `ERROR` today, and stays.
 - The reason for an error is in pb's log, which the host reads (5.7).
 
@@ -733,7 +733,6 @@ For a change to command mode, a new command or a new method:
 | F-363               | The session ends with the transport: authentication and the stream are cleared (3.1) |
 | F-375               | The caps' erase timeout (4.6)                                                        |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
-| F-087               | A result code for a payload whose hash differs (4.5)                                 |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
 | F-263               | EOL as the product's option (5.2)                                                    |
