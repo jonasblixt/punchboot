@@ -95,6 +95,37 @@ def test_board_register_value_must_be_a_number(device: Device, value: str) -> No
     assert "0: 00000005" in device.pbstate("-i")
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("-s", "a", "-c", "3x"),
+        ("-s", "a", "-c", "0x1g"),
+        ("-w", "0", "1zz"),
+        ("-w", "0x", "1"),
+        ("-w", "1z", "5"),
+    ],
+)
+def test_a_number_with_characters_after_it_is_refused(
+    device: Device, args: tuple[str, ...]
+) -> None:
+    # F-408: what followed the number was ignored. '-c 3x' was a trial of 3
+    # attempts, '-w 0 1zz' wrote 1
+    device.pbstate("-w", "0", "5")
+    device.pbstate("-s", "b")
+    copies = _copies(device)
+
+    result = device.pbstate_run(*args)
+    assert result.returncode == errno.EINVAL
+    assert _copies(device) == copies
+
+
+def test_a_number_may_have_white_space_around_it(device: Device) -> None:
+    device.pbstate("-s", "a", "-c", " 3 ")
+    device.pbstate("-w", " 1\t", "\n0x12 ")
+    assert _state(device) == (STATE_A, 0, 3, 0)
+    assert "1: 00000012" in device.pbstate("-i")
+
+
 def test_board_register_takes_32_bits(device: Device) -> None:
     # strtol() stopped at 0x7fffffff where a long is 32 bits
     device.pbstate("-w", "0", "0xffffffff")

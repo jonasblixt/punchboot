@@ -9,6 +9,7 @@
 
 #include "pbstate.h"
 #include <boot/pb_state_blob.h>
+#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
 #include <stdbool.h>
@@ -44,6 +45,16 @@ static void print_help(void)
     printf("Optional parameter for switch command:\n");
     printf("    -c, --count <n>            Set the system to not verified and boot retry counter "
            "to <n>\n");
+}
+
+/* What strtol() and strtoll() left after the number: only white space may
+ * follow it, as only white space may come before it (F-408) */
+static bool trailing_characters(const char *end)
+{
+    while (isspace((unsigned char)*end))
+        end++;
+
+    return *end != '\0';
 }
 
 static int print_configuration(void)
@@ -151,7 +162,7 @@ int main(int argc, char *const argv[])
             errno = 0;
             tmp = strtoll(optarg, &end, 0);
 
-            if (optarg == end) {
+            if (optarg == end || trailing_characters(end)) {
                 return EINVAL;
             }
 
@@ -176,7 +187,7 @@ int main(int argc, char *const argv[])
             errno = 0;
             board_reg_index = strtol(optarg, &end, 0);
 
-            if (optarg == end) {
+            if (optarg == end || trailing_characters(end)) {
                 return EINVAL;
             }
 
@@ -188,7 +199,7 @@ int main(int argc, char *const argv[])
                 errno = 0;
                 tmp = strtoll(argv[optind], &end, 0);
 
-                if (argv[optind] == end) {
+                if (argv[optind] == end || trailing_characters(end)) {
                     return EINVAL;
                 }
 
