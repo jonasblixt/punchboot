@@ -15,6 +15,19 @@
 #ifndef INCLUDE_PB_UTILS_DEF_H
 #define INCLUDE_PB_UTILS_DEF_H
 
+/*
+ * A condition checked when the file is compiled, in C and in C++: a header a
+ * next stage in C++ reads (boot/pb_fh.h, which has the same definition for a
+ * next stage that has only that header) can't use _Static_assert.
+ */
+#ifndef PB_STATIC_ASSERT
+#ifdef __cplusplus
+#define PB_STATIC_ASSERT(_condition, _message) static_assert(_condition, _message)
+#else
+#define PB_STATIC_ASSERT(_condition, _message) _Static_assert(_condition, _message)
+#endif
+#endif
+
 /* Compute the number of elements in the given array */
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 

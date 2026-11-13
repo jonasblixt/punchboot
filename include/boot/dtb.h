@@ -51,6 +51,36 @@ struct boot_dtb_chosen {
 int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt);
 
 /**
+ * Open a loaded device tree into memory the handover gives, with room for
+ * what the boot drivers add to it
+ *
+ * For a handover that doesn't leave the device tree where the image has it:
+ * Firmware Handoff, whose device tree is in its transfer list (boot.md
+ * 5.4). The copy is headroom bytes larger than the device tree
+ * (fdt_open_into copies and grows in one step), and the room it grew by is
+ * zero. The part isn't written, so it needs no room after it and may be in
+ * a flash that is booted in place.
+ *
+ * @param[in] hdr The verified image header
+ * @param[in] dtb_id bpak id of the device tree part
+ * @param[in] headroom Bytes the copy is larger than the device tree
+ * @param[out] dest Where the copy goes, 8-byte aligned
+ * @param[in] dest_size The room at dest
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_BAD_META if the part or its load address is missing, or
+ *         the part is smaller than a device tree's header,
+ *        -PB_ERR_MEM if the device tree with its headroom doesn't fit
+ *         dest_size, or the part overlaps dest,
+ *        -PB_ERR if it isn't a device tree or is larger than its part
+ */
+int boot_dtb_open_into(struct bpak_header *hdr,
+                       bpak_id_t dtb_id,
+                       size_t headroom,
+                       void *dest,
+                       size_t dest_size);
+
+/**
  * The board's hook, then pb's properties in /chosen, which is added if
  * there is none (boot.md 5.5). pb's values win: a property the hook or the
  * image's tree has under a name pb writes is overwritten.
