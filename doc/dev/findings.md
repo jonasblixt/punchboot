@@ -16,7 +16,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 |---|---|---|---|---|
 | F-004 | `src/board/imx8{qxmek,dxlevk}/board.c:~288` | `strncmp(expected, password, length)` with `length` taken from the host accepts any prefix ("i"). `LOG_DBG` prints a password that is not NUL-terminated. Example boards, but the pattern gets copied. | Verified | open |
 | F-006 | `src/drivers/partition/gpt.c:~411` | Loop over `p->first_lba` has no 128-entry limit. Primary and backup tables are never compared. | Reported | partly fixed (claude-work): entry loop bounded by `no_of_parts` (F-056); tables still not compared |
-| F-008 | `src/drivers/crypto/mbedtls/mbedtls_pb.c` | Return values of the `mbedtls_sha*` calls are ignored. | Reported | open |
 | F-064 | `src/drivers/partition/gpt.c:152` | Header `last_lba` (last usable) is `last - 32`, which is the first backup-entry block; should be `last - 33`. pb's own allocation is unaffected; other tools could overlap the backup array. | Verified (code) | open |
 | F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | open; the `fdt_totalsize` <= part check is done (`39276b9c`) |
 | | | Checked 2026-11-12: `CHECK_OVERLAP` is gone, and placement keeps every part inside the board's | | |
@@ -24,6 +23,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `uint64_t` without a look at the meta's size, and `keystore_id` is only logged. Anti-rollback | | |
 | | | is `roadmap.md`'s | | |
 | F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | partly fixed (`jiffy-fixes`): `der_ecsig_to_rs` now pads short r/s and is used by the CAAM (F-057). `der_ec_public_key_data` is still open |
+| | | 2026-11-13 (`ab002f9f`): `der_ec_public_key_data()` takes the key's length and reads nothing past | | |
+| | | it; OIDs match on length and bytes. What is left of F-066 is in F-410 (the point's form and length) | | |
 | F-074 | `src/cm/cm_main.c` stream read/write | After a failed STREAM_INITIALIZE, `block_dev` is an error code, and `bio_get_flags()` of it has the flag bits set, so the readable/writable checks pass. `stream_check()` then fails on the block size, so it's harmless. | Verified (test) | open |
 | F-076 | `src/boot/image_helpers.c` (payload hash and load) | bpak compat (D-008): punchboot hashes every part, while upstream `verify.c` skips parts with `BPAK_FLAG_EXCLUDE_FROM_HASH` (`bpak add --set-flag dont-hash`). Such images verify with the bpak CLI but fail to boot in punchboot. Supporting the flag only accepts more images, so it is a compatible fix. | Verified (code) | open |
 | | | Decided (D-035, `security.md` 4.2): an image with a `dont-hash` part is refused, before the | | |
@@ -46,7 +47,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-110 | `src/plat/imx8m/ddr.c` `imx8m_ddr_init` (GPC) | The DDR power-up writes `GPC_PGC_CPU_0_1_MAPPING` (0x303A00EC) and `GPC_PU_PGC_SW_PUP_REQ` bit 5 (0x303A00F8), the i.MX8MQ/8MM layout, and never waits for the request to self-clear. On the i.MX8M Plus 0x303A00EC is the read-only `GPC_LPCR_CM4_AD` and 0x303A00F8 is not in the map; its PU power-up trigger is 0x303A00D8 with `DDRMIX_SW_PUP_REQ` at bit 19 (RM 5.2.10.37). NXP's 8MP DDR tool script writes the same two addresses, and the RM's own example code uses them. Harmless on the 8MP EVK: DDRMIX is powered after reset and the DRAM trains (2026-10-28). | Verified (RM, board) | open: per-SoC power-up in `ddr_imx8m{q,p}.c`, with the self-clear wait |
 | F-113 | `src/drivers/mmc/imx_usdhc.c`, `src/board/imx8mpevk/board.c` (i.MX8M Plus uSDHC3) | eMMC in DDR52 (8-bit DDR) fails at the first data read after the switch (CMD8, INT status 0x208003: DCE, a data CRC error); HS200 works. 2026-10-28, after the DDR_EN fix (F-123): with the board's fixed DLL override tap 35 the CMD8 still fails the same way; with tap 0 init gets through DDR52 (EXT_CSD reads work), but the first CMD18 (GPT read) fails: the auto CMD12 response in CMD_RSP3 is 0x00d00f00 (CC_ERROR, COM_CRC_ERROR, ILLEGAL_COMMAND, state prg), which doesn't fit a read. HS200 with tap 0 fails the same way (2026-10-29) and works with tap 35: a sampling error, the DLL override is in the read path in SDR too. The right tap depends on board and silicon (tuning). | Verified (board) | open: imx8mpevk uses HS200. Next: what CMD_RSP3 holds after auto CMD12 in DDR, and a DLL setting for DDR instead of the fixed override |
 | F-116 | `src/drivers/mmc/mmc_core.c` `mmc_setup` (HS400) | HS400 without Enhanced Strobe selects HS_TIMING 3 without tuning in HS200 first (JESD84-B51 6.6.2.3 steps 5-6). With `MMC_BUS_WIDTH_8BIT_DDR_STROBE` the card is switched to BUS_WIDTH 0x86, then `imx_usdhc_set_bus_width()` rejects the width. No board uses HS400. | Verified (bench, `test_mmc_emmc` `test_hs400`) | open |
-| F-127 | `src/drivers/crypto/caam/imx_caam.c` `caam_wait_for_job` | The job status is read from JRSTAR after the output ring entry is removed, not from the entry's status word, and a mismatching descriptor address is logged as "Job failed". JRSTAR only holds the status of the last job that completed, so this works only while one job is in flight (true today). | Verified (SRM, code) | open (low) |
 | F-131 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_start` | For a buffer that isn't 4 KiB aligned, page 0 of the dTD is `align_buffer` at offset 0 with only `align_length` bytes valid, but the controller fills page 0 up to its 4 KiB boundary before page 1, so an unaligned transfer longer than `align_length` sends or receives the wrong bytes. pb's large buffers are aligned, the small ones fit in one page, so nothing hits it today. | Verified (code) | open: point page 0 at `align_buffer + 4096 - align_length` |
 | F-134 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_complete` | For an OUT transfer into a buffer that isn't 4 KiB aligned, the data is copied from `align_buffer` into the buffer and then the buffer is invalidated (DCIMVAC), which architecturally discards the copy while the lines are dirty. Every command read takes this path (`cmd` at 0x81826200 in the jiffy build), yet commands work on jiffy, and the D-cache does hold dirty lines there (the F-130 breadcrumbs in `.no_init` were lost on reset without a clean, log 2026-10-29). Not understood: perhaps the Cortex-A7 performs DCIMVAC as clean and invalidate (unchecked; that would also hide F-081 on jiffy). | Verified (code, symbol map); why it works is open | open: invalidate before the copy, not after; check DCIMVAC on the board (dirty a line, invalidate, read back) |
 | F-135 | `src/arch/armv7a`, `src/plat/imx6ul/plat.c` `plat_mmu_init` | Nothing sets ACTLR.SMP before the MMU and caches are enabled; as I recall it, the Cortex-A7 MPCore TRM asks for that. What it changes on jiffy is unknown: the 2026-10-29 breadcrumbs show write-back caching of `.no_init` works without it, so it doesn't simply leave Shareable memory uncached (first guess in the USB review, withdrawn). | Reported (TRM from memory, not in `~/work/manuals`) | open: read ACTLR on jiffy (`mrc p15, 0, r0, c1, c0, 1`), get the TRM |
@@ -91,13 +91,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | enabled system, so confirming the fallback keeps the trial (`boot.md` 3.5). Left: what | | |
 | | | `pbstate_is_system_verified(NONE)` returns (0, -EINVAL, any slot verified, or the enabled one), for | | |
 | | | Jonas; it still returns `!!enable` | | |
-| F-181 | `imx_caam.c`, `cm_main.c`, `image_helpers.c` | High. An async hash job that is | Reported (probe) | open |
-| | | abandoned (a read error in `boot_image_load_and_hash()`, a failed `part verify`: no `hash_final`) stays | | |
-| | | in the CAAM's one-slot output ring. Every later `caam_wait_for_job()` returns the previous job's | | |
-| | | completion, so `caam_ecda_verify()` reports verified from the hash job's status. In a model of the ring, | | |
-| | | `auth token` then accepted any well-formed signature on a locked device. Not run on hardware. Same root | | |
-| | | as F-127. Drain the ring in `caam_hash_init()` and before a verify, take the status from the ring entry, | | |
-| | | finish the hash on every error path. | | |
 | F-184 | `src/drivers/usb/cdns3_udc_core.c:263` | The clean covers `desc_count` TRBs, not the | Verified | open |
 | | | terminating one at `trb[desc_count]`: for some counts its flags word is in a cache line that isn't | | |
 | | | cleaned, and a stale TRB from a larger transfer stays in memory. The effect on the controller is | | |
@@ -210,6 +203,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | fails mid-load on a second part. `mbedtls_pb.c:183` skips `mbedtls_pk_free()`. `slc_set_configuration()` | | |
 | | | goes on when the state read is NOT_SUPPORTED. D-068 (Jonas): no read at a byte offset in `bio` for | | |
 | | | now, so the 4 KiB case stays a limit (`bio.md` 3.1, `roadmap.md`) | | |
+| | | 2026-11-13 (`997f6a8a`, `58d39d9d`): the CAAM's block buffer isn't refilled under its job, and the | | |
+| | | key's context is freed when it doesn't parse (nothing leaked with Mbed TLS 3.4.0). Left: `rot.c`'s | | |
+| | | error codes through unsigned types, `slc_set_configuration()` on NOT_SUPPORTED, the 4 KiB limit | | |
+| | | (D-068) | | |
 | F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
 | | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
 | | | command's. Several error paths leave transfers unread the same way. | | |
@@ -365,6 +362,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
 | | | specification (Jonas); the simple target test bench follows. `BOOT_FH`, the region | | |
 | | | `BOOT_FH_REGION_BASE` and `_SIZE`; the checksum against the reference library | | |
+| | | 2026-11-13: written, reviewed and verified (74 of 74, the sanitizers, six boards, the simple | | |
+| | | target's build) on the branch `land-p10`, nine commits on `a793102b`; not on `work-3.0.0-mega` yet, | | |
+| | | because it changes `configs/imx8mpevk_defconfig`, which has an uncommitted change of Jonas's. Not | | |
+| | | run on the RT1060. The tag of pb's structure is a placeholder from the non-standard range (0xfffb00) | | |
 | F-261 | `plat/{imx6ul,imx8m}/plat.c` | The TrustZone filter's open region is the SoC's | Verified (code) | open |
 | | | whole DRAM window, not the board's DRAM: 2 GiB on the 6UL (`tzasc_init()`), 4 or 8 GiB on the 8M | | |
 | | | (`tzasc_open_dram()`). With less DRAM than the window, the copies of DRAM inside it are open to | | |
@@ -491,6 +492,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | look at an open hash (D-071: refused, in the core). (1), (3), (4) and (9) are | | |
 | | | verified in the code, the rest is as reported. D-073: `md_length` is the digest size of | | |
 | | | `md_alg`, checked in the core; `auth_token` is fixed in the same commit | | |
+| | | 2026-11-13 (`d15aa7bf`, `a5154faf`, `b62c5527`): (1), (2) and (13) are done; (7) is superseded by | | |
+| | | D-071 (a user that gives a hash up calls nothing) and (9) by `crypto.md` 5. Left: (3) `final`'s | | |
+| | | length and where the engine writes, (4) the verdict's codes, (5) `alg` against the key and | | |
+| | | `md_length` with the token's call (`struct dsa_ops.verify` doesn't get `alg`: a porting API change | | |
+| | | or a parser in the core, for Jonas), (6) the signature's outer length (how strict: (b) and (c) | | |
+| | | refuse what a release took on the CAAM, for Jonas), (8) `stop`, (10) the RT1060's hashes, (11) the | | |
+| | | suite for both backends, (12) a second registration's code | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
 | | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |
@@ -756,6 +764,31 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | anything but a or b exits 1, not EINVAL; `-c` without `-s` is ignored. The simple target's copy | | |
 | | | still zeroes the attempts whichever slot it confirms, where pbstate now keeps the trial when the | | |
 | | | other slot is confirmed, and so does the helper `pbstate_confirms()` in `test_ab_state.c` | | |
+| F-409 | imx8mpevk, the ROM, `pb.imx` | The 8MP EVK doesn't boot pb | Seen on the board (2026-11-13) | open |
+| | | `a793102b` from eMMC: after `part write` of `pb.imx` (221696 bytes) to BOOT0, verified, and a reset, | | |
+| | | the ROM is in serial download within a second, and again after every reset; nothing reaches the | | |
+| | | console. The same file loaded over serial download (`uuu SDPS: boot -f`) runs, verifies and boots | | |
+| | | Linux, though the kernel's console output is garbage until the login prompt. BOOT0 verifies against | | |
+| | | the file with that pb too, and BOOT_PARTITION_ENABLE reads BOOT0. BOOT1 holds the pb of the morning | | |
+| | | (`2d9437b9`, which booted from eMMC) and is not enabled. Not understood. What differs from the | | |
+| | | morning: the crypto package, the image's size (its boot data ends at 0x9561c0, the day before at | | |
+| | | 0x9551c0), and that the write was the first of a boot partition by a pb with the new block device | | |
+| | | core (F-182). The MEK and jiffy were not flashed with it | | |
+| F-410 | `src/drivers/crypto/caam/imx_caam.c` | From F-181's package and its review. Every buffer | Reported | open |
+| | | address is cut to 32 bits (`drivers.md` 4.2: refuse). `imx_caam_init()` empties the output ring and | | |
+| | | doesn't reset the job ring (`drivers.md` 2.1; a reset can't be tried from here). The key parser | | |
+| | | skips the BIT STRING's two leading bytes unchecked, doesn't check the point's form or length against | | |
+| | | the curve, and `caam.ecdsa_key` isn't cleared. A job of a `hash_final()` or a verification that | | |
+| | | timed out can still write the caller's buffer later (F-081). The i.MX8M Mini SRM's verify PDB | | |
+| | | differs from what the driver and OP-TEE use; the 6UL SRM asks for data on INIT, pb starts a short | | |
+| | | hash with none | | |
+| F-411 | `src/boot/dtb.c`, `src/lib/fdt` | A device tree part whose header lies about | Verified (run, host) | open |
+| | | more than `totalsize` reads outside its part: only the magic, the version and `totalsize` are | | |
+| | | checked, and `fdt_open_into()` trusts `off_dt_struct`, `off_dt_strings`, `off_mem_rsvmap` and the | | |
+| | | two sizes. Of 200 000 single field lies 45 271 read outside the part (memory the payload's hash | | |
+| | | doesn't cover) and one wrote 44 KiB below its destination. Signed input only, F-065's class; the | | |
+| | | image handover has it in place. Refusing such a tree refuses an image a release took: a decision | | |
+| | | (D-008), for Jonas. Found by the review of F-259 | | |
 
 ## Dependencies / vendored code
 

@@ -20,11 +20,11 @@ bump is for the porting API. Each item's history is in `log/`.
   coverage is 91.0% by F-230's count; the 99.2% in `testing.md` is from 2026-10-22.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a compile check
   of all six boards, Coverity (master only, unverified until merged).
-- **Boards:** jiffy (i.MX6UL), imx8mpevk, imx8qxmek and imxrt1060evk are on the bench and run
-  this branch's pb (`64d5bba0`, flashed 2026-11-12 with the test benches' images: the log's
-  last entry). imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on the
-  8MP EVK, never run SLC or fuse commands on the MEK. Untested on any board: fuse writes, the
-  8X closed state.
+- **Boards:** jiffy (i.MX6UL), imx8qxmek and imxrt1060evk run `2d9437b9` from their boot
+  media (flashed 2026-11-13, the log has what they showed). imx8mpevk runs `a793102b` from
+  RAM only (F-409). imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on
+  the 8MP EVK, never run SLC or fuse commands on the MEK. Untested on any board: fuse
+  writes, the 8X closed state.
 - **Test benches:** Linux (`testbench/`, D-022): jiffy, the 8MP EVK and the MEK boot to the
   login. simple target (`testbench/simple/`, D-025): the RT1060 EVK.
 
@@ -33,10 +33,20 @@ bump is for the porting API. Each item's history is in `log/`.
 
 ## Next steps
 
-0. **Resume here: the code.** Next: F-259 (Firmware Handoff), then F-267 and F-268 (command
-   mode's USB, the tasks), each a session of its own. The boards are on `sidekick`; what
-   they still have to show is in `log/2026-11-12.md` under "Not run on a board" and at the
-   end of its last entry.
+0. **Resume here (2026-11-13): `log/2026-11-13.md`.** Landed in the night and the day, a
+   package of findings per agent: `board_setup()`, the build, the host tools, the A/B state,
+   the block device core (F-182), command mode's USB and the tasks (F-267, F-268), pbstate,
+   crypto (F-181). First, in this order:
+   - **F-409: the 8MP EVK doesn't boot pb `a793102b` from eMMC**; it runs from RAM over
+     serial download. Find it before any other board is flashed: the MEK and jiffy run
+     `2d9437b9`, the RT1060 too.
+   - **F-259 is on the branch `land-p10`**, reviewed and verified, not landed: it changes
+     `configs/imx8mpevk_defconfig`, which has an uncommitted change of Jonas's. Then the
+     RT1060 has to show it.
+   - Three packages were stopped half way, in worktrees under `.claude/worktrees/`: the GPT
+     (F-191 and its neighbours), the platform's lifecycle (F-235, F-236), command mode's
+     small ones (F-190, F-095, F-252). Not started: the small driver and build ones.
+   - The log's "For Jonas" lists: about forty questions the code met.
 1. What 3.0.0 waits for besides the code is `roadmap.md`'s first section: the Firmware
    Handoff tag (Jonas, upstream), the bench run, the two guides, the release notes.
 2. Jonas's review of the board work's code (D-026, D-027; its shape is D-046's since F-265).

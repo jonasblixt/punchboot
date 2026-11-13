@@ -808,6 +808,23 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | Fixed: the library's crc.c is compiled with hidden visibility; libpbstate.so.0 exports the 13 | | |
 | | | functions of pbstate.h and no crc32. | | |
 | F-010 | `tools/pbstate/CMakeLists.txt` | `BACKUP_PART` is set from `PB_STATE_PRIMARY_PART` (copy-paste). The target is listed twice in `install`. | Reported | fixed (`24766ed3`) |
+| F-181 | `imx_caam.c`, `cm_main.c`, `image_helpers.c` | High. An async hash job that is | Reported (probe) | fixed (`6d1d3689`, `7d79b150`, `fd266366`) |
+| | | abandoned (a read error in `boot_image_load_and_hash()`, a failed `part verify`: no `hash_final`) stays | | |
+| | | in the CAAM's one-slot output ring. Every later `caam_wait_for_job()` returns the previous job's | | |
+| | | completion, so `caam_ecda_verify()` reports verified from the hash job's status. In a model of the ring, | | |
+| | | `auth token` then accepted any well-formed signature on a locked device. Not run on hardware. Same root | | |
+| | | as F-127. Drain the ring in `caam_hash_init()` and before a verify, take the status from the ring entry, | | |
+| | | finish the hash on every error path. | | |
+| | | Fixed: the driver knows whether a job is in the ring; hash_init() and a verification wait for it and | | |
+| | | remove its completion first. A completion of another descriptor is removed and the job stays in | | |
+| | | flight (found by the review: it used to end the job on paper, and a bad signature then verified in | | |
+| | | the model). imx_caam_init() empties the output ring of what an earlier stage left; it does not reset | | |
+| | | the job ring. tests/unit/models/caam_model.c and test_caam_crypto.c: the first tests that reach the | | |
+| | | CAAM's hash and verify. | | |
+| F-127 | `src/drivers/crypto/caam/imx_caam.c` `caam_wait_for_job` | The job status is read from JRSTAR after the output ring entry is removed, not from the entry's status word, and a mismatching descriptor address is logged as "Job failed". JRSTAR only holds the status of the last job that completed, so this works only while one job is in flight (true today). | Verified (SRM, code) | fixed (`6d1d3689`, `8b1f685c`) |
+| | | Fixed with F-181: the status is the output ring entry's, with a test in which JRSTAR differs from | | |
+| | | it. | | |
+| F-008 | `src/drivers/crypto/mbedtls/mbedtls_pb.c` | Return values of the `mbedtls_sha*` calls are ignored. | Reported | fixed (`c362451d`) |
 
 ## Dependencies / vendored code
 
