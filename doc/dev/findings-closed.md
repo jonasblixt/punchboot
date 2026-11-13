@@ -651,6 +651,55 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-157 | `src/boot/image_helpers.c` `boot_image_verify_parts`, `src/boot/dtb.c` `overlaps_pb` | The check that a part doesn't load over pb lists code, data, stack, bss and `.no_init`, but not `.ro_data` (keystore included; `image_helpers.c` imports `_ro_data_region_*` and never uses them), `.ramlog` or the i.MX8M's `.umctl`. A signed image with a part on any of them passes. Two hand-kept lists of the same regions. | Verified (code, jiffy/8MP maps) | closed: superseded by F-254 (D-055). Placement is an allow list, the board's image data regions (`boot.md` 4.3); `overlaps_pb()` and both lists of pb's regions are gone. What pb links outside `pb` and `buffers` is F-390 |
 | F-075 | `cm_main.c` `cmd_part_erase`, `struct pb_command_erase_part` | Wire compat (D-008): `start_lba`/`block_count` were taken from `rz` in 2309738 (v2.0.0). A pre-2.0 host sends zeros, so a current device erases 0 blocks and answers OK: a silent no-op instead of a full erase. Fix: `block_count == 0` means the whole partition. Coordinate with F-055. | Verified (code) | closed, accepted (D-035, `command-mode.md` 5.3, `system.md` 5.1): a count of 0 erases nothing and answers OK, as every release since 2.0.0; `cmd_part_erase()` says so |
 | F-142 | `src/cm`, `punchboot part read` | `part read` of eMMC BOOT0 or BOOT1 on jiffy fails with `Error: I/O error` (2.8.0, 2026-10-29). Not looked into. | Seen on the board | closed: the same read as F-083, which has the cause |
+| F-216 | `src/board.c:122-158` | F-178 is one of three: a failing `init()` or `late_init()` also | Reported | fixed (`e77ef7bf`, `538930ed`) |
+| | | returns before `setup_boot_driver()`, so a RAM boot of a rescue image isn't possible when the eMMC | | |
+| | | fails. | | |
+| | | Fixed: a failed init(), late_init(), RoT or SLC sets up the handover all the same and returns the | | |
+| | | step's error. A failed RoT or SLC still fails closed: the life cycle is unknown, command mode asks | | |
+| | | for authentication and every boot is refused. | | |
+| F-250 | `src/board.c`, `src/board/*/board.c` | `default_status()` and the boards' | Verified (code) | fixed (`5fb27acc`) |
+| | | `status()` set `*length` from `snprintf()`, then append the NUL at `buf[*length]`: a truncated text | | |
+| | | writes past the buffer. Latent, `CM_BUF_SIZE` is 4 MiB. `board.md` 4.3: the board writes at most | | |
+| | | `*length - 1` bytes, the core clamps and appends the NUL | | |
+| | | Fixed: the core clamps the length to size - 1 and appends the NUL; jiffy's and the two 8X boards' | | |
+| | | status() no longer append one. A buffer of size 0 is -PB_ERR_PARAM (the contract doesn't name the | | |
+| | | case). | | |
+| F-183 | `Makefile:124-134` | High. `keystore.o` has no prerequisites and `srk_fuse.o` depends | Verified | fixed (`8c4866e2`) |
+| | | only on the file: a changed `CONFIG_KEYSTORE`/`CONFIG_SRK_FUSE` isn't regenerated in an existing build | | |
+| | | directory (shown with an out-of-tree jiffy build). pb keeps the test keys and the test SRK hash, which | | |
+| | | `slc set-configuration` would fuse. `PB_VERSION` has the same gap. Depend on the input file and the | | |
+| | | config. | | |
+| | | Fixed: a value file per variable in the build directory (CONFIG_KEYSTORE, CONFIG_SRK_FUSE, | | |
+| | | PB_VERSION), rewritten only when the value changes; what is made from the variable depends on it. | | |
+| | | tests/make/check_rebuild.py. | | |
+| F-229 | `Makefile:31` | The result of `genconfig.py` is ignored: a failure builds with | Reported (probe) | fixed (`44e0e198`) |
+| | | the old `.config`, a mistyped defconfig name builds the Kconfig defaults, both with exit 0. | | |
+| | | Fixed: genconfig.py's result is checked and a KCONFIG_CONFIG that doesn't exist stops the build | | |
+| | | (menuconfig, olddefconfig and clean run without one). A missing .config was the Kconfig defaults | | |
+| | | before: a change for an out-of-tree board, for Jonas. | | |
+| F-143 | `src/drivers/mmc/mmc_core.c:168` | `#ifdef MMC_CORE_DEBUG_IOS` lacks the `CONFIG_` prefix, so the Kconfig option `MMC_CORE_DEBUG_IOS` never has an effect. | Verified (code) | fixed (`f9d542bb`) |
+| F-211 | `src/delay.c:33-47` | Low. Timeouts compare with an absolute end tick: if the 32-bit us | Verified | fixed (`bd28f3f8`) |
+| | | counter wraps between `ts_end` and the next poll the timeout takes another 71 minutes. Callers ignore | | |
+| | | `pb_timeout_init_us()`'s result. Use `(now - start) >= timeout`. | | |
+| | | Fixed: a timeout is its start tick and its length, expired when now - start >= length. 0 and | | |
+| | | UINT32_MAX are still refused, and the timeout has then expired, for callers that ignore the result. | | |
+| F-090 | `src/plat/imx8x` link, imx8dxlevk | `.text` grew past 64 KiB (0x11000 after `plat_get_boot_source`), so `.data` no longer starts on a 64 KiB boundary (ld's aarch64 max page size), and ld puts `.text` through `.bss` in one RWX LOAD segment: `warning: build-imx8dxlevk/pb has a LOAD segment with RWX permissions`. imx8mpevk (2026-10-28) too: `.text` starts at 0x920000 and ends inside the same 64 KiB page as `.data`. Only the ELF headers; `pb.bin` and the MMU setup (linker symbols) are the same. | Verified (readelf) | fixed (`ba45624b`) |
+| | | Fixed: -z max-page-size=4096 for the aarch64 link, all four aarch64 boards; pb.bin is byte- | | |
+| | | identical. build-firmware.sh fails an aarch64 pb with an RWE segment. The 32-bit links: F-396. | | |
+| F-223 | `tools/punchboot/session.py:242` | `_stream_finalize()` never checks the result. | Reported (probe) | fixed (`547d41cb`) |
+| | | FINALIZE enables the written eMMC boot partition (F-082): if that fails, `part write` exits 0 and the | | |
+| | | board boots the old one. | | |
+| F-224 | `tools/punchboot/__main__.py:567` | `boot enable` without its argument sends the | Reported (probe) | fixed (`aaf86dee`) |
+| | | null UUID: the device disables boot, exit 0. Make it required. | | |
+| | | Fixed: the CLI's boot enable needs its argument (a usage error, nothing is sent). | | |
+| | | Session.boot_set_boot_part(None) is unchanged. | | |
+| F-225 | `__main__.py`, `session.py`, `partition.py` | The CLI replaces every exception's | Reported (probe) | fixed (`5e860799`) |
+| | | message with a fixed string (no udev rule reads "Generic error"). Unknown partition flag bits or SLC | | |
+| | | values from a newer device raise `ValueError`, which the CLI doesn't catch. Tracebacks for a missing | | |
+| | | file, a binary board response, a non-semver version. | | |
+| | | Fixed: the CLI prints the fixed text and the exception's message; OSError and ValueError give a line | | |
+| | | and exit 1; PartitionFlags has a member for every bit on the wire (FLAG_RFU4, FLAG_RFU7), so a newer | | |
+| | | device's bits are kept. | | |
 
 ## Dependencies / vendored code
 
@@ -664,6 +713,7 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 |---|---|---|
 | F-034 | Bash tests that exist but don't run: `test_config`, `test_invalid_key_index2`, `test_setup_lock`, `test_bpak_show`, `test_part_offset_write`. They use commands and tools that no longer exist. | removed with the bash suite |
 | F-146 | `src/boot/atf.c` (+ `atf-interface/`, ~1,050 lines) is never compiled: no defconfig sets `BOOT_ATF`. Its `/chosen` patching duplicates `linux.c` (with F-071). Keep for an 8MP TF-A handover, or remove. | closed: kept, the 8MP EVK boots with it (`ac10a592`), warnings fixed (`8ceeea5a`); the duplicated `/chosen` code waits for Jonas' boot review |
+| F-031 | Stale `-I src/libc/include/...` in the armv7a/armv8a makefiles. The gcovr excludes still name `bearssl` and `src/fdt`. | fixed (`45a13b44`): the three -I paths; the gcovr excludes were gone since `5e336062` |
 
 ## Build / CI / docs
 
@@ -677,3 +727,5 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-097 | The Coverity job in `build.yml` has failed on every push to master since it was added (#61): `cov-build` runs in the dev container, which has no `file` ("Cannot find '/usr/bin/file' command"). Nothing was ever uploaded. | fixed (`ci-coverity-file`): `file` is in the container; only a push to master shows whether the upload works |
 | F-103 | imx8mevk is never compiled in CI (F-051: needs NXP's DDR training blobs). With placeholder blobs it compiles (`imx8m-ddr.md`, Testing), which would at least catch build breaks. | fixed (`imx8m-dram-cleanup`): CI builds it with placeholder blobs (`build-firmware.sh`, `IMX8M_FW_DIR` for the real ones) |
 | F-051 | Most boards don't build: imx8qxmek uses an old SCI API (`sci_seco_api.h`, `sc_pm_*`, `sc_pad_set`); imx8dxlevk needs a `keystore.bpak` that isn't in the repo (it builds with the internal keystore); imx8mevk needs proprietary DDR blobs; imxrt1060evk had an implicit `ts_print` (gone with the timestamps, 2026-10-29: it builds, with four unused-code warnings in `board.c`, and runs on the EVK). Only the QEMU board was ever built in CI. Verified. | fixed: all six boards build (the MEK since `259d1564`), and `build.yml` builds each of them. Which boards to keep is F-033 |
+| F-109 | `include/pb/log_def.h`: a disabled LOG macro expands to nothing, so `else LOG_DBG(...);` is an empty body and warns (`-Wempty-body`) at `CONFIG_LOGLEVEL=1` (seen in `src/self_test.c`, since removed). Expanding to `do { } while (0)` fixes it. Verified (build). | fixed (`f1287f69`) |
+| F-147 | `Makefile` `menuconfig oldconfig:` runs `scripts/$@.py`, but `scripts/oldconfig.py` doesn't exist (there is `olddefconfig.py`, unreachable); `.PHONY` names `olddefconfig` and `keystore`, which have no rules. `README.md:208` puts `createtoken.sh` in "the tools folder" (it's `scripts/`) and passes `-sha256` (the script adds the `-`). `build.yml:75` gives `upload-artifact` a `fail_ci_if_error` left from Codecov. | fixed (`aac1cc22`): `make olddefconfig` runs its script; `make oldconfig` still has none, for Jonas |

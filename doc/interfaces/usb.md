@@ -411,7 +411,7 @@ what the code doesn't settle without the hardware.
 |                                  | isn't seen          | packet              |                   | F-137   |
 | OUT: a short packet is an error  | no                  | no                  | no                | F-137,  |
 |                                  |                     |                     |                   | F-287   |
-| A read of whole packets ends at  | unverified          | unverified          | unverified        | F-280   |
+| A read of whole packets ends at  | yes (jiffy)         | yes (8MP EVK)       | unverified        | F-280   |
 | its length                       |                     |                     |                   |         |
 | IN: no empty packet after whole  | yes                 | yes                 | yes               |         |
 | packets                          |                     |                     |                   |         |

@@ -44,7 +44,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (was F-142). Left: which partitions a board lets a host read | | |
 | F-087 | `src/cm/cm_main.c` `error_to_wire` | `-PB_ERR_BAD_PAYLOAD` (payload hash mismatch) has no wire result, so the host reports "Generic error". `include/pb-tools/error.h` has no payload code. | Seen on jiffy (2026-10-22) | open: a new result code is a wire change, see `compatibility.md` (old hosts must handle an unknown code) |
 | F-089 | `src/lib/libc/snprintf.c` (vendored) `unsigned_num_print` | `%x` writes the digits and padding without checking the buffer size `n`, so `snprintf` with `%x` can overflow a small buffer (`%d`/`%u`/`%s` are bounded). Unsupported specifiers (`%zu`, `%2u`, `%c`, ...) spin forever instead of failing. | Verified (code) | open: `imx_rom_log.c` works around it (only writes a line with 128 bytes left) |
-| F-090 | `src/plat/imx8x` link, imx8dxlevk | `.text` grew past 64 KiB (0x11000 after `plat_get_boot_source`), so `.data` no longer starts on a 64 KiB boundary (ld's aarch64 max page size), and ld puts `.text` through `.bss` in one RWX LOAD segment: `warning: build-imx8dxlevk/pb has a LOAD segment with RWX permissions`. imx8mpevk (2026-10-28) too: `.text` starts at 0x920000 and ends inside the same 64 KiB page as `.data`. Only the ELF headers; `pb.bin` and the MMU setup (linker symbols) are the same. | Verified (readelf) | open: `-z max-page-size=0x1000` for the aarch64 link, or align `.data` in the linker script |
 | F-095 | `src/cm/cm_main.c` `cmd_board`, `tools/punchboot/api_board.c` | The device ignores `response_buffer_size` and lets the board fill the whole command buffer. When the response is larger than the host's buffer, the host returns an error without reading the response, which stays on the link and is read as the next results. 2.x hosts also don't check the first result (the check is commented out), so they send the request transfer even after an error. | Verified (code) | open: pass `min(response_buffer_size, CM_BUF_SIZE)` to the board, but check first whether any released host sends 0 there (D-008) |
 | F-100 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The timing copy for TF-A in `.umctl2` (NOLOAD, 0x40000000) never writes `fsp_msg`/`fsp_msg_num`, so TF-A gets whatever DRAM held. The copy's size (~12.5 KiB for the EVK) is not checked against the 128 KiB region, and nothing pins `struct dram_timing_info` to TF-A's layout. | Verified (read) | partly fixed (`imx8m-dram-cleanup`): the copy is a 128 KiB `struct dram_timing_save` and too large tables fail with `-PB_ERR_MEM`; `fsp_msg` is never read by upstream TF-A (only `fsp_table` and the tables), so harmless there; the layout pin is open |
 | F-102 | `src/drivers/ddr/{umctl2,dwc_ddrphy}.c`, `src/plat/imx8m/ddr_imx8mq.c` | Every poll in the DDR init (STAT, PHY mailbox, CalBusy, DFISTAT, SWSTAT, PLL lock) spins forever. A stuck PHY or bad board table hangs the board without a log. | Verified (read) | open: timeouts need a measurement on hardware |
@@ -63,7 +62,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-138 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_poll_setup_pkt`, `src/drivers/usb/usbd.c` | Control transfers against 6UL RM 54.4.6.4.2: the setup packet is copied under the tripwire and then acked in ENDPTSETUPSTAT; the RM acks first, so a second SETUP arriving between the two is acked unread. After priming an EP0 data or status stage nothing checks ENDPTSETUPSTAT, so a SETUP that aborts the control transfer leaves `wait_for_completion`/`imx_ci_udc_xfer_zlp` spinning until the watchdog. Unsupported requests are never STALLed (54.4.6.3.2): the host waits out its control timeout (e.g. `lsusb -v` asking for the BOS descriptor) and `usbd_xfer_complete` fails the transfer in progress. `USB_SET_IDLE` primes an OUT status stage a no-data request doesn't have. EP0 IN has ZLT disabled, so a reply that is a multiple of 64 bytes and shorter than wLength would need a ZLP it never gets (no current descriptor is). | Verified (code, RM) | open |
 | F-139 | `src/drivers/usb/imx_usb2_phy.c`, `src/board/jiffy/board.c` `cm_board_init` | 6UL clocks and PHY: `imx_usb2_phy_init` writes PLL_SIC at USBPHY+0xa0, which the 6UL USBPHY doesn't have (its map ends at VERSION, 0x80; the PLL is CCM_ANALOG_PLL_USB1). jiffy only sets EN_USB_CLKS in PLL_USB1 (reset 0x00012000: BYPASS set, POWER clear) and relies on the ROM having powered, unbypassed and locked PLL3. The charger detector is on after reset (USB_ANALOG_USB1_CHRG_DETECT EN_B = CHK_CHRG_B = 0) and RM Fig. 55-3 turns it off before D+ is pulled up; pb doesn't. Works on the board. | Verified (code, RM 18.7.2, 55.3, 55.2.7) | open |
 | F-140 | `src/drivers/usb/imx_ci_udc.c` | USBMODE.SDIS is set; the RM: in high speed every OUT packet is then answered with NYET, and it "substantially limits" throughput. Worth measuring for flashing speed. The init also writes ENDPOINTLISTADDR before USBMODE.CM, the RM (54.4.6.1) sets the mode first. `CMD_ITC(x)` cast to `uint16_t` after the shift, so ITC was always 0 (immediate; fine for a polling driver). | Verified (code, RM 54.6.33, 54.4.6.1) | open (ITC: `USBCMD_ITC(0)` since `5bd1d20e`, same value) |
-| F-143 | `src/drivers/mmc/mmc_core.c:168` | `#ifdef MMC_CORE_DEBUG_IOS` lacks the `CONFIG_` prefix, so the Kconfig option `MMC_CORE_DEBUG_IOS` never has an effect. | Verified (code) | open |
 | F-148 | `src/plat/imxrt/plat.c` `plat_init` | The clock roots depend on how the chip was reset: pb sets the ARM PLL and the periph clock muxes but not all dividers, so it inherits them. On the RT1060 EVK after a power-on boot (loaded over JTAG after the ROM) it reports AHB 150, IPG 75, PER 37 MHz; booted from the NOR after a software reset, AHB 600, IPG 200, PER 100 MHz. 200 MHz is above the IPG root's 150 MHz maximum (RT1060 data sheet). Set AHB_PODF, IPG_PODF and PERCLK_PODF explicitly. | Verified (board) | open |
 | F-149 | `src/board/imxrt1060evk/imximage.cfg` | The DCD writes IOMUXC_GPR17 (0x400ac044 = 0x55555555) and sets GPR16 bit 2 to make all of the FlexRAM OCRAM. HAB rejects the write: `punchboot log hab` on the RT1060 EVK has a failure, invalid address (0x22) in a CSF/DCD command, for that write. So the FlexRAM keeps its fused split (256 KiB OCRAM); pb fits, since its buffers end at 0x202bf000. On an open part the ROM goes on; on a closed one the boot fails. Drop the DCD or set GPR17 from pb (the ROM's DCD address list doesn't allow IOMUXC_GPR). | Verified (board, HAB log) | open |
 | F-153 | Linux 6.18 + TF-A v2.12 on the i.MX8M Plus | Linux powers the audio mix through the GPC itself, which leaves its AIPS5 bridge at the reset defaults (TF-A configures AIPS5 only when its own SiP call powers the domain): the first access (audio mix clock driver, MU2) takes an SError. Not pb; U-Boot doesn't set AIPS5 either. Newer kernels have `drivers/bus/imx-aipstz.c` (MPR0 = 0x77777777 on probe and runtime resume) with a node in `imx8mp.dtsi`. | Verified (EVK) | worked around: the test bench's DTS disables AIPS5 (`59569a10`) |
@@ -112,6 +110,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | driver: in command mode `boot activate` is `-PB_ERR_NOT_SUPPORTED` and `boot partition` | | |
 | | | `-PB_ERR_PARAM`, the commands that would repair it. The GPT failure path above sets up | | |
 | | | the driver for that reason. | | |
+| | | 2026-11-13 (`eb1ad645`): the handover is set up after a failed policy init, so a boot from RAM | | |
+| | | works. The policy is detached until F-393 is fixed: `boot activate` still answers NOT_SUPPORTED. | | |
+| | | Left: delete `boot_policy_set(NULL)` in `board_setup()` with F-393 | | |
 | F-179 | `src/boot/ab_state.c` | Minor. With both `enable` bits set `get()` boots A, | Verified | open |
 | | | `boot_ab_state_get_boot_partition()` reports none and `pbstate` both active (no writer | | |
 | | | sets both today; `validate()` could reject bits outside A and B). Normal mode with no | | |
@@ -139,11 +140,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | and returns OK; under 512 bytes CMD24 goes out with no data and the card stays in rcv. `part verify` of | | |
 | | | such a size hashes stale buffer bytes. The host disk and the ramdisk write exact byte counts, so no test | | |
 | | | sees it. In cm: zero-pad the tail and round up (hosts send raw sizes, D-008). | | |
-| F-183 | `Makefile:124-134` | High. `keystore.o` has no prerequisites and `srk_fuse.o` depends | Verified | open |
-| | | only on the file: a changed `CONFIG_KEYSTORE`/`CONFIG_SRK_FUSE` isn't regenerated in an existing build | | |
-| | | directory (shown with an out-of-tree jiffy build). pb keeps the test keys and the test SRK hash, which | | |
-| | | `slc set-configuration` would fuse. `PB_VERSION` has the same gap. Depend on the input file and the | | |
-| | | config. | | |
 | F-184 | `src/drivers/usb/cdns3_udc_core.c:263` | The clean covers `desc_count` TRBs, not the | Verified | open |
 | | | terminating one at `trb[desc_count]`: for some counts its flags word is in a cache line that isn't | | |
 | | | cleaned, and a stale TRB from a larger transfer stays in memory. The effect on the controller is | | |
@@ -227,9 +223,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `imx_uart.h`: `UFCR_RFDIV_1` is divide by 2. | | |
 | | | D-053: pb doesn't clear the reset reason (SRSR), the OS reads the same register; that item | | |
 | | | is closed | | |
-| F-211 | `src/delay.c:33-47` | Low. Timeouts compare with an absolute end tick: if the 32-bit us | Verified | open |
-| | | counter wraps between `ts_end` and the next poll the timeout takes another 71 minutes. Callers ignore | | |
-| | | `pb_timeout_init_us()`'s result. Use `(now - start) >= timeout`. | | |
 | F-212 | `src/board/imx8dxlevk` | The DXL board offers `slc lock`, but its build can't sign pb | Reported | open |
 | | | (`imx8xl_sign_image`: not supported): a locked DXL rejects the only image there is. Drop | | |
 | | | `set_configuration_locked` until signing exists. | | |
@@ -239,9 +232,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | time. | | |
 | F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
-| F-216 | `src/board.c:122-158` | F-178 is one of three: a failing `init()` or `late_init()` also | Reported | open |
-| | | returns before `setup_boot_driver()`, so a RAM boot of a rescue image isn't possible when the eMMC | | |
-| | | fails. | | |
 | F-217 | `src/board/host/board.c`, `test_fuse_bio.c` | The host board's fuses are on a GPT | Reported | open |
 | | | partition and load in `late_init`: with a bad GPT a locked host device reads as open, the opposite of | | |
 | | | real boards, so the D-026 order can't be tested end to end. | | |
@@ -263,27 +253,21 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-222 | `tools/pbstate/CMakeLists.txt`, `src/lib/crc.c` | `libpbstate.so` exports a | Reported (probe) | open |
 | | | global `crc32` that isn't zlib's: with zlib loaded first every state fails the CRC check. Hide or rename | | |
 | | | it. | | |
-| F-223 | `tools/punchboot/session.py:242` | `_stream_finalize()` never checks the result. | Reported (probe) | open |
-| | | FINALIZE enables the written eMMC boot partition (F-082): if that fails, `part write` exits 0 and the | | |
-| | | board boots the old one. | | |
-| F-224 | `tools/punchboot/__main__.py:567` | `boot enable` without its argument sends the | Reported (probe) | open |
-| | | null UUID: the device disables boot, exit 0. Make it required. | | |
-| F-225 | `__main__.py`, `session.py`, `partition.py` | The CLI replaces every exception's | Reported (probe) | open |
-| | | message with a fixed string (no udev rule reads "Generic error"). Unknown partition flag bits or SLC | | |
-| | | values from a newer device raise `ValueError`, which the CLI doesn't catch. Tracebacks for a missing | | |
-| | | file, a binary board response, a non-semver version. | | |
 | F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
 | | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
 | | | command's. Several error paths leave transfers unread the same way. | | |
+| | | 2026-11-13 (`f43615bb`): a failed transfer ends the host's session, and the USB transport takes the | | |
+| | | caps' `operation_timeout_ms` once the caps are read. Left: `part_erase_timeout_ms` (F-375) | | |
 | F-227 | host tools, low | `session.py:556` masks the verify size to 32 bits. With several | Reported | open |
 | | | devices and no `-u` the first is used, also for `slc` commands. Three different is-this-bpak checks. The | | |
 | | | CI's only-grows guards compare with the merge-base, which is HEAD on a push to master. | | |
+| | | 2026-11-13 (`cbc47194`, `997a705e`, `229c0c71`): a verify above 4 GiB is refused before anything is | | |
+| | | sent, `part verify` checks for a bpak as `part write` does, the CI guard compares a push with its | | |
+| | | previous head. Left: several devices and no `-u` (the first is used, also for `slc`), for Jonas | | |
 | F-228 | `.github/workflows`, `docker/`, `scripts/ci` | Any `v*` tag publishes to PyPI with no | Reported | open |
 | | | check against `version.txt`, master or the tests. Actions are pinned by tag, the publish action gets a | | |
 | | | long-lived token. The dev image is partly pinned and rebuilt per job. CI builds only `pb.bin` (never the | | |
 | | | signed images or `testbench/simple`), warnings don't fail. | | |
-| F-229 | `Makefile:31` | The result of `genconfig.py` is ignored: a failure builds with | Reported (probe) | open |
-| | | the old `.config`, a mistyped defconfig name builds the Kconfig defaults, both with exit 0. | | |
 | F-230 | `doc/guides/testing.md`, `status.md` | Line coverage is 91.0% (4445/4886), not | Reported (probe) | open |
 | | | 99.2%. `imx_caam.c` 38%: `caam_ecda_verify` and the hash path 0%. Never compiled by a host test: | | |
 | | | `boot/atf.c`, `boot/simple.c`, `usbd.c`, `pb_dev_cls.c`, `partition/static.c`. No tests: `imx_ocotp.c`, | | |
@@ -377,10 +361,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | handover (`system.md` 3, `boot.md` 5.6: `pb,status` and a `status` field; the encoding is open) | | |
 | | | D-050: a second entry, `board-degraded` (bit 1), set by a board with `board_report_degraded()` | | |
 | | | (`board.md` 2.3) | | |
-| F-250 | `src/board.c`, `src/board/*/board.c` | `default_status()` and the boards' | Verified (code) | open |
-| | | `status()` set `*length` from `snprintf()`, then append the NUL at `buf[*length]`: a truncated text | | |
-| | | writes past the buffer. Latent, `CM_BUF_SIZE` is 4 MiB. `board.md` 4.3: the board writes at most | | |
-| | | `*length - 1` bytes, the core clamps and appends the NUL | | |
 | F-251 | `src/board/{imxrt1060evk,imx8qxmek,imx8dxlevk}` | The serial download | Verified (code) | open |
 | | | check is in the boards: the 8X reads the SCU's boot type in `early_boot`. The RT had two in a | | |
 | | | `late_boot` that was never called, removed with F-264 and to come back in its | | |
@@ -494,6 +474,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | Where the two differ, one host transfer fills several reads. `command-mode.md` 4.4 and 6 | | |
 | | | (D-060) ask the transport for that. Read in the code, not run: try `boot bpak` on the | | |
 | | | imx8mpevk and jiffy. The requirement is `usb.md` 2.3 | | |
+| | | 2026-11-12, on the bench, pb `64d5bba0`: `boot bpak` loads, verifies and starts Linux on the 8MP EVK | | |
+| | | (DWC3, 15 MB) and on jiffy (ChipIdea, 5.6 MB), pieces of 1 MiB against transfers of 4 MiB. Left: the | | |
+| | | cdns3 (the MEK's two sizes are equal) and the RT1060 (4 KiB pieces) | | |
 | F-281 | `src/drivers/{mmc,virtio,usb}` | Waits without a bound that no finding | Reported (read) | open |
 | | | names: `mmc_rw()`'s wait for the card's state after a transfer and the same loop in | | |
 | | | `mmc_set_ext_csd()`; virtio block's completion; the cdns3 glue's wait for power-on-ready. With | | |
@@ -753,6 +736,40 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `STREAM_PREPARE_BUFFER` is overwritten, and a `STREAM_WRITE_BUFFER` after them writes the | | |
 | | | partition's bytes. `command-mode.md` 5.3: `PART_VERIFY` changes nothing, the stream neither. | | |
 | | | Released hosts prepare before every write, so no released flow meets it | | |
+| F-393 | `src/boot/ab_state.c` | After a failed init the state functions write through | Verified (host) | open |
+| | | partitions the init never looked up: `cfg` is set before the lookups and an early return (System A | | |
+| | | or B not in the table) leaves `primary_part` and `backup_part` at 0, the first bio device. With the | | |
+| | | policy attached, `boot activate A` answered OK and overwrote LBA 0 of the disk (host, table variant | | |
+| | | 2). `boot_ab_state_write_board_reg()` reaches the same from board code. Until it is fixed | | |
+| | | `board_setup()` detaches the policy after a failed init (F-178). Found with F-178 | | |
+| F-394 | `src/board/host/board.c` | Low. The host board sets up its disk before Mbed TLS, | Verified (code) | open |
+| | | the real boards their crypto engine first: a failed `init()` on the host leaves no crypto, so the | | |
+| | | RAM boot after a failed `init()` (F-216, `board.md` 2.1) has no end-to-end test | | |
+| F-395 | `src/board/{imx8mevk,imxrt1060evk}/board.c` | Low. imx8mevk's `board_command()` appends | Reported | open |
+| | | a NUL at `response[*response_size]` after `snprintf()`, the pattern of F-250 in a board command | | |
+| | | (latent with a 4 MiB buffer; `board.md` 4.4 has no clamp rule for a command's response). The RT's | | |
+| | | `board_command()` has an unused variable `rc` (line 350), the one warning of its build | | |
+| F-396 | `src/link.lds`, the armv7 links | Low. jiffy's and the RT1060's ELF have | Verified (readelf) | open |
+| | | everything in one RWE LOAD segment, as the aarch64 boards had (F-090); arm-none-eabi's ld doesn't | | |
+| | | warn. Only the ELF's headers | | |
+| F-397 | `mmc_emmc.c:362`, `dwc3_udc.c:359,651` | Low. At `CONFIG_LOGLEVEL` 0 or 1 | Verified (build) | open |
+| | | without the RAM log, variables that only a log line uses are unused (`start`, `speed`, `caplength`): | | |
+| | | warnings in the imx8mpevk build. Seen with F-109 | | |
+| F-398 | `Makefile` | Nothing depends on the flags: a changed `cflags` or `ldflags` | Verified (build) | open |
+| | | (`CONFIG_OPTIMIZE` on the command line, an edited `makefile.mk`) neither compiles nor links again in | | |
+| | | an existing build directory, shown with F-090's flag. `srk_fuse.o` doesn't depend on `scripts/gen- | | |
+| | | srk-fuse.py` (read). The value files of F-183 are the way | | |
+| F-399 | `src/cm/Kconfig`, `cm_main.c` | Low. `CONFIG_CM_TRANSPORT_READY_TIMEOUT` has no range, | Reported | open |
+| | | and its `* 1000000L` overflows a 32-bit long above 2147 s | | |
+| F-400 | `scripts/pbdev`, `scripts/ci/host-test.sh` | Low. Two `scripts/pbdev test` runs at | Verified (run) | open |
+| | | once in one tree fail: both install the package through setuptools' `build/` directory and the wheel | | |
+| | | builds collide ("Failed building wheel for punchboot"). The default and the sanitizer run must go | | |
+| | | one after the other | | |
+| F-401 | `tools/punchboot/session.py` | Low. `part_erase` masks `start_lba` to 32 bits, so a | Reported | open |
+| | | partition past block 2^32 wraps (pb 3.0.0 refuses the range, older devices unchecked). After a | | |
+| | | host's timeout on USB a device before 3.0.0 can still hold the late result, which the next session | | |
+| | | reads as its first answer (read, not tried). `pyproject.toml` says Python 3.10 and up; only 3.13 is | | |
+| | | tested | | |
 
 ## Dependencies / vendored code
 
@@ -766,7 +783,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | ID | Finding | Status |
 |---|---|---|
 | F-030 | libc files never compiled: `memcpy.c`, `strncmp.c`, `strlcpy.c`, `strnlen.c`, `strrchr.c`. Also `xlat_tables_v2/aarch32/nonlpae_tables.c`. | open |
-| F-031 | Stale `-I src/libc/include/...` in the armv7a/armv8a makefiles. The gcovr excludes still name `bearssl` and `src/fdt`. | open |
 | F-032 | Deprecated commands still handled: `PART_TBL_INSTALL`, `PART_RESIZE`, `AUTH_SET_PASSWORD`. `pb_wire_command_string`/`pb_wire_slc_string` are stubs. Corrected 2026-11-12 (`command-mode.md` 5.3, 5.8): only `PART_RESIZE` is retired. `PART_TBL_INSTALL` is in use (`board.md` 2.4), and `AUTH_SET_PASSWORD` was never implemented and is to be (`roadmap.md`). | open: removing them breaks old hosts (D-008); at most answer `NOT_SUPPORTED`, never reuse the slots |
 | | Left after the correction: `PART_RESIZE` still has its case in `cm_main.c`, and the two string | |
 | | functions in `src/wire.c` return "" | |
@@ -791,6 +807,4 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-044 | Sphinx docs are mostly stubs, with version 1.0.0 in `conf.py`, broken header paths, and `sphinx<7`. The README test instructions are wrong (no `BOARD`). `doc/guides/release-checklist.txt` is stale. | partly fixed: Sphinx/RTD removed (D-020); README and the checklist still open |
 | F-052 | `src/drivers/virtio/*` has no user since `plat/qemu` was removed. Verified. | open: keep for a QEMU smoke tier, or remove |
 | F-067 | Host test infra: `pbtest.py` `stop()` ignores pb-host's exit code, so sanitizer/LeakSanitizer failures at teardown are lost. The socket file appears at `bind()`, before `listen()` (startup race). No client timeouts, no pytest-timeout/ctest `TIMEOUT`. pb-host `write()` can die from SIGPIPE. Orphaned pb-host if pytest is killed. `fakes/ramdisk.c` computes `lba * 512` in 32 bits. 64-bit host hides 32-bit overflows (F-054); consider a `-m32` job. Verified (read). | partly fixed (claude-work): teardown fails on non-zero exit and sanitizer reports; ramdisk overflow fixed; the socket path appears only after `listen()`; ctest `TIMEOUT` (60 s per unit test, 600 s for the integration suite). Client timeouts in the C library, SIGPIPE, orphans and `-m32` open |
-| F-109 | `include/pb/log_def.h`: a disabled LOG macro expands to nothing, so `else LOG_DBG(...);` is an empty body and warns (`-Wempty-body`) at `CONFIG_LOGLEVEL=1` (seen in `src/self_test.c`, since removed). Expanding to `do { } while (0)` fixes it. Verified (build). | open |
-| F-147 | `Makefile` `menuconfig oldconfig:` runs `scripts/$@.py`, but `scripts/oldconfig.py` doesn't exist (there is `olddefconfig.py`, unreachable); `.PHONY` names `olddefconfig` and `keystore`, which have no rules. `README.md:208` puts `createtoken.sh` in "the tools folder" (it's `scripts/`) and passes `-sha256` (the script adds the `-`). `build.yml:75` gives `upload-artifact` a `fail_ci_if_error` left from Codecov. | open |
 | F-347 | The host board has no device tree part, so no integration test reads what a handover wrote: `/chosen` and pb's information in it are reached by the unit tests only (`test_image.c`, `test_tfa_image.c`), and `late_boot` reports the partition's name alone. F-260's `test_boot_mode` reads the boot's mode from a debug line of `boot.c` in pb-host's log (`Device.boot_mode`, `pbtest.py`), which a change of the log's text breaks. A device tree part in the host's images and a dump of it (or of `struct boot_info`) next to `--boot-status` would let the tests read the handover itself | open |
