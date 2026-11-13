@@ -18,8 +18,15 @@
 #elif CONFIG_PLAT_IMX8X
 #include <plat/imx8x/imx8qxp_pads.h>
 #endif
+/* The SCFW's services a board uses (platform.md 7, D-056): its pads and the
+ * clocks and power of its peripherals (pad, pm), the boot button, the boot
+ * type, the build info and the temperature (misc), the SECO's build info
+ * (seco). A board includes this header, never the services' by their path */
 #include <plat/imx8x/sci/ipc.h>
+#include <plat/imx8x/sci/svc/misc/api.h>
 #include <plat/imx8x/sci/svc/pad/api.h>
+#include <plat/imx8x/sci/svc/pm/api.h>
+#include <plat/imx8x/sci/svc/seco/api.h>
 #include <stddef.h>
 
 /* SC_C_ID, sc_misc_get_control(SC_R_SYSTEM): the SoC id and revision */

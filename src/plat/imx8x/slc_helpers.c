@@ -58,8 +58,13 @@ int imx8x_slc_set_configuration_locked(void)
 {
     LOG_INFO("About to change security state to locked");
 
+#ifdef CONFIG_IMX8X_FUSE_DRY_RUN
+    LOG_INFO("Fuse dry run: Would forward the life cycle to OEM closed");
+    return PB_OK;
+#else
     if (sc_seco_forward_lifecycle(ipc, IMX8X_LC_TO_OEM_CLOSED) != SC_ERR_NONE)
         return -PB_ERR_IO;
 
     return PB_OK;
+#endif
 }
