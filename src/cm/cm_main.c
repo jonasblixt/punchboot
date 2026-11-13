@@ -1488,6 +1488,13 @@ static enum cm_state state = CM_SETUP;
 /* The time the transport has to become ready, from when it was started */
 static struct pb_timeout ready_timeout;
 
+/* Microseconds in 32 bits, and neither 0 nor UINT32_MAX, which
+ * pb_timeout_init_us() refuses: Kconfig's range, for a build that has its
+ * configuration from elsewhere */
+_Static_assert(CONFIG_CM_TRANSPORT_READY_TIMEOUT >= 1 &&
+                   CONFIG_CM_TRANSPORT_READY_TIMEOUT <= (UINT32_MAX - 1) / 1000000,
+               "CONFIG_CM_TRANSPORT_READY_TIMEOUT: 1 to 4294 s");
+
 /* The set up, on the task's first call (command-mode.md 2.1) */
 static int cm_setup(void)
 {
@@ -1544,7 +1551,7 @@ static int cm_start(void)
     }
 
     LOG_INFO("Waiting for transport to become ready...");
-    pb_timeout_init_us(&ready_timeout, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
+    pb_timeout_init_us(&ready_timeout, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000UL);
 
     return PB_OK;
 }

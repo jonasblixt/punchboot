@@ -10,7 +10,13 @@ config CM_BUF_SIZE_KiB
 config CM_TRANSPORT_READY_TIMEOUT
     int "Timeout in seconds before transport must become ready"
     default 10
+    range 1 4294
     depends on CM
+    help
+        How long command mode waits for a host while it has no session.
+        Then pb resets (command-mode.md 2.2). pb's timeouts count
+        microseconds in 32 bits, hence at most 4294 s. A value outside the
+        range isn't used: the build takes the default.
 
 config CM_TRANSFER_TIMEOUT
     int "Timeout in seconds for a transfer inside a command"
