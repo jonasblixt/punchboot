@@ -82,7 +82,11 @@ void console_init(uintptr_t base_, const struct console_ops *ops_)
 #endif
 
 #ifdef CONFIG_PRINT_BOOT_BANNER
-    printf("\n\rPB " PB_VERSION ", %s (%i)\n\r", plat_boot_reason_str(), plat_boot_reason());
+    struct pb_boot_reason reason;
+
+    /* The reason is filled in also when the platform couldn't read it */
+    (void)plat_get_boot_reason(&reason);
+    printf("\n\rPB " PB_VERSION ", %s (0x%" PRIx32 ")\n\r", reason.name, reason.raw);
 #endif
 }
 

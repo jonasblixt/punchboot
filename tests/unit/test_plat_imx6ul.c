@@ -1,0 +1,249 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * The i.MX6UL port (src/plat/imx6ul/plat.c) against the platform contract
+ * (doc/interfaces/platform.md), with the SoC's registers in a register file
+ * (fakes/regs.h). The GPT's and the WDOG's drivers are the real ones; the
+ * fuses, the ROM's logs, the HAB, the TZASC and the MMU are fakes.
+ */
+
+#include <setjmp.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include <cmocka.h>
+
+#include <drivers/fuse/imx_hab_fuses.h>
+#include <drivers/fuse/imx_ocotp.h>
+#include <drivers/rom_log/imx_hab_log.h>
+#include <drivers/rom_log/imx_rom_log.h>
+#include <drivers/tzc/tzc380.h>
+#include <drivers/wdog/imx_wdog.h>
+#include <pb/console.h>
+#include <pb/pb.h>
+#include <pb/plat.h>
+#include <plat/imx6ul/imx6ul.h>
+#include <string.h>
+
+#include "fakes/regs.h"
+#include "fakes/xlat.h"
+
+/* The GPT (RM 28.6) */
+#define GPT_CR     0x00
+#define GPT_CR_SWR BIT(15)
+
+void imx_rom_log_save(const struct imx_rom_log_config *cfg)
+{
+    (void)cfg;
+}
+
+bool imx_rom_log_has_event(uint32_t event)
+{
+    (void)event;
+    return false;
+}
+
+int imx_hab_log_init(const struct imx_hab_log_config *cfg)
+{
+    (void)cfg;
+    return PB_OK;
+}
+
+int hab_has_no_errors(void)
+{
+    return PB_OK;
+}
+
+int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank)
+{
+    (void)base;
+    (void)words_per_bank;
+    return PB_OK;
+}
+
+int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
+{
+    (void)bank;
+
+    if (row == IMX6UL_FUSE_SPEED_GRADE_WORD)
+        *value = 2 << IMX6UL_FUSE_SPEED_GRADE_SHIFT;
+    else
+        *value = 0;
+
+    return PB_OK;
+}
+
+int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs)
+{
+    (void)sw_sticky;
+    (void)lock_scs;
+    return PB_OK;
+}
+
+void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
+{
+    (void)cfg;
+}
+
+int tzc380_init(uintptr_t base)
+{
+    (void)base;
+    return PB_OK;
+}
+
+int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp)
+{
+    (void)region;
+    (void)region_base;
+    (void)size;
+    (void)sp;
+    return PB_OK;
+}
+
+void log_time_start(void)
+{
+}
+
+void log_prefix(const char *level, const char *func)
+{
+    (void)level;
+    (void)func;
+}
+
+/* What the SoC does with a write */
+static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
+{
+    /* The ARM PLL locks at once */
+    if (addr == IMX6UL_CCM_ANALOG_PLL_ARM)
+        return value | CCM_ANALOG_PLL_ARM_LOCK;
+
+    /* The GPT's software reset ends by itself */
+    if (addr == IMX6UL_GPT1_BASE + GPT_CR)
+        return value & ~GPT_CR_SWR;
+
+    return value;
+}
+
+static int setup(void **state)
+{
+    (void)state;
+    fake_regs_reset();
+    fake_regs_on_write = soc_on_write;
+    /* The board's DCD took the TZASC out of bypass */
+    fake_regs_set(IMX6UL_IOMUXC_GPR9, IOMUXC_GPR9_TZASC1_BYP);
+    fake_mmu_enables = 0;
+    return 0;
+}
+
+/* What plat_get_boot_reason() makes of a value of SRC_SRSR */
+static struct pb_boot_reason reason_of(uint32_t srsr)
+{
+    struct pb_boot_reason reason;
+
+    memset(&reason, 0xff, sizeof(reason));
+    fake_regs_set(IMX6UL_SRC_SRSR, srsr);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_get_boot_reason(&reason), PB_OK);
+    assert_int_equal(reason.raw, srsr);
+    return reason;
+}
+
+/* platform.md 3.4: every cause of SRC_SRSR has a kind and a name, and raw is
+ * the register (plat/imx6ul/imx6ul.h has the table) */
+static void test_boot_reason_kinds(void **state)
+{
+    static const struct {
+        uint32_t srsr;
+        enum pb_boot_reason_kind kind;
+        const char *name;
+    } causes[] = {
+        { IMX6UL_SRSR_POR, PB_BOOT_REASON_POR, "POR" },
+        { IMX6UL_SRSR_CSU, PB_BOOT_REASON_FAULT, "CSU" },
+        { IMX6UL_SRSR_USER, PB_BOOT_REASON_UNKNOWN, "User" },
+        { IMX6UL_SRSR_WDOG, PB_BOOT_REASON_WDOG, "wdog" },
+        { IMX6UL_SRSR_JTAG, PB_BOOT_REASON_DEBUG, "jtag_rst" },
+        { IMX6UL_SRSR_JTAG_SW, PB_BOOT_REASON_DEBUG, "jtag_sw" },
+        { IMX6UL_SRSR_WDOG3, PB_BOOT_REASON_WDOG, "wdog3" },
+        { IMX6UL_SRSR_TEMPSENSE, PB_BOOT_REASON_FAULT, "temp" },
+        /* Nothing set (the OS cleared it), a reserved bit */
+        { 0, PB_BOOT_REASON_UNKNOWN, "Unknown" },
+        { BIT(1), PB_BOOT_REASON_UNKNOWN, "Unknown" },
+    };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(causes); i++) {
+        struct pb_boot_reason reason = reason_of(causes[i].srsr);
+
+        assert_int_equal(reason.kind, causes[i].kind);
+        assert_string_equal(reason.name, causes[i].name);
+    }
+}
+
+/* platform.md 3.4: the status is sticky, so several causes are set after the
+ * resets that follow a power on. The priority of the platform header decides:
+ * the highest bit, and a power on is the lowest */
+static void test_boot_reason_priority(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    reason = reason_of(IMX6UL_SRSR_POR | IMX6UL_SRSR_WDOG);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_WDOG);
+    assert_string_equal(reason.name, "wdog");
+
+    reason = reason_of(IMX6UL_SRSR_POR | IMX6UL_SRSR_USER);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_UNKNOWN);
+    assert_string_equal(reason.name, "User");
+
+    reason = reason_of(IMX6UL_SRSR_POR | IMX6UL_SRSR_WDOG | IMX6UL_SRSR_JTAG);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_DEBUG);
+    assert_string_equal(reason.name, "jtag_rst");
+
+    reason = reason_of(0x1fd);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_FAULT);
+    assert_string_equal(reason.name, "temp");
+
+    /* warm_boot is software's flag, not a cause: it is in raw only */
+    reason = reason_of(IMX6UL_SRSR_WARM_BOOT | IMX6UL_SRSR_POR);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_POR);
+    assert_string_equal(reason.name, "POR");
+
+    reason = reason_of(IMX6UL_SRSR_WARM_BOOT);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_UNKNOWN);
+}
+
+/* platform.md 2.1, 3.4: the reason is read in plat_early_init() and never
+ * cleared: the OS reads the same register (D-053) */
+static void test_boot_reason_is_read_once_and_not_cleared(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    reason = reason_of(IMX6UL_SRSR_POR | IMX6UL_SRSR_WDOG);
+    assert_int_equal(plat_init(), PB_OK);
+
+    /* What the register reads later doesn't matter */
+    fake_regs_set(IMX6UL_SRC_SRSR, IMX6UL_SRSR_POR);
+    assert_int_equal(plat_get_boot_reason(&reason), PB_OK);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_WDOG);
+    assert_int_equal(reason.raw, IMX6UL_SRSR_POR | IMX6UL_SRSR_WDOG);
+
+    assert_int_equal(fake_regs_writes(IMX6UL_SRC_SRSR), 0);
+}
+
+int main(void)
+{
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup(test_boot_reason_kinds, setup),
+        cmocka_unit_test_setup(test_boot_reason_priority, setup),
+        cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),
+    };
+
+    return cmocka_run_group_tests(tests, NULL, NULL);
+}
