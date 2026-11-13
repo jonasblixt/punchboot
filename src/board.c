@@ -275,8 +275,8 @@ static bool name_is_valid(const char *name)
 
 /*
  * Command mode's part of the board's data, checked before any of it is used
- * (board.md 3). A failed check means no command mode: cm_run() returns the
- * error and pb resets.
+ * (board.md 3). A failed check means no command mode: its task ends the
+ * loop with the error and pb resets.
  */
 static int cm_check_board_data(void)
 {

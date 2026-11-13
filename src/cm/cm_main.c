@@ -23,6 +23,7 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <pb/task.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
@@ -57,7 +58,7 @@ static bool reboot_requested = false;
 static const struct cm_config *cfg;
 /* A transfer inside a command failed or timed out (command-mode.md 4.4,
  * 4.6): the session is over, the command's other transfers fail at once and
- * the command loop restarts the transport */
+ * the task restarts the transport */
 static bool transfer_lost;
 
 #ifdef CONFIG_BOOT_LINUX_RAMOOPS
@@ -1215,7 +1216,7 @@ static int pb_command_parse(void)
         cm_write(&result, sizeof(result));
 
         if (rc == PB_OK) {
-            /* Only disconnect when booting, cm_run reads the next command
+            /* Only disconnect when booting, the task reads the next command
              * from the transport after an error */
             cm_transport_disconnect();
 
@@ -1347,13 +1348,27 @@ int cm_init(const struct cm_config *cfg_)
     return PB_OK;
 }
 
-int cm_run(void)
+/* Where the task is (command-mode.md 2) */
+enum cm_state {
+    CM_SETUP, /* Its first call */
+    CM_START, /* No session: the transport is to be started, or restarted */
+    CM_CONNECT, /* No session: waiting for the transport (2.2) */
+    CM_READ, /* A session: the read of the next command is to be started */
+    CM_COMMAND, /* A session: waiting for a command */
+};
+
+static enum cm_state state = CM_SETUP;
+/* The time the transport has to become ready, from when it was started */
+static struct pb_timeout ready_timeout;
+
+/* The set up, on the task's first call (command-mode.md 2.1) */
+static int cm_setup(void)
 {
     int rc;
+
     LOG_INFO("Initializing command mode");
 
-    /* The USB device port, first (command-mode.md 2.1). Without it there is
-     * no command mode */
+    /* The USB device port, first. Without it there is no command mode */
     rc = plat_cm_init();
 
     if (rc != PB_OK) {
@@ -1379,7 +1394,15 @@ int cm_run(void)
     slc = slc_read_status();
     device_uuid(device_uu);
 
-restart_command_mode:
+    return PB_OK;
+}
+
+/* Starts the transport, and starts it again after a session: from here the
+ * transport has CONFIG_CM_TRANSPORT_READY_TIMEOUT to become ready (2.2) */
+static int cm_start(void)
+{
+    int rc;
+
     /* A session starts with nothing: the last one ended with the transport
      * that is (re)started here (command-mode.md 3.1) */
     cm_session_end();
@@ -1393,69 +1416,116 @@ restart_command_mode:
     }
 
     LOG_INFO("Waiting for transport to become ready...");
+    pb_timeout_init_us(&ready_timeout, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
 
-    struct pb_timeout to;
-    pb_timeout_init_us(&to, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
+    return PB_OK;
+}
 
-    do {
-        plat_wdog_kick();
-        rc = cm_transport_connect();
-        if (pb_timeout_has_expired(&to)) {
-            rc = -PB_ERR_TIMEOUT;
-            break;
-        }
-    } while (rc == -PB_ERR_AGAIN);
-
-    if (rc != PB_OK) {
-        LOG_ERR("Transport init error (%i)", rc);
-        goto err_out;
-    }
-
-    LOG_INFO("Transport ready");
-
-    while (true) {
-        rc = cm_transport_read(&cmd, sizeof(cmd));
-
-        if (rc != PB_OK)
-            break;
-
-        while (true) {
-            plat_wdog_kick();
-
-            if (cfg->process)
-                cfg->process();
-
-            rc = cm_transport_complete();
-
-            if (rc == PB_OK) {
-                rc = pb_command_parse();
-
-                if (rc == -PB_ERR_ABORT) {
-                    goto err_out;
-                } else if (transfer_lost) {
-                    /* The session is over: the transport is restarted and
-                     * the device is back at waiting for a host
-                     * (command-mode.md 3.1, 4.4, 4.6) */
-                    LOG_ERR("Transfer lost (%i), restarting the transport", rc);
-                    goto restart_command_mode;
-                } else if (rc != PB_OK) {
-                    LOG_ERR("Command error %i", rc);
-                    break;
-                } else {
-                    break; /* OK, Read next command */
-                }
-            } else if (rc == -PB_ERR_TIMEOUT) {
-                continue;
-            } else if (rc == -PB_ERR_AGAIN) {
-                continue;
-            } else {
-                LOG_ERR("Read error %i", rc);
-                goto restart_command_mode;
-            }
-        }
-    }
-
-err_out:
+/* Leaves command mode (command-mode.md 2.3): the device leaves the bus, and
+ * the error ends the loop of the tasks, so that pb resets. A caller that
+ * runs the task again all the same finds it at its first call */
+static int cm_leave(int rc)
+{
     cm_transport_disconnect();
+    state = CM_SETUP;
     return rc;
 }
+
+/*
+ * Command mode's task (command-mode.md 2, board.md 4.6): a step of what
+ * was a loop. A call never waits for the host: without a session it polls
+ * the transport once, with one it polls the read of the next command once,
+ * and it returns PB_OK to be called again, so that the other tasks run and
+ * the core kicks the watchdog meanwhile. A command that has come runs to its
+ * end inside the call, with its own kicks and its transfers' timeout (4.6).
+ * An error ends the loop of the tasks: the set up failed, no host came in
+ * time, or a command asked for the reset.
+ */
+int cm_main_task(void)
+{
+    int rc;
+
+    for (;;) {
+        switch (state) {
+        case CM_SETUP:
+            rc = cm_setup();
+
+            if (rc != PB_OK)
+                return rc;
+
+            state = CM_START;
+            break;
+        case CM_START:
+            rc = cm_start();
+
+            if (rc != PB_OK) {
+                state = CM_SETUP;
+                return rc;
+            }
+
+            state = CM_CONNECT;
+            break;
+        case CM_CONNECT:
+            rc = cm_transport_connect();
+
+            if (pb_timeout_has_expired(&ready_timeout))
+                rc = -PB_ERR_TIMEOUT;
+
+            if (rc == -PB_ERR_AGAIN)
+                return PB_OK;
+
+            if (rc != PB_OK) {
+                LOG_ERR("Transport init error (%i)", rc);
+                return cm_leave(rc);
+            }
+
+            LOG_INFO("Transport ready");
+            state = CM_READ;
+            break;
+        case CM_READ:
+            rc = cm_transport_read(&cmd, sizeof(cmd));
+
+            /* A transport that is lost here ends command mode (F-364) */
+            if (rc != PB_OK)
+                return cm_leave(rc);
+
+            state = CM_COMMAND;
+            return PB_OK;
+        case CM_COMMAND:
+            rc = cm_transport_complete();
+
+            /* No command yet. A timeout is polled on (F-287) */
+            if (rc == -PB_ERR_AGAIN || rc == -PB_ERR_TIMEOUT)
+                return PB_OK;
+
+            if (rc != PB_OK) {
+                LOG_ERR("Read error %i", rc);
+                state = CM_START;
+                break;
+            }
+
+            rc = pb_command_parse();
+
+            if (rc == -PB_ERR_ABORT)
+                return cm_leave(rc);
+
+            if (transfer_lost) {
+                /* The session is over: the transport is restarted and the
+                 * device is back at waiting for a host (command-mode.md
+                 * 3.1, 4.4, 4.6) */
+                LOG_ERR("Transfer lost (%i), restarting the transport", rc);
+                state = CM_START;
+                break;
+            }
+
+            if (rc != PB_OK)
+                LOG_ERR("Command error %i", rc);
+
+            /* Read the next command */
+            state = CM_READ;
+            break;
+        }
+    }
+}
+
+DEFINE_TASK(cm_main, cm_main_task);

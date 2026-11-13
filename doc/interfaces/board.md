@@ -481,9 +481,6 @@ Token authentication (a signature over the device's UUID) is the core's.
 
 ### 4.6 Tasks [optional]
 
-**Not yet in the code (F-268)**: command mode has a `process` hook in its configuration
-(`struct cm_config`), called while it waits for a command. Since D-026 no board can set it.
-
 What a board runs while pb is stopped is a task (Jonas, D-051):
 
 ```

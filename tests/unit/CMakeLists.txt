@@ -336,6 +336,28 @@ add_test(
 )
 set_tests_properties(unit.cm_usb_kconfig PROPERTIES LABELS unit TIMEOUT 60)
 
+# main() and its loop over the tasks (board.md 4.6). main.c's entry point is
+# renamed, as for pb-host
+set_source_files_properties(${PROJECT_SOURCE_DIR}/src/main.c
+    PROPERTIES COMPILE_DEFINITIONS main=pb_main)
+pb_unit_test(test_main SOURCES
+    ${PROJECT_SOURCE_DIR}/src/main.c
+)
+
+# The same for a build without a task. The linker provides the list's start
+# and end only when something is in it, so they are set here: an empty list
+add_executable(test_main_no_tasks test_main.c ${PROJECT_SOURCE_DIR}/src/main.c)
+target_compile_definitions(test_main_no_tasks PRIVATE TEST_NO_TASKS=1)
+target_include_directories(test_main_no_tasks PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_main_no_tasks PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+target_link_options(test_main_no_tasks PRIVATE
+    -no-pie
+    -Wl,--defsym=__start_pb_tasks=0
+    -Wl,--defsym=__stop_pb_tasks=0
+)
+add_test(NAME unit.test_main_no_tasks COMMAND test_main_no_tasks)
+set_tests_properties(unit.test_main_no_tasks PROPERTIES LABELS unit TIMEOUT 60)
+
 # The transport that a build for a SoC links (usb.md 2): pb's USB class and
 # the stack, over a fake controller. pb-host links the socket instead
 pb_unit_test(test_usb_transport SOURCES

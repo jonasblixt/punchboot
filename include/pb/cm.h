@@ -26,7 +26,6 @@ struct cm_config {
     int (*status)(uint8_t *buf, size_t *length);
     int (*password_auth)(const char *password, size_t length);
     int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
-    void (*process)(void);
 };
 
 /*
@@ -71,15 +70,21 @@ int cm_transport_complete(void);
 int cm_transport_disconnect(void);
 
 /**
- * Start command mode
+ * Command mode's task (doc/architecture/command-mode.md 2): main() calls it
+ * in turn with the build's other tasks while pb is stopped (pb/task.h).
  *
- * This function calls plat_cm_init(), which sets up the USB device port, and
- * 'cm_board_init' (src/board.c), which checks the board's data and calls
- * 'cm_init'
+ * Its first call sets command mode up: plat_cm_init(), which sets up the USB
+ * device port, 'cm_board_init' (src/board.c), which checks the board's data
+ * and calls 'cm_init', and the transport. Every call after it is a step:
+ * without a session it polls the transport, with one it polls for the next
+ * command. It waits for neither. A command that has come runs to its end
+ * inside the call, its transfers with a timeout.
  *
- * @return This function does not return normally
+ * @return PB_OK to be called again. An error ends the loop of the tasks and
+ *         pb resets: the set up failed, no host came in time, or a command
+ *         asked for the reset
  */
-int cm_run(void);
+int cm_main_task(void);
 
 /**
  * Set up command mode for the board: the board's data that command mode uses

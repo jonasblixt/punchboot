@@ -68,7 +68,8 @@ A single integration test, inside `scripts/pbdev shell`:
 - **Transport.** A unix socket server. `complete()` polls: it moves what the socket has, waits at
   most 10 ms for more and returns AGAIN until the transfer is whole, so command mode's transfer
   timeout and kicks run (`command-mode.md` 4.6). When a client disconnects,
-  `complete()` fails, `cm_run` calls `init()` again, and `init()` accepts the next client, so each
+  `complete()` fails, command mode's task calls `init()` again, and `init()` accepts the next
+  client, so each
   CLI or `Session` is one connection, and one session (`command-mode.md` 3.1): a locked device
   asks each for authentication.
   The socket is bound to `<path>.tmp` and renamed to `<path>` after `listen()`, so tests can treat
@@ -102,8 +103,9 @@ A single integration test, inside `scripts/pbdev shell`:
     `boot`). Tests for the uninitialized state run first, and `cmocka_unit_test` order matters.
   - The crypto API holds one hash and one DSA provider (`CONFIG_CRYPTO_MAX_*_OPS=1`), so fake and
     Mbed TLS providers are in separate test programs.
-  - `test_cm.c` scripts the host side with `host_*()`, runs `cm_run()` until the input runs out, and
-    checks the device's output with `expect_*()`.
+  - `test_cm.c` scripts the host side with `host_*()`, calls command mode's task
+    (`cm_main_task()`) round after round, as `main()`'s loop does, until the input runs out,
+    and checks the device's output with `expect_*()`.
   - A path that hits an open bug is left out, with a comment naming the finding.
   - Drivers with fixed register addresses: put `fakes/mmio` first on the include path (see
     `test_imx8m_ddr` in `CMakeLists.txt`); every `mmio_*` call then goes to `fake_mmio_read/write`
@@ -213,6 +215,9 @@ Unit tests, by module under test:
 |                                               |                              | SLC, crypto providers            |
 | `test_usb_transport.c`                        | `pb_dev_cls.c`, `usbd.c`:    | the USB device controller        |
 |                                               | the transport on USB         |                                  |
+| `test_main.c`                                 | `main.c`: the loop over the  | platform, board set up, boot;    |
+|                                               | tasks, twice: with three     | three tasks                      |
+|                                               | tasks and with none          |                                  |
 | `test_mmc_core.c`                             | `mmc_core.c` (boot partition | fake card                        |
 |                                               | updates, power loss)         |                                  |
 | `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |

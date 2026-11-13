@@ -67,6 +67,12 @@ SECTIONS
         *(.got)
         *(.gcc_except_table)
         *(.gnu.linkonce.r.*)
+        /* The tasks that DEFINE_TASK() defines (pb/task.h). No code names
+         * them, so they are kept here (platform.md 5.1) */
+        . = ALIGN(8);
+        PROVIDE (__start_pb_tasks = .);
+        KEEP(*(pb_tasks))
+        PROVIDE (__stop_pb_tasks = .);
         . = ALIGN(16);
         . = ALIGN(1024);
         _erodata = .;

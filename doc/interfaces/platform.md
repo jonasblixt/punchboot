@@ -533,7 +533,7 @@ Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
 - The link script keeps the task list (`KEEP`): the tasks that `DEFINE_TASK()` defines (D-051,
   `board.md` 4.6), which the core calls while pb is stopped, sit in a section of their own in
   rodata, which no code names, so the linker would drop it. It provides the list's start and end. A
-  platform may define tasks too, by the same rules. **Not yet in the code (F-268).**
+  platform may define tasks too, by the same rules.
 
 The RAM log is in `pb`, which works from the first instruction. `buffers` may be in DRAM the
 platform trains, so nothing before `plat_init()` uses `.no_init`.
