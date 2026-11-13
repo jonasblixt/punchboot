@@ -62,6 +62,21 @@ def test_board_command_request_too_large(device: Device, request_size: int) -> N
         assert wire.command(PB_CMD_BOOTLOADER_VERSION_READ) == 0
 
 
+def test_board_response_fits_the_hosts_buffer(device: Device) -> None:
+    # command-mode.md 5.6 (F-095): the response is at most what the host said
+    # it can take. The punchboot package always says 4096; a host that says 8
+    # gets 8 bytes of the test-command's answer, and stays in step.
+    with device.wire() as wire:
+        wire.send_command(PB_CMD_BOARD_COMMAND, struct.pack("<III", TEST_COMMAND, 4, 8))
+        assert wire.result() == 0
+        wire.send(b"abcd".ljust(1024, b"\0"))
+        _, code, size = struct.unpack_from("<Ib3xI", wire.recv(512))
+        assert (code, size) == (0, 8)
+        assert wire.recv(size) == b"Hello t\0"
+        assert wire.result() == 0
+        assert wire.command(PB_CMD_BOOTLOADER_VERSION_READ) == 0
+
+
 def test_board_status(device: Device) -> None:
     with device.session() as s:
         assert s.board_read_status() == "Board status OK!"

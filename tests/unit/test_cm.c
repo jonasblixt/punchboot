@@ -77,7 +77,12 @@
 #define BOARD_ECHO          1
 #define BOARD_RETURN        2
 #define BOARD_REBOOT        3
+#define BOARD_FILL          4
+#define BOARD_FILL_SIZE     64
 #define BOARD_PREFIX        "echo: "
+/* The response_buffer_size every released front end sends: the 1.x CLI, the
+ * 2.x Python wrapper and the Python host */
+#define HOST_RESPONSE_SIZE  4096
 /* fake_us_tick_step: 1 ms per plat_get_us_tick() */
 #define TICK_STEP_US        1000
 /* A failed authentication's result is sent 1 s after the data (3.3), and the
@@ -311,10 +316,22 @@ static int board_status(uint8_t *buf, size_t *length)
     return board_status_rc;
 }
 
+/* The room for a response that the board was given, per call */
+static size_t board_rsp_room[8];
+static unsigned int board_command_calls;
+
 static int
 board_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size)
 {
+    if (board_command_calls < ARRAY_SIZE(board_rsp_room))
+        board_rsp_room[board_command_calls] = *rsp_size;
+    board_command_calls++;
+
     switch (cmd) {
+    case BOARD_FILL: /* A board that doesn't look at the room it was given */
+        memset(rsp, 0x42, BOARD_FILL_SIZE);
+        *rsp_size = BOARD_FILL_SIZE;
+        return PB_OK;
     case BOARD_ECHO:
         *rsp_size = snprintf((char *)rsp, *rsp_size, BOARD_PREFIX "%.*s", (int)bfr_length, bfr);
         return PB_OK;
@@ -731,6 +748,7 @@ static int setup(void **state)
     board_cfg = &cfg_default;
     board_init_rc = PB_OK;
     board_init_calls = 0;
+    board_command_calls = 0;
     memset(&plat_cm, 0, sizeof(plat_cm));
     board_status_rc = PB_OK;
     /* The clock runs: a failed authentication waits on it (F-276) */
@@ -976,7 +994,9 @@ static void test_board_status_fails(void **state)
 
 static void test_board_command(void **state)
 {
-    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
+    struct pb_command_board req = { .command = BOARD_ECHO,
+                                    .request_size = 5,
+                                    .response_buffer_size = HOST_RESPONSE_SIZE };
     uint8_t arg[1024] = "hello";
     (void)state;
 
@@ -1007,7 +1027,9 @@ static void test_board_command(void **state)
 static void test_board_command_request_size(void **state)
 {
     static const uint32_t bad_sizes[] = { 1025, 0xffffffff };
-    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 1024 };
+    struct pb_command_board req = { .command = BOARD_ECHO,
+                                    .request_size = 1024,
+                                    .response_buffer_size = HOST_RESPONSE_SIZE };
     uint8_t arg[1024];
     (void)state;
 
@@ -1034,6 +1056,68 @@ static void test_board_command_request_size(void **state)
         board = (const void *)r->response;
         assert_int_equal(board->size, 0);
     }
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+/* command-mode.md 5.6 (F-095): the response is at most what the host said it
+ * can take (response_buffer_size) and at most a buffer. The board is given
+ * that as its room, and a board that reports more is cut there: a host
+ * leaves a larger response on the link. A host that can take nothing gets
+ * no response transfer, and the exchange stays in step. */
+static void test_board_response_fits_the_hosts_buffer(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_ECHO,
+                                    .request_size = 5,
+                                    .response_buffer_size = 8 };
+    uint8_t arg[1024] = "hello";
+    uint8_t fill[BOARD_FILL_SIZE];
+    (void)state;
+
+    memset(fill, 0x42, sizeof(fill));
+
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_send(arg, sizeof(arg));
+    req.command = BOARD_FILL;
+    req.request_size = 0;
+    req.response_buffer_size = 16;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    req.response_buffer_size = 0;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    /* More than a buffer: the board has a buffer */
+    req.response_buffer_size = 0xffffffff;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    /* snprintf() wrote 7 characters and the NUL, and returned 11 */
+    expect_result(PB_RESULT_OK);
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, 8);
+    assert_memory_equal(expect_data(8), "echo: h", 8);
+    expect_result(PB_RESULT_OK);
+    assert_int_equal(board_rsp_room[0], 8);
+
+    expect_result(PB_RESULT_OK);
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, 16);
+    assert_memory_equal(expect_data(16), fill, 16);
+    expect_result(PB_RESULT_OK);
+    assert_int_equal(board_rsp_room[1], 16);
+
+    /* No response: the second result is the last */
+    expect_result(PB_RESULT_OK);
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, 0);
+    assert_int_equal(board_rsp_room[2], 0);
+
+    expect_result(PB_RESULT_OK);
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, BOARD_FILL_SIZE);
+    assert_memory_equal(expect_data(BOARD_FILL_SIZE), fill, BOARD_FILL_SIZE);
+    expect_result(PB_RESULT_OK);
+    assert_int_equal(board_rsp_room[3], BUF_SIZE);
+
     expect_result(PB_RESULT_OK);
     expect_end();
 }
@@ -3561,6 +3645,7 @@ int main(void)
         CM_TEST(test_board_status_fails),
         CM_TEST(test_board_command),
         CM_TEST(test_board_command_request_size),
+        CM_TEST(test_board_response_fits_the_hosts_buffer),
         CM_TEST(test_error_codes),
         CM_TEST(test_board_command_requests_reboot),
         CM_TEST(test_device_reset),

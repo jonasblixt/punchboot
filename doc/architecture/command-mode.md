@@ -576,8 +576,7 @@ this becomes the common refusal.
 - Both are behind the gate like every command, and the board's function runs only after it.
 - **The request** is at most 1024 bytes and the board gets exactly `request_size` of them.
 - **The response** is at most what the host said it can take (`response_buffer_size`) and at
-  most a buffer. **Not yet in the code (F-095)**: the board may fill the whole buffer, and a
-  host with a smaller one leaves the response on the link.
+  most a buffer.
 - **A reset after a command**: a board's command may ask for one
   (`cm_board_cmd_request_reboot_on_success()`). When the command then returns OK, the device
   sends the last result and leaves command mode as for `DEVICE_RESET` (2.3). A command that
@@ -743,5 +742,4 @@ For a change to command mode, a new command or a new method:
 | F-194               | A new partition table is in effect at once (5.3)                                     |
 | F-074               | No stream (5.4)                                                                      |
 | F-252               | A boot the host started that is refused or stopped (5.5)                             |
-| F-095               | The board's response fits the host's buffer (5.6)                                    |
 | F-263               | EOL as the product's option (5.2)                                                    |

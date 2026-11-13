@@ -358,10 +358,21 @@ static int cmd_board(void)
 
     uint8_t *bfr_response = buffer[1];
 
-    size_t response_size = CM_BUF_SIZE;
+    /* The response is at most what the host said it can take and at most a
+     * buffer (command-mode.md 5.6): a host leaves a larger one on the link.
+     * The board is told, and what it reports beyond that isn't sent. */
+    size_t response_max = board_cmd->response_buffer_size;
+
+    if (response_max > CM_BUF_SIZE)
+        response_max = CM_BUF_SIZE;
+
+    size_t response_size = response_max;
 
     rc = cfg->command(
         board_cmd->command, bfr, board_cmd->request_size, bfr_response, &response_size);
+
+    if (response_size > response_max)
+        response_size = response_max;
 
     board_result.size = response_size;
     pb_wire_init_result2(&result, error_to_wire(rc), &board_result, sizeof(board_result));
