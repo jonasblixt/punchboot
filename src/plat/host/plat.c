@@ -53,6 +53,41 @@ static ssize_t host_console_write(void *cookie, const char *buf, size_t size)
     return (ssize_t)size;
 }
 
+#ifdef CONFIG_ENABLE_WATCHDOG
+/*
+ * The watchdog, a fake, for the configuration that has one (F-341): it is
+ * armed in plat_early_init() with CONFIG_WATCHDOG_TIMEOUT and counts the
+ * kicks. It resets nothing: a hang on the host is a test's timeout. With
+ * --watchdog PATH the tests see it, "timeout <s>" and "kicks <n>" written
+ * when it is armed and again at the exit, which a reset is.
+ */
+static unsigned long wdog_kicks;
+static bool wdog_armed;
+
+static void wdog_report(void)
+{
+    FILE *fp;
+
+    if (host_opts.watchdog_path == NULL)
+        return;
+
+    fp = fopen(host_opts.watchdog_path, "w");
+
+    if (fp == NULL)
+        return;
+
+    fprintf(fp, "timeout %d\nkicks %lu\n", CONFIG_WATCHDOG_TIMEOUT, wdog_kicks);
+    fclose(fp);
+}
+
+static void wdog_arm(void)
+{
+    wdog_armed = true;
+    wdog_report();
+    atexit(wdog_report);
+}
+#endif
+
 int plat_early_init(void)
 {
     static const cookie_io_functions_t console_io = {
@@ -99,6 +134,11 @@ int plat_early_init(void)
     host_stdout = stdout;
     stdout = console;
     console_init(0, &host_console_ops);
+
+#ifdef CONFIG_ENABLE_WATCHDOG
+    /* After the RAM, as fopencookie(): its report is a file */
+    wdog_arm();
+#endif
 
     return PB_OK;
 }
@@ -155,8 +195,13 @@ uint32_t plat_get_us_tick(void)
     return (uint32_t)(ts.tv_sec * 1000000ull + ts.tv_nsec / 1000);
 }
 
+/* Without CONFIG_ENABLE_WATCHDOG there is none, as before */
 void plat_wdog_kick(void)
 {
+#ifdef CONFIG_ENABLE_WATCHDOG
+    if (wdog_armed)
+        wdog_kicks++;
+#endif
 }
 
 /* A process has no reset status: every start is a power on */

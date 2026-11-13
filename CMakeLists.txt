@@ -134,7 +134,7 @@ target_link_libraries(pb_keystore PUBLIC pb_host_flags)
 # An object library: every file of it is linked into pb-host, as every object
 # is into the firmware, so a task (pb/task.h) in a file that nothing refers
 # to runs (F-407). tests/make/check_host_link.py checks it.
-add_library(pb_core OBJECT
+set(PB_CORE_SOURCES
     src/main.c
     src/bio.c
     src/board.c
@@ -163,12 +163,13 @@ add_library(pb_core OBJECT
     src/drivers/partition/gpt.c
     src/drivers/partition/static.c
 )
+add_library(pb_core OBJECT ${PB_CORE_SOURCES})
 target_link_libraries(pb_core PUBLIC pb_lib pb_mbedtls pb_keystore)
 # The host platform provides the process entry point and calls pb_main
 set_source_files_properties(src/main.c PROPERTIES COMPILE_DEFINITIONS main=pb_main)
 
 # punchboot as a native process
-add_executable(pb-host
+set(PB_HOST_SOURCES
     src/arch/host/arch.c
     src/plat/host/disk.c
     src/plat/host/main.c
@@ -177,6 +178,7 @@ add_executable(pb-host
     src/plat/host/socket.c
     src/board/host/board.c
 )
+add_executable(pb-host ${PB_HOST_SOURCES})
 target_link_libraries(pb-host PRIVATE pb_core)
 # fopencookie(), for the console stream
 set_source_files_properties(src/plat/host/plat.c PROPERTIES COMPILE_DEFINITIONS _GNU_SOURCE)
@@ -186,13 +188,43 @@ set_source_files_properties(src/plat/host/plat.c PROPERTIES COMPILE_DEFINITIONS 
 # fake punchboot, 'pb' and 'buffers', at the start of the emulated RAM: the
 # host board's region starts above it. -no-pie keeps the absolute symbols
 # absolute.
-target_link_options(pb-host PRIVATE
+set(PB_HOST_LINK_OPTIONS
     -no-pie
     -Wl,--defsym=_pb_start=0x40000000
     -Wl,--defsym=_pb_end=0x40100000
     -Wl,--defsym=_buffers_start=0x40100000
     -Wl,--defsym=_buffers_end=0x40120000
 )
+target_link_options(pb-host PRIVATE ${PB_HOST_LINK_OPTIONS})
+
+# A second pb-host, from configs/host_speculative_defconfig: the host's
+# watchdog fake armed and A/B's speculative mode, which depends on a watchdog
+# (boot.md 3.6, F-341). The core and the host's files are built again with
+# its own config.h, first on their include path; the libraries are the
+# default's, which nothing the two configurations differ in reaches.
+set(PB_SPECULATIVE_DIR ${CMAKE_CURRENT_BINARY_DIR}/speculative)
+set(PB_SPECULATIVE_DEFCONFIG ${CMAKE_CURRENT_SOURCE_DIR}/configs/host_speculative_defconfig)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PB_SPECULATIVE_DEFCONFIG})
+file(MAKE_DIRECTORY ${PB_SPECULATIVE_DIR})
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E env KCONFIG_CONFIG=${PB_SPECULATIVE_DEFCONFIG}
+            ${Python3_EXECUTABLE} scripts/genconfig.py
+            --header-path ${PB_SPECULATIVE_DIR}/config.h
+            --config-out ${PB_SPECULATIVE_DIR}/.config
+            src/Kconfig
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND_ERROR_IS_FATAL ANY
+)
+
+add_library(pb_core_speculative OBJECT ${PB_CORE_SOURCES})
+target_include_directories(pb_core_speculative BEFORE PRIVATE ${PB_SPECULATIVE_DIR})
+target_link_libraries(pb_core_speculative PUBLIC pb_lib pb_mbedtls pb_keystore)
+
+add_executable(pb-host-speculative ${PB_HOST_SOURCES})
+target_include_directories(pb-host-speculative BEFORE PRIVATE ${PB_SPECULATIVE_DIR})
+target_link_libraries(pb-host-speculative PRIVATE pb_core_speculative)
+target_link_options(pb-host-speculative PRIVATE ${PB_HOST_LINK_OPTIONS})
 
 enable_testing()
 add_subdirectory(tests/unit)

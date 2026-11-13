@@ -25,6 +25,16 @@ def pb_host_binary() -> pathlib.Path:
     return binary
 
 
+@pytest.fixture(scope="session")
+def pb_host_speculative_binary(pb_host_binary: pathlib.Path) -> pathlib.Path:
+    """Path to pb-host-speculative: the watchdog fake and A/B's speculative mode (F-341)."""
+    default = pb_host_binary.parent / "pb-host-speculative"
+    binary = pathlib.Path(os.environ.get("PB_HOST_SPECULATIVE_BIN", default))
+    if not binary.exists():
+        pytest.fail(f"pb-host-speculative not found at {binary}, build it or set its variable")
+    return binary
+
+
 def _run_device(dev: Device, request: pytest.FixtureRequest) -> Iterator[Device]:
     """Start 'dev' in command mode, and check it when the test is done."""
     try:
@@ -70,6 +80,20 @@ def dt_device(
     the tree it handed over (Device.chosen).
     """
     for dev in _run_device(Device(pb_host_binary, tmp_path, dt=True), request):
+        with dev.session() as s:
+            s.part_table_install(DISK_UUID)
+        dev.reboot()
+        yield dev
+
+
+@pytest.fixture
+def speculative_device(
+    pb_host_speculative_binary: pathlib.Path,
+    tmp_path: pathlib.Path,
+    request: pytest.FixtureRequest,
+) -> Iterator[Device]:
+    """Like 'dt_device', with pb-host-speculative (configs/host_speculative_defconfig)."""
+    for dev in _run_device(Device(pb_host_speculative_binary, tmp_path, dt=True), request):
         with dev.session() as s:
             s.part_table_install(DISK_UUID)
         dev.reboot()

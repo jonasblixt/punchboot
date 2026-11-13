@@ -305,3 +305,106 @@ def test_activate_of_a_partition_that_is_no_system_changes_nothing(ab_device: De
     assert ab_device.wait_exit() == 0
     assert ab_device.boot_status == "A"
     assert _state(ab_device) == (STATE_A, STATE_A, 0, 0)
+
+
+# A/B's speculative mode (boot.md 3.6), with pb-host-speculative: the host's
+# watchdog fake and CONFIG_BOOT_AB_SPECULATIVE (F-341). The default pb-host
+# has neither: the cases above are its
+
+
+@pytest.fixture
+def spec_device(speculative_device: Device, tmp_path: pathlib.Path) -> Device:
+    """Write one image to both systems of a speculative device, and power it off."""
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024), dt=DT)
+    with speculative_device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        s.part_write(img, SYSTEM_B_UUID)
+    speculative_device.reset()
+    return speculative_device
+
+
+def _boot_and_mode(device: Device) -> tuple[str | None, str | None]:
+    """Power on, expect a boot, and return the system and pb,boot-mode."""
+    system = device.boot()
+    return system, device.boot_mode
+
+
+def test_the_default_pb_host_has_no_watchdog(ab_dt_device: Device) -> None:
+    # The fake is the second configuration's: the default arms nothing
+    ab_dt_device.pbstate("-s", "a")
+    ab_dt_device.reset()
+    assert ab_dt_device.boot() == "A"
+    assert ab_dt_device.watchdog is None
+
+
+def test_speculative_with_nothing_enabled(spec_device: Device) -> None:
+    """Rule 1's third case: A first, then the slots alternate until the OS confirms one."""
+    assert _state(spec_device) == (0, 0, 0, 0)
+
+    # Each boot enables its slot and writes that before the load (rule 3):
+    # a hang and the watchdog's reset lead to the other one, as each power
+    # on here does
+    assert _boot_and_mode(spec_device) == ("A", "speculative")
+    assert _state(spec_device) == (STATE_A, 0, 0, 0)
+    assert _boot_and_mode(spec_device) == ("B", "speculative")
+    assert _state(spec_device) == (STATE_B, 0, 0, 0)
+    assert _boot_and_mode(spec_device) == ("A", "speculative")
+
+    # The OS in A confirms it with pbstate (rule 4): the mode ends
+    spec_device.pbstate("-v", "a")
+    assert _boot_and_mode(spec_device) == ("A", "normal")
+    assert _boot_and_mode(spec_device) == ("A", "normal")
+    assert _state(spec_device) == (STATE_A, STATE_A, 0, 0)
+
+    # The watchdog was armed with the configuration's timeout, and the boot
+    # kicked it (a chunk of the load at least, platform.md 3.3)
+    watchdog = spec_device.watchdog
+    assert watchdog is not None
+    assert watchdog["timeout"] == 5
+    assert watchdog["kicks"] >= 1
+
+
+def test_speculative_after_a_trial_without_attempts(spec_device: Device) -> None:
+    """Rule 1's first case: the trial ran out and the other slot isn't confirmed."""
+    spec_device.pbstate("-s", "a", "-c", "1")
+    assert _boot_and_mode(spec_device) == ("A", "normal")
+    assert _state(spec_device) == (STATE_A, 0, 0, 0)
+
+    # Without speculative mode this is command mode. No attempts are counted
+    # and no error bit is set
+    assert _boot_and_mode(spec_device) == ("B", "speculative")
+    assert _state(spec_device) == (STATE_B, 0, 0, 0)
+    assert _boot_and_mode(spec_device) == ("A", "speculative")
+
+    spec_device.pbstate("-v", "a")
+    assert _boot_and_mode(spec_device) == ("A", "normal")
+
+
+def test_speculative_in_this_boot_writes_nothing(spec_device: Device) -> None:
+    """Rule 1's second case: the confirmed slot fails, the other isn't confirmed."""
+    spec_device.start()
+    with spec_device.session() as s:
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+    spec_device.reset()
+    _flip_payload_byte(spec_device, SYSTEM_A_LBA)
+    primary = spec_device.read_blocks(PRIMARY_STATE_LBA)
+
+    # B for this boot only: A stays enabled and is tried first on each boot
+    assert [_boot_and_mode(spec_device) for _ in range(2)] == [("B", "speculative")] * 2
+    assert spec_device.read_blocks(PRIMARY_STATE_LBA) == primary
+
+    _flip_payload_byte(spec_device, SYSTEM_A_LBA)
+    assert _boot_and_mode(spec_device) == ("A", "normal")
+
+
+def test_speculative_with_both_slots_failing_enters_command_mode(spec_device: Device) -> None:
+    """Rule 2: it never boots an image that fails verification."""
+    _flip_payload_byte(spec_device, SYSTEM_A_LBA)
+    _flip_payload_byte(spec_device, SYSTEM_B_LBA)
+
+    spec_device.start(command_mode=False)
+    spec_device.wait_command_mode()
+    assert spec_device.boot_status is None
+    assert spec_device.chosen is None
+    # A was the first candidate, and its enable was written before its load
+    assert _state(spec_device) == (STATE_A, 0, 0, 0)

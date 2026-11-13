@@ -13,7 +13,7 @@ add_test(
 set_tests_properties(integration PROPERTIES
     LABELS integration
     TIMEOUT 600
-    ENVIRONMENT PB_HOST_BIN=$<TARGET_FILE:pb-host>
+    ENVIRONMENT "PB_HOST_BIN=$<TARGET_FILE:pb-host>;PB_HOST_SPECULATIVE_BIN=$<TARGET_FILE:pb-host-speculative>"
 )
 # scripts/ci/host-test.sh builds pbstate with the sanitizers too. One test
 # preloads zlib before it and one loads libpbstate into Python: ASan refuses

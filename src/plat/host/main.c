@@ -65,6 +65,8 @@ static void usage(const char *name)
            "  -b, --boot-status PATH   Boot status output (default: boot_status)\n"
            "  -t, --dt PATH            Name a device tree part (dt) in the handover, and\n"
            "                           write the tree it prepared here on boot\n"
+           "  -w, --watchdog PATH      With a watchdog (CONFIG_ENABLE_WATCHDOG): its timeout\n"
+           "                           and its kicks, written here (default: none)\n"
            "  -c, --command-mode       Force command mode\n"
            "      --dram-filter-bypassed  The platform reports a bypassed TrustZone\n"
            "                           DRAM filter: no boot\n"
@@ -83,6 +85,7 @@ int main(int argc, char **argv)
         { "socket", required_argument, NULL, 's' },
         { "boot-status", required_argument, NULL, 'b' },
         { "dt", required_argument, NULL, 't' },
+        { "watchdog", required_argument, NULL, 'w' },
         { "command-mode", no_argument, NULL, 'c' },
         { "dram-filter-bypassed", no_argument, NULL, OPT_DRAM_FILTER_BYPASSED },
         { "boot-source", required_argument, NULL, OPT_BOOT_SOURCE },
@@ -91,7 +94,7 @@ int main(int argc, char **argv)
     };
     int opt;
 
-    while ((opt = getopt_long(argc, argv, "d:n:f:s:b:t:ch", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "d:n:f:s:b:t:w:ch", long_options, NULL)) != -1) {
         switch (opt) {
         case 'd':
             host_opts.disk_path = optarg;
@@ -110,6 +113,9 @@ int main(int argc, char **argv)
             break;
         case 't':
             host_opts.dt_path = optarg;
+            break;
+        case 'w':
+            host_opts.watchdog_path = optarg;
             break;
         case 'c':
             host_opts.force_command_mode = true;

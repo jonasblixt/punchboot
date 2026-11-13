@@ -96,7 +96,7 @@ class Device:
         With 'nor' it also has the memory mapped flash, see NOR_BASE. With
         'dt' its handover names a device tree part, which every image it
         boots then needs (make_bpak(dt=DT)), and a boot writes the tree it
-        prepared (chosen).
+        prepared (chosen). A pb-host with a watchdog reports it (watchdog).
         """
         self.binary = binary
         self.workdir = workdir
@@ -111,6 +111,7 @@ class Device:
         self.socket = self._socket_dir / "pb.sock"
         self.boot_status_file = workdir / "boot_status"
         self.dt_file = workdir / "dt.dtb" if dt else None
+        self.watchdog_file = workdir / "watchdog"
         self.log = workdir / "pb.log"
         # More of pb-host's options for the next power on, e.g.
         # "--dram-filter-bypassed"
@@ -134,6 +135,7 @@ class Device:
         self.boot_status_file.unlink(missing_ok=True)
         if self.dt_file is not None:
             self.dt_file.unlink(missing_ok=True)
+        self.watchdog_file.unlink(missing_ok=True)
 
         args = [
             str(self.binary),
@@ -150,6 +152,7 @@ class Device:
             args += ["--nor", str(self.nor)]
         if self.dt_file is not None:
             args += ["--dt", str(self.dt_file)]
+        args += ["--watchdog", str(self.watchdog_file)]
         if command_mode:
             args.append("--command-mode")
         args += self.extra_args
@@ -319,6 +322,18 @@ class Device:
         if not self.dt_file.exists():
             return None
         return fdt.properties(self.dt_file.read_bytes(), "/chosen")
+
+    @property
+    def watchdog(self) -> dict[str, int] | None:
+        """The watchdog since the last power on: its timeout (s) and its kicks.
+
+        From pb-host's fake (src/plat/host/plat.c), written when it is armed
+        and again at the exit. None for a pb-host without a watchdog.
+        """
+        if not self.watchdog_file.exists():
+            return None
+        words = (line.split() for line in self.watchdog_file.read_text().splitlines())
+        return {name: int(value) for name, value in words}
 
     @property
     def boot_mode(self) -> str | None:

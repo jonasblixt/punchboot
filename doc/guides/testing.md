@@ -9,7 +9,9 @@ CI runs these tests (D-006).
 | Path                      | What                                                                                   |
 | ------------------------- | -------------------------------------------------------------------------------------- |
 | `CMakeLists.txt`          | Host build only. The firmware for targets is still built by the `Makefile`.            |
-| `configs/host_defconfig`  | Kconfig for the host build (`ARCH_HOST`, `PLAT_HOST`)                                  |
+| `configs/host_defconfig`  | Kconfig for the host build (`ARCH_HOST`, `PLAT_HOST`). `host_speculative_defconfig` is |
+|                           | the second one, `pb-host-speculative`: the same with the watchdog fake and             |
+|                           | `BOOT_AB_SPECULATIVE` (F-341), nothing else (`test_kconfig.py` checks it)              |
 | `src/arch/host/`          | No-op cache/MMU. `arch_jump` exits.                                                    |
 | `src/plat/host/`          | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode |
 |                           | transport                                                                              |
@@ -61,8 +63,8 @@ A single integration test, inside `scripts/pbdev shell`:
 ## How the host platform works
 
 - **Entry point.** `main.c` in `src/` is compiled with `-Dmain=pb_main`, and `src/plat/host/main.c`
-  parses the options (`--disk --fuses --nor --socket --boot-status --dt --command-mode`) and
-  calls `pb_main()`.
+  parses the options (`--disk --fuses --nor --socket --boot-status --dt --watchdog
+  --command-mode`) and calls `pb_main()`.
 - **RAM.** 512 MiB is `mmap`ed at `BOARD_RAM_BASE` (0x40000000), so `pb-load-addr` values work
   unchanged. It stays below 0x7fff8000, where ASan's shadow memory starts.
 - **pb's own memory regions.** These normally come from the linker script. On the host they are
@@ -89,6 +91,9 @@ A single integration test, inside `scripts/pbdev shell`:
   board's boot source policy is A/B on the disk; its init also marks the first two bootable,
   so `boot part` boots them and the policy never hands them out. Without the
   option pb-host has no flash and lists none.
+- **Watchdog.** None in `host_defconfig`. `pb-host-speculative` has `CONFIG_ENABLE_WATCHDOG`
+  (speculative mode depends on it): a fake that `plat_early_init()` arms and that counts the
+  kicks, written to `--watchdog PATH` when armed and at the exit. It resets nothing.
 - **Reset and boot.** `plat_reset()` calls `exit(0)`, which also writes gcov data. On boot, the
   board's `late_boot` writes the partition name to `--boot-status` and then resets: `A` or `B`,
   `X` for "NOR In place" and `N` for "NOR Loaded".
@@ -162,6 +167,9 @@ A single integration test, inside `scripts/pbdev shell`:
     boot `device.chosen` is `/chosen` of the tree it handed over, each property's bytes
     (`fdt.py` builds the part and reads the tree; `test_handover.py`). `device.boot_mode` is
     `pb,boot-mode` from it.
+  - `speculative_device` is `dt_device` on `pb-host-speculative`: the watchdog fake and A/B's
+    speculative mode (`boot.md` 3.6). `device.watchdog` is the fake's timeout and kicks, None for
+    the default `pb-host`. The speculative cases are in `test_ab_state.py`.
 
   Use `device.session()` (only one at a time) together with `reboot()`, `boot()` (power on without
   command mode, returns 'A'/'B'/'?'), `read_blocks()`/`write_blocks()` (on the disk image) and

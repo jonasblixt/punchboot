@@ -18,6 +18,9 @@
  *  - The command mode transport is a unix domain socket (socket.c has the
  *    cm_transport_*() functions of pb/cm.h).
  *  - A reset terminates the process.
+ *  - With CONFIG_ENABLE_WATCHDOG (configs/host_speculative_defconfig) the
+ *    watchdog is a fake that plat_early_init() arms and that counts the
+ *    kicks, for the tests to see (--watchdog). It resets nothing.
  *  - The boot reason (plat_get_boot_reason()) is always a power on,
  *    PB_BOOT_REASON_POR with a raw value of 0: a process has no reset status.
  *  - The platform's status (plat_get_status()) has everything as absent: no
@@ -45,6 +48,7 @@ struct host_options {
     const char *socket_path; /* Command mode socket */
     const char *boot_status_path; /* Written by the board on 'boot' */
     const char *dt_path; /* Written by the board on 'boot': the tree it prepared, or NULL */
+    const char *watchdog_path; /* The watchdog's timeout and kicks, or NULL */
     bool force_command_mode; /* Abort boot and enter command mode */
     bool dram_filter_bypassed; /* plat_get_status(): PLAT_TZ_DRAM_BYPASSED */
     bool boot_source_set; /* plat_get_boot_source() answers boot_source */

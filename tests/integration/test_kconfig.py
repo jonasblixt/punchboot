@@ -82,10 +82,11 @@ def test_eol_is_off_unless_the_product_chose_it(
     load_config: Callable[[str], Any], defconfig: str
 ) -> None:
     # EOL is the product's option, off by default (system.md 4, F-263): no
-    # board's build can enter EOL. The host's has it, for the tests
+    # board's build can enter EOL. The host's have it, for the tests
     eol = load_config(defconfig).syms["SLC_EOL"]
+    hosts = ("host_defconfig", "host_speculative_defconfig")
 
-    assert eol.str_value == ("y" if defconfig == "host_defconfig" else "n")
+    assert eol.str_value == ("y" if defconfig in hosts else "n")
 
 
 def test_eol_is_off_by_default(load_config: Callable[[str], Any]) -> None:
@@ -120,3 +121,21 @@ def test_serial_download_stop_is_an_option(load_config: Callable[[str], Any]) ->
     sym.set_value("y")
     kconf.syms["CM"].set_value("n")
     assert sym.str_value == "n"
+
+
+def test_the_host_s_second_configuration_differs_in_its_watchdog_and_mode_only(
+    load_config: Callable[[str], Any],
+) -> None:
+    # pb-host-speculative (F-341) is pb-host with the watchdog fake and A/B's
+    # speculative mode. It links the default's libraries, and its tests stand
+    # for the default's board: a symbol that drifted apart would be a board
+    # of its own
+    default = load_config("host_defconfig")
+    speculative = load_config("host_speculative_defconfig")
+    differ = {
+        name
+        for name, sym in default.syms.items()
+        if sym.str_value != speculative.syms[name].str_value
+    }
+
+    assert differ == {"ENABLE_WATCHDOG", "WATCHDOG_TIMEOUT", "BOOT_AB_SPECULATIVE"}
