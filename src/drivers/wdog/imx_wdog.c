@@ -48,8 +48,7 @@ int imx_wdog_reset_now(uintptr_t base)
     /* SRS 0: a software reset */
     mmio_write_16(base + WDOG_WCR, WDOG_WCR_SRE | WDOG_WCR_WDE);
 
+    /* The reset follows */
     while (true) {
-    };
-
-    return -PB_ERR;
+    }
 }
