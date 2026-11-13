@@ -15,8 +15,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | ID | Where | Finding | Check | Status |
 |---|---|---|---|---|
 | F-004 | `src/board/imx8{qxmek,dxlevk}/board.c:~288` | `strncmp(expected, password, length)` with `length` taken from the host accepts any prefix ("i"). `LOG_DBG` prints a password that is not NUL-terminated. Example boards, but the pattern gets copied. | Verified | open |
-| F-006 | `src/drivers/partition/gpt.c:~411` | Loop over `p->first_lba` has no 128-entry limit. Primary and backup tables are never compared. | Reported | partly fixed (claude-work): entry loop bounded by `no_of_parts` (F-056); tables still not compared |
-| F-064 | `src/drivers/partition/gpt.c:152` | Header `last_lba` (last usable) is `last - 32`, which is the first backup-entry block; should be `last - 33`. pb's own allocation is unaffected; other tools could overlap the backup array. | Verified (code) | open |
 | F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | open; the `fdt_totalsize` <= part check is done (`39276b9c`) |
 | | | Checked 2026-11-12: `CHECK_OVERLAP` is gone, and placement keeps every part inside the board's | | |
 | | | image data regions and off the other parts (F-254). Left: the load address is read as a | | |
@@ -25,7 +23,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | partly fixed (`jiffy-fixes`): `der_ecsig_to_rs` now pads short r/s and is used by the CAAM (F-057). `der_ec_public_key_data` is still open |
 | | | 2026-11-13 (`ab002f9f`): `der_ec_public_key_data()` takes the key's length and reads nothing past | | |
 | | | it; OIDs match on length and bytes. What is left of F-066 is in F-410 (the point's form and length) | | |
-| F-074 | `src/cm/cm_main.c` stream read/write | After a failed STREAM_INITIALIZE, `block_dev` is an error code, and `bio_get_flags()` of it has the flag bits set, so the readable/writable checks pass. `stream_check()` then fails on the block size, so it's harmless. | Verified (test) | open |
 | F-076 | `src/boot/image_helpers.c` (payload hash and load) | bpak compat (D-008): punchboot hashes every part, while upstream `verify.c` skips parts with `BPAK_FLAG_EXCLUDE_FROM_HASH` (`bpak add --set-flag dont-hash`). Such images verify with the bpak CLI but fail to boot in punchboot. Supporting the flag only accepts more images, so it is a compatible fix. | Verified (code) | open |
 | | | Decided (D-035, `security.md` 4.2): an image with a `dont-hash` part is refused, before the | | |
 | | | load, with its own error. Not loaded unhashed as upstream does, and not skipped | | |
@@ -38,7 +35,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (was F-142). Left: which partitions a board lets a host read | | |
 | F-087 | `src/cm/cm_main.c` `error_to_wire` | `-PB_ERR_BAD_PAYLOAD` (payload hash mismatch) has no wire result, so the host reports "Generic error". `include/pb-tools/error.h` has no payload code. | Seen on jiffy (2026-10-22) | open: a new result code is a wire change, see `compatibility.md` (old hosts must handle an unknown code) |
 | F-089 | `src/lib/libc/snprintf.c` (vendored) `unsigned_num_print` | `%x` writes the digits and padding without checking the buffer size `n`, so `snprintf` with `%x` can overflow a small buffer (`%d`/`%u`/`%s` are bounded). Unsupported specifiers (`%zu`, `%2u`, `%c`, ...) spin forever instead of failing. | Verified (code) | open: `imx_rom_log.c` works around it (only writes a line with 128 bytes left) |
-| F-095 | `src/cm/cm_main.c` `cmd_board`, `tools/punchboot/api_board.c` | The device ignores `response_buffer_size` and lets the board fill the whole command buffer. When the response is larger than the host's buffer, the host returns an error without reading the response, which stays on the link and is read as the next results. 2.x hosts also don't check the first result (the check is commented out), so they send the request transfer even after an error. | Verified (code) | open: pass `min(response_buffer_size, CM_BUF_SIZE)` to the board, but check first whether any released host sends 0 there (D-008) |
 | F-100 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The timing copy for TF-A in `.umctl2` (NOLOAD, 0x40000000) never writes `fsp_msg`/`fsp_msg_num`, so TF-A gets whatever DRAM held. The copy's size (~12.5 KiB for the EVK) is not checked against the 128 KiB region, and nothing pins `struct dram_timing_info` to TF-A's layout. | Verified (read) | partly fixed (`imx8m-dram-cleanup`): the copy is a 128 KiB `struct dram_timing_save` and too large tables fail with `-PB_ERR_MEM`; `fsp_msg` is never read by upstream TF-A (only `fsp_table` and the tables), so harmless there; the layout pin is open |
 | F-102 | `src/drivers/ddr/{umctl2,dwc_ddrphy}.c`, `src/plat/imx8m/ddr_imx8mq.c` | Every poll in the DDR init (STAT, PHY mailbox, CalBusy, DFISTAT, SWSTAT, PLL lock) spins forever. A stuck PHY or bad board table hangs the board without a log. | Verified (read) | open: timeouts need a measurement on hardware |
 | F-104 | `src/drivers/ddr/dwc_ddrphy.c` `dwc_ddrphy_train` | The training results in the message block are never read. U-Boot (all i.MX8M) reads the trained critical delay differences after each 1D run and widens the rank-to-rank gaps (`DRAMTMG2` rd2wr/wr2rd, `RANKCTL`, per P-state) before the DFI init. The imx8mevk has two ranks (`MSTR.active_ranks` 3). TF-A reads these registers back at boot and restores them after retention, so it expects the bootloader to have applied the workaround. | Verified (read, and in the differential trace: U-Boot rewrites `DRAMTMG2`, `FREQ1_DRAMTMG2` and `RANKCTL` before `dfi_init_start`) | open: needs the message block layout and an imx8mevk |
@@ -61,7 +57,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-155 | i.MX8M Plus EVK, `30be0000.ethernet` (FEC) | The FEC's PHY (address 1, reset `gpio4 2`) doesn't answer on MDIO (`MDIO device at address 1 is missing`, `Unable to connect to phy`), with the upstream DTS. The EQOS port probes. No cable was attached. | Seen on the board | open |
 | F-156 | Linux 6.18 on the i.MX8M Plus EVK, `drivers/regulator/pca9450-regulator.c` | The PCA9450 driver registers a restart handler at priority 130, above PSCI's 129, that sends the PMIC SW_RST 0x14 (a cold reset). Every `reboot` and every panic restart (`panic=5`) power cycles the DRAM and loses ramoops, whatever `reboot=` says; pb's `log linux` then shows an older record. Only a watchdog reset (WDOG_B, warm with `nxp,wdog_b-warm-reset` in the test bench DTS) keeps it: a hang, which panics Linux on the watchdog pretimeout 2 s before the reset. Not pb. jiffy has no PMIC handler and keeps it on every path. | Verified (EVK, pb fill/check and Linux pstore) | open: a test bench kernel patch that lowers the handler below PSCI, or a product DTS/board that doesn't need it |
 | F-158 | `src/plat/{imx6ul,imx8m,imx8x}/plat.c` `plat_mmu_init` | `rw_nox` maps `[_zero_region_start, _no_init_end)` as one RW Normal region, which assumes `ram` and `buffers` are next to each other. On the 8MP that's 0x944000..0x40885000, about 1 GiB: unpopulated address space as Normal memory (speculative accesses allowed), the AIPS/GIC/DDRC windows (they still get Device attributes only because the innermost region wins) and a partial overlap with the static OCRAM entry, which `mmap_add_region` would reject with `ENABLE_ASSERTIONS`. On jiffy and the 8X the gap is DRAM. | Verified (code, 8MP map) | open: map `ram` and `buffers` as two regions |
-| F-160 | `src/cm/cm_main.c` `cmd_bpak_read` | Returns `bpak_valid_header()`'s bpak error code to `cm_run()`, which logs it as a pb error (`Command error -7` for `-BPAK_NOT_SUPPORTED`). The host gets the right `NOT_FOUND`, only the log is wrong. | Seen on the RT1060 EVK (2026-11-08) | open |
 | F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | partly fixed |
 | | | platform: the 6UL locks only from CONFIGURATION, the 8X from any state. No | | |
 | | | platform reads the fuses back after writing them. The rules belong in | | |
@@ -102,18 +97,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (buffer size, 16 keys in `cmd_slc_read`, board name). No real board sets `BIO_FLAG_READABLE`: the cause | | |
 | | | of F-083 and F-142. | | |
 | | | `block_dev` at 0 is fixed with F-185: each session starts without a stream (`-PB_ERR_STATE`). | | |
-| F-191 | `src/drivers/partition/gpt.c:353,412` | A valid GPT with fewer than 128 entries: | Reported (probe) | open |
-| | | the backup array is read at `last-32` and the repair writes 33 blocks. Every boot rewrites the PMBR and | | |
-| | | primary, fails on the backup and registers no partitions. | | |
-| F-192 | `gpt.c:433` | The entry loop stops at the first entry with `first_lba == 0`: | Reported (probe) | open |
-| | | with entry 0 deleted (`sgdisk -d 1`) the later partitions aren't registered and init returns OK. Skip | | |
-| | | empty entries. | | |
-| F-193 | `gpt.c:263,446` | LBAs from the disk aren't validated: an entry at LBA 1 becomes | Reported (probe) | open |
-| | | a writable partition over the GPT, a 64-bit `last_lba` is truncated, a primary with MyLBA 5000 makes the | | |
-| | | repair write there. | | |
-| | | 2026-11-13 (`076b7ae4`): `bio_allocate_parent()` refuses a range outside the parent. Left: what | | |
-| | | `gpt.c` reads from the disk. A table on a partition would be refused now: are a child's LBAs | | |
-| | | relative to its parent or to the root, for Jonas | | |
+| | | 2026-11-13 (`50bc306f`, `6f7003d1`, `e845881a`, `5e19d5e1`, `30ca9656`): the identifier and each | | |
+| | | table entry carry only themselves and zeros, bpak's `part verify` refuses a size below a header, | | |
+| | | SLC_READ lists 16 keys at most, the buffers' bounds are static asserts; the board's name and a | | |
+| | | failed read in `cmd_stream_prep_buffer` were handled already. Left: `boot_jump()` returning after | | |
+| | | `disconnect()` (F-252's second half) and `BIO_FLAG_READABLE` (F-083) | | |
 | F-194 | `gpt.c:296`, `src/bio.c` | Installing a table from command mode doesn't update | Reported (probe) | open |
 | | | the bio pool: until a reset the old partitions are listed and written at their old LBAs. Not documented | | |
 | | | either. D-070, `bio.md` 4: in effect at once. An unchanged partition (UUID and blocks) keeps its | | |
@@ -121,8 +109,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | gets a new slot; the stream ends and the policy's init runs again; no board hook runs again. For | | |
 | | | the code: `bio_get_part_by_uu()` and `cmd_part_tbl_read()` stop at the first slot that isn't | | |
 | | | valid; the pool needs room for both tables' partitions | | |
-| F-195 | `gpt.c:385,416` | Low. Repairing one copy rewrites PMBR, primary and backup: a power | Reported | open |
-| | | loss while the good copy is rewritten leaves no table. Write only the bad copy. | | |
 | F-196 | `src/drivers/fuse/imx_ocotp.c:73` | The fuse timing is hard-coded for a 66 MHz ipg_clk | Reported | open |
 | | | (STROBE_PROG 0x299). The RT1060 uses the driver at 75-200 MHz (F-148): a 3-9 us program strobe instead | | |
 | | | of 10 us on an irreversible write. Checked against both RMs, not on hardware. Compute TIMING from the | | |
@@ -148,9 +134,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-201 | `src/drivers/usb/usbd.c:28` | `enumerated` is never cleared: on the 8MP EVK a replug or | Reported | open |
 | | | bus reset ends in a read on an unconfigured EP2, `cm_run` exits and the board resets. Clear it in | | |
 | | | `usbd_init()` and on bus reset. | | |
-| F-202 | `src/plat/imx8m/plat.c:225`, `main.c:42` | After a failed DDR init command mode runs | Reported | open |
-| | | with `cmd`, `result`, `buffer` and dwc3's TRBs in untrained DRAM (`.no_init`, 0x40062000-). Reset on a | | |
-| | | DDR failure, or keep them in OCRAM. | | |
 | F-203 | `usbd.c:340-349` | An EP0 request during a bulk transfer cancels it and restarts it from | Reported | open |
 | | | offset 0: a `punchboot list` or `lsusb -v` during a `part write` corrupts the chunk and swallows the | | |
 | | | next command. | | |
@@ -235,16 +218,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | a changelog, SECURITY.md. Nothing on storage, USB or exceptions (the overview that lacked them is | | |
 | | | removed, D-062); `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
 | | | step 4. | | |
-| F-235 | `src/main.c` | After a failed `plat_early_init()` or `plat_init()` command mode | Verified (code) | open |
-| | | runs without what it needs: no console or tick, no MMU, no fuses, on the 8M the buffers in untrained DRAM | | |
-| | | (F-202). `platform.md` 2: reset. The RT's `plat_init()` also returns `mbedtls_pb_init()`'s error | | |
 | F-236 | `plat_boot_reason` | `src/plat/*/plat.c`: No common meaning: the 6UL's own enum, | Verified (code) | open |
 | | | the 8X's SCFW value, the RT's raw WRSR bitmask (several bits set: "?"), the 8M not implemented, the host 0. | | |
 | | | `platform.md` 3: `plat_get_boot_reason()` with a kind, the raw value and a name | | |
-| F-237 | `include/pb/plat.h` | Also `src/device_uuid.c`: `plat_get_us_tick()` is | Verified (code) | open |
-| | | `unsigned int` in the header, `uint32_t` in three ports. `plat_reset()` isn't `noreturn`. | | |
-| | | `platform_ns_uuid` is only picked up with `extern` in `device_uuid.c`, and nothing says it must never | | |
-| | | change (`platform.md` 3.6) | | |
 | F-238 | `plat/{imx8m,imxrt}/plat.c` | The tick and `log_time_start()` are set up in | Verified (code) | open |
 | | | `plat_init()`, after `board.console_init()`: before it there is no `pb_delay_*()` and the log time is 0. | | |
 | | | The 6UL and the 8X do it in `plat_early_init()` | | |
@@ -366,14 +342,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | target's build) on the branch `land-p10`, nine commits on `a793102b`; not on `work-3.0.0-mega` yet, | | |
 | | | because it changes `configs/imx8mpevk_defconfig`, which has an uncommitted change of Jonas's. Not | | |
 | | | run on the RT1060. The tag of pb's structure is a placeholder from the non-standard range (0xfffb00) | | |
+| | | 2026-11-13: landed (`6e40e034..b1186de2`): 76 of 76 at `b1186de2`, also with the sanitizers, and the | | |
+| | | six boards build; on the RT1060 EVK the simple target's suite passes 7 of 7 with the application's | | |
+| | | `fh-*` checks. Left: the tag (the marker in `boot.md` 5.4) | | |
 | F-261 | `plat/{imx6ul,imx8m}/plat.c` | The TrustZone filter's open region is the SoC's | Verified (code) | open |
 | | | whole DRAM window, not the board's DRAM: 2 GiB on the 6UL (`tzasc_init()`), 4 or 8 GiB on the 8M | | |
 | | | (`tzasc_open_dram()`). With less DRAM than the window, the copies of DRAM inside it are open to | | |
 | | | the normal world until a secure OS replaces the region. `platform.md` 4.3, item 3: the board's DRAM | | |
 | | | (`BOARD_DRAM_*`, F-239) | | |
-| F-262 | `plat/imx8x/plat.c` | `plat_reset()` before `plat_early_init()` returns: the IPC | Verified (code) | open |
-| | | handle is still 0 and `sc_ipc_write()` returns on it. `platform.md` 3.1: valid from the first | | |
-| | | instruction after `arch_init()`. The other ports before early init (the WDOG's clock): unchecked | | |
 | F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
 | | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
 | | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |
@@ -458,6 +434,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | four `512` (on a 4 KiB device the entries would sit at byte 512 of LBA 1: a real 4Kn GPT, a refusal, | | |
 | | | or that layout; for Jonas), and the rest of the conformance suite (erase, `write_done`, a write that | | |
 | | | fails half way, the FlexSPI) | | |
+| | | 2026-11-13 (`a95356ad`): one of the GPT's 512s went with the old repair path; `gpt_pmbr[512]` and | | |
+| | | three divisions (`gpt_init_tbl()` twice, `gpt_read_backup()`) are left | | |
 | F-284 | `src/drivers/memc/imx_flexspi.c` | A write copies `size / 4 + 1` | Reported (read) | open |
 | | | words into the FIFO in its last round: 1 to 4 bytes past the caller's buffer (whether they | | |
 | | | reach the flash is unverified, the data size is the exact length). A read whose length isn't | | |
@@ -679,21 +657,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | of a command is lost; `DEVT_DISCONNECT` is logged only; the stack's `usbd_xfer_complete()` answers a | | |
 | | | SETUP during a session (a new `SET_ADDRESS`, `SET_CONFIGURATION`) and restarts the bulk transfer | | |
 | | | without an error. With F-201 (`enumerated`) and F-287 (1) | | |
-| F-364 | `src/cm/cm_main.c` `cm_run()` | Low. A lost that the transport reports when the read of | Verified (code) | open |
-| | | the next command is started (`usb.md` 4.3: kept for the next `xfer_start`) makes `cm_run()` leave | | |
-| | | and pb reset, where `usb.md` 2.4 restarts the transport and waits for a host (`command-mode.md` | | |
-| | | 2.2). The session ends either way. Inside a command a failed start ends the session and the | | |
-| | | transport is restarted (F-277) | | |
 | F-375 | `src/cm/cm_main.c` `PB_CMD_DEVICE_READ_CAPS`, `command-mode.md` 4.6 | Low. The caps' | Verified (code) | open |
 | | | `part_erase_timeout_ms` stays zero: 4.6 says a device fills it, but pb sets no bound on an erase. | | |
 | | | Its time is the driver's per block (`bio.md` 3, from the driver's header) times the blocks a host | | |
 | | | names. To decide: what the field means (a whole partition, a block, the largest erase pb takes in | | |
 | | | one command), then fill it. Released hosts ignore it (F-226) | | |
-| F-365 | `src/cm/cm_main.c` `cmd_part_verify`, `cmd_bpak_read` | Low. Both read the partition | Verified (code) | open |
-| | | into the stream's buffers (`buffer[0]`, `buffer[1]`), so a buffer a host filled with | | |
-| | | `STREAM_PREPARE_BUFFER` is overwritten, and a `STREAM_WRITE_BUFFER` after them writes the | | |
-| | | partition's bytes. `command-mode.md` 5.3: `PART_VERIFY` changes nothing, the stream neither. | | |
-| | | Released hosts prepare before every write, so no released flow meets it | | |
 | F-394 | `src/board/host/board.c` | Low. The host board sets up its disk before Mbed TLS, | Verified (code) | open |
 | | | the real boards their crypto engine first: a failed `init()` on the host leaves no crypto, so the | | |
 | | | RAM boot after a failed `init()` (F-216, `board.md` 2.1) has no end-to-end test | | |
@@ -779,6 +747,24 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | doesn't cover) and one wrote 44 KiB below its destination. Signed input only, F-065's class; the | | |
 | | | image handover has it in place. Refusing such a tree refuses an image a release took: a decision | | |
 | | | (D-008), for Jonas. Found by the review of F-259 | | |
+| F-412 | `plat/imx8x/plat.c`, `src/log.c`, `board/imx8mpevk` | From F-235's package. The | Verified (code) | open |
+| | | 8X's `plat_boot_reason_str()` has no names for the SCFW's reasons 13 and 14 (`V2X_DEBUG`, | | |
+| | | `BOOT_STAGE`, by the SCFW API guide). On the 8M and the RT a log line before `plat_init()` reads the | | |
+| | | GPT's counter through a base of 0, because `gpt_base` isn't set yet; F-238 ends it. The 8MP EVK's | | |
+| | | `board_console_init()` writes the IOMUXC before `plat_init()` opens its clock gates; it works on the | | |
+| | | bench (read only). `command-mode.md` 2.1 still names F-235 in its text | | |
+| F-413 | `board/{imx8mevk,host}`, `cm_main.c`, `board.md` 4.4 | From F-095's package. | Reported (read) | open |
+| | | imx8mevk's `board_command()` writes `response[(*response_size)++] = 0` after `snprintf()`, past its | | |
+| | | room when the text is longer, and several boards return `snprintf()`'s full length as the size (the | | |
+| | | core cuts it now). The host board's test command writes `arg[size] = 0`, a byte past a 1024-byte | | |
+| | | request (inside the buffer). `rot_no_of_keys()` returns an error cast to `size_t` without a RoT | | |
+| | | (`boot.c` handles it, `cmd_slc_read()` is bounded now). A transport whose read can never be started | | |
+| | | after a connect is restarted every round for ever with the watchdog kicked, as after a failed | | |
+| | | `complete()`. `board.md` 4.4 says `rsp` holds `*rsp_size` bytes "(the command buffer)"; since F-095 | | |
+| | | it is the smaller of the host's size and a buffer | | |
+| F-414 | `doc/guides/testing.md`, `bio.md` | From F-191's package. The coverage note in | Reported (read) | open |
+| | | `testing.md` names `gpt.c` lines 298 and 383 to 389 as unreachable; that code is gone. The tables in | | |
+| | | `bio.md` 2.4 and section 8 are wider than the aligner makes them (they were before the package) | | |
 
 ## Dependencies / vendored code
 

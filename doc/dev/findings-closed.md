@@ -837,6 +837,95 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | core (F-182). The MEK and jiffy were not flashed with it. | | |
 | | | Not a defect: the board's boot switches had been changed, so the ROM went to serial download after | | |
 | | | every reset (Jonas, 2026-11-13). | | |
+| F-235 | `src/main.c` | After a failed `plat_early_init()` or | Verified (code) | fixed (`7ff33375`, `a0758479`) |
+| | | `plat_init()` command mode runs without what it needs: no console or tick, no MMU, no fuses, on the | | |
+| | | 8M the buffers in untrained DRAM (F-202). `platform.md` 2: reset. The RT's `plat_init()` also | | |
+| | | returns `mbedtls_pb_init()`'s error | | |
+| | | A failed `plat_early_init()` or `plat_init()` logs and resets; no task, board set-up or boot runs. | | |
+| | | The RT's `plat_init()` logs the Mbed TLS provider's error and goes on: without it the boot fails | | |
+| | | closed (F-248). | | |
+| F-202 | `src/plat/imx8m/plat.c:225`, `main.c:42` | After a failed DDR init command | Reported | fixed (`7ff33375`) |
+| | | mode runs with `cmd`, `result`, `buffer` and dwc3's TRBs in untrained DRAM (`.no_init`, | | |
+| | | 0x40062000-). Reset on a DDR failure, or keep them in OCRAM. | | |
+| | | A failed DRAM training is `plat_init()`'s error, and that resets now (F-235): command mode no longer | | |
+| | | runs with its buffers in untrained DRAM. | | |
+| F-237 | `include/pb/plat.h` | Also `src/device_uuid.c`: | Verified (code) | fixed (`e53fe4ef`..`1dda0e24`) |
+| | | `plat_get_us_tick()` is `unsigned int` in the header, `uint32_t` in three ports. `plat_reset()` | | |
+| | | isn't `noreturn`. `platform_ns_uuid` is only picked up with `extern` in `device_uuid.c`, and nothing | | |
+| | | says it must never change (`platform.md` 3.6) | | |
+| | | `plat.h` has the tick as `uint32_t`, `plat_reset()` noreturn and `platform_ns_uuid`; | | |
+| | | `imx_wdog_reset_now()` is noreturn, the 8X's `plat_reset()` waits when the SCFW refuses. | | |
+| F-262 | `plat/imx8x/plat.c` | `plat_reset()` before `plat_early_init()` | Verified (code) | fixed (`92c8fefc`) |
+| | | returns: the IPC handle is still 0 and `sc_ipc_write()` returns on it. `platform.md` 3.1: valid from | | |
+| | | the first instruction after `arch_init()`. The other ports before early init (the WDOG's clock): | | |
+| | | unchecked | | |
+| | | The 8X's `plat_reset()` opens the IPC itself before `plat_early_init()`. The 6UL, 8M and RT need no | | |
+| | | code, by their manuals (`plat-imx.md` 3). | | |
+| F-095 | `src/cm/cm_main.c` `cmd_board`, | The device ignores | Verified (code) | fixed (`7c1ba895`) |
+| | `tools/punchboot/api_board.c` | `response_buffer_size` and lets the board fill the whole command buffer. When | | |
+| | | the response is larger than the host's buffer, the host returns an error without reading the | | |
+| | | response, which stays on the link and is read as the next results. 2.x hosts also don't check the | | |
+| | | first result (the check is commented out), so they send the request transfer even after an error. | | |
+| | | The board gets the smaller of the host's `response_buffer_size` and a buffer, and a larger size it | | |
+| | | gives is cut; 0 is 0 (no released host sends 0 and takes more; for Jonas, log 2026-11-13). | | |
+| F-365 | `src/cm/cm_main.c` `cmd_part_verify`, `cmd_bpak_read` | Low. Both | Verified (code) | fixed (`36a77b0e`) |
+| | | read the partition into the stream's buffers (`buffer[0]`, `buffer[1]`), so a buffer a host filled | | |
+| | | with `STREAM_PREPARE_BUFFER` is overwritten, and a `STREAM_WRITE_BUFFER` after them writes the | | |
+| | | partition's bytes. `command-mode.md` 5.3: `PART_VERIFY` changes nothing, the stream neither. | | |
+| | | Released hosts prepare before every write, so no released flow meets it | | |
+| | | `PART_VERIFY` and `PART_BPAK_READ` have two buffers of their own, a quarter of a stream buffer each: | | |
+| | | `.no_init` grows by 2 MiB on the boards with 4 MiB buffers, 16 KiB on the RT1060. | | |
+| F-364 | `src/cm/cm_main.c` `cm_run()` | Low. A lost that the transport | Verified (code) | fixed (`03b5716a`) |
+| | | reports when the read of the next command is started (`usb.md` 4.3: kept for the next `xfer_start`) | | |
+| | | makes `cm_run()` leave and pb reset, where `usb.md` 2.4 restarts the transport and waits for a host | | |
+| | | (`command-mode.md` 2.2). The session ends either way. Inside a command a failed start ends the | | |
+| | | session and the transport is restarted (F-277) | | |
+| | | A lost at the start of a command's read restarts the transport in the next round; pb no longer | | |
+| | | resets. | | |
+| F-074 | `src/cm/cm_main.c` stream read/write | After a failed | Verified (test) | fixed (`8b27c87b`) |
+| | | STREAM_INITIALIZE, `block_dev` is an error code, and `bio_get_flags()` of it has the flag bits set, | | |
+| | | so the readable/writable checks pass. `stream_check()` then fails on the block size, so it's | | |
+| | | harmless. | | |
+| | | The stream's read and write check the stream before the flags: `STREAM_NOT_INITIALIZED` where | | |
+| | | `NO_MEMORY` was answered. | | |
+| F-160 | `src/cm/cm_main.c` `cmd_bpak_read` | Returns | Seen on the RT1060 EVK (2026-11-08) | fixed (`cee66568`) |
+| | | `bpak_valid_header()`'s bpak error code to `cm_run()`, which logs it as a pb error | | |
+| | | (`Command error -7` for `-BPAK_NOT_SUPPORTED`). The host gets the right `NOT_FOUND`, only the log is | | |
+| | | wrong. | | |
+| | | `cmd_bpak_read()` returns `-PB_ERR_NOT_FOUND` for a header that isn't valid and logs bpak's code as | | |
+| | | bpak's. | | |
+| F-192 | `gpt.c:433` | The entry loop stops at the first entry with | Reported (probe) | fixed (`384d960d`) |
+| | | `first_lba == 0`: with entry 0 deleted (`sgdisk -d 1`) the later partitions aren't registered and | | |
+| | | init returns OK. Skip empty entries. | | |
+| | | An empty entry is skipped and the entries after it are made. | | |
+| F-193 | `gpt.c:263,446` | LBAs from the disk aren't validated: an entry at | Reported (probe) | fixed (`7c4200e1`) |
+| | | LBA 1 becomes a writable partition over the GPT, a 64-bit `last_lba` is truncated, a primary with | | |
+| | | MyLBA 5000 makes the repair write there. | | |
+| | | 2026-11-13 (`076b7ae4`): `bio_allocate_parent()` refuses a range outside the parent. Left: what | | |
+| | | `gpt.c` reads from the disk. A table on a partition would be refused now: are a child's LBAs | | |
+| | | relative to its parent or to the root, for Jonas | | |
+| | | An entry is a partition only inside the device, in order and off the table's own blocks; one with a | | |
+| | | taken UUID is skipped too. The primary is written at LBA 1. Still for Jonas: a table on a partition | | |
+| | | (a child's LBAs). | | |
+| F-191 | `src/drivers/partition/gpt.c:353,412` | A valid GPT with fewer | Reported (probe) | fixed (`6028a1bd`) |
+| | | than 128 entries: the backup array is read at `last-32` and the repair writes 33 blocks. Every boot | | |
+| | | rewrites the PMBR and primary, fails on the backup and registers no partitions. | | |
+| | | The backup's array is read where its header says, as many blocks as its entries take, and a repair | | |
+| | | writes those blocks. | | |
+| F-195 | `gpt.c:385,416` | Low. Repairing one copy rewrites PMBR, primary and | Reported | fixed (`a95356ad`) |
+| | | backup: a power loss while the good copy is rewritten leaves no table. Write only the bad copy. | | |
+| | | A repair writes only the bad copy, at the place the good copy gives; no valid place is `-PB_ERR` | | |
+| | | with nothing written (for Jonas, log 2026-11-13). | | |
+| F-006 | `src/drivers/partition/gpt.c:~411` | Loop over `p->first_lba` has no | Reported | fixed (`b8ef49dc`) |
+| | | 128-entry limit. Primary and backup tables are never compared. | | |
+| | | The loop was bounded by `no_of_parts` with F-056 (claude-work). | | |
+| | | Two valid copies' entry counts and array CRCs are compared; on a difference the primary is used and | | |
+| | | an error logged (for Jonas: or rewrite the backup, or refuse). | | |
+| F-064 | `src/drivers/partition/gpt.c:152` | Header `last_lba` (last usable) | Verified (code) | fixed (`6bd219a8`) |
+| | | is `last - 32`, which is the first backup-entry block; should be `last - 33`. pb's own allocation is | | |
+| | | unaffected; other tools could overlap the backup array. | | |
+| | | An install writes last usable = last - 33; a release's table is used as it is, and a release uses | | |
+| | | the new one (tried with both pb-host binaries). | | |
 
 ## Dependencies / vendored code
 

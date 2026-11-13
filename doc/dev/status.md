@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-13_
 
 ## Current focus
 
@@ -20,12 +20,13 @@ bump is for the porting API. Each item's history is in `log/`.
   coverage is 91.0% by F-230's count; the 99.2% in `testing.md` is from 2026-10-22.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a compile check
   of all six boards, Coverity (master only, unverified until merged).
-- **Boards:** jiffy (i.MX6UL), imx8qxmek and imxrt1060evk run `2d9437b9` from their boot
-  media (flashed 2026-11-13, the log has what they showed). imx8mpevk boots `a793102b` from
-  BOOT0 (F-409 was its boot switches, not a defect). imx8dxlevk and imx8mevk only build
-  (F-033, F-300). Never write fuses on
-  the 8MP EVK, never run SLC or fuse commands on the MEK. Untested on any board: fuse
-  writes, the 8X closed state.
+- **Boards:** jiffy (i.MX6UL) and imx8qxmek run `2d9437b9` from BOOT1, imxrt1060evk runs
+  `b1186de2` from its NOR (flashed 2026-11-13, the log has what they showed). imx8mpevk is in
+  the ROM's serial download: not power cycled since its switches were set back (F-409, not a
+  defect), so a reset lands there; BOOT0 has `a793102b`'s pb, BOOT1 `b1186de2`'s, not run
+  yet. imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on the 8MP EVK,
+  never run SLC or fuse commands on the MEK. Untested on any board: fuse writes, the 8X
+  closed state.
 - **Test benches:** Linux (`testbench/`, D-022): jiffy, the 8MP EVK and the MEK boot to the
   login. simple target (`testbench/simple/`, D-025): the RT1060 EVK.
 
@@ -37,16 +38,18 @@ bump is for the porting API. Each item's history is in `log/`.
 0. **Resume here (2026-11-13): `log/2026-11-13.md`.** Landed in the night and the day, a
    package of findings per agent: `board_setup()`, the build, the host tools, the A/B state,
    the block device core (F-182), command mode's USB and the tasks (F-267, F-268), pbstate,
-   crypto (F-181). First, in this order:
-   - F-409 (the 8MP EVK went to serial download) was the board's boot switches, not a
-     defect (Jonas); closed.
-   - **F-259 is on the branch `land-p10`**, reviewed and verified, not landed: it changes
-     `configs/imx8mpevk_defconfig`, which has an uncommitted change of Jonas's. Then the
-     RT1060 has to show it.
-   - Three packages were stopped half way, in worktrees under `.claude/worktrees/`: the GPT
-     (F-191 and its neighbours), the platform's lifecycle (F-235, F-236), command mode's
-     small ones (F-190, F-095, F-252). Not started: the small driver and build ones.
-   - The log's "For Jonas" lists: about forty questions the code met.
+   crypto (F-181); in the evening the platform's life cycle (F-235, F-237, F-262), command
+   mode's small ones (F-190, F-095, F-365, F-364, F-074, F-160), the GPT (F-191 to F-195,
+   F-006, F-064) and Firmware Handoff (F-259, shown on the RT1060). Verified at `b1186de2`:
+   76 of 76, also with the sanitizers, six boards. F-409 was the 8MP's boot switches. First:
+   - **The 8MP EVK is in the ROM's serial download** (the log's last bench): power cycle it
+     with the switches on eMMC. Then the bench of the 8MP EVK, the MEK and jiffy with the
+     evening's packages: Linux to the login, the GPT check (`part list` the same, no
+     "Recovering" or "skipped" line), F-181's check on jiffy's CAAM.
+   - Left of the packages: F-252 (its design is in the log), F-238 and F-236 (the manuals'
+     facts are in the log), F-190's last two items. Not started: the small driver and build
+     ones.
+   - The log's "For Jonas" lists: about fifty questions the code met.
 1. What 3.0.0 waits for besides the code is `roadmap.md`'s first section: the Firmware
    Handoff tag (Jonas, upstream), the bench run, the two guides, the release notes.
 2. Jonas's review of the board work's code (D-026, D-027; its shape is D-046's since F-265).
