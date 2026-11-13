@@ -72,10 +72,11 @@ int hab_has_no_errors(void)
     return PB_OK;
 }
 
-int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank)
+int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz)
 {
     (void)base;
     (void)words_per_bank;
+    (void)ipg_rate_hz;
     return PB_OK;
 }
 
