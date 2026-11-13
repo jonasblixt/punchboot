@@ -86,7 +86,8 @@ int slc_set_configuration(void)
 
     slc = slc_read_status();
 
-    if (slc < 0 && slc != -PB_ERR_NOT_SUPPORTED)
+    /* Also a board without read_status: the order can't be checked */
+    if (slc < 0)
         return slc;
 
     if (slc == SLC_CONFIGURATION_LOCKED || slc == SLC_EOL) {

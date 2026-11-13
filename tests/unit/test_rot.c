@@ -433,6 +433,47 @@ static void test_slc_fuses_config(void **state)
     assert_int_equal(fuse_writes, 0);
 }
 
+/* F-220: the order is checked against the state (slc.c), so a life cycle that
+ * can't be read gets no configuration, like no lock and no EOL. It was
+ * written when the read answered -PB_ERR_NOT_SUPPORTED: a board whose slc
+ * has a configuration and no read_status. */
+static void test_slc_configuration_needs_the_state(void **state)
+{
+    static const struct slc_config no_read = {
+        .set_configuration = fake_set_configuration,
+        .set_configuration_locked = fake_set_configuration_locked,
+        .set_eol = fake_set_eol,
+        .fuses = boot_fuses,
+        .fuses_length = ARRAY_SIZE(boot_fuses),
+        .fuse_read = fake_fuse_read,
+        .fuse_write = fake_fuse_write,
+    };
+    static const struct slc_config fuses_no_read = {
+        .fuses = boot_fuses,
+        .fuses_length = ARRAY_SIZE(boot_fuses),
+        .fuse_read = fake_fuse_read,
+        .fuse_write = fake_fuse_write,
+    };
+    (void)state;
+
+    memset(fuses, 0, sizeof(fuses));
+    fuse_writes = 0;
+    slc_writes = 0;
+    slc_state = SLC_CONFIGURATION_LOCKED; /* What nothing can read */
+
+    assert_int_equal(slc_init(&no_read), PB_OK);
+    assert_int_equal(slc_read_status(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(slc_set_configuration(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(slc_set_configuration_locked(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(slc_set_eol(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(slc_writes, 0);
+    assert_int_equal(fuse_writes, 0);
+
+    assert_int_equal(slc_init(&fuses_no_read), PB_OK);
+    assert_int_equal(slc_set_configuration(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(fuse_writes, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -449,6 +490,7 @@ int main(void)
         cmocka_unit_test(test_slc_fuses),
         cmocka_unit_test(test_slc_fuses_config),
         cmocka_unit_test(test_slc_order),
+        cmocka_unit_test(test_slc_configuration_needs_the_state),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
