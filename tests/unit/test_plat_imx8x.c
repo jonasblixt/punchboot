@@ -77,6 +77,7 @@ static struct {
     uint32_t scfw_build; /* sc_misc_build_info()'s build, its commit is 0 */
     uint32_t temp; /* sc_misc_get_temp()'s word: celsius in 15:0, tenths in 23:16 */
     uint8_t temp_err;
+    uint8_t timer_err; /* ... for every call of its timer service */
 } scfw;
 
 /* A reset leaves the code under test through here */
@@ -138,6 +139,8 @@ static void scfw_call(void)
     } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_GET_TEMP) {
         data = scfw.temp;
         err = scfw.temp_err;
+    } else if (svc == SC_RPC_SVC_TIMER) {
+        err = scfw.timer_err;
     }
 
     fake_regs_set(MU_ARR(0), (err << 24) | (SC_RPC_SVC_RETURN << 16) | (4 << 8) | SC_RPC_VERSION);
@@ -307,6 +310,52 @@ static void test_boot_reason_scfw_error(void **state)
     assert_string_equal(reason.name, "Unknown");
 }
 
+/* What plat_get_status() answers, every field set by the port */
+static struct plat_status status_now(void)
+{
+    struct plat_status status;
+
+    memset(&status, 0xff, sizeof(status));
+    plat_get_status(&status);
+    return status;
+}
+
+/* platform.md 3.8: what the port recorded. The DRAM filter is a later
+ * stage's (BL31, through the SCFW), the watchdog is armed (the test is built
+ * with the option), the platform sets no crypto engine up (the board does,
+ * F-247) and saves none of the ROM's logs */
+static void test_status(void **state)
+{
+    struct plat_status status;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    status = status_now();
+
+    assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_LATER_STAGE);
+    assert_true(status.wdog_armed);
+    assert_false(status.crypto_engine);
+    assert_false(status.rom_log);
+}
+
+/* platform.md 2.2, 2.3 (F-248): a watchdog the SCFW didn't arm isn't the
+ * platform's error. It is recorded, for the boot to report */
+static void test_status_wdog_not_armed(void **state)
+{
+    (void)state;
+
+    scfw.timer_err = SC_ERR_NOACCESS;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().wdog_armed);
+
+    /* And it is the state of this plat_early_init(), not of an earlier one */
+    scfw.timer_err = SC_ERR_NONE;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_true(status_now().wdog_armed);
+}
+
 /* platform.md 3.6, 3.7: the platform's UUID namespace never changes.
  * aeda39be-792b-4de5-858a-4c357b9b6302 */
 static void test_platform_ns_uuid(void **state)
@@ -382,6 +431,8 @@ int main(void)
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_scfw_error, setup),
+        cmocka_unit_test_setup(test_status, setup),
+        cmocka_unit_test_setup(test_status_wdog_not_armed, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
         cmocka_unit_test_setup(test_info_command, setup),
     };

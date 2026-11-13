@@ -359,23 +359,44 @@ cmd_info(const uint8_t *request, size_t request_size, uint8_t *response, size_t 
 
 DEFINE_COMMAND("info", "imx8x system info", cmd_info);
 
+/* The SCFW's answer to arming the watchdog, once plat_early_init() asked */
 static sc_err_t wdog_rc;
+static bool wdog_asked;
 
 int plat_early_init(void)
 {
     sc_ipc_open(&plat.ipc, SC_IPC_BASE);
 
     wdog_rc = imx8x_wdog_init();
+    wdog_asked = true;
     imx8x_systick_setup();
     log_time_start();
     imx8x_load_boot_reason();
     return PB_OK;
 }
 
+/*
+ * What plat_early_init() recorded (platform.md 3.8). The DRAM filter is a
+ * later stage's: BL31 partitions the memory through the SCFW. The crypto
+ * engine is the board's (F-247), and the ROM's logs aren't saved.
+ */
+void plat_get_status(struct plat_status *status)
+{
+    status->tz_dram_filter = PLAT_TZ_DRAM_LATER_STAGE;
+#ifdef CONFIG_ENABLE_WATCHDOG
+    status->wdog_armed = wdog_asked && wdog_rc == SC_ERR_NONE;
+#else
+    status->wdog_armed = false;
+#endif
+    status->crypto_engine = false;
+    status->rom_log = false;
+}
+
 int plat_init(void)
 {
     if (wdog_rc != 0) {
-        /* We'll continue anyway, best effort */
+        /* Not plat_init()'s error: it is recorded (plat_get_status()), and
+         * the boot goes on and reports it (platform.md 2.3) */
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
     }
 
