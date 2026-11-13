@@ -32,12 +32,27 @@
 #include "fakes/regs.h"
 
 /* The GPT (RM 52.6.1) */
-#define GPT_CR     0x0
-#define GPT_CR_SWR BIT(15)
+#define GPT_CR                 0x00
+#define GPT_CR_EN              BIT(0)
+#define GPT_CR_ENMOD           BIT(1)
+#define GPT_CR_CLKSRC(x)       ((x) << 6)
+#define GPT_CR_FRR             BIT(9)
+#define GPT_CR_EN_24M          BIT(10)
+#define GPT_CR_SWR             BIT(15)
+#define GPT_PR                 0x04
+#define GPT_PR_PRESCALER(x)    ((x) << 0)
+#define GPT_PR_PRESCALER24M(x) ((x) << 12)
+#define GPT_CNT                0x24
+
+/* CLKSRC: the 24 MHz crystal (ipg_clk_24M) */
+#define GPT_CLKSRC_24M         5
 
 static struct {
     int mbedtls_rc;
     uint32_t speed_grade;
+    unsigned int log_time_starts;
+    /* The register log's length when log_time_start() was called */
+    size_t log_time_started_at;
 } f;
 
 /* A write that resets the SoC leaves the code under test through here */
@@ -80,6 +95,8 @@ void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
 
 void log_time_start(void)
 {
+    f.log_time_starts++;
+    f.log_time_started_at = fake_reg_log_len;
 }
 
 void log_prefix(const char *level, const char *func)
@@ -134,6 +151,48 @@ static void test_plat_init(void **state)
 
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
+}
+
+/* platform.md 2.1, 3.2: when plat_early_init() returns the tick counts and
+ * log_time_start() has been called (F-238). The tick's clock is the 24 MHz
+ * crystal, divided by 8 and by 3 (RM 52.3.3, 52.6.1.2, 52.6.1.3): perclk,
+ * the GPT's other source, changes its rate when plat_init() sets the ARM PLL */
+static void test_tick_from_early_init(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+
+    assert_int_equal(fake_regs_get(IMXRT_GPT1_BASE + GPT_CR),
+                     GPT_CR_CLKSRC(GPT_CLKSRC_24M) | GPT_CR_EN_24M | GPT_CR_FRR | GPT_CR_ENMOD |
+                         GPT_CR_EN);
+    assert_int_equal(fake_regs_get(IMXRT_GPT1_BASE + GPT_PR),
+                     GPT_PR_PRESCALER24M(8 - 1) | GPT_PR_PRESCALER(3 - 1));
+
+    /* The log's clock starts on a tick that counts */
+    assert_int_equal(f.log_time_starts, 1);
+    assert_int_equal(f.log_time_started_at, fake_reg_log_len);
+
+    /* The tick is GPT1's counter, not a register at the driver's base of 0
+     * (F-412) */
+    fake_regs_set(IMXRT_GPT1_BASE + GPT_CNT, 123456);
+    assert_int_equal(plat_get_us_tick(), 123456);
+    assert_int_equal(fake_regs_reads(GPT_CNT), 0);
+}
+
+/* plat_init() changes the core's clocks and leaves the tick alone: it isn't
+ * started again, and no rate it is given depends on what plat_init() set */
+static void test_tick_not_restarted_by_plat_init(void **state)
+{
+    size_t gpt_writes;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    gpt_writes = fake_regs_writes_in(IMXRT_GPT1_BASE, 0x1000);
+
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(fake_regs_writes_in(IMXRT_GPT1_BASE, 0x1000), gpt_writes);
+    assert_int_equal(f.log_time_starts, 1);
 }
 
 /* platform.md 3.1: plat_reset() is declared noreturn. This function has no
@@ -201,6 +260,8 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_tick_from_early_init, setup),
+        cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_plat_reset_before_early_init, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),

@@ -71,6 +71,11 @@ int plat_early_init(void)
      */
     mmio_clrsetbits_32(
         IMXRT_CCM_CSCDR1, CSCDR1_UART_PODF_MASK | CSCDR1_UART_CLK_SEL, CSCDR1_UART_PODF(3));
+
+    /* Configure systick. From the 24 MHz crystal: perclk, the GPT's other
+     * source, changes its rate when plat_init() sets the ARM PLL */
+    imx_gpt_init_24m(IMXRT_GPT1_BASE);
+    log_time_start();
     return PB_OK;
 }
 
@@ -147,9 +152,6 @@ int plat_init(void)
     LOG_INFO("AHB root clock = %d MHz", plat.ahb_root_clk_MHz);
     LOG_INFO("IPG root clock = %d MHz", plat.ipg_root_clk_MHz);
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
-
-    imx_gpt_init(IMXRT_GPT1_BASE, MHz(plat.per_root_clk_MHz));
-    log_time_start();
 
     /* Command mode can start without it, so it isn't plat_init()'s error
      * (platform.md 2.2): main() would reset. Without a provider no image

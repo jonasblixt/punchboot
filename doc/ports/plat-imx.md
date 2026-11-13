@@ -81,8 +81,8 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   on the 8X. 8 bytes each.
 - **Boot source**: only the 6UL, from the ROM log (AN12853 Table 7) and the eMMC's boot partition
   configuration.
-- **Tick**: GPT1 on the 6UL, 8M and RT, GPT0 through the SCFW on the 8X. The 6UL's runs from the
-  24 MHz crystal (F-084).
+- **Tick**: GPT1 on the 6UL, 8M and RT, GPT0 through the SCFW on the 8X. The 6UL's and the RT's
+  run from the 24 MHz crystal (F-084, F-238).
 - **Command mode's USB** (`plat_cm_init()`, `platform.md` 3.10). The port is a Kconfig choice,
   `<P>_CM_USB`, in the port's `Kconfig`; an option selects the USB stack, pb's class and the
   drivers its set up calls. What `plat_cm_init()` does for each, in this order, as the boards'
@@ -244,7 +244,7 @@ Where each port is (2026-11-11).
 
 | Requirement                          | imx6ul       | imx8m             | imx8x      | imxrt     | Finding       |
 | ------------------------------------ | ------------ | ----------------- | ---------- | --------- | ------------- |
-| Tick and log time from early init    | yes          | yes               | yes        | no        | F-238         |
+| Tick and log time from early init    | yes          | yes               | yes        | yes       | F-238         |
 | Watchdog armed in early init         | yes          | yes               | yes        | yes       | F-233         |
 | Power-down counters disabled         | yes          | yes               | n/a        | yes       | F-245         |
 | `plat_reset()` without the watchdog  | yes          | yes               | yes        | yes       | F-234         |
