@@ -293,6 +293,42 @@ static void test_read_write(void **state)
     assert_bench_clean();
 }
 
+static unsigned int devices(void)
+{
+    unsigned int n = 0;
+
+    for (bio_dev_t d = 0; d < CONFIG_BIO_MAX_DEVS; d++)
+        n += bio_valid(d) ? 1 : 0;
+    return n;
+}
+
+/* bio.md 2.1 (F-283): a device is registered once. The card is set up again
+ * on the same controller, and its four devices are the ones it had, with
+ * the flags they have by now */
+static void test_a_second_init_adds_no_devices(void **state)
+{
+    static uint8_t out[512];
+    static uint8_t in[512];
+    bio_dev_t user;
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(devices(), 4);
+    user = part(UU_USER);
+    assert_int_equal(bio_clear_set_flags(user, BIO_FLAG_WRITABLE, BIO_FLAG_READABLE), PB_OK);
+    fill(out, sizeof(out), 11);
+    assert_int_equal(bio_write(user, 9, sizeof(out), out), PB_OK);
+
+    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, &mmc), PB_OK);
+    assert_int_equal(devices(), 4);
+    assert_int_equal(part(UU_USER), user);
+    assert_int_equal(bio_get_flags(user), BIO_FLAG_VISIBLE | BIO_FLAG_READABLE);
+    assert_int_equal(bio_read(user, 9, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+    assert_int_equal(bio_read(part(UU_BOOT0), 0, sizeof(in), in), PB_OK);
+    assert_bench_clean();
+}
+
 /* bio.md 3.1, 3.2: a length of 0 is PB_OK and the driver isn't called. The
  * driver has no command for it, and answered an error */
 static void test_a_length_of_0_doesnt_reach_the_driver(void **state)
@@ -531,6 +567,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_second_init_adds_no_devices, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_length_of_0_doesnt_reach_the_driver, setup, teardown),
         cmocka_unit_test_setup_teardown(test_byte_addressing, setup, teardown),
         cmocka_unit_test_setup_teardown(test_boot_partitions, setup, teardown),

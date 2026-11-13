@@ -182,6 +182,24 @@ static void test_default_speed_1bit(void **state)
     assert_bench_clean();
 }
 
+/* bio.md 2.1 (F-283): a device is registered once. The card is set up again
+ * on the same controller, and its device is the one it had */
+static void test_a_second_init_adds_no_devices(void **state)
+{
+    bio_dev_t dev;
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    dev = sd();
+    assert_false(bio_valid(dev + 1));
+
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(sd(), dev);
+    assert_false(bio_valid(dev + 1));
+    read_write(0);
+    assert_bench_clean();
+}
+
 static void test_slow_power_up(void **state)
 {
     (void)state;
@@ -224,6 +242,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sdsc, setup, teardown),
         cmocka_unit_test_setup_teardown(test_sdsc_v1, setup, teardown),
         cmocka_unit_test_setup_teardown(test_default_speed_1bit, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_second_init_adds_no_devices, setup, teardown),
         cmocka_unit_test_setup_teardown(test_slow_power_up, setup, teardown),
         cmocka_unit_test_setup_teardown(test_no_card, setup, teardown),
         cmocka_unit_test_setup_teardown(test_data_errors, setup, teardown),

@@ -226,8 +226,13 @@ static int sd_bio_write(bio_dev_t bdev, lba_t lba, size_t length, const void *bu
 
 static int sd_add_bio(struct mmc_device *dev)
 {
-    bio_dev_t d = bio_allocate(0, dev->blocks - 1, MMC_BLOCK_SIZE, dev->cfg->user_uu, "SD");
+    bio_dev_t d;
     int rc;
+
+    if (mmc_bio_registered(dev, dev->cfg->user_uu))
+        return PB_OK;
+
+    d = bio_allocate(0, dev->blocks - 1, MMC_BLOCK_SIZE, dev->cfg->user_uu, "SD");
 
     if (d < 0)
         return d;

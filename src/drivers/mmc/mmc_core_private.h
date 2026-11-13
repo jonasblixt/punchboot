@@ -70,6 +70,11 @@ int mmc_wait_state(struct mmc_device *dev, int state, unsigned int timeout_ms);
 int mmc_set_bus_clock(struct mmc_device *dev, unsigned int clk_hz);
 /* Reads or writes the current partition in chunks the HAL can take */
 int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf, bool write);
+/* A device is registered once (bio.md 2.1): true when this controller's
+ * device with that UUID is there already, from an mmc_init() before. A
+ * controller that is set up again keeps the devices it has, with the flags
+ * they have by now */
+bool mmc_bio_registered(const struct mmc_device *dev, const unsigned char *uu);
 
 int mmc_emmc_setup(struct mmc_device *dev);
 int mmc_sd_setup(struct mmc_device *dev);

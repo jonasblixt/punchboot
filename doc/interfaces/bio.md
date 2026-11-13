@@ -65,7 +65,7 @@ description, then the callbacks and the flags.
 - **The pool** holds `CONFIG_BIO_MAX_DEVS` devices, partitions included. A full pool is
   `-PB_ERR_MEM`: the board's failure (`board.md` 2.1).
 - **A device is registered once.** A driver that is set up again doesn't add its devices a
-  second time. **Not yet in the code (F-283)**: nothing stops a second `mmc_init()` from it.
+  second time.
 - **The range is what the medium has**, read from it and checked before use: a size of 0, or
   one the handle can't express, is refused (`drivers.md` 5, F-200).
 - LBAs are 32 bits (`lba_t`): 2 TiB of 512 byte blocks. `bio_size()` is 64 bits.
@@ -393,8 +393,8 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 
 | Requirement                  | MMC, SD (uSDHC)    | FlexSPI NOR       | Host disk, RAM disk | Finding |
 | ---------------------------- | ------------------ | ----------------- | ------------------- | ------- |
-| A second `init` adds no      | no                 | no                | no                  | F-283   |
-| devices                      |                    |                   |                     |         |
+| A second `init` adds no      | yes (`test_mmc_`   | no                | no                  | F-283   |
+| devices                      | `emmc`, `_sd`)     |                   |                     |         |
 | The medium's size checked    | no                 | n/a (the board's) | n/a                 | F-200   |
 | Exactly `length` bytes of    | yes                | no: a write reads | yes                 | F-284   |
 | the buffer                   |                    | 1 to 4 bytes more |                     |         |

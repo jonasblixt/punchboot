@@ -536,8 +536,13 @@ static int mmc_add_part(struct mmc_device *dev,
                         uint16_t flags,
                         bool boot)
 {
-    bio_dev_t d = bio_allocate(0, last_lba, MMC_BLOCK_SIZE, uu, name);
+    bio_dev_t d;
     int rc;
+
+    if (mmc_bio_registered(dev, uu))
+        return PB_OK;
+
+    d = bio_allocate(0, last_lba, MMC_BLOCK_SIZE, uu, name);
 
     if (d < 0)
         return d;

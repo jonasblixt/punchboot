@@ -240,6 +240,13 @@ int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf
     return rc;
 }
 
+bool mmc_bio_registered(const struct mmc_device *dev, const unsigned char *uu)
+{
+    bio_dev_t d = bio_get_part_by_uu(uu);
+
+    return d >= 0 && bio_get_private(d) == (uintptr_t)dev;
+}
+
 struct mmc_device_info *mmc_device_info(struct mmc_device *dev)
 {
     return &dev->info;
