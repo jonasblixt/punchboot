@@ -755,6 +755,8 @@ static void test_a_failed_second_init_keeps_the_slot(void **state)
     assert_int_equal(bio_read(part(UU_OTHER), 3, sizeof(in), in), PB_OK);
 
     /* The first controller's card again */
+    emmc_model_default_config(&card_cfg);
+    card = emmc_model_init(&card_cfg);
     emmc_model_write(EMMC_PART_USER, 3, out, 1);
     assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), PB_OK);
     assert_int_equal(part(UU_USER), user);
@@ -785,6 +787,15 @@ static void test_a_card_of_another_size_is_refused(void **state)
     card_cfg.user_sectors /= 2;
     card_cfg.boot_size_mult *= 2;
     assert_int_equal(init(), -PB_ERR_IO);
+
+    /* No boot partitions or RPMB, where the devices have them */
+    card_cfg.boot_size_mult = 0;
+    assert_int_equal(init(), -PB_ERR_IO);
+    emmc_model_default_config(&card_cfg);
+    card_cfg.rpmb_size_mult = 0;
+    assert_int_equal(init(), -PB_ERR_IO);
+    emmc_model_default_config(&card_cfg);
+    card_cfg.boot_size_mult *= 2;
 
     /* The first card back */
     card_cfg.boot_size_mult /= 2;

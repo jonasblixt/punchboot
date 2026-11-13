@@ -866,18 +866,31 @@ int mmc_emmc_setup(struct mmc_device *dev)
      * init fails (drivers.md 2.1) */
     const struct {
         const unsigned char *uu;
-        lba_t last_lba;
+        uint32_t blocks;
     } checks[] = {
-        { boot_part_blocks > 0 ? cfg->boot0_uu : NULL, boot_part_blocks - 1 },
-        { boot_part_blocks > 0 ? cfg->boot1_uu : NULL, boot_part_blocks - 1 },
-        { rpmb_part_blocks > 0 ? cfg->rpmb_uu : NULL, rpmb_part_blocks - 1 },
-        { cfg->user_uu, dev->blocks - 1 },
+        { cfg->boot0_uu, boot_part_blocks },
+        { cfg->boot1_uu, boot_part_blocks },
+        { cfg->rpmb_uu, rpmb_part_blocks },
+        { cfg->user_uu, 0 },
     };
 
     for (size_t i = 0; i < ARRAY_SIZE(checks); i++) {
-        if (checks[i].uu == NULL)
-            continue;
-        rc = mmc_bio_check(dev, checks[i].uu, checks[i].last_lba);
+        if (i == ARRAY_SIZE(checks) - 1) {
+            /* The user area's range as released, SEC_COUNT 0 included */
+            rc = mmc_bio_check(dev, checks[i].uu, dev->blocks - 1);
+        } else if (checks[i].blocks > 0) {
+            rc = mmc_bio_check(dev, checks[i].uu, checks[i].blocks - 1);
+        } else {
+            /* A partition this card doesn't have: one an earlier init
+             * registered on this controller is another card's */
+            bio_dev_t d = bio_get_part_by_uu(checks[i].uu);
+
+            rc = PB_OK;
+            if (d >= 0 && bio_get_private(d) == (uintptr_t)dev) {
+                LOG_ERR("%s: the card has no such partition", bio_get_description(d));
+                rc = -PB_ERR_IO;
+            }
+        }
         if (rc < 0)
             return rc;
     }
