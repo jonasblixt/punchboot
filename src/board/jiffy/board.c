@@ -21,6 +21,7 @@
 #include <pb/bio.h>
 #include <pb/board.h>
 #include <pb/cm.h>
+#include <pb/command.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -222,6 +223,33 @@ static int board_hw_init(void)
 
     return rc;
 }
+
+/* The board's named command 'test' (command-mode.md 5.6), pb_id() 0xf93ba110,
+ * the id it had before 3.0.0. Its answer names that id, as it did */
+static int
+cmd_test(const uint8_t *request, size_t request_size, uint8_t *response, size_t *response_size)
+{
+    char *text = (char *)response;
+    size_t room = *response_size;
+
+    (void)request;
+    (void)request_size;
+
+    LOG_DBG("Got test command");
+    int n = snprintf(text, room, "Test command hello 0x%x\n", 0xf93ba110U);
+
+    /* The text and its NUL, cut to the room there is */
+    if (n < 0 || room == 0) {
+        *response_size = 0;
+    } else {
+        *response_size = ((size_t)n < room) ? (size_t)n : room - 1;
+        text[(*response_size)++] = 0;
+    }
+
+    return PB_OK;
+}
+
+DEFINE_COMMAND("test", "Answers with a greeting", cmd_test);
 
 static const struct rot_config rot = {
     .revoke_key = imx_hab_revoke_key,
