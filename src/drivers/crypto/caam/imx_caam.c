@@ -159,14 +159,6 @@ struct caam {
     uint8_t ecdsa_key[CAAM_KEY_MAX_LENGTH]; /* EC public key */
     uint8_t ecdsa_r[CAAM_SIG_MAX_LENGTH / 2]; /* First part of EC signature */
     uint8_t ecdsa_s[CAAM_SIG_MAX_LENGTH / 2]; /* Second part of EC signature */
-    /* Input/Output job "rings", since we only support one operation at the
-     * time there is only one entry.
-     *
-     * The input holds a pointer to the head of the job descriptor that should
-     * be executed.
-     */
-    uint32_t input; /* Input job */
-    struct caam_out_entry output; /* Output job */
     size_t run_ctx_len; /* Length of hash running ctx */
     size_t hash_align_buf_len; /* Bytes available in alignment buffer */
     uint32_t alg; /* Hash alg that being used */
@@ -210,10 +202,27 @@ static int caam_addr(const void *p, size_t length, uint32_t *addr)
     return PB_OK;
 }
 
+/* A cache line, no smaller than the line of any core pb runs on
+ * (drivers.md 4.1, PB_DMA_ALIGN) */
+#define CAAM_RING_ALIGN 64
+
+/* Input/Output job "rings", since we only support one operation at the
+ * time there is only one entry.
+ *
+ * The input holds a pointer to the head of the job descriptor that should
+ * be executed. The CAAM writes the output entry: each entry owns its lines
+ * (drivers.md 4.2, 3 and 5), so that no store of the CPU's to the driver's
+ * state makes the output's line dirty while the CAAM writes it. A dirty line
+ * written back over the entry reads as a completion of another descriptor */
+static struct {
+    uint32_t input __aligned(CAAM_RING_ALIGN); /* Input job */
+    struct caam_out_entry output __aligned(CAAM_RING_ALIGN); /* Output job */
+} caam_ring __aligned(CAAM_RING_ALIGN);
+
 static void caam_shedule_job_async(void)
 {
-    caam.input = (uint32_t)(uintptr_t)caam.desc;
-    arch_clean_cache_range((uintptr_t)&caam.input, sizeof(caam.input));
+    caam_ring.input = (uint32_t)(uintptr_t)caam.desc;
+    arch_clean_cache_range((uintptr_t)&caam_ring.input, sizeof(caam_ring.input));
     arch_clean_cache_range((uintptr_t)caam.desc, sizeof(caam.desc[0]) * ARRAY_SIZE(caam.desc));
     mmio_write_32(caam.base + CAAM_IRJAR_JR, 1);
     caam.job_pending = true;
@@ -240,21 +249,20 @@ static int caam_wait_for_job(void)
             }
         }
 
-        arch_invalidate_cache_range((uintptr_t)&caam.output, sizeof(caam.output));
+        arch_invalidate_cache_range((uintptr_t)&caam_ring.output, sizeof(caam_ring.output));
 
         /* The entry says whose it is, by its descriptor, and has the job's
          * status. JRSTAR has the status of whichever job completed last. The
          * entry is taken out of the ring whatever it says, or it would
          * answer the next wait */
-        desc = caam.output.desc;
-        status = caam.output.status;
+        desc = caam_ring.output.desc;
+        status = caam_ring.output.status;
 
         mmio_write_32(caam.base + CAAM_ORJRR_JR, 1);
 
         /* An entry of another descriptor isn't this job's completion: an
          * earlier user of the job ring left it. The job is still in flight,
-         * and its own entry is waited for within the same time. Written
-         * after the invalidate, which has job_pending's line */
+         * and its own entry is waited for within the same time */
         caam.job_pending = (desc != (uint32_t)(uintptr_t)&caam.desc[0]);
 
         if (caam.job_pending) {
@@ -557,9 +565,7 @@ static int caam_hash_input(const void *buf, size_t length, bool async)
     if (rc != PB_OK)
         return rc;
 
-    /* The update's kind is written after the join: the wait invalidates the
-     * line of caam.output, which this shares in some builds, and a store
-     * made before it could be lost (F-081) */
+    /* The update's kind is written after the join (F-081) */
     caam.async_hashing = async;
 
     /* We have less then 'block_size' bytes available, fill the buffer */
@@ -876,10 +882,11 @@ int imx_caam_init(uintptr_t base)
     caam.base = base;
 
     /* The rings, the descriptor and every buffer of the driver's are in
-     * these two, and the engine takes 32-bit addresses (drivers.md 4.2) */
+     * these three, and the engine takes 32-bit addresses (drivers.md 4.2) */
     uint32_t addr;
 
     if (caam_addr(&caam, sizeof(caam), &addr) != PB_OK ||
+        caam_addr(&caam_ring, sizeof(caam_ring), &addr) != PB_OK ||
         caam_addr(caam_digest, sizeof(caam_digest), &addr) != PB_OK)
         return -PB_ERR_PARAM;
 
@@ -894,8 +901,8 @@ int imx_caam_init(uintptr_t base)
              caam.ver_maj,
              caam.ver_min);
 
-    arch_clean_cache_range((uintptr_t)&caam.input, sizeof(caam.input));
-    arch_clean_cache_range((uintptr_t)&caam.output, sizeof(caam.output));
+    arch_clean_cache_range((uintptr_t)&caam_ring.input, sizeof(caam_ring.input));
+    arch_clean_cache_range((uintptr_t)&caam_ring.output, sizeof(caam_ring.output));
 
     /* What an earlier user of the job ring left in its output ring (the ROM,
      * a stage before pb) is taken out first: a ring's base and size are only
@@ -911,8 +918,8 @@ int imx_caam_init(uintptr_t base)
     }
 
     /* Initialize job rings, one entry each */
-    mmio_write_32(caam.base + CAAM_IRBAR_JR_LS, (uint32_t)(uintptr_t)&caam.input);
-    mmio_write_32(caam.base + CAAM_ORBAR_JR_LS, (uint32_t)(uintptr_t)&caam.output);
+    mmio_write_32(caam.base + CAAM_IRBAR_JR_LS, (uint32_t)(uintptr_t)&caam_ring.input);
+    mmio_write_32(caam.base + CAAM_ORBAR_JR_LS, (uint32_t)(uintptr_t)&caam_ring.output);
     mmio_write_32(caam.base + CAAM_IRSR_JR, 1);
     mmio_write_32(caam.base + CAAM_ORSR_JR, 1);
 
