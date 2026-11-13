@@ -49,14 +49,17 @@ struct boot_ab_state_config {
 int boot_ab_state_init(const struct boot_ab_state_config *cfg);
 
 /**
- * For partition 'part_uu' to be active and verified.
+ * Command mode's 'boot activate' (boot.md 3.5): the slot 'part_uu' is
+ * enabled and marked verified, the other slot's verified bit and the error
+ * bits are cleared, and the state is written. The null UUID disables both.
  *
- * @param[in] part_uu Partition to activate
+ * @param[in] part_uu A slot's partition, or the null UUID
  *
  * @return PB_OK on success,
- *        -PB_ERR_PARAM, bad block device UUID's
- *        -PB_ERR_IO, on read/write errors
- *        -PB_ERR_NOT_FOUND, when can't partitions can't be found
+ *        -PB_ERR_STATE, before an init that found the state partitions
+ *        -PB_ERR_PART_NOT_BOOTABLE, 'part_uu' is neither: nothing changes
+ *         and nothing is written
+ *         or the error of the state's write (-PB_ERR_IO)
  */
 int boot_ab_state_set_boot_partition(uuid_t part_uu);
 

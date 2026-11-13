@@ -50,7 +50,10 @@ struct boot_policy_ops {
      * an error.
      *
      * @return PB_OK with a candidate in 'part_uu',
-     *        -PB_ERR_NOT_FOUND when none is left
+     *        -PB_ERR_NOT_FOUND when none is left,
+     *        -PB_ERR_STATE when the policy isn't set up or its state
+     *         couldn't be read. Not the error of a state write that failed
+     *         (boot.md 3.2)
      */
     int (*next)(uuid_t part_uu);
 
@@ -111,7 +114,10 @@ int boot_policy_init(const struct boot_policy *policy);
  * @return PB_OK with a candidate,
  *        -PB_ERR_NOT_FOUND when none is left,
  *        -PB_ERR_NOT_SUPPORTED without a policy,
- *         or the error of a state write that failed
+ *        -PB_ERR_STATE from a policy that isn't set up, or whose state
+ *         couldn't be read (A/B).
+ *         A state write that fails is no error of its own: the policy
+ *         decides what is handed out then (boot.md 3.2)
  */
 int boot_policy_next(uuid_t part_uu);
 

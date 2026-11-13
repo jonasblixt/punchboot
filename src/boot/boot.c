@@ -486,7 +486,9 @@ static int boot_from_policy(void)
     if (tried)
         return first_rc;
 
-    /* The policy had none, or its state couldn't be written */
+    /* The policy had none, or can't say: it isn't set up, or its state
+     * couldn't be read (-PB_ERR_STATE). A state write that fails doesn't end
+     * here, the policy hands a candidate out all the same (boot.md 3.2) */
     if (rc == -PB_ERR_NOT_FOUND)
         rc = -PB_ERR_NO_ACTIVE_BOOT_PARTITION;
 
