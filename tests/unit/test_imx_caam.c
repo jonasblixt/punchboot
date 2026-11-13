@@ -73,6 +73,8 @@ static struct {
     unsigned int nr_ops;
     unsigned int fail_inst; /* Instantiations that fail before one works */
     bool hang; /* Jobs never complete */
+    bool late; /* The next job runs, and its completion stays out */
+    uint32_t late_status;
 } model;
 
 #define REG(off) (regs[(off) / 4])
@@ -80,6 +82,22 @@ static struct {
 static uint32_t *ptr(uint32_t addr)
 {
     return (uint32_t *)(uintptr_t)addr;
+}
+
+static void complete(uint32_t status)
+{
+    uint32_t *out = ptr(REG(ORBAR_LS));
+
+    out[0] = *ptr(REG(IRBAR_LS));
+    out[1] = status;
+    REG(JRSTAR) = status;
+    REG(ORSFR) = 1;
+}
+
+/* The completion of the job that was late */
+static void complete_late(void)
+{
+    complete(model.late_status);
 }
 
 /* Runs the descriptor and writes the output ring entry */
@@ -144,12 +162,13 @@ static void run_job(void)
         }
     }
 
-    uint32_t *out = ptr(REG(ORBAR_LS));
+    if (model.late) {
+        model.late = false;
+        model.late_status = status;
+        return;
+    }
 
-    out[0] = *ptr(REG(IRBAR_LS));
-    out[1] = status;
-    REG(JRSTAR) = status;
-    REG(ORSFR) = 1;
+    complete(status);
 }
 
 uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
@@ -334,6 +353,31 @@ static void test_job_timeout(void **state)
     fake_us_tick_step = 1000;
     assert_int_equal(imx_caam_rng_init((uintptr_t)regs), -PB_ERR_TIMEOUT);
     assert_int_equal(model.kicks, 1);
+
+    /* The job ends after all: the next call takes its completion first */
+    model.hang = false;
+    run_job();
+    assert_int_equal(imx_caam_rng_init((uintptr_t)regs), PB_OK);
+    assert_int_equal(REG(RDSTA), RDSTA_ALL);
+}
+
+/* A job that doesn't end, of a state handle that shows instantiated all the
+ * same: the next handle's job isn't added behind it, into the descriptor it
+ * may still read */
+static void test_job_timeout_handle_instantiated(void **state)
+{
+    (void)state;
+    model.late = true;
+    fake_us_tick_step = 1000;
+    assert_int_equal(imx_caam_rng_init((uintptr_t)regs), -PB_ERR_TIMEOUT);
+    assert_int_equal(REG(RDSTA), RDSTA_IF0 | RDSTA_PR0 | RDSTA_SKVN);
+    assert_int_equal(model.jobs, 1);
+
+    /* When it has ended the other handle is instantiated */
+    complete_late();
+    assert_int_equal(imx_caam_rng_init((uintptr_t)regs), PB_OK);
+    assert_int_equal(REG(RDSTA), RDSTA_ALL);
+    assert_int_equal(model.jobs, 2);
 }
 
 static void test_one_state_handle(void **state)
@@ -378,6 +422,7 @@ int main(void)
         cmocka_unit_test_setup(test_entropy_delay_kept, setup),
         cmocka_unit_test_setup(test_entropy_gives_up, setup),
         cmocka_unit_test_setup(test_job_timeout, setup),
+        cmocka_unit_test_setup(test_job_timeout_handle_instantiated, setup),
         cmocka_unit_test_setup(test_one_state_handle, setup),
         cmocka_unit_test_setup(test_no_rng4, setup),
         cmocka_unit_test_setup(test_era10, setup),

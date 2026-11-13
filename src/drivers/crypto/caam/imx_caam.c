@@ -658,6 +658,15 @@ static void caam_rng_kick(uintptr_t ctrl_base, uint32_t ent_delay)
 static int caam_rng_instantiate_sh(uint32_t sh, uint32_t rdsta)
 {
     int dc = 1;
+    int rc;
+
+    /* The descriptor is a job's until the job is done: one of the state
+     * handle before that timed out is waited for, and when it still doesn't
+     * end nothing is added behind it */
+    rc = caam_idle();
+
+    if (rc != PB_OK)
+        return rc;
 
     if (rdsta & CAAM_RDSTA_IF(sh)) {
         caam.desc[dc++] = RNG_SH_UNINST(sh);
