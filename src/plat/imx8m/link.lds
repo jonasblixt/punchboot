@@ -12,7 +12,7 @@ MEMORY
     /* PB_ENTRY from the board's makefile.mk, PB_RAM_LENGTH from the SoC's in makefile.mk */
     ram (rx)  : ORIGIN = PB_ENTRY, LENGTH = PB_RAM_LENGTH
     umctl2 (rx) : ORIGIN = 0x40000000, LENGTH = 128K
-    buffers (rx)   : ORIGIN = 0x40060000, LENGTH = 16M
+    buffers (rx)   : ORIGIN = PB_BUFFERS_BASE, LENGTH = PB_BUFFERS_SIZE
 }
 
 /* Used to store run-time training data for the dram -controller

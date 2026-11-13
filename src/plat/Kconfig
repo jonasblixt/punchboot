@@ -82,6 +82,29 @@ config PB_ENTRY
         the image stages and C. There is no default: a board's defconfig
         sets it, and a build without it stops.
 
+config PB_BUFFERS_BASE
+    hex "pb's buffers: their address"
+    default 0x81021000 if PLAT_IMX6UL
+    default 0x40060000 if PLAT_IMX8M_COMMON
+    default 0x85000000 if PLAT_IMX8X_COMMON
+    default 0x20289000 if PLAT_IMXRT
+    help
+        The buffers region (platform.md 5.1): what pb doesn't initialize,
+        its transfer buffers and the translation tables. In memory that
+        works after plat_init(), the board's DRAM or the SoC's on-chip RAM,
+        and outside pb. The default is the platform's.
+
+config PB_BUFFERS_SIZE
+    hex "pb's buffers: their size"
+    default 0x1000000 if PLAT_IMX6UL
+    default 0x1000000 if PLAT_IMX8M_COMMON
+    default 0x1000000 if PLAT_IMX8X_COMMON
+    default 0x37000 if PLAT_IMXRT
+    help
+        The room the buffers have. The link fails when they need more. No
+        image data region of the board's may reach into what is linked
+        there (board.md 2.9).
+
 endmenu
 
 endmenu

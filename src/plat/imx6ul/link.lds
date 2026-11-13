@@ -16,5 +16,5 @@
 MEMORY
 {
     ram (rx)  : ORIGIN = PB_ENTRY, LENGTH = 1M
-    buffers (rx)  : ORIGIN = 0x81021000, LENGTH = 16M
+    buffers (rx)  : ORIGIN = PB_BUFFERS_BASE, LENGTH = PB_BUFFERS_SIZE
 }

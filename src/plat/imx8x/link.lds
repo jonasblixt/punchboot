@@ -18,7 +18,7 @@ MEMORY
 {
     reset(rx) : ORIGIN = 0x80000000, LENGTH = 128K
     ram (rx)  : ORIGIN = ORIGIN(reset) + LENGTH(reset), LENGTH = 16M
-    buffers (rx)  : ORIGIN = 0x85000000, LENGTH = 16M
+    buffers (rx)  : ORIGIN = PB_BUFFERS_BASE, LENGTH = PB_BUFFERS_SIZE
 }
 
 ASSERT(PB_ENTRY == ORIGIN(reset),

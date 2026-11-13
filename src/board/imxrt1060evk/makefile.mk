@@ -2,8 +2,6 @@ MKIMAGE ?= mkimage
 
 src-y += $(BOARD)/board.c
 
-ldflags-y += -T$(BOARD)/link.lds
-
 # The FlexSPI configuration block for the revision's QSPI NOR (Kconfig)
 fcb-$(CONFIG_BOARD_IMXRT1060EVK_REV_A) = $(BOARD)/fcb_is25wp064.c
 fcb-$(CONFIG_BOARD_IMXRT1060EVK_REV_B) = $(BOARD)/fcb_is25wp064.c
