@@ -406,9 +406,9 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | refused                      |                    |                   |                     |         |
 | Every wait bounded           | yes (`test_mmc_`   | no                | n/a                 | F-198   |
 |                              | `emmc`)            |                   |                     |         |
-| The codes of `drivers.md` 3  | partly: CMD13      | no                | yes                 | F-281,  |
-|                              | that runs out is   |                   |                     | F-284   |
-|                              | IO                 |                   |                     |         |
+| The codes of `drivers.md` 3  | yes (`test_mmc_`   | no                | yes                 | F-284   |
+|                              | `emmc`, `test_`    |                   |                     |         |
+|                              | `imx_usdhc`)       |                   |                     |         |
 | Erase: exactly the blocks    | n/a (no erase)     | no                | n/a (no erase)      | F-198   |
 | `write_done`                 | yes (`test_mmc_`   | n/a               | n/a                 |         |
 |                              | `core`)            |                   |                     |         |
@@ -466,6 +466,6 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |
-| F-200, F-281        | Timeouts and their codes; sizes from the card; addresses above 4 GiB           |
+| F-200               | Sizes from the card (the user area's SEC_COUNT 0); addresses above 4 GiB       |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

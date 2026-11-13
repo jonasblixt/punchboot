@@ -627,6 +627,18 @@ static void test_switch_wait_is_bounded(void **state)
     assert_true(bench_now_us() - start < 200000);
 }
 
+/* drivers.md 3 (F-281): a card that never says it is ready for data is a
+ * timeout, -PB_ERR_TIMEOUT, not an I/O error */
+static void test_not_ready_is_a_timeout(void **state)
+{
+    static uint8_t in[512];
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    emmc_model_stuck(EMMC_TRAN, false);
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -664,6 +676,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_no_boot_partitions, setup, teardown),
         cmocka_unit_test_setup_teardown(test_state_after_a_transfer_is_bounded, setup, teardown),
         cmocka_unit_test_setup_teardown(test_switch_wait_is_bounded, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_not_ready_is_a_timeout, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

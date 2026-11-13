@@ -113,7 +113,7 @@ int mmc_device_state(struct mmc_device *dev, unsigned int timeout_ms)
 
         if (timeout_ms == 0) {
             LOG_ERR("CMD13 timeout");
-            return -PB_ERR_IO;
+            return -PB_ERR_TIMEOUT;
         }
 
         ret = mmc_send_cmd(dev,
