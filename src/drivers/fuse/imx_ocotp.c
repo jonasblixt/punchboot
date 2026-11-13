@@ -116,6 +116,29 @@ int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank, unsigned int ip
     return PB_OK;
 }
 
+/*
+ * BUSY's bound (drivers.md 3). Not from the RM: the longest operation is a
+ * word's program, at most 32 program strobes of 10 us if the bits are
+ * programmed one at a time, a third of a millisecond. 10 ms leaves room.
+ */
+#define OCOTP_BUSY_TIMEOUT_us 10000
+
+static int ocotp_wait_busy(void)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, OCOTP_BUSY_TIMEOUT_us);
+
+    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Timeout");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
+}
+
 /* The word's address in CTRL. One that the field can't hold is refused, not
  * masked onto another word */
 static int ocotp_addr(uint32_t bank, uint32_t row, uint32_t *addr)
@@ -147,9 +170,10 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
         return -PB_ERR_NOT_SUPPORTED;
     }
 
-    /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
-    };
+    rc = ocotp_wait_busy();
+
+    if (rc != PB_OK)
+        return rc;
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
@@ -160,9 +184,10 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
 
     mmio_write_32(base + OCOTP_TIMING, timing);
 
-    /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
-    };
+    rc = ocotp_wait_busy();
+
+    if (rc != PB_OK)
+        return rc;
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
@@ -174,9 +199,10 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     mmio_write_32(base + OCOTP_CTRL, OCOTP_CTRL_WR_UNLOCK(OCOTP_CTRL_WR_KEY) | addr);
     mmio_write_32(base + OCOTP_DATA, value);
 
-    /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
-    };
+    rc = ocotp_wait_busy();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* The write postamble: 2 us after BUSY cleared before the next access
      * (6UL RM 35.3.1.4) */
@@ -202,9 +228,10 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
     if (rc != PB_OK)
         return rc;
 
-    /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
-    };
+    rc = ocotp_wait_busy();
+
+    if (rc != PB_OK)
+        return rc;
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
@@ -216,9 +243,10 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
     mmio_write_32(base + OCOTP_CTRL, addr);
     mmio_write_32(base + OCOTP_READ_CTRL, 1);
 
-    /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
-    };
+    rc = ocotp_wait_busy();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* A locked word sets ERROR and reads 0xBADABADA */
     if (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_ERROR) {

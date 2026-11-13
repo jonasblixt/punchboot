@@ -60,6 +60,7 @@ static struct {
     unsigned int postamble_violations;
     unsigned int programs;
     uint32_t timing_at_program;
+    unsigned int program_busy_reads;
 } m;
 
 static void violation(const char *what)
@@ -152,7 +153,7 @@ void fake_mmio_write(uintptr_t addr, uint64_t value64, unsigned int width)
             m.otp[word] |= value;
             m.programs++;
             m.timing_at_program = m.timing;
-            m.busy_reads = PROGRAM_BUSY_READS;
+            m.busy_reads = m.program_busy_reads;
             m.programming = true;
         }
 
@@ -197,6 +198,7 @@ static int setup(void **state)
     (void)state;
     memset(&m, 0, sizeof(m));
     fake_us_tick = FAKE_US_TICK_DEFAULT;
+    m.program_busy_reads = PROGRAM_BUSY_READS;
     fake_us_tick_step = 1;
     assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE), PB_OK);
     return 0;
@@ -411,6 +413,31 @@ static void test_timing_without_a_rate(void **state)
     assert_int_equal(m.programs, 0);
 }
 
+/* drivers.md 3: a BUSY that doesn't clear is -PB_ERR_TIMEOUT, and the
+ * driver works once it clears */
+static void test_busy_times_out(void **state)
+{
+    uint32_t val = 0;
+    (void)state;
+
+    m.otp[2] = 0x42;
+    m.busy_reads = 1000000000;
+    assert_int_equal(imx_ocotp_read(0, 2, &val), -PB_ERR_TIMEOUT);
+    assert_int_equal(imx_ocotp_write(0, 2, 1), -PB_ERR_TIMEOUT);
+    assert_int_equal(m.programs, 0);
+
+    m.busy_reads = 0;
+    assert_int_equal(imx_ocotp_read(0, 2, &val), PB_OK);
+    assert_int_equal(val, 0x42);
+
+    /* A program that doesn't end */
+    m.program_busy_reads = 1000000000;
+    assert_int_equal(imx_ocotp_write(0, 3, 1), -PB_ERR_TIMEOUT);
+    assert_int_equal(m.programs, 1);
+    m.busy_reads = 0;
+    m.programming = false;
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -425,6 +452,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_timing_66mhz, setup, teardown),
         cmocka_unit_test_setup_teardown(test_timing_scales_with_the_rate, setup, teardown),
         cmocka_unit_test_setup_teardown(test_timing_without_a_rate, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_busy_times_out, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
