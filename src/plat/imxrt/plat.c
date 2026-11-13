@@ -19,6 +19,9 @@ const char *platform_ns_uuid = "\x48\xf8\xc6\xcb\x8d\x07\x40\x66\xb9\x21\x0c\x1d
 
 static struct imxrt_platform plat;
 
+/* WDOG1's WRSR as plat_early_init() read it */
+static uint16_t wrsr;
+
 static uint32_t fuse_read_helper(uint8_t row, uint8_t shift, uint32_t mask, uint32_t default_value)
 {
     int rc;
@@ -59,6 +62,9 @@ int plat_early_init(void)
     mmio_clrsetbits_32(IMXRT_CCM_CCGR5, 0, CCGR5_WDOG2);
     imx_wdog_disable_powerdown(IMXRT_WDOG1_BASE);
     imx_wdog_disable_powerdown(IMXRT_WDOG2_BASE);
+
+    /* The reset reason. The register is read only */
+    wrsr = mmio_read_16(IMXRT_WDOG1_BASE + WDOG_WRSR);
 
 #if CONFIG_ENABLE_WATCHDOG
     imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
@@ -210,10 +216,31 @@ void plat_wdog_kick(void)
     imx_wdog_kick(IMXRT_WDOG1_BASE);
 }
 
+/* The priority and what WRSR doesn't have: plat/imxrt/imxrt.h */
+int plat_get_boot_reason(struct pb_boot_reason *reason)
+{
+    reason->raw = wrsr;
+
+    if (wrsr & WDOG_WRSR_TOUT) {
+        reason->kind = PB_BOOT_REASON_WDOG;
+        reason->name = "WDOG";
+    } else if (wrsr & WDOG_WRSR_SFTW) {
+        reason->kind = PB_BOOT_REASON_SW;
+        reason->name = "SW";
+    } else if (wrsr & WDOG_WRSR_POR) {
+        reason->kind = PB_BOOT_REASON_POR;
+        reason->name = "POR";
+    } else {
+        reason->kind = PB_BOOT_REASON_UNKNOWN;
+        reason->name = "Unknown";
+    }
+
+    return PB_OK;
+}
+
 int plat_boot_reason(void)
 {
-    uint16_t wrsr = mmio_read_16(IMXRT_WDOG1_BASE + WDOG_WRSR);
-    return wrsr;
+    return mmio_read_16(IMXRT_WDOG1_BASE + WDOG_WRSR);
 }
 
 const char *plat_boot_reason_str(void)

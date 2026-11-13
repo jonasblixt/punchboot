@@ -195,6 +195,87 @@ static void test_tick_not_restarted_by_plat_init(void **state)
     assert_int_equal(f.log_time_starts, 1);
 }
 
+/* What plat_get_boot_reason() makes of a value of WDOG1's WRSR */
+static struct pb_boot_reason reason_of(uint16_t wrsr)
+{
+    struct pb_boot_reason reason;
+
+    memset(&reason, 0xff, sizeof(reason));
+    fake_regs_set(IMXRT_WDOG1_BASE + WDOG_WRSR, wrsr);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_get_boot_reason(&reason), PB_OK);
+    assert_int_equal(reason.raw, wrsr);
+    return reason;
+}
+
+/* platform.md 3.4: every cause WRSR has gets a kind and a name, and raw is
+ * the register (plat/imxrt/imxrt.h has the table). The port can tell the
+ * watchdog's time-out from its software reset, which is a reboot */
+static void test_boot_reason_kinds(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    reason = reason_of(WDOG_WRSR_POR);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_POR);
+    assert_string_equal(reason.name, "POR");
+
+    reason = reason_of(WDOG_WRSR_TOUT);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_WDOG);
+    assert_string_equal(reason.name, "WDOG");
+
+    reason = reason_of(WDOG_WRSR_SFTW);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_SW);
+    assert_string_equal(reason.name, "SW");
+
+    reason = reason_of(0);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_UNKNOWN);
+    assert_string_equal(reason.name, "Unknown");
+
+    reason = reason_of(BIT(8));
+    assert_int_equal(reason.kind, PB_BOOT_REASON_UNKNOWN);
+    assert_string_equal(reason.name, "Unknown");
+}
+
+/* platform.md 3.4: several causes set, which plat_boot_reason_str() called
+ * "?" (F-236). The priority of the platform header decides: the time-out,
+ * the software reset, the power on */
+static void test_boot_reason_priority(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    reason = reason_of(WDOG_WRSR_POR | WDOG_WRSR_SFTW);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_SW);
+    assert_string_equal(reason.name, "SW");
+
+    reason = reason_of(WDOG_WRSR_POR | WDOG_WRSR_TOUT);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_WDOG);
+
+    reason = reason_of(WDOG_WRSR_POR | WDOG_WRSR_SFTW | WDOG_WRSR_TOUT);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_WDOG);
+    assert_string_equal(reason.name, "WDOG");
+}
+
+/* platform.md 2.1, 3.4: the reason is read in plat_early_init(), and
+ * nothing is written to the register */
+static void test_boot_reason_is_read_once_and_not_cleared(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    reason = reason_of(WDOG_WRSR_TOUT);
+    assert_int_equal(plat_init(), PB_OK);
+
+    /* What the register reads later doesn't matter */
+    fake_regs_set(IMXRT_WDOG1_BASE + WDOG_WRSR, WDOG_WRSR_POR);
+    assert_int_equal(plat_get_boot_reason(&reason), PB_OK);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_WDOG);
+    assert_int_equal(reason.raw, WDOG_WRSR_TOUT);
+
+    assert_int_equal(fake_regs_writes(IMXRT_WDOG1_BASE + WDOG_WRSR), 0);
+}
+
 /* platform.md 3.1: plat_reset() is declared noreturn. This function has no
  * return statement, which the compiler accepts only after a call that
  * doesn't return: without the attribute in pb/plat.h it doesn't build */
@@ -262,6 +343,9 @@ int main(void)
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
+        cmocka_unit_test_setup(test_boot_reason_kinds, setup),
+        cmocka_unit_test_setup(test_boot_reason_priority, setup),
+        cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_plat_reset_before_early_init, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
