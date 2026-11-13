@@ -466,10 +466,14 @@ struct mmc_device;
  * @param[out] dev The card, optional
  *
  * @return PB_OK on success
- *        -PB_ERR_PARAM, on invalid bus mode or NULL parameters
- *        -PB_ERR_NOT_SUPPORTED, the card doesn't support the bus mode
- *        -PB_ERR_MEM, too many cards
- *        -PB_ERR_IO, on read errors
+ *        -PB_ERR_PARAM, on invalid bus mode or NULL parameters, or a UUID
+ *         that another device has
+ *        -PB_ERR_NOT_SUPPORTED, the card or the host doesn't support the
+ *         bus mode
+ *        -PB_ERR_MEM, too many cards, or the bio pool is full
+ *        -PB_ERR_TIMEOUT, the card didn't answer or didn't get ready
+ *        -PB_ERR_IO, on read errors, or a card of another size than the
+ *         devices an earlier init registered
  */
 int mmc_init(const struct mmc_hal *hal,
              const struct mmc_device_config *cfg,
