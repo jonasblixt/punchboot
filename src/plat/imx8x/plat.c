@@ -114,9 +114,15 @@ static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
 void plat_reset(void)
 {
     sc_pm_reset(plat.ipc, SC_PM_RESET_TYPE_BOARD);
+
+    /* sc_pm_reset() returns when the SCFW refused the reset (SCFW API,
+     * sc_pm_reset()). Nothing else resets from here: the watchdog does,
+     * when it is armed */
+    while (true) {
+    }
 }
 
-unsigned int plat_get_us_tick(void)
+uint32_t plat_get_us_tick(void)
 {
     return imx_gpt_get_tick();
 }
