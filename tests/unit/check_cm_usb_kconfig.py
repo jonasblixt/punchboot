@@ -10,7 +10,7 @@ up. Kconfig is where that is decided, so this reads Kconfig:
 For each board: its defconfig chooses the port that its cm_init hook set up
 before the platform did, the choice has one port, the drivers that port's set
 up calls are in the build whatever the defconfig says of them, and a build
-without command mode has no port.
+without command mode has no port and no ChipIdea driver.
 """
 
 from __future__ import annotations
@@ -72,6 +72,11 @@ def check_board(kconfiglib, root: pathlib.Path, board: str, port: str, drivers: 
     kconf.syms["CM"].set_value("n")
     if kconf.syms[port].str_value != "n":
         say(f"{board}: {port} without command mode")
+        problems += 1
+    # The ChipIdea driver sizes its descriptors by CM_BUF_SIZE_KiB, which
+    # only command mode has: with it, such a build doesn't compile (F-407)
+    if kconf.syms["DRIVER_IMX_CI_UDC"].str_value != "n":
+        say(f"{board}: DRIVER_IMX_CI_UDC without command mode")
         problems += 1
 
     return problems
