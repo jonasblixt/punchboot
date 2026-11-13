@@ -6,6 +6,7 @@ these cover the CLI on top of it.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from typing import TYPE_CHECKING
 
@@ -104,6 +105,20 @@ def test_command_takes_args_before_stdin(device: Device) -> None:
     assert result.stdout == "Hello test-command: abc\n"
 
 
+def test_command_text_ends_without_its_nul(monkeypatch: pytest.MonkeyPatch) -> None:
+    # jiffy's and imx8mevk's 'test' send their text with a newline and a NUL:
+    # one line is printed, not a second one with the NUL
+    dev = ScriptedDevice()
+    response = b"Test command hello 0xf93ba110\n\0"
+    size = wire.pb_result_board(size=len(response))
+    dev.on(Command.PB_CMD_BOARD_COMMAND, result(), result(response=size), response)
+
+    run = run_cli(monkeypatch, dev, "command", "test", "")
+
+    assert run.exit_code == 0, run.output
+    assert run.output == "Test command hello 0xf93ba110\n"
+
+
 def test_command_request_from_a_file(device: Device, tmp_path: pathlib.Path) -> None:
     request = tmp_path / "request"
     request.write_bytes(b"from a file")
@@ -139,6 +154,49 @@ def test_unknown_command(device: Device) -> None:
 
     assert result.returncode == 1
     assert result.stderr.strip() == "Error: Not supported"
+
+
+def _complete(device: Device | None, socket: str, words: str) -> list[str]:
+    """Return what bash would be offered for the last word of 'words'."""
+    comp_words = f"punchboot -t socket -s {socket} {words}"
+    env = {
+        **os.environ,
+        "_PUNCHBOOT_COMPLETE": "bash_complete",
+        "COMP_WORDS": comp_words,
+        "COMP_CWORD": str(len(comp_words.split()) - (0 if words.endswith(" ") else 1)),
+    }
+    del device
+    result = subprocess.run(
+        ["punchboot"],  # noqa: S607
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+        stdin=subprocess.DEVNULL,
+    )
+    assert result.returncode == 0, result.stderr
+    # bash_complete prints 'type,value' per item
+    items = [line.split(",", 1) for line in result.stdout.splitlines()]
+    return [value for kind, value in items if kind == "plain"]
+
+
+def test_command_names_complete(device: Device) -> None:
+    # <tab> after 'command': 'list' and the device's named commands
+    socket = str(device.socket)
+
+    assert set(_complete(device, socket, "command ")) == {
+        "list",
+        "test-command",
+        "test-command2",
+        "test-boot-stop",
+    }
+    assert set(_complete(device, socket, "command test-c")) == {"test-command", "test-command2"}
+    assert _complete(device, socket, "command l") == ["list"]
+
+
+def test_command_completion_without_a_device(tmp_path: pathlib.Path) -> None:
+    # Nothing to ask: 'list' only, and no error
+    assert _complete(None, str(tmp_path / "no.sock"), "command ") == ["list"]
 
 
 def test_command_list_on_an_old_device(monkeypatch: pytest.MonkeyPatch) -> None:

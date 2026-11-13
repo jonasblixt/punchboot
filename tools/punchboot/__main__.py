@@ -95,6 +95,21 @@ def _get_part_completion_helper(
     return _part_completion_helper
 
 
+def _command_completion(
+    _ctx: click.Context, _param: click.Parameter, incomplete: str
+) -> list[CompletionItem]:
+    """Completion handler for named commands: 'list' and the device's own.
+
+    A device that can't be asked (none there, before 3.0.0, or locked and
+    not authenticated in this USB session) completes 'list' only.
+    """
+    items = [CompletionItem("list", help="List the device's commands")]
+    with contextlib.suppress(Exception):  # Intentionally suppress all exceptions
+        s: Session = _completion_helper_init_session()
+        items += [CompletionItem(c.name, help=c.help) for c in s.command_list()]
+    return [i for i in items if i.value.startswith(incomplete)]
+
+
 RT = TypeVar("RT")
 TFunc = Callable[..., RT]
 
@@ -496,8 +511,9 @@ def board_command(
     if out_fmt == "binary":
         sys.stdout.buffer.write(result)
     else:
-        # A board's response may be binary (F-225)
-        click.echo(result.decode(errors="replace").strip())
+        # A board's response may be binary (F-225). A text may end in a NUL,
+        # which isn't white space for strip()
+        click.echo(result.decode(errors="replace").strip("\0 \t\r\n"))
 
 
 # A named command's request goes in one transfer of this size (command-mode.md 5.6)
@@ -524,7 +540,7 @@ def _command_request(args: str | None, args_from_file: pathlib.Path | None) -> b
 
 
 @cli.command("command")
-@click.argument("command", type=str)
+@click.argument("command", type=str, shell_complete=_command_completion)
 @click.argument("args", type=str, required=False)
 @click.option(
     "out_fmt",
@@ -575,8 +591,9 @@ def named_command(
     if out_fmt == "binary":
         sys.stdout.buffer.write(result)
     else:
-        # A response may be binary (F-225)
-        click.echo(result.decode(errors="replace").strip())
+        # A response may be binary (F-225). A text may end in a NUL, which
+        # isn't white space for strip()
+        click.echo(result.decode(errors="replace").strip("\0 \t\r\n"))
 
 
 @board.command("status")
