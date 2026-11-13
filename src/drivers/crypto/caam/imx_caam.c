@@ -173,6 +173,7 @@ struct caam {
     bool caam_initialized;
     bool async_hashing;
     bool job_pending; /* A job is in the ring: added, its completion not taken out */
+    int hash_rc; /* What failed the hash that is open, or PB_OK */
 };
 
 static struct caam caam;
@@ -337,6 +338,21 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     return rc;
 }
 
+/* Waits for the hash's job when one is in flight: after this its buffer is
+ * the caller's again. An error of the job is returned here and by every
+ * later call of this hash, which is failed (crypto.md 3.3) */
+static int caam_hash_join(void)
+{
+    if (caam.job_pending) {
+        int rc = caam_wait_for_job();
+
+        if (rc != PB_OK)
+            caam.hash_rc = rc;
+    }
+
+    return caam.hash_rc;
+}
+
 static int caam_hash_init(hash_t pb_alg)
 {
     int rc;
@@ -353,6 +369,7 @@ static int caam_hash_init(hash_t pb_alg)
 
     caam.init = true;
     caam.async_hashing = false;
+    caam.hash_rc = PB_OK;
     caam.hash_align_buf_len = 0;
 
     switch (pb_alg) {
@@ -405,13 +422,12 @@ static int _hash_update(uint8_t *buf, size_t length)
     uint8_t dc = 0;
     int err = PB_OK;
 
-    if (!caam.init && caam.async_hashing) {
-        /* Block if there is an operation in progress */
-        err = caam_wait_for_job();
+    /* One job at a time: the descriptor and the running context are the
+     * job's until it is done */
+    err = caam_hash_join();
 
-        if (err != PB_OK)
-            return err;
-    }
+    if (err != PB_OK)
+        return err;
 
     if (length) {
         arch_clean_cache_range((uintptr_t)buf, length);
@@ -439,12 +455,8 @@ static int _hash_update(uint8_t *buf, size_t length)
     caam.desc[0] |= HDR_JD_DESCLEN(dc);
     caam_shedule_job_async();
 
-    if (!caam.async_hashing) {
-        err = caam_wait_for_job();
-
-        if (err != PB_OK)
-            return err;
-    }
+    if (!caam.async_hashing)
+        return caam_hash_join();
 
     return PB_OK;
 }
@@ -455,7 +467,14 @@ static int caam_hash_input(const void *buf, size_t length)
     uint8_t *buf_p = (uint8_t *)buf;
     size_t bytes_to_copy;
     size_t no_of_blocks;
-    int rc = PB_OK;
+    int rc;
+
+    /* Every call waits for the job of the one before it, also one that only
+     * fills the buffer below (crypto.md 3.3) */
+    rc = caam_hash_join();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* We have less then 'block_size' bytes available, fill the buffer */
     if (caam.hash_align_buf_len + bytes_to_process < caam.block_size) {
@@ -531,6 +550,11 @@ static int caam_hash_final(uint8_t *output, size_t size)
     int err;
     int dc = 0;
 
+    err = caam_hash_join();
+
+    if (err != PB_OK)
+        return err;
+
     /* If there was no update we must still call the update function
      * once to initialize the hash block */
     if (caam.init) {
@@ -540,12 +564,11 @@ static int caam_hash_final(uint8_t *output, size_t size)
             return err;
     }
 
-    if (caam.async_hashing) {
-        err = caam_wait_for_job();
+    /* That job, when the hash's updates were asynchronous */
+    err = caam_hash_join();
 
-        if (err != PB_OK)
-            return err;
-    }
+    if (err != PB_OK)
+        return err;
 
     arch_clean_cache_range((uintptr_t)output, size);
     arch_clean_cache_range((uintptr_t)caam.hash_align_buf, caam.hash_align_buf_len);

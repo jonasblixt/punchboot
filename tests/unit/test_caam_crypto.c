@@ -272,6 +272,82 @@ static void test_3_3_update_async(void **state)
     }
 }
 
+/* 3: between hash_init() and hash_final() the updates may be of any kind
+ * and mixed. 3.3: every call waits for the job of the one before it, so that
+ * its buffer is the caller's again when the call returns (F-286 (2)) */
+static void test_3_3_every_call_waits(void **state)
+{
+    static uint8_t first[sizeof(chunk)];
+    static uint8_t expected[32];
+    (void)state;
+
+    /* Two chunks and ten bytes, one job after the other */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update(chunk, sizeof(chunk)), PB_OK);
+    assert_int_equal(hash_update(pattern, 512), PB_OK);
+    assert_int_equal(hash_update(pattern, 10), PB_OK);
+    assert_int_equal(hash_final(expected, sizeof(expected)), PB_OK);
+
+    /* A synchronous update after an asynchronous one, and the other way
+     * round. The first buffer is reused as soon as the next call returned */
+    memcpy(first, chunk, sizeof(first));
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update_async(first, sizeof(first)), PB_OK);
+    assert_int_equal(hash_update(pattern, 512), PB_OK);
+    memset(first, 0, sizeof(first));
+    assert_int_equal(hash_update_async(pattern, 10), PB_OK);
+    assert_int_equal(hash_final(digest, 32), PB_OK);
+    assert_memory_equal(digest, expected, 32);
+
+    memcpy(first, chunk, sizeof(first));
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update(first, sizeof(first)), PB_OK);
+    assert_int_equal(hash_update_async(pattern, 512), PB_OK);
+    assert_int_equal(hash_update(pattern, 10), PB_OK);
+    assert_int_equal(hash_final(digest, 32), PB_OK);
+    assert_memory_equal(digest, expected, 32);
+
+    /* A call that only fills the driver's block buffer waits too */
+    memcpy(first, chunk, sizeof(first));
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update_async(first, sizeof(first)), PB_OK);
+    assert_false(caam_model_idle());
+    assert_int_equal(hash_update_async(pattern, 10), PB_OK);
+    assert_true(caam_model_idle());
+    memset(first, 0, sizeof(first));
+    assert_int_equal(hash_update_async(&pattern[10], 502), PB_OK);
+    assert_int_equal(hash_update_async(pattern, 10), PB_OK);
+    assert_int_equal(hash_final(digest, 32), PB_OK);
+    assert_memory_equal(digest, expected, 32);
+}
+
+/* 3.3: an error of the job is returned by the call that waits for it, and
+ * the context is then failed: every later update and the final return an
+ * error, never a digest */
+static void test_3_3_job_error_fails_the_context(void **state)
+{
+    (void)state;
+
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    caam_model_fail_next_job(CAAM_STATUS_DECO_WDOG);
+    assert_int_equal(hash_update_async(chunk, sizeof(chunk)), PB_OK);
+    assert_int_not_equal(hash_update_async(pattern, 10), PB_OK);
+    assert_int_not_equal(hash_update(pattern, 10), PB_OK);
+    assert_int_not_equal(hash_update_async(chunk, sizeof(chunk)), PB_OK);
+    assert_int_not_equal(hash_final(digest, 32), PB_OK);
+    assert_true(caam_model_idle());
+
+    /* A job that doesn't end fails it too, also when it ends later */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update_async(chunk, sizeof(chunk)), PB_OK);
+    caam_model_hang(true);
+    assert_int_equal(hash_update(pattern, 10), -PB_ERR_TIMEOUT);
+    caam_model_hang(false);
+    assert_int_equal(hash_update(pattern, 10), -PB_ERR_TIMEOUT);
+    assert_int_equal(hash_final(digest, 32), -PB_ERR_TIMEOUT);
+    assert_true(caam_model_idle());
+}
+
 /* 4: a token verifies with its key, and with one bit changed it doesn't */
 static void test_4_verdict(void **state)
 {
@@ -494,6 +570,8 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_3_known_answers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_update_async, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_3_3_every_call_waits, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_3_3_job_error_fails_the_context, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_verdict, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_starts_clean, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_new_context, setup, teardown),

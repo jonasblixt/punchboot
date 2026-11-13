@@ -138,9 +138,8 @@ next chunk while the engine hashes this one. Without it the core calls `update`.
 
 - **`buf` stays valid and unchanged until the next `hash_*()` call returns**, any of them,
   `hash_final()` and the next `hash_init()` included. Each of them waits for the job first.
-  **Not yet in the code (F-286, F-220)**: a call that only fills the backend's block buffer
-  doesn't wait, a synchronous update after an asynchronous one doesn't either, and the block
-  buffer is refilled while a job may read it.
+  **Not yet in the code (F-220)**: the backend's block buffer is refilled while a job may
+  read it.
 - **An error of the job is returned by the call that waits for it**, and the context is then
   failed: every later update and the final return an error, never a digest.
 - The image's memory is the usual buffer: a chunk is hashed where it was loaded, and the next
@@ -304,8 +303,9 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | `hash_init()` starts clean           | yes                     | yes                  |              |
 |                                      | (`test_caam_crypto`)    |                      |              |
 | Any length and split                 | yes (read; no test)     | yes (`test_mbedtls`) | F-230        |
-| The asynchronous update is waited    | partly                  | n/a (none)           | F-286, F-220 |
-| for                                  |                         |                      |              |
+| The asynchronous update is waited    | partly: not for the     | n/a (none)           | F-220        |
+| for                                  | block buffer's job      |                      |              |
+|                                      | (`test_caam_crypto`)    |                      |              |
 | `final` respects `length`            | no                      | yes (`test_mbedtls`) | F-286        |
 | The digest is copied to the user     | no                      | yes (no DMA)         | F-081        |
 | `*verified` false first              | yes                     | yes                  |              |
