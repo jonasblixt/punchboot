@@ -14,6 +14,7 @@
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <pb/errors.h>
+#include <stdbool.h>
 #include <string.h>
 
 /**
@@ -134,5 +135,15 @@ int boot_image_verify_payload(struct bpak_header *hdr, uint8_t *payload_digest);
  *  stopped or failed. Nothing unverified is handed out.
  */
 const struct bpak_header *boot_image_get_bpak_header(void);
+
+/**
+ * Whether the candidate is verified in place (boot.md 4.1): its parts are
+ * where its partition is mapped, a flash, and weren't copied to RAM. For a
+ * handover's prepare, which must not grow or patch a part then.
+ *
+ * @return true for a partition that is booted in place, false for one that
+ *  is loaded and for the host's stream
+ */
+bool boot_image_in_place(void);
 
 #endif

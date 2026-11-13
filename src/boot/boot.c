@@ -27,6 +27,9 @@ static struct bpak_header header __section(".no_init") __aligned(4096);
 /* 'header' is the candidate's and its payload's hash was checked (boot.md 4.2,
  * step 6). Only then is it handed out (boot_image_get_bpak_header()) */
 static bool header_verified;
+/* The candidate is verified in place (boot.md 4.1): its parts are where the
+ * partition is mapped and weren't copied (boot_image_in_place()) */
+static bool image_in_place;
 static uint32_t boot_flags;
 static bio_dev_t boot_device;
 static enum boot_source boot_source;
@@ -57,6 +60,7 @@ int boot_init(const struct boot_driver *cfg)
     boot_source = cfg->default_boot_source;
     boot_flags = 0;
     header_verified = false;
+    image_in_place = false;
     return PB_OK;
 }
 
@@ -93,6 +97,16 @@ void boot_clear_set_flags(uint32_t clear_flags, uint32_t set_flags)
 const struct bpak_header *boot_image_get_bpak_header(void)
 {
     return header_verified ? &header : NULL;
+}
+
+/*
+ * Whether the candidate is verified in place (boot.md 4.1), for a handover's
+ * prepare: its parts are where the partition is mapped, a flash, so nothing
+ * of them can be grown or patched.
+ */
+bool boot_image_in_place(void)
+{
+    return image_in_place;
 }
 
 int boot_set_boot_partition(uuid_t part_uu)
@@ -226,6 +240,7 @@ static int load_auth_verify_from_bio(void)
 
     /* Another candidate: 'header' becomes its header, which nothing verified */
     header_verified = false;
+    image_in_place = false;
 
     boot_device = bio_get_part_by_uu(boot_part_uu);
     if (boot_device < 0)
@@ -241,8 +256,10 @@ static int load_auth_verify_from_bio(void)
         return -PB_ERR_PART_NOT_BOOTABLE;
     }
 
-    if (in_place_range(boot_device, &in_place_base, &in_place_size) == PB_OK)
+    if (in_place_range(boot_device, &in_place_base, &in_place_size) == PB_OK) {
+        image_in_place = true;
         return auth_verify_in_place(in_place_base, in_place_size);
+    }
 
     /* As in place: a partition without room for a header has none */
     if (bio_size(boot_device) < (int64_t)sizeof(header))
@@ -284,8 +301,10 @@ static int load_auth_verify_from_cb(void)
 {
     int rc;
 
-    /* As for a partition: 'header' becomes the stream's header */
+    /* As for a partition: 'header' becomes the stream's header. Its parts are
+     * loaded */
     header_verified = false;
+    image_in_place = false;
 
     if (read_cb == NULL)
         return -PB_ERR_NOT_SUPPORTED;
@@ -500,6 +519,7 @@ int boot_load(uuid_t boot_part_override_uu)
 
     /* This boot has verified nothing yet */
     header_verified = false;
+    image_in_place = false;
 
     if (boot_cfg->handover == NULL) {
         rc = -PB_ERR_NOT_SUPPORTED;

@@ -178,6 +178,9 @@ static struct {
     const struct boot_info *prepare_info_at;
     /* The entry prepare() got was all zero, every time */
     bool prepare_got_zeros;
+    /* Whether the candidate was in place, as each of the first three
+     * prepares was told (boot_image_in_place()) */
+    bool prepare_in_place[3];
     int late_rc;
     int late_calls;
     uint32_t late_flags;
@@ -509,8 +512,10 @@ static int fake_prepare(struct bpak_header *header,
     if (memcmp(next, &zeros, sizeof(zeros)) != 0)
         fake.prepare_got_zeros = false;
 
-    if (fake.prepare_calls < 3)
+    if (fake.prepare_calls < 3) {
         fake.prepare_info[fake.prepare_calls] = *info;
+        fake.prepare_in_place[fake.prepare_calls] = boot_image_in_place();
+    }
 
     fake.last_info = *info;
     fake.prepare_info_at = info;
@@ -1798,6 +1803,48 @@ static void test_in_place_boot_errors(void **state)
     assert_int_equal(fake.jump_calls, 0);
 }
 
+/* F-291: a handover learns whether its candidate is in place, where nothing
+ * of a part can be grown or patched (boot_image_in_place()). It is the
+ * candidate's: A in place, then B and the host's stream, which are loaded */
+static void test_in_place_is_told_to_the_handover(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_false(boot_image_in_place());
+
+    /* The policy's: A fails in prepare, B is tried */
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.prepare_fail_uu = UU_SYS_A;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 2);
+    assert_true(fake.prepare_in_place[0]);
+    assert_false(fake.prepare_in_place[1]);
+    fake.prepare_fail_uu = NULL;
+
+    /* A partition the host named */
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), PB_OK);
+    assert_true(fake.prepare_in_place[2]);
+    assert_true(boot_image_in_place());
+
+    /* The host's stream after it */
+    fake.prepare_calls = 0;
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 1);
+    assert_false(fake.prepare_in_place[0]);
+    assert_int_equal(boot_set_source(BOOT_SOURCE_BIO), PB_OK);
+
+    /* And a boot that stops before a candidate has none in place */
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), PB_OK);
+    assert_true(boot_image_in_place());
+    fake.early_rc = -PB_ERR_ABORT;
+    assert_int_equal(boot_load(NULL), -PB_ERR_ABORT);
+    assert_false(boot_image_in_place());
+}
+
 /* While A exists it is booted in place: no other table takes its table's
  * place, which would have it loaded, to its address in the flash */
 static void test_in_place_stays_in_place(void **state)
@@ -2459,6 +2506,7 @@ int main(void)
         MAPPED_TEST(test_in_place_other_partition_is_loaded),
         MAPPED_TEST(test_in_place_not_bootable),
         MAPPED_TEST(test_in_place_boot_errors),
+        MAPPED_TEST(test_in_place_is_told_to_the_handover),
         MAPPED_TEST(test_in_place_stays_in_place),
         MAPPED_TEST(test_in_place_smaller_than_a_header),
         MAPPED_TEST(test_in_place_cb_boot_is_loaded),

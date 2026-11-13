@@ -88,6 +88,14 @@ bool boot_image_in_regions(uint64_t addr, uint64_t size)
     return addr >= region.base && size <= region.size && addr - region.base <= region.size - size;
 }
 
+/* The candidate's source (boot.c): its partition is booted in place */
+static bool in_place;
+
+bool boot_image_in_place(void)
+{
+    return in_place;
+}
+
 static const char *const pbs_properties[] = {
     "pb,device-uuid",   "pb,slc",       "pb,slc-active-key", "pb,slc-available-keys",
     "pb,active-system", "pb,boot-mode", "pb,boot-partition", "pb,version",
@@ -223,6 +231,7 @@ static int setup(void **state)
     /* All there is: the parts are where the test binary has them */
     region.base = 0;
     region.size = UINT64_MAX;
+    in_place = false;
 
     assert_int_equal(bpak_init_header(hdr), BPAK_OK);
     hdr->key_id = KEY_ID_1;
@@ -451,6 +460,62 @@ static void test_kernel_of_the_minimum(void **state)
     part->transport_size = 0;
     assert_int_equal(prepare(), -PB_ERR_BAD_META);
     assert_true(next.entry == 0);
+}
+
+/*
+ * F-291: in place the device tree's part is in the flash, where pb can't grow
+ * it or write /chosen: on a NOR the writes are lost or fault. Until it is
+ * decided whether such a tree is copied to RAM, a board that names a device
+ * tree part doesn't boot in place: refused before the tree is read, grown or
+ * handed to the board's hook. It doesn't hang on the board's regions either:
+ * here they hold the tree, with its headroom.
+ */
+static void test_dtb_in_place_is_refused(void **state)
+{
+    static uint8_t before[sizeof(dtb)];
+    (void)state;
+
+    in_place = true;
+    memcpy(before, dtb, sizeof(dtb));
+
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(prepare(), -PB_ERR_NOT_SUPPORTED);
+    assert_memory_equal(dtb, before, sizeof(dtb));
+    assert_int_equal(patch_calls, 0);
+    assert_int_equal(cleaned_len, 0);
+    assert_true(next.entry == 0);
+    assert_next_args(0, 0, 0, 0);
+    assert_true(next.dt == 0);
+
+    /* Without a hook and a ramdisk it is the same tree in the same flash */
+    assert_int_equal(boot_handover_image_init(&cfg_dtb_minimal), PB_OK);
+    assert_int_equal(prepare(), -PB_ERR_NOT_SUPPORTED);
+    assert_memory_equal(dtb, before, sizeof(dtb));
+
+    /* The same image and board, loaded: it boots, with pb's /chosen */
+    in_place = false;
+    assert_int_equal(prepare(), PB_OK);
+    assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
+}
+
+/* F-291: a board that names no device tree part boots in place as before,
+ * which is every image the host's tests of F-253 have (test_in_place.py): the
+ * kernel's part alone, started where it is. Nothing is written. */
+static void test_kernel_only_in_place_boots(void **state)
+{
+    static uint8_t before[sizeof(dtb)];
+    (void)state;
+
+    in_place = true;
+    memcpy(before, dtb, sizeof(dtb));
+
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_true(next.entry == KERNEL_ADDR);
+    assert_next_args(0, 0, 0, 0);
+    assert_true(next.dt == 0);
+    assert_memory_equal(dtb, before, sizeof(dtb));
+    assert_int_equal(cleaned_len, 0);
 }
 
 static void test_dtb_is_patched(void **state)
@@ -1390,6 +1455,8 @@ int main(void)
         IMAGE_TEST(test_kernel_only),
         IMAGE_TEST(test_kernel_needs_load_addr),
         IMAGE_TEST(test_entry_is_the_metas_own_bytes),
+        IMAGE_TEST(test_dtb_in_place_is_refused),
+        IMAGE_TEST(test_kernel_only_in_place_boots),
         IMAGE_TEST(test_empty_kernel_is_refused),
         IMAGE_TEST(test_kernel_without_a_part_is_refused),
         IMAGE_TEST(test_kernel_of_the_minimum),

@@ -108,6 +108,13 @@ bool boot_image_in_regions(uint64_t addr, uint64_t size)
     return true;
 }
 
+/* Loaded, as the boards that deliver through TF-A boot (test_image.c has a
+ * device tree in place) */
+bool boot_image_in_place(void)
+{
+    return false;
+}
+
 void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
 {
     jump_calls++;

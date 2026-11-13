@@ -84,6 +84,15 @@ int boot_handover_image_prepare(struct bpak_header *hdr,
     }
 
     if (cfg->dtb_bpak_id) {
+        /* In place the device tree's part is in the flash: it can't be grown
+         * there, and /chosen can't be written. Refused before the tree is
+         * touched, until it is decided whether such a tree is copied to RAM
+         * (F-291). Firmware Handoff copies it into its list (boot.md 5.4) */
+        if (boot_image_in_place()) {
+            LOG_ERR("A device tree part in place isn't supported: it can't be patched there");
+            return -PB_ERR_NOT_SUPPORTED;
+        }
+
         rc = bpak_get_part(hdr, cfg->dtb_bpak_id, &ph);
 
         if (rc != BPAK_OK) {

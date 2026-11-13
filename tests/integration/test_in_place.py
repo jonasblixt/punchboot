@@ -32,6 +32,7 @@ from .pbtest import (
     NOR_LOADED_UUID,
     NOR_NOT_BOOTABLE_UUID,
     NOR_UUID,
+    REPO_ROOT,
     SYSTEM_A_UUID,
     make_bpak,
 )
@@ -74,6 +75,20 @@ def test_boot_in_place(nor_device: Device, tmp_path: pathlib.Path) -> None:
         s.part_verify(img, NOR_IN_PLACE_UUID)
 
     assert boot_partition(nor_device, NOR_IN_PLACE_UUID) == "X"
+
+
+def test_no_board_has_a_device_tree_in_place() -> None:
+    # F-291: the image handover refuses a device tree part in place, where pb
+    # can't patch it. That refuses no board of the tree: a board with a
+    # partition that is booted in place names no device tree part for the
+    # image handover. The images above have a kernel part only, and boot
+    boards = sorted((REPO_ROOT / "src" / "board").glob("*/board.c"))
+    in_place = [b for b in boards if "STATIC_PART_FLAG_IN_PLACE" in b.read_text()]
+
+    assert "host" in [b.parent.name for b in in_place]
+    for board in in_place:
+        text = board.read_text()
+        assert "BOOT_HANDOVER_IMAGE" not in text or ".dtb_bpak_id" not in text, board
 
 
 def test_boot_in_place_after_power_cycle(nor_device: Device, tmp_path: pathlib.Path) -> None:
