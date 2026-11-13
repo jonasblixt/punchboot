@@ -38,8 +38,19 @@
 #define STR_PRODUCT  1
 #define STR_SERIAL   2
 
+#define NIL_UUID     "00000000-0000-0000-0000-000000000000"
+
+/* The platform's unique id can't be read (a fuse read that fails): what is
+ * in 'uu' then is undefined, and here it is nothing a serial number may be */
+static bool device_uuid_fails;
+
 int device_uuid(uuid_t uu)
 {
+    if (device_uuid_fails) {
+        memset(uu, 0xa5, sizeof(uuid_t));
+        return -PB_ERR_IO;
+    }
+
     return uuid_parse(DEVICE_UUID, uu);
 }
 
@@ -388,6 +399,23 @@ static void test_strings(void **state)
     assert_memory_equal(usb_host_reply()->data, status, sizeof(status));
 
     assert_int_equal(usb_host_state()->unanswered, 0);
+}
+
+/* A device whose identity can't be read has the nil UUID as its serial
+ * number, which is also what DEVICE_IDENTIFIER_READ gives then: a defined
+ * string of the fixed length (usb.md 6), and nothing of pb's stack */
+static void test_serial_number_without_an_identity(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    device_uuid_fails = true;
+    host_get_descriptor(USB_DESC_TYPE_STRING, STR_SERIAL, 255);
+    (void)cm_transport_connect();
+    device_uuid_fails = false;
+
+    assert_answered(2 + 2 * strlen(NIL_UUID));
+    assert_string_equal(reply_string(), NIL_UUID);
 }
 
 /* usb.md 2.3, 2.4: a read is done when exactly its length arrived, in as many
@@ -786,6 +814,7 @@ int main(void)
         cmocka_unit_test(test_descriptors),
         cmocka_unit_test(test_reply_lengths),
         cmocka_unit_test(test_strings),
+        cmocka_unit_test(test_serial_number_without_an_identity),
         cmocka_unit_test(test_read),
         cmocka_unit_test(test_write),
         cmocka_unit_test(test_request_while_waiting_for_a_command),
