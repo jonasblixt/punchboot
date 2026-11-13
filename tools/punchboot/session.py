@@ -99,6 +99,9 @@ class Session:
 
         Exceptions:
         NotFoundError -- No device found
+
+        A transfer that fails ends the session, and so does an exchange that
+        the host leaves before its end: later calls raise OSError.
         """
         self._transport: Transport | None
         if transport is not None:
@@ -121,11 +124,29 @@ class Session:
         """Close the connection after a command that resets or boots the device."""
         self.close()
 
+    def _end_session(self) -> None:
+        """End the session after an exchange that went out of step.
+
+        After a transfer that failed or timed out, or one the host leaves
+        unread, the host and the device no longer agree on where a frame
+        starts. Nothing more is sent on the transport, so that a late result
+        isn't read as the next command's (command-mode.md 4.4, F-226).
+        """
+        self.close()
+
     def _write(self, data: bytes) -> None:
-        self._io().write(data)
+        try:
+            self._io().write(data)
+        except BaseException:
+            self._end_session()
+            raise
 
     def _read(self, size: int) -> bytes:
-        return self._io().read(size)
+        try:
+            return self._io().read(size)
+        except BaseException:
+            self._end_session()
+            raise
 
     def _send(self, cmd: Command, request: wire.Struct | bytes = b"") -> None:
         logger.debug("%s", cmd.name)
@@ -135,6 +156,7 @@ class Session:
         """Read a pb_result, return its result code and response."""
         result = wire.pb_result.unpack(self._read(wire.pb_result.sizeof()))
         if result.magic != wire.PB_WIRE_MAGIC:
+            self._end_session()
             msg = f"Bad result magic {result.magic:#x}"
             raise GenericError(msg)
         logger.debug("result %i", result.result_code)
@@ -162,7 +184,14 @@ class Session:
 
     def _read_caps(self) -> wire.pb_result_device_caps:
         response = self._command(Command.PB_CMD_DEVICE_READ_CAPS)
-        return wire.pb_result_device_caps.unpack(response)
+        caps = wire.pb_result_device_caps.unpack(response)
+        # pb's timeout for a transfer, for the rest of the session. Devices
+        # before 3.0.0 report 0: the transport keeps its own (command-mode.md
+        # 4.6, F-226). The host reads the caps where it always did, so a
+        # session that never reads them keeps the transport's own as well.
+        if caps.operation_timeout_ms:
+            self._io().set_timeout(int(caps.operation_timeout_ms))
+        return caps
 
     def _transfer_caps(self) -> tuple[int, int]:
         """Return the chunk size and the number of stream buffers to use.
@@ -195,6 +224,8 @@ class Session:
         response = self._command(Command.PB_CMD_PART_TBL_READ)
         entries = wire.pb_result_part_table_read.unpack(response).no_of_entries
         if entries > max_entries:
+            # The entries and the last result are left unread
+            self._end_session()
             raise NoMemoryError
         entry_size = wire.pb_result_part_table_entry.sizeof()
         data = self._read(entries * entry_size) if entries else b""
@@ -241,6 +272,9 @@ class Session:
 
     def _stream_finalize(self) -> None:
         """Finalize a stream after a read or a failed write, which has the verdict."""
+        if self._transport is None:
+            # The failure ended the session: nothing more is sent
+            return
         with contextlib.suppress(Error):
             self._send(Command.PB_CMD_STREAM_FINALIZE)
             self._result()
@@ -359,6 +393,8 @@ class Session:
         code, response = self._result()
         size = wire.pb_result_board.unpack(response).size
         if size > BOARD_RESPONSE_SIZE:
+            # The response and the last result are left unread
+            self._end_session()
             raise GenericError
         data = b""
         if size:
@@ -373,6 +409,8 @@ class Session:
         size = wire.pb_result_board_status.unpack(response).size
         check(code)
         if size > BOARD_STATUS_SIZE:
+            # The status and the last result are left unread
+            self._end_session()
             raise GenericError
         # Also a transfer when the size is 0, as the device sends one
         status = self._read(size)
@@ -425,6 +463,8 @@ class Session:
         check(code)
         result = wire.pb_result_log_read.unpack(response)
         if result.size > size:
+            # The data and the last result are left unread
+            self._end_session()
             raise GenericError
         data = b""
         if result.size:

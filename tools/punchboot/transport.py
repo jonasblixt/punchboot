@@ -36,6 +36,8 @@ PB_USB_PID = 0x2019
 USB_EP_IN = 0x81
 USB_EP_OUT = 0x02
 USB_INTERFACE = 0
+# The host's own timeout for a transfer, for devices whose caps report none
+# (command-mode.md 4.6)
 USB_TIMEOUT_MS = 10000
 
 # pb-host answers within milliseconds. The timeout is only there so that a
@@ -57,9 +59,19 @@ class Transport:
     def close(self) -> None:
         """Close the connection."""
 
+    def set_timeout(self, timeout_ms: int) -> None:
+        """Wait at most 'timeout_ms' for each transfer from now on.
+
+        The device's timeout from its caps. A transport without timeouts of
+        its own ignores it.
+        """
+
 
 class SocketTransport(Transport):
-    """pb-host's command mode on a unix domain socket."""
+    """pb-host's command mode on a unix domain socket.
+
+    It keeps its own timeout whatever the device reports, see SOCKET_TIMEOUT_S.
+    """
 
     def __init__(self, path: pathlib.Path | str, timeout: float | None = SOCKET_TIMEOUT_S) -> None:
         """Connect to the socket at 'path'."""
@@ -215,11 +227,16 @@ class UsbTransport(Transport):
             usb.util.dispose_resources(dev)
             raise GenericError(str(e)) from e
         self._dev = dev
+        self._timeout_ms = USB_TIMEOUT_MS
+
+    def set_timeout(self, timeout_ms: int) -> None:
+        """Wait at most 'timeout_ms' for each transfer from now on."""
+        self._timeout_ms = timeout_ms
 
     def write(self, data: bytes) -> None:
         """Send one bulk transfer."""
         try:
-            written = self._dev.write(USB_EP_OUT, data, USB_TIMEOUT_MS)
+            written = self._dev.write(USB_EP_OUT, data, self._timeout_ms)
         except self._usb.core.USBError as e:
             raise TransferError(str(e)) from e
         if written != len(data):
@@ -229,7 +246,7 @@ class UsbTransport(Transport):
     def read(self, size: int) -> bytes:
         """Receive one bulk transfer of 'size' bytes."""
         try:
-            data = bytes(self._dev.read(USB_EP_IN, size, USB_TIMEOUT_MS))
+            data = bytes(self._dev.read(USB_EP_IN, size, self._timeout_ms))
         except self._usb.core.USBError as e:
             raise TransferError(str(e)) from e
         if len(data) != size:

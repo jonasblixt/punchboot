@@ -85,6 +85,7 @@ class ScriptedDevice(Transport):
         # its data transfers
         self.commands: list[tuple[Command, bytes]] = []
         self.data: list[int] = []
+        self.timeouts: list[int] = []
         self.closed = False
 
     def on(self, cmd: Command, *frames: Frame) -> None:
@@ -114,6 +115,10 @@ class ScriptedDevice(Transport):
             raise frame
         assert len(frame) == size
         return frame
+
+    def set_timeout(self, timeout_ms: int) -> None:
+        """Record the timeout the host asked for."""
+        self.timeouts.append(timeout_ms)
 
     def close(self) -> None:
         """Close the connection."""
