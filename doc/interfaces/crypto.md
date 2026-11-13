@@ -163,11 +163,9 @@ Waits for what is in flight, writes the digest and closes the context, whatever 
 
 - **`length` is the room at `digest_out`.** Less than the algorithm's digest is
   `-PB_ERR_BUF_TOO_SMALL` and nothing is written; with more, the digest's bytes are written
-  and the rest is left. `CRYPTO_MD_MAX_SZ` (64) fits every algorithm. **Not yet in the code
-  (F-286)**: the engine's backend writes the whole digest whatever the room is.
+  and the rest is left. `CRYPTO_MD_MAX_SZ` (64) fits every algorithm.
 - **The digest reaches `digest_out` by a copy**, not by the engine's own write: users have it
-  on the stack (`drivers.md` 4.3). **Not yet in the code (F-081, F-286)**: the engine writes
-  it there and the line is invalidated.
+  on the stack (`drivers.md` 4.3).
 - **On an error `digest_out` is not a digest** and the user doesn't compare it.
 
 ## 4. Function : dsa_verify() [mandatory]
@@ -301,8 +299,10 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | Any length and split                 | yes (read; no test)     | yes (`test_mbedtls`) | F-230        |
 | The asynchronous update is waited    | yes                     | n/a (none)           |              |
 | for                                  | (`test_caam_crypto`)    |                      |              |
-| `final` respects `length`            | no                      | yes (`test_mbedtls`) | F-286        |
-| The digest is copied to the user     | no                      | yes (no DMA)         | F-081        |
+| `final` respects `length`            | yes                     | yes (`test_mbedtls`) |              |
+|                                      | (`test_caam_crypto`)    |                      |              |
+| The digest is copied to the user     | yes                     | yes (no DMA)         |              |
+|                                      | (`test_caam_crypto`)    |                      |              |
 | `*verified` false first              | yes                     | yes                  |              |
 | A bad signature is                   | no: `-PB_ERR`           | yes, also for a bad  | F-286        |
 | `-PB_ERR_SIGNATURE`                  |                         | key                  |              |
@@ -345,6 +345,5 @@ simple target (D-025): F-181 was found in such a model, not on hardware.
 | Finding      | What                                                                            |
 | ------------ | ------------------------------------------------------------------------------- |
 | F-286        | The core and the backends against sections 3, 4 and 6; the conformance suite    |
-| F-081        | The digest is copied, not written by the engine into the user's memory (3.5)    |
 | F-247        | The platform sets the backend up (2)                                            |
 | F-230        | The backends' tests (9)                                                         |

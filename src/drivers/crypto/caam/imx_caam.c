@@ -178,6 +178,11 @@ struct caam {
 
 static struct caam caam;
 
+/* The engine stores the digest here, in a line of the driver's own, and
+ * hash_final() copies it to the caller, whose buffer is often on the stack
+ * (crypto.md 3.5, drivers.md 4.2 and 4.3) */
+static uint8_t caam_digest[CRYPTO_MD_MAX_SZ] __aligned(64);
+
 static void caam_shedule_job_async(void)
 {
     caam.input = (uint32_t)(uintptr_t)caam.desc;
@@ -577,6 +582,10 @@ static int caam_hash_final(uint8_t *output, size_t size)
     if (err != PB_OK)
         return err;
 
+    /* Less room than the digest: nothing is written (crypto.md 3.5) */
+    if (size < caam.digest_size)
+        return -PB_ERR_BUF_TOO_SMALL;
+
     /* If there was no update we must still call the update function
      * once to initialize the hash block */
     if (caam.init) {
@@ -592,7 +601,7 @@ static int caam_hash_final(uint8_t *output, size_t size)
     if (err != PB_OK)
         return err;
 
-    arch_clean_cache_range((uintptr_t)output, size);
+    arch_clean_cache_range((uintptr_t)caam_digest, sizeof(caam_digest));
     arch_clean_cache_range((uintptr_t)caam.hash_align_buf, caam.hash_align_buf_len);
 
     caam.desc[dc++] = DESC_HDR(0);
@@ -605,15 +614,19 @@ static int caam_hash_final(uint8_t *output, size_t size)
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.hash_align_buf;
     caam.desc[dc++] = (uint32_t)caam.hash_align_buf_len;
     caam.desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, caam.digest_size);
-    caam.desc[dc++] = (uint32_t)(uintptr_t)output;
+    caam.desc[dc++] = (uint32_t)(uintptr_t)caam_digest;
 
     caam.desc[0] |= HDR_JD_DESCLEN(dc);
 
     err = caam_shedule_job_sync();
 
-    arch_invalidate_cache_range((uintptr_t)output, caam.digest_size);
+    arch_invalidate_cache_range((uintptr_t)caam_digest, sizeof(caam_digest));
 
     caam.hash_align_buf_len = 0;
+
+    /* The digest only, and only of a job that ended well */
+    if (err == PB_OK)
+        memcpy(output, caam_digest, caam.digest_size);
 
     return err;
 }

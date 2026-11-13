@@ -290,6 +290,59 @@ static void test_3_known_answers(void **state)
     }
 }
 
+/* 3.5: 'length' is the room at digest_out. Less than the digest is
+ * -PB_ERR_BUF_TOO_SMALL and nothing is written; with more, the digest's
+ * bytes are written and the rest is left. The engine stored the whole digest
+ * into a smaller buffer (F-286 (3)) */
+static void test_3_5_final_length(void **state)
+{
+    static uint8_t room[CRYPTO_MD_MAX_SZ + 16];
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(hashes); i++) {
+        memset(room, 0xee, sizeof(room));
+        assert_int_equal(hash_init(hashes[i].alg), PB_OK);
+        assert_int_equal(hash_update("abc", 3), PB_OK);
+        assert_int_equal(hash_final(room, hashes[i].length - 1), -PB_ERR_BUF_TOO_SMALL);
+        assert_true(caam_model_idle());
+        for (size_t n = 0; n < sizeof(room); n++)
+            assert_int_equal(room[n], 0xee);
+
+        /* The context is closed whatever final returned */
+        assert_int_equal(hash_update("abc", 3), -PB_ERR_STATE);
+
+        assert_int_equal(hash_init(hashes[i].alg), PB_OK);
+        assert_int_equal(hash_update("abc", 3), PB_OK);
+        assert_int_equal(hash_final(room, sizeof(room)), PB_OK);
+        assert_memory_equal(room, hashes[i].abc, hashes[i].length);
+        for (size_t n = hashes[i].length; n < sizeof(room); n++)
+            assert_int_equal(room[n], 0xee);
+    }
+}
+
+/* 3.5: the digest reaches digest_out by a copy, not by the engine's own
+ * write. A final whose job timed out and ended later wrote the caller's
+ * buffer, long after hash_final() returned (F-081, F-286 (3)) */
+static void test_3_5_the_engine_doesnt_write_the_callers_buffer(void **state)
+{
+    static uint8_t room[CRYPTO_MD_MAX_SZ];
+    (void)state;
+
+    memset(room, 0xee, sizeof(room));
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update(pattern, 64), PB_OK);
+    caam_model_hang(true);
+    assert_int_equal(hash_final(room, sizeof(room)), -PB_ERR_TIMEOUT);
+    caam_model_hang(false);
+    assert_false(caam_model_idle());
+    bench_advance_us(100000);
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_true(caam_model_idle());
+
+    for (size_t n = 0; n < sizeof(room); n++)
+        assert_int_equal(room[n], 0xee);
+}
+
 /* 3.3: the engine hashes a chunk while the next one is fetched */
 static void test_3_3_update_async(void **state)
 {
@@ -810,7 +863,7 @@ static void test_pinned_init_and_hashes(void **state)
         "job drv2: b0800007 84430004 24540000 NULL 00000000 54200028 drv3",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84430008 14200028 drv3 24540000 drv4 00000003 54200020 digest",
+        "job drv2: b0800009 84430008 14200028 drv3 24540000 drv4 00000003 54200020 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
         "job drv2: b0800007 84450004 24540000 drv4 00000080 54200048 drv3",
@@ -825,7 +878,7 @@ static void test_pinned_init_and_hashes(void **state)
         "job drv2: b0800009 84450000 14200048 drv3 24540000 pattern+640 00000100 54200048 drv3",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84450008 14200048 drv3 24540000 drv4 00000068 54200040 digest",
+        "job drv2: b0800009 84450008 14200048 drv3 24540000 drv4 00000068 54200040 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
         "job drv2: b0800007 84440004 24540000 pattern 00000200 54200048 drv3",
@@ -834,19 +887,19 @@ static void test_pinned_init_and_hashes(void **state)
         "job drv2: b0800009 84440000 14200048 drv3 24540000 pattern+512 00000180 54200048 drv3",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84440008 14200048 drv3 24540000 drv4 00000068 54200030 digest",
+        "job drv2: b0800009 84440008 14200048 drv3 24540000 drv4 00000068 54200030 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
         "job drv2: b0800007 84400004 24540000 chunk 000000c0 54200018 drv3",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84400008 14200018 drv3 24540000 drv4 00000008 54200010 digest",
+        "job drv2: b0800009 84400008 14200018 drv3 24540000 drv4 00000008 54200010 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
         "job drv2: b0800007 84400004 24540000 chunk 000000c0 54200010 drv3",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84400008 14200010 drv3 24540000 drv4 00000008 54200010 digest",
+        "job drv2: b0800009 84400008 14200010 drv3 24540000 drv4 00000008 54200010 drv5",
         "ORJRR = 1",
     };
     (void)state;
@@ -896,28 +949,28 @@ static void test_pinned_verifications(void **state)
         "job drv2: b0800007 84430004 24540000 NULL 00000000 54200028 drv3",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84430008 14200028 drv3 24540000 drv4 00000024 54200020 digest",
+        "job drv2: b0800009 84430008 14200028 drv3 24540000 drv4 00000024 54200020 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0880009 00400100 drv5 digest drv6 drv7 drv8 00000020 80160802",
+        "job drv2: b0880009 00400100 drv6 digest drv7 drv8 drv9 00000020 80160802",
         "ORJRR = 1",
         "IRJAR = 1",
         "job drv2: b0800007 84440004 24540000 NULL 00000000 54200048 drv3",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84440008 14200048 drv3 24540000 drv4 00000024 54200030 digest",
+        "job drv2: b0800009 84440008 14200048 drv3 24540000 drv4 00000024 54200030 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0880009 00400180 drv5 digest drv6 drv7 drv8 00000030 80160802",
+        "job drv2: b0880009 00400180 drv6 digest drv7 drv8 drv9 00000030 80160802",
         "ORJRR = 1",
         "IRJAR = 1",
         "job drv2: b0800007 84450004 24540000 NULL 00000000 54200048 drv3",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84450008 14200048 drv3 24540000 drv4 00000024 54200040 digest",
+        "job drv2: b0800009 84450008 14200048 drv3 24540000 drv4 00000024 54200040 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0880009 00400200 drv5 digest drv6 drv7 drv8 00000040 80160802",
+        "job drv2: b0880009 00400200 drv6 digest drv7 drv8 drv9 00000040 80160802",
         "ORJRR = 1",
     };
     (void)state;
@@ -943,6 +996,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_pinned_verifications, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_known_answers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_update_async, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_3_5_final_length, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_3_5_the_engine_doesnt_write_the_callers_buffer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_every_call_waits, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_block_buffer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_job_error_fails_the_context, setup, teardown),
