@@ -470,6 +470,49 @@ static void test_read_into_a_page(void **state)
                 (uintptr_t)dtd->page[0] >= (uintptr_t)arena + sizeof(arena));
 }
 
+/* usb.md 4.3: a buffer that doesn't start on a page and is longer than what
+ * is left of its page. The head goes through the bounce buffer and the rest
+ * straight to the caller's pages. The controller fills page 0 from its
+ * offset up to the page's end before it goes on to page 1, so the head ends
+ * at the bounce buffer's end (F-131: it started at the bounce buffer's
+ * start, and the controller took a whole page there; F-205: and every page
+ * after it was the bounce buffer again). A descriptor whose page 0 is short
+ * holds less than five pages */
+static void test_buffer_from_inside_a_page_over_several(void **state)
+{
+    static const size_t offsets[] = { 0x40, 0x200, 0xe00, 0xfc0 };
+    static const size_t lengths[] = {
+        PAGE + 1,          2 * PAGE,      2 * PAGE + 512,    DTD_MAX_BYTES - PAGE,
+        DTD_MAX_BYTES - 1, DTD_MAX_BYTES, DTD_MAX_BYTES + 1, 2 * DTD_MAX_BYTES + 512,
+        MAX_LENGTH - PAGE,
+    };
+    const struct imx_ci_udc_transfer_head *dtd;
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(offsets); i++) {
+        for (size_t j = 0; j < ARRAY_SIZE(lengths); j++) {
+            transfer_out(offsets[i], lengths[j]);
+            transfer_in(offsets[i], lengths[j]);
+        }
+    }
+
+    /* What is queued: 0x200 of the head at the bounce buffer's end, then the
+     * caller's pages */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 2 * PAGE - 0x200, 3 * PAGE), PB_OK);
+    dtd = first_dtd(USB_EP2_OUT);
+    assert_int_equal(dtd->next, DTD_NEXT_T);
+    assert_int_equal(dtd->token,
+                     DTD_TOKEN_STATUS_ACTIVE | DTD_TOKEN_IOC | DTD_TOKEN_TOTAL_BYTES(3 * PAGE));
+    assert_int_equal(dtd->page[0] & DTD_PAGE_OFFSET_MASK, PAGE - 0x200);
+    assert_int_equal(dtd->page[1], (uint32_t)(uintptr_t)(arena + 2 * PAGE));
+    assert_int_equal(dtd->page[2], (uint32_t)(uintptr_t)(arena + 3 * PAGE));
+    assert_int_equal(dtd->page[3], (uint32_t)(uintptr_t)(arena + 4 * PAGE));
+
+    /* More than the descriptors hold when the first one's page 0 is short */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 2 * PAGE - 0x200, MAX_LENGTH),
+                     -PB_ERR_MEM);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -479,6 +522,7 @@ int main(void)
         cmocka_unit_test_setup(test_too_long, setup),
         cmocka_unit_test_setup(test_write_from_inside_a_page, setup),
         cmocka_unit_test_setup(test_read_into_a_page, setup),
+        cmocka_unit_test_setup(test_buffer_from_inside_a_page_over_several, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

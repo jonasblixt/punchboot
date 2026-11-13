@@ -152,6 +152,7 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     uint32_t epreg = 0;
     size_t bytes_to_tx = length;
     size_t align_length = 0;
+    size_t align_offset = 0;
     uintptr_t bfr = (uintptr_t)bfr_;
     uintptr_t buf_ptr = bfr;
 
@@ -169,33 +170,46 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     if ((length > 0) && (bfr & DTD_PAGE_OFFSET_MASK)) {
         align_length = (DTD_PAGE_SIZE - (bfr & DTD_PAGE_OFFSET_MASK)) & DTD_PAGE_OFFSET_MASK;
         align_length = (length > DTD_PAGE_SIZE) ? align_length : length;
+        /* The controller fills page 0 from its offset up to the page's end
+         * before it goes on to page 1 (RM 54.4.5, Table 54-63). A head that
+         * more pages follow therefore ends at the bounce buffer's end */
+        align_offset = (length > DTD_PAGE_SIZE) ? DTD_PAGE_SIZE - align_length : 0;
         /* LOG_DBG("Aligning buffer <%p> (%zu bytes)", (void *) bfr, align_length); */
         /* If this is an IN transfer we need to fill the align buffer */
         if (EP_IS_IN(ep)) {
-            memcpy(align_buffer, (void *)bfr, align_length);
+            memcpy(align_buffer + align_offset, (void *)bfr, align_length);
         }
-        arch_clean_cache_range((uintptr_t)align_buffer, align_length);
+        arch_clean_cache_range((uintptr_t)align_buffer + align_offset, align_length);
     }
 
     while (bytes_to_tx) {
+        /* The descriptor that starts with the bounced head holds what is
+         * left of page 0 and four pages */
+        size_t dtd_max_bytes = DTD_MAX_BYTES - (align_length ? align_offset : 0);
+
         dtd->next = DTD_NEXT_T;
         dtd->token = DTD_TOKEN_STATUS_ACTIVE;
 
-        if (bytes_to_tx > DTD_MAX_BYTES) {
-            dtd->token |= DTD_TOKEN_TOTAL_BYTES(DTD_MAX_BYTES);
+        if (bytes_to_tx > dtd_max_bytes) {
+            dtd->token |= DTD_TOKEN_TOTAL_BYTES(dtd_max_bytes);
         } else {
             dtd->token |= DTD_TOKEN_TOTAL_BYTES(bytes_to_tx);
         }
 
         for (int n = 0; n < DTD_NO_OF_PAGES; n++) {
+            /* Only the bounced head starts inside its page */
+            uint32_t page_offset = 0;
+
             dtd->page[n] = (uint32_t)buf_ptr;
 
             if (align_length) {
                 /* If we need to align the input buffer, it will be at most
-                 * one 4k page */
-                dtd->page[n] = (uint32_t)(uintptr_t)align_buffer;
+                 * one 4k page, and the first one only */
+                page_offset = (uint32_t)align_offset;
+                dtd->page[n] = (uint32_t)(uintptr_t)align_buffer + page_offset;
                 bytes_to_tx -= align_length;
                 buf_ptr += align_length;
+                align_length = 0;
             } else if (bytes_to_tx >= DTD_PAGE_SIZE) {
                 buf_ptr += DTD_PAGE_SIZE;
                 bytes_to_tx -= DTD_PAGE_SIZE;
@@ -204,7 +218,7 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
                 bytes_to_tx = 0;
             }
 
-            if (dtd->page[n] & DTD_PAGE_OFFSET_MASK)
+            if ((dtd->page[n] & DTD_PAGE_OFFSET_MASK) != page_offset)
                 return -PB_ERR_ALIGN;
 
             if (bytes_to_tx == 0) {
@@ -284,14 +298,16 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
         size_t align_length = (DTD_PAGE_SIZE - (xfer_bfr & DTD_PAGE_OFFSET_MASK)) &
                               DTD_PAGE_OFFSET_MASK;
         align_length = (xfer_length > DTD_PAGE_SIZE) ? align_length : xfer_length;
+        /* As in imx_ci_udc_xfer_start() */
+        size_t align_offset = (xfer_length > DTD_PAGE_SIZE) ? DTD_PAGE_SIZE - align_length : 0;
 
         /* If this was an out transfer we should copy data from the
          * alignment buffer */
         if (!EP_IS_IN(ep)) {
             /* LOG_DBG("Align: copying %zu bytes to %p", align_length,
                     (void *) xfer_bfr); */
-            arch_invalidate_cache_range((uintptr_t)align_buffer, align_length);
-            memcpy((void *)xfer_bfr, align_buffer, align_length);
+            arch_invalidate_cache_range((uintptr_t)align_buffer + align_offset, align_length);
+            memcpy((void *)xfer_bfr, align_buffer + align_offset, align_length);
         }
     }
 
