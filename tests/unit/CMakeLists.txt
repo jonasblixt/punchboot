@@ -597,6 +597,18 @@ pb_unit_test(test_usbd SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/usbd.c
 )
 
+# The Cadence USB3 controller's driver on a register file. Its TRBs hold 32 bit
+# addresses: -no-pie keeps the ring below 4 GiB
+pb_unit_test(test_cdns3_udc SOURCES
+    fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/cdns3_udc_core.c
+)
+target_include_directories(test_cdns3_udc BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_cdns3_udc PRIVATE -fno-pie)
+target_link_options(test_cdns3_udc PRIVATE -no-pie)
+
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c

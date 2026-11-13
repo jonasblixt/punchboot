@@ -260,7 +260,8 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     trb_p->length = 0;
     trb_p->flags = 0;
 
-    arch_clean_cache_range((uintptr_t)trb, sizeof(trb[0]) * desc_count);
+    /* With the stop gap TRB, which the controller reads too */
+    arch_clean_cache_range((uintptr_t)trb, sizeof(trb[0]) * (desc_count + 1));
 
     select_ep(ep);
     mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_TRBERR);
