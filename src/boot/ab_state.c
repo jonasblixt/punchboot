@@ -121,6 +121,25 @@ config_commit_err:
     return rc;
 }
 
+/*
+ * A repair of the backup alone: the state is the primary's, as it was read,
+ * with its CRC. The primary is the one good copy and isn't written: the
+ * commit would write it first, and power lost in that write leaves it torn
+ * beside the backup that was to be repaired (F-404).
+ */
+static int pb_boot_state_repair_backup(void)
+{
+    int rc = pb_boot_state_write(backup_part);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Could not write the backup boot state (%i)", rc);
+    } else {
+        LOG_INFO("Backup boot state written");
+    }
+
+    return rc;
+}
+
 int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
 {
     int rc;
@@ -221,9 +240,9 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
         pb_boot_state_defaults(&boot_state);
         rc = pb_boot_state_commit();
     } else if (!backup_state_ok && primary_state_ok) {
-        /* The commit writes the state, the primary's, to both */
+        /* The state is the primary's, which stays as it is */
         LOG_ERR("Backup state corrupt, repairing");
-        rc = pb_boot_state_commit();
+        rc = pb_boot_state_repair_backup();
     } else if (backup_state_ok && !primary_state_ok) {
         LOG_ERR("Primary state corrupt, reparing");
         memcpy(&boot_state, &boot_state_backup, sizeof(struct pb_boot_state));
@@ -231,11 +250,11 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     } else if (memcmp(&boot_state, &boot_state_backup, sizeof(struct pb_boot_state)) != 0) {
         /* Both are valid and they differ: a commit was cut between its two
          * writes. The primary is written first (boot.md 3.7), so it has the
-         * newer state, and it is written to both. A backup that is left
-         * behind comes back when the primary goes bad. The state is the
-         * primary's also when that can't be written */
+         * newer state, and the backup gets it; the primary stays as it is.
+         * A backup that is left behind comes back when the primary goes
+         * bad. The state is the primary's also when that can't be written */
         LOG_ERR("Backup state differs from the primary, updating");
-        rc = pb_boot_state_commit();
+        rc = pb_boot_state_repair_backup();
 
         if (rc != PB_OK) {
             LOG_ERR("Backup state not updated (%i)", rc);

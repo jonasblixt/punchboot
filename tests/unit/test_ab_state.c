@@ -626,7 +626,8 @@ static void test_init_primary_read_error(void **state)
 }
 
 /* One copy is good and the other can't be read: the state is the good
- * copy's, which is written to both, as for a copy that is corrupt */
+ * copy's, and the other is repaired as one that is corrupt is. A backup
+ * alone is written (F-404), a primary goes through the commit */
 static void test_init_read_error_with_a_good_copy(void **state)
 {
     struct fixture *f = *state;
@@ -638,7 +639,7 @@ static void test_init_read_error_with_a_good_copy(void **state)
     write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
     f->disk->fail_reads_after = 1;
     assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
-    assert_int_equal(f->disk->writes, 2);
+    assert_int_equal(f->disk->writes, 1);
     assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
     assert_int_equal(boot_once(), f->sys_b);
 
@@ -662,8 +663,9 @@ static void test_init_read_error_with_a_good_copy(void **state)
 /*
  * Two valid copies that differ (boot.md 3.7, F-176): a commit, pb's or
  * pbstate's, was cut between its two writes. The primary is written first,
- * so its state is the newer one, and init writes it to both. A backup that
- * stays behind would come back when the primary goes bad.
+ * so its state is the newer one, and init writes it to the backup (the
+ * backup alone, F-404). A backup that stays behind would come back when the
+ * primary goes bad.
  */
 static void test_init_copies_that_differ_get_the_primarys_state(void **state)
 {
@@ -678,10 +680,10 @@ static void test_init_copies_that_differ_get_the_primarys_state(void **state)
     write_copy(f, PRIMARY_LBA, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
 
     reboot(f, &cfg_normal);
-    assert_int_equal(f->disk->writes, 2);
+    assert_int_equal(f->disk->writes, 1);
     assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
     assert_int_equal(boot_once(), f->sys_b);
-    assert_int_equal(f->disk->writes, 2);
+    assert_int_equal(f->disk->writes, 1);
 
     /* The primary goes bad: what comes back is the confirmed B, and no
      * rollback to A */
@@ -705,7 +707,7 @@ static void test_init_copies_that_differ_get_the_primarys_state(void **state)
 
     writes = f->disk->writes;
     reboot(f, &cfg_normal);
-    assert_int_equal(f->disk->writes, writes + 2);
+    assert_int_equal(f->disk->writes, writes + 1);
     assert_memory_equal(state_at(f, BACKUP_LBA), state_at(f, PRIMARY_LBA), RAMDISK_BLOCK_SIZE);
     assert_true(state_valid(f, BACKUP_LBA));
     assert_int_equal(boot_ab_state_read_board_reg(2, &value), PB_OK);
@@ -722,20 +724,20 @@ static void test_init_copies_that_differ_and_no_write(void **state)
     write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
     write_copy(f, PRIMARY_LBA, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
 
-    /* Nothing can be written */
+    /* The backup takes no write, which is the only one init tries (F-404) */
     f->disk->fail_writes_after = 0;
     assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
     assert_int_equal(boot_once(), f->sys_b);
     assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
-    assert_int_equal(state_at(f, BACKUP_LBA)->verified, PB_STATE_A_VERIFIED);
-
-    /* Only the backup can't */
-    attach(f, true, true);
-    f->disk->fail_writes_after = 1;
-    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
-    assert_int_equal(boot_once(), f->sys_b);
     assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED);
     assert_true(state_valid(f, PRIMARY_LBA));
+    assert_int_equal(state_at(f, BACKUP_LBA)->verified, PB_STATE_A_VERIFIED);
+
+    /* And again on the next boot */
+    attach(f, true, true);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(f->disk->writes, 0);
     assert_int_equal(state_at(f, BACKUP_LBA)->verified, PB_STATE_A_VERIFIED);
 }
 
@@ -818,6 +820,105 @@ static void test_commit_erases_first(void **state)
     assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
     assert_int_equal(erase_calls, 1);
     assert_false(state_valid(f, PRIMARY_LBA));
+}
+
+/* What init wrote, per block: 'primary' and 'backup' writes of the two
+ * copies, and none anywhere else on the disk */
+static void assert_writes(struct fixture *f, unsigned int primary, unsigned int backup)
+{
+    for (size_t lba = 0; lba < DISK_BLOCKS; lba++) {
+        unsigned int expected = (lba == PRIMARY_LBA) ? primary : (lba == BACKUP_LBA) ? backup : 0;
+
+        assert_int_equal(f->disk->block_writes[lba], expected);
+    }
+}
+
+/* A boot whose init finds what the test put on the disk. The writes are
+ * counted from here */
+static int init_counting_writes(struct fixture *f)
+{
+    attach(f, true, true);
+    memset(f->disk->block_writes, 0, DISK_BLOCKS * sizeof(*f->disk->block_writes));
+    return boot_ab_state_init(&cfg_normal);
+}
+
+/*
+ * F-404: a repair of the backup alone writes the backup alone. It went
+ * through the commit, which writes the primary first: power lost in that
+ * write tore the one good copy, beside a backup that was bad (the state is
+ * gone) or older (an older state is back). The three ways a backup alone is
+ * repaired: it is corrupt, it can't be read, and it is valid and differs
+ * from the primary (F-176).
+ */
+static void test_backup_repair_writes_the_backup_only(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t primary[RAMDISK_BLOCK_SIZE];
+
+    /* Corrupt */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    state_at(f, BACKUP_LBA)->crc ^= 1;
+    memcpy(primary, state_at(f, PRIMARY_LBA), sizeof(primary));
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 0, 1);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* It can't be read: the second read of init */
+    f->disk->fail_reads_after = 1;
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    f->disk->fail_reads_after = -1;
+    assert_writes(f, 0, 1);
+    assert_memory_equal(state_at(f, BACKUP_LBA), primary, sizeof(primary));
+
+    /* Valid and older: the primary has the OS's confirmation of A too */
+    write_copy(f, PRIMARY_LBA, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 0, 1);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+
+    /* The repair's write fails, as when power is lost in it: the primary is
+     * as it was, and the next boot has its state and repairs again */
+    memcpy(primary, state_at(f, PRIMARY_LBA), sizeof(primary));
+    memset(state_at(f, BACKUP_LBA), 0xa5, RAMDISK_BLOCK_SIZE);
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(init_counting_writes(f), -PB_ERR_IO);
+    f->disk->fail_writes_after = -1;
+    assert_writes(f, 0, 0);
+    assert_memory_equal(state_at(f, PRIMARY_LBA), primary, sizeof(primary));
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 0, 1);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* Two copies that agree: nothing is written */
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 0, 0);
+
+    /* The other way round goes through the commit: a primary that is
+     * repaired is written first, then the backup (boot.md 3.7) */
+    state_at(f, PRIMARY_LBA)->crc ^= 1;
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 1, 1);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+}
+
+/* F-404 on a NOR, where the write starts with an erase: the good primary's
+ * block isn't erased for a repair of the backup */
+static void test_backup_repair_erases_the_backup_only(void **state)
+{
+    struct fixture *f = *state;
+
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    state_at(f, BACKUP_LBA)->crc ^= 1;
+    attach_nor(f);
+    memset(f->disk->block_writes, 0, DISK_BLOCKS * sizeof(*f->disk->block_writes));
+
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(erase_calls, 1);
+    assert_int_equal(erased[0], BACKUP_LBA);
+    assert_int_equal(erased_blocks[0], 1);
+    assert_writes(f, 0, 1);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
 }
 
 /* bio.md 2.3 (F-283): the state asks the device's block size and assumes
@@ -2358,8 +2459,9 @@ static void test_speculative_backup_that_cannot_be_written(void **state)
     for (unsigned int boot = 0; boot < 6; boot++) {
         bool b_turn = (boot % 2 == 0);
 
+        /* Init writes the backup alone (F-404), the commit the primary first */
         attach(f, true, true);
-        f->disk->fail_writes_after = 1;
+        f->disk->fail_writes_after = 0;
         assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
 
         f->disk->fail_writes_after = 1;
@@ -2410,10 +2512,10 @@ static void test_speculative_power_loss_between_the_copies(void **state)
     assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_B_ENABLED);
 
     /* Both copies are valid and differ: the primary wins at init, which
-     * writes it to both (F-176). A's turn was cut, so this boot is B's */
+     * writes it to the backup (F-176). A's turn was cut, so this boot is B's */
     writes = f->disk->writes;
     reboot(f, &cfg_normal);
-    assert_int_equal(f->disk->writes, writes + 2);
+    assert_int_equal(f->disk->writes, writes + 1);
     assert_disk_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
     assert_int_equal(hand_out(uu), f->sys_b);
     assert_mode(SPECULATIVE);
@@ -2475,6 +2577,8 @@ int main(void)
         AB_TEST(test_init_copies_that_differ_and_no_write),
         AB_TEST(test_commit_write_errors),
         AB_TEST(test_commit_erases_first),
+        AB_TEST(test_backup_repair_writes_the_backup_only),
+        AB_TEST(test_backup_repair_erases_the_backup_only),
         AB_TEST(test_state_in_blocks_of_another_size),
         AB_TEST(test_verified_system_boots),
         AB_TEST(test_b_boot_attempts),

@@ -24,6 +24,8 @@ struct ramdisk {
     size_t block_size;
     unsigned int reads;
     unsigned int writes;
+    /* How often each block was written, by its LBA: 'blocks' counters */
+    unsigned int *block_writes;
     /* Fault injection: -1 never fails, n lets n more operations succeed and
      * then fails every operation with -PB_ERR_IO */
     int fail_reads_after;
