@@ -47,6 +47,13 @@ static struct {
     unsigned int log_time_starts;
     /* The register log's length when log_time_start() was called */
     size_t log_time_started_at;
+    /* The ROM's logs and the TZASC's driver: what each answers */
+    bool no_rom_log;
+    int hab_log_rc;
+    int tzc_init_rc;
+    int tzc_region_rc;
+    /* GPR10's bits that don't take a write */
+    uint32_t gpr10_stuck_at_0;
 } f;
 
 /* The fuses */
@@ -61,10 +68,19 @@ void imx_rom_log_save(const struct imx_rom_log_config *cfg)
     (void)cfg;
 }
 
+/* As the driver's: no log is -PB_ERR_NOT_FOUND, and a log that has no room
+ * in 'out' is -PB_ERR_BUF_TOO_SMALL with nothing written */
+int imx_rom_log_dump(char *out, size_t *out_len)
+{
+    (void)out;
+    assert_int_equal(*out_len, 0);
+    return f.no_rom_log ? -PB_ERR_NOT_FOUND : -PB_ERR_BUF_TOO_SMALL;
+}
+
 int imx_hab_log_init(const struct imx_hab_log_config *cfg)
 {
     (void)cfg;
-    return PB_OK;
+    return f.hab_log_rc;
 }
 
 int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz)
@@ -95,7 +111,7 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 int tzc380_init(uintptr_t base)
 {
     (void)base;
-    return PB_OK;
+    return f.tzc_init_rc;
 }
 
 int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp)
@@ -104,7 +120,7 @@ int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t 
     (void)region_base;
     (void)size;
     (void)sp;
-    return PB_OK;
+    return f.tzc_region_rc;
 }
 
 void imx8m_soc_clock_init(void)
@@ -139,6 +155,9 @@ static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
     /* The GPT's software reset ends by itself */
     if (addr == IMX8M_GPT1_BASE + GPT_CR)
         return value & ~GPT_CR_SWR;
+
+    if (addr == IMX8M_IOMUXC_GPR10)
+        return value & ~(uint64_t)f.gpr10_stuck_at_0;
 
     return value;
 }
@@ -207,6 +226,99 @@ static struct pb_boot_reason reason_of(uint32_t srsr)
     assert_int_equal(plat_get_boot_reason(&reason), PB_OK);
     assert_int_equal(reason.raw, srsr);
     return reason;
+}
+
+/* What plat_get_status() answers, every field set by the port */
+static struct plat_status status_now(void)
+{
+    struct plat_status status;
+
+    memset(&status, 0xff, sizeof(status));
+    plat_get_status(&status);
+    return status;
+}
+
+/* platform.md 3.8: what plat_init() recorded. The TZASC is enabled and
+ * locked and DRAM is open in region 1, the watchdog is armed (the test is
+ * built with the option), the ROM's logs were found, and the platform sets
+ * no crypto engine up (the board does, F-247) */
+static void test_status(void **state)
+{
+    struct plat_status status;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    status = status_now();
+
+    assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+    assert_true(status.wdog_armed);
+    assert_false(status.crypto_engine);
+    assert_true(status.rom_log);
+}
+
+/* platform.md 2.2, 4.3 (F-248): a TZASC whose enable or whose lock didn't
+ * take isn't plat_init()'s error, command mode runs without it. It is
+ * recorded as bypassed: the normal world can switch off what isn't locked */
+static void test_status_tzasc_not_enabled(void **state)
+{
+    static const uint32_t bits[] = {
+        GPR10_TZASC_EN,
+        GPR10_TZASC_ID_SWAP_BYPASS,
+        GPR10_LOCK_TZASC_EN,
+        GPR10_LOCK_TZASC_ID_SWAP,
+    };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(bits); i++) {
+        f.gpr10_stuck_at_0 = bits[i];
+        fake_regs_set(IMX8M_IOMUXC_GPR10, 0);
+        assert_int_equal(plat_early_init(), PB_OK);
+        assert_int_equal(plat_init(), PB_OK);
+        assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+    }
+
+    /* And it is the state of this plat_init(), not of an earlier one */
+    f.gpr10_stuck_at_0 = 0;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+}
+
+/* The same when DRAM's region couldn't be opened with the TZASC enabled:
+ * not the state 4.3 asks for, and the boot is refused the same way */
+static void test_status_tzasc_setup_failed(void **state)
+{
+    (void)state;
+
+    f.tzc_init_rc = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    f.tzc_init_rc = PB_OK;
+    f.tzc_region_rc = -PB_ERR_STATE;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+}
+
+/* platform.md 2.3: the ROM's logs are two, its event log and the HAB's.
+ * Without either the platform goes on and records it */
+static void test_status_rom_logs_missing(void **state)
+{
+    (void)state;
+
+    f.no_rom_log = true;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().rom_log);
+
+    f.no_rom_log = false;
+    f.hab_log_rc = -PB_ERR_NOT_FOUND;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().rom_log);
 }
 
 /* platform.md 3.4: every cause of SRC_SRSR has a kind and a name, and raw is
@@ -357,6 +469,10 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
+        cmocka_unit_test_setup(test_status, setup),
+        cmocka_unit_test_setup(test_status_tzasc_not_enabled, setup),
+        cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
+        cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_priority, setup),
         cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),
