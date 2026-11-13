@@ -127,25 +127,25 @@ fuse_read_helper(uint8_t bank, uint8_t row, uint8_t shift, uint32_t mask, uint32
 int plat_boot_reason(void)
 {
     /* Read the SRC reset status register */
-    uint32_t srsr = mmio_read_32(IMX6UL_SRC_SRSR);
+    uint32_t status = mmio_read_32(IMX6UL_SRC_SRSR);
 
-    if (srsr & SRSR_WARM)
+    if (status & SRSR_WARM)
         return BR_WARM;
-    else if (srsr & SRSR_TEMP)
+    else if (status & SRSR_TEMP)
         return BR_TEMP;
-    else if (srsr & SRSR_WDOG3)
+    else if (status & SRSR_WDOG3)
         return BR_WDOG3;
-    else if (srsr & SRSR_JTAG_SW)
+    else if (status & SRSR_JTAG_SW)
         return BR_JTAG_SW;
-    else if (srsr & SRSR_JTAG_RST)
+    else if (status & SRSR_JTAG_RST)
         return BR_JTAG_RST;
-    else if (srsr & SRSR_WDOG)
+    else if (status & SRSR_WDOG)
         return BR_WDOG;
-    else if (srsr & SRSR_USER)
+    else if (status & SRSR_USER)
         return BR_USER;
-    else if (srsr & SRSR_CSU)
+    else if (status & SRSR_CSU)
         return BR_CSU;
-    else if (srsr & SRSR_POR)
+    else if (status & SRSR_POR)
         return BR_POR;
     else
         return BR_UNKNOWN;
@@ -154,6 +154,42 @@ int plat_boot_reason(void)
 const char *plat_boot_reason_str(void)
 {
     return br_str[plat_boot_reason()];
+}
+
+/* SRC_SRSR as plat_early_init() read it */
+static uint32_t srsr;
+
+/* The causes, the highest priority first (plat/imx6ul/imx6ul.h) */
+static const struct {
+    uint32_t bit;
+    enum pb_boot_reason_kind kind;
+    const char *name;
+} boot_reasons[] = {
+    { IMX6UL_SRSR_TEMPSENSE, PB_BOOT_REASON_FAULT, "temp" },
+    { IMX6UL_SRSR_WDOG3, PB_BOOT_REASON_WDOG, "wdog3" },
+    { IMX6UL_SRSR_JTAG_SW, PB_BOOT_REASON_DEBUG, "jtag_sw" },
+    { IMX6UL_SRSR_JTAG, PB_BOOT_REASON_DEBUG, "jtag_rst" },
+    { IMX6UL_SRSR_WDOG, PB_BOOT_REASON_WDOG, "wdog" },
+    { IMX6UL_SRSR_USER, PB_BOOT_REASON_UNKNOWN, "User" },
+    { IMX6UL_SRSR_CSU, PB_BOOT_REASON_FAULT, "CSU" },
+    { IMX6UL_SRSR_POR, PB_BOOT_REASON_POR, "POR" },
+};
+
+int plat_get_boot_reason(struct pb_boot_reason *reason)
+{
+    reason->kind = PB_BOOT_REASON_UNKNOWN;
+    reason->raw = srsr;
+    reason->name = "Unknown";
+
+    for (size_t i = 0; i < ARRAY_SIZE(boot_reasons); i++) {
+        if (srsr & boot_reasons[i].bit) {
+            reason->kind = boot_reasons[i].kind;
+            reason->name = boot_reasons[i].name;
+            break;
+        }
+    }
+
+    return PB_OK;
 }
 
 int plat_get_unique_id(uint8_t *output, size_t *length)
@@ -284,6 +320,9 @@ static const struct imx_hab_fuses hab_fuses = {
 
 int plat_early_init(void)
 {
+    /* The reset reason. Read only: the OS reads the same register */
+    srsr = mmio_read_32(IMX6UL_SRC_SRSR);
+
     imx_rom_log_save(&rom_log_cfg);
     (void)imx_hab_log_init(&hab_log_cfg);
     /* Before the USB driver resets the controller */
