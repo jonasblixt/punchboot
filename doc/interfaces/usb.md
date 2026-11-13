@@ -422,8 +422,8 @@ what the code doesn't settle without the hardware.
 | An unknown request is stalled    | no                  | no                  | no                | F-138   |
 | The driver's DMA objects own     | yes                 | partly: aligned,    | no                | F-205,  |
 | their lines                      |                     | not padded          |                   | F-282   |
-| The order of clean, invalidate   | no                  | unverified          | yes               | F-134,  |
-| and copy                         |                     |                     |                   | F-131   |
+| The order of clean, invalidate   | no                  | unverified          | yes               | F-131   |
+| and copy                         |                     |                     |                   |         |
 | `stop`                           | yes, unbounded      | yes                 | no                | F-204   |
 | The serial number is read        | yes                 | yes                 | yes (the MEK,     |         |
 |                                  |                     |                     | 2026-11-09)       |         |
@@ -465,7 +465,7 @@ checklist's last item.
 | F-138, F-203        | Endpoint 0: stall, bounds, no effect on a bulk transfer (3.2)                |
 | F-204               | Every controller has a `stop` (4.2)                                          |
 | F-136, F-205        | Every wait is bounded (4)                                                    |
-| F-131, F-134        | The cache's order around a transfer (`drivers.md` 4.2)                       |
+| F-131               | The cache's order around a transfer (`drivers.md` 4.2)                       |
 | F-282               | The controllers' DMA objects own their lines (5)                             |
 | F-139, F-140        | The ChipIdea's set up against its reference manual                           |
 | F-172               | Writes that reset the MEK                                                    |

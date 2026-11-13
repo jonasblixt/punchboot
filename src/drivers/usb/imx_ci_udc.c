@@ -272,6 +272,13 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     if (xfer_head->token & DTD_TOKEN_STATUS_ACTIVE)
         return -PB_ERR_AGAIN;
 
+    if (!EP_IS_IN(ep) && xfer_bfr && xfer_length) {
+        /* Output from host, invalidate cache. Before the copy below, which
+         * is in the cache only: an invalidate after it would drop it
+         * (drivers.md 4.2) */
+        arch_invalidate_cache_range(xfer_bfr, xfer_length);
+    }
+
     /* Check for un-aligned buffers */
     if (xfer_length && (xfer_bfr & DTD_PAGE_OFFSET_MASK)) {
         size_t align_length = (DTD_PAGE_SIZE - (xfer_bfr & DTD_PAGE_OFFSET_MASK)) &
@@ -286,11 +293,6 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
             arch_invalidate_cache_range((uintptr_t)align_buffer, align_length);
             memcpy((void *)xfer_bfr, align_buffer, align_length);
         }
-    }
-
-    if (!EP_IS_IN(ep) && xfer_bfr && xfer_length) {
-        /* Output from host, invalidate cache*/
-        arch_invalidate_cache_range(xfer_bfr, xfer_length);
     }
 
     return PB_OK;

@@ -441,6 +441,35 @@ static void test_write_from_inside_a_page(void **state)
     }
 }
 
+/* drivers.md 4.2, item 4: invalidate before the CPU's own writes, never
+ * after. A read into a buffer that doesn't start on a page and fits in one
+ * comes through the bounce buffer, and the driver's copy into the caller's
+ * buffer is in the cache only (F-134: it then invalidated the buffer, which
+ * drops the copy). Every command is read so: jiffy's command buffer is 0x200
+ * into a page. What is queued for it is one descriptor with the bounce
+ * buffer's page, from its start */
+static void test_read_into_a_page(void **state)
+{
+    static const size_t offsets[] = { 0x40, 0x200, 0xe00, 0xfc0 };
+    static const size_t lengths[] = { 1, 64, 512, 513, PAGE - 1, PAGE };
+    const struct imx_ci_udc_transfer_head *dtd;
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(offsets); i++) {
+        for (size_t j = 0; j < ARRAY_SIZE(lengths); j++)
+            transfer_out(offsets[i], lengths[j]);
+    }
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + PAGE + 0x200, 512), PB_OK);
+    dtd = first_dtd(USB_EP2_OUT);
+    assert_int_equal(dtd->next, DTD_NEXT_T);
+    assert_int_equal(dtd->token,
+                     DTD_TOKEN_STATUS_ACTIVE | DTD_TOKEN_IOC | DTD_TOKEN_TOTAL_BYTES(512));
+    assert_int_equal(dtd->page[0] & DTD_PAGE_OFFSET_MASK, 0);
+    assert_true((uintptr_t)dtd->page[0] < (uintptr_t)arena ||
+                (uintptr_t)dtd->page[0] >= (uintptr_t)arena + sizeof(arena));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -449,6 +478,7 @@ int main(void)
         cmocka_unit_test_setup(test_zero_length, setup),
         cmocka_unit_test_setup(test_too_long, setup),
         cmocka_unit_test_setup(test_write_from_inside_a_page, setup),
+        cmocka_unit_test_setup(test_read_into_a_page, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
