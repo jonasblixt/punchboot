@@ -82,6 +82,22 @@ config PB_ENTRY
         the image stages and C. There is no default: a board's defconfig
         sets it, and a build without it stops.
 
+config BOARD_DRAM_BASE
+    hex "The board's DRAM: its address"
+    default 0x0
+    help
+        The DRAM the board has, in one range (platform.md 5.1): what pb
+        maps as the board's memory, and what the link checks pb's regions
+        against. Images are loaded into the board's image data regions
+        (board.md 2.9), not into all of it.
+
+config BOARD_DRAM_SIZE
+    hex "The board's DRAM: its size"
+    default 0x0
+    help
+        0: the board has no DRAM, and pb, its buffers and the images are
+        in the SoC's on-chip RAM.
+
 config PB_BUFFERS_BASE
     hex "pb's buffers: their address"
     default 0x81021000 if PLAT_IMX6UL

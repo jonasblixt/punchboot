@@ -11,10 +11,6 @@ PB_IMG_PEM   = $(patsubst "%",%,$(CONFIG_IMX6UL_IMAGE_SIGN_CERT))
 
 SED = $(shell which sed)
 
-
-cflags-y += -DBOARD_RAM_BASE=0x80000000
-cflags-y += -DBOARD_RAM_END=0xc0000000
-
 src-y += $(BOARD)/board.c
 
 imx6ul_image: $(BUILD_DIR)/$(TARGET).bin

@@ -13,9 +13,6 @@ SED = $(shell which sed)
 src-y += $(BOARD)/board.c
 src-y += src/board/password.c
 
-cflags-y += -DBOARD_RAM_BASE=0x80000000
-cflags-y += -DBOARD_RAM_END=0x140000000
-
 .PHONY: imx8x_image imx8x_sign_image
 
 imx8x_image: $(BUILD_DIR)/$(TARGET).bin

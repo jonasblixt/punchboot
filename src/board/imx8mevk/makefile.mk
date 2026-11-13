@@ -5,9 +5,6 @@ MKIMAGE ?= mkimage_imx8m
 PB_CSF_TEMPLATE = src/plat/imx8m/pb.csf.template
 SED = $(shell which sed)
 
-cflags-y += -DBOARD_RAM_BASE=0x40000000
-cflags-y += -DBOARD_RAM_END=0xc0000000
-
 src-y += $(BOARD)/board.c
 src-y += $(BOARD)/lpddr4_timing.c
 

@@ -7,11 +7,7 @@
 #
 # i.MX8M Plus EVK. pb runs from OCRAM at 0x920000, after the ROM's part of it.
 
-
 MKIMAGE ?= mkimage
-
-cflags-y += -DBOARD_RAM_BASE=0x40000000
-cflags-y += -DBOARD_RAM_END=0xc0000000
 
 src-y += $(BOARD)/board.c
 src-y += $(BOARD)/lpddr4_timing.c

@@ -83,6 +83,13 @@ cflags-y  += -I include/libc
 cflags-y  += -I $(BOARD)/include
 cflags-y  += -I $(BUILD_DIR)
 
+# The board's DRAM (platform.md 5.1), from its defconfig. BOARD_RAM_BASE and
+# BOARD_RAM_END are its names in the platforms' memory maps; the end is made
+# here, where it doesn't wrap in 32 bits.
+BOARD_DRAM_END := $(shell printf '0x%x' $$(( $(CONFIG_BOARD_DRAM_BASE) + $(CONFIG_BOARD_DRAM_SIZE) )))
+cflags-y  += -DBOARD_RAM_BASE=$(CONFIG_BOARD_DRAM_BASE)
+cflags-y  += -DBOARD_RAM_END=$(BOARD_DRAM_END)
+
 # Warnings
 cflags-y += -Wall
 cflags-y += -Wextra
@@ -126,6 +133,8 @@ include src/cm/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
 ldflags-y += --defsym=PB_ENTRY=$(CONFIG_PB_ENTRY)
+ldflags-y += --defsym=BOARD_DRAM_BASE=$(CONFIG_BOARD_DRAM_BASE)
+ldflags-y += --defsym=BOARD_DRAM_SIZE=$(CONFIG_BOARD_DRAM_SIZE)
 ldflags-y += --defsym=PB_BUFFERS_BASE=$(CONFIG_PB_BUFFERS_BASE)
 ldflags-y += --defsym=PB_BUFFERS_SIZE=$(CONFIG_PB_BUFFERS_SIZE)
 ldflags-y += --defsym=PB_STACK_SIZE_KiB=$(CONFIG_STACK_SIZE_KiB)
