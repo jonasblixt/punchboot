@@ -107,8 +107,13 @@ pb_unit_test(test_crypto
     LIBS pb_mbedtls
 )
 
+# The crypto backends' conformance tests (crypto.md 9), linked by every test
+# program that has a backend to run them against
+set(PB_CRYPTO_CONFORMANCE ${CMAKE_CURRENT_SOURCE_DIR}/conformance/crypto_conformance.c)
+
 pb_unit_test(test_mbedtls
     SOURCES
+        ${PB_CRYPTO_CONFORMANCE}
         ${PROJECT_SOURCE_DIR}/src/crypto.c
         ${PROJECT_SOURCE_DIR}/src/drivers/crypto/mbedtls/mbedtls_pb.c
     LIBS pb_mbedtls pb_keystore
@@ -710,6 +715,7 @@ target_link_libraries(pb_caam_model PUBLIC pb_lib pb_mbedtls PkgConfig::CMOCKA)
 # crypto.md and the model. The rings and the descriptors hold 32 bit addresses
 pb_unit_test(test_caam_crypto
     SOURCES
+        ${PB_CRYPTO_CONFORMANCE}
         ${PROJECT_SOURCE_DIR}/src/crypto.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c

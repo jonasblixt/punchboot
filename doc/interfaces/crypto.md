@@ -293,7 +293,7 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 |                                      |                         | host's board         |              |
 | `hash_init()` starts clean           | yes                     | yes                  |              |
 |                                      | (`test_caam_crypto`)    |                      |              |
-| Any length and split                 | yes (read; no test)     | yes (`test_mbedtls`) | F-230        |
+| Any length and split                 | yes (the suite)         | yes (the suite)      |              |
 | The asynchronous update is waited    | yes                     | n/a (none)           |              |
 | for                                  | (`test_caam_crypto`)    |                      |              |
 | `final` respects `length`            | yes                     | yes (`test_mbedtls`) |              |
@@ -316,9 +316,7 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 |                                      |                         | (`test_mbedtls`)     |              |
 | An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |
 | isn't registered                     |                         |                      |              |
-| Known answer tests                   | partly: "abc", 1000     | partly: "abc", P-256 | F-230        |
-|                                      | bytes, the three curves |                      |              |
-|                                      | (`test_caam_crypto`)    |                      |              |
+| Known answer tests                   | yes (the suite)         | yes (the suite)      |              |
 
 The core:
 
@@ -329,19 +327,19 @@ The core:
 | `dsa_verify()` is refused while a hash is open   | yes (`test_crypto`)               |         |
 | `md_length` is the digest size of `md_alg`       | no: not checked                   | F-286   |
 
-**The conformance suite** (`process.md` 7). **Not yet in the code (F-286)**: one set of tests
-for sections 3 and 4, run against every backend: known answers for each algorithm (the
+**The conformance suite** (`process.md` 7, `tests/unit/conformance/crypto_conformance.h`): one
+set of tests for sections 3 and 4, run against every backend: known answers for each algorithm (the
 standards' vectors, lengths around the block size, every split), the verdict's cases (a valid
 signature, one bit changed in the signature, in the digest and in the key, malformed DER, a
 wrong curve), and the states (a hash given up at each step, then a verification that must
 fail and one that must pass). Mbed TLS runs it on the host. The CAAM runs it on the host
 against a model of its job ring that executes the descriptors, and on the bench through the
-simple target (D-025): F-181 was found in such a model, not on hardware.
+simple target (D-025): F-181 was found in such a model, not on hardware. **Not yet in the code
+(F-286)**: the run on the bench.
 
 ## 10. Not yet in the code
 
 | Finding      | What                                                                            |
 | ------------ | ------------------------------------------------------------------------------- |
-| F-286        | The core and the backends against sections 3, 4 and 6; the conformance suite    |
+| F-286        | The core and the backends against sections 3, 4 and 6; the suite on the bench   |
 | F-247        | The platform sets the backend up (2)                                            |
-| F-230        | The backends' tests (9)                                                         |

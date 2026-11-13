@@ -10,6 +10,9 @@
  *
  * The linker wraps the library's hash calls (--wrap, see CMakeLists.txt), so
  * that a test can fail one, as a library with hardware acceleration can.
+ *
+ * The backends' conformance tests (conformance/crypto_conformance.h, crypto.md
+ * 9) run here against Mbed TLS.
  */
 
 #include <setjmp.h>
@@ -19,6 +22,7 @@
 
 #include <cmocka.h>
 
+#include "conformance/crypto_conformance.h"
 #include <bpak/keystore.h>
 #include <drivers/crypto/mbedtls.h>
 #include <mbedtls/error.h>
@@ -105,6 +109,9 @@ static int group_setup(void **state)
 
     if (mbedtls_pb_init() != PB_OK)
         return -1;
+
+    crypto_conformance_hashes = HASH_MD5 | HASH_SHA256 | HASH_SHA384 | HASH_SHA512;
+    crypto_conformance_curves = DSA_EC_SECP256r1 | DSA_EC_SECP384r1 | DSA_EC_SECP521r1;
 
     FILE *fp = fopen(PB_AUTH_TOKEN_PATH, "rb");
     if (fp == NULL)
@@ -455,6 +462,7 @@ int main(void)
         cmocka_unit_test(test_verify_rejects_bad_signature_encoding),
         cmocka_unit_test(test_verify_bad_keys_leave_the_heap),
         cmocka_unit_test(test_verify_rejects_unsupported_digest),
+        CRYPTO_CONFORMANCE_TESTS(NULL, clear_failing),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

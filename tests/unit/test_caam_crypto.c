@@ -14,6 +14,9 @@
  * CAAM: each ends with an engine that is idle, which the teardown checks
  * after a hash of its own. HASH_MD5_BROKEN has no test: the model doesn't
  * know its digest.
+ *
+ * The backends' conformance tests (conformance/crypto_conformance.h, crypto.md
+ * 9) run here against the CAAM, with the same setup and teardown.
  */
 
 #include <setjmp.h>
@@ -23,6 +26,7 @@
 
 #include <cmocka.h>
 
+#include "conformance/crypto_conformance.h"
 #include "crypto_vectors.h"
 #include "models/bench.h"
 #include "models/caam_model.h"
@@ -162,6 +166,9 @@ static int group_setup(void **state)
     n_init_events = caam_model_traced();
     caam_model_trace(NULL, 0);
     init_violations = bench_violations();
+    crypto_conformance_hashes = HASH_MD5 | HASH_MD5_BROKEN | HASH_SHA256 | HASH_SHA384 |
+                                HASH_SHA512;
+    crypto_conformance_curves = DSA_EC_SECP256r1 | DSA_EC_SECP384r1 | DSA_EC_SECP521r1;
     init_idle = caam_model_idle();
     return 0;
 }
@@ -1221,6 +1228,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_4_completion_of_another_job, setup, teardown),
         cmocka_unit_test_setup_teardown(test_job_status_is_the_entrys, setup, teardown),
         cmocka_unit_test_setup_teardown(test_job_timeout, setup, teardown),
+        CRYPTO_CONFORMANCE_TESTS(setup, teardown),
         cmocka_unit_test_setup(test_stop, setup),
     };
 
