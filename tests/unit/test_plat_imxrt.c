@@ -22,6 +22,7 @@
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
+#include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -38,6 +39,9 @@ static struct {
     int mbedtls_rc;
     uint32_t speed_grade;
 } f;
+
+/* A write that resets the SoC leaves the code under test through here */
+static jmp_buf soc_reset;
 
 int mbedtls_pb_init(void)
 {
@@ -95,6 +99,10 @@ static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
     if (addr == IMXRT_GPT1_BASE + GPT_CR)
         return value & ~GPT_CR_SWR;
 
+    /* WDOG1's software reset: WCR.SRS written 0 (RM 57.8.1.2) */
+    if (addr == IMXRT_WDOG1_BASE + WDOG_WCR && (value & WDOG_WCR_SRS) == 0)
+        longjmp(soc_reset, 1);
+
     return value;
 }
 
@@ -128,11 +136,56 @@ static void test_plat_init(void **state)
     assert_int_equal(plat_init(), PB_OK);
 }
 
+/* platform.md 3.1: plat_reset() is declared noreturn. This function has no
+ * return statement, which the compiler accepts only after a call that
+ * doesn't return: without the attribute in pb/plat.h it doesn't build */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wreturn-type"
+
+static int reset_and_never_return(void)
+{
+    plat_reset();
+}
+
+#pragma GCC diagnostic pop
+
+/* platform.md 3.1: plat_reset() resets the SoC, here through WDOG1's
+ * software reset, and doesn't come back */
+static void test_plat_reset(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    if (setjmp(soc_reset) == 0) {
+        (void)reset_and_never_return();
+        fail_msg("plat_reset() returned");
+    }
+
+    assert_int_equal(fake_reg_log[fake_reg_log_len - 1].addr, IMXRT_WDOG1_BASE + WDOG_WCR);
+    assert_int_equal(fake_reg_log[fake_reg_log_len - 1].value, WDOG_WCR_SRE | WDOG_WCR_WDE);
+}
+
+/* platform.md 3.6, 3.7: the platform's UUID namespace is declared in
+ * pb/plat.h, and it never changes: the device's UUID and its tokens are made
+ * from it. 48f8c6cb-8d07-4066-b921-0c1d8fd05471 */
+static void test_platform_ns_uuid(void **state)
+{
+    static const uint8_t ns[16] = { 0x48, 0xf8, 0xc6, 0xcb, 0x8d, 0x07, 0x40, 0x66,
+                                    0xb9, 0x21, 0x0c, 0x1d, 0x8f, 0xd0, 0x54, 0x71 };
+    (void)state;
+
+    assert_memory_equal(platform_ns_uuid, ns, sizeof(ns));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_plat_reset, setup),
+        cmocka_unit_test_setup(test_platform_ns_uuid, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

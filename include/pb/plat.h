@@ -64,7 +64,7 @@ int plat_init(void);
  * before plat_early_init() and without CONFIG_ENABLE_WATCHDOG. Does not
  * return.
  */
-void plat_reset(void);
+void plat_reset(void) __attribute__((noreturn));
 
 /**
  * A free-running microsecond counter from an arbitrary start. It wraps
@@ -73,7 +73,7 @@ void plat_reset(void);
  *
  * @return The tick in microseconds
  */
-unsigned int plat_get_us_tick(void);
+uint32_t plat_get_us_tick(void);
 
 /**
  * Restart the watchdog. Cheap and safe at any time, also before it is armed
@@ -97,6 +97,15 @@ int plat_boot_reason(void);
  * @return Boot reason string or ""
  */
 const char *plat_boot_reason_str(void);
+
+/**
+ * The UUID namespace of the platform, 16 bytes: a constant. device_uuid()
+ * derives the device UUID from it and the SoC's unique id, the host sees
+ * that UUID and command mode's tokens are signed over it. It must never
+ * change: it is fixed like the wire (doc/interfaces/platform.md 3.6, 3.7).
+ * A new platform generates its own once, at random.
+ */
+extern const char *platform_ns_uuid;
 
 /**
  * The SoC's unique id, at most 16 bytes, the same for the life of the

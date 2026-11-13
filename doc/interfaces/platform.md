@@ -189,8 +189,8 @@ Return   : does not return
 Resets the SoC. Valid from the first instruction after `arch_init()`, also before
 `plat_early_init()` (the arch's exception handlers call it) and whatever `CONFIG_ENABLE_WATCHDOG`
 is: a driver's base address is a constant, only arming the watchdog depends on the option.
-Declared `noreturn`. **Not yet in the code (F-237, F-262)**: not declared `noreturn`; a port whose
-reset goes through a system controller returns when it is called before `plat_early_init()`.
+Declared `noreturn`. **Not yet in the code (F-262)**: a port whose reset goes through a system
+controller returns when it is called before `plat_early_init()`.
 
 ### 3.2 Function : plat_get_us_tick() [mandatory]
 
@@ -201,8 +201,7 @@ Return   : uint32_t, microseconds
 
 A free-running microsecond counter from an arbitrary start. It wraps modulo 2^32 (71.6 minutes):
 callers only use differences, `now - start`, never absolute values or an end tick (F-211). Valid
-from `plat_early_init()`. The platform header states its accuracy (F-084). **Not yet in the code
-(F-237)**: `plat.h` declares it `unsigned int`.
+from `plat_early_init()`. The platform header states its accuracy (F-084).
 
 Microseconds, not milliseconds: drivers wait for 1 to 100 us, and the boot time log measures each
 chunk's read and hash below a millisecond.
@@ -293,8 +292,6 @@ memory that wasn't read: the device's identity and its tokens rest on it, and `d
 passes the error on. **Not yet in the code (F-200)**: the ports ignore a failed fuse read.
 
 ### 3.6 Data : platform_ns_uuid [mandatory]
-
-**Not yet in the code (F-237)**: not declared in a header.
 
 ```c
 const char *platform_ns_uuid; /* 16 bytes */
@@ -796,4 +793,3 @@ For a new platform, and for a change to one:
 The core's part of this contract, not yet in the code:
 
 - `boot()` checks the preconditions (2.3): no (F-248).
-- `plat.h`: the tick's type, `noreturn`, `platform_ns_uuid` (F-237).
