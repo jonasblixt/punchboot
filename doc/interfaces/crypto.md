@@ -188,9 +188,7 @@ Verifies an ECDSA signature over a digest with a public key.
 - **A signature that doesn't verify is `-PB_ERR_SIGNATURE`.** Everything else is the code of
   what failed: `-PB_ERR_ASN1` for a signature or a key that can't be parsed,
   `-PB_ERR_NOT_SUPPORTED` for a curve no backend has, `-PB_ERR_TIMEOUT` and `-PB_ERR_IO` for
-  the engine. A user treats every one of them as "no"; the difference is for the log. **Not
-  yet in the code (F-286)**: the software backend returns `-PB_ERR_SIGNATURE` for a key that
-  doesn't parse.
+  the engine. A user treats every one of them as "no"; the difference is for the log.
 - **The verdict is this call's.** A backend whose engine reports completions never takes a
   completion that another job left behind as this job's: it starts from an idle engine and
   matches the completion to what it submitted (`drivers.md` 5).
@@ -303,8 +301,8 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | The digest is copied to the user     | yes                     | yes (no DMA)         |              |
 |                                      | (`test_caam_crypto`)    |                      |              |
 | `*verified` false first              | yes                     | yes                  |              |
-| A bad signature is                   | yes                     | yes, also for a bad  | F-286        |
-| `-PB_ERR_SIGNATURE`                  | (`test_caam_crypto`)    | key                  |              |
+| A bad signature is                   | yes                     | yes (`test_mbedtls`) |              |
+| `-PB_ERR_SIGNATURE`                  | (`test_caam_crypto`)    |                      |              |
 | The verdict is this call's           | yes                     | yes                  |              |
 |                                      | (`test_caam_crypto`)    |                      |              |
 | The signature's lengths checked      | partly: the outer       | yes (the library)    | F-286        |

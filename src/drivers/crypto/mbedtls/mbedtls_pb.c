@@ -12,6 +12,7 @@
 #include <stdlib.h>
 
 #include <drivers/crypto/mbedtls.h>
+#include <mbedtls/ecp.h>
 #include <mbedtls/error.h>
 #include <mbedtls/md.h>
 #include <mbedtls/md5.h>
@@ -160,6 +161,33 @@ static int mbedtls_hash_final(uint8_t *output, size_t size)
 }
 
 #ifdef CONFIG_MBEDTLS_ECDSA
+/* An Mbed TLS error is a high-level code plus, sometimes, a low-level one */
+#define PB_MBEDTLS_HIGH_LEVEL(rc) (-((-(rc)) & 0xff80))
+
+/* What the library said of a key that didn't parse, as crypto.md 4 has it */
+static int mbedtls_key_result(int rc)
+{
+    if (PB_MBEDTLS_HIGH_LEVEL(rc) == MBEDTLS_ERR_PK_UNKNOWN_NAMED_CURVE)
+        return -PB_ERR_NOT_SUPPORTED;
+    if (PB_MBEDTLS_HIGH_LEVEL(rc) == MBEDTLS_ERR_PK_ALLOC_FAILED)
+        return -PB_ERR_IO;
+    return -PB_ERR_ASN1;
+}
+
+/* What the library said of a signature, as crypto.md 4 has it: one that
+ * parses and doesn't verify is -PB_ERR_SIGNATURE */
+static int mbedtls_verify_result(int rc)
+{
+    if (rc == MBEDTLS_ERR_ECP_VERIFY_FAILED)
+        return -PB_ERR_SIGNATURE;
+    if (PB_MBEDTLS_HIGH_LEVEL(rc) == MBEDTLS_ERR_ECP_BAD_INPUT_DATA ||
+        rc == MBEDTLS_ERR_PK_SIG_LEN_MISMATCH)
+        return -PB_ERR_ASN1;
+    if (rc == MBEDTLS_ERR_PK_BAD_INPUT_DATA)
+        return -PB_ERR_PARAM;
+    return -PB_ERR_IO;
+}
+
 static int mbed_ecda_verify(const uint8_t *der_signature,
                             size_t signature_length,
                             const uint8_t *der_key,
@@ -204,9 +232,9 @@ static int mbed_ecda_verify(const uint8_t *der_signature,
 #else
         const char *mbedtls_error_str = "";
 #endif
-        LOG_ERR("Verify failed %s (%i)", mbedtls_error_str, rc);
+        LOG_ERR("Key: %s (-0x%04x)", mbedtls_error_str, (unsigned int)-rc);
         mbedtls_pk_free(&ctx);
-        return -PB_ERR_SIGNATURE;
+        return mbedtls_key_result(rc);
     }
 
     rc = mbedtls_pk_verify(&ctx, md_type, md, md_length, der_signature, signature_length);
@@ -216,9 +244,10 @@ static int mbed_ecda_verify(const uint8_t *der_signature,
     if (rc == 0) {
         *verified = true;
         return PB_OK;
-    } else {
-        return -PB_ERR_SIGNATURE;
     }
+
+    LOG_ERR("Verify failed (-0x%04x)", (unsigned int)-rc);
+    return mbedtls_verify_result(rc);
 }
 #endif
 

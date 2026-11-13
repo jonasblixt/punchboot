@@ -305,6 +305,8 @@ static void test_verify_rejects_bad_key(void **state)
     memcpy(bad_key, key->data, key->size);
     bad_key[0] = 0x31;
 
+    /* crypto.md 4: a key that can't be parsed is -PB_ERR_ASN1, not a
+     * signature that doesn't verify (F-286 (4)) */
     assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
                                 token,
                                 token_length,
@@ -314,7 +316,64 @@ static void test_verify_rejects_bad_key(void **state)
                                 digest,
                                 sizeof(digest),
                                 &verified),
-                     -PB_ERR_SIGNATURE);
+                     -PB_ERR_ASN1);
+    assert_false(verified);
+
+    /* A curve no backend has: the last byte of the curve's OID is at 22 */
+    memcpy(bad_key, key->data, key->size);
+    assert_int_equal(bad_key[22], 0x07);
+    bad_key[22] = 0x08;
+    verified = true;
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                token,
+                                token_length,
+                                bad_key,
+                                key->size,
+                                HASH_SHA256,
+                                digest,
+                                sizeof(digest),
+                                &verified),
+                     -PB_ERR_NOT_SUPPORTED);
+    assert_false(verified);
+}
+
+/* crypto.md 4: a signature that can't be parsed is -PB_ERR_ASN1 */
+static void test_verify_rejects_bad_signature_encoding(void **state)
+{
+    const struct bpak_key *key = find_key(DEV_KEY_ID);
+    uint8_t bad[sizeof(token)];
+    uint8_t digest[32];
+    bool verified = true;
+    (void)state;
+
+    token_digest(digest);
+    memcpy(bad, token, token_length);
+    bad[0] = 0x31;
+
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                bad,
+                                token_length,
+                                key->data,
+                                key->size,
+                                HASH_SHA256,
+                                digest,
+                                sizeof(digest),
+                                &verified),
+                     -PB_ERR_ASN1);
+    assert_false(verified);
+
+    /* Cut short */
+    verified = true;
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                token,
+                                token_length - 1,
+                                key->data,
+                                key->size,
+                                HASH_SHA256,
+                                digest,
+                                sizeof(digest),
+                                &verified),
+                     -PB_ERR_ASN1);
     assert_false(verified);
 }
 
@@ -393,6 +452,7 @@ int main(void)
         cmocka_unit_test(test_verify_auth_token),
         cmocka_unit_test(test_verify_rejects_wrong_digest),
         cmocka_unit_test(test_verify_rejects_bad_key),
+        cmocka_unit_test(test_verify_rejects_bad_signature_encoding),
         cmocka_unit_test(test_verify_bad_keys_leave_the_heap),
         cmocka_unit_test(test_verify_rejects_unsupported_digest),
     };
