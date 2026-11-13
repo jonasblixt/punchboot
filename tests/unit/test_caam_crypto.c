@@ -560,6 +560,44 @@ static void test_4_codes(void **state)
     assert_false(verified);
 }
 
+/* drivers.md 4.2: an address the engine can't take is refused, not cut. The
+ * descriptors hold 32 bits: a buffer above 4 GiB was hashed, and a digest
+ * verified, at the address cut to 32 bits (F-410). Here that is the test's
+ * own buffer, so that the cut address reads the same bytes */
+static void test_an_address_above_4gib_is_refused(void **state)
+{
+    const struct token *t = &tokens[0];
+    const struct bpak_key *key = find_key(t->key_id);
+    bool verified = true;
+    (void)state;
+
+    if (sizeof(uintptr_t) < 8)
+        skip();
+
+    const uintptr_t above = (uintptr_t)1 << 32;
+
+    /* The caller's blocks, which the engine reads where they are */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update((const void *)((uintptr_t)chunk + above), sizeof(chunk)),
+                     -PB_ERR_PARAM);
+    /* The hash is failed: no digest without those bytes */
+    assert_int_not_equal(hash_update(pattern, 64), PB_OK);
+    assert_int_not_equal(hash_final(digest, 32), PB_OK);
+
+    assert_int_equal(verify_token(t, true, &verified), PB_OK);
+    assert_int_equal(dsa_verify(t->dsa,
+                                signature,
+                                t->signature_length,
+                                key->data,
+                                key->size,
+                                t->hash,
+                                (uint8_t *)((uintptr_t)digest + above),
+                                t->digest_length,
+                                &verified),
+                     -PB_ERR_PARAM);
+    assert_false(verified);
+}
+
 /* 3.1: a hash that was given up, at each step, is ended by the next
  * hash_init(): nothing of it completes into the verification that follows
  * (F-181) */
@@ -1103,6 +1141,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_3_3_job_error_fails_the_context, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_verdict, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_codes, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_an_address_above_4gib_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_starts_clean, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_new_context, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_verdict_is_this_calls, setup, teardown),

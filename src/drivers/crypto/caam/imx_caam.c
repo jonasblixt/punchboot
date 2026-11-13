@@ -193,6 +193,23 @@ static uint32_t caam_job_status;
  * (crypto.md 3.5, drivers.md 4.2 and 4.3) */
 static uint8_t caam_digest[CRYPTO_MD_MAX_SZ] __aligned(64);
 
+/* The engine's address of [p, p + length). The rings and the descriptors
+ * hold 32 bits: memory that isn't all below 4 GiB is refused, not cut
+ * (drivers.md 4.2). The one place a pointer of the caller's becomes the
+ * engine's address; the driver's own memory is checked in imx_caam_init() */
+static int caam_addr(const void *p, size_t length, uint32_t *addr)
+{
+    uint64_t start = (uint64_t)(uintptr_t)p;
+
+    if (start > UINT32_MAX || (uint64_t)length > ((uint64_t)1 << 32) - start) {
+        LOG_ERR("%zu bytes at 0x%" PRIxPTR ": not below 4 GiB", length, (uintptr_t)p);
+        return -PB_ERR_PARAM;
+    }
+
+    *addr = (uint32_t)start;
+    return PB_OK;
+}
+
 static void caam_shedule_job_async(void)
 {
     caam.input = (uint32_t)(uintptr_t)caam.desc;
@@ -293,11 +310,17 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     uint32_t ecdsel = 0;
     size_t rs_length = 0;
     dsa_t key_kind;
+    uint32_t md_addr;
 
     *verified = false;
 
     if (!caam.caam_initialized)
         return -PB_ERR_STATE;
+
+    rc = caam_addr(md, md_length, &md_addr);
+
+    if (rc != PB_OK)
+        return rc;
 
     /* The verdict is this job's: nothing else is in the ring */
     rc = caam_idle();
@@ -355,7 +378,7 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     /* The PDB, the curve is one of the built-in domains */
     caam.desc[dc++] = PDB_DSA_PD | PDB_DSA_ECDSEL(ecdsel);
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_key;
-    caam.desc[dc++] = (uint32_t)(uintptr_t)md;
+    caam.desc[dc++] = md_addr;
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_r;
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_s;
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_tmp_buf;
@@ -467,6 +490,7 @@ static int _hash_update(uint8_t *buf, size_t length)
 {
     uint8_t dc = 0;
     int err = PB_OK;
+    uint32_t addr;
 
     /* One job at a time: the descriptor and the running context are the
      * job's until it is done */
@@ -474,6 +498,14 @@ static int _hash_update(uint8_t *buf, size_t length)
 
     if (err != PB_OK)
         return err;
+
+    /* Bytes the engine can't reach fail the hash: no digest without them */
+    err = caam_addr(buf, length, &addr);
+
+    if (err != PB_OK) {
+        caam.hash_rc = err;
+        return err;
+    }
 
     if (length) {
         arch_clean_cache_range((uintptr_t)buf, length);
@@ -493,7 +525,7 @@ static int _hash_update(uint8_t *buf, size_t length)
     caam.init = false;
 
     caam.desc[dc++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
-    caam.desc[dc++] = (uint32_t)(uintptr_t)buf;
+    caam.desc[dc++] = addr;
     caam.desc[dc++] = (uint32_t)length;
     caam.desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.run_ctx;
@@ -814,6 +846,14 @@ int imx_caam_init(uintptr_t base)
 
     memset(&caam, 0, sizeof(caam));
     caam.base = base;
+
+    /* The rings, the descriptor and every buffer of the driver's are in
+     * these two, and the engine takes 32-bit addresses (drivers.md 4.2) */
+    uint32_t addr;
+
+    if (caam_addr(&caam, sizeof(caam), &addr) != PB_OK ||
+        caam_addr(caam_digest, sizeof(caam_digest), &addr) != PB_OK)
+        return -PB_ERR_PARAM;
 
     uint32_t caam_version = mmio_read_32(caam.base + CAAM_CAAMVID_MS);
     caam.id = CAAM_CAAMVID_MS_IP_ID(caam_version);
