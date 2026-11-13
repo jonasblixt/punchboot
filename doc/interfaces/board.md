@@ -29,7 +29,7 @@ written into the text:
 | `cm_init()` and `cm_transport`         | Both leave the board: command mode's USB is the platform's, | Jonas, D-049 |
 |                                        | the transport is chosen at link time (4.1, 4.2)             |              |
 | What runs while pb is stopped          | Tasks, `DEFINE_TASK()`, in a loop of the core's; command    | Jonas, D-051 |
-|                                        | mode is one of them, and its `process` hook goes (4.6)      |              |
+|                                        | mode is one of them, and its `process` hook goes (4.5)      |              |
 
 Changing or adding a board: read this, then go through the review checklist (section 9). A board
 that runs Linux also gets its test bench defconfig (`testbench/README.md`, "Adding a board").
@@ -99,7 +99,7 @@ main()
     per candidate: load, verify, prepare   the board's DT hook runs in prepare (2.7)
     board.late_boot()                      5.3
     plat_lockdown(), the jump
-  the tasks, in turn, until one ends it    4.6: when board_setup() or boot() failed or was stopped
+  the tasks, in turn, until one ends it    4.5: when board_setup() or boot() failed or was stopped
     command mode's, with CONFIG_CM         4.1, 4.2: plat_cm_init(), the transport
     the board's, a platform's, a driver's
   plat_reset()
@@ -127,7 +127,7 @@ policy's state (`boot activate`) or boot an image from RAM (`boot bpak`).
 - What failed is in pb's log, which command mode reads (`punchboot log`).
 - Without a host, command mode ends by itself and pb resets (`system.md` 2): a step that failed
   on a fault that passes is run again.
-- A build without command mode (`CONFIG_CM` off) stops the same way: its tasks run (4.6), and
+- A build without command mode (`CONFIG_CM` off) stops the same way: its tasks run (4.5), and
   with none pb resets.
 
 ### 2.2 Function : console_init() [optional]
@@ -390,13 +390,14 @@ needs no check: the board doesn't link without it.
 
 A failed check in `board_setup()` is a failed step (2.1), with `-PB_ERR_PARAM`; the handover is
 set up when its own data passed. One in `cm_board_init()` means no command mode: its task ends
-the loop (4.6) and pb resets.
+the loop (4.5) and pb resets.
 
 ## 4. Stopped: command mode and tasks
 
 When `board_setup()` or `boot()` fails, or a hook stops the boot, pb is stopped: the core calls
-the build's tasks in turn (4.6). Command mode is one of them, in a build that has it
-(`CONFIG_CM`, the default); 4.1 to 4.5 are command mode's.
+the build's tasks in turn (4.5). Command mode is one of them, in a build that has it
+(`CONFIG_CM`, the default); 4.1 to 4.4 are command mode's; its commands are named commands
+(`command-mode.md` 5.6).
 
 ### 4.1 Command mode's hardware (the platform's)
 
@@ -426,44 +427,14 @@ Return   : int, PB_OK or -PB_ERR_*
 
 Answers `board status`, which needs authentication on a locked device (`security.md` 4.7). In:
 `*length` is the size of `buf`. Out: text in `buf`, `*length` bytes. It shows what `init()` logged
-and didn't fail on (2.3), and never a secret (4.5).
+and didn't fail on (2.3), and never a secret (4.4).
 
 The board writes at most `*length - 1` bytes of text; the core clamps the length and appends the
 NUL.
 
 NULL: "Board status OK!".
 
-### 4.4 Function : command() [removed in 3.0.0]
-
-**Not yet in the code (F-425)**: `struct board` still has `command`, and the boards in the
-tree answer their commands through it.
-
-Removed (Jonas, D-076): a board declares each of its commands with `DEFINE_COMMAND()`, as a
-named command that a host can list (`command-mode.md` 5.6). A break of the porting API that
-3.0.0 accepts (D-031); the wire doesn't change. A board that had `command()` moves each
-`if (cmd == id)` into a command of its own, under the name whose `pb_id()` is that id, the
-name hosts call it by, so the id stays. Once that is in the code, this section goes and the
-ones after it are renumbered (Jonas, D-076).
-
-The rules are those of `command-mode.md` 5.6, and for a board's command:
-
-- The request comes from the host and is untrusted in every state, authenticated or not
-  (`security.md` 4.7). The core bounds the buffer; the board checks every size and offset it
-  reads in the request against `request_size` (F-063).
-- A board's command stays inside the core's rules (`security.md` 4.8): it starts no image, writes
-  no fuse, and changes neither the keys nor the life cycle. Those are the core's commands.
-- `*response_size` is set also when it fails.
-- Command mode kicks the watchdog between commands and per chunk inside its own
-  (`command-mode.md` 4.6), not inside a board's: a command that runs long calls
-  `plat_wdog_kick()` as it makes progress.
-- A command may ask for a reset: it calls `cm_request_reset_on_success()`, and when it then
-  returns PB_OK the core sends its result and resets. A command that fails doesn't reset
-  (`command-mode.md` 5.6).
-- The names of the board's commands and their answers are the board's wire (section 8).
-
-An id that no command has: `-PB_ERR_NOT_SUPPORTED`, the core's default of every release.
-
-### 4.5 Function : password_auth() [mandatory with CONFIG_CM_AUTH_PASSWORD]
+### 4.4 Function : password_auth() [mandatory with CONFIG_CM_AUTH_PASSWORD]
 
 ```
 Argument : const char *password, size_t length
@@ -477,7 +448,7 @@ the secret device unique and out of the image (an RPMB, a fuse). It is the one s
 
 Token authentication (a signature over the device's UUID) is the core's.
 
-### 4.6 Tasks [optional]
+### 4.5 Tasks [optional]
 
 What a board runs while pb is stopped is a task (Jonas, D-051):
 
@@ -512,7 +483,7 @@ What a task does:
   for it.
 - It takes no input from outside the device. Only command mode's task reads the transport,
   behind its gate (`security.md` 4.7).
-- It stays inside the core's rules, like a board's command (4.4, `security.md` 4.8): it starts
+- It stays inside the core's rules, like a named command (`command-mode.md` 5.6, `security.md` 4.8): it starts
   no image, writes no fuse, and changes neither the keys nor the life cycle. It runs on a locked
   device before any authentication.
 - It doesn't kick the watchdog: the core does, once per round.
@@ -641,7 +612,8 @@ OK means "loaded and verified", not "booted".
   filter, DRAM, command mode's USB (4.1), and after F-247 the crypto engine and the RNG.
 - It reads the ROM's state, the boot source and the boot reason through the platform's services
   (`plat_get_boot_source()`, `plat_get_boot_reason()`). It may show raw registers in `status()`.
-- It may define tasks, which run while pb is stopped (4.6).
+- It may define tasks, which run while pb is stopped (4.5), and named commands, which a host
+  runs by name (`command-mode.md` 5.6).
 - A partition's handle that it keeps (`bio_get_part_by_uu()`) is good until a partition table
   is installed. After that the handle of a partition that changed is dead until the reset,
   and no hook runs again for it (`bio.md` 4). A board that needs a partition right after an
@@ -715,8 +687,9 @@ changes them only for a new product, never in an update:
   `boot.md` 7's.
 - The configuration fuses (`slc.fuses`) and the keystore's slots (`CONFIG_KEYSTORE_SLOTS`, D-027):
   fuses can't be unwritten.
-- The names of the board's commands, so their ids (`pb_id()` of each), and their answers (4.4).
-  A command a released board answered through `command()` keeps its id as a named command. The
+- The names of the board's commands, so their ids (`pb_id()` of each), and their answers
+  (`command-mode.md` 5.6). A command a released board answered through `command()`, removed in
+  3.0.0, keeps its id as a named command. The
   core's default answer is fixed too (F-218: it changed the 8X boards' answer from OK to
   NOT_SUPPORTED).
 - The handover, its delivery and the parts the board names for them (2.7): an image that a
@@ -724,7 +697,7 @@ changes them only for a new product, never in an update:
   the transfer list's region (`boot.md` 5.4): the images' memory maps keep it free.
 - The image data regions (2.9): an image that a released pb loaded still fits. A region is
   made larger or added, never made smaller or removed.
-- The password, where a product uses one: what the secret is derived from (4.5). An
+- The password, where a product uses one: what the secret is derived from (4.4). An
   authentication method is added, never changed (`security.md` 4.7).
 
 ## 9. Review checklist
@@ -750,11 +723,12 @@ For a new board, and for a change to one:
       stage.
 - [ ] The DT hook changes only the tree it is given, and may run once per candidate.
 - [ ] No image verified or started by the board, no `BIO_FLAG_BOOTABLE` set, no fuse written.
-- [ ] `command()` checks what it reads in the request, stays inside the core's rules, and kicks
-      the watchdog in long commands; `status()` writes at most `*length - 1` bytes and no secret.
+- [ ] A named command checks what it reads in the request, stays inside the core's rules, and
+      kicks the watchdog in long commands (`command-mode.md` 5.6); `status()` writes at most
+      `*length - 1` bytes and no secret.
 - [ ] `password_auth()`: the whole password, constant time, never logged, a device unique secret.
 - [ ] A task returns quickly, takes no input from the host, stays inside the core's rules and
-      relies on no order (4.6).
+      relies on no order (4.5).
 - [ ] Section 8 unchanged for a product in the field.
 - [ ] A board that runs Linux has its test bench defconfig and both lists of
       `testbench/README.md`, "Adding a board", are done.
@@ -773,7 +747,7 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-301   |
 | No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251   |
 | `status()` (4.3)               | yes   | default | yes | yes     | default    | default  | default |         |
-| `password_auth()` (4.5)        | n/a   | n/a     | yes | yes     | n/a        | n/a      | n/a     |         |
+| `password_auth()` (4.4)        | n/a   | n/a     | yes | yes     | n/a        | n/a      | n/a     |         |
 | The order of section 2         | yes   | yes     | yes | yes     | yes        | yes      | no      | F-217   |
 | Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-033   |
 

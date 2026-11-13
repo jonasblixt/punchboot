@@ -72,7 +72,7 @@ To do (Jonas):
 - **Anti-rollback**: a version floor, fuse-backed. A version below the floor fails verification, so
   the boot source policies don't change; it may change what a fallback may boot (a CVE).
 - **Examples for `password_auth()`**: a few good ones, such as a secret in the RPMB. A board's own
-  implementation stays allowed (`board.md` 4.5, F-004).
+  implementation stays allowed (`board.md` 4.4, F-004).
 - **The compatibility floor is v1.0.0**: the guards test hosts and firmware from the 1.0.0 release
   on (guard 3 above).
 
@@ -108,7 +108,7 @@ To do (Jonas):
 
 - **Implement `AUTH_SET_PASSWORD`** (`command-mode.md` 5.8). The slot is on the wire since 2020
   and has answered `NOT_SUPPORTED` in every release: it was never implemented, and never
-  retired. Written into `command-mode.md` and `board.md` 4.5 first, with a decision entry. To
+  retired. Written into `command-mode.md` and `board.md` 4.4 first, with a decision entry. To
   settle there:
   - The request is fixed by released hosts (D-008): `punchboot auth password --set` sends the
     password in the command's request, zero padded, without a length. A transcript has it.

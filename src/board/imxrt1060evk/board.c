@@ -9,6 +9,7 @@
 #include <drivers/uart/imx_lpuart.h>
 #include <pb/board.h>
 #include <pb/cm.h>
+#include <pb/command.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -336,29 +337,27 @@ static void board_console_init(void)
     console_init(IMXRT_LPUART1_BASE, &ops);
 }
 
-static int board_command(uint32_t command,
-                         uint8_t *bfr,
-                         size_t size,
-                         uint8_t *response_bfr,
-                         size_t *response_size)
+/* The board's named command 'test' (command-mode.md 5.6), pb_id() 0xf93ba110,
+ * the id it had before 3.0.0 */
+static int
+cmd_test(const uint8_t *request, size_t request_size, uint8_t *response, size_t *response_size)
 {
+    static const uint8_t test_data[] = { 0x01, 0x02, 0x03, 0x04 };
     size_t room = *response_size;
-    LOG_DBG("%x, %p, %zu", command, bfr, size);
-    *response_size = 0;
 
-    if (command == 0xf93ba110) { /* test */
-        printf("Arg: ");
-        for (unsigned int i = 0; i < size; i++)
-            printf("%02x", bfr[i]);
-        printf("\n\r");
-        const uint8_t test_data[] = { 0x01, 0x02, 0x03, 0x04 };
-        /* As much of it as there is room for */
-        *response_size = (room < sizeof(test_data)) ? room : sizeof(test_data);
-        memcpy(response_bfr, test_data, *response_size);
-    }
+    printf("Arg: ");
+    for (size_t i = 0; i < request_size; i++)
+        printf("%02x", request[i]);
+    printf("\n\r");
+
+    /* As much of it as there is room for */
+    *response_size = (room < sizeof(test_data)) ? room : sizeof(test_data);
+    memcpy(response, test_data, *response_size);
 
     return PB_OK;
 }
+
+DEFINE_COMMAND("test", "Prints its request, answers with four bytes", cmd_test);
 
 static const struct rot_config rot = {
     .read_key_status = imx_hab_read_key_status,
@@ -426,5 +425,4 @@ const struct board board = {
     .image_regions = image_regions,
     .early_boot = board_early_boot,
     .late_boot = board_late_boot,
-    .command = board_command,
 };

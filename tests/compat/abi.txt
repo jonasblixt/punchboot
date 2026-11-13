@@ -35,6 +35,7 @@ value PB_CMD_STREAM_READ_BUFFER 26
 value PB_CMD_PART_RESIZE 27
 value PB_CMD_BOOT_STATUS 28
 value PB_CMD_LOG_READ 29
+value PB_CMD_COMMAND_LIST 30
 id PB_LOG_ID_PB 0x8c837982
 id PB_LOG_ID_LIST 0x658c2704
 value PB_RESULT_OK 0
@@ -168,6 +169,11 @@ field pb_result_log_read.position 0 4
 field pb_result_log_read.size 4 4
 field pb_result_log_read.head 8 4
 field pb_result_log_read.log 12 4
+struct pb_result_command_list 32
+field pb_result_command_list.count 0 4
+struct pb_result_command_list_entry 128
+field pb_result_command_list_entry.name 0 32
+field pb_result_command_list_entry.help 32 80
 # bpak format (include/bpak/bpak.h, id.h)
 value BPAK_HEADER_MAGIC 0x42504132
 value BPAK_MAX_PARTS 32

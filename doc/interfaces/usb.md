@@ -141,7 +141,7 @@ Return   : int, PB_OK, -PB_ERR_AGAIN or -PB_ERR_*
 ```
 
 Polls the transfer that was started. It never waits for the host's data: command mode calls
-it once per round of the tasks while it waits for a command (`board.md` 4.6), and in a loop
+it once per round of the tasks while it waits for a command (`board.md` 4.5), and in a loop
 with its own timeout and the watchdog's kick inside a command (`command-mode.md` 4.6). The
 transport has no timeout of its own for a transfer. A request on endpoint 0 that it answers
 on the way (3.2) is bounded.

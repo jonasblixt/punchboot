@@ -435,6 +435,7 @@ pb_tfa_test(test_tfa_image)
 
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
+    ${PROJECT_SOURCE_DIR}/src/cm/commands.c
     ${PROJECT_SOURCE_DIR}/src/log_source.c
     ${PROJECT_SOURCE_DIR}/src/ramlog.c
     ${PROJECT_SOURCE_DIR}/src/wire.c
@@ -449,6 +450,7 @@ target_compile_definitions(test_cm PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
 # NOT_SUPPORTED (command-mode.md 4.5, 5.2)
 pb_no_slc_eol_test(test_cm_no_eol test_cm.c
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
+    ${PROJECT_SOURCE_DIR}/src/cm/commands.c
     ${PROJECT_SOURCE_DIR}/src/log_source.c
     ${PROJECT_SOURCE_DIR}/src/ramlog.c
     ${PROJECT_SOURCE_DIR}/src/wire.c
@@ -489,7 +491,7 @@ add_test(
 )
 set_tests_properties(unit.cm_usb_kconfig PROPERTIES LABELS unit TIMEOUT 60)
 
-# main() and its loop over the tasks (board.md 4.6). main.c's entry point is
+# main() and its loop over the tasks (board.md 4.5). main.c's entry point is
 # renamed, as for pb-host
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/main.c
     PROPERTIES COMPILE_DEFINITIONS main=pb_main)

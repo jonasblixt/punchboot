@@ -20,6 +20,7 @@
 #include <pb/bio.h>
 #include <pb/board.h>
 #include <pb/cm.h>
+#include <pb/command.h>
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
@@ -185,7 +186,7 @@ static const struct static_part_table nor_table[] = {
 
 /*
  * For the tests of a stop in a boot that command mode started (board.md
- * 5.4): the board command 'test-boot-stop' arms one, in the hook and with
+ * 5.4): the named command 'test-boot-stop' arms one, in the hook and with
  * the error that its request names. It stops the next boot and no other.
  */
 static int early_boot_stop;
@@ -399,53 +400,69 @@ static size_t written(int n, size_t room)
     return ((size_t)n < room) ? (size_t)n : room;
 }
 
-static int board_command(uint32_t command,
-                         uint8_t *bfr,
-                         size_t size,
-                         uint8_t *response_bfr,
-                         size_t *response_size)
+/* The board's named commands (command-mode.md 5.6). Their ids are those
+ * the board answered before 3.0.0, pb_id() of each name */
+
+static int cmd_test_command(const uint8_t *request,
+                            size_t request_size,
+                            uint8_t *response,
+                            size_t *response_size)
 {
-    size_t resp_buf_size = *response_size;
-    char *response = (char *)response_bfr;
+    size_t room = *response_size;
+    /* The request isn't terminated: at most its size, up to a NUL. The core
+     * refuses one larger than 1024 bytes */
+    const char *arg = (const char *)request;
+    int arg_length = (int)request_size;
 
-    LOG_DBG("%x, %p, %zu", command, bfr, size);
+    LOG_DBG("test-command (%.*s)", arg_length, arg);
 
-    if (command == 0xc72b6e9e) { /* test-command */
-        /* The request isn't terminated: at most its size, up to a NUL. The
-         * core refuses one larger than 1024 bytes */
-        const char *arg = (const char *)bfr;
-        int arg_length = (int)size;
+    *response_size = written(
+        snprintf((char *)response, room, "Hello test-command: %.*s\n", arg_length, arg), room);
 
-        LOG_DBG("test-command (%.*s)", arg_length, arg);
+    return PB_OK;
+}
 
-        (*response_size) = written(
-            snprintf(response, resp_buf_size, "Hello test-command: %.*s\n", arg_length, arg),
-            resp_buf_size);
+DEFINE_COMMAND("test-command", "Echoes its request", cmd_test_command);
 
-        return PB_OK;
-    } else if (command == 0xdfa7c4ad) {
-        (*response_size) = written(
-            snprintf(response, resp_buf_size, "Should return error code -128\n"), resp_buf_size);
-        return -128;
-    } else if (command == 0x70c3e5f7) { /* test-boot-stop */
-        (*response_size) = 0;
+static int cmd_test_command2(const uint8_t *request,
+                             size_t request_size,
+                             uint8_t *response,
+                             size_t *response_size)
+{
+    size_t room = *response_size;
 
-        for (size_t i = 0; i < ARRAY_SIZE(boot_stops); i++) {
-            if (size == strlen(boot_stops[i].request) &&
-                memcmp(bfr, boot_stops[i].request, size) == 0) {
-                *boot_stops[i].stop = boot_stops[i].rc;
-                return PB_OK;
-            }
+    (void)request;
+    (void)request_size;
+
+    *response_size =
+        written(snprintf((char *)response, room, "Should return error code -128\n"), room);
+    return -128;
+}
+
+DEFINE_COMMAND("test-command2", "Fails with -128", cmd_test_command2);
+
+static int cmd_test_boot_stop(const uint8_t *request,
+                              size_t request_size,
+                              uint8_t *response,
+                              size_t *response_size)
+{
+    (void)response;
+    *response_size = 0;
+
+    for (size_t i = 0; i < ARRAY_SIZE(boot_stops); i++) {
+        if (request_size == strlen(boot_stops[i].request) &&
+            memcmp(request, boot_stops[i].request, request_size) == 0) {
+            *boot_stops[i].stop = boot_stops[i].rc;
+            return PB_OK;
         }
-
-        return -PB_ERR_PARAM;
-    } else {
-        LOG_ERR("Unknown command %x", command);
-        (*response_size) = 0;
     }
 
-    return -PB_ERR;
+    return -PB_ERR_PARAM;
 }
+
+DEFINE_COMMAND("test-boot-stop",
+               "Stops the next boot: early:abort, early:fail, late:abort or late:fail",
+               cmd_test_boot_stop);
 
 static const struct rot_config rot = {
     .revoke_key = board_revoke_key,
@@ -556,5 +573,4 @@ const struct board board = {
     .image_regions = image_regions,
     .early_boot = early_boot,
     .late_boot = late_boot,
-    .command = board_command,
 };

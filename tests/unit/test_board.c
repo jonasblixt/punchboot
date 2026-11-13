@@ -1036,9 +1036,6 @@ static void test_cm(void **state)
     assert_int_equal(cm_cfg->status(buf, &length), PB_OK);
     assert_string_equal((char *)buf, "Board status OK!\n");
     assert_int_equal(length, strlen("Board status OK!\n") + 1);
-    length = sizeof(buf);
-    assert_int_equal(cm_cfg->command(0x1234, buf, 0, buf, &length), -PB_ERR_NOT_SUPPORTED);
-    assert_int_equal(length, 0);
 
     /* The board's: its text, and the core's NUL */
     setup(NULL);
@@ -1208,7 +1205,7 @@ static int check_password(const char *expected, const char *password, size_t len
 }
 
 /*
- * board.md 4.5 (F-004): the whole password, the lengths match too. The 8X
+ * board.md 4.4 (F-004): the whole password, the lengths match too. The 8X
  * boards compared with strncmp(expected, password, length): any prefix of
  * the password was accepted, "i" too, and so was the password with a NUL
  * and anything after it.

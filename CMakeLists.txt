@@ -157,6 +157,7 @@ add_library(pb_core OBJECT
     src/boot/image_helpers.c
     src/boot/image.c
     src/cm/cm_main.c
+    src/cm/commands.c
     src/drivers/crypto/mbedtls/mbedtls_pb.c
     src/drivers/fuse/test_fuse_bio.c
     src/drivers/partition/gpt.c

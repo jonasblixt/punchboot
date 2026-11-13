@@ -16,6 +16,7 @@
 #include <pb-tools/wire.h>
 #include <pb/bio.h>
 #include <pb/cm.h>
+#include <pb/command.h>
 #include <pb/crypto.h>
 #include <pb/delay.h>
 #include <pb/device_uuid.h>
@@ -30,7 +31,7 @@
 #include <uuid.h>
 
 #define CM_BUF_SIZE       (CONFIG_CM_BUF_SIZE_KiB * 1024)
-/* Hosts send authentication and board command data in one transfer of this
+/* Hosts send authentication and named command data in one transfer of this
  * size, whatever the data's size */
 #define CM_DATA_XFER_SIZE 1024
 
@@ -87,7 +88,7 @@ static const struct cm_config *cfg;
  * the task restarts the transport */
 static bool transfer_lost;
 /* A command ended command mode (command-mode.md 2.3): DEVICE_RESET, a
- * board's command that asked for the reset and returned PB_OK (5.6), a boot
+ * named command that asked for the reset and returned PB_OK (5.6), a boot
  * that returned after the disconnect. The task leaves when the command is
  * done. Nothing else leaves: an error a command returns, -PB_ERR_ABORT too,
  * is the host's result, and command mode goes on (board.md 5.4) */
@@ -225,7 +226,7 @@ static int error_to_wire(int error_code)
     }
 }
 
-void cm_board_cmd_request_reboot_on_success(void)
+void cm_request_reset_on_success(void)
 {
     reboot_requested = true;
 }
@@ -412,8 +413,18 @@ static int cmd_board(void)
 
     size_t response_size = response_max;
 
-    rc = cfg->command(
-        board_cmd->command, bfr, board_cmd->request_size, bfr_response, &response_size);
+    /* The named command of that id (command-mode.md 5.6). An id no command
+     * has is NOT_SUPPORTED, the answer of every release to one the board
+     * didn't have */
+    const struct cm_command *named = cm_command_find(board_cmd->command);
+
+    if (named != NULL) {
+        rc = named->run(bfr, board_cmd->request_size, bfr_response, &response_size);
+    } else {
+        LOG_ERR("Unknown command %" PRIx32, board_cmd->command);
+        response_size = 0;
+        rc = -PB_ERR_NOT_SUPPORTED;
+    }
 
     if (response_size > response_max)
         response_size = response_max;
@@ -983,6 +994,34 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
+/* The named commands' list (command-mode.md 4.4, 5.6): the result with the
+ * count, then the entries. The set up checked that they fit a buffer */
+static int cmd_command_list(void)
+{
+    struct pb_result_command_list list_result = { 0 };
+    struct pb_result_command_list_entry *entries = (struct pb_result_command_list_entry *)buffer[0];
+    size_t count;
+    const struct cm_command *list = cm_commands(&count);
+
+    /* The reserved bytes and the end of each field are zero (4.3) */
+    memset(entries, 0, sizeof(*entries) * count);
+
+    for (size_t i = 0; i < count; i++) {
+        strncpy(entries[i].name, list[i].name, sizeof(entries[i].name) - 1);
+        strncpy(entries[i].help, list[i].help, sizeof(entries[i].help) - 1);
+    }
+
+    list_result.count = (uint32_t)count;
+    pb_wire_init_result2(&result, PB_RESULT_OK, &list_result, sizeof(list_result));
+    cm_write(&result, sizeof(result));
+
+    if (count)
+        cm_write(entries, sizeof(*entries) * count);
+
+    pb_wire_init_result(&result, PB_RESULT_OK);
+    return PB_OK;
+}
+
 static void cm_disconnect(void)
 {
     if (!disconnected)
@@ -1423,6 +1462,9 @@ static int pb_command_parse(void)
     case PB_CMD_BOARD_COMMAND:
         rc = cmd_board();
         break;
+    case PB_CMD_COMMAND_LIST:
+        rc = cmd_command_list();
+        break;
     case PB_CMD_BOARD_STATUS_READ: {
         struct pb_result_board_status status_result = { 0 };
 
@@ -1514,7 +1556,7 @@ static int pb_command_parse(void)
 err_out:
     cm_write(&result, sizeof(result));
 
-    /* A board's command asked for the reset (command-mode.md 5.6): only when
+    /* A named command asked for the reset (command-mode.md 5.6): only when
      * that command returned PB_OK. The request is dropped with a command that
      * failed, and doesn't wait for the next one that succeeds */
     if (reboot_requested) {
@@ -1586,6 +1628,18 @@ static int cm_setup(void)
         return rc;
     }
 
+    /* The named commands: a bad list is the build's error, no command mode
+     * (command-mode.md 2.1, 5.6) */
+    size_t commands;
+    const struct cm_command *list = cm_commands(&commands);
+
+    rc = cm_commands_check(list, commands, CM_BUF_SIZE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Named commands (%i)", rc);
+        return rc;
+    }
+
     slc = slc_read_status();
 
     /* The device's identity: what DEVICE_IDENTIFIER_READ answers, and what a
@@ -1640,7 +1694,7 @@ static int cm_leave(int rc)
 }
 
 /*
- * Command mode's task (command-mode.md 2, board.md 4.6): a step of what
+ * Command mode's task (command-mode.md 2, board.md 4.5): a step of what
  * was a loop. A call never waits for the host: without a session it polls
  * the transport once, with one it polls the read of the next command once,
  * and it returns PB_OK to be called again, so that the other tasks run and

@@ -25,7 +25,6 @@ struct cm_config {
     const char *name;
     int (*status)(uint8_t *buf, size_t *length);
     int (*password_auth)(const char *password, size_t length);
-    int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
 };
 
 /*
@@ -97,14 +96,14 @@ int cm_main_task(void);
 int cm_board_init(void);
 
 /**
- * Request a reboot from a board command.
+ * Request a reset from a named command (pb/command.h,
+ * doc/architecture/command-mode.md 5.6).
  *
- * This function can be called by a board command to request a system reboot
- * after the result of the command has been send to the host.
- *
- * The reboot is only requested if the board command returns zero (PB_OK).
+ * A command calls this to have the device reset after the command's last
+ * result is sent. The reset happens only when the command then returns
+ * PB_OK: a command that fails drops the request.
  */
-void cm_board_cmd_request_reboot_on_success(void);
+void cm_request_reset_on_success(void);
 
 /**
  * Populate cm configuration struct

@@ -10,7 +10,7 @@
  * error paths can be reached. The integration tests cover the commands
  * against the real modules and the punchboot host library.
  *
- * Command mode is a task (cm_main_task(), board.md 4.6): cm_run() here calls
+ * Command mode is a task (cm_main_task(), board.md 4.5): cm_run() here calls
  * it as main()'s loop does, round after round with a kick of the watchdog
  * and another task in each, until it returns an error.
  *
@@ -37,6 +37,7 @@
 #include <pb-tools/wire.h>
 #include <pb/bio.h>
 #include <pb/cm.h>
+#include <pb/command.h>
 #include <pb/crc.h>
 #include <pb/crypto.h>
 #include <pb/device_uuid.h>
@@ -53,6 +54,12 @@
 
 #include "fakes/plat.h"
 #include "fakes/ramdisk.h"
+
+/* pb_id(): CRC32 of the name, without the inversions */
+static uint32_t command_id(const char *name)
+{
+    return crc32(0, (const uint8_t *)name, (uint32_t)strlen(name));
+}
 
 #define BUF_SIZE    (CONFIG_CM_BUF_SIZE_KiB * 1024)
 #define LOG_SIZE    (CONFIG_RAMLOG_SIZE_KiB * 1024)
@@ -77,11 +84,12 @@
 #define DEVICE_UUID         "02e49231-756e-35ee-a982-378e5ba866a9"
 #define KEY_ID              0xa90f9680
 #define FAKE_SIG_OK         0x5a
-#define BOARD_ECHO          1
-#define BOARD_RETURN        2
-#define BOARD_REBOOT        3
-#define BOARD_FILL          4
-#define BOARD_REBOOT_FAILS  5
+/* The test's named commands (command-mode.md 5.6), by pb_id() of the name */
+#define BOARD_ECHO          command_id("echo")
+#define BOARD_RETURN        command_id("return")
+#define BOARD_REBOOT        command_id("reboot")
+#define BOARD_FILL          command_id("fill")
+#define BOARD_REBOOT_FAILS  command_id("reboot-fails")
 #define BOARD_FILL_SIZE     64
 #define BOARD_PREFIX        "echo: "
 /* The response_buffer_size every released front end sends: the 1.x CLI, the
@@ -268,7 +276,7 @@ int cm_transport_complete(void)
 }
 
 /* Another task of the build, which runs once per round whatever command
- * mode's task waits for (board.md 4.6) */
+ * mode's task waits for (board.md 4.5) */
 static int other_task(void)
 {
     t.rounds++;
@@ -280,20 +288,16 @@ static int other_task(void)
 /* The board */
 static int board_init_rc;
 static int board_status(uint8_t *buf, size_t *length);
-static int
-board_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
 static int password_auth(const char *password, size_t length);
 
 static const struct cm_config cfg_default = {
     .name = "unit test",
     .status = board_status,
-    .command = board_command,
 };
 
 static const struct cm_config cfg_all_callbacks = {
     .name = "unit test",
     .status = board_status,
-    .command = board_command,
     .password_auth = password_auth,
 };
 
@@ -336,37 +340,78 @@ static int board_status(uint8_t *buf, size_t *length)
 static size_t board_rsp_room[8];
 static unsigned int board_command_calls;
 
-static int
-board_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size)
+/* What every one of the test's commands records: the room it was given */
+static void command_called(const size_t *response_size)
 {
     if (board_command_calls < ARRAY_SIZE(board_rsp_room))
-        board_rsp_room[board_command_calls] = *rsp_size;
+        board_rsp_room[board_command_calls] = *response_size;
     board_command_calls++;
-
-    switch (cmd) {
-    case BOARD_FILL: /* A board that doesn't look at the room it was given */
-        memset(rsp, 0x42, BOARD_FILL_SIZE);
-        *rsp_size = BOARD_FILL_SIZE;
-        return PB_OK;
-    case BOARD_ECHO:
-        *rsp_size = snprintf((char *)rsp, *rsp_size, BOARD_PREFIX "%.*s", (int)bfr_length, bfr);
-        return PB_OK;
-    case BOARD_RETURN: /* Returns the error code given in the request */
-        *rsp_size = 0;
-        return *(int32_t *)bfr;
-    case BOARD_REBOOT:
-        *rsp_size = 0;
-        cm_board_cmd_request_reboot_on_success();
-        return PB_OK;
-    case BOARD_REBOOT_FAILS: /* Asks for the reset, and then fails */
-        *rsp_size = 0;
-        cm_board_cmd_request_reboot_on_success();
-        return -PB_ERR_IO;
-    default:
-        *rsp_size = 0;
-        return -PB_ERR;
-    }
 }
+
+/* A command that doesn't look at the room it was given */
+static int cmd_fill(const uint8_t *request, size_t request_size, uint8_t *rsp, size_t *rsp_size)
+{
+    (void)request;
+    (void)request_size;
+    command_called(rsp_size);
+    memset(rsp, 0x42, BOARD_FILL_SIZE);
+    *rsp_size = BOARD_FILL_SIZE;
+    return PB_OK;
+}
+
+DEFINE_COMMAND("fill", "Fills 64 bytes, whatever the room", cmd_fill);
+
+static int cmd_echo(const uint8_t *request, size_t request_size, uint8_t *rsp, size_t *rsp_size)
+{
+    command_called(rsp_size);
+    *rsp_size = snprintf((char *)rsp, *rsp_size, BOARD_PREFIX "%.*s", (int)request_size, request);
+    return PB_OK;
+}
+
+DEFINE_COMMAND("echo", "Echoes its request", cmd_echo);
+
+/* Returns the error code given in the request */
+static int cmd_return(const uint8_t *request, size_t request_size, uint8_t *rsp, size_t *rsp_size)
+{
+    int32_t rc;
+
+    (void)rsp;
+    command_called(rsp_size);
+    *rsp_size = 0;
+    assert_true(request_size >= sizeof(rc));
+    memcpy(&rc, request, sizeof(rc));
+    return rc;
+}
+
+DEFINE_COMMAND("return", "Returns the code in its request", cmd_return);
+
+static int cmd_reboot(const uint8_t *request, size_t request_size, uint8_t *rsp, size_t *rsp_size)
+{
+    (void)request;
+    (void)request_size;
+    (void)rsp;
+    command_called(rsp_size);
+    *rsp_size = 0;
+    cm_request_reset_on_success();
+    return PB_OK;
+}
+
+DEFINE_COMMAND("reboot", "Asks for the reset", cmd_reboot);
+
+/* Asks for the reset, and then fails */
+static int
+cmd_reboot_fails(const uint8_t *request, size_t request_size, uint8_t *rsp, size_t *rsp_size)
+{
+    (void)request;
+    (void)request_size;
+    (void)rsp;
+    command_called(rsp_size);
+    *rsp_size = 0;
+    cm_request_reset_on_success();
+    return -PB_ERR_IO;
+}
+
+DEFINE_COMMAND("reboot-fails", "Asks for the reset, and then fails", cmd_reboot_fails);
 
 static int password_auth(const char *password, size_t length)
 {
@@ -876,7 +921,6 @@ static void test_board_id_fills_the_field(void **state)
     static const struct cm_config cfg_longest_name = {
         .name = "16 characters...",
         .status = board_status,
-        .command = board_command,
     };
     (void)state;
 
@@ -1076,7 +1120,8 @@ static void test_board_command(void **state)
 
     host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
     host_send(arg, sizeof(arg));
-    /* Unknown command: an error without a response */
+    /* An id no command has: NOT_SUPPORTED without a response, the answer of
+     * every release to an id the board didn't have (command-mode.md 5.6) */
     req.command = 0xdead;
     req.request_size = 0;
     host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
@@ -1091,8 +1136,143 @@ static void test_board_command(void **state)
     expect_result(PB_RESULT_OK);
 
     expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_ERROR);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
     expect_end();
+}
+
+/* command-mode.md 4.4, 5.6: COMMAND_LIST sends the count, then an entry of
+ * 128 bytes per command: the name and the help line, NUL padded, and zeros.
+ * No id: the host computes it */
+static void test_command_list(void **state)
+{
+    static const struct {
+        const char *name;
+        const char *help;
+    } expected[] = {
+        { "fill", "Fills 64 bytes, whatever the room" },
+        { "echo", "Echoes its request" },
+        { "return", "Returns the code in its request" },
+        { "reboot", "Asks for the reset" },
+        { "reboot-fails", "Asks for the reset, and then fails" },
+    };
+
+    bool seen[ARRAY_SIZE(expected)] = { false };
+    (void)state;
+
+    host_cmd(PB_CMD_COMMAND_LIST, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_command_list *list = (const void *)r->response;
+    assert_int_equal(list->count, ARRAY_SIZE(expected));
+
+    const struct pb_result_command_list_entry *entries =
+        (const void *)expect_data(sizeof(*entries) * list->count);
+    static const uint8_t zeros[sizeof(entries[0].rz)] = { 0 };
+
+    /* In the linker's order, which isn't defined: each name once */
+    for (size_t i = 0; i < list->count; i++) {
+        const struct pb_result_command_list_entry *e = &entries[i];
+        size_t k;
+
+        for (k = 0; k < ARRAY_SIZE(expected); k++) {
+            if (memcmp(e->name, expected[k].name, strlen(expected[k].name) + 1) == 0)
+                break;
+        }
+
+        assert_true(k < ARRAY_SIZE(expected));
+        assert_false(seen[k]);
+        seen[k] = true;
+
+        size_t name_length = strlen(expected[k].name);
+        size_t help_length = strlen(expected[k].help);
+        assert_memory_equal(e->help, expected[k].help, help_length + 1);
+        for (size_t j = name_length; j < sizeof(e->name); j++)
+            assert_int_equal(e->name[j], 0);
+        for (size_t j = help_length; j < sizeof(e->help); j++)
+            assert_int_equal(e->help[j], 0);
+        assert_memory_equal(e->rz, zeros, sizeof(zeros));
+    }
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+/* command-mode.md 5.6: the list too is behind the gate */
+static void test_command_list_requires_auth(void **state)
+{
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_COMMAND_LIST, NULL, 0);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+/* command-mode.md 2.1, 5.6: the list's check in the set up */
+static void test_commands_check(void **state)
+{
+    static const struct cm_command good[] = {
+        { "a", "", cmd_echo },
+        { "test-command2", "One line", cmd_echo },
+        { "abcdefghijklmnopqrstuvwxyz-0129", /* 31 characters, 79 of help */
+          "0123456789012345678901234567890123456789012345678901234567890123456789012345678",
+          cmd_echo },
+    };
+
+    static const struct {
+        struct cm_command command;
+        const char *why;
+    } bad[] = {
+        { { "", "", cmd_echo }, "empty name" },
+        { { NULL, "", cmd_echo }, "no name" },
+        { { "abcdefghijklmnopqrstuvwxyz-01290", "", cmd_echo }, "32 characters" },
+        { { "Echo", "", cmd_echo }, "upper case" },
+        { { "echo_1", "", cmd_echo }, "underscore" },
+        { { "echo 1", "", cmd_echo }, "space" },
+        { { "list", "", cmd_echo }, "the host's word" },
+        { { "echo", NULL, cmd_echo }, "no help" },
+        { { "echo",
+            "01234567890123456789012345678901234567890123456789012345678901234567890123456789",
+            cmd_echo },
+          "80 characters of help" },
+        { { "echo", "two\nlines", cmd_echo }, "a control character" },
+        { { "echo", "", NULL }, "no function" },
+    };
+
+    (void)state;
+
+    assert_int_equal(cm_commands_check(good, ARRAY_SIZE(good), BUF_SIZE), PB_OK);
+    assert_int_equal(cm_commands_check(good, 0, 0), PB_OK);
+
+    for (size_t i = 0; i < ARRAY_SIZE(bad); i++) {
+        struct cm_command list[2] = { good[0], bad[i].command };
+
+        print_message("%s\n", bad[i].why);
+        assert_int_equal(cm_commands_check(list, 2, BUF_SIZE), -PB_ERR_PARAM);
+    }
+
+    /* Two names, one id */
+    struct cm_command twice[] = { good[1], good[0], good[1] };
+    assert_int_equal(cm_commands_check(twice, 3, BUF_SIZE), -PB_ERR_PARAM);
+
+    /* The entries fit the buffer: 128 bytes each */
+    assert_int_equal(cm_commands_check(good, 3, 3 * 128), PB_OK);
+    assert_int_equal(cm_commands_check(good, 3, 3 * 128 - 1), -PB_ERR_PARAM);
+
+    /* The build's list is the one the set up checked */
+    size_t count;
+    const struct cm_command *list = cm_commands(&count);
+    assert_int_equal(count, 5);
+    assert_int_equal(cm_commands_check(list, count, BUF_SIZE), PB_OK);
+    assert_ptr_equal(cm_command_find(BOARD_ECHO)->run, cmd_echo);
+    assert_null(cm_command_find(command_id("list")));
 }
 
 /* F-063: the request comes in one 1024 byte transfer. A larger size is
@@ -1262,7 +1442,7 @@ static void test_board_command_requests_reboot(void **state)
     assert_int_equal(t.disconnect_calls, 1);
 }
 
-/* command-mode.md 5.6, board.md 4.4: a board's command that asked for a
+/* command-mode.md 5.6: a named command that asked for a
  * reset and then failed doesn't reset, and neither does what comes after it.
  * The request is that command's: it doesn't wait for the next command that
  * succeeds, a frame the gate refuses among them */
@@ -1314,7 +1494,7 @@ static void test_failed_board_command_drops_its_reboot_request(void **state)
     assert_int_equal(t.disconnect_calls, 0);
 }
 
-/* command-mode.md 5.6, board.md 4.4 (F-252): a board's command that fails
+/* command-mode.md 5.6 (F-252): a named command that fails
  * doesn't reset, whatever it returns. -PB_ERR_ABORT is its error, the host
  * gets it and command mode goes on */
 static void test_board_command_that_returns_abort(void **state)
@@ -3657,7 +3837,7 @@ static void test_setup_without_the_device_uuid_fails(void **state)
 }
 
 /*
- * board.md 4.6, command-mode.md 2: command mode is a task, and a call never
+ * board.md 4.5, command-mode.md 2: command mode is a task, and a call never
  * waits for the host. Its first call sets up and starts the transport;
  * without a session a call polls the transport once (2.2), with one it polls
  * the read of the next command once (usb.md 2.4), and each returns PB_OK to
@@ -4541,6 +4721,9 @@ int main(void)
         CM_TEST(test_board_status),
         CM_TEST(test_board_status_fails),
         CM_TEST(test_board_command),
+        CM_TEST(test_command_list),
+        CM_TEST(test_command_list_requires_auth),
+        CM_TEST(test_commands_check),
         CM_TEST(test_board_command_request_size),
         CM_TEST(test_board_response_fits_the_hosts_buffer),
         CM_TEST(test_error_codes),

@@ -39,7 +39,8 @@ data (3.3); the caps' `bpak_stream_support` (5.1). A build may leave bpak out (J
 
 What it changed in the documents beside it:
 
-- `board.md` 4.4 names the reset a board's command can ask for (5.6), added with this review.
+- `board.md` named the reset a board's command can ask for (5.6), added with this review. Since
+  D-076 the board's commands are named commands, and 5.6 alone has it.
 - `compatibility.md`: "Fixed elsewhere" has a line for section 7, and "New command" says what
   a closed device answers (3.2) and what a build that left the command out answers (4.5).
 
@@ -54,7 +55,7 @@ them:
 |      | id, the name `list`, or a list larger than a buffer is a failure: no command mode         |       |
 | 11   | A list entry has the name, no id: the host computes `pb_id()` of it (5.6)                 | Jonas |
 | 12   | The board's `command()` is removed, an accepted break of the porting API in 3.0.0         | Jonas |
-|      | (D-031): every command is declared (5.6, `board.md` 4.4)                                  |       |
+|      | (D-031): every command is declared (5.6)                                                  |       |
 | 13   | The reset request is named for every command, `cm_request_reset_on_success()`, and works  | Jonas |
 |      | as before (5.6)                                                                           |       |
 
@@ -72,7 +73,7 @@ them:
 
 Not here: the bytes (`compatibility.md`, `include/pb-tools/wire.h`), the boot a command starts
 (`boot.md` 6, `board.md` 5.4), the life cycle's states and order (`system.md` 4, D-027), what
-each named command does (5.6, `board.md` 4.4), the transport's functions and its driver
+each named command does (5.6), the transport's functions and its driver
 (`usb.md`), the host tools (`system.md` 3).
 
 The rules it implements are level 1's: who may use command mode in which state (`system.md` 4,
@@ -89,7 +90,7 @@ fixed frames.
 ```
 main()
   the boot fails, is refused or is stopped        boot.md 2, board.md 2.1, 5
-  stopped: the tasks in turn                      board.md 4.6
+  stopped: the tasks in turn                      board.md 4.5
     cm_main_task()
       its first call: set up                      2.1
       no session: wait for the transport          2.2
@@ -214,7 +215,7 @@ authentication (`CONFIG_CM_AUTH`, below):
   The token costs a product nothing: whoever signs its images can sign a token, with the EC
   keys pb verifies today (3.3).
 - pb can't keep a product from weak authentication, and doesn't try (Jonas): what a board's
-  `password_auth()` accepts is the board's (`board.md` 4.5).
+  `password_auth()` accepts is the board's (`board.md` 4.4).
 
 ### 3.3 Authentication
 
@@ -224,7 +225,7 @@ transfer of 1024 bytes (4.4). Methods are added, never changed (`security.md` 4.
 | Method                               | The data                           | Verified by                   |
 | ------------------------------------ | ---------------------------------- | ----------------------------- |
 | Token (`CONFIG_CM_AUTH_TOKEN`)       | A signature over the device's UUID | The core, with a keystore key |
-| Password (`CONFIG_CM_AUTH_PASSWORD`) | The password, `size` bytes         | The board (`board.md` 4.5)    |
+| Password (`CONFIG_CM_AUTH_PASSWORD`) | The password, `size` bytes         | The board (`board.md` 4.4)    |
 
 - **The token**: the UUID as its 36 character string, hashed with the hash that goes with the
   key (SHA-256 for P-256, SHA-384 for P-384, SHA-512 for P-521), signed with the key the
@@ -290,7 +291,7 @@ Host input is untrusted in every life cycle state, authenticated or not (`securi
 
 - Every size, offset, count, id and UUID from the host is checked before it is used, in the
   core. What the board's command gets is bounded by the core and checked by the board
-  (`board.md` 4.4).
+  (5.6).
 - A size is checked against the buffer and against the partition, with arithmetic that can't
   wrap.
 - A reserved field (`rz`) is ignored. Zero there means the released behaviour
@@ -394,9 +395,9 @@ The watchdog covers command mode's commands (`system.md` 5.4).
   kick is then one chunk on the slowest medium, as on the boot path, and not the longest
   command. The load of `boot part` and `boot bpak` is the boot path's (`boot.md` 4.2);
   `part verify` kicks per chunk it hashes, and a transfer while pb waits for it.
-- A board's command kicks as it makes progress (`board.md` 4.4). An erase is as long as its
+- A named command kicks as it makes progress (5.6). An erase is as long as its
   driver's erase of the blocks the host named; hosts erase in pieces.
-- While a command runs, no other task runs (`board.md` 4.6).
+- While a command runs, no other task runs (`board.md` 4.5).
 
 **A host that stops in the middle of an exchange** (Jonas, D-058). Without a timeout the
 device would reset with the watchdog, or without one wait for ever with no task running, and
@@ -592,7 +593,7 @@ this becomes the common refusal.
 A named command is a function of pb's that a host calls by name, with bytes in and bytes out.
 The core, a platform, a driver and the board each declare their own, with no member in
 `struct board` or `plat.h` (D-076). Every command is declared: the board's `command()` is
-removed (`board.md` 4.4). **Not yet in the code (F-425).**
+removed.
 
 ```
 DEFINE_COMMAND(name, help, fn)
@@ -630,12 +631,10 @@ int fn(const uint8_t *request, size_t request_size, uint8_t *response, size_t *r
 - **A reset after a command**: a named command may ask for one with
   `cm_request_reset_on_success()`, which was `cm_board_cmd_request_reboot_on_success()`.
   When the command then returns OK, the device sends the last result and leaves command mode
-  as for `DEVICE_RESET` (2.3). A command that fails doesn't reset. **Not yet in the code
-  (F-425).**
+  as for `DEVICE_RESET` (2.3). A command that fails doesn't reset.
 - **The core's rules** (`security.md` 4.8): a named command starts no image, writes no fuse,
-  and changes neither the keys nor the life cycle. Those are the core's commands. What it may
-  do is the declarer's contract: `board.md` 4.4 for a board's, `platform.md` 5.1 for a
-  platform's.
+  and changes neither the keys nor the life cycle. Those are the core's commands. The rules
+  are the same for the core's, a platform's (`platform.md` 5.1), a driver's and the board's.
 - **Fixed** (section 7): once released, a command's name and what its bytes mean. A command
   is retired like a core one (5.8): it stays in the list and answers `NOT_SUPPORTED`.
 
@@ -660,7 +659,7 @@ slots are never reused (`compatibility.md`, F-032).
 - `AUTH_SET_PASSWORD` was never implemented: its slot is reserved. Until 2.0.0 it was named
   `AUTH_SET_OTP_PASSWORD`, and a closed device answered it before authentication; since
   2.0.0 it is behind the gate. Implementing it is on the roadmap (Jonas, 2026-11-12,
-  `roadmap.md`): it is written here and in `board.md` 4.5 first, with a decision entry, and
+  `roadmap.md`): it is written here and in `board.md` 4.4 first, with a decision entry, and
   where the secret is kept is the board's.
 
 A command is retired, never removed: its handler answers `NOT_SUPPORTED`, and a decision entry
@@ -794,6 +793,4 @@ For a change to command mode, a new command or a new method:
 | F-375               | The caps' erase timeout (4.6)                                                        |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
-| F-425               | The named commands: `DEFINE_COMMAND()`, the list's check, `BOARD_COMMAND`'s look up, |
-|                     | `COMMAND_LIST`, the board's `command()` removed, the reset request renamed (5.6)     |
 | F-426               | The host's `command list` and `command <name>` (5.6)                                 |

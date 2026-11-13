@@ -253,17 +253,6 @@ static int cm_board_status(uint8_t *buf, size_t *length)
     return PB_OK;
 }
 
-static int
-default_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size)
-{
-    (void)bfr;
-    (void)bfr_length;
-    (void)rsp;
-    LOG_ERR("Unknown command %x", cmd);
-    *rsp_size = 0;
-    return -PB_ERR_NOT_SUPPORTED;
-}
-
 /* The name fills the wire's board_id, which has no terminator: 1 to 16
  * characters. Only the field's size and one more byte of it are read. */
 #define BOARD_ID_SIZE sizeof(((struct pb_result_device_identifier *)NULL)->board_id)
@@ -307,7 +296,6 @@ int cm_board_init(void)
 
     cfg.name = board.name;
     cfg.status = cm_board_status;
-    cfg.command = board.command ? board.command : default_command;
     cfg.password_auth = board.password_auth;
 
     return cm_init(&cfg);

@@ -694,18 +694,18 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-13 (`b7de7409`): the 8X names reasons 13 and 14. The GPT item was a direct | | |
 | | | `plat_get_us_tick()` caller before `plat_init()`, not the log's prefix; F-238 ended it. Left: the | | |
 | | | 8MP EVK's console set-up before its clock gate, and `command-mode.md` 2.1 naming F-235 | | |
-| F-413 | `board/{imx8mevk,host}`, `cm_main.c`, `board.md` 4.4 | From F-095's package. | Reported (read) | open |
+| F-413 | `board/{imx8mevk,host}`, `cm_main.c` | From F-095's package. | Reported (read) | open |
 | | | imx8mevk's `board_command()` writes `response[(*response_size)++] = 0` after `snprintf()`, past its | | |
 | | | room when the text is longer, and several boards return `snprintf()`'s full length as the size (the | | |
 | | | core cuts it now). The host board's test command writes `arg[size] = 0`, a byte past a 1024-byte | | |
 | | | request (inside the buffer). `rot_no_of_keys()` returns an error cast to `size_t` without a RoT | | |
 | | | (`boot.c` handles it, `cmd_slc_read()` is bounded now). A transport whose read can never be started | | |
 | | | after a connect is restarted every round for ever with the watchdog kicked, as after a failed | | |
-| | | `complete()`. `board.md` 4.4 says `rsp` holds `*rsp_size` bytes "(the command buffer)"; since F-095 | | |
+| | | `complete()`. `command-mode.md` 5.6 says `rsp` holds `*rsp_size` bytes "(the command buffer)"; since F-095 | | |
 | | | it is the smaller of the host's size and a buffer | | |
 | | | 2026-11-13: the boards' items are done (imx8mevk, the RT's and the host board's test commands write | | |
 | | | only what fits, the host board's size is what it wrote). Left: a transport restarted for ever, | | |
-| | | `board.md` 4.4's words, the status functions returning `snprintf()`'s full length | | |
+| | | `command-mode.md` 5.6's words, the status functions returning `snprintf()`'s full length | | |
 | F-414 | `doc/guides/testing.md`, `bio.md` | From F-191's package. The coverage note in | Reported (read) | open |
 | | | `testing.md` names `gpt.c` lines 298 and 383 to 389 as unreachable; that code is gone. The tables in | | |
 | | | `bio.md` 2.4 and section 8 are wider than the aligner makes them (they were before the package) | | |
@@ -748,7 +748,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-421 | `tools/pbstate`, `session.py`, `src/board` | Low, from the boards and host tools | Reported (read) | open |
 | | | package. pbstate: `-i` beats `-s`, `-v` and `-w` silently, and `-s` beats `-v`. `part_erase` | | |
 | | | would loop for ever on a partition whose last block is below its first. The 8X boards' example | | |
-| | | password is in the image and the same on every device (`board.md` 4.5). `<board/password.h>` is | | |
+| | | password is in the image and the same on every device (`board.md` 4.4). `<board/password.h>` is | | |
 | | | under `src/board/`, which `board.md` 6 and D-056 don't list among the headers a board includes | | |
 | F-422 | `src/drivers/usb/usbd.c`, `imx_ci_udc.c`, `usb.md` | From the USB package, read not | Reported (read) | open |
 | | | fixed. `usb.md` 2.3 and 2.4 have `-PB_ERR_STATE` for a start while a transfer runs and for a | | |

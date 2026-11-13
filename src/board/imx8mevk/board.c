@@ -15,6 +15,7 @@
 #include <drivers/uart/imx_uart.h>
 #include <pb/board.h>
 #include <pb/cm.h>
+#include <pb/command.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -36,33 +37,32 @@ struct dram_rates dram_rates = {
     .num = ARRAY_SIZE(imx8mevk_dram_mts),
 };
 
-static int board_command(uint32_t command,
-                         uint8_t *bfr,
-                         size_t size,
-                         uint8_t *response_bfr,
-                         size_t *response_size)
+/* The board's named command 'test' (command-mode.md 5.6), pb_id() 0xf93ba110,
+ * the id it had before 3.0.0. Its answer names that id, as it did */
+static int
+cmd_test(const uint8_t *request, size_t request_size, uint8_t *response, size_t *response_size)
 {
-    LOG_DBG("%x, %p, %zu", command, bfr, size);
+    char *text = (char *)response;
+    size_t room = *response_size;
 
-    if (command == 0xf93ba110) {
-        LOG_DBG("Got test command");
-        char *response = (char *)response_bfr;
-        size_t resp_buf_size = *response_size;
-        int n = snprintf(response, resp_buf_size, "Test command hello 0x%x\n", command);
+    (void)request;
+    (void)request_size;
 
-        /* The text and its NUL, cut to the room there is */
-        if (n < 0 || resp_buf_size == 0) {
-            *response_size = 0;
-        } else {
-            *response_size = ((size_t)n < resp_buf_size) ? (size_t)n : resp_buf_size - 1;
-            response[(*response_size)++] = 0;
-        }
-    } else {
+    LOG_DBG("Got test command");
+    int n = snprintf(text, room, "Test command hello 0x%x\n", 0xf93ba110U);
+
+    /* The text and its NUL, cut to the room there is */
+    if (n < 0 || room == 0) {
         *response_size = 0;
+    } else {
+        *response_size = ((size_t)n < room) ? (size_t)n : room - 1;
+        text[(*response_size)++] = 0;
     }
 
     return PB_OK;
 }
+
+DEFINE_COMMAND("test", "Answers with a greeting", cmd_test);
 
 static void board_console_init(void)
 {
@@ -258,5 +258,4 @@ const struct board board = {
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .image_regions = image_regions,
-    .command = board_command,
 };

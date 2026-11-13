@@ -53,7 +53,7 @@ In this order:
    Below 1 to 4: nothing done for it weakens them.
 
 Not protected today: confidentiality. Images aren't encrypted, and pb holds no private key; the
-keystore is public keys. The one secret is the board's password secret (`board.md` 4.5).
+keystore is public keys. The one secret is the board's password secret (`board.md` 4.4).
 Encrypted images are on the roadmap, to discuss.
 
 ## 3. Attackers
@@ -148,7 +148,7 @@ took effect, and hands the rest over in the state the secure world's owner expec
 mechanisms that means is the platform's (`platform.md` 4.3, 4.5). **Not yet in the code (F-241,
 F-261, F-246).**
 
-**4.10 Secrets are compared whole and in constant time, and never logged** (`board.md` 4.5).
+**4.10 Secrets are compared whole and in constant time, and never logged** (`board.md` 4.4).
 
 ## 5. Known limits
 

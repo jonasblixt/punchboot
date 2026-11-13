@@ -62,6 +62,7 @@ class Command(IntEnum):
     PB_CMD_PART_RESIZE = 27
     PB_CMD_BOOT_STATUS = 28
     PB_CMD_LOG_READ = 29
+    PB_CMD_COMMAND_LIST = 30
 
 
 class Result(IntEnum):
@@ -361,6 +362,21 @@ class pb_result_log_read(Struct):
     )
 
 
+class pb_result_command_list(Struct):
+    _fields_ = (
+        ("count", u32),
+        ("rz", u8 * 28),
+    )
+
+
+class pb_result_command_list_entry(Struct):
+    _fields_ = (
+        ("name", char * 32),
+        ("help", char * 80),
+        ("rz", u8 * 16),
+    )
+
+
 STRUCTS: tuple[type[Struct], ...] = (
     pb_command,
     pb_result,
@@ -389,6 +405,8 @@ STRUCTS: tuple[type[Struct], ...] = (
     pb_result_boot_status,
     pb_command_log_read,
     pb_result_log_read,
+    pb_result_command_list,
+    pb_result_command_list_entry,
 )
 
 

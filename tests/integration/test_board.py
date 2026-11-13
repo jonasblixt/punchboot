@@ -89,7 +89,7 @@ def test_board_response_fits_the_hosts_buffer(device: Device) -> None:
 
 
 def test_board_command_writes_nothing_past_its_request(device: Device) -> None:
-    # board.md 4.4 (F-413): the request is the host's, read into the command
+    # command-mode.md 5.6 (F-413): the request is the host's, read into the command
     # buffer, the stream's buffer 0. The host board's test-command put a NUL
     # after the request, a byte past a 1024-byte one: what the buffer held
     # there was gone

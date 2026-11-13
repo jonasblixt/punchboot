@@ -37,7 +37,7 @@ Command mode without a host ends by itself: when its transport isn't ready in ti
 (`CONFIG_CM_TRANSPORT_READY_TIMEOUT`, 10 s), pb resets and boots again.
 
 Command mode is what pb does when it is stopped, in a build that has it (the default). Stopped,
-pb runs the build's tasks in turn (`board.md` 4.6, D-051), and command mode is one of them. A
+pb runs the build's tasks in turn (`board.md` 4.5, D-051), and command mode is one of them. A
 build without command mode stops for the same reasons and runs its other tasks; with none it
 resets.
 
@@ -154,5 +154,5 @@ build on changes its form in a major release at most.
   by default.
 - The update client in the OS and its use of the A/B state (`pbstate`).
 - What the next stage verifies (the root file system).
-- The password's secret and where the board keeps it (`board.md` 4.5).
+- The password's secret and where the board keeps it (`board.md` 4.4).
 - The partition layout, the boot source policy, the handover: the board's choices (`board.md`).

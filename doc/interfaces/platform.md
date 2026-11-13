@@ -218,9 +218,9 @@ Restarts the watchdog. Cheap and safe at any time, also before the watchdog is a
 Who kicks it: the core, where work makes progress. Once per chunk in `load_and_hash`, once before
 the jump (the final hash, prepare and `late_boot()` follow the last chunk without a kick
 otherwise; the signature is checked on the header, before the load), and once per round of the
-tasks while pb is stopped (`board.md` 4.6). Inside a command, once per chunk and while a transfer
+tasks while pb is stopped (`board.md` 4.5). Inside a command, once per chunk and while a transfer
 is waited for (`command-mode.md` 4.6). A board's command that runs long kicks as it
-makes progress (`board.md` 4.4). Never in
+makes progress (`command-mode.md` 5.6). Never in
 `pb_delay_*()` or `pb_timeout_*()`: a driver polling forever would keep the board alive, which is
 what the watchdog is there to catch.
 
@@ -363,7 +363,7 @@ Return   : int, PB_OK or -PB_ERR_*
 ```
 
 Called once by command mode's task, when it first runs, never on the boot path (D-023,
-`board.md` 4.6). It sets up the USB device port command mode uses (D-049, `board.md` 4.1): its
+`board.md` 4.5). It sets up the USB device port command mode uses (D-049, `board.md` 4.1): its
 clocks, its power, its PHY and its controller, so that the transport can start.
 
 - Which port: a Kconfig choice of the platform's, one option per port of the SoC that can be a
@@ -528,14 +528,14 @@ Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
   `.no_init` and the translation tables in `buffers`. It provides `_pb_start/_end` and
   `_buffers_start/_end`.
 - The link script keeps the task list (`KEEP`): the tasks that `DEFINE_TASK()` defines (D-051,
-  `board.md` 4.6), which the core calls while pb is stopped, sit in a section of their own in
+  `board.md` 4.5), which the core calls while pb is stopped, sit in a section of their own in
   rodata, which no code names, so the linker would drop it. It provides the list's start and end. A
   platform may define tasks too, by the same rules.
 - It keeps the list of named commands the same way (`pb_commands`, `command-mode.md` 5.6,
   D-076). A platform declares its own commands there, for what only its SoC has (the 8M's DRAM
   training data): a command of the platform's stays inside the core's rules
   (`security.md` 4.8), and its name, id and bytes are fixed like a board's (`board.md` 8) for
-  every board of the platform. **Not yet in the code (F-425).**
+  every board of the platform.
 
 The RAM log is in `pb`, which works from the first instruction. `buffers` may be in DRAM the
 platform trains, so nothing before `plat_init()` uses `.no_init`.
