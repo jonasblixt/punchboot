@@ -47,20 +47,6 @@
 	.endm
 
 	/*
-	 * This macro calculates the base address of the current CPU's multi
-	 * processor(MP) stack using the plat_my_core_pos() index, the name of
-	 * the stack storage and the size of each stack.
-	 * Out: r0 = physical address of stack base
-	 * Clobber: r14, r1, r2
-	 */
-	.macro get_my_mp_stack _name, _size
-	bl  plat_my_core_pos
-	ldr r2, =(\_name + \_size)
-	mov r1, #\_size
-	mla r0, r0, r1, r2
-	.endm
-
-	/*
 	 * This macro calculates the base address of a uniprocessor(UP) stack
 	 * using the name of the stack storage and the size of the stack
 	 * Out: r0 = physical address of stack base
