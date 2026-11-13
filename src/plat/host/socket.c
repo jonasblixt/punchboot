@@ -170,8 +170,8 @@ int cm_transport_complete(void)
 
         if (xfer.is_read)
             bytes = recv(client_fd, p, remaining, MSG_DONTWAIT);
-        else
-            bytes = send(client_fd, p, remaining, MSG_DONTWAIT);
+        else /* A client that went away is an error, not a SIGPIPE (F-067) */
+            bytes = send(client_fd, p, remaining, MSG_DONTWAIT | MSG_NOSIGNAL);
 
         if (bytes < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK))
             continue;
