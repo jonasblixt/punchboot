@@ -343,6 +343,7 @@ static int board_command(uint32_t command,
                          size_t *response_size)
 {
     int rc;
+    size_t room = *response_size;
     LOG_DBG("%x, %p, %zu", command, bfr, size);
     *response_size = 0;
 
@@ -352,8 +353,9 @@ static int board_command(uint32_t command,
             printf("%02x", bfr[i]);
         printf("\n\r");
         const uint8_t test_data[] = { 0x01, 0x02, 0x03, 0x04 };
-        memcpy(response_bfr, test_data, sizeof(test_data));
-        *response_size = sizeof(test_data);
+        /* As much of it as there is room for */
+        *response_size = (room < sizeof(test_data)) ? room : sizeof(test_data);
+        memcpy(response_bfr, test_data, *response_size);
     }
 
     return PB_OK;
