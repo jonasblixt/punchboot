@@ -472,7 +472,7 @@ static int _hash_update(uint8_t *buf, size_t length)
     return PB_OK;
 }
 
-static int caam_hash_input(const void *buf, size_t length)
+static int caam_hash_input(const void *buf, size_t length, bool async)
 {
     size_t bytes_to_process = length;
     uint8_t *buf_p = (uint8_t *)buf;
@@ -486,6 +486,11 @@ static int caam_hash_input(const void *buf, size_t length)
 
     if (rc != PB_OK)
         return rc;
+
+    /* The update's kind is written after the join: the wait invalidates the
+     * line of caam.output, which this shares in some builds, and a store
+     * made before it could be lost (F-081) */
+    caam.async_hashing = async;
 
     /* We have less then 'block_size' bytes available, fill the buffer */
     if (caam.hash_align_buf_len + bytes_to_process < caam.block_size) {
@@ -554,14 +559,12 @@ static int caam_hash_input(const void *buf, size_t length)
 
 static int caam_hash_update(const void *buf, size_t length)
 {
-    caam.async_hashing = false;
-    return caam_hash_input(buf, length);
+    return caam_hash_input(buf, length, false);
 }
 
 static int caam_hash_update_async(const void *buf, size_t length)
 {
-    caam.async_hashing = true;
-    return caam_hash_input(buf, length);
+    return caam_hash_input(buf, length, true);
 }
 
 static int caam_hash_final(uint8_t *output, size_t size)
