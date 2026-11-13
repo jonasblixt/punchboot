@@ -437,14 +437,20 @@ int pbstate_set_system_verified(pbstate_system_t system)
     if (fd < 0)
         return fd;
 
+    /* The attempts are the enabled slot's trial: confirming it ends the
+     * trial. Confirming the other slot, the one a fallback boot runs, leaves
+     * the trial to go on until its attempts run out (boot.md 3.5, rules 1
+     * to 3) */
     switch (system) {
     case PBSTATE_SYSTEM_A:
         state.verified |= PB_STATE_A_VERIFIED;
-        state.remaining_boot_attempts = 0;
+        if (state.enable & PB_STATE_A_ENABLED)
+            state.remaining_boot_attempts = 0;
         break;
     case PBSTATE_SYSTEM_B:
         state.verified |= PB_STATE_B_VERIFIED;
-        state.remaining_boot_attempts = 0;
+        if (state.enable & PB_STATE_B_ENABLED)
+            state.remaining_boot_attempts = 0;
         break;
     case PBSTATE_SYSTEM_NONE:
         break;

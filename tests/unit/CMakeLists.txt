@@ -174,6 +174,12 @@ add_test(
 )
 set_tests_properties(unit.ab_speculative_kconfig PROPERTIES LABELS unit TIMEOUT 60)
 
+# libpbstate, the OS's side of the A/B state (boot.md 3.7), on files
+pb_unit_test(test_pbstate SOURCES
+    ${PROJECT_SOURCE_DIR}/tools/pbstate/src/pbstate.c
+)
+target_include_directories(test_pbstate PRIVATE ${PROJECT_SOURCE_DIR}/tools/pbstate/src)
+
 pb_unit_test(test_policy SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/policy.c

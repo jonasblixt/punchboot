@@ -195,6 +195,8 @@ Unit tests, by module under test:
 | `test_ab_state.c`, `test_boot.c`              | `ab_state.c`, `boot.c`       | ramdisk, image helpers, boot     |
 |                                               |                              | driver. In place: `static.c`,    |
 |                                               |                              | the ramdisk's memory as the map  |
+| `test_pbstate.c`                              | `tools/pbstate`'s            | none: two files in a temporary   |
+|                                               | `pbstate.c` (libpbstate)     | directory are the copies         |
 | `test_static_ptbl.c`                          | `static.c`                   | ramdisk                          |
 | `test_policy.c`                               | `policy.c`,                  | ramdisk                          |
 |                                               | `policy_fixed.c`,            |                                  |
