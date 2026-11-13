@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #define OCOTP_CTRL           0x0000
+#define OCOTP_CTRL_CLR       0x0008 /* ERROR is cleared here only (6UL RM 35.5.1) */
 #define OCOTP_TIMING         0x0010
 #define OCOTP_DATA           0x0020
 #define OCOTP_READ_CTRL      0x0030

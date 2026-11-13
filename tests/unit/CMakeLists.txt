@@ -745,8 +745,13 @@ pb_unit_test(test_imx_hab_fuses SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_hab_fuses.c
 )
 
+# The OCOTP driver against a model of the controller (see the test)
 pb_unit_test(test_imx_ocotp SOURCES
+    ${PROJECT_SOURCE_DIR}/src/delay.c
     ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_ocotp.c
+)
+target_include_directories(test_imx_ocotp BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
 )
 
 # pb's own snprintf(), as pb_snprintf(): the host's C library has one (F-089)

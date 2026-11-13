@@ -66,7 +66,7 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
     if (tmp & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL, tmp & ~OCOTP_CTRL_ERROR);
+        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
         return -PB_ERR_IO;
     }
 
@@ -81,7 +81,7 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
     if (tmp & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL, tmp & ~OCOTP_CTRL_ERROR);
+        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
         return -PB_ERR_IO;
     }
 
@@ -96,7 +96,7 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
     if (tmp & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL, tmp & ~OCOTP_CTRL_ERROR);
+        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
         return -PB_ERR_IO;
     }
 
@@ -114,7 +114,7 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
     if (tmp & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL, tmp & ~OCOTP_CTRL_ERROR);
+        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
         return -PB_ERR_IO;
     }
 
