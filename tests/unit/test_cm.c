@@ -45,8 +45,10 @@
 #include <pb/ramlog.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "fakes/plat.h"
 #include "fakes/ramdisk.h"
@@ -1853,6 +1855,61 @@ static void test_bpak_read_errors(void **state)
     host_cmd(PB_CMD_PART_BPAK_READ, &req, sizeof(req));
     run();
     expect_result(-PB_RESULT_IO_ERROR);
+}
+
+/* What pb printed during the last run_printed() */
+static char printed[32 * 1024];
+
+/* run(), with what pb prints kept: the log is the only place a command's
+ * error code shows, the host gets the result */
+static void run_printed(void)
+{
+    FILE *capture = tmpfile();
+    int saved;
+    int rc;
+    size_t length;
+
+    assert_non_null(capture);
+    fflush(stdout);
+    saved = dup(STDOUT_FILENO);
+    assert_true(saved >= 0);
+    assert_true(dup2(fileno(capture), STDOUT_FILENO) >= 0);
+
+    rc = cm_run();
+
+    fflush(stdout);
+    assert_true(dup2(saved, STDOUT_FILENO) >= 0);
+    close(saved);
+    rewind(capture);
+    length = fread(printed, 1, sizeof(printed) - 1, capture);
+    printed[length] = '\0';
+    fclose(capture);
+    fputs(printed, stdout);
+    assert_int_equal(rc, -PB_ERR_IO);
+}
+
+/* F-160: PART_BPAK_READ of a partition without a valid header is a command
+ * that failed with pb's NOT_FOUND, which is what the host gets. bpak's own
+ * code for the header (-BPAK_BAD_MAGIC, -15) was returned to the task, which
+ * logged it as a pb error. */
+static void test_bpak_read_error_is_pbs(void **state)
+{
+    struct pb_command_read_bpak req = { 0 };
+    char expected[64];
+    char bpaks[64];
+    (void)state;
+
+    snprintf(expected, sizeof(expected), "Command error %i", -PB_ERR_NOT_FOUND);
+    snprintf(bpaks, sizeof(bpaks), "Command error %i", -BPAK_BAD_MAGIC);
+
+    memcpy(req.uuid, UU_RW, 16);
+    host_cmd(PB_CMD_PART_BPAK_READ, &req, sizeof(req));
+    run_printed();
+
+    expect_result(-PB_RESULT_NOT_FOUND);
+    expect_end();
+    assert_non_null(strstr(printed, expected));
+    assert_null(strstr(printed, bpaks));
 }
 
 /* A partition below 4 KiB has no room for a bpak header (command-mode.md
@@ -3809,6 +3866,7 @@ int main(void)
         CM_TEST(test_slc_read_lists_16_keys_at_most),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
+        CM_TEST(test_bpak_read_error_is_pbs),
         CM_TEST(test_bpak_read_small_partition),
         CM_TEST(test_part_verify),
         CM_TEST(test_part_verify_bpak),

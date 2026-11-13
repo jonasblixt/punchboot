@@ -449,10 +449,11 @@ static int cmd_bpak_read(void)
 
     rc = bpak_valid_header((struct bpak_header *)part_buffer[0]);
 
+    /* bpak's code is logged here, as bpak's: the command's error is pb's */
     if (rc != BPAK_OK) {
-        LOG_ERR("Invalid bpak header");
+        LOG_ERR("Invalid bpak header (bpak: %i)", rc);
         pb_wire_init_result(&result, -PB_RESULT_NOT_FOUND);
-        return rc;
+        return -PB_ERR_NOT_FOUND;
     }
 
     pb_wire_init_result(&result, error_to_wire(rc));
