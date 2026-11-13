@@ -210,6 +210,7 @@ static void test_both_tables_corrupt_fails(void **state)
 
 /* Offsets in the on-disk GPT header */
 #define HDR_CRC            16
+#define HDR_MY_LBA         24
 #define HDR_NO_OF_PARTS    80
 #define HDR_PART_ENTRY_SZ  84
 #define HDR_PART_ARRAY_CRC 88
@@ -315,6 +316,105 @@ static void test_empty_entry_is_skipped(void **state)
     assert_part(UU_STATE, 2082, 2082, "State");
     /* The table is valid: nothing is repaired */
     assert_int_equal(f->disk->writes, 0);
+}
+
+static void set_entry_blocks(struct fixture *f, int n, uint64_t first, uint64_t last)
+{
+    const lba_t arrays[] = { PRIMARY_ARRAY, BACKUP_ARRAY };
+
+    for (size_t i = 0; i < ARRAY_SIZE(arrays); i++) {
+        memcpy(entry(f, arrays[i], n) + ENTRY_FIRST_LBA, &first, sizeof(first));
+        memcpy(entry(f, arrays[i], n) + ENTRY_LAST_LBA, &last, sizeof(last));
+    }
+
+    seal(f, PRIMARY_HDR, PRIMARY_ARRAY);
+    seal(f, BACKUP_HDR, BACKUP_ARRAY);
+}
+
+/* bio.md 4: every entry is checked before a partition is made of it: inside
+ * the device, outside the table's own blocks, first not after last, values
+ * that fit lba_t. One that fails is skipped, and the others are made
+ * (F-193). Both copies hold the entry, so the table is valid and nothing is
+ * repaired. */
+static void test_entry_is_checked(void **state)
+{
+    struct fixture *f = *state;
+
+    static const struct {
+        uint64_t first;
+        uint64_t last;
+    } invalid[] = {
+        { 1, 33 }, /* The primary header and its array */
+        { 33, 1057 }, /* The array's last block */
+        { 34, DISK_BLOCKS - 33 }, /* The backup's array */
+        { DISK_BLOCKS - 1, DISK_BLOCKS - 1 }, /* The backup's header */
+        { 34, DISK_BLOCKS }, /* Past the device's end */
+        { 1057, 34 }, /* First after last */
+        { 34, 0x100000000ULL + 1057 }, /* Truncated to 32 bits it is System A */
+        { 0x100000000ULL + 34, 0x100000000ULL + 1057 },
+        { 34, UINT64_MAX },
+    };
+
+    install_and_reboot(f, 0);
+
+    for (size_t i = 0; i < ARRAY_SIZE(invalid); i++) {
+        set_entry_blocks(f, 0, invalid[i].first, invalid[i].last);
+        f->disk->writes = 0;
+
+        assert_int_equal(boot(f), PB_OK);
+        assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+        assert_part(UU_SYS_B, 1058, 2081, "System B");
+        assert_part(UU_STATE, 2082, 2082, "State");
+        assert_int_equal(f->disk->writes, 0);
+    }
+
+    /* The blocks between the two copies are a partition's, all of them */
+    set_entry_blocks(f, 0, 34, DISK_BLOCKS - 34);
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, 34, DISK_BLOCKS - 34, "System A");
+    assert_part(UU_SYS_B, 1058, 2081, "System B");
+}
+
+/* bio.md 2.6, 4: a UUID names one device. The second entry with a UUID is
+ * skipped, the first keeps it, and the others are made (F-193) */
+static void test_entry_with_a_taken_uuid_is_skipped(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+    /* System B gets System A's UUID */
+    memcpy(entry(f, PRIMARY_ARRAY, 1) + 16, entry(f, PRIMARY_ARRAY, 0) + 16, 16);
+    memcpy(entry(f, BACKUP_ARRAY, 1) + 16, entry(f, BACKUP_ARRAY, 0) + 16, 16);
+    seal(f, PRIMARY_HDR, PRIMARY_ARRAY);
+    seal(f, BACKUP_HDR, BACKUP_ARRAY);
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_true(bio_get_part_by_uu(UU_SYS_B) < 0);
+    assert_part(UU_STATE, 2082, 2082, "State");
+}
+
+/* bio.md 4: a repair writes a copy at its place, never where a header from
+ * the medium says that it is itself (F-193). A valid primary that gives
+ * LBA 5000 for itself, and a backup to repair: no block of a partition is
+ * written. */
+static void test_repair_writes_no_partition(void **state)
+{
+    struct fixture *f = *state;
+    const size_t partitions = (size_t)(DISK_BLOCKS - 34 - 34) * RAMDISK_BLOCK_SIZE;
+    uint8_t *before = malloc(partitions);
+
+    assert_non_null(before);
+    install_and_reboot(f, 0);
+    set_hdr_field(ramdisk_block(f->disk, PRIMARY_HDR), HDR_MY_LBA, 5000);
+    memset(ramdisk_block(f->disk, BACKUP_HDR), 0, RAMDISK_BLOCK_SIZE);
+    memcpy(before, ramdisk_block(f->disk, 34), partitions);
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_memory_equal(ramdisk_block(f->disk, 34), before, partitions);
+    assert_memory_equal(ramdisk_block(f->disk, BACKUP_HDR), "EFI PART", 8);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    free(before);
 }
 
 static void test_install_long_name_fails(void **state)
@@ -555,6 +655,9 @@ int main(void)
             test_backup_with_too_many_entries_is_not_used, setup, teardown),
         cmocka_unit_test_setup_teardown(test_unsupported_entry_size_recovers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_empty_entry_is_skipped, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_entry_is_checked, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_entry_with_a_taken_uuid_is_skipped, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_repair_writes_no_partition, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_long_name_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_init_invalid_device, setup, teardown),
         cmocka_unit_test_setup_teardown(test_primary_header_crc_error_recovers, setup, teardown),

@@ -12,6 +12,7 @@
 #include <pb/crc.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
@@ -76,6 +77,8 @@ static struct gpt_primary_tbl primary __aligned(64);
 static struct gpt_backup_tbl backup __aligned(64);
 static uint8_t gpt_pmbr[512];
 static bio_dev_t gpt_dev;
+/* The first block of the backup, as it is read: its array, then its header */
+static lba_t backup_first_lba;
 static const struct gpt_table_list *tables;
 static size_t tables_length;
 
@@ -148,6 +151,31 @@ static int gpt_is_valid(struct gpt_header *hdr, struct gpt_part_hdr *part)
         return PB_ERR;
 
     return PB_OK;
+}
+
+/* The blocks that the header's partition array takes on the device */
+static uint32_t gpt_array_blocks(bio_dev_t dev, const struct gpt_header *hdr)
+{
+    const uint32_t block_sz = (uint32_t)bio_block_size(dev);
+
+    return (hdr->no_of_parts * (uint32_t)sizeof(struct gpt_part_hdr) + block_sz - 1) / block_sz;
+}
+
+/* An entry of the table on the medium is input (bio.md 4): a partition is
+ * made of it only when its blocks are in the device, which also means that
+ * they fit lba_t, the first isn't after the last, and none is one of the
+ * table's own: the protective MBR, the primary header and its array at the
+ * start of the device, the backup's array and its header in the last 33
+ * blocks, where this driver reads them. */
+static bool gpt_entry_is_valid(bio_dev_t dev, const struct gpt_part_hdr *part)
+{
+    const uint64_t last_lba = (uint64_t)bio_get_last_block(dev);
+    const uint64_t primary_end = 1 + gpt_array_blocks(dev, &primary.hdr);
+
+    if (part->first_lba > part->last_lba || part->last_lba > last_lba)
+        return false;
+
+    return part->first_lba > primary_end && part->last_lba < backup_first_lba;
 }
 
 static int gpt_init_tbl(bio_dev_t dev)
@@ -257,10 +285,11 @@ static int gpt_write_tbl(bio_dev_t dev)
         return err;
     }
 
-    /* Write primary GPT Table */
-    LOG_DBG("writing primary gpt tbl to lba %" PRIu64, primary.hdr.current_lba);
+    /* Write primary GPT Table. Its place is LBA 1, where it is read: never
+     * the LBA a header from the medium gives for itself (bio.md 4) */
+    LOG_DBG("writing primary gpt tbl to lba 1");
 
-    err = bio_write(dev, primary.hdr.current_lba, sizeof(primary), &primary);
+    err = bio_write(dev, 1, sizeof(primary), &primary);
 
     if (err != PB_OK) {
         LOG_ERR("error writing primary gpt table (%i)", err);
@@ -357,9 +386,9 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
     if (rc != PB_OK)
         return rc;
 
-    size_t backup_lba = bio_get_last_block(dev) - ((128 * sizeof(struct gpt_part_hdr)) / 512);
+    backup_first_lba = bio_get_last_block(dev) - ((128 * sizeof(struct gpt_part_hdr)) / 512);
 
-    rc = bio_read(dev, backup_lba, sizeof(backup), &backup);
+    rc = bio_read(dev, backup_first_lba, sizeof(backup), &backup);
 
     if (rc != PB_OK)
         return rc;
@@ -452,8 +481,24 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
         }
 
         name[36] = 0;
-        bio_dev_t new_dev =
-            bio_allocate_parent(dev, p->first_lba, p->last_lba, bio_block_size(dev), uu, name);
+
+        /* An entry that fails is skipped and logged, and the others are
+         * made (bio.md 4) */
+        if (!gpt_entry_is_valid(dev, p)) {
+            LOG_ERR("Entry skipped, %s: %" PRIu64 " - %" PRIu64, name, p->first_lba, p->last_lba);
+            continue;
+        }
+
+        bio_dev_t new_dev = bio_allocate_parent(
+            dev, (lba_t)p->first_lba, (lba_t)p->last_lba, bio_block_size(dev), uu, name);
+
+        /* The core refuses what a device can't be: an entry whose UUID is
+         * taken (bio.md 2.6). The first one keeps the name */
+        if (new_dev == -PB_ERR_PARAM) {
+            LOG_ERR("Entry refused, %s", name);
+            continue;
+        }
+
         if (new_dev < 0) {
             LOG_ERR("bio alloc failed (%i)", new_dev);
             return new_dev;
