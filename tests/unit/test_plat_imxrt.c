@@ -55,6 +55,13 @@ static struct {
     size_t log_time_started_at;
 } f;
 
+/* The fuses */
+static struct {
+    uint32_t unique[2]; /* The unique id's two words */
+    unsigned int reads; /* imx_ocotp_read() calls */
+    unsigned int fail_at; /* The call that fails, counted from 1; 0: none */
+} fuses;
+
 /* A write that resets the SoC leaves the code under test through here */
 static jmp_buf soc_reset;
 
@@ -76,11 +83,18 @@ int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank)
     return PB_OK;
 }
 
+/* A read that fails returns its error and leaves the value alone, as the
+ * driver's does */
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 {
-    (void)bank;
+    if (++fuses.reads == fuses.fail_at)
+        return -PB_ERR_IO;
 
-    if (row == IMXRT_FUSE_SPEED_GRADE_WORD)
+    if (bank == 0 && row == IMXRT_FUSE_UNIQUE_1)
+        *value = fuses.unique[0];
+    else if (bank == 0 && row == IMXRT_FUSE_UNIQUE_2)
+        *value = fuses.unique[1];
+    else if (bank == 0 && row == IMXRT_FUSE_SPEED_GRADE_WORD)
         *value = f.speed_grade << IMXRT_FUSE_SPEED_GRADE_SHIFT;
     else
         *value = 0;
@@ -127,6 +141,7 @@ static int setup(void **state)
 {
     (void)state;
     memset(&f, 0, sizeof(f));
+    memset(&fuses, 0, sizeof(fuses));
     f.speed_grade = 2;
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
@@ -276,6 +291,69 @@ static void test_boot_reason_is_read_once_and_not_cleared(void **state)
     assert_int_equal(fake_regs_writes(IMXRT_WDOG1_BASE + WDOG_WRSR), 0);
 }
 
+/* platform.md 3.5, 3.7: the unique id is the two unique id words (bank 0,
+ * words 1 and 2), the first word first, each with its low byte first: eight
+ * bytes that never change, because the device's UUID is made from them */
+static void test_unique_id(void **state)
+{
+    static const uint8_t expected[8] = { 0x04, 0x03, 0x02, 0x01, 0x08, 0x07, 0x06, 0x05 };
+    uint8_t id[16];
+    size_t length = sizeof(id);
+    (void)state;
+
+    assert_int_equal(IMXRT_FUSE_UNIQUE_1, 1);
+    assert_int_equal(IMXRT_FUSE_UNIQUE_2, 2);
+
+    fuses.unique[0] = 0x01020304;
+    fuses.unique[1] = 0x05060708;
+    memset(id, 0xa5, sizeof(id));
+
+    assert_int_equal(plat_get_unique_id(id, &length), PB_OK);
+    assert_int_equal(length, 8);
+    assert_memory_equal(id, expected, sizeof(expected));
+    assert_int_equal(id[8], 0xa5);
+    assert_int_equal(fuses.reads, 2);
+}
+
+/* platform.md 3.5: a read that fails returns its error and writes nothing.
+ * Never a partial id or one from memory that wasn't read (F-200: the error
+ * was dropped and the id came from the stack) */
+static void test_unique_id_read_fails(void **state)
+{
+    uint8_t untouched[16];
+    uint8_t id[16];
+    size_t length;
+    (void)state;
+
+    fuses.unique[0] = 0x01020304;
+    fuses.unique[1] = 0x05060708;
+    memset(untouched, 0xa5, sizeof(untouched));
+
+    for (unsigned int fail_at = 1; fail_at <= 2; fail_at++) {
+        memset(id, 0xa5, sizeof(id));
+        length = sizeof(id);
+        fuses.reads = 0;
+        fuses.fail_at = fail_at;
+
+        assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_IO);
+        assert_memory_equal(id, untouched, sizeof(id));
+        assert_int_equal(length, sizeof(id));
+    }
+}
+
+/* platform.md 3.5: a buffer that is too small is its own error, and nothing
+ * is read or written */
+static void test_unique_id_buffer_too_small(void **state)
+{
+    uint8_t id[8] = { 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5 };
+    size_t length = 7;
+    (void)state;
+
+    assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(id[0], 0xa5);
+    assert_int_equal(fuses.reads, 0);
+}
+
 /* platform.md 3.1: plat_reset() is declared noreturn. This function has no
  * return statement, which the compiler accepts only after a call that
  * doesn't return: without the attribute in pb/plat.h it doesn't build */
@@ -346,6 +424,9 @@ int main(void)
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_priority, setup),
         cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),
+        cmocka_unit_test_setup(test_unique_id, setup),
+        cmocka_unit_test_setup(test_unique_id_read_fails, setup),
+        cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_plat_reset_before_early_init, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),

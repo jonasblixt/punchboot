@@ -286,7 +286,7 @@ identity (3.7).
 
 Failure: a read that fails returns its error and writes nothing. Never a partial id or one from
 memory that wasn't read: the device's identity and its tokens rest on it, and `device_uuid()`
-passes the error on. **Not yet in the code (F-200)**: the ports ignore a failed fuse read.
+passes the error on.
 
 ### 3.6 Data : platform_ns_uuid [mandatory]
 

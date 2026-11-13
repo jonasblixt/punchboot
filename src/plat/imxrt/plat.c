@@ -200,13 +200,24 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
         uint8_t uid_bytes[8];
     } plat_unique;
 
+    int rc;
+
     if (*length < sizeof(plat_unique.uid_bytes))
         return -PB_ERR_BUF_TOO_SMALL;
-    *length = sizeof(plat_unique.uid_bytes);
 
-    imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_1, &plat_unique.uid[0]);
-    imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_2, &plat_unique.uid[1]);
+    /* A read that fails writes nothing: the device's UUID is made of this */
+    rc = imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_1, &plat_unique.uid[0]);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_2, &plat_unique.uid[1]);
+
+    if (rc != PB_OK)
+        return rc;
+
     memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
+    *length = sizeof(plat_unique.uid_bytes);
 
     return PB_OK;
 }
