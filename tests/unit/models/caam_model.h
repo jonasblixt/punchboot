@@ -109,6 +109,27 @@ void caam_model_earlier_stage(uint32_t *ring, uint32_t status);
 /* Jobs that are done, since caam_model_init() */
 unsigned int caam_model_jobs_done(void);
 
+/* What the driver did, as the engine saw it, for a test that pins it: the
+ * job ring's register writes and the descriptor of each job the engine took,
+ * in order. A word that is an address is marked, so that a test can name the
+ * buffer instead of the number */
+#define CAAM_MODEL_DESC_WORDS 64
+
+struct caam_model_event {
+    bool job; /* A job's descriptor, else a register write */
+    uint32_t reg; /* A write: the register's offset in the job ring's page */
+    uint32_t value; /* A write: the value. A job: the descriptor's address */
+    unsigned int len; /* A job: the descriptor's length, in words */
+    uint32_t words[CAAM_MODEL_DESC_WORDS];
+    uint64_t addresses; /* Bit n: word n is an address. A write: bit 0, the value */
+};
+
+/* Starts recording into 'events', 'max' of them; NULL stops */
+void caam_model_trace(struct caam_model_event *events, unsigned int max);
+
+/* Events recorded since caam_model_trace(). More than 'max' fails the test */
+unsigned int caam_model_traced(void);
+
 /* No job is in the input ring or in the engine, and no completion is in
  * the output ring */
 bool caam_model_idle(void);

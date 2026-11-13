@@ -121,7 +121,7 @@
 #define DECO_PROTOCOL     0x81
 
 #define JOBS_MAX          4 /* The job queue controller's job IDs */
-#define DESC_WORDS        64
+#define DESC_WORDS        CAAM_MODEL_DESC_WORDS
 #define RANGES            6
 #define OUTS              2
 #define OUT_MAX           (2 * EC_MAX)
@@ -209,6 +209,9 @@ static struct {
     bool fail_next;
     uint32_t fail_status;
     unsigned int jobs_done;
+    struct caam_model_event *trace;
+    unsigned int trace_max;
+    unsigned int traced;
 } m;
 
 static void *ptr(uint32_t addr)
@@ -357,6 +360,37 @@ static void job_inputs(struct job *job)
             add_in(job, p.d, p.l);
         }
     }
+}
+
+/* Which of the descriptor's words are addresses: a command's pointer, and
+ * the verification PDB's five */
+static uint64_t job_addresses(const struct job *job)
+{
+    unsigned int i = first_cmd(job);
+    uint64_t addresses = 0;
+    struct cmd c;
+    struct pdb p;
+
+    while (next_cmd(job, &i, &c)) {
+        unsigned int type = CTYPE(c.word);
+
+        if ((type == CTYPE_LOAD || type == CTYPE_STORE || type == CTYPE_FIFO_LOAD) &&
+            !(c.word & CMD_IMM))
+            addresses |= 1ull << (c.index + 1);
+
+        if (is_dsa_verify(c.word) && dsa_pdb(job, &p))
+            addresses |= 0x7cull; /* Words 2 to 6 */
+    }
+    return addresses;
+}
+
+static struct caam_model_event *trace_next(void)
+{
+    if (m.trace == NULL)
+        return NULL;
+    if (m.traced >= m.trace_max)
+        fail_msg("More than %u events traced", m.trace_max);
+    return &m.trace[m.traced++];
 }
 
 static void job_check(const struct job *job)
@@ -687,6 +721,17 @@ static void job_take(uint64_t now)
 
     memcpy(job->desc, ptr(job->addr), job->len * 4);
     job_inputs(job);
+
+    struct caam_model_event *e = trace_next();
+
+    if (e != NULL) {
+        memset(e, 0, sizeof(*e));
+        e->job = true;
+        e->value = job->addr;
+        e->len = job->len;
+        memcpy(e->words, job->desc, job->len * 4);
+        e->addresses = job_addresses(job);
+    }
 }
 
 static void advance(void)
@@ -805,8 +850,18 @@ uint32_t caam_model_read(uintptr_t addr)
 void caam_model_write(uintptr_t addr, uint32_t value)
 {
     uint32_t off = (uint32_t)(addr - m.cfg.jr_base);
+    struct caam_model_event *e;
 
     advance();
+
+    e = trace_next();
+
+    if (e != NULL) {
+        memset(e, 0, sizeof(*e));
+        e->reg = off;
+        e->value = value;
+        e->addresses = (off == IRBAR_LS || off == ORBAR_LS) ? 1 : 0;
+    }
 
     switch (off) {
     case IRBAR_MS:
@@ -909,6 +964,18 @@ void caam_model_earlier_stage(uint32_t *ring, uint32_t status)
     m.orsr = 1;
     m.windex = 0;
     caam_model_foreign_completion(status);
+}
+
+void caam_model_trace(struct caam_model_event *events, unsigned int max)
+{
+    m.trace = events;
+    m.trace_max = max;
+    m.traced = 0;
+}
+
+unsigned int caam_model_traced(void)
+{
+    return m.traced;
 }
 
 unsigned int caam_model_jobs_done(void)

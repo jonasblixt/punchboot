@@ -30,12 +30,16 @@
 #include <drivers/crypto/imx_caam.h>
 #include <pb/crypto.h>
 #include <pb/pb.h>
+#include <stdio.h>
 #include <string.h>
 
 extern const struct bpak_keystore keystore_pb;
 
 /* Job ring 0 of the i.MX6UL */
 #define CAAM_JR_BASE 0x02141000
+
+/* Where the model cites a hash continued without its running length */
+#define SRM_MDHA     "CAAM SRM MDHA"
 
 /* No backend has this one */
 #define HASH_NONE    BIT(20)
@@ -51,6 +55,11 @@ static uint8_t signature[160];
 static uint32_t earlier_ring[2];
 static unsigned int init_violations;
 static bool init_idle;
+
+/* What imx_caam_init() did, and what a pinned test did (test_pinned_*) */
+static struct caam_model_event init_events[16];
+static unsigned int n_init_events;
+static struct caam_model_event events[64];
 
 static const struct {
     hash_t alg;
@@ -145,10 +154,13 @@ static int group_setup(void **state)
     bench_reset();
     caam_model_init(&cfg);
     caam_model_earlier_stage(earlier_ring, 0);
+    caam_model_trace(init_events, ARRAY_SIZE(init_events));
 
     if (imx_caam_init(CAAM_JR_BASE) != PB_OK)
         return -1;
 
+    n_init_events = caam_model_traced();
+    caam_model_trace(NULL, 0);
     init_violations = bench_violations();
     init_idle = caam_model_idle();
     return 0;
@@ -158,6 +170,7 @@ static int setup(void **state)
 {
     (void)state;
     bench_reset();
+    caam_model_trace(NULL, 0);
     caam_model_job_time(20);
     caam_model_hang(false);
     return 0;
@@ -649,10 +662,285 @@ static void test_job_timeout(void **state)
     assert_verdicts();
 }
 
+/*
+ * The pinned tests: the register writes and the descriptors of an init, of
+ * hashes and of verifications that succeed, word by word, as the engine took
+ * them. The CAAM signs off every boot on the boards that have it, and none
+ * is attached to the tests: a change that isn't meant to reach the engine
+ * must leave these as they are. An address is named, not given as a number:
+ * the test's buffers by their name and offset, the driver's own memory as
+ * drvN, numbered as it first appears.
+ */
+static const struct {
+    const void *buf;
+    size_t len;
+    const char *name;
+} named_buffers[] = {
+    { pattern, sizeof(pattern), "pattern" },
+    { chunk, sizeof(chunk), "chunk" },
+    { digest, sizeof(digest), "digest" },
+    { signature, sizeof(signature), "signature" },
+};
+
+static uint32_t driver_addresses[16];
+static unsigned int n_driver_addresses;
+
+static void name_address(char *out, size_t size, uint32_t addr)
+{
+    if (addr == 0) {
+        snprintf(out, size, "NULL");
+        return;
+    }
+
+    for (size_t i = 0; i < ARRAY_SIZE(named_buffers); i++) {
+        uintptr_t start = (uintptr_t)named_buffers[i].buf;
+
+        if (addr >= start && addr < start + named_buffers[i].len) {
+            if (addr == start)
+                snprintf(out, size, "%s", named_buffers[i].name);
+            else
+                snprintf(out, size, "%s+%lu", named_buffers[i].name, (unsigned long)(addr - start));
+            return;
+        }
+    }
+
+    for (unsigned int i = 0; i < n_driver_addresses; i++) {
+        if (driver_addresses[i] == addr) {
+            snprintf(out, size, "drv%u", i);
+            return;
+        }
+    }
+
+    assert_true(n_driver_addresses < ARRAY_SIZE(driver_addresses));
+    driver_addresses[n_driver_addresses] = addr;
+    snprintf(out, size, "drv%u", n_driver_addresses++);
+}
+
+static const char *register_name(uint32_t reg)
+{
+    switch (reg) {
+    case 0x004:
+        return "IRBAR_LS";
+    case 0x00c:
+        return "IRSR";
+    case 0x01c:
+        return "IRJAR";
+    case 0x024:
+        return "ORBAR_LS";
+    case 0x02c:
+        return "ORSR";
+    case 0x034:
+        return "ORJRR";
+    default:
+        return "?";
+    }
+}
+
+static void format_event(char *out, size_t size, const struct caam_model_event *e)
+{
+    char name[32];
+    size_t n;
+
+    if (!e->job) {
+        if (e->addresses & 1)
+            name_address(name, sizeof(name), e->value);
+        else
+            snprintf(name, sizeof(name), "%u", e->value);
+        snprintf(out, size, "%s = %s", register_name(e->reg), name);
+        return;
+    }
+
+    name_address(name, sizeof(name), e->value);
+    n = (size_t)snprintf(out, size, "job %s:", name);
+
+    for (unsigned int i = 0; i < e->len && n < size; i++) {
+        if (e->addresses & (1ull << i))
+            name_address(name, sizeof(name), e->words[i]);
+        else
+            snprintf(name, sizeof(name), "%08x", e->words[i]);
+        n += (size_t)snprintf(&out[n], size - n, " %s", name);
+    }
+}
+
+/* Every event against its line of 'expected'. On a difference the whole
+ * trace is printed, ready to paste */
+static void assert_events(const struct caam_model_event *e,
+                          unsigned int n,
+                          const char *const *expected,
+                          size_t n_expected)
+{
+    static char lines[64][640];
+    bool same = (n == n_expected);
+
+    assert_true(n <= ARRAY_SIZE(lines));
+
+    for (unsigned int i = 0; i < n; i++) {
+        format_event(lines[i], sizeof(lines[i]), &e[i]);
+        if (i < n_expected && strcmp(lines[i], expected[i]) != 0)
+            same = false;
+    }
+
+    if (!same) {
+        for (unsigned int i = 0; i < n; i++)
+            print_message("        \"%s\",\n", lines[i]);
+        fail_msg("The engine's trace differs from the pinned one (%u events, %zu pinned)",
+                 n,
+                 n_expected);
+    }
+}
+
+/* The addresses are named in the order they appear, init's first */
+static void pin_begin(void)
+{
+    /* The completion the stage before left is taken out, then the rings of
+     * one entry each are set up */
+    static const char *const expected[] = {
+        "ORJRR = 1", "IRBAR_LS = drv0", "ORBAR_LS = drv1", "IRSR = 1", "ORSR = 1",
+    };
+
+    n_driver_addresses = 0;
+    assert_events(init_events, n_init_events, expected, ARRAY_SIZE(expected));
+    caam_model_trace(events, ARRAY_SIZE(events));
+}
+
+static void test_pinned_init_and_hashes(void **state)
+{
+    static const char *const expected[] = {
+        "IRJAR = 1",
+        "job drv2: b0800007 84430004 24540000 NULL 00000000 54200028 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84430008 14200028 drv3 24540000 drv4 00000003 54200020 digest",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800007 84450004 24540000 drv4 00000080 54200048 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84450000 14200048 drv3 24540000 pattern+128 00000180 54200048 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84450000 14200048 drv3 24540000 drv4 00000080 54200048 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84450000 14200048 drv3 24540000 pattern+640 00000100 54200048 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84450008 14200048 drv3 24540000 drv4 00000068 54200040 digest",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800007 84440004 24540000 pattern 00000200 54200048 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84440000 14200048 drv3 24540000 pattern+512 00000180 54200048 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84440008 14200048 drv3 24540000 drv4 00000068 54200030 digest",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800007 84400004 24540000 chunk 000000c0 54200018 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84400008 14200018 drv3 24540000 drv4 00000008 54200010 digest",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800007 84400004 24540000 chunk 000000c0 54200010 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84400008 14200010 drv3 24540000 drv4 00000008 54200010 digest",
+        "ORJRR = 1",
+    };
+    (void)state;
+
+    pin_begin();
+
+    /* Less than a block: a job that starts the hash with no data, then the
+     * final with the block buffer */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update("abc", 3), PB_OK);
+    assert_int_equal(hash_final(digest, 32), PB_OK);
+
+    /* Blocks from the block buffer and from the caller's buffer */
+    assert_int_equal(hash_init(HASH_SHA512), PB_OK);
+    assert_int_equal(hash_update(pattern, 100), PB_OK);
+    assert_int_equal(hash_update(&pattern[100], 500), PB_OK);
+    assert_int_equal(hash_update(&pattern[600], 400), PB_OK);
+    assert_int_equal(hash_final(digest, 64), PB_OK);
+
+    /* Asynchronous updates */
+    assert_int_equal(hash_init(HASH_SHA384), PB_OK);
+    assert_int_equal(hash_update_async(pattern, 512), PB_OK);
+    assert_int_equal(hash_update_async(&pattern[512], 488), PB_OK);
+    assert_int_equal(hash_final(digest, 48), PB_OK);
+
+    assert_int_equal(hash_init(HASH_MD5), PB_OK);
+    assert_int_equal(hash_update(chunk, 200), PB_OK);
+    assert_int_equal(hash_final(digest, 16), PB_OK);
+
+    /* The broken MD5's running context has no message length, which the
+     * model logs as a violation. Its digest isn't known, its words are */
+    assert_int_equal(hash_init(HASH_MD5_BROKEN), PB_OK);
+    assert_int_equal(hash_update(chunk, 200), PB_OK);
+    assert_int_equal(hash_final(digest, 16), PB_OK);
+    assert_int_equal(bench_violations(), 1);
+    assert_int_equal(bench_violations_of(SRM_MDHA), 1);
+    bench_reset();
+
+    assert_events(events, caam_model_traced(), expected, ARRAY_SIZE(expected));
+    caam_model_trace(NULL, 0);
+}
+
+static void test_pinned_verifications(void **state)
+{
+    static const char *const expected[] = {
+        "IRJAR = 1",
+        "job drv2: b0800007 84430004 24540000 NULL 00000000 54200028 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84430008 14200028 drv3 24540000 drv4 00000024 54200020 digest",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0880009 00400100 drv5 digest drv6 drv7 drv8 00000020 80160802",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800007 84440004 24540000 NULL 00000000 54200048 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84440008 14200048 drv3 24540000 drv4 00000024 54200030 digest",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0880009 00400180 drv5 digest drv6 drv7 drv8 00000030 80160802",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800007 84450004 24540000 NULL 00000000 54200048 drv3",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0800009 84450008 14200048 drv3 24540000 drv4 00000024 54200040 digest",
+        "ORJRR = 1",
+        "IRJAR = 1",
+        "job drv2: b0880009 00400200 drv5 digest drv6 drv7 drv8 00000040 80160802",
+        "ORJRR = 1",
+    };
+    (void)state;
+
+    pin_begin();
+
+    for (size_t i = 0; i < ARRAY_SIZE(tokens); i++) {
+        bool verified = false;
+
+        assert_int_equal(verify_token(&tokens[i], true, &verified), PB_OK);
+        assert_true(verified);
+    }
+
+    assert_events(events, caam_model_traced(), expected, ARRAY_SIZE(expected));
+    caam_model_trace(NULL, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_2_1_init_empties_the_ring, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_pinned_init_and_hashes, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_pinned_verifications, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_known_answers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_update_async, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_every_call_waits, setup, teardown),
