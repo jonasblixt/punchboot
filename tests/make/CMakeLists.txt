@@ -15,3 +15,10 @@ add_test(
             ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/config
 )
 set_tests_properties(make.config PROPERTIES LABELS make TIMEOUT 60 SKIP_RETURN_CODE 77)
+
+add_test(
+    NAME make.include_dirs
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_include_dirs.py
+            ${CMAKE_SOURCE_DIR}
+)
+set_tests_properties(make.include_dirs PROPERTIES LABELS make TIMEOUT 60)
