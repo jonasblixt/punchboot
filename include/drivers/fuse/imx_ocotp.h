@@ -30,7 +30,17 @@
 
 #define OCOTP_CTRL_WR_KEY    0x3E77
 
-int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank);
+/**
+ * @param base The controller
+ * @param words_per_bank The fuse map's words per bank
+ * @param ipg_rate_hz The controller's ipg_clk, which a write's timing is
+ *        computed from. 0 when the platform doesn't give it: the fuses are
+ *        read, and a write is -PB_ERR_NOT_SUPPORTED
+ *
+ * @return PB_OK, -PB_ERR_PARAM for words_per_bank or a rate the timing
+ *         doesn't fit (above some 400 MHz)
+ */
+int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz);
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value);
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
 

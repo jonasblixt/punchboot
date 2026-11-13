@@ -320,7 +320,7 @@ int plat_init(void)
 
     /* Init fusebox (reading only), its clock gate may be closed */
     mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);
-    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK);
+    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK, 0);
 
     /*
      * The system counter, which the Arm generic timer counts: TF-A's delays

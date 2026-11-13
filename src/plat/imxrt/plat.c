@@ -91,7 +91,7 @@ int plat_init(void)
 
     (void)imx_hab_log_init(&hab_log_cfg);
 
-    imx_ocotp_init(IMXRT_OCOTP_BASE, IMXRT_FUSE_WORDS_PER_BANK);
+    imx_ocotp_init(IMXRT_OCOTP_BASE, IMXRT_FUSE_WORDS_PER_BANK, 0); /* No rate: no writes (F-148) */
     imx_hab_fuses_init(&hab_fuses);
     /* Read speed grade fuse */
 

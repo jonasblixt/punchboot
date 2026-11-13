@@ -29,6 +29,7 @@
 #define BASE               0x021bc000u /* The 6UL's */
 #define WORDS_PER_BANK     8
 #define WORDS              128
+#define IPG_RATE           66000000u /* jiffy's ipg_clk */
 
 #define OCOTP_CTRL_SET_    0x0004
 #define OCOTP_CTRL_CLR_    0x0008
@@ -197,7 +198,7 @@ static int setup(void **state)
     memset(&m, 0, sizeof(m));
     fake_us_tick = FAKE_US_TICK_DEFAULT;
     fake_us_tick_step = 1;
-    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK), PB_OK);
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE), PB_OK);
     return 0;
 }
 
@@ -339,6 +340,77 @@ static void test_read_of_a_locked_word(void **state)
     assert_int_equal(val, 0x4321);
 }
 
+/* TIMING's fields (6UL RM 35.5.2), in ipg_clk periods */
+#define T_STROBE_PROG(t) ((t) & 0xfff)
+#define T_RELAX(t)       (((t) >> 12) & 0xf)
+#define T_STROBE_READ(t) (((t) >> 16) & 0x3f)
+#define T_WAIT(t)        (((t) >> 22) & 0x3f)
+
+static uint32_t timing_at(unsigned int rate)
+{
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, rate), PB_OK);
+    m.programs = 0;
+    assert_int_equal(imx_ocotp_write(0, 1, 1), PB_OK);
+    assert_int_equal(m.programs, 1);
+    return m.timing_at_program;
+}
+
+/* F-196: at jiffy's 66 MHz TIMING is what pb always wrote, the reset value */
+static void test_timing_66mhz(void **state)
+{
+    (void)state;
+    assert_int_equal(timing_at(66000000), 0x01461299);
+}
+
+/* F-196: at any rate no time is shorter than at 66 MHz: the program strobe
+ * tPGM = ((STROBE_PROG + 1) - 2 * (RELAX + 1)) periods is 10 us or more */
+static void test_timing_scales_with_the_rate(void **state)
+{
+    static const unsigned int rates[] = {
+        66000000, 66666666, 75000000, 132000000, 150000000, 200000000, 264000000,
+    };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(rates); i++) {
+        uint32_t t = timing_at(rates[i]);
+        uint64_t rate = rates[i];
+        uint64_t relax = T_RELAX(t) + 1;
+        uint64_t prog = T_STROBE_PROG(t) + 1 - 2 * relax;
+        uint64_t read = T_STROBE_READ(t) + 1 - 2 * relax;
+
+        print_message("%u Hz: TIMING 0x%08x\n", rates[i], t);
+        assert_true(T_STROBE_PROG(t) + 1 > 2 * relax);
+        assert_true(T_STROBE_READ(t) + 1 > 2 * relax);
+        /* tPGM >= 10 us */
+        assert_true(prog * 1000000 >= 10 * rate);
+        /* As long as at 66 MHz: periods / rate >= periods_66 / 66 MHz */
+        assert_true(prog * 66000000 >= 662 * rate);
+        assert_true(relax * 66000000 >= 2 * rate);
+        assert_true(read * 66000000 >= 3 * rate);
+        assert_true((uint64_t)T_WAIT(t) * 66000000 >= 5 * rate);
+    }
+}
+
+/* F-196: without the rate (0) the driver reads and refuses to program; a
+ * rate whose timing doesn't fit the fields is refused */
+static void test_timing_without_a_rate(void **state)
+{
+    uint32_t val = 0;
+    (void)state;
+
+    m.otp[3] = 0x77;
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 0), PB_OK);
+    assert_int_equal(imx_ocotp_read(0, 3, &val), PB_OK);
+    assert_int_equal(val, 0x77);
+    assert_int_equal(imx_ocotp_write(0, 4, 1), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(m.programs, 0);
+    assert_int_equal(m.timing, 0);
+
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 1000000000), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_write(0, 4, 1), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(m.programs, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -350,6 +422,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_write_postamble, setup, teardown),
         cmocka_unit_test_setup_teardown(test_index_out_of_range, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_of_a_locked_word, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_timing_66mhz, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_timing_scales_with_the_rate, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_timing_without_a_rate, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

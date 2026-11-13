@@ -310,7 +310,7 @@ int plat_init(void)
     int rc;
 
     /* Init fusebox */
-    imx_ocotp_init(IMX6UL_OCOTP_CTRL_BASE, IMX6UL_FUSE_WORDS_PER_BANK);
+    imx_ocotp_init(IMX6UL_OCOTP_CTRL_BASE, IMX6UL_FUSE_WORDS_PER_BANK, MHz(66)); /* ipg_clk */
     imx_hab_fuses_init(&hab_fuses);
 
     plat.si_rev = fuse_read_helper(

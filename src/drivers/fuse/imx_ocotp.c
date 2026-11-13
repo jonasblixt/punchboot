@@ -14,6 +14,54 @@
 
 static uintptr_t base;
 static uint32_t wpb;
+static uint32_t timing; /* 0: no ipg_clk rate, no writes */
+
+/*
+ * TIMING's fields count ipg_clk periods (6UL RM 35.5.2): the relax time is
+ * RELAX + 1 periods, the read strobe (STROBE_READ + 1) - 2 * (RELAX + 1),
+ * the program strobe (STROBE_PROG + 1) - 2 * (RELAX + 1), WAIT the interval
+ * between an auto read and a write. Its reset value, 0x01461299, is for an
+ * ipg_clk of 66 MHz, and pb wrote it at every rate (F-196): 10.03 us of
+ * program strobe at 66 MHz, 3 to 9 us at the RT1060's 75 to 200 MHz.
+ *
+ * Each time below is the reset value's, in periods of 66 MHz. It is scaled
+ * to the rate and rounded up, so no time is shorter than at 66 MHz, and at
+ * 66 MHz TIMING is the reset value.
+ */
+#define OCOTP_REF_KHZ   66000
+#define OCOTP_REF_RELAX 2 /* RELAX 1 */
+#define OCOTP_REF_READ  3 /* STROBE_READ 6 */
+#define OCOTP_REF_PROG  662 /* STROBE_PROG 0x299: 10.03 us */
+#define OCOTP_REF_WAIT  5 /* WAIT 5 */
+#define OCOTP_MAX_KHZ   1000000 /* Above this the fields overflow */
+
+/* ref periods of 66 MHz in periods of rate_khz, rounded up. In 32 bits:
+ * the firmware has no 64 bit division */
+static uint32_t ocotp_periods(uint32_t ref, uint32_t rate_khz)
+{
+    return (ref * rate_khz + OCOTP_REF_KHZ - 1) / OCOTP_REF_KHZ;
+}
+
+static int ocotp_timing(unsigned int ipg_rate_hz, uint32_t *out)
+{
+    uint32_t rate_khz = ipg_rate_hz / 1000 + (ipg_rate_hz % 1000 != 0);
+    uint32_t relax, strobe_read, strobe_prog, wait;
+
+    if (rate_khz > OCOTP_MAX_KHZ)
+        return -PB_ERR_PARAM;
+
+    relax = ocotp_periods(OCOTP_REF_RELAX, rate_khz) - 1;
+    strobe_read = ocotp_periods(OCOTP_REF_READ, rate_khz) + 2 * (relax + 1) - 1;
+    strobe_prog = ocotp_periods(OCOTP_REF_PROG, rate_khz) + 2 * (relax + 1) - 1;
+    wait = ocotp_periods(OCOTP_REF_WAIT, rate_khz);
+
+    if (relax > 0xf || strobe_read > 0x3f || strobe_prog > 0xfff || wait > 0x3f)
+        return -PB_ERR_PARAM;
+
+    *out = OCOTP_TIMING_WAIT(wait) | OCOTP_TIMING_STROBE_READ(strobe_read) |
+           OCOTP_TIMING_RELAX(relax) | OCOTP_TIMING_STROBE_PROG(strobe_prog);
+    return PB_OK;
+}
 
 #ifdef CONFIG_IMX_OCOTP_DEBUG
 static void ocotp_dump_fuse(uint32_t bank, uint32_t row)
@@ -26,16 +74,28 @@ static void ocotp_dump_fuse(uint32_t bank, uint32_t row)
 }
 #endif
 
-int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank)
+int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank, unsigned int ipg_rate_hz)
 {
+    int rc;
+
     base = base_;
     wpb = words_per_bank;
+    timing = 0;
 
     LOG_DBG("Initializing ocotp at 0x%" PRIxPTR, base);
 
     if (words_per_bank < 4) {
         LOG_ERR("Invalid words_per_bank setting");
         return -PB_ERR_PARAM;
+    }
+
+    if (ipg_rate_hz != 0) {
+        rc = ocotp_timing(ipg_rate_hz, &timing);
+
+        if (rc != PB_OK) {
+            LOG_ERR("No fuse timing for an ipg_clk of %u Hz", ipg_rate_hz);
+            return rc;
+        }
     }
 
 #ifdef CONFIG_IMX_OCOTP_DEBUG
@@ -82,6 +142,11 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     if (rc != PB_OK)
         return rc;
 
+    if (timing == 0) {
+        LOG_ERR("No ipg_clk rate, no fuse timing");
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
     /* Wait for busy flag */
     while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
     };
@@ -93,9 +158,7 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
         return -PB_ERR_IO;
     }
 
-    mmio_write_32(base + OCOTP_TIMING,
-                  OCOTP_TIMING_WAIT(5) | OCOTP_TIMING_STROBE_READ(6) | OCOTP_TIMING_RELAX(1) |
-                      OCOTP_TIMING_STROBE_PROG(0x299));
+    mmio_write_32(base + OCOTP_TIMING, timing);
 
     /* Wait for busy flag */
     while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
