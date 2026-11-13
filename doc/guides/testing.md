@@ -111,6 +111,11 @@ A single integration test, inside `scripts/pbdev shell`:
     `test_imx8m_ddr` in `CMakeLists.txt`); every `mmio_*` call then goes to `fake_mmio_read/write`
     in the test. `test_imx8m_ddr.c` uses this for a golden register trace (D-013,
     `imx8m-ddr.md`).
+  - `fakes/regs.h`: a register file behind `fakes/mmio` for code that needs no model of a
+    device. A register reads what was last written or set, every write is logged, and
+    `fake_regs_on_write` is what the hardware does with a write (a bit that clears itself, a
+    reset: it may leave with a `longjmp`). The ports' tests (`test_plat_*.c`) use it:
+    `pb_plat_test()` in `CMakeLists.txt` builds a port's `plat.c` for the host.
 - **MMC/SD test bench** (`tests/unit/models/`, D-017). Card models behind a bus interface
   (`mmc_bus.h`): `emmc_model.c` from JESD84-B51 and `sd_model.c` from the SD Physical Layer
   spec (written from memory, it wasn't at hand: violations name the command, not a section).
@@ -225,6 +230,10 @@ Unit tests, by module under test:
 |                                               | tasks and with none; the     |                                  |
 |                                               | reset after a platform       |                                  |
 |                                               | failure                      |                                  |
+| `test_plat_imxrt.c`                           | `plat/imxrt/plat.c`,         | the SoC's registers in a         |
+|                                               | `imx_gpt.c`, `imx_wdog.c`:   | register file; the fuses, the    |
+|                                               | the port against             | HAB, Mbed TLS                    |
+|                                               | `platform.md`                |                                  |
 | `test_mmc_core.c`                             | `mmc_core.c` (boot partition | fake card                        |
 |                                               | updates, power loss)         |                                  |
 | `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |

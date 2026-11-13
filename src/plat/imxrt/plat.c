@@ -151,9 +151,16 @@ int plat_init(void)
     imx_gpt_init(IMXRT_GPT1_BASE, MHz(plat.per_root_clk_MHz));
     log_time_start();
 
+    /* Command mode can start without it, so it isn't plat_init()'s error
+     * (platform.md 2.2): main() would reset. Without a provider no image
+     * verifies, and the boot stops with that. To be recorded in
+     * plat_get_status() (F-248) */
     rc = mbedtls_pb_init();
 
-    return rc;
+    if (rc != PB_OK)
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+
+    return PB_OK;
 }
 
 #ifdef CONFIG_IMXRT_CM_USB_OTG1

@@ -241,7 +241,7 @@ Where each port is (2026-11-11).
 | The unique id fails on a failed read | no           | no                | unchecked  | no        | F-200         |
 | Serial download in                   | USB only     | no                | no         | no        | F-251         |
 | `plat_get_boot_source()`             |              |                   |            |           |               |
-| `plat_init()` errors only for        | yes          | yes               | yes        | partly    | F-235         |
+| `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
 | command mode                         |              |                   |            |           |               |
 | `plat_get_status()`                  | no           | no                | no         | no        | F-248         |
 | `plat_cm_init()`                     | one port     | one port          | one port   | one port  | F-402         |
