@@ -404,9 +404,8 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | Any length in one call       | yes (chunks)       | no: below 64 KiB  | yes                 | F-198   |
 | Addresses above 4 GiB        | no: truncated      | n/a (no DMA)      | n/a                 | F-200   |
 | refused                      |                    |                   |                     |         |
-| Every wait bounded           | partly             | no                | n/a                 | F-200,  |
-|                              |                    |                   |                     | F-198,  |
-|                              |                    |                   |                     | F-281   |
+| Every wait bounded           | yes (`test_mmc_`   | no                | n/a                 | F-198   |
+|                              | `emmc`)            |                   |                     |         |
 | The codes of `drivers.md` 3  | partly: CMD13      | no                | yes                 | F-281,  |
 |                              | that runs out is   |                   |                     | F-284   |
 |                              | IO                 |                   |                     |         |

@@ -382,9 +382,9 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 
 | Driver                  | Every wait bounded    | DMA memory owns lines   | `stop`              | Finding       |
 | ----------------------- | --------------------- | ----------------------- | ------------------- | ------------- |
-| MMC, SD and the uSDHC   | partly: the card's    | partly: aligned, in     | n/a: synchronous    | F-200, F-281  |
-|                         | state is polled       | `.no_init`, next to the |                     |               |
-|                         | without one           | driver's state          |                     |               |
+| MMC, SD and the uSDHC   | yes (`test_mmc_emmc`) | partly: aligned, in     | n/a: synchronous    | F-200         |
+|                         |                       | `.no_init`, next to the |                     |               |
+|                         |                       | driver's state          |                     |               |
 | FlexSPI                 | no                    | n/a: no DMA             | n/a: synchronous    | F-198         |
 | CAAM                    | yes: 1 s              | no                      | none, and its rings | F-081, F-286  |
 |                         |                       |                         | name pb's memory    |               |

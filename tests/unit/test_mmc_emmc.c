@@ -607,6 +607,26 @@ static void test_state_after_a_transfer_is_bounded(void **state)
     assert_true(bench_now_us() - start < 2000000);
 }
 
+/* drivers.md 3 (F-281): after a CMD6 the card's state is polled while it
+ * is in Programming, for no longer than the switch's EXT_CSD time. A card
+ * that stays there fails the partition switch with -PB_ERR_TIMEOUT, and
+ * nothing is read */
+static void test_switch_wait_is_bounded(void **state)
+{
+    static uint8_t in[512];
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    unsigned int blocks = emmc_model_blocks_read();
+    uint64_t start = bench_now_us();
+
+    emmc_model_stuck(EMMC_PRG, true);
+    assert_int_equal(bio_read(part(UU_BOOT0), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
+    assert_int_equal(emmc_model_blocks_read(), blocks);
+    /* PARTITION_SWITCH_TIME is 30 ms on the model */
+    assert_true(bench_now_us() - start < 200000);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -643,6 +663,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_wait_state_is_bounded, setup, teardown),
         cmocka_unit_test_setup_teardown(test_no_boot_partitions, setup, teardown),
         cmocka_unit_test_setup_teardown(test_state_after_a_transfer_is_bounded, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_switch_wait_is_bounded, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

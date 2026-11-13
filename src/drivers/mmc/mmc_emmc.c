@@ -151,6 +151,7 @@ static int mmc_set_ext_csd(struct mmc_device *dev,
                            unsigned int value,
                            unsigned int timeout)
 {
+    struct pb_timeout to;
     int ret;
 
     if (timeout == 0) {
@@ -167,14 +168,21 @@ static int mmc_set_ext_csd(struct mmc_device *dev,
         return ret;
     }
 
-    do {
+    /* The HAL waited for the end of busy (R1b); the card's own time for the
+     * switch, from its EXT_CSD, bounds what is left of Programming */
+    pb_timeout_init_us(&to, timeout * 1000);
+    while (true) {
         ret = mmc_device_state(dev, timeout);
         if (ret < 0) {
             return ret;
         }
-    } while (ret == MMC_STATE_PRG);
-
-    return 0;
+        if (ret != MMC_STATE_PRG)
+            return 0;
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("CMD6 [%u]: still programming after %u ms", ext_cmd, timeout);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 }
 
 int mmc_extcsd_write(struct mmc_device *dev, uint16_t field_id, uint8_t value)
