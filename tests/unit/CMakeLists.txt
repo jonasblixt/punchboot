@@ -515,6 +515,22 @@ pb_plat_test(test_plat_imx8x
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
 
+# The i.MX8M Plus. The arch's system registers are the test's
+# (fakes/armv8a); the SoC's sizes are the port's makefile's
+pb_plat_test(test_plat_imx8m
+    SOURCES
+        fakes/xlat.c
+        ${PROJECT_SOURCE_DIR}/src/plat/imx8m/plat.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
+    DEFINITIONS
+        CONFIG_PLAT_IMX8MP=1 CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+        IMX8M_OCRAM_SIZE=0x90000 IMX8M_ROM_SIZE=0x3f000
+        BOARD_RAM_BASE=0x40000000 BOARD_RAM_END=0x80000000
+    INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/fakes/armv8a
+    OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
+)
+
 # The transport that a build for a SoC links (usb.md 2): pb's USB class and
 # the stack, over a fake controller. pb-host links the socket instead
 pb_unit_test(test_usb_transport SOURCES

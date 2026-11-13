@@ -244,7 +244,7 @@ Where each port is (2026-11-11).
 
 | Requirement                          | imx6ul       | imx8m             | imx8x      | imxrt     | Finding       |
 | ------------------------------------ | ------------ | ----------------- | ---------- | --------- | ------------- |
-| Tick and log time from early init    | yes          | no                | yes        | no        | F-238         |
+| Tick and log time from early init    | yes          | yes               | yes        | no        | F-238         |
 | Watchdog armed in early init         | yes          | yes               | yes        | yes       | F-233         |
 | Power-down counters disabled         | yes          | yes               | n/a        | yes       | F-245         |
 | `plat_reset()` without the watchdog  | yes          | yes               | yes        | yes       | F-234         |

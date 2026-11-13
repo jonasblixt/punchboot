@@ -259,6 +259,12 @@ int plat_early_init(void)
     mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
     imx_wdog_init(IMX8M_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
+
+    /* Configure systick. GPT1_CLK_ROOT is on out of reset, on the 24 MHz
+     * reference (CCM_TARGET_ROOT107 resets to 0x10000000, RM 5.1.7.10) */
+    mmio_write_32(CCM_CCGR_SET(CCGR_GPT1), CCGR_CLK_ON_MASK);
+    imx_gpt_init(IMX8M_GPT1_BASE, MHz(24));
+    log_time_start();
     return PB_OK;
 }
 
@@ -269,11 +275,6 @@ int plat_init(void)
     /* Init fusebox (reading only), its clock gate may be closed */
     mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);
     imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK);
-
-    /* Configure systick */
-    mmio_write_32(CCM_CCGR_SET(CCGR_GPT1), CCGR_CLK_ON_MASK);
-    imx_gpt_init(IMX8M_GPT1_BASE, MHz(24));
-    log_time_start();
 
     /*
      * The system counter, which the Arm generic timer counts: TF-A's delays
