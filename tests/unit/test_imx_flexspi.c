@@ -706,6 +706,27 @@ static void test_write_reads_only_the_buffer(void **state)
     munmap(map, map_len);
 }
 
+/* F-284: the caller's buffer is bytes, whatever its alignment. The host
+ * takes unaligned words, so this fails under UBSan (the sanitizer build)
+ * only, as it would fault on a core that doesn't */
+static void test_unaligned_buffer(void **state)
+{
+    (void)state;
+
+    for (size_t off = 1; off < 4; off++) {
+        uint8_t *buf = out + off;
+
+        assert_int_equal(bio_erase(dev, 2, 2), PB_OK);
+        fill(buf, 2 * BLOCK, (unsigned int)off);
+        assert_int_equal(bio_write(dev, 2, 2 * BLOCK, buf), PB_OK);
+        assert_mem(2 * BLOCK, buf, 2 * BLOCK);
+
+        memset(in, 0, sizeof(in));
+        assert_int_equal(bio_read(dev, 2, 2 * BLOCK, in + off), PB_OK);
+        assert_memory_equal(in + off, buf, 2 * BLOCK);
+    }
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -720,6 +741,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_erase_smaller_than_a_unit, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_64k_and_more, setup, teardown),
         cmocka_unit_test_setup_teardown(test_write_reads_only_the_buffer, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_unaligned_buffer, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -140,7 +140,11 @@ static int imx_flexspi_writeblocking(uint8_t *buffer, size_t size)
         /* Write watermark level data into tx fifo . */
         if (size >= 8 * txWatermark) {
             for (i = 0; i < 2 * txWatermark; i++) {
-                mmio_write_32(cfg->base + FLEXSPI_TFDR0 + i * 4, *((uint32_t *)buffer));
+                uint32_t word;
+
+                /* The caller's buffer has any alignment */
+                memcpy(&word, buffer, sizeof(word));
+                mmio_write_32(cfg->base + FLEXSPI_TFDR0 + i * 4, word);
                 buffer += 4;
             }
 
@@ -222,7 +226,10 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
         /* Read watermark level data from rx fifo . */
         if (size >= 8 * rxWatermark) {
             for (i = 0; i < 2 * rxWatermark; i++) {
-                *((uint32_t *)buffer) = mmio_read_32(cfg->base + FLEXSPI_RFDR0 + i * 4);
+                uint32_t word = mmio_read_32(cfg->base + FLEXSPI_RFDR0 + i * 4);
+
+                /* The caller's buffer has any alignment */
+                memcpy(buffer, &word, sizeof(word));
                 buffer += 4;
             }
 
