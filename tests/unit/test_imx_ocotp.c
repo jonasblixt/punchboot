@@ -323,6 +323,22 @@ static void test_index_out_of_range(void **state)
     assert_int_equal(imx_ocotp_fuse_read(WORDS - 1, &val), PB_OK);
 }
 
+/* F-197: a locked word reads 0xBADABADA with ERROR set: an error, not a
+ * value */
+static void test_read_of_a_locked_word(void **state)
+{
+    uint32_t val = 0x5555;
+    (void)state;
+
+    m.otp[20] = 0x1234;
+    m.otp[21] = 0x4321;
+    m.locked[20] = true;
+    assert_int_equal(imx_ocotp_fuse_read(20, &val), -PB_ERR_IO);
+    assert_int_equal(val, 0x5555);
+    assert_int_equal(imx_ocotp_fuse_read(21, &val), PB_OK);
+    assert_int_equal(val, 0x4321);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -333,6 +349,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_error_is_cleared, setup, teardown),
         cmocka_unit_test_setup_teardown(test_write_postamble, setup, teardown),
         cmocka_unit_test_setup_teardown(test_index_out_of_range, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_of_a_locked_word, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

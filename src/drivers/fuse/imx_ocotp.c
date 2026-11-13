@@ -157,6 +157,13 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
     while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
     };
 
+    /* A locked word sets ERROR and reads 0xBADABADA */
+    if (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_ERROR) {
+        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
+        LOG_ERR("Fuse %" PRIu32 " can't be read", addr);
+        return -PB_ERR_IO;
+    }
+
     *value = mmio_read_32(base + OCOTP_READ_FUSE_DATA);
 
     return PB_OK;
