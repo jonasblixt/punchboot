@@ -931,7 +931,17 @@ static int cmd_slc_read(void)
     if (rc < 0)
         return rc;
 
-    for (size_t i = 0; i < rot_no_of_keys(); i++) {
+    /* The wire has 16 slots for each list (command-mode.md 5.2): a keystore
+     * with more keys doesn't write past them */
+    size_t no_of_keys = rot_no_of_keys();
+
+    if (no_of_keys > ARRAY_SIZE(key_status.active)) {
+        LOG_ERR("The keystore has more keys than the %zu that are listed",
+                ARRAY_SIZE(key_status.active));
+        no_of_keys = ARRAY_SIZE(key_status.active);
+    }
+
+    for (size_t i = 0; i < no_of_keys; i++) {
         int key_rc = rot_read_key_status_by_idx(i);
         key_id_t key_id = rot_key_idx_to_id(i);
 

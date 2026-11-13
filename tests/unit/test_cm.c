@@ -413,6 +413,7 @@ static struct {
     uint32_t key_io_error; /* Bit per key index */
     int revoke_rc;
     key_id_t revoked_id;
+    size_t no_of_keys; /* 0: two keys */
 } sec;
 
 slc_t slc_read_status(void)
@@ -459,7 +460,7 @@ int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size
 
 size_t rot_no_of_keys(void)
 {
-    return 2;
+    return sec.no_of_keys ? sec.no_of_keys : 2;
 }
 
 int rot_read_key_status_by_idx(unsigned int index)
@@ -1695,6 +1696,31 @@ static void test_slc_read_key_status(void **state)
     assert_int_equal(keys->revoked[0], 0);
     assert_int_equal(keys->revoked[1], 0x1001);
     expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+}
+
+/* command-mode.md 5.2 (F-190): SLC_READ lists 16 keys at most, the slots
+ * the wire has. A keystore with more keys fills them and nothing after
+ * them: the 17th id was written where the revoked list starts, and the
+ * revoked ones past the end of the lists. */
+static void test_slc_read_lists_16_keys_at_most(void **state)
+{
+    (void)state;
+
+    sec.no_of_keys = 20;
+    sec.revoked = (1u << 1) | (1u << 17);
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    const struct pb_result_slc_key_status *keys = (const void *)expect_data(sizeof(*keys));
+    for (unsigned int i = 0; i < 16; i++) {
+        assert_int_equal(keys->active[i], (i == 1) ? 0 : 0x1000 + i);
+        assert_int_equal(keys->revoked[i], (i == 1) ? 0x1001 : 0);
+    }
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
     expect_end();
 }
 
@@ -3552,6 +3578,7 @@ int main(void)
         CM_TEST(test_slc_errors),
         CM_TEST(test_unknown_slc_requires_auth),
         CM_TEST(test_slc_read_key_status),
+        CM_TEST(test_slc_read_lists_16_keys_at_most),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
         CM_TEST(test_bpak_read_small_partition),
