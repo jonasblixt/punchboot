@@ -23,6 +23,7 @@
 
 #include <cmocka.h>
 
+#include <pb/command.h>
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -47,6 +48,9 @@
 #define PM_FUNC_SET_CLOCK_RATE 5
 #define PM_FUNC_RESET_REASON   10
 #define PM_FUNC_RESET          13
+/* src/plat/imx8x/sci/svc/misc/rpc.h */
+#define MISC_FUNC_GET_TEMP     13
+#define MISC_FUNC_BUILD_INFO   15
 
 /* The GPT's control register and its software reset */
 #define GPT_CR                 0x0
@@ -70,6 +74,9 @@ static struct {
     size_t n_calls;
     uint8_t reset_reason;
     uint8_t reset_reason_err; /* The SCFW's error for the question, 0: none */
+    uint32_t scfw_build; /* sc_misc_build_info()'s build, its commit is 0 */
+    uint32_t temp; /* sc_misc_get_temp()'s word: celsius in 15:0, tenths in 23:16 */
+    uint8_t temp_err;
 } scfw;
 
 /* A reset leaves the code under test through here */
@@ -126,6 +133,11 @@ static void scfw_call(void)
     else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_RESET_REASON) {
         data = scfw.reset_reason;
         err = scfw.reset_reason_err;
+    } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_BUILD_INFO) {
+        data = scfw.scfw_build;
+    } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_GET_TEMP) {
+        data = scfw.temp;
+        err = scfw.temp_err;
     }
 
     fake_regs_set(MU_ARR(0), (err << 24) | (SC_RPC_SVC_RETURN << 16) | (4 << 8) | SC_RPC_VERSION);
@@ -306,6 +318,61 @@ static void test_platform_ns_uuid(void **state)
     assert_memory_equal(platform_ns_uuid, ns, sizeof(ns));
 }
 
+/* The platform's named command 'info' (command-mode.md 5.6), from the
+ * linker's list */
+static const struct cm_command *find_command(const char *name)
+{
+    for (const struct cm_command *c = __start_pb_commands; c < __stop_pb_commands; c++) {
+        if (strcmp(c->name, name) == 0)
+            return c;
+    }
+    return NULL;
+}
+
+static size_t run_info(uint8_t *response, size_t room)
+{
+    const struct cm_command *info = find_command("info");
+    size_t size = room;
+
+    assert_non_null(info);
+    assert_int_equal(info->run(NULL, 0, response, &size), PB_OK);
+    return size;
+}
+
+static void test_info_command(void **state)
+{
+    static const char text[] = "SCFW 5665 (0)\n"
+                               "SECO 0 (0)\n"
+                               "SoC id 0, rev 0\n"
+                               "Temperature 31.5 C\n";
+    uint8_t response[256];
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    scfw.scfw_build = 5665;
+    scfw.temp = 31 | (5u << 16);
+
+    /* The text and its NUL */
+    memset(response, 0xa5, sizeof(response));
+    assert_int_equal(run_info(response, sizeof(response)), sizeof(text));
+    assert_memory_equal(response, text, sizeof(text));
+
+    /* Below zero: one sign */
+    scfw.temp = 0xfffd | (0xfbu << 16);
+    run_info(response, sizeof(response));
+    assert_non_null(strstr((char *)response, "Temperature -3.5 C\n"));
+
+    scfw.temp_err = SC_ERR_UNAVAILABLE;
+    run_info(response, sizeof(response));
+    assert_non_null(strstr((char *)response, "Temperature not read\n"));
+
+    /* Cut to the room, with its NUL */
+    memset(response, 0xa5, sizeof(response));
+    assert_int_equal(run_info(response, 8), 8);
+    assert_memory_equal(response, "SCFW 56\0", 8);
+    assert_int_equal(response[8], 0xa5);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -316,6 +383,7 @@ int main(void)
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_scfw_error, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
+        cmocka_unit_test_setup(test_info_command, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

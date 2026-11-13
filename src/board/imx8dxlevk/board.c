@@ -29,7 +29,6 @@
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <uuid.h>
 
 #include "partitions.h"
@@ -120,41 +119,6 @@ static int early_boot(void)
     if (!(boot_get_flags() & BOOT_FLAG_CMD) && (boot_type == SC_MISC_BT_SERIAL)) {
         return -PB_ERR_ABORT;
     }
-
-    return PB_OK;
-}
-
-static int board_status(uint8_t *response_bfr, size_t *response_size)
-{
-    uint32_t scu_version;
-    uint32_t scu_commit;
-    uint32_t seco_version;
-    uint32_t seco_commit;
-    int16_t celsius;
-    int8_t tenths;
-
-    char *response = (char *)response_bfr;
-    size_t resp_buf_size = *response_size;
-
-    sc_misc_build_info(imx8x_ipc(), &scu_version, &scu_commit);
-    sc_seco_build_info(imx8x_ipc(), &seco_version, &seco_commit);
-    sc_misc_get_temp(imx8x_ipc(), SC_R_SYSTEM, SC_MISC_TEMP, &celsius, &tenths);
-
-    (*response_size) = snprintf(response,
-                                resp_buf_size,
-                                "SCFW:    %u, %x\n"
-                                "SECO:    %u, %x\n"
-                                "SOC ID:  %u\n"
-                                "SOC REV: %u\n"
-                                "CPU Temperature: %i.%i deg C",
-                                scu_version,
-                                scu_commit,
-                                seco_version,
-                                seco_commit,
-                                imx8x_plat()->soc_id,
-                                imx8x_plat()->soc_rev,
-                                celsius,
-                                tenths);
 
     return PB_OK;
 }
@@ -398,6 +362,5 @@ const struct board board = {
     .bootargs = "console=ttyLP0,115200 quiet ",
     .bootargs_verbose = "console=ttyLP0,115200  "
                         "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ",
-    .status = board_status,
     .password_auth = board_password_auth,
 };

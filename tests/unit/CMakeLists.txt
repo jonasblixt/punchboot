@@ -559,6 +559,7 @@ pb_plat_test(test_plat_imx8x
         ${PB_IMX8X_SCI}/svc/pad/pad_rpc_clnt.c
         ${PB_IMX8X_SCI}/svc/pm/pm_rpc_clnt.c
         ${PB_IMX8X_SCI}/svc/rm/rm_rpc_clnt.c
+        ${PB_IMX8X_SCI}/svc/seco/seco_rpc_clnt.c
         ${PB_IMX8X_SCI}/svc/timer/timer_rpc_clnt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
     DEFINITIONS
