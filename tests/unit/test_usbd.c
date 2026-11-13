@@ -48,12 +48,16 @@ static uint8_t buf[8 * PACKET] __attribute__((aligned(64)));
 static uint8_t data[sizeof(buf)];
 static uint8_t got[sizeof(buf)];
 
-/* A controller whose endpoints are independent, as the contract asks for
- * (usb.md 4.3), with the transport started on it */
+static const struct usb_host_config one_xfer = { .one_xfer = true };
+
+/* The transport, started on a controller: with NULL one whose endpoints are
+ * independent, as the contract asks for (usb.md 4.3) */
 static void start(const struct usb_host_config *cfg)
 {
     usb_host_reset(cfg);
     assert_int_equal(usbd_init_hal_ops(usb_host_hal_ops()), PB_OK);
+    if (cfg != NULL && cfg->one_xfer)
+        usbd_hal_one_xfer();
     assert_int_equal(cm_transport_init(), PB_OK);
     assert_true(usb_host_state()->attached);
 
@@ -385,11 +389,122 @@ static void request_while_waiting_for_a_command(const struct usb_host_config *cf
 
 static void test_request_while_waiting_for_a_command(void **state)
 {
-    static const struct usb_host_config one_xfer = { .one_xfer = true };
     (void)state;
 
     request_while_waiting_for_a_command(NULL);
+    assert_int_equal(usb_host_state()->cancel_calls, 0);
+    assert_int_equal(usb_host_state()->bulk_starts, 1);
+
+    /* One transfer for the controller: the read is given up for the
+     * request and started again, with nothing lost */
     request_while_waiting_for_a_command(&one_xfer);
+    assert_int_equal(usb_host_state()->cancel_calls, 1);
+    assert_int_equal(usb_host_state()->bulk_starts, 2);
+}
+
+/* usb.md 3.2, 4.3: a request doesn't disturb a bulk transfer. The stack
+ * answers on endpoint 0 and the read goes on where it was (F-203: it was
+ * cancelled and started again from its first byte, so what had arrived was
+ * lost and the rest landed at the buffer's start) */
+static void test_request_during_a_read(void **state)
+{
+    (void)state;
+    start(NULL);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, 4 * PACKET), PB_OK);
+    usb_host_send(data, 2 * PACKET);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+
+    host_get_descriptor(USB_DESC_TYPE_STRING, STR_SERIAL, 255);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    assert_answered(2 + 2 * strlen(DEVICE_UUID));
+
+    usb_host_send(data + 2 * PACKET, 2 * PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(buf, data, 4 * PACKET);
+    assert_int_equal(usb_host_state()->cancel_calls, 0);
+    assert_int_equal(usb_host_state()->bulk_starts, 1);
+}
+
+/* The same for a write: the host gets every byte once, in order */
+static void test_request_during_a_write(void **state)
+{
+    (void)state;
+    start(NULL);
+    enumerate();
+
+    memcpy(buf, data, 4 * PACKET);
+    assert_int_equal(cm_transport_write(buf, 4 * PACKET), PB_OK);
+    assert_int_equal(usb_host_receive(got, 2 * PACKET), 2 * PACKET);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 18);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    assert_answered(18);
+
+    assert_int_equal(usb_host_receive(got + 2 * PACKET, 2 * PACKET), 2 * PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(got, data, 4 * PACKET);
+    assert_int_equal(usb_host_state()->cancel_calls, 0);
+}
+
+/* A controller with one transfer for all its endpoints (the ChipIdea's
+ * driver, usb.md 8) can't keep a bulk transfer while endpoint 0 is
+ * answered. Where a part of it may have moved, the stack doesn't start it
+ * again from its first byte: the transfer fails, which is "lost" (2.4) */
+static void test_request_during_a_transfer_with_one_xfer(void **state)
+{
+    (void)state;
+    start(&one_xfer);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, 4 * PACKET), PB_OK);
+    usb_host_send(data, 2 * PACKET);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+
+    host_get_descriptor(USB_DESC_TYPE_STRING, STR_SERIAL, 255);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+    assert_int_equal(usb_host_state()->bulk_starts, 1);
+    assert_int_equal(usb_host_state()->clobbered, 0);
+
+    /* A write too: the host may have read a part of it */
+    start(&one_xfer);
+    enumerate();
+
+    assert_int_equal(cm_transport_write(buf, 4 * PACKET), PB_OK);
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 18);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+    assert_int_equal(usb_host_state()->bulk_starts, 1);
+    assert_int_equal(usb_host_state()->clobbered, 0);
+}
+
+/* One transfer for the controller: a transfer that was done when the stack
+ * saw the request isn't given up. The command the host sent just before its
+ * request is read, and the request is answered */
+static void test_request_after_the_transfer_with_one_xfer(void **state)
+{
+    (void)state;
+    start(&one_xfer);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_send(data, PACKET);
+    host_get_descriptor(USB_DESC_TYPE_STRING, STR_SERIAL, 255);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(buf, data, PACKET);
+    assert_answered(2 + 2 * strlen(DEVICE_UUID));
+    assert_int_equal(usb_host_state()->cancel_calls, 0);
+    assert_int_equal(usb_host_state()->bulk_starts, 1);
+
+    /* Also one of several packets */
+    assert_int_equal(cm_transport_read(buf, 4 * PACKET), PB_OK);
+    usb_host_send(data, 4 * PACKET);
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 18);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(buf, data, 4 * PACKET);
+    assert_answered(18);
+    assert_int_equal(usb_host_state()->clobbered, 0);
 }
 
 /* usb.md 2.4, 4.3: a bus reset that the controller reports as the error of
@@ -492,6 +607,10 @@ int main(void)
         cmocka_unit_test(test_read),
         cmocka_unit_test(test_write),
         cmocka_unit_test(test_request_while_waiting_for_a_command),
+        cmocka_unit_test(test_request_during_a_read),
+        cmocka_unit_test(test_request_during_a_write),
+        cmocka_unit_test(test_request_during_a_transfer_with_one_xfer),
+        cmocka_unit_test(test_request_after_the_transfer_with_one_xfer),
         cmocka_unit_test(test_reported_bus_reset_is_lost),
         cmocka_unit_test(test_restart_after_lost_starts_over),
         cmocka_unit_test(test_bus_reset_and_stop_clear_the_configuration),

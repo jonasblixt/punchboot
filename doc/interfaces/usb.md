@@ -231,8 +231,9 @@ The stack answers these requests and no others:
   index the class doesn't have, which gets an empty string. **Not yet in the code (F-287).**
 - **A request doesn't disturb a bulk transfer.** Hosts send requests at any time
   (`lsusb -v`, another program that lists devices). The stack answers on endpoint 0 and the
-  bulk transfer goes on where it was. **Not yet in the code (F-203)**: the transfer is
-  cancelled and started again from its first byte.
+  bulk transfer goes on where it was. **Not yet in the code (F-203)**: on the ChipIdea, whose
+  driver has one transfer for all endpoints, a transfer of a packet at most is cancelled and
+  started again, and a longer one fails.
 - **A control transfer is bounded**: a host that stops inside one doesn't hold pb. Its data
   and status stages are waited for with a timeout, and a new SETUP ends the one before
   (F-138).
@@ -440,7 +441,8 @@ The stack and the transport:
 | A restart disconnects first                   | no                                       | F-287        |
 | Unknown requests stalled, control transfers   | no                                       | F-138        |
 | bounded                                       |                                          |              |
-| A request leaves a bulk transfer alone        | no                                       | F-203        |
+| A request leaves a bulk transfer alone        | yes; on the ChipIdea one of a packet is  | F-203        |
+|                                               | started again, a longer one fails        |              |
 | The socket's `connect` polls                  | no: `init` blocks in the accept          | F-287        |
 | Tested on the host                            | Command mode on the socket and on a fake | F-230        |
 |                                               | transport; the USB transport's functions |              |

@@ -473,6 +473,8 @@ static int imx_ci_udc_xfer_zlp(usb_ep_t ep)
 
 int imx_ci_udc_init(uintptr_t base)
 {
+    int rc;
+
     imx_ci_udc_base = base;
 
     static const struct usbd_hal_ops ops = {
@@ -487,5 +489,14 @@ int imx_ci_udc_init(uintptr_t base)
         .ep0_xfer_zlp = imx_ci_udc_xfer_zlp,
     };
 
-    return usbd_init_hal_ops(&ops);
+    rc = usbd_init_hal_ops(&ops);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* One transfer for all endpoints: 'dtds', 'align_buffer' and the
+     * xfer_* state above are endpoint 0's as well as a bulk endpoint's */
+    usbd_hal_one_xfer();
+
+    return PB_OK;
 }
