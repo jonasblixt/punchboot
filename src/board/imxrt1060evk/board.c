@@ -9,8 +9,6 @@
 #include <drivers/partition/static.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_lpuart.h>
-#include <drivers/usb/imx_ci_udc.h>
-#include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <pb/board.h>
 #include <pb/cm.h>
@@ -364,19 +362,6 @@ static int board_command(uint32_t command,
     return PB_OK;
 }
 
-static int board_cm_init(void)
-{
-    /* Enable USB PLL */
-    // TODO: Here we assume that a lot of other bit's are correctly set...
-    mmio_clrsetbits_32(IMXRT_CCM_ANALOG_PLL_USB1, 0, ANALOG_PLL_USB_EN_USB_CLKS);
-
-    mmio_setbits_32(IMXRT_CCM_CCGR6, CCGR6_USBOH3);
-
-    imx_usb2_phy_init(IMXRT_USBPHY1_BASE);
-
-    return imx_ci_udc_init(IMXRT_USB_BASE);
-}
-
 static const struct rot_config rot = {
     .read_key_status = imx_hab_read_key_status,
 };
@@ -425,7 +410,6 @@ const struct board board = {
     .image_regions = image_regions,
     .early_boot = board_early_boot,
     .late_boot = board_late_boot,
-    .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,
     .command = board_command,
 };

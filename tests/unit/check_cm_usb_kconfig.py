@@ -32,6 +32,7 @@ BOARDS = [
     ("imx8mpevk", "IMX8M_CM_USB1", DWC3),
     ("imx8qxmek", "IMX8X_CM_USB3", CDNS3),
     ("imx8dxlevk", "IMX8X_CM_USB_OTG2", CHIPIDEA),
+    ("imxrt1060evk", "IMXRT_CM_USB_OTG1", CHIPIDEA),
 ]
 
 

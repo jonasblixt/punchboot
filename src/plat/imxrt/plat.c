@@ -4,6 +4,8 @@
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/timer/imx_gpt.h>
+#include <drivers/usb/imx_ci_udc.h>
+#include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
@@ -154,12 +156,20 @@ int plat_init(void)
     return rc;
 }
 
-#ifdef CONFIG_CM
-/* Command mode's USB (platform.md 3.10). The board's cm_init hook still sets
- * it up (F-267) */
+#ifdef CONFIG_IMXRT_CM_USB_OTG1
+/* Command mode's USB (platform.md 3.10): USB OTG1, with USBPHY1 and the
+ * clocks of PLL_USB1 */
 int plat_cm_init(void)
 {
-    return PB_OK;
+    /* Enable USB PLL */
+    // TODO: Here we assume that a lot of other bit's are correctly set...
+    mmio_clrsetbits_32(IMXRT_CCM_ANALOG_PLL_USB1, 0, ANALOG_PLL_USB_EN_USB_CLKS);
+
+    mmio_setbits_32(IMXRT_CCM_CCGR6, CCGR6_USBOH3);
+
+    imx_usb2_phy_init(IMXRT_USBPHY1_BASE);
+
+    return imx_ci_udc_init(IMXRT_USB_BASE);
 }
 #endif
 
