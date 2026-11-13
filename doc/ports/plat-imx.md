@@ -88,10 +88,15 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 |                      |          | USB1 PHY's power domain (GPC), the NoC  |                  |              |
 |                      |          | handshake, the BLK_CTRL's USB clock,    |                  |              |
 |                      |          | the PHY's 24 MHz reference (F-115)      |                  |              |
+| `IMX8X_CM_USB3`      | USB 3.0  | The SCFW: `SC_R_USB_2` and its PHY on,  | In the           | `imx_cdns3`  |
+|                      | (QXP)    | its `PER`, `MISC` and `MST_BUS` clocks  | controller's     |              |
+|                      |          |                                         | driver           |              |
+| `IMX8X_CM_USB_OTG2`  | USB OTG2 | The SCFW: `SC_R_USB_1` and its PHY on   | USB PHY 2        | `imx_ci_udc` |
+|                      | (DXL)    |                                         | (`imx_usb2_phy`) |              |
 
 The 8M's two SoCs differ in the clocks and the power only: `imx8m_soc_usb1_power_up()` in
 `plat_imx8mq.c` and `plat_imx8mp.c`. An option exists for the port a board in the tree uses.
-Without one: the 6UL's USB OTG2, the 8M's USB2.
+Without one: the 6UL's USB OTG2, the 8M's USB2, the 8QXP's and the 8DXL's USB OTG1.
 
 ## 4. Security
 
@@ -236,7 +241,7 @@ Where each port is (2026-11-11).
 | `plat_init()` errors only for        | yes          | yes               | yes        | partly    | F-235         |
 | command mode                         |              |                   |            |           |               |
 | `plat_get_status()`                  | no           | no                | no         | no        | F-248         |
-| `plat_cm_init()`                     | one port     | one port          | no         | no        | F-267         |
+| `plat_cm_init()`                     | one port     | one port          | one port   | no        | F-267         |
 | The board's regions in the map (5.2) | no           | no                | no         | n/a       | F-269, F-158  |
 | SoC memory for image data,           | n/a          | partly            | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |

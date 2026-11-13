@@ -18,9 +18,6 @@
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/uart/imx_lpuart.h>
-#include <drivers/usb/imx_cdns3_udc.h>
-#include <drivers/usb/imx_ci_udc.h>
-#include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <pb/board.h>
 #include <pb/cm.h>
@@ -251,45 +248,6 @@ static int board_hw_init(void)
     return rc;
 }
 
-static int board_cm_init(void)
-{
-    int rc;
-
-    /* Request power domains */
-    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_USB_2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_USB_2_PHY, SC_PM_PW_MODE_ON);
-
-    /* Request clocks */
-    rc = sc_pm_clock_enable(imx8x_ipc(), SC_R_USB_2, SC_PM_CLK_PER, true, false);
-
-    if (rc != SC_ERR_NONE) {
-        LOG_ERR("USB_2 per clk enable failed!");
-        return -PB_ERR;
-    }
-
-    rc = sc_pm_clock_enable(imx8x_ipc(), SC_R_USB_2, SC_PM_CLK_MISC, true, false);
-
-    if (rc != SC_ERR_NONE) {
-        LOG_ERR("USB_2 misc clk enable failed!");
-        return -PB_ERR;
-    }
-
-    rc = sc_pm_clock_enable(imx8x_ipc(), SC_R_USB_2, SC_PM_CLK_MST_BUS, true, false);
-
-    if (rc != SC_ERR_NONE) {
-        LOG_ERR("USB_2 mst bus clk enable failed!");
-        return -PB_ERR;
-    }
-
-    static const struct imx_cdns3_udc_config usb_cfg = {
-        .base = IMX8QXP_USB3_CORE_BASE,
-        .non_core_base = IMX8QXP_USB3_NON_CORE_BASE,
-        .phy_base = IMX8QXP_USB3_PHY_BASE,
-    };
-
-    return imx_cdns3_udc_init(&usb_cfg);
-}
-
 static const struct rot_config rot = {
     .revoke_key = imx8x_revoke_key,
     .read_key_status = imx8x_read_key_status,
@@ -439,7 +397,6 @@ const struct board board = {
     .bootargs = "console=ttyLP0,115200 quiet ",
     .bootargs_verbose = "console=ttyLP0,115200  "
                         "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ",
-    .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,
     .status = board_status,
     .password_auth = board_password_auth,

@@ -9,7 +9,9 @@
 
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/uart/imx_lpuart.h>
+#include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/imx_ci_udc.h>
+#include <drivers/usb/imx_usb2_phy.h>
 #include <pb/console.h>
 #include <pb/crypto.h>
 #include <pb/pb.h>
@@ -267,12 +269,61 @@ int plat_init(void)
     return PB_OK;
 }
 
-#ifdef CONFIG_CM
-/* Command mode's USB (platform.md 3.10). The boards' cm_init hooks still set
- * it up (F-267) */
+#ifdef CONFIG_IMX8X_CM_USB3
+/* Command mode's USB (platform.md 3.10): the i.MX8QXP's USB 3.0 port, the
+ * Cadence USB3 controller with its PHY, SC_R_USB_2 */
 int plat_cm_init(void)
 {
-    return PB_OK;
+    int rc;
+
+    /* Request power domains */
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_2_PHY, SC_PM_PW_MODE_ON);
+
+    /* Request clocks */
+    rc = sc_pm_clock_enable(plat.ipc, SC_R_USB_2, SC_PM_CLK_PER, true, false);
+
+    if (rc != SC_ERR_NONE) {
+        LOG_ERR("USB_2 per clk enable failed!");
+        return -PB_ERR;
+    }
+
+    rc = sc_pm_clock_enable(plat.ipc, SC_R_USB_2, SC_PM_CLK_MISC, true, false);
+
+    if (rc != SC_ERR_NONE) {
+        LOG_ERR("USB_2 misc clk enable failed!");
+        return -PB_ERR;
+    }
+
+    rc = sc_pm_clock_enable(plat.ipc, SC_R_USB_2, SC_PM_CLK_MST_BUS, true, false);
+
+    if (rc != SC_ERR_NONE) {
+        LOG_ERR("USB_2 mst bus clk enable failed!");
+        return -PB_ERR;
+    }
+
+    static const struct imx_cdns3_udc_config usb_cfg = {
+        .base = IMX8QXP_USB3_CORE_BASE,
+        .non_core_base = IMX8QXP_USB3_NON_CORE_BASE,
+        .phy_base = IMX8QXP_USB3_PHY_BASE,
+    };
+
+    return imx_cdns3_udc_init(&usb_cfg);
+}
+#endif
+
+#ifdef CONFIG_IMX8X_CM_USB_OTG2
+/* Command mode's USB (platform.md 3.10): the i.MX8DXL's USB OTG2, the second
+ * ChipIdea controller with its PHY, SC_R_USB_1 */
+int plat_cm_init(void)
+{
+    /* Enable usb stuff */
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_1, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_1_PHY, SC_PM_PW_MODE_ON);
+
+    imx_usb2_phy_init(IMX8DXL_USB2_PHY2_BASE);
+
+    return imx_ci_udc_init(IMX8DXL_USB_OTG2_BASE);
 }
 #endif
 
