@@ -120,6 +120,13 @@
 #define CAAM_RNG_ENT_DLY_STEP      200
 
 #define CAAM_ORSFR_ORSF_MASK       0x3ff
+/* A job's status word: its source, and for the DECO the error's id. 0x86 is
+ * a signature verification's "invalid signature" (as NXP's OP-TEE and Linux
+ * drivers read it) */
+#define CAAM_STATUS_SRC(x)         (((x) >> 28) & 0xf)
+#define CAAM_STATUS_SRC_DECO       4
+#define CAAM_STATUS_ERR_ID(x)      ((x) & 0xff)
+#define CAAM_DECO_INVALID_SIG      0x86
 #define CAAM_CCBVID_CAAM_ERA(x)    (((x) >> 24) & 0xff)
 #define CAAM_CHAVID_LS_MDVID(x)    (((x) >> 12) & 0xf)
 #define CAAM_MDVID_LP256           0
@@ -177,6 +184,9 @@ struct caam {
 };
 
 static struct caam caam;
+
+/* The status of the job the last wait ended, from its output ring entry */
+static uint32_t caam_job_status;
 
 /* The engine stores the digest here, in a line of the driver's own, and
  * hash_final() copies it to the caller, whose buffer is often on the stack
@@ -237,6 +247,8 @@ static int caam_wait_for_job(void)
         }
     } while (caam.job_pending);
 
+    caam_job_status = status;
+
     if (status) {
         LOG_ERR("Job status = %08" PRIx32, status);
         return -PB_ERR;
@@ -296,8 +308,11 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     rc = der_ec_public_key_data(
         der_key, key_length, caam.ecdsa_key, sizeof(caam.ecdsa_key), &key_kind);
 
+    /* A curve no backend has, or a key that can't be parsed (crypto.md 4) */
+    if (rc == -PB_ERR_NOT_IMPLEMENTED)
+        return -PB_ERR_NOT_SUPPORTED;
     if (rc != PB_OK)
-        return rc;
+        return -PB_ERR_ASN1;
 
     memset(caam.ecdsa_tmp_buf, 0, sizeof(caam.ecdsa_tmp_buf));
     memset(caam.ecdsa_r, 0, CAAM_SIG_MAX_LENGTH / 2);
@@ -322,6 +337,11 @@ static int caam_ecda_verify(const uint8_t *der_signature,
 
     rc = der_ecsig_to_rs(der_signature, sig_length, caam.ecdsa_r, caam.ecdsa_s, rs_length);
 
+    /* An r or s larger than the curve's order is no valid signature for this
+     * key, as the software backend answers it; a signature that can't be
+     * parsed is -PB_ERR_ASN1 (crypto.md 4) */
+    if (rc == -PB_ERR_BUF_TOO_SMALL)
+        return -PB_ERR_SIGNATURE;
     if (rc != PB_OK)
         return rc;
 
@@ -348,8 +368,18 @@ static int caam_ecda_verify(const uint8_t *der_signature,
 
     rc = caam_shedule_job_sync();
 
-    if (rc == 0)
+    if (rc == PB_OK) {
         *verified = true;
+        return PB_OK;
+    }
+
+    /* The engine's verdict, or an error of the engine (crypto.md 4) */
+    if (rc == -PB_ERR) {
+        if (CAAM_STATUS_SRC(caam_job_status) == CAAM_STATUS_SRC_DECO &&
+            CAAM_STATUS_ERR_ID(caam_job_status) == CAAM_DECO_INVALID_SIG)
+            return -PB_ERR_SIGNATURE;
+        return -PB_ERR_IO;
+    }
 
     return rc;
 }

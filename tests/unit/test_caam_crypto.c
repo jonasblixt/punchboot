@@ -461,6 +461,105 @@ static void test_4_verdict(void **state)
     assert_verdicts();
 }
 
+/* 4: a signature that doesn't verify is -PB_ERR_SIGNATURE, everything else
+ * is the code of what failed. It was -PB_ERR, as an engine's error was
+ * (F-286 (4)) */
+static void test_4_codes(void **state)
+{
+    static uint8_t key[256];
+    const struct token *t = &tokens[0];
+    const struct bpak_key *p256 = find_key(t->key_id);
+    bool verified = true;
+    (void)state;
+
+    /* One bit of the signature, of the digest */
+    assert_int_equal(verify_token(t, false, &verified), -PB_ERR_SIGNATURE);
+    assert_false(verified);
+
+    assert_int_equal(verify_token(t, true, &verified), PB_OK);
+    digest[0] ^= 1;
+    assert_int_equal(dsa_verify(t->dsa,
+                                signature,
+                                t->signature_length,
+                                p256->data,
+                                p256->size,
+                                t->hash,
+                                digest,
+                                t->digest_length,
+                                &verified),
+                     -PB_ERR_SIGNATURE);
+    assert_false(verified);
+    digest[0] ^= 1;
+
+    /* P-521's signature, larger than P-256's order */
+    assert_int_equal(dsa_verify(t->dsa,
+                                vector_token_p521,
+                                sizeof(vector_token_p521),
+                                p256->data,
+                                p256->size,
+                                t->hash,
+                                digest,
+                                t->digest_length,
+                                &verified),
+                     -PB_ERR_SIGNATURE);
+
+    /* A signature that can't be parsed */
+    signature[0] = 0x31;
+    assert_int_equal(dsa_verify(t->dsa,
+                                signature,
+                                t->signature_length,
+                                p256->data,
+                                p256->size,
+                                t->hash,
+                                digest,
+                                t->digest_length,
+                                &verified),
+                     -PB_ERR_ASN1);
+    signature[0] = 0x30;
+
+    /* A key that can't be parsed, a key of a curve no backend has: the last
+     * byte of the curve's OID is at 22 */
+    memcpy(key, p256->data, p256->size);
+    key[0] = 0x31;
+    assert_int_equal(dsa_verify(t->dsa,
+                                signature,
+                                t->signature_length,
+                                key,
+                                p256->size,
+                                t->hash,
+                                digest,
+                                t->digest_length,
+                                &verified),
+                     -PB_ERR_ASN1);
+    memcpy(key, p256->data, p256->size);
+    assert_int_equal(key[22], 0x07);
+    key[22] = 0x08;
+    assert_int_equal(dsa_verify(t->dsa,
+                                signature,
+                                t->signature_length,
+                                key,
+                                p256->size,
+                                t->hash,
+                                digest,
+                                t->digest_length,
+                                &verified),
+                     -PB_ERR_NOT_SUPPORTED);
+
+    /* An error of the engine */
+    caam_model_fail_next_job(CAAM_STATUS_DECO_WDOG);
+    assert_int_equal(dsa_verify(t->dsa,
+                                signature,
+                                t->signature_length,
+                                p256->data,
+                                p256->size,
+                                t->hash,
+                                digest,
+                                t->digest_length,
+                                &verified),
+                     -PB_ERR_IO);
+    assert_false(verified);
+}
+
 /* 3.1: a hash that was given up, at each step, is ended by the next
  * hash_init(): nothing of it completes into the verification that follows
  * (F-181) */
@@ -1003,6 +1102,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_3_3_block_buffer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_job_error_fails_the_context, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_verdict, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_4_codes, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_starts_clean, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_new_context, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_verdict_is_this_calls, setup, teardown),
