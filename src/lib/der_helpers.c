@@ -132,7 +132,36 @@ int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *
     return der_integer_to_fixed(&p, end, s, length);
 }
 
+/* Reads the tag and the length of a DER header. The length's own bytes and
+ * the 'length' bytes that follow them are before end */
+static int der_header(const uint8_t **p, const uint8_t *end, uint8_t tag, size_t *length)
+{
+    int rc;
+
+    if (*p >= end || *(*p)++ != tag)
+        return -PB_ERR_ASN1;
+
+    rc = asn1_length_fits(*p, end);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = asn1_size(p, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (*length > (size_t)(end - *p))
+        return -PB_ERR_ASN1;
+
+    return PB_OK;
+}
+
+/* The OIDs above are strings: their last byte isn't the OID's */
+#define OID_IS(p, length, oid) ((length) == sizeof(oid) - 1 && memcmp((p), (oid), (length)) == 0)
+
 int der_ec_public_key_data(const uint8_t *pub_key_der,
+                           size_t pub_key_der_length,
                            uint8_t *output,
                            size_t output_length,
                            dsa_t *key_kind)
@@ -140,70 +169,64 @@ int der_ec_public_key_data(const uint8_t *pub_key_der,
     size_t s;
     int rc;
     const uint8_t *p = pub_key_der;
+    const uint8_t *end = pub_key_der + pub_key_der_length;
 
-    if (*p++ != 0x30)
-        return -PB_ERR_ASN1;
+    /* SubjectPublicKeyInfo */
+    rc = der_header(&p, end, 0x30, &s);
 
-    rc = asn1_size(&p, &s);
-
-    if (rc != 0)
+    if (rc != PB_OK)
         return rc;
 
-    if (*p++ != 0x30)
-        return -PB_ERR_ASN1;
+    /* AlgorithmIdentifier */
+    rc = der_header(&p, end, 0x30, &s);
 
-    rc = asn1_size(&p, &s);
-
-    if (rc != 0)
+    if (rc != PB_OK)
         return rc;
 
-    if (*p++ != 0x06)
-        return -1;
+    /* The algorithm: id-ecPublicKey */
+    rc = der_header(&p, end, 0x06, &s);
 
-    rc = asn1_size(&p, &s);
-
-    if (rc != 0)
+    if (rc != PB_OK)
         return rc;
 
-    if (memcmp(p, ec_identifier, s) == 0) {
-        p += s;
-
-        if (*p++ != 0x06)
-            return -1;
-
-        rc = asn1_size(&p, &s);
-
-        if (rc != 0)
-            return rc;
-
-        if (memcmp(p, secp256r1_oid, s) == 0)
-            *key_kind = DSA_EC_SECP256r1;
-        else if (memcmp(p, secp384r1_oid, s) == 0)
-            *key_kind = DSA_EC_SECP384r1;
-        else if (memcmp(p, secp521r1_oid, s) == 0)
-            *key_kind = DSA_EC_SECP521r1;
-        else
-            return -PB_ERR_NOT_IMPLEMENTED;
-
-        p += s;
-
-        if (*p++ != 0x03)
-            return -1;
-
-        rc = asn1_size(&p, &s);
-
-        if (rc != 0)
-            return rc;
-
-        p += 2; /* Skip unused bits and compression point */
-        s -= 2;
-
-        if (s > output_length)
-            return -PB_ERR_BUF_TOO_SMALL;
-        memcpy(output, p, s);
-    } else {
+    if (!OID_IS(p, s, ec_identifier))
         return -PB_ERR_ASN1;
-    }
 
+    p += s;
+
+    /* Its parameters: the named curve */
+    rc = der_header(&p, end, 0x06, &s);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (OID_IS(p, s, secp256r1_oid))
+        *key_kind = DSA_EC_SECP256r1;
+    else if (OID_IS(p, s, secp384r1_oid))
+        *key_kind = DSA_EC_SECP384r1;
+    else if (OID_IS(p, s, secp521r1_oid))
+        *key_kind = DSA_EC_SECP521r1;
+    else
+        return -PB_ERR_NOT_IMPLEMENTED;
+
+    p += s;
+
+    /* subjectPublicKey, a BIT STRING: the number of unused bits, the point's
+     * form, then the point */
+    rc = der_header(&p, end, 0x03, &s);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (s < 2)
+        return -PB_ERR_ASN1;
+
+    p += 2;
+    s -= 2;
+
+    if (s > output_length)
+        return -PB_ERR_BUF_TOO_SMALL;
+
+    memcpy(output, p, s);
     return PB_OK;
 }

@@ -276,7 +276,8 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     if (rc != PB_OK)
         return rc;
 
-    rc = der_ec_public_key_data(der_key, caam.ecdsa_key, sizeof(caam.ecdsa_key), &key_kind);
+    rc = der_ec_public_key_data(
+        der_key, key_length, caam.ecdsa_key, sizeof(caam.ecdsa_key), &key_kind);
 
     if (rc != PB_OK)
         return rc;

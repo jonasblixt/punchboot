@@ -5,8 +5,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * DER helpers (src/lib/der_helpers.c). Inputs that hit the known problem in
- * F-066 (a bit string shorter than two bytes) are not tested.
+ * DER helpers (src/lib/der_helpers.c).
  */
 
 #include <setjmp.h>
@@ -281,11 +280,11 @@ static void check_ec_key(const uint8_t *oid, size_t oid_len, size_t point_len, d
     uint8_t out[160];
     uint8_t expected_point[160];
     dsa_t kind = 0;
+    size_t length = make_ec_key(key, oid, oid_len, point_len);
 
-    make_ec_key(key, oid, oid_len, point_len);
     memset(expected_point, 0xa5, point_len);
 
-    assert_int_equal(der_ec_public_key_data(key, out, sizeof(out), &kind), PB_OK);
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind), PB_OK);
     assert_int_equal(kind, expected);
     assert_memory_equal(out, expected_point, point_len);
 }
@@ -306,8 +305,10 @@ static void test_ec_public_key_output_too_small(void **state)
     dsa_t kind;
     (void)state;
 
-    make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
-    assert_int_equal(der_ec_public_key_data(key, out, sizeof(out), &kind), -PB_ERR_BUF_TOO_SMALL);
+    size_t length = make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind),
+                     -PB_ERR_BUF_TOO_SMALL);
 }
 
 static void test_ec_public_key_unknown_curve(void **state)
@@ -318,8 +319,10 @@ static void test_ec_public_key_unknown_curve(void **state)
     dsa_t kind;
     (void)state;
 
-    make_ec_key(key, unknown, sizeof(unknown), 64);
-    assert_int_equal(der_ec_public_key_data(key, out, sizeof(out), &kind), -PB_ERR_NOT_IMPLEMENTED);
+    size_t length = make_ec_key(key, unknown, sizeof(unknown), 64);
+
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind),
+                     -PB_ERR_NOT_IMPLEMENTED);
 }
 
 static void test_ec_public_key_not_ec(void **state)
@@ -329,9 +332,87 @@ static void test_ec_public_key_not_ec(void **state)
     dsa_t kind;
     (void)state;
 
-    make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+    size_t length = make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+
     key[8] = 0x00; /* Last byte of the id-ecPublicKey OID */
-    assert_int_equal(der_ec_public_key_data(key, out, sizeof(out), &kind), -PB_ERR_ASN1);
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind), -PB_ERR_ASN1);
+}
+
+/* crypto.md 4: the key is parsed inside its length. Every prefix of a key
+ * fails, and nothing past it is read (ASan) */
+static void test_ec_public_key_truncated(void **state)
+{
+    uint8_t key[256];
+    uint8_t out[160];
+    dsa_t kind;
+    size_t length = make_ec_key(key, secp521r1, sizeof(secp521r1), 132);
+    (void)state;
+
+    for (size_t len = 0; len < length; len++) {
+        uint8_t *prefix = malloc(len ? len : 1);
+
+        assert_non_null(prefix);
+        memcpy(prefix, key, len);
+        assert_int_equal(der_ec_public_key_data(prefix, len, out, sizeof(out), &kind),
+                         -PB_ERR_ASN1);
+        free(prefix);
+    }
+}
+
+/* An OID is compared whole: one of no bytes matched every OID, and a longer
+ * one was compared past the end of pb's own (F-066) */
+static void test_ec_public_key_oid_lengths(void **state)
+{
+    static const uint8_t secp256r1_and_more[] = { 0x2a, 0x86, 0x48, 0xce, 0x3d,
+                                                  0x03, 0x01, 0x07, 0x00 };
+    static const uint8_t secp384r1_and_more[] = { 0x2b, 0x81, 0x04, 0x00, 0x22, 0x00, 0x00, 0x00 };
+    uint8_t key[256];
+    uint8_t out[160];
+    dsa_t kind;
+    size_t length;
+    (void)state;
+
+    /* No curve */
+    length = make_ec_key(key, secp256r1, 0, 64);
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind),
+                     -PB_ERR_NOT_IMPLEMENTED);
+
+    length = make_ec_key(key, secp256r1_and_more, sizeof(secp256r1_and_more), 64);
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind),
+                     -PB_ERR_NOT_IMPLEMENTED);
+
+    length = make_ec_key(key, secp384r1_and_more, sizeof(secp384r1_and_more), 96);
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind),
+                     -PB_ERR_NOT_IMPLEMENTED);
+
+    /* No algorithm: the OID's length is at offset 5 */
+    length = make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+    key[5] = 0;
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind), -PB_ERR_ASN1);
+}
+
+/* The BIT STRING has its two leading bytes, and ends inside the key */
+static void test_ec_public_key_bit_string(void **state)
+{
+    uint8_t key[256];
+    uint8_t out[160];
+    dsa_t kind;
+    size_t length;
+    (void)state;
+
+    /* The BIT STRING's length is at offset 24 of the secp256r1 key */
+    for (uint8_t bytes = 0; bytes < 2; bytes++) {
+        length = make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+        assert_int_equal(key[24], 66);
+        key[24] = bytes;
+        assert_int_equal(der_ec_public_key_data(key, 25 + bytes, out, sizeof(out), &kind),
+                         -PB_ERR_ASN1);
+    }
+
+    /* A point that runs past the key */
+    length = make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+    key[24] = 67;
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind), -PB_ERR_ASN1);
 }
 
 static void test_ec_public_key_bad_encoding(void **state)
@@ -344,8 +425,8 @@ static void test_ec_public_key_bad_encoding(void **state)
         int rc;
     } cases[] = {
         { 0, 0x31, -PB_ERR_ASN1 },  { 1, 0x85, -PB_ERR_ASN1 },  { 2, 0x31, -PB_ERR_ASN1 },
-        { 3, 0x85, -PB_ERR_ASN1 },  { 4, 0x05, -PB_ERR },       { 5, 0x85, -PB_ERR_ASN1 },
-        { 13, 0x05, -PB_ERR },      { 14, 0x85, -PB_ERR_ASN1 }, { 23, 0x04, -PB_ERR },
+        { 3, 0x85, -PB_ERR_ASN1 },  { 4, 0x05, -PB_ERR_ASN1 },  { 5, 0x85, -PB_ERR_ASN1 },
+        { 13, 0x05, -PB_ERR_ASN1 }, { 14, 0x85, -PB_ERR_ASN1 }, { 23, 0x04, -PB_ERR_ASN1 },
         { 24, 0x85, -PB_ERR_ASN1 },
     };
 
@@ -355,9 +436,10 @@ static void test_ec_public_key_bad_encoding(void **state)
     (void)state;
 
     for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
-        make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+        size_t length = make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+
         key[cases[i].offset] = cases[i].value;
-        assert_int_equal(der_ec_public_key_data(key, out, sizeof(out), &kind), cases[i].rc);
+        assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind), cases[i].rc);
     }
 }
 
@@ -375,6 +457,9 @@ int main(void)
         cmocka_unit_test(test_ec_public_key_output_too_small),
         cmocka_unit_test(test_ec_public_key_unknown_curve),
         cmocka_unit_test(test_ec_public_key_not_ec),
+        cmocka_unit_test(test_ec_public_key_truncated),
+        cmocka_unit_test(test_ec_public_key_oid_lengths),
+        cmocka_unit_test(test_ec_public_key_bit_string),
         cmocka_unit_test(test_ec_public_key_bad_encoding),
     };
 

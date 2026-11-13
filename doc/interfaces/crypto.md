@@ -209,8 +209,7 @@ The arguments:
   token carry it. It comes from the image or the host: every length in it is checked against
   `signature_length`, and against the curve's size (`drivers.md` 5).
 - **The key** is DER, a `SubjectPublicKeyInfo`, from the keystore, which is part of pb. It is
-  parsed inside `key_length` all the same (`principles.md` 2). **Not yet in the code
-  (F-066)**: the engine's parser doesn't use the length.
+  parsed inside `key_length` all the same (`principles.md` 2).
 - **`alg` is the key's curve as the keystore names it.** A key whose own curve is another one
   is refused, `-PB_ERR_PARAM`: the keystore and the key must agree. **Not yet in the code
   (F-286)**: `alg` only selects the backend.
@@ -316,7 +315,7 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 |                                      | (`test_caam_crypto`)    |                      |              |
 | The signature's lengths checked      | partly: the outer       | yes (the library)    | F-286        |
 |                                      | length is ignored       |                      |              |
-| The key parsed inside its length     | no                      | yes (the library)    | F-066        |
+| The key parsed inside its length     | yes (`test_der`)        | yes (the library)    |              |
 | The key's curve is `alg`             | no                      | no                   | F-286        |
 | Every wait bounded                   | yes (1 s)               | n/a                  |              |
 | Nothing left at the jump             | no                      | n/a                  | F-286        |
@@ -353,6 +352,5 @@ simple target (D-025): F-181 was found in such a model, not on hardware.
 | F-286        | The core and the backends against sections 3, 4 and 6; the conformance suite    |
 | F-220        | The block buffer isn't refilled while a job reads it (3.3)                      |
 | F-081        | The digest is copied, not written by the engine into the user's memory (3.5)    |
-| F-066        | The key is parsed inside its length (4)                                         |
 | F-247        | The platform sets the backend up (2)                                            |
 | F-230        | The backends' tests (9)                                                         |
