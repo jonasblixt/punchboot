@@ -343,6 +343,15 @@ int usbd_xfer_cancel(void)
     return PB_OK;
 }
 
+/* The two requests of an enumeration that change what the device is to the
+ * host: its address and its configuration */
+static bool usbd_host_starts_over(const struct usb_setup_packet *setup)
+{
+    uint16_t request = (setup->bRequestType << 8) | setup->bRequest;
+
+    return request == USB_SET_ADDRESS || request == USB_SET_CONFIGURATION;
+}
+
 /* The largest packet of one of the class's endpoints, 0 when it has no such */
 static size_t usbd_max_packet(usb_ep_t ep)
 {
@@ -408,6 +417,18 @@ static int usbd_xfer_poll(void)
     struct usb_setup_packet pkt;
 
     if (hal_ops->poll_setup_pkt(&pkt) == PB_OK) {
+        /* A host that sets an address or a configuration inside a session
+         * enumerates the device again: it was plugged in again or the bus
+         * was reset, whether the controller reported that or not, or the
+         * host deconfigures it. The session is lost (usb.md 2.4, 3.2). The
+         * request gets no answer: the address and the configuration are the
+         * next session's, and the device leaves the bus when the transport
+         * is restarted (usb.md 2.1) */
+        if (usbd_host_starts_over(&pkt)) {
+            LOG_ERR("The host enumerates again (%x %x)", pkt.bRequest, pkt.wValue);
+            return -PB_ERR_IO;
+        }
+
         if (hal_one_xfer)
             return usbd_xfer_poll_one_xfer(&pkt);
 

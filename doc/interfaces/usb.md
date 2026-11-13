@@ -437,7 +437,9 @@ The stack and the transport:
 
 | Requirement                                   | Today                                    | Finding      |
 | --------------------------------------------- | ---------------------------------------- | ------------ |
-| Lost ends the session                         | yes, when the controller reports it      | F-363        |
+| Lost ends the session                         | yes, when the controller reports it or   | F-363        |
+|                                               | the host sets an address or configures   |              |
+|                                               | the device again                         |              |
 | A restart disconnects first                   | no                                       | F-287        |
 | Unknown requests stalled, control transfers   | no                                       | F-138        |
 | bounded                                       |                                          |              |

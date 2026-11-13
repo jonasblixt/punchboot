@@ -572,6 +572,113 @@ static void test_bus_reset_and_stop_clear_the_configuration(void **state)
     assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
 }
 
+/* usb.md 2.4, 4.3: a replug or a bus reset inside a session is "lost", also
+ * on a controller that handles the reset inside its driver and reports
+ * nothing (the ChipIdea's and the cdns3's today). The host then enumerates
+ * the device again, and a new address is how the stack sees it (F-363: it
+ * answered, and the next host had the session of the one before, with its
+ * authentication) */
+static void test_replug_in_a_session_is_lost(void **state)
+{
+    (void)state;
+    start(NULL);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+
+    usb_host_replug();
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+
+    /* A descriptor is read by any program at any time: no sign of it */
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    assert_answered(18);
+
+    usb_host_bus_reset();
+    host_set_address(7);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+
+    /* No answer: the address and the configuration are the next session's,
+     * and the device leaves the bus when the transport is restarted (2.1) */
+    assert_true(usb_host_reply()->taken);
+    assert_false(usb_host_reply()->status);
+    assert_int_equal(usb_host_state()->address, 0);
+    assert_int_equal(usb_host_state()->set_address_calls, 1);
+
+    /* Command mode restarts the transport, and the host starts over */
+    assert_int_equal(cm_transport_init(), PB_OK);
+    enumerate();
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+}
+
+/* The same for a host that configures the device again, or deconfigures it
+ * (usb.md 2.4, 3.2), and on a controller with one transfer for all
+ * endpoints */
+static void test_set_configuration_in_a_session_is_lost(void **state)
+{
+    (void)state;
+    start(NULL);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, 4 * PACKET), PB_OK);
+    usb_host_send(data, PACKET);
+    host_set_configuration(1);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+    assert_false(usb_host_reply()->status);
+    assert_int_equal(usb_host_state()->set_configuration_calls, 1);
+
+    /* Nothing is configured after it (usb.md 3.2) */
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+
+    start(NULL);
+    enumerate();
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    host_set_configuration(0);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+
+    start(&one_xfer);
+    enumerate();
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    host_set_address(7);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+    assert_int_equal(usb_host_state()->cancel_calls, 0);
+    assert_int_equal(usb_host_state()->bulk_starts, 1);
+}
+
+/* usb.md 2.4: what happens while no transfer runs, inside a command, is kept
+ * and is the error of the next transfer */
+static void test_replug_between_transfers_is_lost(void **state)
+{
+    (void)state;
+    start(NULL);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+
+    usb_host_replug();
+    host_set_address(7);
+
+    /* The command's result */
+    assert_int_equal(cm_transport_write(buf, PACKET), -PB_ERR_STATE);
+
+    start(NULL);
+    enumerate();
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+
+    /* A host that enumerates without a reset the controller acts on */
+    host_set_address(7);
+    assert_int_equal(cm_transport_write(buf, PACKET), PB_OK);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+}
+
 /* usb.md 2.3: the controller's refusal of a transfer is the transport's */
 static void test_start_error(void **state)
 {
@@ -614,6 +721,9 @@ int main(void)
         cmocka_unit_test(test_reported_bus_reset_is_lost),
         cmocka_unit_test(test_restart_after_lost_starts_over),
         cmocka_unit_test(test_bus_reset_and_stop_clear_the_configuration),
+        cmocka_unit_test(test_replug_in_a_session_is_lost),
+        cmocka_unit_test(test_set_configuration_in_a_session_is_lost),
+        cmocka_unit_test(test_replug_between_transfers_is_lost),
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
     };
