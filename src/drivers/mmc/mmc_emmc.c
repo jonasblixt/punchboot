@@ -600,6 +600,15 @@ int mmc_emmc_setup(struct mmc_device *dev)
     mmc_cmd_resp_t resp_data;
 
     LOG_DBG("eMMC init");
+
+    /* A mode the host can't run is refused before the card is switched */
+    if (cfg->mode == MMC_BUS_MODE_HS400 &&
+        !(cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE ? dev->hal->hs400_es : dev->hal->hs400)) {
+        LOG_ERR("The host has no HS400%s",
+                cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE ? " ES" : "");
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
     dev->generic_cmd6_time_ms = MMC_CMD6_TIME_MAX_ms;
     dev->power_off_long_time_ms = MMC_CMD6_TIME_MAX_ms;
     dev->partition_switch_time_ms = MMC_CMD6_TIME_MAX_ms;
@@ -682,6 +691,12 @@ int mmc_emmc_setup(struct mmc_device *dev)
         LOG_ERR("Bus mode %i not supported, DEVICE_TYPE 0x%02x",
                 cfg->mode,
                 dev->ext_csd[EXT_CSD_CARD_TYPE]);
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
+    /* Enhanced Strobe, JESD84-B51 7.4.67 */
+    if (cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE && dev->ext_csd[EXT_CSD_STROBE_SUPPORT] == 0) {
+        LOG_ERR("The device has no Enhanced Strobe");
         return -PB_ERR_NOT_SUPPORTED;
     }
 

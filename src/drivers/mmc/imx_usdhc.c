@@ -559,6 +559,9 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
         .delay_tap_default = cfg->delay_tap,
         .card_present = cfg->card_detect ? imx_usdhc_card_present : NULL,
         .max_chunk_bytes = USDHC_MAX_CHUNK_BYTES,
+        /* No HS400: the strobe DLL and MIX_CTRL's HS400 mode aren't set up */
+        .hs400 = false,
+        .hs400_es = false,
     };
 
     return mmc_init(&u->hal, &cfg->mmc_config, NULL);

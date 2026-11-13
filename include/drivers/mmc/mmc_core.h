@@ -382,6 +382,8 @@ struct mmc_hal {
     unsigned int delay_tap_default; /*!< The board's tap, without tuning */
     bool (*card_present)(void *priv); /*!< Card detect, optional (SD) */
     size_t max_chunk_bytes; /*!< Maximum bytes per request */
+    bool hs400; /*!< The host runs HS400: 8 bit DDR at 200 MHz, reads on the data strobe */
+    bool hs400_es; /*!< And HS400 with Enhanced Strobe, MMC_BUS_WIDTH_8BIT_DDR_STROBE */
 };
 
 struct mmc_device_info {

@@ -460,6 +460,40 @@ static void test_buffer_above_4gib_is_refused(void **state)
     assert_bench_clean();
 }
 
+/* F-116: the driver has no HS400 (no strobe DLL, no HS400 mode): a board
+ * that asks for it gets -PB_ERR_NOT_SUPPORTED before the card is switched,
+ * where the card was switched to HS400's bus width and the driver then
+ * refused the width (Enhanced Strobe), or HS400 ran without tuning */
+static void test_hs400_is_refused(void **state)
+{
+#define HS400_CONFIG(bus_width)                                       \
+    {                                                                 \
+        .base = IMX8M_USDHC3_BASE, .delay_tap = 35,                   \
+        .mmc_config = {                                               \
+            .mode = MMC_BUS_MODE_HS400,                               \
+            .width = (bus_width),                                     \
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8, \
+            .boot0_uu = UU_BOOT0,                                     \
+            .boot1_uu = UU_BOOT1,                                     \
+            .user_uu = UU_USER,                                       \
+            .rpmb_uu = UU_RPMB,                                       \
+        },                                                            \
+    }
+    static const struct imx_usdhc_config es = HS400_CONFIG(MMC_BUS_WIDTH_8BIT_DDR_STROBE);
+    static const struct imx_usdhc_config ddr = HS400_CONFIG(MMC_BUS_WIDTH_8BIT_DDR);
+    (void)state;
+
+    assert_int_equal(init(&es, USDHC_IMX8M, 200000000), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
+    assert_true(bio_get_part_by_uu(UU_USER) < 0);
+
+    assert_int_equal(init(&ddr, USDHC_IMX8M, 200000000), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
+    assert_bench_clean();
+}
+
 /* CD_B says there is no card */
 static void test_imx8mpevk_no_sd(void **state)
 {
@@ -520,6 +554,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd_v1, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_no_sd, setup, teardown),
         cmocka_unit_test_setup_teardown(test_buffer_above_4gib_is_refused, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_is_refused, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

@@ -237,6 +237,23 @@ static void test_hs400_enhanced_strobe(void **state)
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0x86);
 }
 
+/* F-116: a device without Enhanced Strobe (STROBE_SUPPORT 0, 7.4.67) gets
+ * -PB_ERR_NOT_SUPPORTED before it is switched, where HS_TIMING was set to
+ * HS and the BUS_WIDTH switch then failed */
+static void test_hs400_es_not_supported(void **state)
+{
+    (void)state;
+
+    dev_cfg.mode = MMC_BUS_MODE_HS400;
+    dev_cfg.width = MMC_BUS_WIDTH_8BIT_DDR_STROBE;
+    card_cfg.strobe_support = 0;
+
+    assert_int_equal(init(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
+    assert_bench_clean();
+}
+
 /* HS400 without Enhanced Strobe: tuned in HS200 first, 6.6.2.3 */
 static void test_hs400(void **state)
 {
@@ -764,6 +781,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400_enhanced_strobe, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_es_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_second_init_adds_no_devices, setup, teardown),
