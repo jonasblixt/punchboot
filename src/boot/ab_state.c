@@ -171,11 +171,10 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     } else if (!primary_state_ok && !backup_state_ok) {
         LOG_ERR("No valid state found, installing default");
         pb_boot_state_defaults(&boot_state);
-        pb_boot_state_defaults(&boot_state_backup);
         rc = pb_boot_state_commit();
     } else if (!backup_state_ok && primary_state_ok) {
+        /* The commit writes the state, the primary's, to both */
         LOG_ERR("Backup state corrupt, repairing");
-        pb_boot_state_defaults(&boot_state_backup);
         rc = pb_boot_state_commit();
     } else if (backup_state_ok && !primary_state_ok) {
         LOG_ERR("Primary state corrupt, reparing");
@@ -261,10 +260,9 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
             trial_other_uu = cfg->sys_b_uu;
             trial_other_verified = PB_STATE_B_VERIFIED;
         } else if (!(boot_state.verified & PB_STATE_A_VERIFIED)) {
-            LOG_ERR("Rollback to B system");
             if (!(boot_state.verified & PB_STATE_B_VERIFIED)) {
                 if (!speculative) {
-                    LOG_ERR("B system not verified, failing");
+                    LOG_ERR("A system out of attempts, B system not verified, failing");
                     return -PB_ERR_NOT_FOUND;
                 }
 
@@ -274,6 +272,7 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
                 *how = BOOT_POLICY_MODE_SPECULATIVE;
                 boot_part_uu = cfg->sys_b_uu;
             } else {
+                LOG_ERR("Rollback to B system");
                 commit = true;
                 boot_state.enable = PB_STATE_B_ENABLED;
                 boot_state.error |= PB_STATE_ERROR_A_ROLLBACK;
@@ -291,10 +290,9 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
             trial_other_uu = cfg->sys_a_uu;
             trial_other_verified = PB_STATE_A_VERIFIED;
         } else if (!(boot_state.verified & PB_STATE_B_VERIFIED)) {
-            LOG_ERR("Rollback to A system");
             if (!(boot_state.verified & PB_STATE_A_VERIFIED)) {
                 if (!speculative) {
-                    LOG_ERR("A system not verified, failing");
+                    LOG_ERR("B system out of attempts, A system not verified, failing");
                     return -PB_ERR_NOT_FOUND;
                 }
 
@@ -304,6 +302,7 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
                 *how = BOOT_POLICY_MODE_SPECULATIVE;
                 boot_part_uu = cfg->sys_a_uu;
             } else {
+                LOG_ERR("Rollback to A system");
                 commit = true;
                 boot_state.enable = PB_STATE_A_ENABLED;
                 boot_state.error |= PB_STATE_ERROR_B_ROLLBACK;
