@@ -298,6 +298,31 @@ static void test_write_postamble(void **state)
     assert_int_equal(m.postamble_violations, 0);
 }
 
+/* F-197: an index past CTRL's ADDR field is refused, not masked onto a word
+ * at the start of the fuse box */
+static void test_index_out_of_range(void **state)
+{
+    uint32_t val = 0x5555;
+    (void)state;
+
+    m.otp[0] = 0x11;
+    assert_int_equal(imx_ocotp_read(WORDS / WORDS_PER_BANK, 0, &val), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_fuse_read(WORDS, &val), -PB_ERR_PARAM);
+    /* bank * words per bank wraps to 0 in 32 bits */
+    assert_int_equal(imx_ocotp_read(0x20000000, 0, &val), -PB_ERR_PARAM);
+    assert_int_equal(val, 0x5555);
+
+    assert_int_equal(imx_ocotp_write(WORDS / WORDS_PER_BANK, 0, 0x22), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_fuse_write(WORDS + 1, 0x22), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_write(0x20000000, 0, 0x22), -PB_ERR_PARAM);
+    assert_int_equal(m.programs, 0);
+    assert_int_equal(m.otp[0], 0x11);
+    assert_int_equal(m.otp[1], 0);
+
+    /* The last word */
+    assert_int_equal(imx_ocotp_fuse_read(WORDS - 1, &val), PB_OK);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -307,6 +332,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
         cmocka_unit_test_setup_teardown(test_error_is_cleared, setup, teardown),
         cmocka_unit_test_setup_teardown(test_write_postamble, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_index_out_of_range, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

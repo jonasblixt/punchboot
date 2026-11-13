@@ -56,9 +56,31 @@ int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank)
     return PB_OK;
 }
 
+/* The word's address in CTRL. One that the field can't hold is refused, not
+ * masked onto another word */
+static int ocotp_addr(uint32_t bank, uint32_t row, uint32_t *addr)
+{
+    uint64_t index = (uint64_t)bank * wpb + row;
+
+    if (index > OCOTP_CTRL_ADDR_MASK) {
+        LOG_ERR("Fuse %" PRIu32 ", %" PRIu32 " is out of range", bank, row);
+        return -PB_ERR_PARAM;
+    }
+
+    *addr = (uint32_t)index;
+    return PB_OK;
+}
+
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
 {
     uint32_t tmp = 0;
+    uint32_t addr;
+    int rc;
+
+    rc = ocotp_addr(bank, row, &addr);
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Wait for busy flag */
     while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
@@ -86,9 +108,7 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
         return -PB_ERR_IO;
     }
 
-    tmp = ((bank * wpb) + row) & OCOTP_CTRL_ADDR_MASK;
-
-    mmio_write_32(base + OCOTP_CTRL, OCOTP_CTRL_WR_UNLOCK(OCOTP_CTRL_WR_KEY) | tmp);
+    mmio_write_32(base + OCOTP_CTRL, OCOTP_CTRL_WR_UNLOCK(OCOTP_CTRL_WR_KEY) | addr);
     mmio_write_32(base + OCOTP_DATA, value);
 
     /* Wait for busy flag */
@@ -111,6 +131,13 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 {
     uint32_t tmp = 0;
+    uint32_t addr;
+    int rc;
+
+    rc = ocotp_addr(bank, row, &addr);
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Wait for busy flag */
     while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
@@ -123,9 +150,7 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
         return -PB_ERR_IO;
     }
 
-    tmp = ((bank * wpb) + row) & OCOTP_CTRL_ADDR_MASK;
-
-    mmio_write_32(base + OCOTP_CTRL, tmp);
+    mmio_write_32(base + OCOTP_CTRL, addr);
     mmio_write_32(base + OCOTP_READ_CTRL, 1);
 
     /* Wait for busy flag */
