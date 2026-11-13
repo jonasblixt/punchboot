@@ -12,6 +12,7 @@
 #include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
+#include <pb/command.h>
 #include <pb/console.h>
 #include <pb/crypto.h>
 #include <pb/pb.h>
@@ -24,6 +25,8 @@
 #include <plat/imx8x/sci/svc/pm/api.h>
 #include <plat/imx8x/sci/svc/seco/api.h>
 #include <plat/imx8x/sci/svc/timer/api.h>
+#include <plat/imx8x/seco_log.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
@@ -285,6 +288,109 @@ static void imx8x_mmu_init(void)
     enable_mmu_el3(0);
 }
 
+/* The SCFW's and the SECO's builds, the SoC and its temperature */
+struct imx8x_info {
+    uint32_t scfw_build;
+    uint32_t scfw_commit;
+    uint32_t seco_version;
+    uint32_t seco_commit;
+    bool temp_read;
+    const char *temp_sign;
+    unsigned int temp_tenths; /* Without the sign */
+};
+
+static void imx8x_read_info(struct imx8x_info *info)
+{
+    int16_t celsius;
+    int8_t tenths;
+
+    sc_misc_build_info(plat.ipc, &info->scfw_build, &info->scfw_commit);
+    sc_seco_build_info(plat.ipc, &info->seco_version, &info->seco_commit);
+
+    info->temp_read =
+        (sc_misc_get_temp(plat.ipc, SC_R_SYSTEM, SC_MISC_TEMP, &celsius, &tenths) == SC_ERR_NONE);
+    if (info->temp_read) {
+        /* Both parts have the sign */
+        int temp = celsius * 10 + tenths;
+
+        info->temp_sign = (temp < 0) ? "-" : "";
+        info->temp_tenths = (unsigned int)(temp < 0 ? -temp : temp);
+    }
+}
+
+static void imx8x_log_info(void)
+{
+    struct imx8x_info info;
+
+    imx8x_read_info(&info);
+    LOG_INFO("SCFW %u (%x), SECO %u (%x)",
+             (unsigned int)info.scfw_build,
+             (unsigned int)info.scfw_commit,
+             (unsigned int)info.seco_version,
+             (unsigned int)info.seco_commit);
+    LOG_INFO("SoC id %u, rev %u", (unsigned int)plat.soc_id, (unsigned int)plat.soc_rev);
+
+    if (info.temp_read) {
+        LOG_INFO(
+            "Temperature %s%u.%u C", info.temp_sign, info.temp_tenths / 10, info.temp_tenths % 10);
+    } else {
+        LOG_ERR("Could not read the temperature");
+    }
+}
+
+/* The named command 'info' (command-mode.md 5.6): what imx8x_log_info()
+ * logs at boot, read again, as text that ends with a NUL */
+static int
+cmd_info(const uint8_t *request, size_t request_size, uint8_t *response, size_t *response_size)
+{
+    struct imx8x_info info;
+    char temp[32];
+    size_t room = *response_size;
+    int n;
+
+    (void)request;
+    (void)request_size;
+
+    imx8x_read_info(&info);
+
+    if (info.temp_read) {
+        (void)snprintf(temp,
+                       sizeof(temp),
+                       "%s%u.%u C",
+                       info.temp_sign,
+                       info.temp_tenths / 10,
+                       info.temp_tenths % 10);
+    } else {
+        (void)snprintf(temp, sizeof(temp), "not read");
+    }
+
+    n = snprintf((char *)response,
+                 room,
+                 "SCFW %u (%x)\n"
+                 "SECO %u (%x)\n"
+                 "SoC id %u, rev %u\n"
+                 "Temperature %s\n",
+                 (unsigned int)info.scfw_build,
+                 (unsigned int)info.scfw_commit,
+                 (unsigned int)info.seco_version,
+                 (unsigned int)info.seco_commit,
+                 (unsigned int)plat.soc_id,
+                 (unsigned int)plat.soc_rev,
+                 temp);
+
+    /* The text and its NUL, cut to the room there is */
+    if (n < 0 || room == 0) {
+        *response_size = 0;
+    } else {
+        *response_size = ((size_t)n < room) ? (size_t)n : room - 1;
+        response[(*response_size)++] = 0;
+    }
+
+    return PB_OK;
+}
+
+DEFINE_COMMAND("info", "imx8x system info", cmd_info);
+
 static sc_err_t wdog_rc;
 
 int plat_early_init(void)
@@ -308,6 +414,8 @@ int plat_init(void)
     imx8x_mmu_init();
     LOG_DBG("MMU on");
 
+    imx8x_log_info();
+
     imx8x_fuse_init(plat.ipc);
     imx8x_rot_helpers_init(plat.ipc);
     imx8x_slc_helpers_init(plat.ipc);
@@ -318,7 +426,7 @@ int plat_init(void)
 #ifdef CONFIG_IMX8X_CM_USB3
 /* Command mode's USB (platform.md 3.10): the i.MX8QXP's USB 3.0 port, the
  * Cadence USB3 controller with its PHY, SC_R_USB_2 */
-int plat_cm_init(void)
+static int cm_usb_init(void)
 {
     int rc;
 
@@ -361,7 +469,7 @@ int plat_cm_init(void)
 #ifdef CONFIG_IMX8X_CM_USB_OTG2
 /* Command mode's USB (platform.md 3.10): the i.MX8DXL's USB OTG2, the second
  * ChipIdea controller with its PHY, SC_R_USB_1 */
-int plat_cm_init(void)
+static int cm_usb_init(void)
 {
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_1, SC_PM_PW_MODE_ON);
@@ -370,6 +478,18 @@ int plat_cm_init(void)
     imx_usb2_phy_init(IMX8DXL_USB2_PHY2_BASE);
 
     return imx_ci_udc_init(IMX8DXL_USB_OTG2_BASE);
+}
+#endif
+
+#if defined(CONFIG_IMX8X_CM_USB3) || defined(CONFIG_IMX8X_CM_USB_OTG2)
+int plat_cm_init(void)
+{
+    /* Only read over USB, so not on the boot path (D-023); the SECO keeps
+     * its events until the next reset */
+    if (imx8x_seco_log_init(plat.ipc) != PB_OK)
+        LOG_ERR("No room for the SECO log in the logs");
+
+    return cm_usb_init();
 }
 #endif
 
