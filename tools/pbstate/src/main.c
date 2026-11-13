@@ -103,7 +103,7 @@ int main(int argc, char *const argv[])
     bool flag_show = false;
     bool flag_verify = false;
     bool flag_write_board_reg = false;
-    uint8_t counter = 0;
+    uint32_t counter = 0;
     unsigned int board_reg_index = 0;
     uint32_t board_reg_value = 0;
 
@@ -149,7 +149,7 @@ int main(int argc, char *const argv[])
             char *end;
 
             errno = 0;
-            tmp = strtol(optarg, &end, 0);
+            tmp = strtoll(optarg, &end, 0);
 
             if (optarg == end) {
                 return EINVAL;
@@ -186,7 +186,7 @@ int main(int argc, char *const argv[])
 
             if (optind < argc && *argv[optind] != '-') {
                 errno = 0;
-                tmp = strtol(argv[optind], &end, 0);
+                tmp = strtoll(argv[optind], &end, 0);
 
                 if (optarg == end) {
                     return EINVAL;

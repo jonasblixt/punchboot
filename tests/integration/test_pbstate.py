@@ -56,3 +56,29 @@ def test_switch_refuses_what_is_no_system(device: Device, system: str) -> None:
     assert result.returncode == errno.EINVAL
     assert "-s takes a, b or none" in result.stderr
     assert _copies(device) == copies
+
+
+@pytest.mark.parametrize("count", ["1", "255", "256", "300", "0x100", "4294967295"])
+def test_count_is_the_trial_s_attempts(device: Device, count: str) -> None:
+    # A trial of that many attempts, A not verified. It was a byte: 256 was
+    # 0, which means verified, and 300 was 44
+    device.pbstate("-s", "a", "-c", count)
+    assert _state(device) == (STATE_A, 0, int(count, 0), 0)
+
+
+@pytest.mark.parametrize("count", ["-1", "4294967296", "x"])
+def test_count_outside_32_bits_is_refused(device: Device, count: str) -> None:
+    copies = _copies(device)
+
+    result = device.pbstate_run("-s", "a", "-c", count)
+    assert result.returncode == (errno.EINVAL if count == "x" else errno.ERANGE)
+    assert _copies(device) == copies
+
+
+def test_board_register_takes_32_bits(device: Device) -> None:
+    # strtol() stopped at 0x7fffffff where a long is 32 bits
+    device.pbstate("-w", "0", "0xffffffff")
+    device.pbstate("-w", "1", "0x80000000")
+    info = device.pbstate("-i")
+    assert "0: FFFFFFFF" in info
+    assert "1: 80000000" in info
