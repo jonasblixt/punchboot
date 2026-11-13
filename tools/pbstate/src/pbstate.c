@@ -206,7 +206,10 @@ err_close_backup_out:
 err_close_and_release_out:
     flock(fd, LOCK_UN);
     close(fd);
-    sync(); /* Ensure that data is written to disk */
+    /* Ensure that data is written to disk. A read wrote nothing: it doesn't
+     * flush every file system on the device */
+    if (wr)
+        sync();
     return rc;
 }
 

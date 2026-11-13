@@ -30,6 +30,15 @@ static char dir[] = "/tmp/test_pbstate.XXXXXX";
 static char primary[sizeof(dir) + 16];
 static char backup[sizeof(dir) + 16];
 
+/* libc's sync() flushes every file system of the machine: this one counts.
+ * The library is linked into the test, so its calls come here */
+static unsigned int syncs;
+
+void sync(void)
+{
+    syncs++;
+}
+
 static void write_file(const char *path, const struct pb_boot_state *s)
 {
     FILE *f = fopen(path, "wb");
@@ -140,11 +149,45 @@ static void test_confirming_the_other_slot_keeps_the_trial(void **state)
     assert_state(PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, 0);
 }
 
+/* A read leaves the file systems alone (F-221: every read ended in sync(),
+ * ten of them in 'pbstate -i') */
+static void test_a_read_does_not_sync(void **state)
+{
+    unsigned int attempts;
+    uint32_t value;
+
+    (void)state;
+    write_state(PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    syncs = 0;
+
+    assert_int_equal(pbstate_is_system_active(PBSTATE_SYSTEM_A), 1);
+    assert_int_equal(pbstate_is_system_verified(PBSTATE_SYSTEM_A), 1);
+    assert_int_equal(pbstate_get_remaining_boot_attempts(&attempts), 0);
+    assert_int_equal(pbstate_get_errors(&value), 0);
+    assert_int_equal(pbstate_read_board_reg(0, &value), 0);
+    assert_int_equal(syncs, 0);
+}
+
+/* What is written is still synced, once per write */
+static void test_a_write_syncs(void **state)
+{
+    (void)state;
+    write_state(PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    syncs = 0;
+
+    assert_int_equal(pbstate_write_board_reg(0, 1), 0);
+    assert_int_equal(syncs, 1);
+    assert_int_equal(pbstate_set_system_verified(PBSTATE_SYSTEM_A), 0);
+    assert_int_equal(syncs, 2);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_confirming_the_enabled_slot_ends_its_trial),
         cmocka_unit_test(test_confirming_the_other_slot_keeps_the_trial),
+        cmocka_unit_test(test_a_read_does_not_sync),
+        cmocka_unit_test(test_a_write_syncs),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);
