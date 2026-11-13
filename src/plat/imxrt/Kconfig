@@ -1,0 +1,15 @@
+choice IMXRT_CM_USB
+    bool "Command mode's USB port"
+    depends on PLAT_IMXRT && CM
+    help
+        The USB device port command mode uses. plat_cm_init() sets up its
+        clocks, its PHY and its controller when command mode starts
+        (platform.md 3.10).
+
+config IMXRT_CM_USB_OTG1
+    bool "USB OTG1"
+    select DRIVER_USB_DEVICE
+    select DRIVER_USB_PB_CLS
+    select DRIVER_IMX_USB2_PHY
+    select DRIVER_IMX_CI_UDC
+endchoice

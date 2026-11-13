@@ -547,13 +547,9 @@ def check_drivers(root: pathlib.Path, documents: dict[str, Document], report: Re
         check_listed(crypto, {f"{prefix}_{member}" for member in members}, listed, crypto_h, report)
 
     # usb.md, the transport (2): cm_transport_<name>() is a function of pb/cm.h.
-    # Until the transport is linked (F-267) it is <name> of struct cm_transport_ops.
     usb = documents["usb.md"]
     cm_h = root / "include" / "pb" / "cm.h"
     declared = functions(cm_h, r"cm_transport_\w+")
-    if not declared:
-        members = POINTER_RE.findall(struct_body(cm_h, "cm_transport_ops", report))
-        declared = {f"cm_transport_{member}" for member in members}
     check_entries(usb, declared, "include/pb/cm.h", report, opens=True)
     check_calls(usb, r"cm_transport_\w+", declared, "include/pb/cm.h", report)
     listed = {name for _, names in entries(usb) for name in names}
