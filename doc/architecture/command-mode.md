@@ -282,8 +282,7 @@ Host input is untrusted in every life cycle state, authenticated or not (`securi
 
 ### 4.3 What pb sends
 
-- A result's reserved bytes and every byte a command didn't produce are zero. **Not yet in the
-  code (F-190)**: the partition table's entries carry bytes of the command buffer.
+- A result's reserved bytes and every byte a command didn't produce are zero.
 - A data transfer carries the bytes the command produced and nothing else from the buffers.
   The buffers aren't cleared between sessions; nothing sends their old content.
 - Secrets are never sent and never logged (`security.md` 4.10).

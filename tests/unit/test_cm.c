@@ -2041,6 +2041,37 @@ static void stream_read(uint8_t id, uint32_t size, uint64_t offset)
     host_cmd(PB_CMD_STREAM_READ_BUFFER, &req, sizeof(req));
 }
 
+/* command-mode.md 4.3 (F-190): every byte the command didn't produce is
+ * zero. An entry's reserved bytes and what follows its description are not
+ * what a host left in the buffers. */
+static void test_part_table_sends_only_the_table(void **state)
+{
+    static const uint8_t zeros[sizeof(struct pb_result_part_table_entry)];
+    static uint8_t filled[BUF_SIZE];
+    (void)state;
+
+    memset(filled, 0xa5, sizeof(filled));
+    stream_prepare(0, sizeof(filled), filled);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    const struct pb_result_part_table_entry *e = (const void *)expect_data(2 * sizeof(*e));
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    for (int i = 0; i < 2; i++) {
+        size_t len = strlen(i == 0 ? "Read write" : "Visible");
+
+        assert_memory_equal(e[i].uuid, i == 0 ? UU_RW : UU_RO, 16);
+        assert_memory_equal(e[i].description, i == 0 ? "Read write" : "Visible", len);
+        assert_memory_equal(e[i].description + len, zeros, sizeof(e[i].description) - len);
+        assert_memory_equal(e[i].rz, zeros, sizeof(e[i].rz));
+    }
+}
+
 /* A hidden partition is internal to pb (command-mode.md 5.3, D-058, F-272):
  * every command that names it answers NOT_FOUND, whatever its other flags
  * allow. BOOT_BPAK's UUID is a label and reaches no partition. */
@@ -3462,6 +3493,7 @@ int main(void)
         CM_TEST(test_invalid_command),
         CM_TEST(test_deprecated_commands),
         CM_TEST(test_part_table_read),
+        CM_TEST(test_part_table_sends_only_the_table),
         CM_TEST(test_part_table_install),
         CM_TEST(test_part_activate),
         CM_TEST(test_boot_status),

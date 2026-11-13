@@ -824,6 +824,9 @@ static int cmd_part_tbl_read(void)
         if (!(bio_get_flags(dev) & BIO_FLAG_VISIBLE))
             continue;
 
+        /* The reserved bytes and the end of the description are zero, not
+         * what the buffer held (command-mode.md 4.3) */
+        memset(&result_tbl[entries], 0, sizeof(result_tbl[entries]));
         uuid_copy(result_tbl[entries].uuid, bio_get_uu(dev));
         strncpy(result_tbl[entries].description,
                 bio_get_description(dev),
