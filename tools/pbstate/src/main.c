@@ -286,8 +286,11 @@ int main(int argc, char *const argv[])
             err = pbstate_set_system_verified(PBSTATE_SYSTEM_A);
         else if (strncasecmp(system_verified, "b", 1) == 0)
             err = pbstate_set_system_verified(PBSTATE_SYSTEM_B);
-        else
-            err = -1;
+        else {
+            /* It exited 1 (F-408) */
+            fprintf(stderr, "Error: -v takes a or b, not '%s'\n", system_verified);
+            return EINVAL;
+        }
     } else if (flag_write_board_reg) {
         err = pbstate_write_board_reg(board_reg_index, board_reg_value);
     }

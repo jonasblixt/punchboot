@@ -66,6 +66,26 @@ def test_switch_refuses_what_is_no_system(device: Device, system: str) -> None:
     assert _copies(device) == copies
 
 
+@pytest.mark.parametrize("system", ["x", "none", "", "0"])
+def test_verified_refuses_what_is_no_system(device: Device, system: str) -> None:
+    # F-408: it exited 1, with "operation failed (-1)"
+    device.pbstate("-s", "a", "-c", "3")
+    copies = _copies(device)
+
+    result = device.pbstate_run("-v", system)
+    assert result.returncode == errno.EINVAL
+    assert "-v takes a or b" in result.stderr
+    assert _copies(device) == copies
+
+
+@pytest.mark.parametrize(("system", "verified"), [("a", STATE_A), ("B", STATE_B)])
+def test_verified_marks_a_system(device: Device, system: str, verified: int) -> None:
+    device.pbstate("-s", "a", "-c", "3")
+
+    assert device.pbstate_run("-v", system).returncode == 0
+    assert _state(device)[1] == verified
+
+
 @pytest.mark.parametrize("count", ["1", "255", "256", "300", "0x100", "4294967295"])
 def test_count_is_the_trial_s_attempts(device: Device, count: str) -> None:
     # A trial of that many attempts, A not verified. It was a byte: 256 was
