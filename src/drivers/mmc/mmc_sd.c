@@ -235,7 +235,7 @@ static int sd_add_bio(struct mmc_device *dev)
     bio_dev_t d;
     int rc;
 
-    rc = mmc_bio_check(dev, dev->cfg->user_uu);
+    rc = mmc_bio_check(dev, dev->cfg->user_uu, dev->blocks - 1);
     if (rc != 0)
         return (rc > 0) ? PB_OK : rc;
 

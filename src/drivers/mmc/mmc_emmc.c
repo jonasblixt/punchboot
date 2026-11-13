@@ -559,7 +559,7 @@ static int mmc_add_part(struct mmc_device *dev,
     bio_dev_t d;
     int rc;
 
-    rc = mmc_bio_check(dev, uu);
+    rc = mmc_bio_check(dev, uu, last_lba);
     if (rc != 0)
         return (rc > 0) ? PB_OK : rc;
 
@@ -766,17 +766,20 @@ int mmc_emmc_setup(struct mmc_device *dev)
 
     /* Every UUID before the first device: nothing is registered when the
      * init fails (drivers.md 2.1) */
-    const unsigned char *uus[] = {
-        boot_part_blocks > 0 ? cfg->boot0_uu : NULL,
-        boot_part_blocks > 0 ? cfg->boot1_uu : NULL,
-        rpmb_part_blocks > 0 ? cfg->rpmb_uu : NULL,
-        cfg->user_uu,
+    const struct {
+        const unsigned char *uu;
+        lba_t last_lba;
+    } checks[] = {
+        { boot_part_blocks > 0 ? cfg->boot0_uu : NULL, boot_part_blocks - 1 },
+        { boot_part_blocks > 0 ? cfg->boot1_uu : NULL, boot_part_blocks - 1 },
+        { rpmb_part_blocks > 0 ? cfg->rpmb_uu : NULL, rpmb_part_blocks - 1 },
+        { cfg->user_uu, dev->blocks - 1 },
     };
 
-    for (size_t i = 0; i < ARRAY_SIZE(uus); i++) {
-        if (uus[i] == NULL)
+    for (size_t i = 0; i < ARRAY_SIZE(checks); i++) {
+        if (checks[i].uu == NULL)
             continue;
-        rc = mmc_bio_check(dev, uus[i]);
+        rc = mmc_bio_check(dev, checks[i].uu, checks[i].last_lba);
         if (rc < 0)
             return rc;
     }

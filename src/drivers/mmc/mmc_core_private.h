@@ -86,12 +86,13 @@ int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf
  * Before a device is registered. A device is registered once (bio.md 2.1):
  * 1 when this controller's device with that UUID is there already, from an
  * mmc_init() before; a controller that is set up again keeps the devices it
- * has, with the flags they have by now. 0 when the UUID is free.
- * -PB_ERR_PARAM when another device has it: checked for every device before
- * the first is registered, nothing is registered when init fails
- * (drivers.md 2.1)
+ * has, with the flags they have by now. -PB_ERR_IO when that device's last
+ * block isn't 'last_lba': a card of another size, and a device's range is
+ * what the medium has. 0 when the UUID is free. -PB_ERR_PARAM when another
+ * device has it. Checked for every device before the first is registered:
+ * nothing is registered when init fails (drivers.md 2.1)
  */
-int mmc_bio_check(struct mmc_device *dev, const unsigned char *uu);
+int mmc_bio_check(struct mmc_device *dev, const unsigned char *uu, lba_t last_lba);
 /* PB_OK when the card's last mmc_init() worked, -PB_ERR_STATE otherwise:
  * every bio callback asks first */
 int mmc_bio_ready(const struct mmc_device *dev);

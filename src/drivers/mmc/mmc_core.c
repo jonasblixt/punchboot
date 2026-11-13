@@ -254,7 +254,7 @@ int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf
     return rc;
 }
 
-int mmc_bio_check(struct mmc_device *dev, const unsigned char *uu)
+int mmc_bio_check(struct mmc_device *dev, const unsigned char *uu, lba_t last_lba)
 {
     bio_dev_t d = bio_get_part_by_uu(uu);
 
@@ -266,6 +266,14 @@ int mmc_bio_check(struct mmc_device *dev, const unsigned char *uu)
     }
 
     dev->registered = true;
+
+    if (bio_get_last_block(d) != (int64_t)last_lba) {
+        LOG_ERR("%s: the card has %llu blocks, the device %lld",
+                bio_get_description(d),
+                (unsigned long long)last_lba + 1,
+                (long long)bio_get_last_block(d) + 1);
+        return -PB_ERR_IO;
+    }
     return 1;
 }
 

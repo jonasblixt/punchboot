@@ -721,6 +721,36 @@ static void test_a_failed_second_init_keeps_the_slot(void **state)
     assert_memory_equal(out, in, sizeof(in));
 }
 
+/* bio.md 2.1 (F-406): the range is what the medium has. Another card of
+ * another size behind the same controller fails a second init with
+ * -PB_ERR_IO, where the devices kept the first card's range; they fail
+ * until an init works */
+static void test_a_card_of_another_size_is_refused(void **state)
+{
+    static uint8_t in[512];
+    bio_dev_t user;
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    user = part(UU_USER);
+
+    card_cfg.user_sectors *= 2;
+    assert_int_equal(init(), -PB_ERR_IO);
+    assert_int_equal(devices(), 4);
+    assert_int_equal(bio_get_last_block(user), card_cfg.user_sectors / 2 - 1);
+    assert_int_equal(bio_read(user, 0, sizeof(in), in), -PB_ERR_STATE);
+
+    /* Another size of boot partition */
+    card_cfg.user_sectors /= 2;
+    card_cfg.boot_size_mult *= 2;
+    assert_int_equal(init(), -PB_ERR_IO);
+
+    /* The first card back */
+    card_cfg.boot_size_mult /= 2;
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(bio_read(user, 0, sizeof(in), in), PB_OK);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -762,6 +792,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_a_failed_init_registers_nothing, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_full_pool_leaves_no_working_device, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_failed_second_init_keeps_the_slot, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_card_of_another_size_is_refused, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

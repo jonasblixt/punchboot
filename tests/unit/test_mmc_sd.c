@@ -200,6 +200,30 @@ static void test_a_second_init_adds_no_devices(void **state)
     assert_bench_clean();
 }
 
+/* bio.md 2.1 (F-406): the range is what the medium has. A card of another
+ * size in the slot fails a second init with -PB_ERR_IO, where the device
+ * kept the first card's range; it fails until an init works */
+static void test_a_card_of_another_size_is_refused(void **state)
+{
+    static uint8_t buf[512];
+    bio_dev_t dev;
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    dev = sd();
+
+    card_cfg.sectors *= 2;
+    assert_int_equal(init(), -PB_ERR_IO);
+    assert_int_equal(bio_get_last_block(dev), card_cfg.sectors / 2 - 1);
+    assert_int_equal(bio_read(dev, 0, sizeof(buf), buf), -PB_ERR_STATE);
+
+    card_cfg.sectors /= 2;
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(sd(), dev);
+    assert_int_equal(bio_read(dev, 0, sizeof(buf), buf), PB_OK);
+    assert_bench_clean();
+}
+
 static void test_slow_power_up(void **state)
 {
     (void)state;
@@ -243,6 +267,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sdsc_v1, setup, teardown),
         cmocka_unit_test_setup_teardown(test_default_speed_1bit, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_second_init_adds_no_devices, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_card_of_another_size_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_slow_power_up, setup, teardown),
         cmocka_unit_test_setup_teardown(test_no_card, setup, teardown),
         cmocka_unit_test_setup_teardown(test_data_errors, setup, teardown),
