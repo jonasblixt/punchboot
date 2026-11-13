@@ -433,7 +433,7 @@ host tools ask before they send one; the device doesn't, the command is the deci
 |                              | that aren't set yet                           |                                 |
 | `SLC_SET_CONFIGURATION_LOCK` | Locks: from `CONFIGURATION` only              | In `NOT_CONFIGURED` and in EOL  |
 | `SLC_SET_EOL`                | End of life (`system.md` 4), from any state   | Without the product's option:   |
-|                              | that is known                                 | `NOT_SUPPORTED` (F-263)         |
+|                              | that is known                                 | `NOT_SUPPORTED`                 |
 | `SLC_REVOKE_KEY`             | Revokes the keystore key the command names    | A key the keystore doesn't have |
 
 - **Setting the state the device is in** answers OK: for `CONFIGURATION` the fuses are written
@@ -735,4 +735,3 @@ For a change to command mode, a new command or a new method:
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
-| F-263               | EOL as the product's option (5.2)                                                    |

@@ -456,7 +456,17 @@ static struct {
     size_t no_of_keys; /* 0: two keys */
     int no_of_keys_rc; /* The RoT's error: it isn't set up */
     unsigned int key_reads; /* The key ids and statuses that were asked for */
+    int eol_calls; /* slc_set_eol() */
 } sec;
+
+/* EOL is the product's option (system.md 4, F-263). This file is built with
+ * it, as pb-host is, and without it (test_cm_no_eol), as every board is:
+ * SLC_SET_EOL then answers NOT_SUPPORTED and reaches nothing */
+#ifdef CONFIG_SLC_EOL
+#define EOL_RESULT PB_RESULT_OK
+#else
+#define EOL_RESULT (-PB_RESULT_NOT_SUPPORTED)
+#endif
 
 slc_t slc_read_status(void)
 {
@@ -479,6 +489,7 @@ int slc_set_configuration_locked(void)
 
 int slc_set_eol(void)
 {
+    sec.eol_calls++;
     if (sec.set_rc == PB_OK)
         sec.slc = SLC_EOL;
     return sec.set_rc;
@@ -1851,8 +1862,50 @@ static void test_slc_commands(void **state)
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
-    expect_result(PB_RESULT_OK);
+    expect_result(EOL_RESULT);
+#ifdef CONFIG_SLC_EOL
     assert_int_equal(sec.slc, SLC_EOL);
+#else
+    assert_int_equal(sec.slc, SLC_CONFIGURATION_LOCKED);
+#endif
+    expect_end();
+}
+
+/*
+ * EOL is the product's option, CONFIG_SLC_EOL, off by default (system.md 4,
+ * command-mode.md 5.2, F-263). With it SLC_SET_EOL moves the device to EOL.
+ * Without it the command answers NOT_SUPPORTED, never INVALID_COMMAND (4.5),
+ * behind the gate, and reaches nothing: the device can't enter EOL, also
+ * where the port could. That is what a device answers whose port has no
+ * set_eol.
+ */
+static void test_eol_is_the_products_option(void **state)
+{
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_SLC_SET_EOL, NULL, 0);
+    host_auth_token();
+    host_cmd(PB_CMD_SLC_SET_EOL, NULL, 0);
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    run();
+
+    /* Behind the gate, with and without the option */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(EOL_RESULT);
+
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+#ifdef CONFIG_SLC_EOL
+    assert_int_equal(sec.eol_calls, 1);
+    assert_int_equal(((const struct pb_result_slc *)r->response)->slc, SLC_EOL);
+#else
+    assert_int_equal(sec.eol_calls, 0);
+    assert_int_equal(((const struct pb_result_slc *)r->response)->slc, SLC_CONFIGURATION_LOCKED);
+#endif
+    expect_data(sizeof(struct pb_result_slc_key_status));
+    expect_result(PB_RESULT_OK);
     expect_end();
 }
 
@@ -1863,7 +1916,11 @@ static void test_slc_errors(void **state)
     sec.set_rc = -PB_ERR_IO;
     host_cmd(PB_CMD_SLC_SET_EOL, NULL, 0);
     run();
+#ifdef CONFIG_SLC_EOL
     expect_result(-PB_RESULT_IO_ERROR);
+#else
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+#endif
     assert_int_equal(sec.slc, SLC_CONFIGURATION);
 
     /* An SLC that can't be read counts as locked */
@@ -4018,7 +4075,7 @@ static const int8_t gate_open_results[PB_CMD_END] = {
     [PB_CMD_DEVICE_READ_CAPS] = PB_RESULT_OK,
     [PB_CMD_SLC_SET_CONFIGURATION] = PB_RESULT_OK,
     [PB_CMD_SLC_SET_CONFIGURATION_LOCK] = PB_RESULT_OK,
-    [PB_CMD_SLC_SET_EOL] = PB_RESULT_OK,
+    [PB_CMD_SLC_SET_EOL] = EOL_RESULT,
     [PB_CMD_SLC_REVOKE_KEY] = PB_RESULT_OK,
     [PB_CMD_SLC_READ] = PB_RESULT_OK,
     [PB_CMD_BOOTLOADER_VERSION_READ] = PB_RESULT_OK,
@@ -4215,6 +4272,7 @@ int main(void)
         CM_TEST(test_auth_failure_delay_counts_from_the_data),
         CM_TEST(test_auth_not_delayed),
         CM_TEST(test_slc_commands),
+        CM_TEST(test_eol_is_the_products_option),
         CM_TEST(test_slc_errors),
         CM_TEST(test_unknown_slc_requires_auth),
         CM_TEST(test_slc_read_key_status),

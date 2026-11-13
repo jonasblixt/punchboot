@@ -1416,7 +1416,14 @@ static int pb_command_parse(void)
     } break;
     case PB_CMD_SLC_SET_EOL: {
         LOG_DBG("Set EOL");
+#ifdef CONFIG_SLC_EOL
         rc = slc_set_eol();
+#else
+        /* EOL without the product's option (system.md 4): the build left
+         * it out, which is NOT_SUPPORTED and never INVALID_COMMAND
+         * (command-mode.md 4.5, 5.2) */
+        rc = -PB_ERR_NOT_SUPPORTED;
+#endif
         pb_wire_init_result(&result, error_to_wire(rc));
         slc = slc_read_status();
     } break;

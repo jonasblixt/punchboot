@@ -72,3 +72,21 @@ def test_ready_timeout_of_every_defconfig_fits(
         pytest.skip("No command mode in this build")
 
     assert 1 <= int(kconf.syms[READY_TIMEOUT].str_value) * 1000000 <= TIMEOUT_US_MAX
+
+
+@pytest.mark.parametrize("defconfig", DEFCONFIGS)
+def test_eol_is_off_unless_the_product_chose_it(
+    load_config: Callable[[str], Any], defconfig: str
+) -> None:
+    # EOL is the product's option, off by default (system.md 4, F-263): no
+    # board's build can enter EOL. The host's has it, for the tests
+    eol = load_config(defconfig).syms["SLC_EOL"]
+
+    assert eol.str_value == ("y" if defconfig == "host_defconfig" else "n")
+
+
+def test_eol_is_off_by_default(load_config: Callable[[str], Any]) -> None:
+    eol = load_config("host_defconfig").syms["SLC_EOL"]
+    eol.unset_value()
+
+    assert eol.str_value == "n"

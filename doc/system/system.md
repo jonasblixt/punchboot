@@ -116,8 +116,7 @@ order is the core's (D-027), the fuses the platform's.
   - A port implements EOL only as the SoC's own state and says in its document what the ROM and
     the keys do then. Command mode is open in EOL because of that state, never because of a
     flag pb keeps.
-  - **Not yet in the code (F-263)**: only the host platform implements EOL, and there is no
-    option.
+  - **Not yet in the code (F-263)**: only the host platform implements EOL.
 
 ## 5. What pb promises
 

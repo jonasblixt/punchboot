@@ -39,7 +39,7 @@ struct slc_config {
     slc_t (*read_status)(void);
     int (*set_configuration)(void); /*!< Optional with 'fuses' */
     int (*set_configuration_locked)(void);
-    int (*set_eol)(void);
+    int (*set_eol)(void); /*!< Called with CONFIG_SLC_EOL only (system.md 4) */
     const struct slc_fuse *fuses;
     size_t fuses_length;
     int (*fuse_read)(uint32_t index, uint32_t *value); /*!< Required with 'fuses' */
@@ -50,6 +50,14 @@ int slc_init(const struct slc_config *cfg);
 slc_t slc_read_status(void);
 int slc_set_configuration(void);
 int slc_set_configuration_locked(void);
+/**
+ * Moves the device to end of life, from any state that is known
+ *
+ * @return PB_OK, also when the device is in EOL already,
+ *        -PB_ERR_NOT_SUPPORTED without CONFIG_SLC_EOL, the product's option
+ *         (system.md 4), and where the port has no set_eol,
+ *         the error of a life cycle that can't be read, or the port's
+ */
 int slc_set_eol(void);
 
 #endif // INCLUDE_PB_SLC_H

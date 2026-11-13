@@ -691,7 +691,7 @@ aren't the board's data (`system.md` 6):
 selected the device tree code: a board that is ported sets the handover's option with it, or it
 doesn't link.
 
-**Not yet in the code (F-251, F-263)**: `CM_ON_SERIAL_DOWNLOAD`, the EOL option.
+**Not yet in the code (F-251)**: `CM_ON_SERIAL_DOWNLOAD`.
 
 **Not yet in the code (F-239)**: the board's addresses (`PB_ENTRY`, `BOARD_RAM_BASE`, `_END`) are
 make variables and `-D` flags in `makefile.mk`; `platform.md` 5.1 makes them Kconfig values

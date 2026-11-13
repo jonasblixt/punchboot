@@ -134,6 +134,32 @@ pb_unit_test(test_rot
     LIBS pb_keystore
 )
 
+# EOL is the product's option, CONFIG_SLC_EOL (system.md 4, F-263): off by
+# default and on in configs/host_defconfig, for the tests. The build without
+# it is the host's configuration less that line, first on the include path
+file(READ ${PROJECT_BINARY_DIR}/config.h PB_CONFIG_H)
+string(REPLACE "#define CONFIG_SLC_EOL 1\n" "" PB_CONFIG_H_NO_SLC_EOL "${PB_CONFIG_H}")
+if(PB_CONFIG_H_NO_SLC_EOL STREQUAL PB_CONFIG_H)
+    message(FATAL_ERROR "configs/host_defconfig: CONFIG_SLC_EOL is not set, the EOL tests need it")
+endif()
+set(PB_NO_SLC_EOL_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_slc_eol)
+file(CONFIGURE OUTPUT ${PB_NO_SLC_EOL_DIR}/config.h CONTENT "${PB_CONFIG_H_NO_SLC_EOL}" @ONLY)
+
+# pb_no_slc_eol_test(name <test file> <modules under test>...)
+function(pb_no_slc_eol_test name)
+    add_executable(${name} ${ARGN})
+    target_include_directories(${name} BEFORE PRIVATE ${PB_NO_SLC_EOL_DIR})
+    target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(${name} PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+    add_test(NAME unit.${name} COMMAND ${name})
+    set_tests_properties(unit.${name} PROPERTIES LABELS unit TIMEOUT 60)
+endfunction()
+
+# slc.c without the option: the device can't enter EOL
+pb_no_slc_eol_test(test_slc_no_eol test_slc_no_eol.c
+    ${PROJECT_SOURCE_DIR}/src/slc.c
+)
+
 pb_unit_test(test_imx_iomuxc SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/pinctrl/imx_iomuxc.c
 )
@@ -418,6 +444,19 @@ pb_unit_test(test_cm SOURCES
 )
 # Both methods, whatever pb-host is built with: its board has no password
 target_compile_definitions(test_cm PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
+
+# Command mode without CONFIG_SLC_EOL: the same tests, SLC_SET_EOL answers
+# NOT_SUPPORTED (command-mode.md 4.5, 5.2)
+pb_no_slc_eol_test(test_cm_no_eol test_cm.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
+    ${PROJECT_SOURCE_DIR}/src/log_source.c
+    ${PROJECT_SOURCE_DIR}/src/ramlog.c
+    ${PROJECT_SOURCE_DIR}/src/wire.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/crypto.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+)
+target_compile_definitions(test_cm_no_eol PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
 
 # A build with CONFIG_CM_AUTH and no method doesn't build (command-mode.md
 # 3.2, D-059): pb/cm.h with a configuration that has the gate and no method

@@ -130,8 +130,14 @@ int slc_set_configuration_locked(void)
     return cfg->set_configuration_locked();
 }
 
+/*
+ * EOL is the product's option, CONFIG_SLC_EOL (system.md 4). Without it the
+ * device can't enter EOL: nothing of the port's is called, whatever the port
+ * has, and the answer is the one of a port without set_eol.
+ */
 int slc_set_eol(void)
 {
+#ifdef CONFIG_SLC_EOL
     slc_t slc;
 
     if (!cfg || !cfg->set_eol)
@@ -148,4 +154,7 @@ int slc_set_eol(void)
     }
 
     return cfg->set_eol();
+#else
+    return -PB_ERR_NOT_SUPPORTED;
+#endif
 }
