@@ -10,6 +10,7 @@
  * the primary and the backup state partitions.
  */
 
+#include <errno.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -17,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <cmocka.h>
@@ -181,6 +183,54 @@ static void test_a_write_syncs(void **state)
     assert_int_equal(syncs, 2);
 }
 
+/*
+ * boot.md 3: a primary that can't be read is as one that is corrupt, the
+ * backup is used (F-405: the read's error was returned, where pb boots from
+ * a good backup). A write repairs the primary.
+ */
+static void test_a_primary_that_cannot_be_read_falls_back(void **state)
+{
+    unsigned int attempts;
+    uint32_t value;
+
+    (void)state;
+
+    for (off_t length = 0; length < (off_t)sizeof(struct pb_boot_state); length += 13) {
+        write_state(PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, 0);
+        assert_int_equal(truncate(primary, length), 0);
+
+        assert_int_equal(pbstate_is_system_active(PBSTATE_SYSTEM_B), 1);
+        assert_int_equal(pbstate_is_system_verified(PBSTATE_SYSTEM_A), 1);
+        assert_int_equal(pbstate_get_remaining_boot_attempts(&attempts), 0);
+        assert_int_equal(attempts, 2);
+        assert_int_equal(pbstate_get_errors(&value), 0);
+
+        assert_int_equal(pbstate_set_system_verified(PBSTATE_SYSTEM_B), 0);
+        assert_state(PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    }
+}
+
+/* Both copies bad: the error, and nothing written */
+static void test_no_copy_can_be_read(void **state)
+{
+    struct stat st;
+
+    (void)state;
+
+    write_state(PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    assert_int_equal(truncate(primary, 0), 0);
+    assert_int_equal(truncate(backup, 7), 0);
+
+    assert_int_equal(pbstate_is_system_active(PBSTATE_SYSTEM_A), -EIO);
+    assert_int_equal(pbstate_set_system_verified(PBSTATE_SYSTEM_B), -EIO);
+    assert_int_equal(pbstate_write_board_reg(0, 1), -EIO);
+
+    assert_int_equal(stat(primary, &st), 0);
+    assert_int_equal(st.st_size, 0);
+    assert_int_equal(stat(backup, &st), 0);
+    assert_int_equal(st.st_size, 7);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -188,6 +238,8 @@ int main(void)
         cmocka_unit_test(test_confirming_the_other_slot_keeps_the_trial),
         cmocka_unit_test(test_a_read_does_not_sync),
         cmocka_unit_test(test_a_write_syncs),
+        cmocka_unit_test(test_a_primary_that_cannot_be_read_falls_back),
+        cmocka_unit_test(test_no_copy_can_be_read),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);

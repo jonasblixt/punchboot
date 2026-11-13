@@ -116,19 +116,16 @@ static int open_and_load_state(bool wr)
 
     rc = read_state(fd);
 
-    if (rc != 0) {
-        goto err_close_and_release_out;
-    }
-
-    rc = verify_state();
+    if (rc == 0)
+        rc = verify_state();
 
     // If the primary state is okay, we just return the fd and won't check
     // the backup state since it will be overwritten anyway.
     if (rc == 0)
         return fd;
 
-    // If the primary state is corruptet we should try to load the
-    // backup.
+    // If the primary state can't be read or is corrupt we should try to
+    // load the backup, as pb does (F-405).
     backup_fd = open(backup_device, wr ? O_RDWR : O_RDONLY);
 
     if (backup_fd == -1) {
