@@ -682,6 +682,13 @@ static int cmd_part_verify(void)
         return -PB_ERR_PARAM;
     }
 
+    /* The header is part of the size: less than one would wrap below */
+    if (verify_cmd->bpak && verify_cmd->size < sizeof(struct bpak_header)) {
+        LOG_ERR("Size %" PRIu32 " is less than a bpak header", verify_cmd->size);
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);
+        return -PB_ERR_PARAM;
+    }
+
     rc = hash_init(HASH_SHA256);
 
     if (rc != PB_OK) {

@@ -1945,6 +1945,40 @@ static void test_part_verify_small_partition(void **state)
     expect_end();
 }
 
+/* With bpak the size is at least 4 KiB (command-mode.md 5.3, F-190): the
+ * header is part of it. A smaller size is refused before anything is read or
+ * hashed; it used to wrap, and the partition was read to its end. A header
+ * alone is a size. */
+static void test_part_verify_bpak_size_below_a_header(void **state)
+{
+    static const uint32_t bad_sizes[] = { 0, 1, 1024, sizeof(struct bpak_header) - 1 };
+    struct fixture *f = *state;
+    uint8_t *header = ramdisk_block(f->disk, RW_FIRST_LBA + RW_BLOCKS - 8);
+    struct pb_command_verify_part req;
+
+    memset(header, 0x3c, sizeof(struct bpak_header));
+
+    for (size_t i = 0; i < ARRAY_SIZE(bad_sizes); i++) {
+        req = verify_req(bad_sizes[i], true, header);
+        host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    }
+    run();
+
+    for (size_t i = 0; i < ARRAY_SIZE(bad_sizes); i++)
+        expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_end();
+    assert_int_equal(crypto.alg, 0);
+    assert_int_equal(crypto.updates, 0);
+
+    t.init_calls = 0;
+    req = verify_req(sizeof(struct bpak_header), true, header);
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(crypto.updates, 1);
+}
+
 /* Hosts send the partition's first block from the partition table (10 for
  * UU_RW) plus the blocks already erased (F-055) */
 static void test_part_erase(void **state)
@@ -3526,6 +3560,7 @@ int main(void)
         CM_TEST(test_part_verify_kicks_per_chunk),
         CM_TEST(test_part_verify_errors),
         CM_TEST(test_part_verify_small_partition),
+        CM_TEST(test_part_verify_bpak_size_below_a_header),
         CM_TEST(test_part_erase),
         CM_TEST(test_part_erase_needs_writable),
         CM_TEST(test_hidden_partition),

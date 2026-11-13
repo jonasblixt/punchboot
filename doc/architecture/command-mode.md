@@ -498,8 +498,7 @@ sets `READABLE`, which is why `part read` fails on them (F-083).
 - **`PART_VERIFY`**: the bytes are the partition's first `size` bytes. With `bpak` set they
   are a bpak file's: the header from the partition's last 4 KiB, then `size` less 4 KiB from
   the start. `size` is any number of bytes inside the partition, at least 4 KiB with `bpak`,
-  and exactly those bytes are hashed. **Not yet in the code (F-190)**: a `bpak` size below
-  4 KiB wraps. It
+  and exactly those bytes are hashed. It
   changes nothing, the stream neither. **Not yet in the code (F-365)**: it hashes through the
   stream's buffers, so a buffer the host filled is overwritten. The flag is bpak's layout in a
   partition and nothing more: the header isn't parsed. Without it the command hashes bytes,
