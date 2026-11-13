@@ -133,6 +133,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | uninitialised stack. | | |
 | | | 2026-11-13: `mmc_bio_xfer()` with `max_chunk_bytes == 0` ends with -PB_ERR_PARAM since F-182, where | | |
 | | | it looped | | |
+| | | 2026-11-13 (`af45e648`, `507e30fd`, `74d45226`): `plat_get_unique_id()` returns a failed fuse read's | | |
+| | | error on the 6UL, 8M and RT and writes nothing; a readable device's bytes are pinned | | |
 | F-201 | `src/drivers/usb/usbd.c:28` | `enumerated` is never cleared: on the 8MP EVK a replug or | Reported | open |
 | | | bus reset ends in a read on an unconfigured EP2, `cm_run` exits and the board resets. Clear it in | | |
 | | | `usbd_init()` and on bus reset. | | |
@@ -151,6 +153,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `base` stays 0, kicks and `imx_wdog_reset_now()` write at address 0 and `plat_reset()` spins (every | | |
 | | | defconfig has it on). WT is `delay_s * 2` unmasked: 5.5 s for 5, 128 s wraps. `reset_now` also clears | | |
 | | | WDA. | | |
+| | | 2026-11-13: `base` 0 was fixed by `f85aa2b6`, and a test builds the 6UL port without the option | | |
+| | | (`b85f9a75`); 128 s or more is the longest time-out, not a wrapped one (`62907e94`); that the | | |
+| | | software reset clears WDA is kept and written in the header (`666df7f1`). Left, for Jonas: WT is | | |
+| | | still `delay_s * 2`, half a second more than configured. `bec794b7` on the branch `pkg-plat` makes | | |
+| | | it exact and wasn't landed: it shortens every 6UL, 8M and RT board's watchdog by 0.5 s (5.0 s where | | |
+| | | an OS in the field has had 5.5 s to take over) | | |
 | F-207 | `src/arch/*/entry*` | The D-cache is enabled without invalidating it first (v7a, v7m, | Reported | open |
 | | | v8a). The 6UL and RT ROMs use the caches and only disable them (RMs 8.4.4, 9.5.4); a stale valid line | | |
 | | | would serve old data. Plausible, jiffy works. Invalidate by set/way before enabling. | | |
@@ -220,12 +228,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | a changelog, SECURITY.md. Nothing on storage, USB or exceptions (the overview that lacked them is | | |
 | | | removed, D-062); `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
 | | | step 4. | | |
-| F-236 | `plat_boot_reason` | `src/plat/*/plat.c`: No common meaning: the 6UL's own enum, | Verified (code) | open |
-| | | the 8X's SCFW value, the RT's raw WRSR bitmask (several bits set: "?"), the 8M not implemented, the host 0. | | |
-| | | `platform.md` 3: `plat_get_boot_reason()` with a kind, the raw value and a name | | |
-| F-238 | `plat/{imx8m,imxrt}/plat.c` | The tick and `log_time_start()` are set up in | Verified (code) | open |
-| | | `plat_init()`, after `board.console_init()`: before it there is no `pb_delay_*()` and the log time is 0. | | |
-| | | The 6UL and the 8X do it in `plat_early_init()` | | |
 | F-239 | link scripts | `PB_ENTRY` repeated as a constant in | Verified (code) | open |
 | | | `src/plat/{imx6ul,imx8x}/link.lds` and `src/board/imxrt1060evk/link.lds` (0x80001000, 0x80020000, | | |
 | | | 0x20249000); the RT's `MEMORY` is in its board. `buffers` fixed in the platforms, `BOARD_RAM_*` only `-D` | | |
@@ -747,6 +749,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | GPT's counter through a base of 0, because `gpt_base` isn't set yet; F-238 ends it. The 8MP EVK's | | |
 | | | `board_console_init()` writes the IOMUXC before `plat_init()` opens its clock gates; it works on the | | |
 | | | bench (read only). `command-mode.md` 2.1 still names F-235 in its text | | |
+| | | 2026-11-13 (`b7de7409`): the 8X names reasons 13 and 14. The GPT item was a direct | | |
+| | | `plat_get_us_tick()` caller before `plat_init()`, not the log's prefix; F-238 ended it. Left: the | | |
+| | | 8MP EVK's console set-up before its clock gate, and `command-mode.md` 2.1 naming F-235 | | |
 | F-413 | `board/{imx8mevk,host}`, `cm_main.c`, `board.md` 4.4 | From F-095's package. | Reported (read) | open |
 | | | imx8mevk's `board_command()` writes `response[(*response_size)++] = 0` after `snprintf()`, past its | | |
 | | | room when the text is longer, and several boards return `snprintf()`'s full length as the size (the | | |
@@ -759,6 +764,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-414 | `doc/guides/testing.md`, `bio.md` | From F-191's package. The coverage note in | Reported (read) | open |
 | | | `testing.md` names `gpt.c` lines 298 and 383 to 389 as unreachable; that code is gone. The tables in | | |
 | | | `bio.md` 2.4 and section 8 are wider than the aligner makes them (they were before the package) | | |
+| F-416 | `cm_main.c`, `pb_dev_cls.c`, `plat/imx8x`, Kconfig | From F-236's package. `cm_setup()` | Reported (read) | open |
+| | | and `pb_dev_cls.c:129` ignore `device_uuid()`'s error: after a failed fuse read command mode keeps a | | |
+| | | null UUID and the USB serial string comes from an uninitialised local. The 8X's | | |
+| | | `plat_get_unique_id()` can't fail (`sc_misc_unique_id()` returns no error). | | |
+| | | `CONFIG_WATCHDOG_TIMEOUT` has no Kconfig range, the i.MX driver clamps silently (0 is 0.5 s). The | | |
+| | | 6UL and the RT rely on GPT1's clock gates being open from reset. `testing.md` has no rows for | | |
+| | | `test_plat_imx6ul`, `test_plat_imx8m` and `test_imx_wdog` | | |
 
 ## Dependencies / vendored code
 

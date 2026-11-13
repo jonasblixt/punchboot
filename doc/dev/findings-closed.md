@@ -944,6 +944,20 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | for the reboot and then failed left the request standing: the next command that returned PB_OK | | |
 | | | reset the board, a frame the gate refused included. Found with F-252. The request is dropped | | |
 | | | with the command that failed (`command-mode.md` 5.6: only when that command returned PB_OK) | | |
+| F-238 | `plat/{imx8m,imxrt}/plat.c` | The tick and `log_time_start()` are set up in | Verified (code) | fixed (`fc034837`, `0f5e3d27`) |
+| | | `plat_init()`, after `board.console_init()`: before it there is no `pb_delay_*()` and the log time is 0. | | |
+| | | The 6UL and the 8X do it in `plat_early_init()` | | |
+| | | The 8M starts the tick and the log time last in `plat_early_init()`, same values. The RT runs GPT1 | | |
+| | | from the 24 MHz crystal (`imx_gpt_init_24m()`, CR 0x743, PR 0x7002) from `plat_early_init()`. | | |
+| | | Neither ran on a board: the RT's tick rate is to be checked against a clock, and `0f5e3d27` reverts | | |
+| | | alone | | |
+| F-236 | `plat_boot_reason` | `src/plat/*/plat.c`: No common meaning: the 6UL's own enum, | Verified (code) | fixed (`8917bb88`..`2ac77cc8`) |
+| | | the 8X's SCFW value, the RT's raw WRSR bitmask (several bits set: "?"), the 8M not implemented, the host 0. | | |
+| | | `platform.md` 3: `plat_get_boot_reason()` with a kind, the raw value and a name | | |
+| | | `plat_get_boot_reason()` with a kind, the raw value and a name on every port and the host; | | |
+| | | `plat_boot_reason()` and `plat_boot_reason_str()` are gone. No port writes a status register. The | | |
+| | | banner is `PB <ver>, <name> (0x<raw>)`. The mappings chosen where the contract is silent are in the | | |
+| | | log (2026-11-13), for Jonas. Not run on a board | | |
 
 ## Dependencies / vendored code
 
