@@ -433,7 +433,7 @@ The partition tables:
 | Every entry checked                 | yes (`test_gpt`)     | partly | F-006               |
 | The device's block size             | no: 512 in four      | yes    | F-283               |
 |                                     | places               |        |                     |
-| Repair writes only the bad copy     | no                   | n/a    | F-195, F-191, F-064 |
+| Repair writes only the bad copy     | no                   | n/a    | F-195, F-064        |
 | An installed table in effect        | no                   | n/a    | F-194               |
 | Tested on the host                  | yes (`test_gpt`,     | no     | F-230               |
 |                                     | `test_gpt.py`)       |        |                     |
@@ -464,6 +464,6 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |
 | F-199, F-200, F-281 | Timeouts and their codes; sizes from the card; addresses above 4 GiB           |
 | F-006               | A GPT's two copies are compared (4)                                            |
-| F-195, F-191, F-064 | The GPT's repair and its backup's place (4)                                    |
+| F-195, F-064        | The GPT's repair and its backup's place (4)                                    |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

@@ -77,7 +77,8 @@ static struct gpt_primary_tbl primary __aligned(64);
 static struct gpt_backup_tbl backup __aligned(64);
 static uint8_t gpt_pmbr[512];
 static bio_dev_t gpt_dev;
-/* The first block of the backup, as it is read: its array, then its header */
+/* The first block of the backup: its array's, which its header gives. The
+ * header is in the device's last block */
 static lba_t backup_first_lba;
 static const struct gpt_table_list *tables;
 static size_t tables_length;
@@ -165,8 +166,7 @@ static uint32_t gpt_array_blocks(bio_dev_t dev, const struct gpt_header *hdr)
  * made of it only when its blocks are in the device, which also means that
  * they fit lba_t, the first isn't after the last, and none is one of the
  * table's own: the protective MBR, the primary header and its array at the
- * start of the device, the backup's array and its header in the last 33
- * blocks, where this driver reads them. */
+ * start of the device, the backup's array and its header at the end. */
 static bool gpt_entry_is_valid(bio_dev_t dev, const struct gpt_part_hdr *part)
 {
     const uint64_t last_lba = (uint64_t)bio_get_last_block(dev);
@@ -289,7 +289,9 @@ static int gpt_write_tbl(bio_dev_t dev)
      * the LBA a header from the medium gives for itself (bio.md 4) */
     LOG_DBG("writing primary gpt tbl to lba 1");
 
-    err = bio_write(dev, 1, sizeof(primary), &primary);
+    const size_t array_sz = (size_t)gpt_array_blocks(dev, &primary.hdr) * bio_block_size(dev);
+
+    err = bio_write(dev, 1, sizeof(struct gpt_header) + array_sz, &primary);
 
     if (err != PB_OK) {
         LOG_ERR("error writing primary gpt table (%i)", err);
@@ -306,8 +308,7 @@ static int gpt_write_tbl(bio_dev_t dev)
 
     hdr->backup_lba = primary.hdr.current_lba;
     hdr->current_lba = last_lba;
-    hdr->entries_start_lba =
-        (last_lba - ((hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / bio_block_size(dev)));
+    hdr->entries_start_lba = last_lba - gpt_array_blocks(dev, hdr);
 
     hdr->hdr_crc = 0;
     hdr->part_array_crc =
@@ -316,10 +317,68 @@ static int gpt_write_tbl(bio_dev_t dev)
     crc_tmp = efi_crc32((uint8_t *)hdr, sizeof(struct gpt_header) - GPT_HEADER_RSZ);
     backup.hdr.hdr_crc = crc_tmp;
 
-    /* Write backup GPT table */
+    /* Write backup GPT table: the array's blocks, as many as the entries
+     * take, and then the header that makes them valid */
     LOG_INFO("Writing backup GPT tbl to LBA %" PRIu64, backup.hdr.entries_start_lba);
 
-    return bio_write(dev, backup.hdr.entries_start_lba, sizeof(backup), &backup);
+    err = bio_write(dev, (lba_t)backup.hdr.entries_start_lba, array_sz, backup.part);
+
+    if (err != PB_OK) {
+        LOG_ERR("error writing backup gpt array (%i)", err);
+        return err;
+    }
+
+    backup_first_lba = (lba_t)backup.hdr.entries_start_lba;
+
+    return bio_write(dev, (lba_t)last_lba, sizeof(struct gpt_header), &backup.hdr);
+}
+
+/* Reads the backup: its header from the device's last block, and its array
+ * from where the header says. 'valid' is whether both are. The return value
+ * is the reads': a copy that can't be read isn't a bad one. */
+static int gpt_read_backup(bio_dev_t dev, bool *valid)
+{
+    int rc;
+    const lba_t hdr_lba = (lba_t)bio_get_last_block(dev);
+    const lba_t array_lba = hdr_lba - ((128 * sizeof(struct gpt_part_hdr)) / 512);
+
+    *valid = false;
+
+    /* The header, and the array of 128 entries before it, where every tool
+     * puts it: one read */
+    rc = bio_read(dev, array_lba, sizeof(backup), &backup);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (gpt_has_valid_header(&backup.hdr) != PB_OK)
+        return PB_OK;
+
+    /* The array's place is input: after the primary's header, before its
+     * own, all of it */
+    const uint64_t first_lba = backup.hdr.entries_start_lba;
+    const uint32_t blocks = gpt_array_blocks(dev, &backup.hdr);
+
+    if (first_lba < 2 || first_lba > hdr_lba || blocks > hdr_lba - first_lba) {
+        LOG_ERR("Backup array at %" PRIu64 ", %u blocks", first_lba, blocks);
+        return PB_OK;
+    }
+
+    /* A table of fewer entries has its array closer to the header */
+    if (first_lba != array_lba) {
+        rc = bio_read(dev, (lba_t)first_lba, (size_t)blocks * bio_block_size(dev), backup.part);
+
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    if (gpt_has_valid_part_array(&backup.hdr, backup.part) != PB_OK)
+        return PB_OK;
+
+    backup_first_lba = (lba_t)first_lba;
+    *valid = true;
+
+    return PB_OK;
 }
 
 static int gpt_install_partition_table(bio_dev_t dev, int variant)
@@ -361,6 +420,7 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
     int rc;
     uuid_t uu;
     char name[37];
+    bool backup_valid;
 
     LOG_INFO("Init");
 
@@ -386,9 +446,7 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
     if (rc != PB_OK)
         return rc;
 
-    backup_first_lba = bio_get_last_block(dev) - ((128 * sizeof(struct gpt_part_hdr)) / 512);
-
-    rc = bio_read(dev, backup_first_lba, sizeof(backup), &backup);
+    rc = gpt_read_backup(dev, &backup_valid);
 
     if (rc != PB_OK)
         return rc;
@@ -397,13 +455,8 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
         LOG_ERR("Primary GPT table is corrupt or missing,"
                 " trying to recover backup");
 
-        if (gpt_has_valid_header(&backup.hdr) != PB_OK) {
-            LOG_ERR("Invalid backup GPT header, unable to recover");
-            return -PB_ERR;
-        }
-
-        if (gpt_has_valid_part_array(&backup.hdr, backup.part) != PB_OK) {
-            LOG_ERR("Invalid backup GPT part array, unable to recover");
+        if (!backup_valid) {
+            LOG_ERR("Invalid backup GPT, unable to recover");
             return -PB_ERR;
         }
 
@@ -424,7 +477,7 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
         }
     }
 
-    if (gpt_is_valid(&backup.hdr, backup.part) != PB_OK) {
+    if (!backup_valid) {
         LOG_ERR("Backup GPT table is corrupt or missing,"
                 " trying to recover from primary");
 

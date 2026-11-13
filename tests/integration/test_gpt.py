@@ -111,3 +111,22 @@ def test_empty_entry_is_skipped(device: Device) -> None:
     device.stop()
     assert device.read_blocks(0, DISK_BLOCKS) == before
     device.start()
+
+
+def test_table_with_fewer_entries(blank_device: Device) -> None:
+    """A valid table of 32 entries is used as it is, boot after boot (F-191)."""
+    blank_device.stop()
+    sgdisk(blank_device.disk, "-o", "-S", "32", "-a", "1", "-n", "1:10:1087", "-n", "2:1088:65526")
+    before = blank_device.read_blocks(0, DISK_BLOCKS)
+
+    for _ in range(2):
+        blank_device.start()
+        assert sorted(partitions(blank_device).values()) == [
+            (0, DISK_BLOCKS - 1),
+            (10, 1087),
+            (1088, 65526),
+        ]
+        blank_device.stop()
+        assert blank_device.read_blocks(0, DISK_BLOCKS) == before
+
+    blank_device.start()

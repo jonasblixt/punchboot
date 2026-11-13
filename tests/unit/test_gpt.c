@@ -211,6 +211,9 @@ static void test_both_tables_corrupt_fails(void **state)
 /* Offsets in the on-disk GPT header */
 #define HDR_CRC            16
 #define HDR_MY_LBA         24
+#define HDR_FIRST_USABLE   40
+#define HDR_LAST_USABLE    48
+#define HDR_ENTRIES_LBA    72
 #define HDR_NO_OF_PARTS    80
 #define HDR_PART_ENTRY_SZ  84
 #define HDR_PART_ARRAY_CRC 88
@@ -417,6 +420,134 @@ static void test_repair_writes_no_partition(void **state)
     free(before);
 }
 
+/* A table of 32 entries, as another tool makes it ('sgdisk -S 32'): the
+ * default layout's partitions, arrays of 8 blocks, the backup's the 8 before
+ * its header. Blocks 10 to 33 and the 24 before the backup's array are usable
+ * then, and here they hold data. */
+#define SMALL_ENTRIES      32
+#define SMALL_ARRAY_BLOCKS 8
+#define SMALL_BACKUP_ARRAY (DISK_BLOCKS - 1 - SMALL_ARRAY_BLOCKS)
+#define SMALL_DATA_BLOCKS  (32 - SMALL_ARRAY_BLOCKS)
+
+static void install_small_table(struct fixture *f)
+{
+    uint8_t *primary = ramdisk_block(f->disk, PRIMARY_HDR);
+    uint8_t *backup = ramdisk_block(f->disk, BACKUP_HDR);
+
+    install_and_reboot(f, 0);
+    memmove(ramdisk_block(f->disk, SMALL_BACKUP_ARRAY),
+            ramdisk_block(f->disk, BACKUP_ARRAY),
+            SMALL_ARRAY_BLOCKS * RAMDISK_BLOCK_SIZE);
+    set_hdr_field(primary, HDR_NO_OF_PARTS, SMALL_ENTRIES);
+    set_hdr_field(primary, HDR_FIRST_USABLE, 2 + SMALL_ARRAY_BLOCKS);
+    set_hdr_field(primary, HDR_LAST_USABLE, SMALL_BACKUP_ARRAY - 1);
+    set_hdr_field(backup, HDR_NO_OF_PARTS, SMALL_ENTRIES);
+    set_hdr_field(backup, HDR_FIRST_USABLE, 2 + SMALL_ARRAY_BLOCKS);
+    set_hdr_field(backup, HDR_LAST_USABLE, SMALL_BACKUP_ARRAY - 1);
+    set_hdr_field(backup, HDR_ENTRIES_LBA, SMALL_BACKUP_ARRAY);
+    seal(f, PRIMARY_HDR, PRIMARY_ARRAY);
+    seal(f, BACKUP_HDR, SMALL_BACKUP_ARRAY);
+
+    memset(ramdisk_block(f->disk, 2 + SMALL_ARRAY_BLOCKS),
+           0xa5,
+           SMALL_DATA_BLOCKS * RAMDISK_BLOCK_SIZE);
+    memset(ramdisk_block(f->disk, BACKUP_ARRAY), 0x5a, SMALL_DATA_BLOCKS * RAMDISK_BLOCK_SIZE);
+    f->disk->writes = 0;
+}
+
+static void assert_small_table(struct fixture *f)
+{
+    const uint8_t *head = ramdisk_block(f->disk, 2 + SMALL_ARRAY_BLOCKS);
+    const uint8_t *tail = ramdisk_block(f->disk, BACKUP_ARRAY);
+
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_part(UU_SYS_B, 1058, 2081, "System B");
+    assert_part(UU_STATE, 2082, 2082, "State");
+
+    /* The usable blocks next to the arrays hold what they held */
+    for (size_t i = 0; i < SMALL_DATA_BLOCKS * RAMDISK_BLOCK_SIZE; i++) {
+        assert_int_equal(head[i], 0xa5);
+        assert_int_equal(tail[i], 0x5a);
+    }
+}
+
+/* F-191: a valid table of fewer than 128 entries is used as it is. The
+ * backup's array is read where its header says, and nothing is written. */
+static void test_table_with_fewer_entries(void **state)
+{
+    struct fixture *f = *state;
+
+    install_small_table(f);
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_small_table(f);
+    assert_int_equal(f->disk->writes, 0);
+
+    /* A partition in the blocks that 128 entries would take */
+    const uint64_t blocks[] = { 2 + SMALL_ARRAY_BLOCKS, 33 };
+
+    memcpy(entry(f, PRIMARY_ARRAY, 0) + ENTRY_FIRST_LBA, blocks, sizeof(blocks));
+    memcpy(entry(f, SMALL_BACKUP_ARRAY, 0) + ENTRY_FIRST_LBA, blocks, sizeof(blocks));
+    seal(f, PRIMARY_HDR, PRIMARY_ARRAY);
+    seal(f, BACKUP_HDR, SMALL_BACKUP_ARRAY);
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, 2 + SMALL_ARRAY_BLOCKS, 33, "System A");
+}
+
+/* F-191: a repair of such a table writes the blocks its copies take, and
+ * leaves a table that the next boot uses as it is */
+static void test_table_with_fewer_entries_is_repaired(void **state)
+{
+    struct fixture *f = *state;
+    const lba_t headers[] = { BACKUP_HDR, PRIMARY_HDR };
+
+    install_small_table(f);
+
+    for (size_t i = 0; i < ARRAY_SIZE(headers); i++) {
+        memset(ramdisk_block(f->disk, headers[i]), 0, RAMDISK_BLOCK_SIZE);
+
+        assert_int_equal(boot(f), PB_OK);
+        assert_small_table(f);
+        assert_memory_equal(ramdisk_block(f->disk, headers[i]), "EFI PART", 8);
+
+        f->disk->writes = 0;
+        assert_int_equal(boot(f), PB_OK);
+        assert_small_table(f);
+        assert_int_equal(f->disk->writes, 0);
+    }
+
+    assert_int_equal(get_hdr_field(ramdisk_block(f->disk, BACKUP_HDR), HDR_ENTRIES_LBA),
+                     SMALL_BACKUP_ARRAY);
+}
+
+/* bio.md 4: where a backup's header says that its array is, is input
+ * (F-193). A place that isn't inside the device, after the primary's header
+ * and before the backup's, makes the copy a bad one: it is repaired. */
+static void test_backup_array_place_is_checked(void **state)
+{
+    struct fixture *f = *state;
+    static const uint32_t invalid[] = {
+        0, 1, DISK_BLOCKS - SMALL_ARRAY_BLOCKS, DISK_BLOCKS - 1, DISK_BLOCKS, UINT32_MAX
+    };
+
+    install_small_table(f);
+
+    for (size_t i = 0; i < ARRAY_SIZE(invalid); i++) {
+        set_hdr_field(ramdisk_block(f->disk, BACKUP_HDR), HDR_ENTRIES_LBA, invalid[i]);
+
+        assert_int_equal(boot(f), PB_OK);
+        assert_small_table(f);
+        assert_int_equal(get_hdr_field(ramdisk_block(f->disk, BACKUP_HDR), HDR_ENTRIES_LBA),
+                         SMALL_BACKUP_ARRAY);
+    }
+
+    /* And with no primary to repair it from there is no table */
+    set_hdr_field(ramdisk_block(f->disk, BACKUP_HDR), HDR_ENTRIES_LBA, DISK_BLOCKS);
+    memset(ramdisk_block(f->disk, PRIMARY_HDR), 0, RAMDISK_BLOCK_SIZE);
+    assert_int_equal(boot(f), -PB_ERR);
+    assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+}
+
 static void test_install_long_name_fails(void **state)
 {
     struct fixture *f = *state;
@@ -462,8 +593,8 @@ static void test_install_write_errors(void **state)
 {
     struct fixture *f = *state;
 
-    /* Protective MBR, primary table, backup table */
-    for (int writes = 0; writes < 3; writes++) {
+    /* Protective MBR, primary table, the backup's array, the backup's header */
+    for (int writes = 0; writes < 4; writes++) {
         (void)boot(f);
         f->disk->fail_writes_after = writes;
         assert_int_equal(bio_install_partition_table((unsigned char *)UU_DISK, 0), -PB_ERR_IO);
@@ -658,6 +789,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_entry_is_checked, setup, teardown),
         cmocka_unit_test_setup_teardown(test_entry_with_a_taken_uuid_is_skipped, setup, teardown),
         cmocka_unit_test_setup_teardown(test_repair_writes_no_partition, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_table_with_fewer_entries, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_table_with_fewer_entries_is_repaired, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_backup_array_place_is_checked, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_long_name_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_init_invalid_device, setup, teardown),
         cmocka_unit_test_setup_teardown(test_primary_header_crc_error_recovers, setup, teardown),
