@@ -101,6 +101,9 @@ class Device:
         self.socket = self._socket_dir / "pb.sock"
         self.boot_status_file = workdir / "boot_status"
         self.log = workdir / "pb.log"
+        # More of pb-host's options for the next power on, e.g.
+        # "--dram-filter-bypassed"
+        self.extra_args: list[str] = []
         self._proc: subprocess.Popen[bytes] | None = None
         # Problems found while shutting down, e.g. a sanitizer report. The
         # fixture fails the test on these.
@@ -132,6 +135,7 @@ class Device:
             args += ["--nor", str(self.nor)]
         if command_mode:
             args.append("--command-mode")
+        args += self.extra_args
 
         with self.log.open("ab") as log:
             log.write(f"=== start: {' '.join(args)}\n".encode())

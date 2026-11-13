@@ -17,6 +17,10 @@
  *  - A reset terminates the process.
  *  - The boot reason (plat_get_boot_reason()) is always a power on,
  *    PB_BOOT_REASON_POR with a raw value of 0: a process has no reset status.
+ *  - The platform's status (plat_get_status()) has everything as absent: no
+ *    TrustZone, no watchdog, no crypto engine of the platform's, no ROM.
+ *    With --dram-filter-bypassed it reports a TrustZone DRAM filter that is
+ *    bypassed, for the tests of the boot's preconditions.
  */
 
 #ifndef PLAT_HOST_HOST_H
@@ -33,6 +37,7 @@ struct host_options {
     const char *socket_path; /* Command mode socket */
     const char *boot_status_path; /* Written by the board on 'boot' */
     bool force_command_mode; /* Abort boot and enter command mode */
+    bool dram_filter_bypassed; /* plat_get_status(): PLAT_TZ_DRAM_BYPASSED */
 };
 
 extern struct host_options host_opts;

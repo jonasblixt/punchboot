@@ -395,6 +395,45 @@ def test_boot_stopped_in_late_boot_resets(
     assert device.boot_status is None
 
 
+# The boot's preconditions (security.md 4.5, platform.md 2.3, F-248): no
+# silent boot. pb-host's --dram-filter-bypassed makes its platform report a
+# TrustZone DRAM filter that is bypassed.
+def test_boot_is_refused_with_a_bypassed_dram_filter(
+    device: Device, tmp_path: pathlib.Path
+) -> None:
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+
+    with device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+    device.reset()
+
+    # The image boots, with the platform as it is
+    assert device.boot() == "A"
+
+    # With the filter bypassed pb stops in command mode instead of booting
+    device.extra_args = ["--dram-filter-bypassed"]
+    device.start(command_mode=False)
+    device.wait_command_mode()
+    assert device.boot_status is None
+
+    # A boot the host starts is refused the same way, before anything is
+    # read: 'boot part' answers the error, and 'boot bpak' answers it as the
+    # header's result (command-mode.md 5.5, D-058). The session goes on
+    with device.session() as s:
+        with pytest.raises(punchboot.GenericError):
+            s.boot_partition(SYSTEM_A_UUID)
+        with pytest.raises(punchboot.GenericError):
+            s.boot_bpak(img, NULL_UUID)
+        assert s.device_get_boardname()
+        assert device.running
+        assert device.boot_status is None
+
+    # The reason is in the log
+    run = device.log.read_text(errors="replace").rpartition("=== start:")[2]
+    assert run.count("No boot: the TrustZone DRAM filter is bypassed") == 3
+
+
 def test_boot_stop_command_refuses_an_unknown_request(device: Device) -> None:
     with device.session() as s, pytest.raises(punchboot.ArgumentError):
         s.board_run_command("test-boot-stop", b"later")

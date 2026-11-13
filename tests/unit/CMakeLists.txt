@@ -250,6 +250,24 @@ pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
 )
 
+# The same with what pb-host is built without: a watchdog, and a platform
+# that sets the crypto engine up. The boot's preconditions check both
+# (platform.md 2.3)
+add_executable(test_boot_preconditions test_boot.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/boot/boot.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
+)
+target_compile_definitions(test_boot_preconditions PRIVATE
+    CONFIG_ENABLE_WATCHDOG=1
+    CONFIG_PLAT_CRYPTO_ENGINE=1
+)
+target_include_directories(test_boot_preconditions PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_boot_preconditions PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_boot_preconditions COMMAND test_boot_preconditions)
+set_tests_properties(unit.test_boot_preconditions PROPERTIES LABELS unit TIMEOUT 60)
+
 pb_unit_test(test_image_helpers SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c
     ${PROJECT_SOURCE_DIR}/src/crypto.c

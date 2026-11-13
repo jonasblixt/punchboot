@@ -147,8 +147,6 @@ What only command mode needs is set up by command mode's task, not here (D-023):
 
 ### 2.3 No silent boot: the boot's preconditions
 
-**Not yet in the code (F-248).**
-
 pb never boots silently when something the boot's security depends on failed (`security.md` 4.5).
 F-096 is the example: the DRAM filter was bypassed for years, everything worked, and nothing
 showed it.
@@ -791,7 +789,3 @@ For a new platform, and for a change to one:
 | imx6ul, imx8m (MQ, MP), imx8x (QXP, DXL), imxrt (RT10xx) | `plat-imx.md`, with each port's conformance          |
 | host (test only)                                         | `testing.md`. It implements what the tests need: the |
 |                                                          | tick, the unique id, the console, reset as `exit()`  |
-
-The core's part of this contract, not yet in the code:
-
-- `boot()` checks the preconditions (2.3): no (F-248).

@@ -4,6 +4,15 @@ config SOC_FAMILY_IMX
 	bool "NXP i.MX SoC's"
     default n
 
+# The platform sets a crypto engine up in plat_init(), the one the boot
+# verifies with (platform.md 2.2). A boot is refused when it failed: the
+# boot's preconditions check plat_get_status()'s crypto_engine in a build
+# that has this (platform.md 2.3). A platform whose boards set the engine up
+# doesn't select it (F-247).
+config PLAT_CRYPTO_ENGINE
+    bool
+    default n
+
 config PLAT_IMX8X_COMMON
     bool
     default n
@@ -52,6 +61,7 @@ config PLAT_IMXRT
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7M
     select DRIVERS_IMX_HAB_LOG
+    select PLAT_CRYPTO_ENGINE
 
 config PLAT_HOST
     bool "Host (native Linux process, for testing)"

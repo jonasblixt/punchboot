@@ -42,6 +42,9 @@ static struct boot_handover_entry next_stage;
 /* pb's information for the handover (boot.md 5.6), and with it the boot's
  * mode: the core's, not what the policy answers when it is asked later */
 static struct boot_info info;
+/* What this boot's preconditions found and the boot goes on without: bits
+ * of pb's status (boot.md 5.6), for pb's information */
+static uint32_t precondition_status;
 
 int boot_init(const struct boot_driver *cfg)
 {
@@ -354,6 +357,63 @@ static int load_auth_verify_from_cb(void)
 }
 
 /*
+ * The boot's preconditions (security.md 4.5, platform.md 2.3): no silent
+ * boot. What plat_init() couldn't fail on and recorded is checked here, in
+ * every boot, also one command mode started, and the same in every life
+ * cycle state. The core decides, the platform only reports.
+ *
+ * - What the boot's security rests on refuses the boot: a TrustZone DRAM
+ *   filter that is bypassed, whatever the image is, and a crypto engine of
+ *   the platform's that failed (CONFIG_PLAT_CRYPTO_ENGINE). The reason is in
+ *   the log, which command mode hands out.
+ * - What only availability rests on is reported in pb's status and the boot
+ *   goes on: a watchdog that didn't arm, in a build that has one.
+ * - The ROM's logs: nothing of the boot's rests on them. The platform logged
+ *   that they are missing.
+ *
+ * A state the core doesn't know is a no (security.md 4.4).
+ */
+static int check_preconditions(void)
+{
+    struct plat_status status;
+
+    /* What the platform leaves unset counts as failed */
+    memset(&status, 0, sizeof(status));
+    status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    plat_get_status(&status);
+
+    precondition_status = 0;
+
+    switch (status.tz_dram_filter) {
+    case PLAT_TZ_DRAM_NONE:
+    case PLAT_TZ_DRAM_LATER_STAGE:
+    case PLAT_TZ_DRAM_ACTIVE:
+        break;
+    case PLAT_TZ_DRAM_BYPASSED:
+    default:
+        LOG_ERR("No boot: the TrustZone DRAM filter is bypassed");
+        return -PB_ERR_STATE;
+    }
+
+#ifdef CONFIG_PLAT_CRYPTO_ENGINE
+    /* No build has a fallback that verifies the same (crypto.md 2) */
+    if (!status.crypto_engine) {
+        LOG_ERR("No boot: the crypto engine failed");
+        return -PB_ERR_STATE;
+    }
+#endif
+
+#ifdef CONFIG_ENABLE_WATCHDOG
+    if (!status.wdog_armed) {
+        LOG_ERR("The watchdog isn't armed: the boot goes on and reports it");
+        precondition_status |= BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED;
+    }
+#endif
+
+    return PB_OK;
+}
+
+/*
  * pb's information that no candidate changes (boot.md 2, 5.6): the device's
  * identity, the life cycle and the keys that aren't revoked, read once in a
  * boot and before the first candidate. A failure to read them is no
@@ -370,6 +430,8 @@ static int collect_info(void)
      * otherwise for a candidate of its own */
     memset(&info, 0, sizeof(info));
     info.version = PB_VERSION;
+    /* What the preconditions found and the boot goes on without */
+    info.status = precondition_status;
 
     rc = device_uuid(info.device_uuid);
 
@@ -528,6 +590,13 @@ int boot_load(uuid_t boot_part_override_uu)
         rc = -PB_ERR_NOT_SUPPORTED;
         goto err_out;
     }
+
+    /* Before early_boot(): a boot that is refused starts no hardware
+     * (boot.md 2) */
+    rc = check_preconditions();
+
+    if (rc != PB_OK)
+        goto err_out;
 
     LOG_DBG("Early boot");
 

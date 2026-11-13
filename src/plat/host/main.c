@@ -17,6 +17,11 @@
 
 void pb_main(void);
 
+/* Options without a short form */
+enum {
+    OPT_DRAM_FILTER_BYPASSED = 0x100,
+};
+
 struct host_options host_opts = {
     .disk_path = "disk.img",
     .socket_path = "pb.sock",
@@ -32,6 +37,8 @@ static void usage(const char *name)
            "  -s, --socket PATH        Command mode socket (default: pb.sock)\n"
            "  -b, --boot-status PATH   Boot status output (default: boot_status)\n"
            "  -c, --command-mode       Force command mode\n"
+           "      --dram-filter-bypassed  The platform reports a bypassed TrustZone\n"
+           "                           DRAM filter: no boot\n"
            "  -h, --help               Show this help\n",
            name);
 }
@@ -44,6 +51,7 @@ int main(int argc, char **argv)
         { "socket", required_argument, NULL, 's' },
         { "boot-status", required_argument, NULL, 'b' },
         { "command-mode", no_argument, NULL, 'c' },
+        { "dram-filter-bypassed", no_argument, NULL, OPT_DRAM_FILTER_BYPASSED },
         { "help", no_argument, NULL, 'h' },
         { NULL, 0, NULL, 0 },
     };
@@ -65,6 +73,9 @@ int main(int argc, char **argv)
             break;
         case 'c':
             host_opts.force_command_mode = true;
+            break;
+        case OPT_DRAM_FILTER_BYPASSED:
+            host_opts.dram_filter_bypassed = true;
             break;
         case 'h':
             usage(argv[0]);

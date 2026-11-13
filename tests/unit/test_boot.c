@@ -751,6 +751,9 @@ static void reset_fakes(struct fixture *f)
     fake_lockdown_rc = PB_OK;
     fake_lockdown_wdog_kicks = 0;
     fake_wdog_kicks = 0;
+    /* Nothing of the platform's failed */
+    fake_plat_status = (struct plat_status)FAKE_PLAT_STATUS_DEFAULT;
+    fake_plat_status_calls = 0;
     assert_int_equal(boot_init(&driver), PB_OK);
     boot_configure_load_cb(NULL, NULL);
 }
@@ -1275,7 +1278,7 @@ static void assert_device_info(const struct boot_info *info)
     /* The string the wire's version command answers */
     assert_string_equal(info->version, PB_VERSION);
     assert_int_equal(info->slc, SLC_CONFIGURATION_LOCKED);
-    /* Nothing is reported until the boot checks its preconditions (F-248) */
+    /* Nothing is reported: the platform's preconditions hold */
     assert_int_equal(info->status, 0);
 }
 
@@ -1584,6 +1587,159 @@ static void test_mode_is_normal_after_a_failed_fallback(void **state)
     fake.prepare_fail_uu = NULL;
     assert_int_equal(boot_load((unsigned char *)UU_SYS_A), PB_OK);
     assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
+}
+
+/* A boot that a precondition refused read nothing and started nothing: not
+ * the board's early_boot(), not pb's information, no candidate */
+static void assert_refused_before_anything(int rc)
+{
+    assert_int_equal(rc, -PB_ERR_STATE);
+    assert_int_equal(fake.early_calls, 0);
+    assert_int_equal(fake.device_uuid_calls, 0);
+    assert_int_equal(fake.slc_calls, 0);
+    assert_int_equal(fake.next_calls, 0);
+    assert_int_equal(fake.read_cb_calls, 0);
+    assert_int_equal(fake.auth_calls, 0);
+    assert_int_equal(fake.load_calls, 0);
+    assert_int_equal(fake.prepare_calls, 0);
+    assert_int_equal(fake.late_calls, 0);
+    assert_int_equal(fake.jump_calls, 0);
+    assert_int_equal(boot_get_flags(), 0);
+    assert_null(boot_image_get_bpak_header());
+}
+
+/* security.md 4.5, platform.md 2.3 (F-248): no silent boot. A TrustZone DRAM
+ * filter that is bypassed refuses the boot before early_boot(); no filter,
+ * a later stage's and one that pb set up boot. A state the core doesn't
+ * know is a no */
+static void test_precondition_dram_filter(void **state)
+{
+    static const enum plat_tz_dram_filter boots[] = {
+        PLAT_TZ_DRAM_NONE,
+        PLAT_TZ_DRAM_LATER_STAGE,
+        PLAT_TZ_DRAM_ACTIVE,
+    };
+    struct fixture *f = *state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(boots); i++) {
+        reset_fakes(f);
+        fake_plat_status.tz_dram_filter = boots[i];
+        assert_int_equal(boot_load(NULL), PB_OK);
+        assert_int_equal(fake.prepare_calls, 1);
+        assert_int_equal(fake.last_info.status, 0);
+        /* Asked once in a boot */
+        assert_int_equal(fake_plat_status_calls, 1);
+    }
+
+    reset_fakes(f);
+    fake_plat_status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    assert_refused_before_anything(boot(NULL));
+
+    reset_fakes(f);
+    fake_plat_status.tz_dram_filter = (enum plat_tz_dram_filter)(PLAT_TZ_DRAM_BYPASSED + 1);
+    assert_refused_before_anything(boot(NULL));
+
+    /* Checked in every boot: the next one, with the filter in effect, goes on */
+    fake_plat_status.tz_dram_filter = PLAT_TZ_DRAM_ACTIVE;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.early_calls, 1);
+    assert_int_equal(fake_plat_status_calls, 2);
+}
+
+/* boot.md 2: the preconditions are checked in every boot, also one command
+ * mode started: the partition the host names and the host's stream, from
+ * which nothing is read */
+static void test_precondition_in_a_boot_command_mode_started(void **state)
+{
+    struct fixture *f = *state;
+
+    fake_plat_status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    assert_refused_before_anything(boot_load((unsigned char *)UU_SYS_A));
+
+    reset_fakes(f);
+    fake_plat_status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    assert_refused_before_anything(boot_load(NULL));
+    /* The refusal is boot_load()'s: command mode sends it (D-058) */
+    assert_int_equal(fake.result_cb_calls, 0);
+}
+
+/* security.md 4.5: the same rule in every life cycle state, without a
+ * development override. The life cycle isn't even read */
+static void test_precondition_in_every_life_cycle_state(void **state)
+{
+    static const slc_t states[] = {
+        SLC_NOT_CONFIGURED,
+        SLC_CONFIGURATION,
+        SLC_CONFIGURATION_LOCKED,
+        -PB_ERR_NOT_SUPPORTED, /* A board without one */
+    };
+    struct fixture *f = *state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(states); i++) {
+        reset_fakes(f);
+        fake.slc = states[i];
+        fake_plat_status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+        assert_refused_before_anything(boot(NULL));
+    }
+}
+
+/* platform.md 2.3: a watchdog that didn't arm, in a build that has one,
+ * boots and is reported in pb's status (boot.md 5.6): refusing would leave
+ * no system at all. A build without CONFIG_ENABLE_WATCHDOG has nothing to
+ * report: its watchdog is never armed */
+static void test_precondition_watchdog(void **state)
+{
+    (void)state;
+
+    fake_plat_status.wdog_armed = false;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.early_calls, 1);
+    assert_int_equal(fake.prepare_calls, 1);
+#ifdef CONFIG_ENABLE_WATCHDOG
+    assert_int_equal(fake.last_info.status, BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED);
+#else
+    assert_int_equal(fake.last_info.status, 0);
+#endif
+
+    /* Every candidate's handover gets it, and it is this boot's: nothing is
+     * left of it in the next boot */
+    fake_plat_status.wdog_armed = true;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.status, 0);
+}
+
+/* platform.md 2.3: a crypto engine that failed refuses the boot, where the
+ * platform is the one that sets it up (CONFIG_PLAT_CRYPTO_ENGINE): nothing
+ * verifies the image. Without the option the platform reports none, the
+ * board sets the engine up (F-247), and the boot goes on */
+static void test_precondition_crypto_engine(void **state)
+{
+    (void)state;
+
+    fake_plat_status.crypto_engine = false;
+#ifdef CONFIG_PLAT_CRYPTO_ENGINE
+    assert_refused_before_anything(boot(NULL));
+#else
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 1);
+    assert_int_equal(fake.last_info.status, 0);
+#endif
+}
+
+/* platform.md 2.3: nothing of the boot's rests on the ROM's logs. Without
+ * them the boot goes on and reports nothing */
+static void test_precondition_rom_log(void **state)
+{
+    (void)state;
+
+    fake_plat_status.rom_log = false;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 1);
+    assert_int_equal(fake.last_info.status, 0);
 }
 
 static void test_early_boot_abort(void **state)
@@ -2499,6 +2655,12 @@ int main(void)
         BOOT_TEST(test_info_without_a_system_name),
         BOOT_TEST(test_mode_of_the_policys_candidates),
         BOOT_TEST(test_mode_is_normal_after_a_failed_fallback),
+        BOOT_TEST(test_precondition_dram_filter),
+        BOOT_TEST(test_precondition_in_a_boot_command_mode_started),
+        BOOT_TEST(test_precondition_in_every_life_cycle_state),
+        BOOT_TEST(test_precondition_watchdog),
+        BOOT_TEST(test_precondition_crypto_engine),
+        BOOT_TEST(test_precondition_rom_log),
         BOOT_TEST(test_early_boot_abort),
         BOOT_TEST(test_late_boot_error),
         BOOT_TEST(test_lockdown_error),
