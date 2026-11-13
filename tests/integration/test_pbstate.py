@@ -94,6 +94,21 @@ def test_count_is_the_trial_s_attempts(device: Device, count: str) -> None:
     assert _state(device) == (STATE_A, 0, int(count, 0), 0)
 
 
+@pytest.mark.parametrize(
+    "args", [("-c", "3"), ("-c", "0"), ("-c", "3", "-i"), ("-v", "a", "-c", "3")]
+)
+def test_count_without_switch_is_refused(device: Device, args: tuple[str, ...]) -> None:
+    # F-408: the count is the switch's (-s), alone it was ignored
+    device.pbstate("-s", "a", "-c", "5")
+    copies = _copies(device)
+
+    result = device.pbstate_run(*args)
+    assert result.returncode == errno.EINVAL
+    assert "-c goes with -s" in result.stderr
+    assert result.stdout == ""
+    assert _copies(device) == copies
+
+
 @pytest.mark.parametrize("count", ["-1", "4294967296", "x"])
 def test_count_outside_32_bits_is_refused(device: Device, count: str) -> None:
     copies = _copies(device)

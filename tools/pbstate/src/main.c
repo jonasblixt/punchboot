@@ -131,6 +131,7 @@ int main(int argc, char *const argv[])
     bool flag_show = false;
     bool flag_verify = false;
     bool flag_write_board_reg = false;
+    bool flag_count = false;
     uint32_t counter = 0;
     unsigned int board_reg_index = 0;
     uint32_t board_reg_value = 0;
@@ -192,6 +193,7 @@ int main(int argc, char *const argv[])
             }
 
             counter = (uint32_t)tmp;
+            flag_count = true;
         } break;
         case 'i':
             flag_show = true;
@@ -252,6 +254,12 @@ int main(int argc, char *const argv[])
             print_help();
             exit(EXIT_FAILURE);
         }
+    }
+
+    /* The count is the switch's: alone it was ignored (F-408) */
+    if (flag_count && !flag_switch) {
+        fprintf(stderr, "Error: -c goes with -s\n");
+        return EINVAL;
     }
 
 #if !defined(PRIMARY_PART) || !defined(BACKUP_PART)
