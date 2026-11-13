@@ -149,6 +149,32 @@ static void test_fuse_srk(void **state)
     assert_int_equal(writes, 0);
 }
 
+/* F-200: a word that a write which failed half way left with some of its
+ * bits is completed (command-mode.md 5.2: the bits that aren't set yet). A
+ * word with a bit the hash doesn't have can't become the hash: refused */
+static void test_fuse_srk_partly_programmed(void **state)
+{
+    (void)state;
+
+    for (unsigned int n = 0; n < 4; n++)
+        SRK(n) = srk_fuse[n];
+
+    SRK(4) = srk_fuse[4] & 0xffff0000;
+    assert_int_equal(imx_hab_slc_read_status(), SLC_CONFIGURATION);
+    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS), PB_OK);
+
+    for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
+        assert_int_equal(SRK(n), srk_fuse[n]);
+
+    /* Bit 0 isn't in the hash's word */
+    memset(otp, 0, sizeof(otp));
+    writes = 0;
+    assert_int_equal(srk_fuse[2] & 1, 0);
+    SRK(2) = (srk_fuse[2] & 0xff) | 1;
+    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_MEM);
+    assert_int_equal(writes, 0);
+}
+
 static void test_revoke(void **state)
 {
     struct rot_key key = { .id = 0xa90f9680, .slot = 1 };
@@ -205,6 +231,7 @@ int main(void)
         cmocka_unit_test_setup(test_not_initialized, setup),
         cmocka_unit_test_setup(test_life_cycle, setup),
         cmocka_unit_test_setup(test_fuse_srk, setup),
+        cmocka_unit_test_setup(test_fuse_srk_partly_programmed, setup),
         cmocka_unit_test_setup(test_revoke, setup),
         cmocka_unit_test_setup(test_revoke_past_the_srks, setup),
         cmocka_unit_test_setup(test_revoke_not_allowed, setup),
