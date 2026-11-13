@@ -52,6 +52,8 @@ static struct {
 
 /* The ROM's logs and the TZASC's driver: what each answers */
 static struct {
+    /* The events in the ROM's log, 0 ends them */
+    uint32_t rom_events[4];
     bool no_rom_log;
     int hab_log_rc;
     int tzc_init_rc;
@@ -75,7 +77,11 @@ int imx_rom_log_dump(char *out, size_t *out_len)
 
 bool imx_rom_log_has_event(uint32_t event)
 {
-    (void)event;
+    for (size_t i = 0; i < ARRAY_SIZE(f.rom_events) && f.rom_events[i] != 0; i++) {
+        if (f.rom_events[i] == event)
+            return true;
+    }
+
     return false;
 }
 
@@ -407,6 +413,79 @@ static void test_status_rom_logs_missing(void **state)
     assert_true(status_now().rom_log);
 }
 
+/* USB OTG1's device address register, and the address in it */
+#define USB1_DEVICEADDR  (IMX6UL_USB1_BASE + 0x154)
+#define DEVICEADDR_ADDR7 (7u << 25)
+
+/* What plat_get_boot_source() answers after a plat_early_init() */
+static enum pb_boot_source_kind boot_source_now(void)
+{
+    struct pb_boot_source src;
+
+    memset(&src, 0xff, sizeof(src));
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_get_boot_source(&src), PB_OK);
+    return src.kind;
+}
+
+/* The ROM's log of a serial download, as jiffy's (test_imx_rom_log.c) */
+static void rom_log_of_a_serial_download(void)
+{
+    f.rom_events[0] = IMX_ROM_LOG_V0_SERIAL_DOWNLOAD;
+    f.rom_events[1] = IMX_ROM_LOG_V0_JUMP_SDP;
+}
+
+/* platform.md 3.9 (F-251): the ROM's serial downloader loaded pb, and a USB
+ * host gave the ROM's device an address, as uuu does: USB */
+static void test_boot_source_usb_download(void **state)
+{
+    (void)state;
+
+    rom_log_of_a_serial_download();
+    fake_regs_set(IMX6UL_CCM_CCGR6, CCM_CCGR6_USBOH3);
+    fake_regs_set(USB1_DEVICEADDR, DEVICEADDR_ADDR7);
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_USB);
+}
+
+/* The same without an address: the image came over the UART, the serial
+ * downloader's other port. It was reported as unknown, which the core's
+ * serial download stop doesn't stop for (board.md 5.1) */
+static void test_boot_source_uart_download(void **state)
+{
+    (void)state;
+
+    rom_log_of_a_serial_download();
+    fake_regs_set(IMX6UL_CCM_CCGR6, CCM_CCGR6_USBOH3);
+    fake_regs_set(USB1_DEVICEADDR, 0);
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UART);
+
+    /* With the USB's clock gated its registers aren't read: no USB host */
+    fake_regs_reset();
+    fake_regs_on_write = soc_on_write;
+    fake_regs_set(USB1_DEVICEADDR, DEVICEADDR_ADDR7);
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UART);
+    assert_int_equal(fake_regs_reads(USB1_DEVICEADDR), 0);
+}
+
+/* Not a serial download: nothing of the USB is read, and without the eMMC's
+ * driver in the build the partition isn't named. Unknown, which boots */
+static void test_boot_source_not_a_download(void **state)
+{
+    (void)state;
+
+    f.rom_events[0] = IMX_ROM_LOG_V0_PRIMARY_IMAGE;
+    f.rom_events[1] = IMX_ROM_LOG_V0_PRIMARY_SD_MMC;
+    f.rom_events[2] = IMX_ROM_LOG_V0_JUMP;
+    fake_regs_set(IMX6UL_CCM_CCGR6, CCM_CCGR6_USBOH3);
+    fake_regs_set(USB1_DEVICEADDR, DEVICEADDR_ADDR7);
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UNKNOWN);
+    assert_int_equal(fake_regs_reads(USB1_DEVICEADDR), 0);
+
+    /* No log at all */
+    memset(f.rom_events, 0, sizeof(f.rom_events));
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UNKNOWN);
+}
+
 /* platform.md 3.3: plat_wdog_kick() is safe at any time, also before the
  * watchdog is armed and without CONFIG_ENABLE_WATCHDOG: WDOG1's service
  * sequence, at WDOG1 (F-206: it went to address 0 without the option) */
@@ -528,6 +607,9 @@ int main(void)
         cmocka_unit_test_setup(test_status_tzasc_bypassed, setup),
         cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
         cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
+        cmocka_unit_test_setup(test_boot_source_usb_download, setup),
+        cmocka_unit_test_setup(test_boot_source_uart_download, setup),
+        cmocka_unit_test_setup(test_boot_source_not_a_download, setup),
         cmocka_unit_test_setup(test_plat_reset_after_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_priority, setup),

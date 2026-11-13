@@ -349,7 +349,7 @@ Why mandatory: the core's serial download stop asks this function, and a board d
 for a serial download itself (`board.md` 5.1). With -PB_ERR_NOT_SUPPORTED the stop never
 triggers, and nothing shows it. What is mandatory is reporting USB and UART; naming the
 partition and the debugger stays optional (unknown). **Not yet in the code (F-251)**: only the
-6UL reports a serial download, and only over USB.
+6UL reports a serial download.
 
 ### 3.10 Function : plat_cm_init() [mandatory when CONFIG_CM]
 

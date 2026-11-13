@@ -448,12 +448,14 @@ int plat_get_boot_source(struct pb_boot_source *src)
      * The ROM logs which of its two jumps it took (NXP AN12853, Table 7).
      * The serial downloader listens on both UART and USB OTG1, and the log
      * doesn't say which one the image came over. The ROM leaves the USB
-     * device address set when a host enumerated it, as uuu does. A UART
-     * download with a USB host connected would also be reported as USB.
+     * device address set when a host enumerated it, as uuu does: USB. With
+     * no address the image can only have come over the UART. A UART
+     * download with a USB host connected is reported as USB; either way it
+     * is a serial download, which is what the core's stop asks (board.md
+     * 5.1).
      */
     if (imx_rom_log_has_event(IMX_ROM_LOG_V0_JUMP_SDP)) {
-        if (rom_usb_addressed)
-            src->kind = PB_BOOT_SOURCE_USB;
+        src->kind = rom_usb_addressed ? PB_BOOT_SOURCE_USB : PB_BOOT_SOURCE_UART;
         return PB_OK;
     }
 

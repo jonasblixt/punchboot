@@ -93,7 +93,8 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 - **Unique id**: OCOTP words (6UL, 8M, RT; the 8M's are words 1 and 2, F-169), `sc_misc_unique_id()`
   on the 8X. 8 bytes each.
 - **Boot source**: only the 6UL, from the ROM log (AN12853 Table 7) and the eMMC's boot partition
-  configuration.
+  configuration. A serial download is USB when a host gave the ROM's USB device an address, which
+  `plat_early_init()` saves, and else UART: the serial downloader listens on both.
 - **Tick**: GPT1 on the 6UL, 8M and RT, GPT0 through the SCFW on the 8X. The 6UL's and the RT's
   run from the 24 MHz crystal (F-084, F-238).
 - **Command mode's USB** (`plat_cm_init()`, `platform.md` 3.10). The port is a Kconfig choice,
@@ -265,7 +266,7 @@ Where each port is (2026-11-11).
 | `plat_wdog_kick()` before arming     | yes          | yes               | yes        | yes       | F-234         |
 | `plat_get_boot_reason()`             | yes          | yes               | yes        | yes       | F-236         |
 | The unique id fails on a failed read | yes          | yes               | unchecked  | yes       | F-200         |
-| Serial download in                   | USB only     | no                | no         | no        | F-251         |
+| Serial download in                   | yes          | no                | no         | no        | F-251         |
 | `plat_get_boot_source()`             |              |                   |            |           |               |
 | `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
 | command mode                         |              |                   |            |           |               |
