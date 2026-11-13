@@ -88,11 +88,10 @@ make BOARD="src/board/$board" \
      "$@" \
      "build-$board/pb.bin"
 
-# No LOAD segment of an aarch64 pb is writable and executable (F-090): pb.bin
+# No LOAD segment of pb is writable and executable (F-090, F-396): pb.bin
 # doesn't carry the headers, but a debugger loads the ELF by them. The 32 bit
-# links have one, and their ld doesn't warn about it.
-if [ "$cross" = aarch64-linux-gnu- ] &&
-    "${cross}readelf" -lW "build-$board/pb" | grep -E '^ +LOAD .* RWE '; then
+# ld doesn't warn about one.
+if "${cross}readelf" -lW "build-$board/pb" | grep -E '^ +LOAD .* RWE '; then
     echo "build-$board/pb has a writable and executable LOAD segment" >&2
     exit 1
 fi
