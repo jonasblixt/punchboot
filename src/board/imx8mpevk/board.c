@@ -304,6 +304,13 @@ int board_init(struct imx8m_platform *plat_)
         return rc;
     }
 
+    /* Linux can't instantiate the RNG when it runs in the normal world. Without
+     * it Linux has no hardware RNG, which is no reason not to boot. */
+    rc = imx_caam_rng_init(IMX8M_CAAM_BASE);
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM RNG init failed (%i)", rc);
+
     rc = usdhc_emmc_setup();
 
     if (rc != PB_OK) {
