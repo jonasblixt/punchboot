@@ -1534,7 +1534,18 @@ static int cm_setup(void)
     }
 
     slc = slc_read_status();
-    device_uuid(device_uu);
+
+    /* The device's identity: what DEVICE_IDENTIFIER_READ answers, and what a
+     * token is a signature over (command-mode.md 3.3, platform.md 3.7). When
+     * it can't be read there is no command mode, as for the set up's other
+     * failures: a null UUID is no identity, and a token over it would be
+     * every such device's */
+    rc = device_uuid(device_uu);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Device UUID failed (%i)", rc);
+        return rc;
+    }
 
     return PB_OK;
 }

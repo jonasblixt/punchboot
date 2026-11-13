@@ -531,8 +531,16 @@ int rot_revoke_key(key_id_t id)
     return sec.revoke_rc;
 }
 
+/* What device_uuid() returns: a unique id that can't be read (platform.md
+ * 3.5). Nothing is written to 'uu' then */
+static int device_uuid_rc;
+static int device_uuid_calls;
+
 int device_uuid(uuid_t uu)
 {
+    device_uuid_calls++;
+    if (device_uuid_rc != PB_OK)
+        return device_uuid_rc;
     return uuid_parse(DEVICE_UUID, uu);
 }
 
@@ -782,6 +790,8 @@ static int setup(void **state)
     board_init_rc = PB_OK;
     board_init_calls = 0;
     board_command_calls = 0;
+    device_uuid_rc = PB_OK;
+    device_uuid_calls = 0;
     memset(&plat_cm, 0, sizeof(plat_cm));
     board_status_rc = PB_OK;
     /* The clock runs: a failed authentication waits on it (F-276) */
@@ -3267,6 +3277,42 @@ static void test_setup_platform_fails(void **state)
     expect_end();
 }
 
+/* The device's identity can't be read (F-416): no command mode, as for the
+ * set up's other failures (command-mode.md 2.1). The transport isn't
+ * started, so no host gets a null UUID as the identity or as what a token
+ * signs, and the error is what pb resets on. The set up was ignoring the
+ * error and went on with the UUID it had: zeros. */
+static void test_setup_without_the_device_uuid_fails(void **state)
+{
+    uuid_t uu;
+    (void)state;
+
+    device_uuid_rc = -PB_ERR_TIMEOUT;
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    host_auth_token();
+    assert_int_equal(cm_run(), -PB_ERR_TIMEOUT);
+    assert_int_equal(device_uuid_calls, 1);
+    assert_int_equal(plat_cm.calls, 1);
+    assert_int_equal(board_init_calls, 1);
+    assert_int_equal(t.init_calls, 0);
+    assert_int_equal(t.in_pos, 0);
+    expect_end();
+
+    /* The task is at its first call again: a read that works sets it up,
+     * with the identity that was read */
+    device_uuid_rc = PB_OK;
+    run();
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_device_identifier *id = (const void *)r->response;
+    uuid_parse(DEVICE_UUID, uu);
+    assert_memory_equal(id->device_uuid, uu, 16);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(device_uuid_calls, 2);
+}
+
 /*
  * board.md 4.6, command-mode.md 2: command mode is a task, and a call never
  * waits for the host. Its first call sets up and starts the transport;
@@ -4204,6 +4250,7 @@ int main(void)
         CM_TEST(test_lost_at_the_start_of_a_read),
         CM_TEST(test_setup_platform_first),
         CM_TEST(test_setup_platform_fails),
+        CM_TEST(test_setup_without_the_device_uuid_fails),
         CM_TEST(test_task_polls_once_per_call),
         CM_TEST(test_run_connect),
         CM_TEST(test_run_retries),
