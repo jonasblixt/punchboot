@@ -8,6 +8,7 @@
  */
 
 #include <drivers/fuse/imx_ocotp.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 
@@ -93,6 +94,10 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     /* Wait for busy flag */
     while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
     };
+
+    /* The write postamble: 2 us after BUSY cleared before the next access
+     * (6UL RM 35.3.1.4) */
+    pb_delay_us(2);
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
     if (tmp & OCOTP_CTRL_ERROR) {

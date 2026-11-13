@@ -205,6 +205,7 @@ static int teardown(void **state)
 {
     (void)state;
     assert_int_equal(m.violations, 0);
+    assert_int_equal(m.postamble_violations, 0);
     return 0;
 }
 
@@ -282,6 +283,21 @@ static void test_error_is_cleared(void **state)
     assert_int_equal(val, 0xcafe);
 }
 
+/* F-197: 2 us after a write's BUSY cleared before the next access
+ * (35.3.1.4) */
+static void test_write_postamble(void **state)
+{
+    uint32_t val = 0;
+    (void)state;
+
+    assert_int_equal(imx_ocotp_write(0, 5, 0x80), PB_OK);
+    assert_int_equal(imx_ocotp_read(0, 5, &val), PB_OK);
+    assert_int_equal(val, 0x80);
+    assert_int_equal(imx_ocotp_write(0, 6, 0x81), PB_OK);
+    assert_int_equal(imx_ocotp_write(0, 7, 0x82), PB_OK);
+    assert_int_equal(m.postamble_violations, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -290,6 +306,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_scs_not_locked, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
         cmocka_unit_test_setup_teardown(test_error_is_cleared, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_write_postamble, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
