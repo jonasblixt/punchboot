@@ -253,10 +253,14 @@ static const struct rot_config rot = {
     .read_key_status = imx8x_read_key_status,
 };
 
+/*
+ * No set_configuration_locked: the build can't sign pb yet (makefile.mk,
+ * imx8xl_sign_image), and a closed DXL would refuse the only image there
+ * is. 'slc lock' answers NOT_SUPPORTED until signing exists (F-212).
+ */
 static const struct slc_config slc = {
     .read_status = imx8x_slc_read_status,
     .set_configuration = imx8x_slc_set_configuration,
-    .set_configuration_locked = imx8x_slc_set_configuration_locked,
     .fuses = config_fuses,
     .fuses_length = ARRAY_SIZE(config_fuses),
     .fuse_read = imx8x_fuse_read,
