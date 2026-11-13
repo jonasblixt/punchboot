@@ -1,8 +1,0 @@
-
-
-choice BOARD
-    bool "Board"
-config BOARD_IMX8DXLMEK
-    bool "NXP IMX8DXL evk"
-    depends on PLAT_IMX8XL
-endchoice

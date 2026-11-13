@@ -1,6 +1,3 @@
-config IMXRT_FLASH
-    bool "Run from flash"
-
 choice
     prompt "i.MX RT1060 EVK revision"
     default BOARD_IMXRT1060EVK_REV_A
