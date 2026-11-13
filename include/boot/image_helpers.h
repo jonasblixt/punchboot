@@ -35,12 +35,14 @@ int boot_image_auth_header(struct bpak_header *hdr);
  * Placement of an image that is loaded (boot.md 4.3): every part has a load
  * address, lies inside one of the board's image data regions
  * (boot/image_regions.h) and overlaps no other part. Before anything is
- * loaded.
+ * loaded. An image with a part outside the payload's hash (bpak's dont-hash
+ * flag) is refused here (boot.md 4.2).
  *
  * @param[in] hdr The image's header
  *
  * @return PB_OK when every part is placed
  *        -PB_ERR_BAD_HEADER, on bad header magic
+ *        -PB_ERR_NOT_SUPPORTED, a part outside the payload's hash
  *        -PB_ERR_BAD_META, a part without a load address
  *        -PB_ERR_MEM, a part outside the regions or over another part
  */
@@ -49,7 +51,8 @@ int boot_image_verify_parts(struct bpak_header *hdr);
 /**
  * Placement of an image that is booted in place: every part has a load
  * address and lies inside the mapped range of its partition, without the
- * header. Nothing is loaded, so pb's own memory isn't checked.
+ * header. Nothing is loaded, so pb's own memory isn't checked. A part
+ * outside the payload's hash is refused as for an image that is loaded.
  *
  * @param[in] hdr The image's header
  * @param[in] base Address of the range's first byte
@@ -57,6 +60,7 @@ int boot_image_verify_parts(struct bpak_header *hdr);
  *
  * @return PB_OK when every part is inside the range
  *        -PB_ERR_BAD_HEADER, on bad header magic
+ *        -PB_ERR_NOT_SUPPORTED, a part outside the payload's hash
  *        -PB_ERR_BAD_META, a part without a load address
  *        -PB_ERR_MEM, a part outside the range
  */

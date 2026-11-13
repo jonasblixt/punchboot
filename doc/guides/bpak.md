@@ -25,7 +25,8 @@ stay backward compatible, permanently (D-008, supersedes D-001). What is frozen:
 - Metadata: `bpak_get_meta*`, only for `pb-load-addr` (u64 per part). `src/boot/atf.c` also uses `optee-arch` (`0x99e5e80a`).
 - Board files hardcode part IDs (`atf`, `dt`, `ramdisk`, `kernel`) as hex constants.
 - **Signature and payload verification are punchboot's own** (`src/boot/image_helpers.c`). They do not go through bpak's verify code.
-  They differ from upstream on `BPAK_FLAG_EXCLUDE_FROM_HASH` (F-076).
+  They differ from upstream on `BPAK_FLAG_EXCLUDE_FROM_HASH`: upstream leaves such a part out of the
+  hash, punchboot refuses the image before it loads anything (`boot.md` 4.2, D-035).
 - Not used: merkle, transport/delta, the bpak crypto and pkg APIs.
 
 ## Coupling points

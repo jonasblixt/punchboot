@@ -93,7 +93,7 @@ signature and where every part lands are checked before the first payload byte i
 because unverified bytes reach memory before the payload's hash is compared (`boot.md` 4.2,
 4.3). An image with a part outside the hash (bpak's `dont-hash`) is refused, before the load:
 the flag is for content that is verified at run time (a file system under a hash tree), which pb
-doesn't boot. **Not yet in the code (F-076)**: such an image fails on its hash, after the load.
+doesn't boot.
 
 **4.3 A revoked key verifies nothing**, neither an image nor a token. Revocation is the SoC's,
 shared with the ROM (D-027).

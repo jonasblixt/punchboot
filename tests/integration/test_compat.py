@@ -5,6 +5,9 @@ once by a released bpak CLI (tests/compat/bpak/generate.sh) and must keep
 booting. The Python mirrors of wire values and the bpak id function are checked
 against tests/compat/abi.txt, which tests/compat/check_abi.py keeps in sync with
 the C headers.
+
+One golden image never booted and is refused by a decision (D-035, boot.md
+4.2): the one with a part outside the payload's hash, bpak's dont-hash flag.
 """
 
 from __future__ import annotations
@@ -32,9 +35,13 @@ GOLDEN = COMPAT / "bpak"
 IMAGES = sorted(GOLDEN.glob("v*/*.bpak"))
 
 # Golden images that a known bug keeps from booting (D-007)
-KNOWN_BUGS = {
-    "dont-hash.bpak": "F-076: punchboot hashes parts that have BPAK_FLAG_EXCLUDE_FROM_HASH",
-}
+KNOWN_BUGS: dict[str, str] = {}
+
+# Refused by a decision, and never booted by a release: a part outside the
+# payload's hash (D-035, F-076)
+DONT_HASH = "dont-hash.bpak"
+BOOTS = [img for img in IMAGES if img.name != DONT_HASH]
+REFUSED = [img for img in IMAGES if img.name == DONT_HASH]
 
 # ids that are stored in images and keystores, or hardcoded in boards
 NAMED_IDS = {
@@ -73,7 +80,7 @@ def test_golden_images_are_unchanged() -> None:
         assert hashlib.sha256((GOLDEN / name).read_bytes()).hexdigest() == digest, name
 
 
-@pytest.mark.parametrize("img", [golden(img) for img in IMAGES])
+@pytest.mark.parametrize("img", [golden(img) for img in BOOTS])
 def test_golden_image_boots_from_ram(device: Device, img: pathlib.Path) -> None:
     with device.session() as s:
         s.boot_bpak(img, NULL_UUID)
@@ -82,7 +89,7 @@ def test_golden_image_boots_from_ram(device: Device, img: pathlib.Path) -> None:
     assert device.boot_status == "?"
 
 
-@pytest.mark.parametrize("img", [golden(img) for img in IMAGES])
+@pytest.mark.parametrize("img", [golden(img) for img in BOOTS])
 def test_golden_image_boots_from_partition(device: Device, img: pathlib.Path) -> None:
     with device.session() as s:
         s.part_write(img, SYSTEM_A_UUID)
@@ -90,6 +97,69 @@ def test_golden_image_boots_from_partition(device: Device, img: pathlib.Path) ->
     device.reset()
 
     assert device.boot() == "A"
+
+
+def payload_hash(img: pathlib.Path, *, every_part: bool) -> tuple[bytes, bytes]:
+    """Return the header's payload hash and the SHA-256 of the image's parts.
+
+    With 'every_part' as every release of pb made it, over each part it
+    loaded. Without, as bpak makes it: a part with the dont-hash flag is
+    left out.
+    """
+    data = img.read_bytes()
+    header = bpak.bpak_header.unpack(data)
+    digest = hashlib.sha256()
+    for part in bpak.parts(header):
+        if every_part or not part.flags & abi()["BPAK_FLAG_EXCLUDE_FROM_HASH"]:
+            offset = bpak.part_offset(header, part)
+            digest.update(data[offset : offset + bpak.part_size(part)])
+    return bytes(header.payload_hash)[: digest.digest_size], digest.digest()
+
+
+@pytest.mark.parametrize("img", [golden(img) for img in REFUSED])
+def test_dont_hash_image_never_passed_its_hash(img: pathlib.Path) -> None:
+    # Why the refusal breaks no image that booted (D-035, compatibility.md):
+    # pb hashed every part, the header's hash is without the part. A release
+    # loaded the image and then failed it on the hash
+    in_header, as_pb_hashed = payload_hash(img, every_part=True)
+    assert as_pb_hashed != in_header
+
+    in_header, as_bpak_hashes = payload_hash(img, every_part=False)
+    assert as_bpak_hashes == in_header
+
+
+def assert_refused_before_the_load(device: Device) -> None:
+    assert device.running
+    assert device.boot_status is None
+    log = device.log.read_text(errors="replace").rpartition("=== start:")[2]
+    assert "is outside the payload's hash" in log
+    assert "Loading part" not in log
+
+
+@pytest.mark.parametrize("img", [golden(img) for img in REFUSED])
+def test_dont_hash_image_is_refused_from_ram(device: Device, img: pathlib.Path) -> None:
+    # The header's result carries the refusal: the host sends no part
+    with device.session() as s, pytest.raises(punchboot.NotSupportedError):
+        s.boot_bpak(img, NULL_UUID)
+
+    assert_refused_before_the_load(device)
+
+
+@pytest.mark.parametrize("img", [golden(img) for img in REFUSED])
+def test_dont_hash_image_is_refused_from_partition(device: Device, img: pathlib.Path) -> None:
+    with device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+        with pytest.raises(punchboot.NotSupportedError):
+            s.boot_partition(SYSTEM_A_UUID)
+
+    assert_refused_before_the_load(device)
+
+    # And without a host: no boot, pb is in command mode
+    device.reset()
+    device.start(command_mode=False)
+    device.wait_command_mode()
+    assert_refused_before_the_load(device)
 
 
 def test_bpak_ids() -> None:

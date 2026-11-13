@@ -194,9 +194,32 @@ bool boot_image_in_regions(uint64_t addr, uint64_t size)
     return false;
 }
 
+/*
+ * A part outside the payload's hash (bpak's dont-hash flag) is refused, before
+ * anything is loaded (boot.md 4.2, security.md 4.2, D-035): nothing would
+ * authenticate its bytes. No image that booted is refused: every release
+ * hashed such a part with the others, so the image never passed its payload
+ * hash, which upstream makes without the part.
+ */
+static int refuse_parts_outside_the_hash(struct bpak_header *hdr)
+{
+    bpak_foreach_part(hdr, p) {
+        if (!p->id)
+            break;
+
+        if (p->flags & BPAK_FLAG_EXCLUDE_FROM_HASH) {
+            LOG_ERR("Part 0x%x is outside the payload's hash (dont-hash): refused", p->id);
+            return -PB_ERR_NOT_SUPPORTED;
+        }
+    }
+
+    return PB_OK;
+}
+
 int boot_image_verify_parts(struct bpak_header *hdr)
 {
     struct bpak_meta_header *mh;
+    int rc;
 
     /* Not on the stack: 512 bytes, of the RT's 4 KiB */
     static struct {
@@ -209,6 +232,11 @@ int boot_image_verify_parts(struct bpak_header *hdr)
     if (bpak_valid_header(hdr) != BPAK_OK) {
         return -PB_ERR_BAD_HEADER;
     }
+
+    rc = refuse_parts_outside_the_hash(hdr);
+
+    if (rc != PB_OK)
+        return rc;
 
     bpak_foreach_part(hdr, p) {
         if (!p->id)
@@ -263,6 +291,11 @@ int boot_image_verify_parts_in_place(struct bpak_header *hdr, uintptr_t base, si
     if (rc != BPAK_OK) {
         return -PB_ERR_BAD_HEADER;
     }
+
+    rc = refuse_parts_outside_the_hash(hdr);
+
+    if (rc != PB_OK)
+        return rc;
 
     bpak_foreach_part(hdr, p) {
         if (!p->id)

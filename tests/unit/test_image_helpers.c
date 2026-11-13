@@ -1299,6 +1299,91 @@ static void test_verify_payload(void **state)
     assert_int_equal(boot_image_verify_payload(hdr, digest), -PB_ERR_BAD_HEADER);
 }
 
+/* The dtb is outside the payload's hash: bpak's dont-hash flag */
+static void exclude_dtb_from_hash(void)
+{
+    struct bpak_part_header *part;
+
+    assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
+    part->flags |= BPAK_FLAG_EXCLUDE_FROM_HASH;
+}
+
+/*
+ * boot.md 4.2, security.md 4.2 (D-035, F-076): an image with a part outside
+ * the payload's hash is refused in step 4, loaded or in place, with an error
+ * of its own and before anything is read. Nothing would authenticate the
+ * part's bytes.
+ */
+static void test_part_outside_the_hash_is_refused(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    /* The image of the suite, which is placed */
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    exclude_dtb_from_hash();
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(fake.updates, 0);
+
+    /* In place */
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, FLASH_BASE + 0x1000, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+    exclude_dtb_from_hash();
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                     -PB_ERR_NOT_SUPPORTED);
+
+    /* Whatever else is wrong with the image: a part that is placed nowhere,
+     * and the first part as well as the last */
+    make_header(BPAK_HASH_SHA256, PB_START, 1024, FREE_RAM, 512);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    assert_int_equal(bpak_get_part(hdr, ID_KERNEL, &part), BPAK_OK);
+    part->flags |= BPAK_FLAG_EXCLUDE_FROM_HASH;
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_NOT_SUPPORTED);
+
+    /* The other flag of the format is no reason */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, FREE_RAM + 0x100000, 512);
+    assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
+    part->flags |= BPAK_FLAG_TRANSPORT;
+    part->transport_size = 512;
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+}
+
+/*
+ * Why the refusal breaks no image that booted (D-035, compatibility.md):
+ * upstream's hash leaves the part out, pb's never did. Every release hashed
+ * every part it loaded, so the digest of such an image was never the
+ * header's and the boot failed with -PB_ERR_BAD_PAYLOAD, after the load. The
+ * load still hashes every part: one that got past step 4 isn't loaded
+ * unhashed.
+ */
+static void test_part_outside_the_hash_never_verified(void **state)
+{
+    uint8_t digest[64];
+    (void)state;
+
+    /* As upstream makes it: the header's hash is over the kernel alone */
+    load_setup();
+    fake_digest(hdr->payload_hash, 32, expected_sum(payload, 2048));
+    exclude_dtb_from_hash();
+
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_f, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake.hashed_bytes, sizeof(payload));
+    assert_int_equal(boot_image_verify_payload(hdr, digest), -PB_ERR_BAD_PAYLOAD);
+
+    /* And in place */
+    memcpy(load_area, payload, sizeof(payload));
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, NULL, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake.hashed_bytes, sizeof(payload));
+    assert_int_equal(boot_image_verify_payload(hdr, digest), -PB_ERR_BAD_PAYLOAD);
+
+    /* The hash is the image's: with the part in it, pb's digest is the header's */
+    fake_digest(hdr->payload_hash, 32, expected_sum(payload, sizeof(payload)));
+    assert_int_equal(boot_image_verify_payload(hdr, digest), PB_OK);
+}
+
 #define IMG_TEST(f) cmocka_unit_test_setup(f, setup)
 
 int main(void)
@@ -1332,6 +1417,8 @@ int main(void)
         IMG_TEST(test_copy_and_hash),
         IMG_TEST(test_copy_and_hash_errors),
         IMG_TEST(test_verify_payload),
+        IMG_TEST(test_part_outside_the_hash_is_refused),
+        IMG_TEST(test_part_outside_the_hash_never_verified),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);

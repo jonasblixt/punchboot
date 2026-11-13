@@ -344,8 +344,8 @@ is patched, before 6.
 An image with a part outside the payload's hash is refused in step 4, before anything is loaded
 (D-035, `security.md` 4.2). A format may allow such a part (4.4) for content verified at run time,
 such as a file system under a hash tree whose root hash is signed; pb doesn't boot such content,
-and loading it would leave bytes nothing authenticated in the next stage's memory. **Not yet in
-the code (F-076)**: today such an image fails on its payload hash, so none that booted is refused.
+and loading it would leave bytes nothing authenticated in the next stage's memory. In every
+release such an image failed on its payload hash, so none that booted is refused.
 
 ### 4.3 Placement
 
@@ -648,9 +648,8 @@ Like the wire (D-008, `compatibility.md`):
 
 ## 9. Not yet in the code
 
-| Finding      | What                                                                         |
-| ------------ | ---------------------------------------------------------------------------- |
-| F-259        | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
-| F-248        | The boot's preconditions in the flow (2), pb's status in the handover (5.6)  |
-| F-180        | The A/B review's fixes, `pbstate`                                            |
-| F-076        | A part outside the hash refused (4.2)                                        |
+| Finding | What                                                                         |
+| ------- | ---------------------------------------------------------------------------- |
+| F-259   | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
+| F-248   | The boot's preconditions in the flow (2), pb's status in the handover (5.6)  |
+| F-180   | The A/B review's fixes, `pbstate`                                            |

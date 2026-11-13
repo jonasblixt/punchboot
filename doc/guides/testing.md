@@ -180,7 +180,7 @@ and `configs/test_defconfig` were then removed.
 | `test_stream.py`      | new: stream bounds (F-053, F-054)                                                       |
 | `test_commands.py`    | new: boot status, erase, end of life, bpak read, F-072                                  |
 | `test_log.py`         | new: `PB_CMD_LOG_READ` and `punchboot log` (in chunks, wrapped)                         |
-| `test_compat.py`      | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 (xfail) |
+| `test_compat.py`      | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 refused |
 | `test_transcripts.py` | new: recorded wire transcripts served to the current host (D-008, guard 4)              |
 | `test_in_place.py`    | new: the in place source on the host's flash: boot, placement, verification (F-253)     |
 | `test_pbstate.py`     | new: the pbstate tool's command line on pb-host's disk, its library's symbols, a build  |
