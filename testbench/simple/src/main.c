@@ -3,8 +3,9 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * Checks what pb handed over and reports it on the console, one line per
- * check, then does what the image was built for (APP_MODE_*):
+ * Checks what pb handed over (the registers and the transfer list of
+ * Firmware Handoff, the CPU's state) and reports it on the console, one line
+ * per check, then does what the image was built for (APP_MODE_*):
  *
  *   good      mark the system verified, then reset into pb's command mode
  *   noverify  don't mark it, reset (pb boots it again, a boot attempt)
@@ -14,6 +15,8 @@
  *
  * Every line starts with "MCUTEST ", tests/ parses them.
  */
+
+#include <boot/pb_fh.h>
 
 #include "app.h"
 
@@ -119,14 +122,8 @@ void unexpected_exception(uint32_t ipsr)
         ;
 }
 
-static bool is_name(uint32_t p, char *system)
+static bool is_name(const char *s, char *system)
 {
-    const char *s = (const char *)p;
-
-    /* The name is in pb's RAM, which this image doesn't overwrite. A bad
-     * pointer ends up in unexpected_exception(), with the fault. */
-    if (p == 0)
-        return false;
     if ((s[0] == 'A' || s[0] == 'B') && s[1] == 0) {
         *system = s[0];
         return true;
@@ -134,17 +131,154 @@ static bool is_name(uint32_t p, char *system)
     return false;
 }
 
-static bool uuid_equal(uint32_t p, const uint8_t *uu)
+static bool uuid_equal(const uint8_t *a, const uint8_t *uu)
 {
-    const uint8_t *a = (const uint8_t *)p;
-
-    if (p == 0)
-        return false;
     for (int i = 0; i < 16; i++) {
         if (a[i] != uu[i])
             return false;
     }
     return true;
+}
+
+/* The entry after 'last' in the list's used part, the first one with NULL,
+ * or NULL at its end: an entry starts at the next multiple of 8 after the
+ * one before it */
+static const struct pb_fh_tl_entry *next_entry(const struct pb_fh_tl_header *tl,
+                                               const struct pb_fh_tl_entry *last)
+{
+    uint32_t end = (uint32_t)tl + tl->used_size;
+    uint32_t at;
+
+    if (last)
+        at = ((uint32_t)last + PB_FH_TL_ENTRY_HDR_SIZE(last) + last->data_size + 7) & ~7u;
+    else
+        at = (uint32_t)tl + tl->hdr_size;
+
+    const struct pb_fh_tl_entry *te = (const struct pb_fh_tl_entry *)at;
+
+    if (at + sizeof(*te) > end || PB_FH_TL_ENTRY_HDR_SIZE(te) < sizeof(*te) ||
+        PB_FH_TL_ENTRY_HDR_SIZE(te) > end - at ||
+        te->data_size > end - at - PB_FH_TL_ENTRY_HDR_SIZE(te))
+        return NULL;
+    return te;
+}
+
+/*
+ * The transfer list pb handed over (Firmware Handoff, include/boot/pb_fh.h):
+ * its header and its checksum as a receiver checks them, and its one entry,
+ * pb's structure. NULL when there is none to read. The list is only read
+ * where the registers say it is the board's region, which is RAM: an image
+ * that pb started with other registers reports that and doesn't fault.
+ */
+static const struct pb_fh_handover *list_checks(void)
+{
+    const struct pb_fh_tl_header *tl = (const struct pb_fh_tl_header *)entry.r3;
+    const struct pb_fh_tl_entry *found = NULL;
+    uint32_t entries = 0;
+    uint32_t fdts = 0;
+    uint8_t sum = 0;
+    bool sizes;
+
+    /* AArch32's registers, which pb also uses on ARMv7-M */
+    check("fh-r0", entry.r0 == 0, "r0", entry.r0);
+    check("fh-r1", entry.r1 == PB_FH_REG_R1, "r1", entry.r1);
+    /* The board's pb names no device tree part */
+    check("fh-r2", entry.r2 == 0, "r2", entry.r2);
+    /* The region this image's memory map keeps free for it (board.mk) */
+    check("fh-r3", entry.r3 == APP_FH_REGION_BASE, "r3", entry.r3);
+
+    if (entry.r1 != PB_FH_REG_R1 || entry.r3 != APP_FH_REGION_BASE) {
+        check("fh-signature", false, "not read", 0);
+        return NULL;
+    }
+
+    check("fh-signature", tl->signature == PB_FH_TL_SIGNATURE, "signature", tl->signature);
+    check("fh-version", tl->version == PB_FH_TL_VERSION, "version", tl->version);
+    check("fh-hdr-size", tl->hdr_size == sizeof(*tl), "hdr_size", tl->hdr_size);
+    check("fh-alignment", tl->alignment == PB_FH_TL_ALIGNMENT, "alignment", tl->alignment);
+    check("fh-total-size", tl->total_size == APP_FH_REGION_SIZE, "total_size", tl->total_size);
+    sizes = tl->used_size >= sizeof(*tl) && tl->used_size <= tl->total_size &&
+            (tl->used_size % 8) == 0 && tl->total_size <= APP_FH_REGION_SIZE;
+    check("fh-used-size", sizes, "used_size", tl->used_size);
+    check("fh-flags", tl->flags == PB_FH_TL_FLAG_HAS_CHECKSUM, "flags", tl->flags);
+
+    if (tl->signature != PB_FH_TL_SIGNATURE || tl->hdr_size != sizeof(*tl) || !sizes) {
+        check("fh-checksum", false, "not read", 0);
+        return NULL;
+    }
+
+    /* The used bytes sum to 0 modulo 256 */
+    for (uint32_t i = 0; i < tl->used_size; i++)
+        sum += ((const uint8_t *)tl)[i];
+    check("fh-checksum", sum == 0, "sum", sum);
+
+    for (const struct pb_fh_tl_entry *te = next_entry(tl, NULL); te; te = next_entry(tl, te)) {
+        entries++;
+        if (PB_FH_TL_ENTRY_TAG(te) == PB_FH_TAG_FDT)
+            fdts++;
+        if (PB_FH_TL_ENTRY_TAG(te) == PB_FH_TAG_HANDOVER && !found)
+            found = te;
+    }
+
+    /* pb's structure or a device tree, never both: here pb's structure */
+    check("fh-entries", entries == 1, "entries", entries);
+    check("fh-no-fdt", fdts == 0, "FDT entries", fdts);
+    check("fh-entry", found != NULL, "tag", PB_FH_TAG_HANDOVER);
+
+    if (!found)
+        return NULL;
+
+    /* This image reads every field of today's structure. A later pb's is
+     * larger, with fields appended */
+    check("fh-data-size",
+          found->data_size >= sizeof(struct pb_fh_handover),
+          "data_size",
+          found->data_size);
+
+    if (found->data_size < sizeof(struct pb_fh_handover))
+        return NULL;
+
+    return (const struct pb_fh_handover *)(found + 1);
+}
+
+/* pb's information in pb's structure (boot.md 5.6) */
+static void handover_checks(const struct pb_fh_handover *h, char *system)
+{
+    uint32_t length = 0;
+
+    if (h == NULL) {
+        check("system-name", false, "no structure", 0);
+        check("system-uuid", false, "no structure", 0);
+        return;
+    }
+
+    check("system-name", is_name(h->system_name, system), "first byte", (uint8_t)h->system_name[0]);
+    if (*system != '?') {
+        const uint8_t *uu = (*system == 'A') ? board_sys_a_uuid : board_sys_b_uuid;
+        check("system-uuid",
+              uuid_equal(h->boot_partition_uuid, uu),
+              "first bytes",
+              (uint32_t)h->boot_partition_uuid[0] << 24 | h->boot_partition_uuid[1] << 16 |
+                  h->boot_partition_uuid[2] << 8 | h->boot_partition_uuid[3]);
+    } else {
+        check("system-uuid", false, "no system", 0);
+    }
+
+    check("boot-mode", h->boot_mode <= PB_FH_BOOT_MODE_SPECULATIVE, "boot_mode", h->boot_mode);
+    check("keys", h->no_of_available_keys <= PB_FH_MAX_KEYS, "keys", h->no_of_available_keys);
+
+    while (length < sizeof(h->version) && h->version[length])
+        length++;
+    check("version", length > 0 && length < sizeof(h->version), "length", length);
+
+    info("slc", "slc", (uint32_t)h->slc);
+    info("active-key", "key id", h->active_key);
+    info("status", "status", h->status);
+    if (length < sizeof(h->version)) {
+        print("MCUTEST VERSION ");
+        print(h->version);
+        print("\n");
+    }
 }
 
 static void entry_checks(char *system)
@@ -153,13 +287,7 @@ static void entry_checks(char *system)
     uint32_t wdog_ms = 0;
 
     *system = '?';
-    check("system-name", is_name(entry.r0, system), "r0", entry.r0);
-    if (*system != '?') {
-        const uint8_t *uu = (*system == 'A') ? board_sys_a_uuid : board_sys_b_uuid;
-        check("system-uuid", uuid_equal(entry.r1, uu), "r1", entry.r1);
-    } else {
-        check("system-uuid", false, "r1", entry.r1);
-    }
+    handover_checks(list_checks(), system);
     check("vtor", mmio_read_32(SCB_VTOR) == (uint32_t)vectors, "VTOR", mmio_read_32(SCB_VTOR));
     check("msp", entry.msp == (uint32_t)&_stack_top, "MSP", entry.msp);
     check("control", entry.control == 0, "CONTROL", entry.control);

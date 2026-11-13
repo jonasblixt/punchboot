@@ -13,12 +13,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* The registers at the reset handler, saved by start.S */
+/* The registers at the reset handler, saved by start.S. r0 to r3 are
+ * Firmware Handoff's, as pb hands over (include/boot/pb_fh.h) */
 struct entry_state {
-    uint32_t r0; /* pb: the booted system's name, "A" or "B" */
-    uint32_t r1; /* pb: the boot partition's UUID, 16 bytes */
-    uint32_t r2;
-    uint32_t r3;
+    uint32_t r0; /* 0 */
+    uint32_t r1; /* The signature and the register convention's version */
+    uint32_t r2; /* The device tree in the list: 0, the board's pb names none */
+    uint32_t r3; /* The transfer list */
     uint32_t msp;
     uint32_t psp;
     uint32_t control;

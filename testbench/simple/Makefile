@@ -30,7 +30,8 @@ CFLAGS := $(CPU_FLAGS) -Os -g -std=c11 -ffreestanding -nostdlib -fno-builtin \
 	-I$(TOP)/src -I$(PB)/include \
 	-DAPP_BOARD='"$(BOARD)"' -DAPP_NUM_IRQS=$(APP_NUM_IRQS) \
 	-DAPP_LOAD_ADDR=$(APP_LOAD_ADDR) -DAPP_HOLD_MS=$(APP_HOLD_MS) \
-	-DAPP_BOOT_RUNS=$(APP_BOOT_RUNS)
+	-DAPP_BOOT_RUNS=$(APP_BOOT_RUNS) \
+	-DAPP_FH_REGION_BASE=$(APP_FH_REGION_BASE) -DAPP_FH_REGION_SIZE=$(APP_FH_REGION_SIZE)
 LDFLAGS := $(CPU_FLAGS) -nostdlib -Wl,--gc-sections -T$(TOP)/board/$(BOARD)/link.ld -lgcc
 
 SRCS := $(TOP)/src/start.S $(TOP)/src/main.c $(TOP)/src/pbstate.c \

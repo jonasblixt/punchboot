@@ -9,7 +9,7 @@
 #   mkimage <app.bin> <load address> <out.bpak>
 #
 # One part, "app", that pb loads to <load address> and starts there
-# (src/boot/simple.c). Signed with the punchboot test key, which
+# (src/boot/fh.c). Signed with the punchboot test key, which
 # pb's test keystore (pki/internal_keystore.bpak) trusts; set SIGN_KEY for
 # another one.
 

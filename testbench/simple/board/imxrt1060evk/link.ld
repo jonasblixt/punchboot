@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+/* Between pb's transfer list (0x20208000, 4 KiB: board.mk), which the image
+ * reads at its entry, and pb (0x20249000) */
 MEMORY
 {
     ram (rwx) : ORIGIN = 0x20210000, LENGTH = 0x20249000 - 0x20210000

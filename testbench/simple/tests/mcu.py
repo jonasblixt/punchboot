@@ -134,6 +134,8 @@ class Run:
     checks: dict[str, str]
     state: str
     result: str
+    # pb's version, from pb's structure in the transfer list
+    version: str
 
 
 def parse_runs(text: str) -> list[Run]:
@@ -149,6 +151,7 @@ def parse_runs(text: str) -> list[Run]:
         system = re.search(r"^MCUTEST SYSTEM (\S)", block, re.MULTILINE)
         state = re.search(r"^MCUTEST STATE (.*)$", block, re.MULTILINE)
         result = re.search(r"^MCUTEST RESULT (\S+)", block, re.MULTILINE)
+        version = re.search(r"^MCUTEST VERSION (\S+)", block, re.MULTILINE)
         runs.append(
             Run(
                 mode=lines[0].split()[0],
@@ -156,6 +159,7 @@ def parse_runs(text: str) -> list[Run]:
                 checks=checks,
                 state=state.group(1) if state else "",
                 result=result.group(1) if result else "",
+                version=version.group(1) if version else "",
             ),
         )
     return runs

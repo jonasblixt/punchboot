@@ -32,6 +32,10 @@ if TYPE_CHECKING:
 SYSTEMS = {"A": SYSTEM_A, "B": SYSTEM_B}
 # The application's report and its reset into command mode
 RUN_TIMEOUT_S = 15
+# What the application checks of Firmware Handoff (src/main.c): the registers,
+# the transfer list and pb's structure in it. A run without them is one of an
+# application from before pb handed a transfer list over
+HANDOVER_CHECKS = {"fh-r1", "fh-r3", "fh-checksum", "fh-entry", "system-name", "system-uuid"}
 
 
 def assert_clean_handover(run_text: str, system: str) -> None:
@@ -40,6 +44,8 @@ def assert_clean_handover(run_text: str, system: str) -> None:
     run = runs[-1]
     failed = [name for name, result in run.checks.items() if result != "PASS"]
     assert not failed, run_text
+    assert run.checks.keys() >= HANDOVER_CHECKS, run_text
+    assert run.version, run_text
     assert run.system == system, run_text
     assert run.result == "PASS", run_text
 
