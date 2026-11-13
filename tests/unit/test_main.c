@@ -14,7 +14,8 @@
  * Built twice: with three tasks, and with TEST_NO_TASKS for a build that has
  * none, where the list's bounds come from the link (CMakeLists.txt).
  *
- * Not here: what main() does after a platform failure (F-235).
+ * And what main() does after a platform failure (platform.md 2): it resets,
+ * and neither the boot nor a task runs.
  */
 
 #include <setjmp.h>
@@ -42,6 +43,11 @@
 static jmp_buf leave;
 
 static struct {
+    int early_init_rc;
+    int init_rc;
+    int early_init_calls;
+    int console_init_calls;
+    int init_calls;
     int setup_rc;
     int boot_rc;
     bool boot_jumps;
@@ -67,12 +73,14 @@ void ramlog_init(void)
 
 int plat_early_init(void)
 {
-    return PB_OK;
+    f.early_init_calls++;
+    return f.early_init_rc;
 }
 
 int plat_init(void)
 {
-    return PB_OK;
+    f.init_calls++;
+    return f.init_rc;
 }
 
 void plat_reset(void)
@@ -81,8 +89,14 @@ void plat_reset(void)
     longjmp(leave, LEFT_BY_RESET);
 }
 
+static void console_init(void)
+{
+    f.console_init_calls++;
+}
+
 const struct board board = {
     .name = "test",
+    .console_init = console_init,
 };
 
 int board_setup(void)
@@ -157,6 +171,59 @@ static int setup(void **state)
     memset(&f, 0, sizeof(f));
     f.boot_rc = -PB_ERR;
     return 0;
+}
+
+/* Nothing ran after the platform's failure but the reset */
+static void assert_reset_only(void)
+{
+    assert_int_equal(f.setup_calls, 0);
+    assert_int_equal(f.boot_calls, 0);
+    assert_int_equal(f.n_order, 0);
+    for (int id = 0; id < N_TASKS; id++)
+        assert_int_equal(f.calls[id], 0);
+    assert_int_equal(f.resets, 1);
+}
+
+/* platform.md 2, system.md 5.4: a failed plat_early_init() resets. pb isn't
+ * stopped: no task runs (command mode is one), and nothing of the boot */
+static void test_plat_early_init_fails_resets(void **state)
+{
+    (void)state;
+
+    f.early_init_rc = -PB_ERR_IO;
+    assert_int_equal(run_main(), LEFT_BY_RESET);
+    assert_int_equal(f.early_init_calls, 1);
+    assert_int_equal(f.console_init_calls, 0);
+    assert_int_equal(f.init_calls, 0);
+    assert_reset_only();
+}
+
+/* platform.md 2, 2.2: a failed plat_init() resets, after the console was
+ * set up: what command mode needs is missing (F-202: the i.MX8M's DRAM) */
+static void test_plat_init_fails_resets(void **state)
+{
+    (void)state;
+
+    f.init_rc = -PB_ERR_MEM;
+    assert_int_equal(run_main(), LEFT_BY_RESET);
+    assert_int_equal(f.early_init_calls, 1);
+    assert_int_equal(f.console_init_calls, 1);
+    assert_int_equal(f.init_calls, 1);
+    assert_reset_only();
+}
+
+/* platform.md 2: the order, when nothing fails */
+static void test_platform_is_set_up_before_the_board(void **state)
+{
+    (void)state;
+
+    f.boot_jumps = true;
+    assert_int_equal(run_main(), LEFT_BY_JUMP);
+    assert_int_equal(f.early_init_calls, 1);
+    assert_int_equal(f.console_init_calls, 1);
+    assert_int_equal(f.init_calls, 1);
+    assert_int_equal(f.setup_calls, 1);
+    assert_int_equal(f.boot_calls, 1);
 }
 
 #ifndef TEST_NO_TASKS
@@ -276,6 +343,9 @@ static void test_no_task_resets_at_once(void **state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup(test_plat_early_init_fails_resets, setup),
+        cmocka_unit_test_setup(test_plat_init_fails_resets, setup),
+        cmocka_unit_test_setup(test_platform_is_set_up_before_the_board, setup),
 #ifndef TEST_NO_TASKS
         cmocka_unit_test_setup(test_tasks_run_in_turn_until_one_ends_the_loop, setup),
         cmocka_unit_test_setup(test_any_error_ends_the_loop, setup),

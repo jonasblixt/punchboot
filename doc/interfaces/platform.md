@@ -795,6 +795,5 @@ For a new platform, and for a change to one:
 
 The core's part of this contract, not yet in the code:
 
-- `main()` resets after a platform failure: no, it runs command mode (F-235).
 - `boot()` checks the preconditions (2.3): no (F-248).
 - `plat.h`: the tick's type, `noreturn`, `platform_ns_uuid` (F-237).

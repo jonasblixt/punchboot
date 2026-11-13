@@ -59,7 +59,7 @@ void main(void)
     rc = plat_early_init();
 
     if (rc != PB_OK)
-        goto enter_command_mode;
+        goto platform_failed;
 
     if (board.console_init)
         board.console_init();
@@ -67,7 +67,7 @@ void main(void)
     rc = plat_init();
 
     if (rc != PB_OK)
-        goto enter_command_mode;
+        goto platform_failed;
 
     rc = board_setup();
 
@@ -79,6 +79,14 @@ void main(void)
 enter_command_mode:
     printf("Boot aborted (%i), entering command mode\n\r", rc);
     run_tasks();
+    plat_reset();
+
+platform_failed:
+    /* Not stopped (platform.md 2): without what the platform sets up there is
+     * no console or tick, no MMU, no fuses or no DRAM for command mode's
+     * buffers. Neither the boot nor a task runs. After plat_early_init() the
+     * line below is in the RAM log only */
+    LOG_ERR("Platform init failed (%i), resetting", rc);
     plat_reset();
 }
 

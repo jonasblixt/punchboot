@@ -222,7 +222,9 @@ Unit tests, by module under test:
 |                                               | the transport on USB         |                                  |
 | `test_main.c`                                 | `main.c`: the loop over the  | platform, board set up, boot;    |
 |                                               | tasks, twice: with three     | three tasks                      |
-|                                               | tasks and with none          |                                  |
+|                                               | tasks and with none; the     |                                  |
+|                                               | reset after a platform       |                                  |
+|                                               | failure                      |                                  |
 | `test_mmc_core.c`                             | `mmc_core.c` (boot partition | fake card                        |
 |                                               | updates, power loss)         |                                  |
 | `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |

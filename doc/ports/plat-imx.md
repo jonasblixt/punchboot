@@ -60,7 +60,7 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 - **Warm resets.** The 6UL's `plat_early_init()` clears SRC_SCR's warm reset enable, as U-Boot's
   `init_src()` does. The others: unchecked.
 - **The 8M's DRAM.** Trained in `plat_init()` (`imx8m-ddr.md`); a failure returns the error, and
-  command mode can't run without DRAM (F-202).
+  `main()` resets: command mode's buffers are in DRAM (`.no_init`, the `buffers` region).
 
 ## 3. Services
 
