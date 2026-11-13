@@ -609,6 +609,25 @@ target_include_directories(test_cdns3_udc BEFORE PRIVATE
 target_compile_options(test_cdns3_udc PRIVATE -fno-pie)
 target_link_options(test_cdns3_udc PRIVATE -no-pie)
 
+# The ChipIdea controller's driver, with a model of the controller's side of
+# a transfer and of the cache (see the test). Its descriptors hold 32 bit
+# addresses: -no-pie keeps them and the buffers below 4 GiB. The driver's
+# number of descriptors follows the command mode buffer's size, which
+# fakes/imx_ci_udc/config.h sets
+pb_unit_test(test_imx_ci_udc SOURCES
+    fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/imx_ci_udc.c
+)
+target_include_directories(test_imx_ci_udc BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/imx_ci_udc
+)
+target_include_directories(test_imx_ci_udc PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb
+)
+target_compile_options(test_imx_ci_udc PRIVATE -fno-pie)
+target_link_options(test_imx_ci_udc PRIVATE -no-pie)
+
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
