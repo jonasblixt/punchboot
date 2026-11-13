@@ -147,6 +147,8 @@ A single integration test, inside `scripts/pbdev shell`:
   and `sgdisk_verify()`. Fixtures:
   - `blank_device` starts in command mode on a blank disk.
   - `device` also has the default partition table installed.
+  - `no_disk_device` has a disk that can't be opened: the board's `init()` fails, and pb stops
+    in command mode with what `init()` set up before the disk (`board.md` 2.1).
   - `nor_device` is `device` with the flash (`--nor`). `read_nor()` and `write_nor()` reach its
     file. An in place image's `pb-load-addr` is `NOR_BASE` plus the partition's offset plus the
     part's offset in the payload.

@@ -191,3 +191,25 @@ def test_boot_activate_after_a_failed_policy_init_writes_no_state(
                 s.boot_set_boot_part(part)
 
     assert no_policy_device.read_blocks(0, DISK_BLOCKS) == before
+
+
+def test_boot_from_ram_after_a_failed_init(
+    no_disk_device: Device, tmp_path: pathlib.Path
+) -> None:
+    """board.md 2.1 and 2.3 (F-394): a failed init() leaves what a RAM boot needs.
+
+    The board's disk can't be opened, so its init() fails and pb stops in
+    command mode. The host board sets up Mbed TLS before the disk, as the
+    real boards set up their crypto engine before their storage, so the image
+    from RAM verifies.
+    """
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+
+    with no_disk_device.session() as s:
+        # No disk, so no partitions: the host's library answers that with an error
+        with pytest.raises(punchboot.GenericError):
+            s.part_get_partitions()
+        s.boot_bpak(img, NULL_UUID)
+
+    assert no_disk_device.wait_exit() == 0
+    assert no_disk_device.boot_status == "?"
