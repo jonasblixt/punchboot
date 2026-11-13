@@ -194,6 +194,7 @@ pb_unit_test(test_policy SOURCES
 
 pb_unit_test(test_board SOURCES
     ${PROJECT_SOURCE_DIR}/src/board.c
+    ${PROJECT_SOURCE_DIR}/src/board/password.c
     ${PROJECT_SOURCE_DIR}/src/boot/policy.c
 )
 
@@ -201,6 +202,7 @@ pb_unit_test(test_board SOURCES
 # board's password_auth is then mandatory (board.md 3)
 add_executable(test_board_password test_board.c
     ${PROJECT_SOURCE_DIR}/src/board.c
+    ${PROJECT_SOURCE_DIR}/src/board/password.c
     ${PROJECT_SOURCE_DIR}/src/boot/policy.c
 )
 target_compile_definitions(test_board_password PRIVATE CONFIG_CM_AUTH_PASSWORD=1)

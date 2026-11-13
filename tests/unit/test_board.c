@@ -11,6 +11,8 @@
  *
  * Built twice: as pb-host is, without the password method, and with it
  * (test_board_password), where the board's password_auth is mandatory.
+ *
+ * And the boards' password comparison (src/board/password.c).
  */
 
 #include <setjmp.h>
@@ -21,6 +23,7 @@
 
 #include <cmocka.h>
 
+#include <board/password.h>
 #include <boot/boot.h>
 #include <libfdt.h>
 #include <pb/bio.h>
@@ -1194,6 +1197,53 @@ static void test_cm_after_a_failed_setup(void **state)
     assert_string_equal(calls, "cm ");
 }
 
+/* The host's password, length bytes in a buffer of its own: no NUL after it */
+static int check_password(const char *expected, const char *password, size_t length)
+{
+    char sent[32];
+
+    assert_true(length <= sizeof(sent));
+    memcpy(sent, password, length);
+    return board_password_check(expected, strlen(expected), sent, length);
+}
+
+/*
+ * board.md 4.5 (F-004): the whole password, the lengths match too. The 8X
+ * boards compared with strncmp(expected, password, length): any prefix of
+ * the password was accepted, "i" too, and so was the password with a NUL
+ * and anything after it.
+ */
+static void test_password_check(void **state)
+{
+    const char *pw = "imx8qxpmek";
+
+    (void)state;
+
+    assert_int_equal(check_password(pw, "imx8qxpmek", 10), PB_OK);
+
+    /* Prefixes */
+    assert_int_equal(check_password(pw, "i", 1), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(check_password(pw, "imx8qxpme", 9), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(check_password(pw, "", 0), -PB_ERR_AUTHENTICATION_FAILED);
+
+    /* Longer */
+    assert_int_equal(check_password(pw, "imx8qxpmek\0", 11), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(check_password(pw, "imx8qxpmek\0zz", 13), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(check_password(pw, "imx8qxpmekz", 11), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(check_password(pw, "imx8qxpmekimx8qxpmek", 20), -PB_ERR_AUTHENTICATION_FAILED);
+
+    /* The same length, a byte differs: the first, one inside, the last */
+    assert_int_equal(check_password(pw, "Imx8qxpmek", 10), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(check_password(pw, "imx8qXpmek", 10), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(check_password(pw, "imx8qxpmeK", 10), -PB_ERR_AUTHENTICATION_FAILED);
+
+    /* No expected password, no password */
+    assert_int_equal(board_password_check(pw, 0, "", 0), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(board_password_check(pw, 0, "i", 1), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(board_password_check(NULL, 0, pw, 10), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(board_password_check(pw, 10, NULL, 10), -PB_ERR_AUTHENTICATION_FAILED);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -1222,6 +1272,7 @@ int main(void)
         cmocka_unit_test_setup(test_cm_name_is_read_bounded, setup),
         cmocka_unit_test_setup(test_cm_password_auth, setup),
         cmocka_unit_test_setup(test_cm_after_a_failed_setup, setup),
+        cmocka_unit_test(test_password_check),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
