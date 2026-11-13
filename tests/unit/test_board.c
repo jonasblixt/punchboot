@@ -53,7 +53,7 @@ static void call(const char *name)
 }
 
 static struct {
-    int regions, rot, slc, init, part, ptbl, policy, late_init, handover, delivery, cm_init, cm;
+    int regions, rot, slc, init, part, ptbl, policy, late_init, handover, delivery, cm;
 } rc;
 
 static const struct rot_config *rot_cfg;
@@ -216,12 +216,6 @@ static int board_late_init(void)
     return rc.late_init;
 }
 
-static int board_cm_init(void)
-{
-    call("cm_init");
-    return rc.cm_init;
-}
-
 static int early_boot(void)
 {
     return PB_OK;
@@ -231,13 +225,6 @@ static int early_boot(void)
 static int late_boot(uuid_t boot_part_uu)
 {
     (void)boot_part_uu;
-    return PB_OK;
-}
-
-static int transport_read(void *buf, size_t length)
-{
-    (void)buf;
-    (void)length;
     return PB_OK;
 }
 
@@ -252,7 +239,6 @@ static int password_auth(const char *password, size_t length)
 
 static const struct rot_config test_rot = { 0 };
 static const struct slc_config test_slc = { 0 };
-static const struct cm_transport_ops test_transport = { .read = transport_read };
 
 static const struct ptbl_ops test_ptbl_ops = { .init = ptbl_init };
 static const struct boot_policy_ops test_policy_ops = {
@@ -327,8 +313,6 @@ static int setup(void **state)
         .late_boot = late_boot,
         .bootargs = "quiet",
         .bootargs_verbose = "verbose",
-        .cm_init = board_cm_init,
-        .cm_transport = &test_transport,
 #ifdef CONFIG_CM_AUTH_PASSWORD
         .password_auth = password_auth,
 #endif
@@ -1027,10 +1011,11 @@ static void test_cm(void **state)
     size_t length = sizeof(buf);
     (void)state;
 
+    /* The board sets up nothing for command mode (board.md 4.1): its data
+     * is checked and handed to cm_init(), and no hook of the board's runs */
     assert_int_equal(cm_board_init(), PB_OK);
-    assert_string_equal(calls, "cm_init cm ");
+    assert_string_equal(calls, "cm ");
     assert_string_equal(cm_cfg->name, "test");
-    assert_ptr_equal(cm_cfg->tops.read, transport_read);
 #ifdef CONFIG_CM_AUTH_PASSWORD
     assert_ptr_equal(cm_cfg->password_auth, password_auth);
 #else
@@ -1055,18 +1040,6 @@ static void test_cm(void **state)
     assert_int_equal(status_calls, 1);
     assert_string_equal((char *)buf, "Fine\n");
     assert_int_equal(length, strlen("Fine\n") + 1);
-
-    /* A failed hook stops it */
-    setup(NULL);
-    rc.cm_init = -PB_ERR_IO;
-    assert_int_equal(cm_board_init(), -PB_ERR_IO);
-    assert_string_equal(calls, "cm_init ");
-
-    /* No hook: optional */
-    setup(NULL);
-    board.cm_init = NULL;
-    assert_int_equal(cm_board_init(), PB_OK);
-    assert_string_equal(calls, "cm ");
 }
 
 /* board.md 4.3 (F-250): the board writes at most *length - 1 bytes of text,
@@ -1123,7 +1096,7 @@ static void test_cm_status_is_clamped(void **state)
 }
 
 /* A failed check in cm_board_init() means no command mode: -PB_ERR_PARAM,
- * and neither the board's hook nor cm_init() is called */
+ * and cm_init() isn't called */
 static void assert_no_cm(void)
 {
     assert_int_equal(cm_board_init(), -PB_ERR_PARAM);
@@ -1152,7 +1125,7 @@ static void test_cm_name(void **state)
         setup(NULL);
         board.name = valid[i];
         assert_int_equal(cm_board_init(), PB_OK);
-        assert_string_equal(calls, "cm_init cm ");
+        assert_string_equal(calls, "cm ");
         assert_ptr_equal(cm_cfg->name, valid[i]);
     }
 
@@ -1182,16 +1155,6 @@ static void test_cm_name_is_read_bounded(void **state)
     assert_no_cm();
 }
 
-/* The transport is copied: checked only for being there, until it leaves the
- * board (F-267) */
-static void test_cm_no_transport(void **state)
-{
-    (void)state;
-
-    board.cm_transport = NULL;
-    assert_no_cm();
-}
-
 /* password_auth is mandatory with CONFIG_CM_AUTH_PASSWORD, and optional
  * without the method */
 static void test_cm_password_auth(void **state)
@@ -1203,7 +1166,7 @@ static void test_cm_password_auth(void **state)
     assert_no_cm();
 #else
     assert_int_equal(cm_board_init(), PB_OK);
-    assert_string_equal(calls, "cm_init cm ");
+    assert_string_equal(calls, "cm ");
     assert_null(cm_cfg->password_auth);
 #endif
 }
@@ -1221,7 +1184,7 @@ static void test_cm_after_a_failed_setup(void **state)
     assert_int_equal(board_setup(), -PB_ERR_PARAM);
     assert_string_equal(calls, "");
     assert_int_equal(cm_board_init(), PB_OK);
-    assert_string_equal(calls, "cm_init cm ");
+    assert_string_equal(calls, "cm ");
 }
 
 int main(void)
@@ -1250,7 +1213,6 @@ int main(void)
         cmocka_unit_test_setup(test_cm_status_is_clamped, setup),
         cmocka_unit_test_setup(test_cm_name, setup),
         cmocka_unit_test_setup(test_cm_name_is_read_bounded, setup),
-        cmocka_unit_test_setup(test_cm_no_transport, setup),
         cmocka_unit_test_setup(test_cm_password_auth, setup),
         cmocka_unit_test_setup(test_cm_after_a_failed_setup, setup),
     };

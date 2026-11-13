@@ -9,6 +9,7 @@
 
 #include <drivers/usb/pb_dev_cls.h>
 #include <drivers/usb/usbd.h>
+#include <pb/cm.h>
 #include <pb/device_uuid.h>
 #include <pb/pb.h>
 #include <stdint.h>
@@ -160,8 +161,13 @@ int pb_dev_cls_xfer_complete(void)
     return usbd_xfer_complete();
 }
 
+/*
+ * Command mode's transport on USB (usb.md 2, pb/cm.h): the class on the usbd
+ * stack, over the controller that plat_cm_init() registered.
+ */
+
 /* The class first: usbd_init() enumerates with its descriptors */
-static int transport_init(void)
+int cm_transport_init(void)
 {
     int rc = pb_dev_cls_init();
 
@@ -171,11 +177,27 @@ static int transport_init(void)
     return usbd_init();
 }
 
-const struct cm_transport_ops pb_dev_cls_transport = {
-    .init = transport_init,
-    .connect = usbd_connect,
-    .disconnect = usbd_disconnect,
-    .read = pb_dev_cls_read,
-    .write = pb_dev_cls_write,
-    .complete = pb_dev_cls_xfer_complete,
-};
+int cm_transport_connect(void)
+{
+    return usbd_connect();
+}
+
+int cm_transport_disconnect(void)
+{
+    return usbd_disconnect();
+}
+
+int cm_transport_read(void *buf, size_t length)
+{
+    return pb_dev_cls_read(buf, length);
+}
+
+int cm_transport_write(const void *buf, size_t length)
+{
+    return pb_dev_cls_write(buf, length);
+}
+
+int cm_transport_complete(void)
+{
+    return pb_dev_cls_xfer_complete();
+}

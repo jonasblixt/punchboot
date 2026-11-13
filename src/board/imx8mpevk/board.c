@@ -26,7 +26,6 @@
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_uart.h>
-#include <drivers/usb/pb_dev_cls.h>
 #include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/console.h>
@@ -350,5 +349,4 @@ const struct board board = {
     .bootargs = "console=ttymxc1,115200 quiet ",
     /* arm64 has no earlyprintk: earlycon, on stdout-path */
     .bootargs_verbose = "console=ttymxc1,115200 earlycon ",
-    .cm_transport = &pb_dev_cls_transport,
 };

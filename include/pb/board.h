@@ -21,7 +21,8 @@
  *  5. late_init()    What needs the partitions
  *  6. boot_handover  The handover, and its delivery
  *
- * Command mode, cm_board_init(): cm_init(), then cm_transport.
+ * Command mode sets up nothing of the board's: its USB is the platform's
+ * (plat_cm_init()) and its transport is linked (board.md 4.1, 4.2).
  *
  * One member per concept (board.md 1). ptbl, boot_policy, boot_handover and
  * boot_delivery are objects: a module's functions and the board's
@@ -34,7 +35,7 @@
  * image_regions, rot and slc first, boot_policy and boot_handover when their
  * step comes, a GPT's layouts by its driver. A failed check is a failed step,
  * -PB_ERR_PARAM: no boot from storage, and the handover is still set up when
- * its own data passed. cm_board_init(): name, password_auth, cm_transport.
+ * its own data passed. cm_board_init(): name, password_auth.
  * A failed check there means no command mode, and pb resets.
  */
 
@@ -50,7 +51,6 @@
 #include <uuid.h>
 
 struct bpak_header;
-struct cm_transport_ops;
 struct rot_config;
 struct slc_config;
 
@@ -98,8 +98,6 @@ struct board {
     const char *bootargs;
     const char *bootargs_verbose;
 
-    int (*cm_init)(void); /*!< Command mode's hardware, e.g. the USB controller */
-    const struct cm_transport_ops *cm_transport; /*!< e.g. pb_dev_cls_transport */
     int (*status)(uint8_t *buf, size_t *length); /*!< NULL: "Board status OK!" */
     int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
     /* Required with CONFIG_CM_AUTH_PASSWORD */

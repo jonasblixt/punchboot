@@ -404,9 +404,6 @@ the build's tasks in turn (4.6). Command mode is one of them, in a build that ha
 
 ### 4.1 Command mode's hardware (the platform's)
 
-**Not yet in the code (F-267)**: every board has a `cm_init` hook that enables the USB clocks or
-power domains, sets up the PHY and starts the controller.
-
 A board sets up nothing for command mode (Jonas, D-049). Command mode's transport is USB, the port
 most SoCs' ROMs use for recovery and provisioning, and what a USB device port needs is the SoC's:
 its clocks, its power, its PHY, its controller. The platform does it in `plat_cm_init()`
@@ -417,10 +414,6 @@ No hook is left for the PCB: no board needs one (Jonas). One can be added when a
 mux, a VBUS switch).
 
 ### 4.2 The transport (the core's)
-
-**Not yet in the code (F-267)**: `cm_transport` in `struct board`, a `struct cm_transport_ops`
-that every board sets to `pb_dev_cls_transport`, except the host's, which has a socket. Until
-then `cm_board_init()` checks that it is set, with the board's data (section 3).
 
 The transport is not the board's choice (D-049). Command mode calls the transport's functions
 directly, and the build links one implementation: the USB class driver, or the host platform's
@@ -711,8 +704,8 @@ aren't the board's data (`system.md` 6):
 selected the device tree code: a board that is ported sets the handover's option with it, or it
 doesn't link.
 
-**Not yet in the code (F-259, F-251, F-263, F-267)**: `BOOT_FH` and its region,
-`CM_ON_SERIAL_DOWNLOAD`, the EOL option, the USB port's.
+**Not yet in the code (F-259, F-251, F-263)**: `BOOT_FH` and its region,
+`CM_ON_SERIAL_DOWNLOAD`, the EOL option.
 
 **Not yet in the code (F-239)**: the board's addresses (`PB_ENTRY`, `BOARD_RAM_BASE`, `_END`) are
 make variables and `-D` flags in `makefile.mk`; `platform.md` 5.1 makes them Kconfig values

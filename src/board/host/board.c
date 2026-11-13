@@ -398,13 +398,6 @@ static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
 };
 
-static const struct cm_transport_ops socket_transport = {
-    .init = host_socket_init,
-    .read = host_socket_read,
-    .write = host_socket_write,
-    .complete = host_socket_complete,
-};
-
 static const struct boot_ab_state_config boot_state_cfg = {
     .primary_state_part_uu = PART_primary_state,
     .backup_state_part_uu = PART_backup_state,
@@ -495,6 +488,5 @@ const struct board board = {
     .image_regions = image_regions,
     .early_boot = early_boot,
     .late_boot = late_boot,
-    .cm_transport = &socket_transport,
     .command = board_command,
 };

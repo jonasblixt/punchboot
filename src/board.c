@@ -292,13 +292,6 @@ static int cm_check_board_data(void)
     }
 #endif
 
-    /* Only that it is there: it is copied below. The transport leaves the
-     * board, and this check with it (F-267) */
-    if (board.cm_transport == NULL) {
-        LOG_ERR("Board data: no cm_transport");
-        return -PB_ERR_PARAM;
-    }
-
     return PB_OK;
 }
 
@@ -312,20 +305,10 @@ int cm_board_init(void)
     if (rc != PB_OK)
         return rc;
 
-    if (board.cm_init) {
-        rc = board.cm_init();
-
-        if (rc != PB_OK) {
-            LOG_ERR("Command mode init failed (%i)", rc);
-            return rc;
-        }
-    }
-
     cfg.name = board.name;
     cfg.status = cm_board_status;
     cfg.command = board.command ? board.command : default_command;
     cfg.password_auth = board.password_auth;
-    cfg.tops = *board.cm_transport;
 
     return cm_init(&cfg);
 }

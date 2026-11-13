@@ -83,7 +83,7 @@
 /* A stopped transfer polled this often was waited for past the timeout */
 #define STOPPED_POLLS_MAX   (2 * TRANSFER_TIMEOUT_US / TICK_STEP_US)
 
-/* The fake transport */
+/* The fake transport: the cm_transport_*() functions that command mode links */
 static struct {
     uint8_t in[32 * 1024]; /* Host to device */
     size_t in_len;
@@ -133,7 +133,7 @@ static struct {
     int heal_at; /* at this call */
 } t;
 
-static int fake_init(void)
+int cm_transport_init(void)
 {
     if (t.stopped) {
         /* The next host */
@@ -146,7 +146,7 @@ static int fake_init(void)
     return (t.init_calls > t.max_inits) ? -PB_ERR_IO : PB_OK;
 }
 
-static int fake_connect(void)
+int cm_transport_connect(void)
 {
     t.connect_calls++;
     if (t.connect_ok_after >= 0 && t.connect_calls > t.connect_ok_after)
@@ -154,13 +154,13 @@ static int fake_connect(void)
     return t.connect_rc;
 }
 
-static int fake_disconnect(void)
+int cm_transport_disconnect(void)
 {
     t.disconnect_calls++;
     return PB_OK;
 }
 
-static int fake_read(void *buf, size_t length)
+int cm_transport_read(void *buf, size_t length)
 {
     if (t.fail_reads_after == 0)
         return -PB_ERR_IO;
@@ -172,7 +172,7 @@ static int fake_read(void *buf, size_t length)
     return PB_OK;
 }
 
-static int fake_write(const void *buf, size_t length)
+int cm_transport_write(const void *buf, size_t length)
 {
     if (t.fail_writes_after == 0)
         return -PB_ERR_IO;
@@ -195,7 +195,7 @@ static int fake_write(const void *buf, size_t length)
     return PB_OK;
 }
 
-static int fake_complete(void)
+int cm_transport_complete(void)
 {
     if (t.n_complete_rcs > 0) {
         int rc = t.complete_rcs[0];
@@ -252,13 +252,10 @@ static int
 board_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
 static int password_auth(const char *password, size_t length);
 
-#define TOPS .init = fake_init, .read = fake_read, .write = fake_write, .complete = fake_complete
-
 static const struct cm_config cfg_default = {
     .name = "unit test",
     .status = board_status,
     .command = board_command,
-    .tops = { TOPS },
 };
 
 static const struct cm_config cfg_all_callbacks = {
@@ -267,7 +264,6 @@ static const struct cm_config cfg_all_callbacks = {
     .command = board_command,
     .password_auth = password_auth,
     .process = fake_process,
-    .tops = { TOPS, .connect = fake_connect, .disconnect = fake_disconnect },
 };
 
 static const struct cm_config *board_cfg;
@@ -764,7 +760,6 @@ static void test_board_id_fills_the_field(void **state)
         .name = "16 characters...",
         .status = board_status,
         .command = board_command,
-        .tops = { TOPS },
     };
     (void)state;
 

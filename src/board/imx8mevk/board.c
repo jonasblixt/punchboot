@@ -13,7 +13,6 @@
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_uart.h>
-#include <drivers/usb/pb_dev_cls.h>
 #include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/console.h>
@@ -254,6 +253,5 @@ const struct board board = {
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .image_regions = image_regions,
-    .cm_transport = &pb_dev_cls_transport,
     .command = board_command,
 };

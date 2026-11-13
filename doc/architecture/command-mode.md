@@ -82,8 +82,7 @@ main()
   a task ended the loop: plat_reset()
 ```
 
-**Not yet in the code (F-268, F-267)**: `cm_run()` is a blocking loop that `main()` calls, and
-the board sets up the transport.
+**Not yet in the code (F-268)**: `cm_run()` is a blocking loop that `main()` calls.
 
 Command mode is one task (D-051). It never runs on the boot path, and nothing of it is set up
 there (`principles.md` 4, D-023). A build without it (`CONFIG_CM` off) stops the same way and
@@ -738,7 +737,7 @@ For a change to command mode, a new command or a new method:
 
 | Finding             | What                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------ |
-| F-268, F-267        | Command mode as a task; the platform sets up the port, the transport is linked (2)   |
+| F-268               | Command mode as a task (2)                                                           |
 | F-201, F-363        | The session ends with the transport: authentication and the stream are cleared (3.1) |
 | F-375               | The caps' erase timeout (4.6)                                                        |
 | F-181               | The verdict of a token is the verification's own (3.3)                               |

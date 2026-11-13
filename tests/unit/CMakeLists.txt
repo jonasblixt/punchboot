@@ -336,6 +336,13 @@ add_test(
 )
 set_tests_properties(unit.cm_usb_kconfig PROPERTIES LABELS unit TIMEOUT 60)
 
+# The transport that a build for a SoC links (usb.md 2): pb's USB class and
+# the stack, over a fake controller. pb-host links the socket instead
+pb_unit_test(test_usb_transport SOURCES
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/pb_dev_cls.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/usbd.c
+)
+
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c

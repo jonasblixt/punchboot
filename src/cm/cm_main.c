@@ -226,7 +226,7 @@ static int cm_transfer_wait(void)
 
     do {
         plat_wdog_kick();
-        rc = cfg->tops.complete();
+        rc = cm_transport_complete();
 
         if (rc == -PB_ERR_AGAIN && pb_timeout_has_expired(&to)) {
             LOG_ERR("Transfer timed out");
@@ -244,7 +244,7 @@ static int cm_write(const void *buf, size_t length)
     if (transfer_lost)
         return -PB_ERR_IO;
 
-    rc = cfg->tops.write(buf, length);
+    rc = cm_transport_write(buf, length);
 
     if (rc == PB_OK)
         rc = cm_transfer_wait();
@@ -265,7 +265,7 @@ static int cm_read(void *buf, size_t length)
     if (transfer_lost)
         return -PB_ERR_IO;
 
-    rc = cfg->tops.read(buf, length);
+    rc = cm_transport_read(buf, length);
 
     if (rc == PB_OK)
         rc = cm_transfer_wait();
@@ -895,9 +895,7 @@ static int cmd_boot_bpak(void)
         return rc;
     }
 
-    if (cfg->tops.disconnect) {
-        cfg->tops.disconnect();
-    }
+    cm_transport_disconnect();
 
     return boot_jump();
 }
@@ -1219,9 +1217,7 @@ static int pb_command_parse(void)
         if (rc == PB_OK) {
             /* Only disconnect when booting, cm_run reads the next command
              * from the transport after an error */
-            if (cfg->tops.disconnect) {
-                cfg->tops.disconnect();
-            }
+            cm_transport_disconnect();
 
             rc = boot_jump();
             /* Should not return */
@@ -1389,40 +1385,36 @@ restart_command_mode:
     cm_session_end();
     transfer_lost = false;
 
-    if (cfg->tops.init) {
-        rc = cfg->tops.init();
+    rc = cm_transport_init();
 
-        if (rc != PB_OK) {
-            LOG_ERR("Transport init failed (%i)", rc);
-            return -PB_ERR_IO;
-        }
+    if (rc != PB_OK) {
+        LOG_ERR("Transport init failed (%i)", rc);
+        return -PB_ERR_IO;
     }
 
-    if (cfg->tops.connect) {
-        LOG_INFO("Waiting for transport to become ready...");
+    LOG_INFO("Waiting for transport to become ready...");
 
-        struct pb_timeout to;
-        pb_timeout_init_us(&to, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
+    struct pb_timeout to;
+    pb_timeout_init_us(&to, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
 
-        do {
-            plat_wdog_kick();
-            rc = cfg->tops.connect();
-            if (pb_timeout_has_expired(&to)) {
-                rc = -PB_ERR_TIMEOUT;
-                break;
-            }
-        } while (rc == -PB_ERR_AGAIN);
-
-        if (rc != PB_OK) {
-            LOG_ERR("Transport init error (%i)", rc);
-            goto err_out;
+    do {
+        plat_wdog_kick();
+        rc = cm_transport_connect();
+        if (pb_timeout_has_expired(&to)) {
+            rc = -PB_ERR_TIMEOUT;
+            break;
         }
+    } while (rc == -PB_ERR_AGAIN);
 
-        LOG_INFO("Transport ready");
+    if (rc != PB_OK) {
+        LOG_ERR("Transport init error (%i)", rc);
+        goto err_out;
     }
+
+    LOG_INFO("Transport ready");
 
     while (true) {
-        rc = cfg->tops.read(&cmd, sizeof(cmd));
+        rc = cm_transport_read(&cmd, sizeof(cmd));
 
         if (rc != PB_OK)
             break;
@@ -1433,7 +1425,7 @@ restart_command_mode:
             if (cfg->process)
                 cfg->process();
 
-            rc = cfg->tops.complete();
+            rc = cm_transport_complete();
 
             if (rc == PB_OK) {
                 rc = pb_command_parse();
@@ -1464,8 +1456,6 @@ restart_command_mode:
     }
 
 err_out:
-    if (cfg->tops.disconnect) {
-        cfg->tops.disconnect();
-    }
+    cm_transport_disconnect();
     return rc;
 }

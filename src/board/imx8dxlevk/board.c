@@ -18,7 +18,6 @@
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/uart/imx_lpuart.h>
-#include <drivers/usb/pb_dev_cls.h>
 #include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/console.h>
@@ -400,7 +399,6 @@ const struct board board = {
     .bootargs = "console=ttyLP0,115200 quiet ",
     .bootargs_verbose = "console=ttyLP0,115200  "
                         "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ",
-    .cm_transport = &pb_dev_cls_transport,
     .status = board_status,
     .password_auth = board_password_auth,
 };

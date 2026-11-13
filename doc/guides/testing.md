@@ -211,6 +211,8 @@ Unit tests, by module under test:
 |                                               |                              | UUID; builds DTBs with libfdt    |
 | `test_cm.c`                                   | `cm_main.c`                  | transport, boot, root of trust,  |
 |                                               |                              | SLC, crypto providers            |
+| `test_usb_transport.c`                        | `pb_dev_cls.c`, `usbd.c`:    | the USB device controller        |
+|                                               | the transport on USB         |                                  |
 | `test_mmc_core.c`                             | `mmc_core.c` (boot partition | fake card                        |
 |                                               | updates, power loss)         |                                  |
 | `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |

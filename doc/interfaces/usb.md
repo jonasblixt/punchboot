@@ -58,8 +58,6 @@ hooks (`board.md` 5.3), USB host mode, which pb doesn't have.
 
 ## 2. The transport
 
-**Not yet in the code (F-267)**: `struct cm_transport_ops` in `struct board`.
-
 Six functions. Command mode calls them and nothing else of the layers below.
 
 ### 2.1 Function : cm_transport_init() [mandatory]
@@ -445,7 +443,8 @@ The stack and the transport:
 | A request leaves a bulk transfer alone        | no                                       | F-203        |
 | The socket's `connect` polls                  | no: `init` blocks in the accept          | F-287        |
 | Tested on the host                            | Command mode on the socket and on a fake | F-230        |
-|                                               | transport; no USB code                   |              |
+|                                               | transport; the USB transport's functions |              |
+|                                               | on a fake controller, no controller      |              |
 
 **The conformance suite** (`process.md` 7). **Not yet in the code (F-287)**: the transport's
 rules (section 2) as one set of tests, run on the host against the socket and against the
@@ -458,7 +457,6 @@ checklist's last item.
 
 | Finding             | What                                                                         |
 | ------------------- | ---------------------------------------------------------------------------- |
-| F-267               | The transport is linked; the platform sets up the port (2, 4)                |
 | F-201, F-287, F-363 | Lost is reported and ends the session; a restart disconnects first (2.4)     |
 | F-137, F-205        | An OUT transfer ends at `length`, writes nothing past it, and its result is  |
 |                     | the controller's (2.3, 4.3)                                                  |

@@ -363,8 +363,6 @@ partition and the debugger stays optional (unknown). **Not yet in the code (F-25
 
 ### 3.10 Function : plat_cm_init() [mandatory when CONFIG_CM]
 
-**Not yet in the code (F-267)**: the boards do this in their `cm_init` hooks.
-
 ```
 Argument : void
 Return   : int, PB_OK or -PB_ERR_*

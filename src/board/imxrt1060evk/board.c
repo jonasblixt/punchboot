@@ -9,7 +9,6 @@
 #include <drivers/partition/static.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_lpuart.h>
-#include <drivers/usb/pb_dev_cls.h>
 #include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/console.h>
@@ -410,6 +409,5 @@ const struct board board = {
     .image_regions = image_regions,
     .early_boot = board_early_boot,
     .late_boot = board_late_boot,
-    .cm_transport = &pb_dev_cls_transport,
     .command = board_command,
 };

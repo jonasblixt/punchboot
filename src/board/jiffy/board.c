@@ -18,7 +18,6 @@
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_uart.h>
-#include <drivers/usb/pb_dev_cls.h>
 #include <pb/bio.h>
 #include <pb/board.h>
 #include <pb/cm.h>
@@ -357,6 +356,5 @@ const struct board board = {
     .image_regions = image_regions,
     .bootargs = "console=ttymxc1,115200 quiet ",
     .bootargs_verbose = "console=ttymxc1,115200 earlyprintk ",
-    .cm_transport = &pb_dev_cls_transport,
     .status = board_status,
 };
