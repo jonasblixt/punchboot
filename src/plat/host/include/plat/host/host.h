@@ -44,6 +44,7 @@ struct host_options {
     const char *fuse_path; /* Backing file for the fuses */
     const char *socket_path; /* Command mode socket */
     const char *boot_status_path; /* Written by the board on 'boot' */
+    const char *dt_path; /* Written by the board on 'boot': the tree it prepared, or NULL */
     bool force_command_mode; /* Abort boot and enter command mode */
     bool dram_filter_bypassed; /* plat_get_status(): PLAT_TZ_DRAM_BYPASSED */
     bool boot_source_set; /* plat_get_boot_source() answers boot_source */

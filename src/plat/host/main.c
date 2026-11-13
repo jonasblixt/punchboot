@@ -63,6 +63,8 @@ static void usage(const char *name)
            "  -f, --fuses PATH         Fuse file (default: fuses.img)\n"
            "  -s, --socket PATH        Command mode socket (default: pb.sock)\n"
            "  -b, --boot-status PATH   Boot status output (default: boot_status)\n"
+           "  -t, --dt PATH            Name a device tree part (dt) in the handover, and\n"
+           "                           write the tree it prepared here on boot\n"
            "  -c, --command-mode       Force command mode\n"
            "      --dram-filter-bypassed  The platform reports a bypassed TrustZone\n"
            "                           DRAM filter: no boot\n"
@@ -80,6 +82,7 @@ int main(int argc, char **argv)
         { "fuses", required_argument, NULL, 'f' },
         { "socket", required_argument, NULL, 's' },
         { "boot-status", required_argument, NULL, 'b' },
+        { "dt", required_argument, NULL, 't' },
         { "command-mode", no_argument, NULL, 'c' },
         { "dram-filter-bypassed", no_argument, NULL, OPT_DRAM_FILTER_BYPASSED },
         { "boot-source", required_argument, NULL, OPT_BOOT_SOURCE },
@@ -88,7 +91,7 @@ int main(int argc, char **argv)
     };
     int opt;
 
-    while ((opt = getopt_long(argc, argv, "d:n:f:s:b:ch", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "d:n:f:s:b:t:ch", long_options, NULL)) != -1) {
         switch (opt) {
         case 'd':
             host_opts.disk_path = optarg;
@@ -104,6 +107,9 @@ int main(int argc, char **argv)
             break;
         case 'b':
             host_opts.boot_status_path = optarg;
+            break;
+        case 't':
+            host_opts.dt_path = optarg;
             break;
         case 'c':
             host_opts.force_command_mode = true;

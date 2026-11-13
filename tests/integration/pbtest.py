@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import contextlib
 import pathlib
-import re
 import shutil
 import socket
 import struct
@@ -20,6 +19,8 @@ import uuid
 from typing import TYPE_CHECKING
 
 import punchboot
+
+from . import fdt
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -40,8 +41,10 @@ SYSTEM_SIZE = 512 * 1024
 PRIMARY_STATE_LBA = 2082
 BACKUP_STATE_LBA = 2083
 
-# enum boot_policy_mode (include/boot/policy.h), as the strings of pb,boot-mode
-BOOT_MODES = ("normal", "fallback", "speculative")
+# The device tree part of the host's test images (pb-host --dt): where it is
+# loaded, and the tree, a root and an empty /chosen
+DT_LOAD_ADDR = 0x4A000000
+DT = fdt.build({"/": {"model": b"pb-host\0"}, "/chosen": {}})
 
 # The memory mapped flash of src/board/host (pb-host --nor) and its static
 # table: where pb has it mapped, and each partition's offset and size
@@ -85,10 +88,15 @@ def device_reset(s: punchboot.Session) -> None:
 class Device:
     """A punchboot instance running as a host process."""
 
-    def __init__(self, binary: pathlib.Path, workdir: pathlib.Path, *, nor: bool = False) -> None:
+    def __init__(
+        self, binary: pathlib.Path, workdir: pathlib.Path, *, nor: bool = False, dt: bool = False
+    ) -> None:
         """Create a device, backed by files in 'workdir'.
 
-        With 'nor' it also has the memory mapped flash, see NOR_BASE.
+        With 'nor' it also has the memory mapped flash, see NOR_BASE. With
+        'dt' its handover names a device tree part, which every image it
+        boots then needs (make_bpak(dt=DT)), and a boot writes the tree it
+        prepared (chosen).
         """
         self.binary = binary
         self.workdir = workdir
@@ -102,6 +110,7 @@ class Device:
         self._socket_dir = pathlib.Path(tempfile.mkdtemp(prefix="pb-"))
         self.socket = self._socket_dir / "pb.sock"
         self.boot_status_file = workdir / "boot_status"
+        self.dt_file = workdir / "dt.dtb" if dt else None
         self.log = workdir / "pb.log"
         # More of pb-host's options for the next power on, e.g.
         # "--dram-filter-bypassed"
@@ -123,6 +132,8 @@ class Device:
             raise RuntimeError(msg)
         self.socket.unlink(missing_ok=True)
         self.boot_status_file.unlink(missing_ok=True)
+        if self.dt_file is not None:
+            self.dt_file.unlink(missing_ok=True)
 
         args = [
             str(self.binary),
@@ -137,6 +148,8 @@ class Device:
         ]
         if self.nor is not None:
             args += ["--nor", str(self.nor)]
+        if self.dt_file is not None:
+            args += ["--dt", str(self.dt_file)]
         if command_mode:
             args.append("--command-mode")
         args += self.extra_args
@@ -294,18 +307,24 @@ class Device:
         return self.boot_status_file.read_text()
 
     @property
-    def boot_mode(self) -> str | None:
-        """How the boot since the last power on was chosen: an entry of BOOT_MODES.
+    def chosen(self) -> dict[str, bytes] | None:
+        """/chosen of the device tree the last boot handed over, each property's bytes.
 
-        The mode of pb's information (boot.md 5.6) that the last prepare of
-        the handover got, from pb's debug log: the host board has no device
-        tree to carry pb,boot-mode. None when nothing was prepared.
+        What the next stage would read: pb's information (boot.md 5.5, 5.6).
+        None when nothing was booted since the last power on. Needs 'dt'.
         """
-        if not self.log.exists():
+        if self.dt_file is None:
+            msg = "The device has no device tree part (Device(dt=True))"
+            raise RuntimeError(msg)
+        if not self.dt_file.exists():
             return None
-        run = self.log.read_text(errors="replace").rpartition("=== start:")[2]
-        modes = re.findall(r"Prepare, mode (\d+)", run)
-        return BOOT_MODES[int(modes[-1])] if modes else None
+        return fdt.properties(self.dt_file.read_bytes(), "/chosen")
+
+    @property
+    def boot_mode(self) -> str | None:
+        """How the last boot was chosen: pb,boot-mode, None when nothing was booted."""
+        chosen = self.chosen
+        return None if chosen is None else fdt.string(chosen["pb,boot-mode"])
 
     def read_blocks(self, lba: int, count: int = 1) -> bytes:
         """Read blocks directly from the disk image."""
@@ -474,8 +493,12 @@ def make_bpak(
     signature_kind: str = "prime256v1",
     key_id: str = "pb-development",
     sign_key: str = "pki/secp256r1-key-pair.pem",
+    dt: bytes | None = None,
 ) -> pathlib.Path:
-    """Create a signed bpak image with a single 'kernel' part, using the bpak CLI."""
+    """Create a signed bpak image with a 'kernel' part, using the bpak CLI.
+
+    With 'dt' it also has a device tree part ('dt'), loaded at DT_LOAD_ADDR.
+    """
     payload = path.with_suffix(".bin")
     payload.write_bytes(data)
     img = str(path)
@@ -493,6 +516,12 @@ def make_bpak(
     bpak("add", img, "--meta", "pb-load-addr", f"--from-string={addr}",
          "--part-ref", "kernel", "--encoder", "integer")  # fmt: skip
     bpak("add", img, "--part", "kernel", "--from-file", str(payload))
+    if dt is not None:
+        dt_file = path.with_suffix(".dtb")
+        dt_file.write_bytes(dt)
+        bpak("add", img, "--meta", "pb-load-addr", f"--from-string={DT_LOAD_ADDR:#x}",
+             "--part-ref", "dt", "--encoder", "integer")  # fmt: skip
+        bpak("add", img, "--part", "dt", "--from-file", str(dt_file))
     bpak("set", img, "--key-id", key_id, "--keystore-id", "pb")
     bpak("sign", img, "--key", sign_key)
     return path

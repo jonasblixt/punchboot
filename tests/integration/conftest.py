@@ -61,6 +61,22 @@ def device(blank_device: Device) -> Device:
 
 
 @pytest.fixture
+def dt_device(
+    pb_host_binary: pathlib.Path, tmp_path: pathlib.Path, request: pytest.FixtureRequest
+) -> Iterator[Device]:
+    """Like 'device', with a device tree part in its handover (pb-host --dt).
+
+    Every image it boots needs one (make_bpak(dt=DT)), and each boot writes
+    the tree it handed over (Device.chosen).
+    """
+    for dev in _run_device(Device(pb_host_binary, tmp_path, dt=True), request):
+        with dev.session() as s:
+            s.part_table_install(DISK_UUID)
+        dev.reboot()
+        yield dev
+
+
+@pytest.fixture
 def no_disk_device(
     pb_host_binary: pathlib.Path, tmp_path: pathlib.Path, request: pytest.FixtureRequest
 ) -> Iterator[Device]:

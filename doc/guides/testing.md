@@ -61,8 +61,8 @@ A single integration test, inside `scripts/pbdev shell`:
 ## How the host platform works
 
 - **Entry point.** `main.c` in `src/` is compiled with `-Dmain=pb_main`, and `src/plat/host/main.c`
-  parses the options (`--disk --fuses --nor --socket --boot-status --command-mode`) and calls
-  `pb_main()`.
+  parses the options (`--disk --fuses --nor --socket --boot-status --dt --command-mode`) and
+  calls `pb_main()`.
 - **RAM.** 512 MiB is `mmap`ed at `BOARD_RAM_BASE` (0x40000000), so `pb-load-addr` values work
   unchanged. It stays below 0x7fff8000, where ASan's shadow memory starts.
 - **pb's own memory regions.** These normally come from the linker script. On the host they are
@@ -92,6 +92,12 @@ A single integration test, inside `scripts/pbdev shell`:
 - **Reset and boot.** `plat_reset()` calls `exit(0)`, which also writes gcov data. On boot, the
   board's `late_boot` writes the partition name to `--boot-status` and then resets: `A` or `B`,
   `X` for "NOR In place" and `N` for "NOR Loaded".
+- **The handover's device tree.** With `--dt PATH` the board's image handover names a device
+  tree part (`dt`), which every image it boots then needs, and `late_boot` first writes the tree
+  the handover prepared to PATH: what the next stage would read, `/chosen` with pb's
+  information (`boot.md` 5.5, 5.6). The board's DT hook writes `bootargs`, and a `pb,version`
+  of its own that pb's replaces. Without the option the handover names no tree, as for the in
+  place tests (an image in place can't have one, F-291).
 - **System libc.** Host builds use glibc instead of the firmware libc. `src/plat/host/compat.h` is
   force-included and provides the BSD attribute macros (`__section`, `__aligned`, ...).
 
@@ -152,6 +158,10 @@ A single integration test, inside `scripts/pbdev shell`:
   - `nor_device` is `device` with the flash (`--nor`). `read_nor()` and `write_nor()` reach its
     file. An in place image's `pb-load-addr` is `NOR_BASE` plus the partition's offset plus the
     part's offset in the payload.
+  - `dt_device` is `device` with `--dt`: its images are `make_bpak(..., dt=DT)`, and after a
+    boot `device.chosen` is `/chosen` of the tree it handed over, each property's bytes
+    (`fdt.py` builds the part and reads the tree; `test_handover.py`). `device.boot_mode` is
+    `pb,boot-mode` from it.
 
   Use `device.session()` (only one at a time) together with `reboot()`, `boot()` (power on without
   command mode, returns 'A'/'B'/'?'), `read_blocks()`/`write_blocks()` (on the disk image) and
