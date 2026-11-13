@@ -318,6 +318,51 @@ static void test_verify_rejects_bad_key(void **state)
     assert_false(verified);
 }
 
+/* A key that doesn't parse leaves nothing on the library's heap, which is
+ * 16 KiB: after thousands of them a token still verifies (F-220) */
+static void test_verify_bad_keys_leave_the_heap(void **state)
+{
+    const struct bpak_key *key = find_key(DEV_KEY_ID);
+    uint8_t bad_key[128];
+    uint8_t digest[32];
+    bool verified;
+    (void)state;
+
+    token_digest(digest);
+
+    for (unsigned int round = 0; round < 100; round++) {
+        /* A byte changed at each place: the parser gives up at every depth */
+        for (size_t i = 0; i < key->size; i++) {
+            memcpy(bad_key, key->data, key->size);
+            bad_key[i] ^= 0x55;
+            verified = true;
+            assert_int_not_equal(dsa_verify(DSA_EC_SECP256r1,
+                                            token,
+                                            token_length,
+                                            bad_key,
+                                            key->size,
+                                            HASH_SHA256,
+                                            digest,
+                                            sizeof(digest),
+                                            &verified),
+                                 PB_OK);
+            assert_false(verified);
+        }
+    }
+
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                token,
+                                token_length,
+                                key->data,
+                                key->size,
+                                HASH_SHA256,
+                                digest,
+                                sizeof(digest),
+                                &verified),
+                     PB_OK);
+    assert_true(verified);
+}
+
 static void test_verify_rejects_unsupported_digest(void **state)
 {
     const struct bpak_key *key = find_key(DEV_KEY_ID);
@@ -348,6 +393,7 @@ int main(void)
         cmocka_unit_test(test_verify_auth_token),
         cmocka_unit_test(test_verify_rejects_wrong_digest),
         cmocka_unit_test(test_verify_rejects_bad_key),
+        cmocka_unit_test(test_verify_bad_keys_leave_the_heap),
         cmocka_unit_test(test_verify_rejects_unsupported_digest),
     };
 

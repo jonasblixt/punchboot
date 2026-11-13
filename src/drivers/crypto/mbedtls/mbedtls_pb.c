@@ -205,6 +205,7 @@ static int mbed_ecda_verify(const uint8_t *der_signature,
         const char *mbedtls_error_str = "";
 #endif
         LOG_ERR("Verify failed %s (%i)", mbedtls_error_str, rc);
+        mbedtls_pk_free(&ctx);
         return -PB_ERR_SIGNATURE;
     }
 
