@@ -472,8 +472,9 @@ static void test_4_verdict_is_this_calls(void **state)
     assert_int_equal(hash_init(HASH_NONE), -PB_ERR_NOT_SUPPORTED);
     assert_false(caam_model_idle());
 
+    /* A signature that parses and doesn't verify: a job is added for it */
     memcpy(signature, t->signature, t->signature_length);
-    signature[4] ^= 0x80;
+    signature[t->signature_length - 1] ^= 1;
 
     assert_int_not_equal(dsa_verify(t->dsa,
                                     signature,
@@ -589,6 +590,28 @@ static void test_4_completion_of_another_job(void **state)
     assert_verdicts();
 }
 
+/* The status of a job is its output ring entry's (F-127). JRSTAR has the
+ * status of the completion that was written last: here that of another
+ * job's, which ended behind the hash's and with an error, by the time the
+ * hash's entry is taken out */
+static void test_job_status_is_the_entrys(void **state)
+{
+    static uint8_t expected[32];
+    (void)state;
+
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update(chunk, sizeof(chunk)), PB_OK);
+    assert_int_equal(hash_update(pattern, 10), PB_OK);
+    assert_int_equal(hash_final(expected, sizeof(expected)), PB_OK);
+
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update_async(chunk, sizeof(chunk)), PB_OK);
+    caam_model_foreign_completion(CAAM_STATUS_DECO_WDOG);
+    assert_int_equal(hash_update(pattern, 10), PB_OK);
+    assert_int_equal(hash_final(digest, 32), PB_OK);
+    assert_memory_equal(digest, expected, 32);
+}
+
 /* drivers.md 3: a job that doesn't end is -PB_ERR_TIMEOUT. While it is in
  * flight nothing starts, and when it has ended the next hash is right */
 static void test_job_timeout(void **state)
@@ -641,6 +664,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_4_verdict_is_this_calls, setup, teardown),
         cmocka_unit_test_setup_teardown(test_job_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_completion_of_another_job, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_job_status_is_the_entrys, setup, teardown),
         cmocka_unit_test_setup_teardown(test_job_timeout, setup, teardown),
     };
 
