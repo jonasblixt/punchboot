@@ -10,8 +10,9 @@
  * the debug USB. The eMMC is on uSDHC3, on the NAND pads. Command mode
  * runs on USB1, the USB-C port the ROM's serial download uses.
  *
- * This board never writes fuses: the SLC callbacks are NULL, so the SLC
- * commands are not supported, and no key is ever revoked.
+ * This board never writes fuses: the platform has no SLC operations
+ * (plat_slc), so the SLC commands are not supported, and no key is ever
+ * revoked (plat_rot).
  *
  * Linux boots through TF-A: the boot image has BL31 in the part "atf" and
  * Linux as BL33 in "kernel" (testbench/board/common/post-image.sh).
@@ -32,8 +33,6 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/rot.h>
-#include <pb/slc.h>
 #include <plat/imx8m/clock_imx8mp.h>
 #include <plat/imx8m/dram.h>
 #include <plat/imx8m/imx8m.h>
@@ -173,13 +172,6 @@ static int usdhc_sd_setup(void)
     return imx_usdhc_init(&cfg, MHz(200));
 }
 
-/* Revocation is a fuse, which this board never writes */
-static int board_read_key_status(const struct rot_key *key)
-{
-    (void)key;
-    return PB_OK;
-}
-
 static int board_hw_init(void)
 {
     int rc;
@@ -215,14 +207,6 @@ static int board_hw_init(void)
 
     return PB_OK;
 }
-
-/* Revocation is a fuse, which this board never writes */
-static const struct rot_config rot = {
-    .read_key_status = board_read_key_status,
-};
-
-/* No fuse access, see the top of this file */
-static const struct slc_config slc = { 0 };
 
 /* Linux, through TF-A: BL31 starts it as BL33 at EL2, with the device tree in x0 */
 static const struct boot_handover_image_config boot_image = {
@@ -350,8 +334,6 @@ static const struct boot_image_region image_regions[] = {
 const struct board board = {
     .name = "imx8mpevk",
     .console_init = board_console_init,
-    .rot = &rot,
-    .slc = &slc,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),

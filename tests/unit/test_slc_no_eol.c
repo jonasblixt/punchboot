@@ -55,7 +55,7 @@ static int fake_set_eol(void)
 }
 
 /* A port that has EOL */
-static const struct slc_config cfg = {
+static const struct slc_ops cfg = {
     .read_status = fake_read_status,
     .set_configuration = fake_set_configuration,
     .set_configuration_locked = fake_set_configuration_locked,
@@ -86,7 +86,7 @@ static void test_eol_is_left_out(void **state)
     };
     (void)state;
 
-    assert_int_equal(slc_init(&cfg), PB_OK);
+    assert_int_equal(slc_init(&cfg, NULL, 0), PB_OK);
     eol_calls = 0;
 
     for (size_t i = 0; i < ARRAY_SIZE(states); i++) {
@@ -103,7 +103,7 @@ static void test_the_other_states(void **state)
 {
     (void)state;
 
-    assert_int_equal(slc_init(&cfg), PB_OK);
+    assert_int_equal(slc_init(&cfg, NULL, 0), PB_OK);
     slc_state = SLC_NOT_CONFIGURED;
     slc_writes = 0;
     eol_calls = 0;

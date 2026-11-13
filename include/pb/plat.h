@@ -20,6 +20,9 @@
 #include <stdbool.h>
 #include <uuid.h>
 
+struct rot_config;
+struct slc_ops;
+
 /** Where the boot ROM (or a debugger) loaded pb from */
 enum pb_boot_source_kind {
     PB_BOOT_SOURCE_UNKNOWN = 0, /*!< The platform can't tell */
@@ -201,6 +204,22 @@ int plat_get_boot_source(struct pb_boot_source *src);
  * @return PB_OK, or a negative number: no command mode, and pb resets
  */
 int plat_cm_init(void);
+
+/**
+ * The SoC's key revocation (pb/rot.h): the revoke bit of key slot n, shared
+ * with the ROM. Valid from plat_init(). A SoC whose revocation pb doesn't
+ * support has read_key_status all the same: without it no key can be used
+ * (doc/interfaces/platform.md 4.1).
+ */
+extern const struct rot_config plat_rot;
+
+/**
+ * The SoC's life cycle operations and its fuse access (pb/slc.h). Valid from
+ * plat_init(). They only read and write fuses: the rules are slc.c's, and the
+ * configuration fuses are the board's, board.slc_fuses
+ * (doc/interfaces/platform.md 4.2).
+ */
+extern const struct slc_ops plat_slc;
 
 /**
  * Lock, until the next reset, what only pb may change: key revocation, the

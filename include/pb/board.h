@@ -12,9 +12,9 @@
  * plat_early_init() and plat_init(), then src/board.c sets up the rest in
  * this order:
  *
- *  1. rot, slc       The keys and the life cycle, before anything that can
- *                    fail, so that command mode knows whether to ask for
- *                    authentication
+ *  1. The keys and   The platform's plat_rot and plat_slc (pb/plat.h), the
+ *     the life cycle latter with slc_fuses: before anything that can fail, so
+ *                    that command mode knows whether to ask for authentication
  *  2. init()         Hardware: crypto, storage
  *  3. ptbl           The partition table
  *  4. boot_policy    The boot source policy
@@ -32,10 +32,10 @@
  * Hooks are optional (NULL), the rest is required unless it says otherwise.
  *
  * What is required is checked before it is used (board.md 3). board_setup():
- * image_regions, rot and slc first, boot_policy and boot_handover when their
- * step comes, a GPT's layouts by its driver. A failed check is a failed step,
- * -PB_ERR_PARAM: no boot from storage, and the handover is still set up when
- * its own data passed. cm_board_init(): name, password_auth.
+ * image_regions first, slc_fuses by slc_init(), boot_policy and boot_handover
+ * when their step comes, a GPT's layouts by its driver. A failed check is a
+ * failed step, -PB_ERR_PARAM: no boot from storage, and the handover is still
+ * set up when its own data passed. cm_board_init(): name, password_auth.
  * A failed check there means no command mode, and pb resets.
  */
 
@@ -50,18 +50,19 @@
 #include <stdint.h>
 #include <uuid.h>
 
-struct rot_config;
-struct slc_config;
+struct slc_fuse;
 
 struct board {
     const char *name; /*!< The board id in command mode, 1 to 16 characters */
 
     void (*console_init)(void); /*!< The debug UART: clock, pads, console_init() */
 
-    const struct rot_config *rot; /*!< Key revocation */
-    /* Security life cycle. A board without one has an slc without
-     * read_status, and its command mode is open */
-    const struct slc_config *slc;
+    /* The configuration fuses slc_set_configuration() sets after the
+     * platform's own (the SRK hash), by the platform's fuse index macro
+     * (pb/slc.h). Absent: none. The keys' revocation and the life cycle are
+     * the platform's, plat_rot and plat_slc (pb/plat.h) */
+    const struct slc_fuse *slc_fuses;
+    size_t slc_fuses_length;
 
     int (*init)(void); /*!< Hardware: crypto, storage */
 

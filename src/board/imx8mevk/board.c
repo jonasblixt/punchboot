@@ -20,8 +20,6 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/rot.h>
-#include <pb/slc.h>
 #include <plat/imx8m/dram.h>
 #include <plat/imx8m/imx8m.h>
 #include <stdbool.h>
@@ -153,10 +151,6 @@ static int board_hw_init(void)
     return usdhc_emmc_setup();
 }
 
-/* No revocation and no SLC */
-static const struct rot_config rot = { 0 };
-static const struct slc_config slc = { 0 };
-
 /*
  * Unfinished (F-033): no A/B state and no boot driver, so board_setup()
  * fails after the partitions and pb always enters command mode.
@@ -259,8 +253,6 @@ static const struct boot_image_region image_regions[] = {
 const struct board board = {
     .name = "imx8mevk",
     .console_init = board_console_init,
-    .rot = &rot,
-    .slc = &slc,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .image_regions = image_regions,

@@ -6,8 +6,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * The board setup (src/board.c) with fake RoT, SLC, bio, boot module and
- * command mode, and a board whose partition table, boot policy and handover
- * are fake objects. It records the order of the calls.
+ * command mode, a platform whose plat_rot and plat_slc are the test's, and a
+ * board whose partition table, boot policy and handover are fake objects. It
+ * records the order of the calls.
  *
  * Built twice: as pb-host is, without the password method, and with it
  * (test_board_password), where the board's password_auth is mandatory.
@@ -29,6 +30,7 @@
 #include <pb/bio.h>
 #include <pb/cm.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <stdio.h>
@@ -72,7 +74,9 @@ static struct {
 } reports;
 
 static const struct rot_config *rot_cfg;
-static const struct slc_config *slc_cfg;
+static const struct slc_ops *slc_ops;
+static const struct slc_fuse *slc_fuses;
+static size_t slc_fuses_length;
 static const struct ptbl *ptbl_arg;
 static bio_dev_t ptbl_dev;
 static const void *policy_cfg;
@@ -95,10 +99,12 @@ int rot_init(const struct rot_config *cfg)
     return rc.rot;
 }
 
-int slc_init(const struct slc_config *cfg)
+int slc_init(const struct slc_ops *ops, const struct slc_fuse *fuses, size_t fuses_length)
 {
     call("slc");
-    slc_cfg = cfg;
+    slc_ops = ops;
+    slc_fuses = fuses;
+    slc_fuses_length = fuses_length;
     return rc.slc;
 }
 
@@ -263,8 +269,11 @@ static int password_auth(const char *password, size_t length)
 }
 #endif
 
-static const struct rot_config test_rot = { 0 };
-static const struct slc_config test_slc = { 0 };
+/* The platform's (platform.md 4.1, 4.2): only the addresses matter */
+const struct rot_config plat_rot = { 0 };
+const struct slc_ops plat_slc = { 0 };
+/* The board's configuration fuses */
+static const struct slc_fuse test_fuses[] = { { 5, 0x10 }, { 6, 0x20 } };
 
 static const struct ptbl_ops test_ptbl_ops = { .init = ptbl_init };
 static const struct boot_policy_ops test_policy_ops = {
@@ -311,6 +320,10 @@ static int setup(void **state)
     memset(&reports, 0, sizeof(reports));
     regions_arg = NULL;
     regions_calls = 0;
+    rot_cfg = NULL;
+    slc_ops = NULL;
+    slc_fuses = NULL;
+    slc_fuses_length = 77;
     ptbl_arg = NULL;
     ptbl_dev = -1;
     policy_cfg = NULL;
@@ -328,8 +341,8 @@ static int setup(void **state)
 
     board = (struct board_decl){
         .name = "test",
-        .rot = &test_rot,
-        .slc = &test_slc,
+        .slc_fuses = test_fuses,
+        .slc_fuses_length = ARRAY_SIZE(test_fuses),
         .init = board_hw_init,
         .ptbl = { .ops = &test_ptbl_ops, .device = DISK_UU, .table = test_table, .length = 2 },
         .boot_policy = { .ops = &test_policy_ops, .config = &test_policy_config },
@@ -372,8 +385,12 @@ static void test_setup(void **state)
 
     assert_int_equal(board_setup(), PB_OK);
     assert_string_equal(calls, "rot slc init ptbl policy late handover boot ");
-    assert_ptr_equal(rot_cfg, &test_rot);
-    assert_ptr_equal(slc_cfg, &test_slc);
+    /* The RoT and the SLC are the platform's (platform.md 4.1, 4.2); of the
+     * board's the SLC gets the configuration fuses */
+    assert_ptr_equal(rot_cfg, &plat_rot);
+    assert_ptr_equal(slc_ops, &plat_slc);
+    assert_ptr_equal(slc_fuses, test_fuses);
+    assert_int_equal(slc_fuses_length, ARRAY_SIZE(test_fuses));
     /* The image data regions are checked once, the board's list */
     assert_int_equal(regions_calls, 1);
     assert_ptr_equal(regions_arg, test_regions);
@@ -777,8 +794,8 @@ static void test_no_policy_no_handover(void **state)
     board.late_init = NULL;
     assert_int_equal(board_setup(), -PB_ERR_PARAM);
     assert_string_equal(calls, "rot slc init ptbl ");
-    assert_ptr_equal(rot_cfg, &test_rot);
-    assert_ptr_equal(slc_cfg, &test_slc);
+    assert_ptr_equal(rot_cfg, &plat_rot);
+    assert_ptr_equal(slc_ops, &plat_slc);
     assert_ptr_equal(ptbl_arg, &board.ptbl);
     assert_int_equal(disk_flags, BIO_FLAG_VISIBLE);
     assert_null(driver);
@@ -825,52 +842,37 @@ static void test_no_handover(void **state)
     assert_null(driver);
 }
 
-/* rot and slc are mandatory, checked before anything is set up: neither
- * rot_init() nor slc_init() is called, no hook, no table, no policy. The
- * handover is set up all the same, its own data passed. */
-static void test_no_rot_or_slc(void **state)
+/* F-247: the keys' revocation and the life cycle are the platform's, also for
+ * a board that gives nothing for them: no configuration fuses. The board has
+ * no member to set, or to leave out, for either */
+static void test_rot_and_slc_are_the_platforms(void **state)
 {
     (void)state;
 
-    board.rot = NULL;
+    board.slc_fuses = NULL;
+    board.slc_fuses_length = 0;
+    assert_int_equal(board_setup(), PB_OK);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover boot ");
+    assert_ptr_equal(rot_cfg, &plat_rot);
+    assert_ptr_equal(slc_ops, &plat_slc);
+    assert_null(slc_fuses);
+    assert_int_equal(slc_fuses_length, 0);
+}
+
+/* The configuration fuses are the SLC's to check (test_rot.c): fuses the
+ * platform can't write, or a length without a list, fail its step like any
+ * other, -PB_ERR_PARAM, and the handover is set up all the same */
+static void test_slc_fuses_refused(void **state)
+{
+    (void)state;
+
+    board.slc_fuses = NULL;
+    rc.slc = -PB_ERR_PARAM;
     assert_int_equal(board_setup(), -PB_ERR_PARAM);
-    assert_string_equal(calls, "handover boot ");
-    assert_int_equal(lookups, 0);
-    assert_null(policy_cfg);
-    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_string_equal(calls, "rot slc handover boot ");
+    assert_null(slc_fuses);
+    assert_int_equal(slc_fuses_length, ARRAY_SIZE(test_fuses));
     assert_driver(true);
-
-    setup(NULL);
-    board.slc = NULL;
-    assert_int_equal(board_setup(), -PB_ERR_PARAM);
-    assert_string_equal(calls, "handover boot ");
-    assert_int_equal(lookups, 0);
-    assert_driver(true);
-
-    /* With a delivery */
-    setup(NULL);
-    board.slc = NULL;
-    board.boot_delivery.ops = &test_delivery_ops;
-    board.boot_delivery.config = &test_delivery_config;
-    assert_int_equal(board_setup(), -PB_ERR_PARAM);
-    assert_string_equal(calls, "handover delivery boot ");
-    assert_ptr_equal(driver->delivery, &board.boot_delivery);
-
-    /* A handover whose own data didn't pass isn't set up */
-    setup(NULL);
-    board.rot = NULL;
-    board.boot_handover.ops = NULL;
-    assert_int_equal(board_setup(), -PB_ERR_PARAM);
-    assert_string_equal(calls, "");
-    assert_null(driver);
-
-    /* The check's error, not the handover's */
-    setup(NULL);
-    board.slc = NULL;
-    rc.handover = -PB_ERR_IO;
-    assert_int_equal(board_setup(), -PB_ERR_PARAM);
-    assert_string_equal(calls, "handover ");
-    assert_null(driver);
 }
 
 /* The image data regions (board.md 2.9, 3) are checked before any other
@@ -911,20 +913,20 @@ static void test_image_regions(void **state)
     assert_ptr_equal(regions_arg, test_regions);
 
     setup(NULL);
-    board.rot = NULL;
-    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    rc.rot = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
     assert_int_equal(regions_calls, 1);
 }
 
-/* A board without a life cycle has an slc without read_status: that is
- * valid data (its command mode is open) */
+/* A board without a life cycle is on a platform whose plat_slc has no
+ * read_status: that is valid (its command mode is open) */
 static void test_slc_without_read_status(void **state)
 {
     (void)state;
 
-    assert_null(test_slc.read_status);
+    assert_null(plat_slc.read_status);
     assert_int_equal(board_setup(), PB_OK);
-    assert_ptr_equal(slc_cfg, &test_slc);
+    assert_ptr_equal(slc_ops, &plat_slc);
 }
 
 /* The name is command mode's (the wire's board_id): board_setup() doesn't
@@ -1253,12 +1255,11 @@ static void test_cm_after_a_failed_setup(void **state)
 {
     (void)state;
 
-    board.rot = NULL;
-    board.slc = NULL;
     board.boot_policy.ops = NULL;
     board.boot_handover.ops = NULL;
     assert_int_equal(board_setup(), -PB_ERR_PARAM);
-    assert_string_equal(calls, "");
+    assert_string_equal(calls, "rot slc init ptbl ");
+    memset(calls, 0, sizeof(calls));
     assert_int_equal(cm_board_init(), PB_OK);
     assert_string_equal(calls, "cm ");
 }
@@ -1327,7 +1328,8 @@ int main(void)
         cmocka_unit_test_setup(test_no_policy_no_handover, setup),
         cmocka_unit_test_setup(test_optional, setup),
         cmocka_unit_test_setup(test_no_handover, setup),
-        cmocka_unit_test_setup(test_no_rot_or_slc, setup),
+        cmocka_unit_test_setup(test_rot_and_slc_are_the_platforms, setup),
+        cmocka_unit_test_setup(test_slc_fuses_refused, setup),
         cmocka_unit_test_setup(test_image_regions, setup),
         cmocka_unit_test_setup(test_slc_without_read_status, setup),
         cmocka_unit_test_setup(test_setup_ignores_the_name, setup),

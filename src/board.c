@@ -15,6 +15,7 @@
 #include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <stdbool.h>
@@ -119,10 +120,10 @@ static int board_data_failed(const char *member)
 }
 
 /*
- * The board's data is checked before it is used (board.md 3): image_regions,
- * rot and slc first, boot_policy and boot_handover when their step comes, a
- * partition table's by its driver. The name and the rest of command mode's
- * are checked by cm_board_init(): nothing here uses them.
+ * The board's data is checked before it is used (board.md 3): image_regions
+ * first, slc_fuses by slc_init(), boot_policy and boot_handover when their
+ * step comes, a partition table's by its driver. The name and the rest of
+ * command mode's are checked by cm_board_init(): nothing here uses them.
  *
  * A step that fails ends the setup (board.md 2.1): the steps after it are
  * skipped, the handover is set up all the same, so that command mode has its
@@ -145,18 +146,14 @@ int board_setup(void)
         return rc;
     }
 
-    if (board.rot == NULL)
-        return board_data_failed("rot");
-
-    /* A board without a life cycle has an slc without read_status */
-    if (board.slc == NULL)
-        return board_data_failed("slc");
-
-    /* A failed RoT or SLC fails closed (security.md 4.4), also with the
+    /* The platform's key revocation and life cycle (platform.md 4.1, 4.2),
+     * the latter with the board's configuration fuses.
+     *
+     * A failed RoT or SLC fails closed (security.md 4.4), also with the
      * handover set up: the SLC isn't set up after either, so the life cycle
      * is unknown. Command mode asks for authentication and no boot is
      * started; without the RoT no image verifies */
-    rc = rot_init(board.rot);
+    rc = rot_init(&plat_rot);
 
     if (rc != PB_OK) {
         LOG_ERR("RoT init failed (%i)", rc);
@@ -164,7 +161,7 @@ int board_setup(void)
         return rc;
     }
 
-    rc = slc_init(board.slc);
+    rc = slc_init(&plat_slc, board.slc_fuses, board.slc_fuses_length);
 
     if (rc != PB_OK) {
         LOG_ERR("SLC init failed (%i)", rc);

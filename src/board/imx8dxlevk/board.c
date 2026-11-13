@@ -24,7 +24,6 @@
 #include <pb/delay.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
@@ -198,25 +197,6 @@ static int board_hw_init(void)
     return rc;
 }
 
-static const struct rot_config rot = {
-    .revoke_key = imx8x_revoke_key,
-    .read_key_status = imx8x_read_key_status,
-};
-
-/*
- * No set_configuration_locked: the build can't sign pb yet (makefile.mk,
- * imx8xl_sign_image), and a closed DXL would refuse the only image there
- * is. 'slc lock' answers NOT_SUPPORTED until signing exists (F-212).
- */
-static const struct slc_config slc = {
-    .read_status = imx8x_slc_read_status,
-    .set_configuration = imx8x_slc_set_configuration,
-    .fuses = config_fuses,
-    .fuses_length = ARRAY_SIZE(config_fuses),
-    .fuse_read = imx8x_fuse_read,
-    .fuse_write = imx8x_fuse_write,
-};
-
 /*
  * Linux, through TF-A (boot.md 5.3): BL31 gets the kernel's part as BL33 in
  * the bl_params list in x0, with the device tree in x0 there. Until 3.0.0 pb
@@ -354,8 +334,8 @@ static const struct boot_image_region image_regions[] = {
 const struct board board = {
     .name = "imx8dxlevk",
     .console_init = board_console_init,
-    .rot = &rot,
-    .slc = &slc,
+    .slc_fuses = config_fuses,
+    .slc_fuses_length = ARRAY_SIZE(config_fuses),
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),

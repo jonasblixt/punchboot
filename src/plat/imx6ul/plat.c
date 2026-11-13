@@ -21,6 +21,8 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imx6ul/imx6ul.h>
 #include <string.h>
 #include <uuid.h>
@@ -288,6 +290,21 @@ static const struct imx_hab_fuses hab_fuses = {
     .revoke_word = IMX6UL_FUSE_REVOKE_WORD,
     .revocable = IMX6UL_FUSE_REVOCABLE_SRKS,
     .revoke_allowed = hab_has_no_errors,
+};
+
+/* The root of trust and the life cycle (platform.md 4.1, 4.2): HABv4's
+ * state in the OCOTP. No EOL (F-263) */
+const struct rot_config plat_rot = {
+    .revoke_key = imx_hab_revoke_key,
+    .read_key_status = imx_hab_read_key_status,
+};
+
+const struct slc_ops plat_slc = {
+    .read_status = imx_hab_slc_read_status,
+    .set_configuration = imx_hab_slc_set_configuration,
+    .set_configuration_locked = imx_hab_slc_set_configuration_locked,
+    .fuse_read = imx_ocotp_fuse_read,
+    .fuse_write = imx_ocotp_fuse_write,
 };
 
 int plat_early_init(void)

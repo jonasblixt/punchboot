@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <pb/console.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/host/host.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,6 +175,73 @@ int plat_init(void)
 
     return rc;
 }
+
+/*
+ * The root of trust and the life cycle (platform.md 4.1, 4.2), in the test
+ * fuse driver's words: a revoke bit per key slot, and the life cycle's two
+ * bits. Valid from plat_init(), which reads the fuses' file.
+ */
+#define HOST_FUSE_REVOKE     (8)
+#define HOST_FUSE_SEC        (9)
+#define HOST_FUSE_SEC_LOCKED BIT(0)
+#define HOST_FUSE_SEC_EOL    BIT(1)
+
+static int host_revoke_key(const struct rot_key *key)
+{
+    return test_fuse_write(HOST_FUSE_REVOKE, (uint32_t)(1 << key->slot));
+}
+
+static int host_read_key_status(const struct rot_key *key)
+{
+    uint32_t val;
+    int rc = test_fuse_read(HOST_FUSE_REVOKE, &val);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (val & (1u << key->slot))
+        return -PB_ERR_KEY_REVOKED;
+    return PB_OK;
+}
+
+static slc_t host_slc_read_status(void)
+{
+    uint32_t val;
+    int rc = test_fuse_read(HOST_FUSE_SEC, &val);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (val & HOST_FUSE_SEC_EOL)
+        return SLC_EOL;
+    else if (val & HOST_FUSE_SEC_LOCKED)
+        return SLC_CONFIGURATION_LOCKED;
+    else
+        return SLC_CONFIGURATION;
+}
+
+static int host_slc_set_configuration_locked(void)
+{
+    return test_fuse_write(HOST_FUSE_SEC, HOST_FUSE_SEC_LOCKED);
+}
+
+static int host_slc_set_eol(void)
+{
+    return test_fuse_write(HOST_FUSE_SEC, HOST_FUSE_SEC_EOL);
+}
+
+const struct rot_config plat_rot = {
+    .revoke_key = host_revoke_key,
+    .read_key_status = host_read_key_status,
+};
+
+const struct slc_ops plat_slc = {
+    .read_status = host_slc_read_status,
+    .set_configuration_locked = host_slc_set_configuration_locked,
+    .set_eol = host_slc_set_eol,
+    .fuse_read = test_fuse_read,
+    .fuse_write = test_fuse_write,
+};
 
 /* Command mode's transport is the socket (socket.c): there is no port to
  * set up (platform.md 3.10) */

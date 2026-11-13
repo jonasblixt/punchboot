@@ -22,6 +22,8 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imx8m/imx8m.h>
 #include <uuid.h>
 #include <xlat_tables.h>
@@ -305,6 +307,30 @@ static int tzasc_open_dram(void)
 
     return rc;
 }
+
+/*
+ * The root of trust and the life cycle (platform.md 4.1, 4.2). pb doesn't
+ * support the 8M's HAB (D-027, plat-imx.md 4.1): no key is revoked, no fuse
+ * is written, and without a life cycle command mode is open. The i.MX8M
+ * Plus's keys can be used. The i.MX8MQ's can't: its board, imx8mevk, had no
+ * read_key_status, and that is kept, though platform.md 4.1 asks for one.
+ */
+#ifdef CONFIG_PLAT_IMX8MP
+static int read_key_status(const struct rot_key *key)
+{
+    (void)key;
+    return PB_OK;
+}
+#endif
+
+const struct rot_config plat_rot = {
+    .revoke_key = NULL,
+#ifdef CONFIG_PLAT_IMX8MP
+    .read_key_status = read_key_status,
+#endif
+};
+
+const struct slc_ops plat_slc = { 0 };
 
 int plat_early_init(void)
 {

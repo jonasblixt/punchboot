@@ -30,6 +30,8 @@
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imx6ul/imx6ul.h>
 #include <string.h>
 
@@ -133,6 +135,49 @@ int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs)
 void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
 {
     (void)cfg;
+}
+
+/* The HAB's fuses and the OCOTP's access by index: the port only names them, in plat_rot and
+ * plat_slc */
+int imx_hab_read_key_status(const struct rot_key *key)
+{
+    (void)key;
+    return PB_OK;
+}
+
+slc_t imx_hab_slc_read_status(void)
+{
+    return SLC_NOT_CONFIGURED;
+}
+
+int imx_hab_revoke_key(const struct rot_key *key)
+{
+    (void)key;
+    return PB_OK;
+}
+
+int imx_hab_slc_set_configuration(void)
+{
+    return PB_OK;
+}
+
+int imx_hab_slc_set_configuration_locked(void)
+{
+    return PB_OK;
+}
+
+int imx_ocotp_fuse_read(uint32_t index, uint32_t *value)
+{
+    (void)index;
+    *value = 0;
+    return PB_OK;
+}
+
+int imx_ocotp_fuse_write(uint32_t index, uint32_t value)
+{
+    (void)index;
+    (void)value;
+    return PB_OK;
 }
 
 int tzc380_init(uintptr_t base)
@@ -597,6 +642,25 @@ static void test_unique_id_buffer_too_small(void **state)
     assert_int_equal(fuses.reads, 0);
 }
 
+/* platform.md 4.1, 4.2 (F-247): the root of trust and the life cycle are the
+ * platform's, HABv4's state in the OCOTP. What jiffy wired itself until
+ * then, unchanged: SRK revocation, the SRK hash and the closed bit, the
+ * fuses by index, and no EOL (F-263) */
+static void test_plat_rot_and_slc(void **state)
+{
+    (void)state;
+
+    assert_ptr_equal(plat_rot.revoke_key, imx_hab_revoke_key);
+    assert_ptr_equal(plat_rot.read_key_status, imx_hab_read_key_status);
+
+    assert_ptr_equal(plat_slc.read_status, imx_hab_slc_read_status);
+    assert_ptr_equal(plat_slc.set_configuration, imx_hab_slc_set_configuration);
+    assert_ptr_equal(plat_slc.set_configuration_locked, imx_hab_slc_set_configuration_locked);
+    assert_null(plat_slc.set_eol);
+    assert_ptr_equal(plat_slc.fuse_read, imx_ocotp_fuse_read);
+    assert_ptr_equal(plat_slc.fuse_write, imx_ocotp_fuse_write);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -617,6 +681,7 @@ int main(void)
         cmocka_unit_test_setup(test_unique_id, setup),
         cmocka_unit_test_setup(test_unique_id_read_fails, setup),
         cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
+        cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

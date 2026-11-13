@@ -28,6 +28,8 @@
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imx8m/dram.h>
 #include <plat/imx8m/imx8m.h>
 #include <string.h>
@@ -526,6 +528,28 @@ static void test_unique_id_buffer_too_small(void **state)
     assert_int_equal(fuses.reads, 0);
 }
 
+/* platform.md 4.1, 4.2 (F-247): the root of trust and the life cycle are the
+ * platform's. pb doesn't support the 8M's HAB: what the 8MP EVK wired itself
+ * until then, unchanged. Every key can be used and none is revoked; there is
+ * no life cycle (command mode is open) and no fuse is written */
+static void test_plat_rot_and_slc(void **state)
+{
+    static const struct slc_ops none;
+    (void)state;
+
+    assert_null(plat_rot.revoke_key);
+    assert_non_null(plat_rot.read_key_status);
+
+    for (unsigned int slot = 0; slot < 8; slot++) {
+        const struct rot_key key = { .id = 0xa90f9680, .slot = slot };
+
+        assert_int_equal(plat_rot.read_key_status(&key), PB_OK);
+    }
+
+    assert_memory_equal(&plat_slc, &none, sizeof(none));
+    assert_int_equal(fake_reg_log_len, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -543,6 +567,7 @@ int main(void)
         cmocka_unit_test_setup(test_unique_id, setup),
         cmocka_unit_test_setup(test_unique_id_read_fails, setup),
         cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
+        cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

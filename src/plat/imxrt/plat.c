@@ -11,6 +11,8 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imxrt/imxrt.h>
 #include <string.h>
 #include <uuid.h>
@@ -65,6 +67,16 @@ static const struct imx_hab_fuses hab_fuses = {
     .revoke_bank = IMXRT_FUSE_REVOKE_BANK,
     .revoke_word = IMXRT_FUSE_REVOKE_WORD,
     .revocable = IMXRT_FUSE_REVOCABLE_SRKS,
+};
+
+/* The root of trust and the life cycle (platform.md 4.1, 4.2): HABv4's
+ * state in the OCOTP, read only: pb writes no fuse on the RT */
+const struct rot_config plat_rot = {
+    .read_key_status = imx_hab_read_key_status,
+};
+
+const struct slc_ops plat_slc = {
+    .read_status = imx_hab_slc_read_status,
 };
 
 int plat_early_init(void)

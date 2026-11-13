@@ -24,7 +24,6 @@
 #include <pb/cm.h>
 #include <pb/command.h>
 #include <pb/plat.h>
-#include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/host/host.h>
 #include <stdio.h>
@@ -33,16 +32,15 @@
 
 #include "partitions.h"
 
-/* Fuse layout of the test fuse driver, same as on the QEMU test board */
-#define FUSE_SRK0   (0)
-#define FUSE_SRK1   (1)
-#define FUSE_SRK2   (2)
-#define FUSE_SRK3   (3)
-#define FUSE_SRK4   (4)
-#define FUSE_BOOT0  (5)
-#define FUSE_BOOT1  (6)
-#define FUSE_REVOKE (8)
-#define FUSE_SEC    (9)
+/* The configuration fuses of the test fuse driver's layout, same as on the
+ * QEMU test board. The revocation's and the life cycle's are the platform's */
+#define FUSE_SRK0  (0)
+#define FUSE_SRK1  (1)
+#define FUSE_SRK2  (2)
+#define FUSE_SRK3  (3)
+#define FUSE_SRK4  (4)
+#define FUSE_BOOT0 (5)
+#define FUSE_BOOT1 (6)
 
 static const struct gpt_part_table gpt_tbl_default[] = {
     {
@@ -344,53 +342,6 @@ static int late_boot(uuid_t boot_part_uu)
     return -PB_ERR; /* Should not be reached */
 }
 
-#define SEC_CONF_LOCKED BIT(0)
-#define SEC_CONF_EOL    BIT(1)
-
-static int board_revoke_key(const struct rot_key *key)
-{
-    return test_fuse_write(FUSE_REVOKE, (uint32_t)(1 << key->slot));
-}
-
-static int board_read_key_status(const struct rot_key *key)
-{
-    uint32_t val;
-    int rc = test_fuse_read(FUSE_REVOKE, &val);
-
-    if (rc != PB_OK)
-        return rc;
-
-    if (val & (1u << key->slot))
-        return -PB_ERR_KEY_REVOKED;
-    return PB_OK;
-}
-
-static slc_t board_slc_read_status(void)
-{
-    uint32_t val;
-    int rc = test_fuse_read(FUSE_SEC, &val);
-
-    if (rc != PB_OK)
-        return rc;
-
-    if (val & SEC_CONF_EOL)
-        return SLC_EOL;
-    else if (val & SEC_CONF_LOCKED)
-        return SLC_CONFIGURATION_LOCKED;
-    else
-        return SLC_CONFIGURATION;
-}
-
-static int board_slc_set_configuration_locked(void)
-{
-    return test_fuse_write(FUSE_SEC, SEC_CONF_LOCKED);
-}
-
-static int board_slc_set_eol(void)
-{
-    return test_fuse_write(FUSE_SEC, SEC_CONF_EOL);
-}
-
 /* The configuration: a made up SRK hash and boot configuration */
 static const struct slc_fuse config_fuses[] = {
     { FUSE_SRK0, 0x5020C7D7 },  { FUSE_SRK1, 0xBB62B945 }, { FUSE_SRK2, 0xDD97C8BE },
@@ -542,21 +493,6 @@ DEFINE_COMMAND("test-boot-stop",
                "Stops the next boot: early:abort, early:fail, late:abort or late:fail",
                cmd_test_boot_stop);
 
-static const struct rot_config rot = {
-    .revoke_key = board_revoke_key,
-    .read_key_status = board_read_key_status,
-};
-
-static const struct slc_config slc = {
-    .read_status = board_slc_read_status,
-    .set_configuration_locked = board_slc_set_configuration_locked,
-    .set_eol = board_slc_set_eol,
-    .fuses = config_fuses,
-    .fuses_length = ARRAY_SIZE(config_fuses),
-    .fuse_read = test_fuse_read,
-    .fuse_write = test_fuse_write,
-};
-
 static const struct boot_ab_state_config boot_state_cfg = {
     .primary_state_part_uu = PART_primary_state,
     .backup_state_part_uu = PART_backup_state,
@@ -637,8 +573,8 @@ static const struct boot_image_region image_regions[] = {
 
 const struct board board = {
     .name = "host test",
-    .rot = &rot,
-    .slc = &slc,
+    .slc_fuses = config_fuses,
+    .slc_fuses_length = ARRAY_SIZE(config_fuses),
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_disk, gpt_tables),
     .boot_policy = { .ops = &host_policy_ops, .config = &boot_state_cfg },

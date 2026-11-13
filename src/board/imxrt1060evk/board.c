@@ -1,7 +1,6 @@
 #include <boot/ab_state.h>
 #include <boot/boot.h>
 #include <boot/fh.h>
-#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/memc/imx_flexspi.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/partition/static.h>
@@ -359,14 +358,6 @@ cmd_test(const uint8_t *request, size_t request_size, uint8_t *response, size_t 
 
 DEFINE_COMMAND("test", "Prints its request, answers with four bytes", cmd_test);
 
-static const struct rot_config rot = {
-    .read_key_status = imx_hab_read_key_status,
-};
-
-static const struct slc_config slc = {
-    .read_status = imx_hab_slc_read_status,
-};
-
 /*
  * The image runs from RAM, from the load address of its part "app", and gets
  * pb's information in a transfer list (boot.md 5.4): pb's structure, the
@@ -418,8 +409,6 @@ static const struct boot_image_region image_regions[] = {
 const struct board board = {
     .name = "imxrt1060evk",
     .console_init = board_console_init,
-    .rot = &rot,
-    .slc = &slc,
     .init = flexspi_nor_setup,
     .ptbl = PTBL_STATIC(UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068, nor_table),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),

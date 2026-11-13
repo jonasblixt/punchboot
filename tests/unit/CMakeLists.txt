@@ -606,6 +606,20 @@ pb_unit_test(test_imx8x_seco_log SOURCES
 )
 target_compile_definitions(test_imx8x_seco_log PRIVATE CONFIG_PLAT_IMX8X=1)
 target_include_directories(test_imx8x_seco_log PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
+
+# The same for the i.MX8DXL, whose plat_slc has no lock
+add_executable(test_imx8xl_dry_run test_imx8x_dry_run.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/fusebox.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/rot_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/slc_helpers.c
+)
+target_compile_definitions(test_imx8xl_dry_run PRIVATE
+    CONFIG_PLAT_IMX8XL=1 CONFIG_IMX8X_FUSE_DRY_RUN=1)
+target_include_directories(test_imx8xl_dry_run PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
+target_link_libraries(test_imx8xl_dry_run PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_imx8xl_dry_run COMMAND test_imx8xl_dry_run)
+set_tests_properties(unit.test_imx8xl_dry_run PROPERTIES LABELS unit TIMEOUT 60)
 # The WDOG's driver alone, on the register file
 pb_plat_test(test_imx_wdog
     SOURCES ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c

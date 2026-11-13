@@ -1,4 +1,5 @@
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/slc.h>
 #include <pb/srk_fuse.h>
 #include <plat/imx8x/fusebox.h>
@@ -76,3 +77,22 @@ int imx8x_slc_set_configuration_locked(void)
     return PB_OK;
 #endif
 }
+
+/*
+ * The life cycle (platform.md 4.2): the SECO's, and the fuses through the
+ * SCFW. No EOL (F-263).
+ *
+ * The i.MX8DXL has no set_configuration_locked: the build can't sign pb for
+ * it yet (imx8xl_sign_image in its board's makefile.mk), and a closed DXL
+ * would refuse the only image there is. 'slc lock' answers NOT_SUPPORTED
+ * until signing exists (F-212).
+ */
+const struct slc_ops plat_slc = {
+    .read_status = imx8x_slc_read_status,
+    .set_configuration = imx8x_slc_set_configuration,
+#ifndef CONFIG_PLAT_IMX8XL
+    .set_configuration_locked = imx8x_slc_set_configuration_locked,
+#endif
+    .fuse_read = imx8x_fuse_read,
+    .fuse_write = imx8x_fuse_write,
+};

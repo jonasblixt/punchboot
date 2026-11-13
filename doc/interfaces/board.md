@@ -372,9 +372,11 @@ on the host:
 | Field                          | Rule                                                                               |
 | ------------------------------ | ---------------------------------------------------------------------------------- |
 | `name`                         | Mandatory, 1 to 16 characters: the wire's `board_id`                               |
-| `rot`, `slc`                   | Mandatory. Until F-247 moves them to the platform (`plat_rot`, `plat_slc`). A      |
-|                                | board without a life cycle has an `slc` without `read_status`: its command mode is |
-|                                | open (`system.md` 4)                                                               |
+| `slc_fuses`,                   | Optional. With a length the list is there, and the platform's `plat_slc` has       |
+| `slc_fuses_length`             | `fuse_read` and `fuse_write` (`platform.md` 4.2). The keys' revocation and the     |
+|                                | life cycle are the platform's (`plat_rot`, `plat_slc`): a board without a life     |
+|                                | cycle is on a platform whose `plat_slc` has no `read_status`, and its command mode |
+|                                | is open (`system.md` 4)                                                            |
 | `boot_policy`, `boot_handover` | Mandatory                                                                          |
 | `ptbl`                         | A GPT has at least one layout                                                      |
 | `password_auth`                | Mandatory with `CONFIG_CM_AUTH_PASSWORD`                                           |

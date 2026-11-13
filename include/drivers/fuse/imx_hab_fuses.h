@@ -8,7 +8,7 @@
  * HABv4's state in the OCOTP: the life cycle (closed bit, SRK hash) and the
  * SRK revocation. The same on every i.MX with HABv4, only the fuse
  * locations differ: the platform gives them to imx_hab_fuses_init(), and
- * the board puts the callbacks it wants in its rot_config and slc_config.
+ * puts the functions it wants in its plat_rot and plat_slc (pb/plat.h).
  *
  * The keystore's key n is SRK n: they share the revoke bit (pb/rot.h).
  */

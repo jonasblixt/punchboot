@@ -54,7 +54,7 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
 #define OCOTP_TIMING_RELAX(x)       ((x) << 12)
 #define OCOTP_TIMING_STROBE_PROG(x) (x)
 
-/* By index, bank * words_per_bank + row: slc_config's fuse_read, fuse_write */
+/* By index, bank * words_per_bank + row: slc_ops' fuse_read, fuse_write */
 int imx_ocotp_fuse_read(uint32_t index, uint32_t *value);
 int imx_ocotp_fuse_write(uint32_t index, uint32_t value);
 
