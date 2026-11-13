@@ -195,6 +195,24 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
     } break;
     case USB_SET_CONFIGURATION: {
         LOG_DBG("Set configuration");
+
+        /* The one configuration there is, or 0 (usb.md 3.2) */
+        if (setup->wValue == 0) {
+            /* Deconfigured: not ready until the host configures the device */
+            enumerated = false;
+            hal_ops->ep0_xfer_zlp(USB_EP0_IN);
+            rc = PB_OK;
+            break;
+        }
+
+        if (setup->wValue != cls_config->desc->config.bConfigurationValue) {
+            /* Refused: nothing is set up and there is no status stage. It
+             * is to be stalled, which no controller can yet (F-138) */
+            LOG_ERR("No configuration %u", setup->wValue);
+            rc = PB_OK;
+            break;
+        }
+
         hal_ops->ep0_xfer_zlp(USB_EP0_IN);
 
         rc = hal_ops->set_configuration(cls_config->desc->eps,

@@ -220,8 +220,7 @@ The stack answers these requests and no others:
 - **Every length and index from the host is checked** (`command-mode.md` 4.2): a reply is at
   most `wLength` and at most the descriptor; a string index the class doesn't have is
   stalled; `SET_CONFIGURATION` takes the one configuration there is, or 0,
-  which deconfigures and is "lost". **Not yet in the code (F-287)**: the configuration's value
-  isn't looked at.
+  which deconfigures and is "lost".
 - **Any other request is stalled.** The host then goes on at once. **Not yet in the
   code (F-138)**: nothing is answered, the host waits out its timeout, and the transfer that
   was running fails. pb's device answers what enumeration needs and no more: the other

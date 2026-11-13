@@ -220,6 +220,45 @@ static void test_connect(void **state)
     assert_int_equal(usb_host_state()->unanswered, 0);
 }
 
+/* usb.md 3.2: SET_CONFIGURATION takes the one configuration there is, or 0,
+ * which deconfigures (F-287: the value wasn't looked at, and any configured
+ * the device). One the device doesn't have is refused: nothing is set up,
+ * the device isn't ready, and the request gets no status stage (the stall
+ * that the contract asks for is F-138's) */
+static void test_set_configuration_value(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    host_set_address(5);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+
+    host_set_configuration(2);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_true(usb_host_reply()->taken);
+    assert_false(usb_host_reply()->status);
+    assert_false(usb_host_state()->configured);
+    assert_int_equal(usb_host_state()->set_configuration_calls, 0);
+
+    host_set_configuration(0x0101);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_false(usb_host_reply()->status);
+    assert_int_equal(usb_host_state()->set_configuration_calls, 0);
+
+    /* Deconfigured, which it was: answered, and not ready */
+    host_set_configuration(0);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_answered(0);
+    assert_false(usb_host_state()->configured);
+    assert_int_equal(usb_host_state()->set_configuration_calls, 0);
+
+    host_set_configuration(1);
+    assert_int_equal(cm_transport_connect(), PB_OK);
+    assert_answered(0);
+    assert_true(usb_host_state()->configured);
+    assert_int_equal(usb_host_state()->set_configuration_calls, 1);
+}
+
 /* usb.md 6, fixed like the wire: the ids, one configuration with one vendor
  * specific interface, bulk IN 1 and bulk OUT 2, 512 byte packets */
 static void test_descriptors(void **state)
@@ -743,6 +782,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_every_operation_is_mandatory),
         cmocka_unit_test(test_connect),
+        cmocka_unit_test(test_set_configuration_value),
         cmocka_unit_test(test_descriptors),
         cmocka_unit_test(test_reply_lengths),
         cmocka_unit_test(test_strings),
