@@ -116,9 +116,13 @@ enum flexspi_command {
                                          * the instruction start pointer for next sequence */
 };
 
+/* An erase unit of the flash. The board's are sorted largest first and end
+ * at a block_size of 0. An erase uses a unit only where the range covers it
+ * whole and it starts on one (bio.md 3.3) */
 struct flexspi_nor_erase_cmds {
     size_t block_size;
-    uint32_t erase_time_ms;
+    uint32_t erase_time_ms; /*!< The longest erase of one unit, the data sheet's maximum.
+                                 The driver's bound on it (drivers.md 3) */
     uint8_t lut_id;
 };
 
@@ -132,7 +136,7 @@ struct flexspi_nor_config {
     uint8_t mfg_id;
     uint8_t mfg_device_type;
     uint8_t mfg_capacity;
-    uint32_t time_page_program_ms;
+    uint32_t time_page_program_ms; /*!< The longest page program, the bound on it */
     uint32_t cr1;
     uint32_t cr2;
     struct flexspi_nor_erase_cmds erase_cmds[4];
@@ -155,6 +159,18 @@ struct flexspi_core_config {
     const struct flexspi_nor_config *mem[];
 };
 
+/**
+ * Set up the controller and register a block device per flash.
+ *
+ * The longest time per unit (drivers.md 3): a block's erase is the board's
+ * erase_time_ms of the units it takes, a page program time_page_program_ms,
+ * and a read is IP commands of 32 KiB at most, each bounded by 1 s
+ * (FLEXSPI_TIMEOUT_us). Every wait returns -PB_ERR_TIMEOUT at its bound.
+ *
+ * @return PB_OK, -PB_ERR_TIMEOUT when the controller or a flash doesn't
+ *         answer, -PB_ERR_NOT_FOUND for a flash whose id isn't the board's,
+ *         -PB_ERR_PARAM or -PB_ERR_ALIGN for a configuration it can't take
+ */
 int imx_flexspi_init(const struct flexspi_core_config *config);
 
 #endif // INCLUDE_DRIVERS_MEMC_IMX_FLEXSPI_H
