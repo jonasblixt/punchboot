@@ -3,17 +3,22 @@
 Like from Linux on a target (pbtest.Device.pbstate). Scripts in the field
 call the tool: an invocation that worked keeps working, with its exit code.
 One that silently did the wrong thing fails now, and writes nothing (F-221).
+Products link its library, libpbstate.so.0, next to others (F-222).
 """
 
 from __future__ import annotations
 
+import ctypes
+import ctypes.util
 import errno
+import os
+import re
 import struct
 from typing import TYPE_CHECKING
 
 import pytest
 
-from .pbtest import BACKUP_STATE_LBA, PRIMARY_STATE_LBA
+from .pbtest import BACKUP_STATE_LBA, PRIMARY_STATE_LBA, REPO_ROOT
 
 if TYPE_CHECKING:
     from .pbtest import Device
@@ -94,3 +99,31 @@ def test_board_register_takes_32_bits(device: Device) -> None:
     info = device.pbstate("-i")
     assert "0: FFFFFFFF" in info
     assert "1: 80000000" in info
+
+
+def test_the_library_keeps_its_crc32_next_to_zlib(device: Device) -> None:
+    # zlib's crc32() has the library's name for its own and other results.
+    # The library exported its own: with zlib loaded first it got zlib's, and
+    # every state failed its CRC check (and a program that loaded the library
+    # first got the library's for zlib's)
+    zlib = ctypes.util.find_library("z")
+    assert zlib is not None
+    device.pbstate("-s", "a")
+
+    result = device.pbstate_run("-i", env={**os.environ, "LD_PRELOAD": zlib})
+    assert "preload" not in result.stderr
+    assert result.returncode == 0
+    assert "CRC failed" not in result.stdout
+    assert "System A is enabled and verified" in result.stdout
+
+
+def test_the_library_exports_its_header() -> None:
+    """The library's ABI is the functions of its public header, and only those."""
+    header = (REPO_ROOT / "tools" / "pbstate" / "src" / "pbstate.h").read_text()
+    functions = re.findall(r"^int (pbstate_\w+)\(", header, re.MULTILINE)
+    assert len(functions) == 13
+
+    lib = ctypes.CDLL("libpbstate.so.0")
+    for function in functions:
+        assert hasattr(lib, function), function
+    assert not hasattr(lib, "crc32")

@@ -30,6 +30,11 @@ set(LIB_SRC_FILES
     src/pbstate.c
 )
 
+# pb's crc32() is the library's own and not zlib's, which has the same name
+# and other results: hidden, so that a program that loads zlib too gets
+# zlib's, and the library its own. The ABI is pbstate.h's functions
+set_source_files_properties(../../src/lib/crc.c PROPERTIES COMPILE_OPTIONS -fvisibility=hidden)
+
 set(LIB_PUBLIC_HEADERS
     src/pbstate.h
 )
