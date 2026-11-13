@@ -169,3 +169,21 @@ def test_write_file_larger_than_partition_fails(device: Device, tmp_path: pathli
 
     with device.session() as s, pytest.raises(punchboot.ArgumentError):
         s.part_write(data, SYSTEM_A_UUID)
+
+
+@pytest.mark.parametrize("as_bytes", [False, True], ids=["path", "bytes"])
+def test_verify_takes_a_file_as_bpak_like_the_write(
+    device: Device, tmp_path: pathlib.Path, as_bytes: bool
+) -> None:
+    # The bpak magic and no valid header: the write puts it at the start of
+    # the partition, as any file, so the verify must not read a header from
+    # the partition's end (command-mode.md 5.3, F-227)
+    data = b"2APB" + bytes(8188)
+    path = tmp_path / "magic-only"
+    path.write_bytes(data)
+
+    with device.session() as s:
+        s.part_write(path, SYSTEM_A_UUID)
+        s.part_verify(data if as_bytes else path, SYSTEM_A_UUID)
+
+    assert device.read_blocks(SYSTEM_A_LBA, len(data) // 512) == data

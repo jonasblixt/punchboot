@@ -90,6 +90,15 @@ def valid_header(header: bpak_header) -> bool:
     return bool(header.hash_kind)
 
 
+def has_header(data: bytes) -> bool:
+    """Check whether 'data' starts with a valid header.
+
+    The host writes and verifies such a file as bpak: the header in the
+    partition's last 4 KiB, the payload from its start (command-mode.md 5.3).
+    """
+    return len(data) >= BPAK_HEADER_SIZE and valid_header(bpak_header.unpack(data))
+
+
 def part_size(part: bpak_part_header) -> int:
     """Return the size of a part in the file (bpak_part_size)."""
     if part.flags & BPAK_FLAG_TRANSPORT:

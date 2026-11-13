@@ -32,7 +32,7 @@ from .errors import (
     NotSupportedError,
     check,
 )
-from .helpers import pb_id, valid_bpak_magic
+from .helpers import pb_id
 from .partition import Partition, PartitionFlags
 from .slc import SLC
 from .transport import SocketTransport, Transport, UsbTransport
@@ -300,9 +300,7 @@ class Session:
             buffer_id = 0
             offset = 0
             data = f.read(bpak.BPAK_HEADER_SIZE)
-            if len(data) == bpak.BPAK_HEADER_SIZE and bpak.valid_header(
-                bpak.bpak_header.unpack(data)
-            ):
+            if bpak.has_header(data):
                 self._stream_prepare_buffer(buffer_id, data)
                 self._stream_write_buffer(buffer_id, part_size - len(data), len(data))
                 buffer_id = (buffer_id + 1) % buffers
@@ -582,7 +580,9 @@ class Session:
             if chunk := fh.read(bpak_header_len):
                 hash_ctx.update(chunk)
                 length += len(chunk)
-                bpak_header_valid = valid_bpak_magic(chunk)
+                # As the write takes it, else the verify reads a header that
+                # wasn't written (F-227)
+                bpak_header_valid = bpak.has_header(chunk)
             # Read the rest
             while chunk := fh.read(chunk_len):
                 hash_ctx.update(chunk)
@@ -595,7 +595,7 @@ class Session:
                 data_length = _chunk_reader(f)
         elif isinstance(file, bytes):
             hash_ctx.update(file)
-            bpak_header_valid = valid_bpak_magic(file)
+            bpak_header_valid = bpak.has_header(file)
             data_length = len(file)
         elif _is_file(file):
             file.seek(0)
