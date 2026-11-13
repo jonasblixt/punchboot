@@ -1,6 +1,6 @@
 #include <boot/ab_state.h>
 #include <boot/boot.h>
-#include <boot/simple.h>
+#include <boot/fh.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/memc/imx_flexspi.h>
 #include <drivers/partition/gpt.h>
@@ -367,9 +367,16 @@ static const struct slc_config slc = {
     .read_status = imx_hab_slc_read_status,
 };
 
-/* The image runs from RAM, from the load address of its part "app" */
-static const struct boot_driver_simple_config boot_simple = {
-    .boot_partition_id = 0x362fa9dd, /* bpak_id("app") */
+/*
+ * The image runs from RAM, from the load address of its part "app", and gets
+ * pb's information in a transfer list (boot.md 5.4): pb's structure, the
+ * board names no device tree part. The list's region is in OCRAM2 right
+ * above the ROM's data: CONFIG_BOOT_FH_REGION_BASE and _SIZE, 4 KiB at
+ * 0x20208000 in the defconfig. An image keeps it free until it has read the
+ * list.
+ */
+static const struct boot_handover_fh_config boot_fh = {
+    .entry_bpak_id = 0x362fa9dd, /* bpak_id("app") */
 };
 
 static const struct boot_ab_state_config boot_state_cfg = {
@@ -381,15 +388,26 @@ static const struct boot_ab_state_config boot_state_cfg = {
 
 /*
  * Where an image's parts may be loaded (board.md 2.9): the RAM an application
- * is linked for. OCRAM2 between the ROM's data and pb, which is linked from
- * 0x20249000 to the end of the OCRAM (link.lds), and the two TCMs, which pb
- * doesn't use. The SDRAM isn't set up. board_setup() checks the list against
- * what is linked.
+ * is linked for. OCRAM2 between the transfer list's region, which follows the
+ * ROM's data, and pb, which is linked from 0x20249000 to the end of the OCRAM
+ * (link.lds), and the two TCMs, which pb doesn't use. The SDRAM isn't set up.
+ * board_setup() checks the list against what is linked and against the
+ * transfer list's region.
+ *
+ * The transfer list's region has one source, the defconfig (platform.md 5.1):
+ * the OCRAM2 region starts where it ends. A defconfig that has it somewhere
+ * else than after the ROM's data, or leaves nothing below pb, doesn't build.
  */
-#define BOARD_OCRAM2_IMAGE_BASE (IMXRT_OCRAM2_BASE + IMXRT_OCRAM2_ROM_SIZE)
+#define BOARD_OCRAM2_IMAGE_BASE (CONFIG_BOOT_FH_REGION_BASE + CONFIG_BOOT_FH_REGION_SIZE)
+#define BOARD_OCRAM2_IMAGE_END  0x20249000
+
+_Static_assert(CONFIG_BOOT_FH_REGION_BASE == IMXRT_OCRAM2_BASE + IMXRT_OCRAM2_ROM_SIZE,
+               "CONFIG_BOOT_FH_REGION_BASE is not the end of the ROM data in OCRAM2");
+_Static_assert(BOARD_OCRAM2_IMAGE_BASE < BOARD_OCRAM2_IMAGE_END,
+               "CONFIG_BOOT_FH_REGION_SIZE leaves no OCRAM2 below pb for an image");
 
 static const struct boot_image_region image_regions[] = {
-    BOOT_IMAGE_REGION(BOARD_OCRAM2_IMAGE_BASE, 0x20249000 - BOARD_OCRAM2_IMAGE_BASE),
+    BOOT_IMAGE_REGION(BOARD_OCRAM2_IMAGE_BASE, BOARD_OCRAM2_IMAGE_END - BOARD_OCRAM2_IMAGE_BASE),
     BOOT_IMAGE_REGION(IMXRT_ITCM_BASE, IMXRT_ITCM_SIZE),
     BOOT_IMAGE_REGION(IMXRT_DTCM_BASE, IMXRT_DTCM_SIZE),
     BOOT_IMAGE_REGION_END,
@@ -403,7 +421,7 @@ const struct board board = {
     .init = flexspi_nor_setup,
     .ptbl = PTBL_STATIC(UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068, nor_table),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
-    .boot_handover = BOOT_HANDOVER_SIMPLE(&boot_simple),
+    .boot_handover = BOOT_HANDOVER_FH(&boot_fh),
     .image_regions = image_regions,
     .early_boot = board_early_boot,
     .late_boot = board_late_boot,
