@@ -289,7 +289,7 @@ The A/B state is `struct pb_boot_state` (`include/boot/pb_state_blob.h`), 512 by
 partitions: the primary is written first, the backup second. Its format is fixed (section 7): an
 extension takes a field from `rz[]`, where zero means today's behaviour. The four board registers
 (`board_regs[]`) are the board's, and part of the format. `pbstate` is the OS's side
-and isn't Linux specific. **Not yet in the code (roadmap, F-176, F-179, F-180)**: one
+and isn't Linux specific. **Not yet in the code (roadmap, F-179, F-180)**: one
 freestanding core shared by pb and `pbstate` (Linux, Zephyr, bare metal; the simple target's copy
 goes), the other policies in `pbstate`, the fixes of the A/B review.
 
@@ -648,9 +648,9 @@ Like the wire (D-008, `compatibility.md`):
 
 ## 9. Not yet in the code
 
-| Finding             | What                                                                         |
-| ------------------- | ---------------------------------------------------------------------------- |
-| F-259               | Firmware Handoff (5.4): the list, the region, pb's structure and its tag     |
-| F-248               | The boot's preconditions in the flow (2), pb's status in the handover (5.6)  |
-| F-176, F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate`                |
-| F-252, F-076        | A stop in a boot command mode started; a part outside the hash refused (4.2) |
+| Finding      | What                                                                         |
+| ------------ | ---------------------------------------------------------------------------- |
+| F-259        | Firmware Handoff (5.4): the list, the region, pb's structure and its tag     |
+| F-248        | The boot's preconditions in the flow (2), pb's status in the handover (5.6)  |
+| F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate`                |
+| F-252, F-076 | A stop in a boot command mode started; a part outside the hash refused (4.2) |

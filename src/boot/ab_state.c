@@ -181,6 +181,19 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
         LOG_ERR("Primary state corrupt, reparing");
         memcpy(&boot_state, &boot_state_backup, sizeof(struct pb_boot_state));
         rc = pb_boot_state_commit();
+    } else if (memcmp(&boot_state, &boot_state_backup, sizeof(struct pb_boot_state)) != 0) {
+        /* Both are valid and they differ: a commit was cut between its two
+         * writes. The primary is written first (boot.md 3.7), so it has the
+         * newer state, and it is written to both. A backup that is left
+         * behind comes back when the primary goes bad. The state is the
+         * primary's also when that can't be written */
+        LOG_ERR("Backup state differs from the primary, updating");
+        rc = pb_boot_state_commit();
+
+        if (rc != PB_OK) {
+            LOG_ERR("Backup state not updated (%i)", rc);
+            rc = PB_OK;
+        }
     } else {
         LOG_INFO("Boot state loaded");
         rc = PB_OK;
