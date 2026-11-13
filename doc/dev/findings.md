@@ -42,7 +42,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-107 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The trained PHY CSRs for TF-A are read after the DFI init and port enable; NXP reads them right after loading the PIE image, before the calibration wait and the DFI init. | Verified (differential trace) | open: needs an imx8mevk |
 | F-110 | `src/plat/imx8m/ddr.c` `imx8m_ddr_init` (GPC) | The DDR power-up writes `GPC_PGC_CPU_0_1_MAPPING` (0x303A00EC) and `GPC_PU_PGC_SW_PUP_REQ` bit 5 (0x303A00F8), the i.MX8MQ/8MM layout, and never waits for the request to self-clear. On the i.MX8M Plus 0x303A00EC is the read-only `GPC_LPCR_CM4_AD` and 0x303A00F8 is not in the map; its PU power-up trigger is 0x303A00D8 with `DDRMIX_SW_PUP_REQ` at bit 19 (RM 5.2.10.37). NXP's 8MP DDR tool script writes the same two addresses, and the RM's own example code uses them. Harmless on the 8MP EVK: DDRMIX is powered after reset and the DRAM trains (2026-10-28). | Verified (RM, board) | open: per-SoC power-up in `ddr_imx8m{q,p}.c`, with the self-clear wait |
 | F-113 | `src/drivers/mmc/imx_usdhc.c`, `src/board/imx8mpevk/board.c` (i.MX8M Plus uSDHC3) | eMMC in DDR52 (8-bit DDR) fails at the first data read after the switch (CMD8, INT status 0x208003: DCE, a data CRC error); HS200 works. 2026-10-28, after the DDR_EN fix (F-123): with the board's fixed DLL override tap 35 the CMD8 still fails the same way; with tap 0 init gets through DDR52 (EXT_CSD reads work), but the first CMD18 (GPT read) fails: the auto CMD12 response in CMD_RSP3 is 0x00d00f00 (CC_ERROR, COM_CRC_ERROR, ILLEGAL_COMMAND, state prg), which doesn't fit a read. HS200 with tap 0 fails the same way (2026-10-29) and works with tap 35: a sampling error, the DLL override is in the read path in SDR too. The right tap depends on board and silicon (tuning). | Verified (board) | open: imx8mpevk uses HS200. Next: what CMD_RSP3 holds after auto CMD12 in DDR, and a DLL setting for DDR instead of the fixed override |
-| F-116 | `src/drivers/mmc/mmc_core.c` `mmc_setup` (HS400) | HS400 without Enhanced Strobe selects HS_TIMING 3 without tuning in HS200 first (JESD84-B51 6.6.2.3 steps 5-6). With `MMC_BUS_WIDTH_8BIT_DDR_STROBE` the card is switched to BUS_WIDTH 0x86, then `imx_usdhc_set_bus_width()` rejects the width. No board uses HS400. | Verified (bench, `test_mmc_emmc` `test_hs400`) | open |
 | F-131 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_start` | For a buffer that isn't 4 KiB aligned, page 0 of the dTD is `align_buffer` at offset 0 with only `align_length` bytes valid, but the controller fills page 0 up to its 4 KiB boundary before page 1, so an unaligned transfer longer than `align_length` sends or receives the wrong bytes. pb's large buffers are aligned, the small ones fit in one page, so nothing hits it today. | Verified (code) | open: point page 0 at `align_buffer + 4096 - align_length` |
 | F-134 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_complete` | For an OUT transfer into a buffer that isn't 4 KiB aligned, the data is copied from `align_buffer` into the buffer and then the buffer is invalidated (DCIMVAC), which architecturally discards the copy while the lines are dirty. Every command read takes this path (`cmd` at 0x81826200 in the jiffy build), yet commands work on jiffy, and the D-cache does hold dirty lines there (the F-130 breadcrumbs in `.no_init` were lost on reset without a clean, log 2026-10-29). Not understood: perhaps the Cortex-A7 performs DCIMVAC as clean and invalidate (unchecked; that would also hide F-081 on jiffy). | Verified (code, symbol map); why it works is open | open: invalidate before the copy, not after; check DCIMVAC on the board (dirty a line, invalidate, read back) |
 | F-135 | `src/arch/armv7a`, `src/plat/imx6ul/plat.c` `plat_mmu_init` | Nothing sets ACTLR.SMP before the MMU and caches are enabled; as I recall it, the Cortex-A7 MPCore TRM asks for that. What it changes on jiffy is unknown: the 2026-10-29 breadcrumbs show write-back caching of `.no_init` works without it, so it doesn't simply leave Shareable memory uncached (first guess in the USB review, withdrawn). | Reported (TRM from memory, not in `~/work/manuals`) | open: read ACTLR on jiffy (`mrc p15, 0, r0, c1, c0, 1`), get the TRM |
@@ -123,9 +122,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | checking the address is aligned to it, rounds a short tail up to a full block, ignores write-enable and | | |
 | | | busy-wait results. Latent with the EVK's layout. IDATSZ is 16 bits: a read of 64 KiB or more is | | |
 | | | truncated and waited for forever. No loop has a timeout or a watchdog kick. | | |
-| F-199 | `src/drivers/mmc/imx_usdhc.c:338` | A command timeout (CTOE) returns | Reported (probe) | open |
-| | | `-PB_ERR_IO`; `mmc_sd.c:281` detects SD 1.x cards by `-PB_ERR_TIMEOUT` on CMD8, so a 1.x card fails init | | |
-| | | on uSDHC. `test_sdsc_v1` runs only on the HAL model. | | |
 | F-200 | storage, low | `imx_hab_fuses.c:159`: a partly programmed SRK word is refused as already | Reported | open |
 | | | fused. `mmc_core.c`: `mmc_wait_state()` and `mmc_bio_xfer()` (`max_chunk_bytes == 0`) can loop forever; | | |
 | | | a zero BOOT_MULT gives a 2^32 block bio. `imx_usdhc.c`: ADMA2 addresses truncated to 32 bits. | | |
@@ -135,6 +131,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | it looped | | |
 | | | 2026-11-13 (`af45e648`, `507e30fd`, `74d45226`): `plat_get_unique_id()` returns a failed fuse read's | | |
 | | | error on the 6UL, 8M and RT and writes nothing; a readable device's bytes are pinned | | |
+| | | 2026-11-13 (`71dc3341`, `1ebcd9ac`, `c826b62d`): `mmc_wait_state()` gives up after its timeout, a | | |
+| | | boot or RPMB partition of size 0 gets no device, a DMA address above 4 GiB is `-PB_ERR_PARAM`. Left: | | |
+| | | the SRK word (the fuse package), and an e.MMC user area with SEC_COUNT 0, which still gets 2^32 | | |
+| | | blocks (refusing it could stop a small byte addressed e.MMC that boots today; for Jonas) | | |
 | F-201 | `src/drivers/usb/usbd.c:28` | `enumerated` is never cleared: on the 8MP EVK a replug or | Reported | open |
 | | | bus reset ends in a read on an unconfigured EP2, `cm_run` exits and the board resets. Clear it in | | |
 | | | `usbd_init()` and on bus reset. | | |
@@ -388,6 +388,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `mmc_set_ext_csd()`; virtio block's completion; the cdns3 glue's wait for power-on-ready. With | | |
 | | | F-102, F-136, F-198, F-200 and F-205 they are the list. `drivers.md` 3: every wait has a bound | | |
 | | | with its source and returns `-PB_ERR_TIMEOUT` | | |
+| | | 2026-11-13 (`272f8d69`, `5eb1f07b`, `82a26ceb`): the MMC waits are bounded: the state after a | | |
+| | | transfer by 1 s (the HAL has waited for the busy), a CMD6 by the card's own switch time. The | | |
+| | | bounds' sources are cited from memory. Left: virtio block's completion and the cdns3 glue's | | |
+| | | wait for power-on-ready | | |
 | F-282 | `src/arch/*/include/arch/arch.h`, the DMA drivers | The DMA rule has | Verified (code) | open |
 | | | no place in the code. Each driver calls `arch_clean_cache_range()` and | | |
 | | | `arch_invalidate_cache_range()` itself, through the arch's own header (`<arch/arch.h>`; | | |
@@ -429,12 +433,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | The buffer is read and written as `uint32_t *` whatever its alignment. The busy wait's | | |
 | | | result is ignored after a read and after each erase. No host test (F-230). With F-198. | | |
 | | | `bio.md` 3. The write's tail is verified in the code, the rest is as reported | | |
-| F-285 | `src/drivers/mmc/` | What the MMC drivers leave behind isn't written | Reported (read) | open |
-| | | down. PARTITION_ACCESS stays on the last partition accessed; the bus stays in the board's | | |
-| | | mode (8-bit DDR52 on jiffy, HS200 on the 8M and 8X boards); BOOT_BUS_CONDITIONS is rewritten | | |
-| | | at init unless `MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS`; a write to a boot partition moves | | |
-| | | BOOT_PARTITION_ENABLE off it first. `mmc_power_off()` has no caller. `bio.md` 5: in the | | |
-| | | header, with what brings the card back for the ROM after a warm reset (F-078, F-079) | | |
 | F-286 | `src/crypto.c`, `imx_caam.c`, `mbedtls_pb.c`, the users | Crypto against | Reported (read) | open |
 | | | `crypto.md`. (1) `hash_init()` keeps the backend selected when its `init` fails, and returns | | |
 | | | `-PB_ERR_NOT_SUPPORTED` where `crypto.h` says `-PB_ERR_PARAM`. (2) The CAAM's `init` neither | | |
@@ -657,6 +655,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-397 | `mmc_emmc.c:362`, `dwc3_udc.c:359,651` | Low. At `CONFIG_LOGLEVEL` 0 or 1 | Verified (build) | open |
 | | | without the RAM log, variables that only a log line uses are unused (`start`, `speed`, `caplength`): | | |
 | | | warnings in the imx8mpevk build. Seen with F-109 | | |
+| | | 2026-11-13 (`bd2df79f`): the MMC line is done, with a test that compiles the MMC sources at log | | |
+| | | level 0. Left: `dwc3_udc.c` (the USB package) | | |
 | F-401 | `tools/punchboot/session.py` | Low. `part_erase` masks `start_lba` to 32 bits, so a | Reported | open |
 | | | partition past block 2^32 wraps (pb 3.0.0 refuses the range, older devices unchecked). After a | | |
 | | | host's timeout on USB a device before 3.0.0 can still hold the late result, which the next session | | |
@@ -693,6 +693,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `mmc_init()` keeps the first one's range. `host_disk_init()` called twice leaks a descriptor | | |
 | | | (tests). `pb_boot_state_write()` with a handle that isn't one tests a flag on a negative value; the | | |
 | | | result is -PB_ERR_PARAM either way | | |
+| | | 2026-11-13 (`281e85a2`, `17d0f00d`, `9fe0a282`): every UUID is checked before the first device is | | |
+| | | registered; after a failed init the card's devices return `-PB_ERR_STATE` until an init works; a | | |
+| | | card of another size or without a partition at a second init is `-PB_ERR_IO`. Left: devices | | |
+| | | registered before the bio pool filled up stay (bio has no release), `host_disk_init()` twice, | | |
+| | | `pb_boot_state_write()` with a bad handle | | |
 | F-408 | `tools/pbstate`, `testbench/simple/src/pbstate.c` | Low, from F-180 and F-221. pbstate | Reported | open |
 | | | accepts trailing characters after a number (`-c 3x`, `-w 0 1zz`); `print_configuration()` ignores | | |
 | | | the getters' errors and prints both systems as disabled on a CRC failure before it fails; `-v` with | | |
@@ -750,6 +755,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | first LOAD segment holds the ELF's headers, 248 bytes below `PB_ENTRY`. After an unsupported | | |
 | | | format letter `snprintf()` returns a length below the buffer's, so a caller can't tell the | | |
 | | | text was cut | | |
+| F-419 | `src/drivers/mmc/`, `drivers.md` 3 | Low, from the MMC package. A board configuration | Reported | open |
+| | | with the same UUID twice (`user_uu` equal to `boot0_uu`) leaves devices registered when the | | |
+| | | init fails. HS400 has no check of the width: an SDR width reaches HS_TIMING 3. The HS200 and | | |
+| | | HS400 fallbacks send their CMD6 at 200 MHz on the tap tuning just failed with. `drivers.md` 3 | | |
+| | | still has "the uSDHC returns -PB_ERR_IO" for a timeout as its example. `mmc_core`'s | | |
+| | | `devices[]` carries slot state from one unit test to the next | | |
 
 ## Dependencies / vendored code
 

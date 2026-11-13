@@ -1033,6 +1033,24 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `%x` and its padding stay inside the buffer; an unsupported letter logs an error and ends the output | | |
 | | | there, terminated, where pb hung. `test_snprintf.c`. `pb.bin` changes on all six boards, in | | |
 | | | `snprintf` only | | |
+| F-199 | `src/drivers/mmc/imx_usdhc.c:338` | A command timeout (CTOE) returns | Reported (probe) | fixed (`e4513fd4`) |
+| | | `-PB_ERR_IO`; `mmc_sd.c:281` detects SD 1.x cards by `-PB_ERR_TIMEOUT` on CMD8, so a 1.x card fails init | | |
+| | | on uSDHC. `test_sdsc_v1` runs only on the HAL model. | | |
+| | | A command timeout alone is `-PB_ERR_TIMEOUT` on the uSDHC, with a CMD line conflict it stays | | |
+| | | `-PB_ERR_IO`; `test_sdsc_v1` runs through the uSDHC's register model. On the wire a command that | | |
+| | | times out in command mode answers TIMEOUT where it answered IO_ERROR | | |
+| F-116 | `src/drivers/mmc/mmc_core.c` `mmc_setup` (HS400) | HS400 without Enhanced Strobe selects HS_TIMING 3 without tuning in HS200 first (JESD84-B51 6.6.2.3 steps 5-6). With `MMC_BUS_WIDTH_8BIT_DDR_STROBE` the card is switched to BUS_WIDTH 0x86, then `imx_usdhc_set_bus_width()` rejects the width. No board uses HS400. | Verified (bench, `test_mmc_emmc` `test_hs400`) | fixed (`380df216`, `ec7a7139`) |
+| | | `struct mmc_hal` has `hs400` and `hs400_es`; the uSDHC sets neither, so HS400 is refused there | | |
+| | | before a switch. HS400 without Enhanced Strobe tunes in HS200 first and falls back to high speed. No | | |
+| | | board uses HS400 | | |
+| F-285 | `src/drivers/mmc/` | What the MMC drivers leave behind isn't written | Reported (read) | fixed (`93a666fd`, `8bf54469`) |
+| | | down. PARTITION_ACCESS stays on the last partition accessed; the bus stays in the board's | | |
+| | | mode (8-bit DDR52 on jiffy, HS200 on the 8M and 8X boards); BOOT_BUS_CONDITIONS is rewritten | | |
+| | | at init unless `MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS`; a write to a boot partition moves | | |
+| | | BOOT_PARTITION_ENABLE off it first. `mmc_power_off()` has no caller. `bio.md` 5: in the | | |
+| | | header, with what brings the card back for the ROM after a warm reset (F-078, F-079) | | |
+| | | What the MMC drivers leave behind and change on the card for good is in `mmc_core.h` and | | |
+| | | `imx_usdhc.h` | | |
 
 ## Dependencies / vendored code
 
