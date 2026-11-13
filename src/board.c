@@ -107,6 +107,10 @@ static int board_data_failed(const char *member)
  * rot and slc first, boot_policy and boot_handover when their step comes, a
  * partition table's by its driver. The name and the rest of command mode's
  * are checked by cm_board_init(): nothing here uses them.
+ *
+ * A step that fails ends the setup (board.md 2.1): the steps after it are
+ * skipped, the handover is set up all the same, so that command mode has its
+ * boot commands, and the step's error is the one returned.
  */
 int board_setup(void)
 {
@@ -129,10 +133,15 @@ int board_setup(void)
     if (board.slc == NULL)
         return board_data_failed("slc");
 
+    /* A failed RoT or SLC fails closed (security.md 4.4), also with the
+     * handover set up: the SLC isn't set up after either, so the life cycle
+     * is unknown. Command mode asks for authentication and no boot is
+     * started; without the RoT no image verifies */
     rc = rot_init(board.rot);
 
     if (rc != PB_OK) {
         LOG_ERR("RoT init failed (%i)", rc);
+        (void)setup_boot_driver();
         return rc;
     }
 
@@ -140,6 +149,7 @@ int board_setup(void)
 
     if (rc != PB_OK) {
         LOG_ERR("SLC init failed (%i)", rc);
+        (void)setup_boot_driver();
         return rc;
     }
 

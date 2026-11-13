@@ -374,30 +374,73 @@ static void test_setup(void **state)
     assert_driver(true);
 }
 
-/* Each failure stops the setup there, the RoT and SLC are always set up.
- * None of them gets to boot_init(). A failed init() or late_init() does,
- * test_failed_hook_sets_up_the_handover(), and a failed policy,
- * test_failed_policy_sets_up_the_handover() */
-static void test_setup_failures(void **state)
+/* The handover is the last step: when it fails there is no boot driver, and
+ * its error is the one returned */
+static void test_failed_handover(void **state)
 {
-    static const struct {
-        int *rc;
-        const char *calls;
-    } cases[] = {
-        { &rc.rot, "rot " },
-        { &rc.slc, "rot slc " },
-        { &rc.handover, "rot slc init ptbl policy late handover " },
-    };
-
     (void)state;
 
-    for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
-        setup(NULL);
-        *cases[i].rc = -PB_ERR_IO;
-        assert_int_equal(board_setup(), -PB_ERR_IO);
-        assert_string_equal(calls, cases[i].calls);
-        assert_null(driver);
-    }
+    rc.handover = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc init ptbl policy late handover ");
+    assert_null(driver);
+}
+
+/* board.md 2.1 (F-216): a failed RoT or SLC ends the setup like any step: the
+ * steps after it are skipped, the handover is set up all the same and the
+ * step's error is returned.
+ *
+ * It fails closed (security.md 4.4) by what isn't set up, not by a missing
+ * handover: slc_init() isn't reached or didn't take the board's data, so the
+ * life cycle is unknown (test_rot.c: -PB_ERR_STATE), no boot is started
+ * (test_boot.c) and command mode asks for authentication (test_cm.c). */
+static void test_failed_rot_or_slc_sets_up_the_handover(void **state)
+{
+    (void)state;
+
+    /* The RoT: the SLC isn't set up, nor anything of the board's */
+    rc.rot = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot handover boot ");
+    assert_int_equal(lookups, 0);
+    assert_null(policy_cfg);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_driver(true);
+
+    /* The SLC: no init(), no table, no policy, no late_init() */
+    setup(NULL);
+    rc.slc = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc handover boot ");
+    assert_int_equal(lookups, 0);
+    assert_null(policy_cfg);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_driver(true);
+
+    /* With a delivery: both are set up */
+    setup(NULL);
+    board.boot_delivery.ops = &test_delivery_ops;
+    board.boot_delivery.config = &test_delivery_config;
+    rc.slc = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc handover delivery boot ");
+    assert_ptr_equal(driver->delivery, &board.boot_delivery);
+
+    /* The step's error is the one returned, also when the handover can't be
+     * set up either */
+    setup(NULL);
+    rc.rot = -PB_ERR_IO;
+    rc.handover = -PB_ERR_TIMEOUT;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot handover ");
+    assert_null(driver);
+
+    setup(NULL);
+    rc.slc = -PB_ERR_IO;
+    rc.handover = -PB_ERR_TIMEOUT;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_string_equal(calls, "rot slc handover ");
+    assert_null(driver);
 }
 
 /* board.md 2.1 (F-216): a failed init() or late_init() skips the steps after
@@ -1098,7 +1141,8 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_setup, setup),
-        cmocka_unit_test_setup(test_setup_failures, setup),
+        cmocka_unit_test_setup(test_failed_handover, setup),
+        cmocka_unit_test_setup(test_failed_rot_or_slc_sets_up_the_handover, setup),
         cmocka_unit_test_setup(test_failed_hook_sets_up_the_handover, setup),
         cmocka_unit_test_setup(test_failed_policy_sets_up_the_handover, setup),
         cmocka_unit_test_setup(test_no_partition_table, setup),
