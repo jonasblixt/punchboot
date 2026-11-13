@@ -276,15 +276,66 @@ static void test_init_requires_system_partitions(void **state)
     assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
 }
 
+/* The partitions of attach(), but the one with the UUID 'missing' */
+static void attach_without(struct fixture *f, const unsigned char *missing)
+{
+    static const struct {
+        const unsigned char *uu;
+        lba_t first;
+        lba_t last;
+        const char *name;
+    } parts[] = {
+        { UU_SYS_A, 10, 19, "System A" },
+        { UU_SYS_B, 20, 29, "System B" },
+        { UU_PRIMARY, PRIMARY_LBA, PRIMARY_LBA, "Primary" },
+        { UU_BACKUP, BACKUP_LBA, BACKUP_LBA, "Backup" },
+    };
+
+    bio_reset();
+    bio_dev_t disk = ramdisk_attach(f->disk, UU_DISK);
+    assert_true(disk >= 0);
+
+    for (unsigned int i = 0; i < 4; i++) {
+        if (missing != NULL && memcmp(parts[i].uu, missing, 16) == 0)
+            continue;
+        assert_true(bio_allocate_parent(disk,
+                                        parts[i].first,
+                                        parts[i].last,
+                                        RAMDISK_BLOCK_SIZE,
+                                        parts[i].uu,
+                                        parts[i].name) >= 0);
+    }
+}
+
+/*
+ * A state partition that isn't in the table (board.md 2.5): init fails with
+ * the lookup's error, and reads and writes nothing (F-007). It used to go on
+ * with the handle that isn't one, which bio refused, and with one of the two
+ * missing it read the other and could write the primary before it failed.
+ */
 static void test_init_without_state_partitions_fails(void **state)
 {
     struct fixture *f = *state;
 
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+
     attach(f, true, false);
-    assert_int_not_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
     /* System A and B are bootable anyway */
     assert_true(bio_get_flags(f->sys_a) & BIO_FLAG_BOOTABLE);
     assert_true(bio_get_flags(f->sys_b) & BIO_FLAG_BOOTABLE);
+
+    /* Only the backup is missing, and the primary is good */
+    attach_without(f, UU_BACKUP);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
+
+    /* Only the primary */
+    attach_without(f, UU_PRIMARY);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
+
+    assert_int_equal(f->disk->reads, 0);
+    assert_int_equal(f->disk->writes, 0);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
 }
 
 #ifndef CONFIG_BOOT_AB_SPECULATIVE

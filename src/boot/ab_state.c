@@ -25,12 +25,12 @@ static unsigned int handed_out;
 static const unsigned char *first_slot;
 static enum boot_policy_mode mode;
 
+/* The CRC is over the state with its crc field zero. The state is left as
+ * it was read */
 static int validate(struct pb_boot_state *state)
 {
     uint32_t crc = state->crc;
     int err = PB_OK;
-
-    state->crc = 0;
 
     if (state->magic != PB_STATE_MAGIC) {
         LOG_ERR("Incorrect magic");
@@ -38,11 +38,14 @@ static int validate(struct pb_boot_state *state)
         goto config_err_out;
     }
 
+    state->crc = 0;
+
     if (crc != crc32(0, (uint8_t *)state, sizeof(struct pb_boot_state))) {
         LOG_ERR("CRC failed");
         err = -PB_ERR;
-        goto config_err_out;
     }
+
+    state->crc = crc;
 
 config_err_out:
     return err;
@@ -136,6 +139,13 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     if (backup_part < 0) {
         LOG_ERR("Backup boot state partition not found");
     }
+
+    /* No read or write with a handle that isn't one */
+    if (primary_part < 0)
+        return primary_part;
+
+    if (backup_part < 0)
+        return backup_part;
 
     /* A copy that can't be read isn't a corrupt one, and nothing of a failed
      * read is used (bio.md 3.1) */
