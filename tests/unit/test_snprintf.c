@@ -8,7 +8,8 @@
  * pb's reduced snprintf() (src/lib/libc/snprintf.c, from TF-A), built for the
  * host as pb_snprintf() (CMakeLists.txt renames it, the host has its own).
  * It writes at most n - 1 characters and the terminator, and returns the
- * number of characters the whole output has (F-089).
+ * number of characters the whole output has (F-089). A specifier it doesn't
+ * have ends the output where it stands.
  */
 
 #include <setjmp.h>
@@ -99,12 +100,53 @@ static void test_d_u_s_bounded(void **state)
     check_guard(o.buf, 4);
 }
 
+/* A specifier it doesn't have ends the call: the text before it, terminated,
+ * and its length. It used to spin forever */
+static void test_unsupported_ends(void **state)
+{
+    struct out o;
+    (void)state;
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "ab%cde", 'x'), 2);
+    assert_string_equal(o.buf, "ab");
+    check_guard(o.buf, 16);
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "%u %zu", 1u, (size_t)2), 2);
+    assert_string_equal(o.buf, "1 ");
+
+    /* A width without a 0 */
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "[%2u]", 3u), 1);
+    assert_string_equal(o.buf, "[");
+
+    /* After padding, and at the end of the format */
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "%04x%08", 0x1u), 4);
+    assert_string_equal(o.buf, "0001");
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "abc%"), 3);
+    assert_string_equal(o.buf, "abc");
+
+    /* In a buffer that is already full */
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 2, "abc%c", 'x'), 3);
+    assert_string_equal(o.buf, "a");
+    check_guard(o.buf, 2);
+}
+
 int main(void)
 {
+    /* A spin in the code under test fails the test in seconds */
+    alarm(10);
+
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_x_fits),
         cmocka_unit_test(test_x_bounded),
         cmocka_unit_test(test_d_u_s_bounded),
+        cmocka_unit_test(test_unsupported_ends),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

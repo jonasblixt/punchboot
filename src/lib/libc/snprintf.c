@@ -98,7 +98,8 @@ static int unsigned_num_print(char **s,
  * %s - string format
  * %u - unsigned decimal format
  *
- * The function panics on all other formats specifiers.
+ * Any other format specifier ends the output where it stands: the
+ * text before it is terminated, and its length is returned.
  *
  * It returns the number of characters that would be written if the
  * buffer was big enough. If it returns a value lower than n, the
@@ -179,12 +180,11 @@ snprintf_loop:
                 while (1)
                     __asm__("nop");
             default:
-                /* Panic on any other format specifier. */
+                /* Any other format specifier ends the output here (F-089) */
                 LOG_ERR("snprintf: specifier with ASCII"
                         " code '%d' not supported.",
                         *fmt);
-                while (1) {
-                } // TODO(jb): add plat_panic
+                goto out;
             }
             fmt++;
             continue;
@@ -199,6 +199,7 @@ snprintf_loop:
         chars_printed++;
     }
 
+out:
     va_end(args);
 
     if (n > 0U)
