@@ -27,8 +27,19 @@ KCONFIG_CONFIG ?= .config
 
 BUILD_CONFIG ?= $(BUILD_DIR)/.config
 
+# A build needs its configuration: a name that is mistyped would build the
+# Kconfig defaults (F-229). menuconfig makes one, clean needs none.
+ifneq ($(filter-out menuconfig oldconfig clean,$(or $(MAKECMDGOALS),all)),)
+ifeq ($(wildcard $(KCONFIG_CONFIG)),)
+$(error KCONFIG_CONFIG=$(KCONFIG_CONFIG) doesn't exist: give a defconfig, or make one with menuconfig)
+endif
+endif
+
 $(shell mkdir -p $(BUILD_DIR))
-$(shell BOARD=$(BOARD) KCONFIG_CONFIG=$(KCONFIG_CONFIG) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h --config-out $(BUILD_CONFIG) src/Kconfig)
+# A failure stops the build, which would otherwise use the old $(BUILD_CONFIG) (F-229)
+ifneq ($(shell BOARD=$(BOARD) KCONFIG_CONFIG=$(KCONFIG_CONFIG) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h --config-out $(BUILD_CONFIG) src/Kconfig >&2; echo $$?),0)
+$(error scripts/genconfig.py failed)
+endif
 
 include $(BUILD_CONFIG)
 
