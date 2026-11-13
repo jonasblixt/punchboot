@@ -382,49 +382,6 @@ int plat_get_boot_reason(struct pb_boot_reason *reason)
     return PB_OK;
 }
 
-int plat_boot_reason(void)
-{
-    return boot_reason;
-}
-
-const char *plat_boot_reason_str(void)
-{
-    switch (boot_reason) {
-    case SC_PM_RESET_REASON_POR:
-        return "POR";
-    case SC_PM_RESET_REASON_JTAG:
-        return "JTAG";
-    case SC_PM_RESET_REASON_SW:
-        return "SW";
-    case SC_PM_RESET_REASON_WDOG:
-        return "WDOG";
-    case SC_PM_RESET_REASON_LOCKUP:
-        return "LOCKUP";
-    case SC_PM_RESET_REASON_SNVS:
-        return "SNVS";
-    case SC_PM_RESET_REASON_TEMP:
-        return "TEMP";
-    case SC_PM_RESET_REASON_MSI:
-        return "MSI";
-    case SC_PM_RESET_REASON_UECC:
-        return "UECC";
-    case SC_PM_RESET_REASON_SCFW_WDOG:
-        return "SCFW WDOG";
-    case SC_PM_RESET_REASON_ROM_WDOG:
-        return "ROM WDOG";
-    case SC_PM_RESET_REASON_SECO:
-        return "SECO";
-    case SC_PM_RESET_REASON_SCFW_FAULT:
-        return "SCFW Fault";
-    case SC_PM_RESET_REASON_V2X_DEBUG:
-        return "V2X DEBUG";
-    case SC_PM_RESET_REASON_BOOT_STAGE:
-        return "BOOT STAGE";
-    default:
-        return "Unknown";
-    }
-}
-
 int plat_get_boot_source(struct pb_boot_source *src)
 {
     (void)src;

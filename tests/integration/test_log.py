@@ -6,6 +6,7 @@ RAM log holds the same bytes as the pb-host log.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 import punchboot
@@ -43,6 +44,14 @@ def test_log_read(device: Device) -> None:
     assert log.startswith(b"\n\rPB ")
     assert b"Initializing command mode" in log
     assert log in device.log.read_bytes()
+
+
+def test_log_banner(device: Device) -> None:
+    """The banner has the boot reason's name and raw value: the host's is a power on."""
+    with device.session() as s:
+        log = s.log_read()
+
+    assert re.match(rb"\n\rPB \S+, POR \(0x0\)\n\r", log)
 
 
 def test_log_read_in_chunks(device: Device) -> None:

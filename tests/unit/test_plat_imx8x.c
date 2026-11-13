@@ -236,7 +236,8 @@ static void test_boot_reason_before_early_init(void **state)
 }
 
 /* platform.md 3.4: every reason the SCFW has gets a kind and a name, and raw
- * is the SCFW's value (plat/imx8x/imx8x.h has the table) */
+ * is the SCFW's value (plat/imx8x/imx8x.h has the table). 13 and 14 were
+ * "Unknown" (F-412) */
 static void test_boot_reason_kinds(void **state)
 {
     static const struct {
@@ -294,31 +295,6 @@ static void test_boot_reason_scfw_error(void **state)
     assert_string_equal(reason.name, "Unknown");
 }
 
-/* The SCFW's reset reasons all have a name: 13 and 14, which the SCFW's API
- * has had since the tree's copy of it, were "Unknown" (F-412) */
-static void test_boot_reason_names(void **state)
-{
-    (void)state;
-
-    scfw.reset_reason = SC_PM_RESET_REASON_V2X_DEBUG;
-    assert_int_equal(plat_early_init(), PB_OK);
-    assert_int_equal(plat_boot_reason(), 13);
-    assert_string_equal(plat_boot_reason_str(), "V2X DEBUG");
-
-    scfw.reset_reason = SC_PM_RESET_REASON_BOOT_STAGE;
-    assert_int_equal(plat_early_init(), PB_OK);
-    assert_int_equal(plat_boot_reason(), 14);
-    assert_string_equal(plat_boot_reason_str(), "BOOT STAGE");
-
-    scfw.reset_reason = SC_PM_RESET_REASON_SCFW_FAULT;
-    assert_int_equal(plat_early_init(), PB_OK);
-    assert_string_equal(plat_boot_reason_str(), "SCFW Fault");
-
-    scfw.reset_reason = 15;
-    assert_int_equal(plat_early_init(), PB_OK);
-    assert_string_equal(plat_boot_reason_str(), "Unknown");
-}
-
 /* platform.md 3.6, 3.7: the platform's UUID namespace never changes.
  * aeda39be-792b-4de5-858a-4c357b9b6302 */
 static void test_platform_ns_uuid(void **state)
@@ -337,7 +313,6 @@ int main(void)
         cmocka_unit_test_setup(test_plat_reset_before_early_init, setup),
         cmocka_unit_test_setup(test_boot_reason_before_early_init, setup),
         cmocka_unit_test_setup(test_plat_reset, setup),
-        cmocka_unit_test_setup(test_boot_reason_names, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_scfw_error, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),

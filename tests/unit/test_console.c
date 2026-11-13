@@ -37,16 +37,19 @@
 static char uart[LOG_SIZE * 4];
 static size_t uart_len;
 
-/* For the boot banner. On the host it goes to the system printf, not the
- * console. */
-int plat_boot_reason(void)
-{
-    return 0;
-}
+/* For the boot banner. Outside a capture it goes to the system printf, not
+ * the console. */
+static struct pb_boot_reason boot_reason = {
+    .kind = PB_BOOT_REASON_UNKNOWN,
+    .raw = 0,
+    .name = "test",
+};
+static int boot_reason_rc;
 
-const char *plat_boot_reason_str(void)
+int plat_get_boot_reason(struct pb_boot_reason *reason)
 {
-    return "test";
+    *reason = boot_reason;
+    return boot_reason_rc;
 }
 
 void arch_clean_cache_range(uintptr_t start, size_t len);
@@ -222,6 +225,43 @@ static void test_levels(void **state)
                   "[0.000] E test_levels: err\n\rplain\n\r");
 }
 
+/* The banner: the version, then the boot reason's name and the SoC's raw
+ * value in hex (platform.md 3.4). It is printed on every console_init() */
+static void test_banner(void **state)
+{
+    (void)state;
+
+    boot_reason.kind = PB_BOOT_REASON_WDOG;
+    boot_reason.raw = 0x80000011;
+    boot_reason.name = "wdog";
+
+    capture_begin();
+    console_init(UART_BASE, &uart_ops);
+    capture_end();
+
+    assert_uart("\n\rPB " PB_VERSION ", wdog (0x80000011)\n\r");
+    assert_ramlog("\n\rPB " PB_VERSION ", wdog (0x80000011)\n\r");
+}
+
+/* A platform that couldn't read the reason still fills it in, and the
+ * banner prints what it got */
+static void test_banner_without_a_reason(void **state)
+{
+    (void)state;
+
+    boot_reason.kind = PB_BOOT_REASON_UNKNOWN;
+    boot_reason.raw = 0;
+    boot_reason.name = "Unknown";
+    boot_reason_rc = -PB_ERR_IO;
+
+    capture_begin();
+    console_init(UART_BASE, &uart_ops);
+    capture_end();
+    boot_reason_rc = PB_OK;
+
+    assert_uart("\n\rPB " PB_VERSION ", Unknown (0x0)\n\r");
+}
+
 /* Log lines carry the time since log_time_start(), ms with three decimals */
 static void test_log_time(void **state)
 {
@@ -304,6 +344,8 @@ int main(void)
         cmocka_unit_test_setup(test_uart_after_null_init, setup),
         cmocka_unit_test_setup(test_early_output_wrapped, setup),
         cmocka_unit_test_setup(test_levels, setup),
+        cmocka_unit_test_setup(test_banner, setup),
+        cmocka_unit_test_setup(test_banner_without_a_reason, setup),
         cmocka_unit_test_setup(test_early_muted, setup),
         cmocka_unit_test_setup(test_early_muted_wrapped, setup),
         cmocka_unit_test_setup(test_early_muted_overflow, setup),

@@ -83,16 +83,6 @@ static const mmap_region_t imx_mmap[] = {
     { 0 }
 };
 
-int plat_boot_reason(void)
-{
-    return -PB_ERR_NOT_IMPLEMENTED;
-}
-
-const char *plat_boot_reason_str(void)
-{
-    return "";
-}
-
 /* SRC_SRSR as plat_early_init() read it */
 static uint32_t srsr;
 

@@ -100,21 +100,6 @@ uint32_t plat_get_us_tick(void);
 void plat_wdog_kick(void);
 
 /**
- * The SoC's reset reason as an integer. To be replaced by
- * plat_get_boot_reason() (doc/interfaces/platform.md, F-236).
- *
- * @return >= 0 for valid boot reasons or a negative number on error
- */
-int plat_boot_reason(void);
-
-/**
- * Returns a platform specific boot reason as an string
- *
- * @return Boot reason string or ""
- */
-const char *plat_boot_reason_str(void);
-
-/**
  * Why the SoC was reset, as plat_early_init() read it: valid from there. The
  * platform doesn't clear the SoC's status, the OS reads the same registers.
  * Where the status is sticky the kind is the highest priority cause since it

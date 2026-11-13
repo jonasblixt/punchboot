@@ -238,8 +238,6 @@ The watchdog stays armed at the jump: the next stage takes it over.
 
 ### 3.4 Function : plat_get_boot_reason() [mandatory]
 
-**Not yet in the code (F-236)**: replaces `plat_boot_reason()` and `plat_boot_reason_str()`.
-
 ```
 Argument : struct pb_boot_reason *
 Return   : int, PB_OK or -PB_ERR_*

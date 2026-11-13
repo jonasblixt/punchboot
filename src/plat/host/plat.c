@@ -126,16 +126,6 @@ void plat_wdog_kick(void)
 {
 }
 
-int plat_boot_reason(void)
-{
-    return 0;
-}
-
-const char *plat_boot_reason_str(void)
-{
-    return "";
-}
-
 /* A process has no reset status: every start is a power on */
 int plat_get_boot_reason(struct pb_boot_reason *reason)
 {

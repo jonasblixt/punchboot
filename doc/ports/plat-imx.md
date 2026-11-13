@@ -250,7 +250,7 @@ Where each port is (2026-11-11).
 | `plat_reset()` without the watchdog  | yes          | yes               | yes        | yes       | F-234         |
 | `plat_reset()` before early init     | yes          | yes               | yes        | yes       | F-262         |
 | `plat_wdog_kick()` before arming     | yes          | yes               | yes        | yes       | F-234         |
-| `plat_get_boot_reason()`             | no           | no                | no         | no        | F-236         |
+| `plat_get_boot_reason()`             | yes          | yes               | yes        | yes       | F-236         |
 | The unique id fails on a failed read | no           | no                | unchecked  | no        | F-200         |
 | Serial download in                   | USB only     | no                | no         | no        | F-251         |
 | `plat_get_boot_source()`             |              |                   |            |           |               |

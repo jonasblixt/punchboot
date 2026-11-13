@@ -26,16 +26,6 @@
 #include <uuid.h>
 #include <xlat_tables.h>
 
-#define SRSR_WARM     BIT(16)
-#define SRSR_TEMP     BIT(8)
-#define SRSR_WDOG3    BIT(7)
-#define SRSR_JTAG_SW  BIT(6)
-#define SRSR_JTAG_RST BIT(5)
-#define SRSR_WDOG     BIT(4)
-#define SRSR_USER     BIT(3)
-#define SRSR_CSU      BIT(2)
-#define SRSR_POR      BIT(0)
-
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
 IMPORT_SYM(uintptr_t, _data_region_start, data_start);
@@ -77,24 +67,6 @@ const struct imx6ul_platform *imx6ul_plat(void)
     return &plat;
 }
 
-enum imx6ul_boot_reason {
-    BR_UNKNOWN,
-    BR_POR,
-    BR_CSU,
-    BR_USER,
-    BR_WDOG,
-    BR_JTAG_RST,
-    BR_JTAG_SW,
-    BR_WDOG3,
-    BR_TEMP,
-    BR_WARM,
-    BR_END,
-};
-
-static const char *br_str[BR_END] = {
-    "Unknown", "POR", "CSU", "User", "wdog", "jtag_rst", "jtag_sw", "wdog3", "temp", "warm",
-};
-
 static const mmap_region_t imx_mmap[] = {
     /* Boot ROM API*/
     MAP_REGION_FLAT(IMX6UL_ROM_BASE, (128 * 1024), MT_MEMORY | MT_RO | MT_EXECUTE),
@@ -122,38 +94,6 @@ fuse_read_helper(uint8_t bank, uint8_t row, uint8_t shift, uint32_t mask, uint32
 
     fuse_data >>= shift;
     return (fuse_data & mask);
-}
-
-int plat_boot_reason(void)
-{
-    /* Read the SRC reset status register */
-    uint32_t status = mmio_read_32(IMX6UL_SRC_SRSR);
-
-    if (status & SRSR_WARM)
-        return BR_WARM;
-    else if (status & SRSR_TEMP)
-        return BR_TEMP;
-    else if (status & SRSR_WDOG3)
-        return BR_WDOG3;
-    else if (status & SRSR_JTAG_SW)
-        return BR_JTAG_SW;
-    else if (status & SRSR_JTAG_RST)
-        return BR_JTAG_RST;
-    else if (status & SRSR_WDOG)
-        return BR_WDOG;
-    else if (status & SRSR_USER)
-        return BR_USER;
-    else if (status & SRSR_CSU)
-        return BR_CSU;
-    else if (status & SRSR_POR)
-        return BR_POR;
-    else
-        return BR_UNKNOWN;
-}
-
-const char *plat_boot_reason_str(void)
-{
-    return br_str[plat_boot_reason()];
 }
 
 /* SRC_SRSR as plat_early_init() read it */

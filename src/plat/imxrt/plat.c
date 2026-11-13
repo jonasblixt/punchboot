@@ -238,27 +238,6 @@ int plat_get_boot_reason(struct pb_boot_reason *reason)
     return PB_OK;
 }
 
-int plat_boot_reason(void)
-{
-    return mmio_read_16(IMXRT_WDOG1_BASE + WDOG_WRSR);
-}
-
-const char *plat_boot_reason_str(void)
-{
-    int reason = plat_boot_reason();
-    switch (reason) {
-    case WDOG_WRSR_POR:
-        return "POR";
-    case WDOG_WRSR_TOUT:
-        return "WDOG";
-    case WDOG_WRSR_SFTW:
-        return "SW";
-    default:
-        break;
-    }
-    return "?";
-}
-
 uint32_t plat_get_us_tick(void)
 {
     return imx_gpt_get_tick();
