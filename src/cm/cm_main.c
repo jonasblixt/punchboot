@@ -9,6 +9,7 @@
 
 #include <boot/boot.h>
 #include <boot/linux_ramoops.h>
+#include <boot/policy.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <inttypes.h>
@@ -235,6 +236,16 @@ void cm_board_cmd_request_reboot_on_success(void)
  * reports an unplug and a bus reset (usb.md 2.4). The next host starts
  * without authentication and without a stream (5.4).
  */
+/* The stream ends: no partition is selected, and nothing of a write is left
+ * to finalize (command-mode.md 5.4) */
+static void cm_stream_end(void)
+{
+    /* No stream: not a bio, and no bio_* call accepts it */
+    block_dev = -PB_ERR_STATE;
+    stream_written = false;
+    stream_failed = false;
+}
+
 static void cm_session_end(void)
 {
 #ifdef CONFIG_CM_AUTH
@@ -242,10 +253,7 @@ static void cm_session_end(void)
 #else
     authenticated = true;
 #endif
-    /* No stream: not a bio, and no bio_* call accepts it */
-    block_dev = -PB_ERR_STATE;
-    stream_written = false;
-    stream_failed = false;
+    cm_stream_end();
 }
 
 /*
@@ -894,6 +902,40 @@ static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
     return bio_erase(dev, erase_cmd->start_lba - first, erase_cmd->block_count);
 }
 
+/*
+ * PART_TBL_INSTALL (command-mode.md 5.3): the new table is in effect for the
+ * commands that follow. bio replaces the partitions that changed (bio.md 4),
+ * and the core sets up again what is its own: the stream ends, and the boot
+ * source policy's init runs again, for its state's partitions and its
+ * candidates. No hook of the board's runs.
+ */
+static int cmd_part_tbl_install(const struct pb_command_install_part_table *install_cmd)
+{
+    int rc;
+
+    if (cm_part_hidden(install_cmd->uu))
+        return -PB_ERR_NOT_FOUND;
+
+    rc = bio_install_partition_table(install_cmd->uu, install_cmd->variant);
+
+    /* An install that failed after it wrote the device released the old
+     * partitions: a stream on one of them has ended too */
+    if (rc == PB_OK || !bio_valid(block_dev))
+        cm_stream_end();
+
+    if (rc == PB_OK) {
+        /* The table is installed, whatever the policy makes of it: a layout
+         * without the policy's partitions answered OK in every release, and
+         * the boot commands report the policy's state (board.md 2.1) */
+        int policy_rc = boot_policy_reinit();
+
+        if (policy_rc != PB_OK)
+            LOG_ERR("Boot policy init failed (%i)", policy_rc);
+    }
+
+    return rc;
+}
+
 static int cmd_part_tbl_read(void)
 {
     LOG_DBG("TBL read");
@@ -903,7 +945,12 @@ static int cmd_part_tbl_read(void)
 
     int entries = 0;
 
-    for (bio_dev_t dev = 0; bio_valid(dev); dev++) {
+    /* Every handle: one that isn't a device, a partition that an install
+     * released, can lie between two that are (bio.md 2.6) */
+    for (bio_dev_t dev = 0; dev < CONFIG_BIO_MAX_DEVS; dev++) {
+        if (!bio_valid(dev))
+            continue;
+
         if (!(bio_get_flags(dev) & BIO_FLAG_VISIBLE))
             continue;
 
@@ -1297,12 +1344,7 @@ static int pb_command_parse(void)
     case PB_CMD_PART_TBL_INSTALL: {
         /* In use, not deprecated: how a device gets its table (board.md
          * 2.1, 2.4, command-mode.md 5.3) */
-        struct pb_command_install_part_table *install_cmd =
-            (struct pb_command_install_part_table *)cmd.request;
-        if (cm_part_hidden(install_cmd->uu))
-            rc = -PB_ERR_NOT_FOUND;
-        else
-            rc = bio_install_partition_table(install_cmd->uu, install_cmd->variant);
+        rc = cmd_part_tbl_install((struct pb_command_install_part_table *)cmd.request);
         pb_wire_init_result(&result, error_to_wire(rc));
     } break;
     case PB_CMD_STREAM_INITIALIZE:

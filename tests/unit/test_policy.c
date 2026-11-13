@@ -413,6 +413,48 @@ static void test_core_calls_without_a_policy(void **state)
     assert_int_equal(boot_policy_next(uu), -PB_ERR_NOT_SUPPORTED);
 }
 
+/* The policy's init runs again after a partition table was installed (bio.md
+ * 4, F-194): boot_policy_reinit() sets the board's policy up again, the one
+ * boot_init() named too, whose init never ran: a device that had no table */
+static void test_core_reinit(void **state)
+{
+    static const struct boot_policy unknown = BOOT_POLICY_FIXED(UU_OTHER);
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    assert_int_equal(boot_policy_init(&chain), PB_OK);
+    assert_int_equal(boot_policy_next(uu), PB_OK);
+    assert_memory_equal(uu, UU_SYS_A, 16);
+
+    /* The candidates start over, and are marked again */
+    assert_int_equal(bio_set_flags(f->sys_a, BIO_FLAG_VISIBLE), PB_OK);
+    assert_int_equal(boot_policy_reinit(), PB_OK);
+    assert_true(bootable(f->sys_a));
+    assert_int_equal(boot_policy_next(uu), PB_OK);
+    assert_memory_equal(uu, UU_SYS_A, 16);
+
+    /* A policy that was only named: its partition wasn't there at the set
+     * up, and is after the install */
+    assert_int_equal(boot_policy_init(&unknown), -PB_ERR_NOT_FOUND);
+    assert_int_equal(boot_policy_reinit(), -PB_ERR_NOT_FOUND);
+    assert_int_equal(boot_policy_next(uu), -PB_ERR_STATE);
+    bio_dev_t other = bio_allocate_parent(0, 40, 49, RAMDISK_BLOCK_SIZE, UU_OTHER, "Other");
+    assert_true(other >= 0);
+    assert_int_equal(boot_policy_reinit(), PB_OK);
+    assert_true(bootable(other));
+    assert_int_equal(boot_policy_next(uu), PB_OK);
+    assert_memory_equal(uu, UU_OTHER, 16);
+
+    boot_policy_set(&fixed);
+    assert_int_equal(boot_policy_reinit(), PB_OK);
+    assert_int_equal(boot_policy_next(uu), PB_OK);
+    assert_memory_equal(uu, UU_SYS_A, 16);
+
+    /* Without a policy there is nothing to set up */
+    boot_policy_set(NULL);
+    assert_int_equal(boot_policy_reinit(), PB_OK);
+}
+
 #define POLICY_TEST(f) cmocka_unit_test_setup_teardown(f, setup, teardown)
 
 int main(void)
@@ -423,6 +465,7 @@ int main(void)
         POLICY_TEST(test_chain_object),    POLICY_TEST(test_chain),
         POLICY_TEST(test_chain_of_one),    POLICY_TEST(test_chain_init_errors),
         POLICY_TEST(test_core_calls),      POLICY_TEST(test_core_calls_without_a_policy),
+        POLICY_TEST(test_core_reinit),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

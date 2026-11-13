@@ -487,6 +487,59 @@ static int gpt_repair_primary(bio_dev_t dev)
     return gpt_write_primary(dev);
 }
 
+/*
+ * Makes the partitions of the primary's entries, which are valid: the table
+ * that was read at the set up, or the one an install just wrote. In an
+ * install the core keeps the handle of a partition that didn't change and
+ * releases the others (bio.md 4, bio_install_partition_table()).
+ */
+static int gpt_make_partitions(bio_dev_t dev)
+{
+    uuid_t uu;
+    char name[37];
+
+    for (struct gpt_part_hdr *p = primary.part; p < &primary.part[primary.hdr.no_of_parts]; p++) {
+        int n = 0;
+
+        /* An empty entry is skipped, and the ones after it are made (bio.md 4) */
+        if (p->first_lba == 0)
+            continue;
+
+        uuid_to_guid(p->uuid, uu);
+
+        for (int i = 0; i < 36; i++) {
+            name[i] = p->name[n];
+            n += 2;
+        }
+
+        name[36] = 0;
+
+        /* An entry that fails is skipped and logged, and the others are
+         * made (bio.md 4) */
+        if (!gpt_entry_is_valid(dev, p)) {
+            LOG_ERR("Entry skipped, %s: %" PRIu64 " - %" PRIu64, name, p->first_lba, p->last_lba);
+            continue;
+        }
+
+        bio_dev_t new_dev = bio_allocate_parent(
+            dev, (lba_t)p->first_lba, (lba_t)p->last_lba, bio_block_size(dev), uu, name);
+
+        /* The core refuses what a device can't be: an entry whose UUID is
+         * taken (bio.md 2.6). The first one keeps the name */
+        if (new_dev == -PB_ERR_PARAM) {
+            LOG_ERR("Entry refused, %s", name);
+            continue;
+        }
+
+        if (new_dev < 0) {
+            LOG_ERR("bio alloc failed (%i)", new_dev);
+            return new_dev;
+        }
+    }
+
+    return PB_OK;
+}
+
 static int gpt_install_partition_table(bio_dev_t dev, int variant)
 {
     int rc;
@@ -518,14 +571,21 @@ static int gpt_install_partition_table(bio_dev_t dev, int variant)
             return rc;
     }
 
-    return gpt_write_tbl(dev);
+    rc = gpt_write_tbl(dev);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* In effect at once (bio.md 4, command-mode.md 5.3): the partitions of
+     * the table that was written, which is the primary in memory. When the
+     * pool has no room for them the table is on the device, the error is
+     * the install's, and a reset uses the table */
+    return gpt_make_partitions(dev);
 }
 
 int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, size_t length)
 {
     int rc;
-    uuid_t uu;
-    char name[37];
     bool primary_valid;
     bool backup_valid;
 
@@ -620,46 +680,7 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
         LOG_ERR("The backup GPT's entries differ from the primary's, the primary's are used");
     }
 
-    for (struct gpt_part_hdr *p = primary.part; p < &primary.part[primary.hdr.no_of_parts]; p++) {
-        int n = 0;
-
-        /* An empty entry is skipped, and the ones after it are made (bio.md 4) */
-        if (p->first_lba == 0)
-            continue;
-
-        uuid_to_guid(p->uuid, uu);
-
-        for (int i = 0; i < 36; i++) {
-            name[i] = p->name[n];
-            n += 2;
-        }
-
-        name[36] = 0;
-
-        /* An entry that fails is skipped and logged, and the others are
-         * made (bio.md 4) */
-        if (!gpt_entry_is_valid(dev, p)) {
-            LOG_ERR("Entry skipped, %s: %" PRIu64 " - %" PRIu64, name, p->first_lba, p->last_lba);
-            continue;
-        }
-
-        bio_dev_t new_dev = bio_allocate_parent(
-            dev, (lba_t)p->first_lba, (lba_t)p->last_lba, bio_block_size(dev), uu, name);
-
-        /* The core refuses what a device can't be: an entry whose UUID is
-         * taken (bio.md 2.6). The first one keeps the name */
-        if (new_dev == -PB_ERR_PARAM) {
-            LOG_ERR("Entry refused, %s", name);
-            continue;
-        }
-
-        if (new_dev < 0) {
-            LOG_ERR("bio alloc failed (%i)", new_dev);
-            return new_dev;
-        }
-    }
-
-    return PB_OK;
+    return gpt_make_partitions(dev);
 }
 
 static int ptbl_gpt_init(const struct ptbl *ptbl, bio_dev_t dev)

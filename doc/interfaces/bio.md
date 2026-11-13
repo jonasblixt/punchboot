@@ -130,8 +130,7 @@ them.
 - **All of them**: a handle is a number from 0 to `CONFIG_BIO_MAX_DEVS` less one, and
   `bio_valid()` says whether it is a device. A user that lists the devices tries every
   number and skips the ones that aren't: a handle that is dead (section 4) can lie between
-  two that aren't. **Not yet in the code (F-194)**: the look up by UUID and command mode's
-  table read stop at the first number that isn't a device.
+  two that aren't.
 - **What a device is**: `bio_get_uu()`, `bio_get_description()`, `bio_block_size()`,
   `bio_size()` in bytes, `bio_get_no_of_blocks()`, and `bio_get_first_block()` and
   `bio_get_last_block()`, a partition's place on its parent, which the partition table's
@@ -314,9 +313,6 @@ device with no table on it (`board.md` 2.4).
   The pool has room for the old partitions and the new ones. When it doesn't, the table is
   on the device, the install answers the error, and a reset uses the table.
 
-  **Not yet in the code (F-194)**: the old partitions stay until a reset, listed and written
-  at their old blocks, and a device that had no table has no partitions until then.
-
   Considered and not taken: running again what `board_setup()` does after `init()`,
   `late_init()` too. A stale value in a board is then not only a handle (a size, what it
   read from a partition, what it registered), and a `late_init()` that can't run twice would
@@ -435,7 +431,8 @@ The partition tables:
 | The device's block size             | no: 512 in four      | yes    | F-283               |
 |                                     | places               |        |                     |
 | Repair writes only the bad copy     | yes (`test_gpt`)     | n/a    |                     |
-| An installed table in effect        | no                   | n/a    | F-194               |
+| An installed table in effect        | yes (`test_gpt`,     | n/a    |                     |
+|                                     | `test_bio`)          |        |                     |
 | Tested on the host                  | yes (`test_gpt`,     | no     | F-230               |
 |                                     | `test_gpt.py`)       |        |                     |
 
@@ -461,5 +458,4 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | ------------------- | ------------------------------------------------------------------------------ |
 | F-283               | The block size asked, not assumed; the rest of the conformance suite (2, 8)    |
 | F-200               | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                   |
-| F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

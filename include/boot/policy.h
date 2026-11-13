@@ -107,6 +107,19 @@ void boot_policy_set(const struct boot_policy *policy);
 int boot_policy_init(const struct boot_policy *policy);
 
 /**
+ * Sets the board's policy up again, after its partitions changed: command
+ * mode calls it when a partition table was installed (bio.md 4,
+ * command-mode.md 5.3). The policy looks its state's partitions and its
+ * candidates up again, reads its state and marks the candidates bootable,
+ * as at the set up. It is the policy boot_init() or boot_policy_init() set,
+ * also when its init didn't run or failed at the set up: a device that had
+ * no table has its policy from the install on.
+ *
+ * @return PB_OK, also without a policy, or the policy's error
+ */
+int boot_policy_reinit(void);
+
+/**
  * The next candidate of this boot (boot.md 3.2)
  *
  * @param[out] part_uu The candidate's partition

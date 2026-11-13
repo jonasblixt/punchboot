@@ -488,8 +488,7 @@ sets `READABLE`, which is why `part read` fails on them (F-083).
 
 - **`PART_TBL_INSTALL`**: the new table is in effect for the commands that follow, and the
   stream ends. A partition that didn't change stays as it was; how the others are replaced is
-  `bio.md` 4. **Not yet in the code (F-194)**: until a reset the old partitions are listed and
-  written. A failure may leave the device without a valid table; command mode still runs
+  `bio.md` 4. A failure may leave the device without a valid table; command mode still runs
   (`board.md` 2.1) and the install is run again. It isn't retired, whatever the comment in
   `cm_main.c` and F-032 say: `board.md` 2.1 and 2.4 rely on it.
 - **`PART_ERASE`**: `start_lba` is a block of the device the partition is on, as hosts send it
@@ -734,4 +733,3 @@ For a change to command mode, a new command or a new method:
 | F-375               | The caps' erase timeout (4.6)                                                        |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
-| F-194               | A new partition table is in effect at once (5.3)                                     |
