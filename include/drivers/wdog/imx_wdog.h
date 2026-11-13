@@ -46,7 +46,14 @@
  */
 int imx_wdog_init(uintptr_t base, unsigned int delay_s);
 int imx_wdog_kick(uintptr_t base);
-int imx_wdog_reset_now(uintptr_t base);
+
+/**
+ * Reset the SoC through the WDOG's software reset (WCR.SRS). It doesn't
+ * return: it waits for the reset. The WDOG's clock must be on.
+ *
+ * @param[in] base The WDOG's base address
+ */
+int imx_wdog_reset_now(uintptr_t base) __attribute__((noreturn));
 
 /**
  * Stop a WDOG's power-down counter. It runs out of every reset and drives

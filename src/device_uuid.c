@@ -4,7 +4,6 @@
 #include <uuid.h>
 
 static uuid_t device_uu;
-extern const char *platform_ns_uuid;
 
 int device_uuid(uuid_t uu)
 {

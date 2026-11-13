@@ -22,9 +22,9 @@ unsigned int fake_lockdown_calls;
 unsigned int fake_lockdown_wdog_kicks;
 int fake_lockdown_rc;
 
-unsigned int plat_get_us_tick(void)
+uint32_t plat_get_us_tick(void)
 {
-    unsigned int tick = fake_us_tick;
+    uint32_t tick = fake_us_tick;
 
     fake_us_tick += fake_us_tick_step;
     return tick;
