@@ -2407,6 +2407,60 @@ static void test_part_verify_keeps_the_stream(void **state)
     assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 1), data, sizeof(data));
 }
 
+/* PART_VERIFY and PART_BPAK_READ leave the stream's buffers alone
+ * (command-mode.md 5.3, F-365): what a host prepared is what a write after
+ * them puts on the partition, and not the bytes they read. Both buffers,
+ * since a verify of more than a chunk reads into two. */
+static void test_part_verify_and_bpak_read_keep_the_buffers(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, RW_FIRST_LBA);
+    const size_t part_size = RW_BLOCKS * RAMDISK_BLOCK_SIZE;
+    struct bpak_header *hdr = (struct bpak_header *)ramdisk_block(f->disk, RW_FIRST_LBA + 12);
+    static uint8_t first[BUF_SIZE];
+    static uint8_t second[BUF_SIZE];
+    static uint8_t image[sizeof(struct bpak_header) + 1024];
+    struct pb_command_read_bpak bpak_read = { 0 };
+
+    for (size_t i = 0; i < part_size; i++)
+        part[i] = (uint8_t)(i * 13 + 1);
+    bpak_init_header(hdr);
+    memset(first, 0xa5, sizeof(first));
+    memset(second, 0x5a, sizeof(second));
+    memcpy(image, hdr, sizeof(*hdr));
+    memcpy(image + sizeof(*hdr), part, 1024);
+    memcpy(bpak_read.uuid, UU_RW, 16);
+
+    struct pb_command_verify_part verify = verify_req(BUF_SIZE + 1024, false, part);
+    struct pb_command_verify_part verify_bpak = verify_req(sizeof(image), true, image);
+
+    stream_init(UU_RW);
+    stream_prepare(0, sizeof(first), first);
+    stream_prepare(1, sizeof(second), second);
+    host_cmd(PB_CMD_PART_VERIFY, &verify, sizeof(verify));
+    host_cmd(PB_CMD_PART_VERIFY, &verify_bpak, sizeof(verify_bpak));
+    host_cmd(PB_CMD_PART_BPAK_READ, &bpak_read, sizeof(bpak_read));
+    stream_write(0, sizeof(first), 0);
+    stream_write(1, sizeof(second), sizeof(first));
+    run();
+
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* verify */
+    expect_result(PB_RESULT_OK); /* verify, bpak */
+    expect_result(PB_RESULT_OK); /* bpak read */
+    expect_data(sizeof(struct bpak_header));
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* write */
+    expect_end();
+    assert_memory_equal(part, first, sizeof(first));
+    assert_memory_equal(part + sizeof(first), second, sizeof(second));
+}
+
 static void test_stream_errors(void **state)
 {
     struct fixture *f = *state;
@@ -3681,6 +3735,7 @@ int main(void)
         CM_TEST(test_part_verify_size_that_isnt_whole_blocks),
         CM_TEST(test_part_verify_size_that_isnt_whole_blocks_last_byte),
         CM_TEST(test_part_verify_keeps_the_stream),
+        CM_TEST(test_part_verify_and_bpak_read_keep_the_buffers),
         CM_TEST(test_stream_errors),
         CM_TEST(test_stream_offset_inside_a_block),
         CM_TEST(test_stream_write_done),

@@ -498,11 +498,9 @@ sets `READABLE`, which is why `part read` fails on them (F-083).
 - **`PART_VERIFY`**: the bytes are the partition's first `size` bytes. With `bpak` set they
   are a bpak file's: the header from the partition's last 4 KiB, then `size` less 4 KiB from
   the start. `size` is any number of bytes inside the partition, at least 4 KiB with `bpak`,
-  and exactly those bytes are hashed. It
-  changes nothing, the stream neither. **Not yet in the code (F-365)**: it hashes through the
-  stream's buffers, so a buffer the host filled is overwritten. The flag is bpak's layout in a
-  partition and nothing more: the header isn't parsed. Without it the command hashes bytes,
-  whatever they are (5.9).
+  and exactly those bytes are hashed. It changes nothing, the stream neither. The flag is
+  bpak's layout in a partition and nothing more: the header isn't parsed. Without it the
+  command hashes bytes, whatever they are (5.9).
 - **`PART_BPAK_READ`**: the header is what the partition holds. Nothing verified it: the host
   treats it as input. A partition without a valid bpak header, one that holds another
   format's image and one smaller than 4 KiB all answer `NOT_FOUND`.
@@ -738,7 +736,6 @@ For a change to command mode, a new command or a new method:
 | F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |
 | F-087               | A result code for a payload whose hash differs (4.5)                                 |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
-| F-365               | `PART_VERIFY` and `PART_BPAK_READ` leave the stream's buffers alone (5.3)            |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
 | F-074               | No stream (5.4)                                                                      |
 | F-252               | A boot the host started that is refused or stopped (5.5)                             |

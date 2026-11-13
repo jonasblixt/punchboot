@@ -37,6 +37,21 @@ static struct pb_command cmd __section(".no_init") __aligned(64);
 static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
 static uint8_t buffer[2][CM_BUF_SIZE] __section(".no_init") __aligned(4096);
+
+/*
+ * PART_VERIFY and PART_BPAK_READ read the partition into two buffers of
+ * their own: the stream's two keep what the host put there (command-mode.md
+ * 5.3). Two, since the hash of one chunk runs while the next is read. Each
+ * is a quarter of a stream buffer, and at least a bpak header and a block
+ * of any device.
+ */
+#define CM_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define CM_PART_BUF_SIZE \
+    CM_MAX(CM_BUF_SIZE / 4, CM_MAX(sizeof(struct bpak_header), CONFIG_BIO_MAX_BLOCK_SIZE))
+
+static uint8_t part_buffer_0[CM_PART_BUF_SIZE] __section(".no_init") __aligned(4096);
+static uint8_t part_buffer_1[CM_PART_BUF_SIZE] __section(".no_init") __aligned(4096);
+static uint8_t *const part_buffer[2] = { part_buffer_0, part_buffer_1 };
 static slc_t slc;
 
 /* The part table response sends the low byte of the bio flags and the SLC
@@ -415,14 +430,14 @@ static int cmd_bpak_read(void)
 
     LOG_DBG("Reading bpak header at lba %i", header_lba);
 
-    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), &buffer);
+    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), part_buffer[0]);
 
     if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
-    rc = bpak_valid_header((struct bpak_header *)buffer);
+    rc = bpak_valid_header((struct bpak_header *)part_buffer[0]);
 
     if (rc != BPAK_OK) {
         LOG_ERR("Invalid bpak header");
@@ -433,7 +448,7 @@ static int cmd_bpak_read(void)
     pb_wire_init_result(&result, error_to_wire(rc));
     cm_write(&result, sizeof(result));
 
-    rc = cm_write(buffer, sizeof(struct bpak_header));
+    rc = cm_write(part_buffer[0], sizeof(struct bpak_header));
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
@@ -670,6 +685,7 @@ static int cmd_part_verify(void)
     int rc;
     int buffer_id = 0;
     size_t chunk_len;
+    size_t chunk_max;
     struct pb_command_verify_part *verify_cmd = (struct pb_command_verify_part *)cmd.request;
     size_t bytes_to_verify = verify_cmd->size;
     int lba_offset = 0;
@@ -713,14 +729,14 @@ static int cmd_part_verify(void)
         lba_t header_lba =
             bio_get_no_of_blocks(dev) - (sizeof(struct bpak_header) / bio_block_size(dev));
 
-        rc = bio_read(dev, header_lba, sizeof(struct bpak_header), buffer[buffer_id]);
+        rc = bio_read(dev, header_lba, sizeof(struct bpak_header), part_buffer[buffer_id]);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
 
-        rc = hash_update_async(buffer[buffer_id], sizeof(struct bpak_header));
+        rc = hash_update_async(part_buffer[buffer_id], sizeof(struct bpak_header));
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
@@ -734,12 +750,17 @@ static int cmd_part_verify(void)
 
     LOG_DBG("Reading %zu bytes", bytes_to_verify);
 
+    /* A chunk is whole blocks of the device, so that the next one starts on
+     * a block. At least one: no device has a block above
+     * CONFIG_BIO_MAX_BLOCK_SIZE (bio.md 2.3) */
+    chunk_max = CM_PART_BUF_SIZE - (CM_PART_BUF_SIZE % (size_t)bio_block_size(dev));
+
     while (bytes_to_verify) {
-        chunk_len = bytes_to_verify > CM_BUF_SIZE ? CM_BUF_SIZE : bytes_to_verify;
+        chunk_len = bytes_to_verify > chunk_max ? chunk_max : bytes_to_verify;
 
         buffer_id = !buffer_id;
 
-        rc = bio_read(dev, lba_offset, chunk_len, buffer[buffer_id]);
+        rc = bio_read(dev, lba_offset, chunk_len, part_buffer[buffer_id]);
 
         if (rc != PB_OK) {
             LOG_ERR("read error");
@@ -747,7 +768,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = hash_update_async(buffer[buffer_id], chunk_len);
+        rc = hash_update_async(part_buffer[buffer_id], chunk_len);
 
         if (rc != PB_OK) {
             LOG_ERR("Hash update error");
