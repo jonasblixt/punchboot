@@ -13,7 +13,7 @@ import punchboot
 import pytest
 from punchboot.wire import PB_LOG_ID_PB
 
-from .test_cli import punchboot_cli
+from .test_cli import _complete, punchboot_cli
 
 if TYPE_CHECKING:
     import pathlib
@@ -116,6 +116,20 @@ def test_cli_log_list(device: Device) -> None:
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.split() == ["pb", "pb's", "console", "output"]
+
+
+def test_log_names_complete(device: Device) -> None:
+    # <tab> after 'log': the device's logs, from its list
+    socket = str(device.socket)
+
+    assert _complete(device, socket, "log ") == ["pb"]
+    assert _complete(device, socket, "log p") == ["pb"]
+    assert _complete(device, socket, "log r") == []
+
+
+def test_log_completion_without_a_device(tmp_path: pathlib.Path) -> None:
+    # Nothing to ask: 'pb' only, and no error
+    assert _complete(None, str(tmp_path / "no.sock"), "log ") == ["pb"]
 
 
 def test_cli_unknown_log(device: Device) -> None:

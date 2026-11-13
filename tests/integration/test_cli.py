@@ -175,8 +175,8 @@ def _complete(device: Device | None, socket: str, words: str) -> list[str]:
         stdin=subprocess.DEVNULL,
     )
     assert result.returncode == 0, result.stderr
-    # bash_complete prints 'type,value' per item
-    items = [line.split(",", 1) for line in result.stdout.splitlines()]
+    # bash_complete prints 'type,value' per item, and an empty line for none
+    items = [line.split(",", 1) for line in result.stdout.splitlines() if line]
     return [value for kind, value in items if kind == "plain"]
 
 
