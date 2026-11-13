@@ -354,6 +354,29 @@ static void test_kernel_needs_load_addr(void **state)
     assert_int_equal(prepare(), -PB_ERR_BAD_META);
 }
 
+/* F-065: the entry is the address the placement looked at and the load went
+ * to, the meta's own bytes (boot_image_load_addr()). A meta shorter than a
+ * u64 took the bytes after it into the entry, and one without bytes has no
+ * address */
+static void test_entry_is_the_metas_own_bytes(void **state)
+{
+    struct bpak_meta_header *meta;
+    (void)state;
+
+    assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_KERNEL, &meta), BPAK_OK);
+    meta->size = 4;
+    memset(&hdr->metadata[meta->offset + 4], 0xff, 4);
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+
+    assert_int_equal(prepare(), PB_OK);
+    assert_true(next.entry == KERNEL_ADDR);
+
+    meta->size = 0;
+    assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    assert_true(next.entry == 0);
+}
+
 /* A kernel part of size 0 passes placement and the payload's hash with
  * nothing hashed at its load address: what is there isn't the image's.
  * Refused in prepare, before the device tree is touched, and with nothing to
@@ -1366,6 +1389,7 @@ int main(void)
         IMAGE_TEST(test_init_requires_image_id),
         IMAGE_TEST(test_kernel_only),
         IMAGE_TEST(test_kernel_needs_load_addr),
+        IMAGE_TEST(test_entry_is_the_metas_own_bytes),
         IMAGE_TEST(test_empty_kernel_is_refused),
         IMAGE_TEST(test_kernel_without_a_part_is_refused),
         IMAGE_TEST(test_kernel_of_the_minimum),

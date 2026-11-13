@@ -14,6 +14,7 @@
 #include <arch/arch.h>
 #include <arch/arch_helpers.h>
 #include <boot/atf.h>
+#include <boot/image_helpers.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <inttypes.h>
@@ -100,16 +101,16 @@ static uint32_t optee_rw(struct bpak_header *hdr)
 /* The size of the part that is loaded at 'addr' */
 static int part_size_at(struct bpak_header *hdr, uintptr_t addr, uint32_t *size)
 {
-    struct bpak_meta_header *mh;
+    uint64_t load_addr;
 
     bpak_foreach_part(hdr, p) {
         if (!p->id)
             break;
 
-        if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh) != BPAK_OK)
+        if (boot_image_load_addr(hdr, p->id, &load_addr) != PB_OK)
             continue;
 
-        if ((uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t) == addr) {
+        if ((uintptr_t)load_addr == addr) {
             *size = bpak_part_size(p);
             return PB_OK;
         }
@@ -133,19 +134,19 @@ int boot_delivery_tfa_prepare(struct bpak_header *hdr, const struct boot_handove
 {
     int rc;
     struct bpak_part_header *ph;
-    struct bpak_meta_header *mh;
+    uint64_t load_addr;
 
     if (cfg == NULL)
         return -PB_ERR_STATE;
 
-    rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, cfg->bl31_bpak_id, &mh);
+    rc = boot_image_load_addr(hdr, cfg->bl31_bpak_id, &load_addr);
 
-    if (rc != BPAK_OK) {
+    if (rc != PB_OK) {
         LOG_ERR("Could not read BL31 image meta data (%i)", rc);
         return -PB_ERR_BAD_META;
     }
 
-    bl31_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+    bl31_addr = (uintptr_t)load_addr;
 
     LOG_INFO("BL31: 0x%" PRIxPTR, bl31_addr);
 
@@ -174,14 +175,14 @@ int boot_delivery_tfa_prepare(struct bpak_header *hdr, const struct boot_handove
     bl32_rw = MODE_RW_64;
 
     if (cfg->bl32_bpak_id) {
-        rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, cfg->bl32_bpak_id, &mh);
+        rc = boot_image_load_addr(hdr, cfg->bl32_bpak_id, &load_addr);
 
-        if (rc != BPAK_OK) {
+        if (rc != PB_OK) {
             LOG_ERR("Could not read BL32 image meta data (%i)", rc);
             return -PB_ERR_BAD_META;
         }
 
-        bl32_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+        bl32_addr = (uintptr_t)load_addr;
 
         rc = bpak_get_part(hdr, cfg->bl32_bpak_id, &ph);
 

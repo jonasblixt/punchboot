@@ -1384,6 +1384,103 @@ static void test_part_outside_the_hash_never_verified(void **state)
     assert_int_equal(boot_image_verify_payload(hdr, digest), PB_OK);
 }
 
+/* The kernel's load address meta, with 'size' bytes of its value's and 0xff
+ * in the bytes after them, up to the eight a u64 has: another value's
+ * bytes, where a header bpak made has zeros */
+static void resize_kernel_load_addr(uint16_t size)
+{
+    struct bpak_meta_header *meta;
+
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_KERNEL, &meta), BPAK_OK);
+    meta->size = size;
+
+    if (size < 8)
+        memset(&hdr->metadata[meta->offset + size], 0xff, 8 - size);
+
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+}
+
+/*
+ * F-065: the load address is made of the meta's own bytes, whatever the
+ * meta's size. It was read as a u64 without a look at the size: a shorter
+ * meta took the bytes after it into the address.
+ */
+static void test_load_addr_is_the_metas_own_bytes(void **state)
+{
+    uint64_t addr = 0;
+    (void)state;
+
+    /* A u64, as every release of the bpak CLI wrote it: as it was */
+    make_header(BPAK_HASH_SHA256, 0x123456789abcdef0, 1024, 0, 0);
+    assert_int_equal(boot_image_load_addr(hdr, ID_KERNEL, &addr), PB_OK);
+    assert_true(addr == 0x123456789abcdef0);
+
+    /* Longer: its first eight bytes, as it was */
+    resize_kernel_load_addr(16);
+    memset(&hdr->metadata[8], 0xee, 8);
+    assert_int_equal(boot_image_load_addr(hdr, ID_KERNEL, &addr), PB_OK);
+    assert_true(addr == 0x123456789abcdef0);
+
+    /* Shorter: its bytes, zero extended, and not the bytes after it. They
+     * made 0xffffffff60080000 of it, in no partition */
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, 0, 0);
+    resize_kernel_load_addr(4);
+    assert_int_equal(boot_image_load_addr(hdr, ID_KERNEL, &addr), PB_OK);
+    assert_true(addr == FLASH_BASE);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+
+    resize_kernel_load_addr(3);
+    assert_int_equal(boot_image_load_addr(hdr, ID_KERNEL, &addr), PB_OK);
+    assert_true(addr == (FLASH_BASE & 0xffffff));
+
+    /* The same for an image that is loaded */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, 0, 0);
+    resize_kernel_load_addr(4);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* A part without a load address isn't one of them */
+    assert_int_equal(boot_image_load_addr(hdr, ID_DTB, &addr), -PB_ERR_BAD_META);
+}
+
+/* F-065: a meta without bytes holds no address. Eight bytes that weren't its
+ * own were read: the next value's, or what follows the metadata */
+static void test_load_addr_without_bytes_is_none(void **state)
+{
+    uint8_t digest[64];
+    uint64_t addr = 77;
+    (void)state;
+
+    load_setup();
+    resize_kernel_load_addr(0);
+
+    assert_int_equal(boot_image_load_addr(hdr, ID_KERNEL, &addr), -PB_ERR_BAD_META);
+    assert_true(addr == 77);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_BAD_META);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, (uintptr_t)load_area, sizeof(load_area)),
+                     -PB_ERR_BAD_META);
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, sizeof(digest)),
+                     -PB_ERR_BAD_META);
+    assert_int_equal(reads, 0);
+}
+
+/* F-065: the load goes to the address the placement looked at */
+static void test_load_addr_is_where_the_part_is_loaded(void **state)
+{
+    uint8_t digest[64];
+    (void)state;
+
+    /* The test's load area is below 4 GiB (-no-pie): four bytes hold it */
+    assert_true((uintptr_t)load_area <= UINT32_MAX);
+
+    load_setup();
+    resize_kernel_load_addr(4);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, (uintptr_t)load_area, sizeof(load_area)),
+                     PB_OK);
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_memory_equal(load_area, payload, sizeof(payload));
+}
+
 #define IMG_TEST(f) cmocka_unit_test_setup(f, setup)
 
 int main(void)
@@ -1419,6 +1516,9 @@ int main(void)
         IMG_TEST(test_verify_payload),
         IMG_TEST(test_part_outside_the_hash_is_refused),
         IMG_TEST(test_part_outside_the_hash_never_verified),
+        IMG_TEST(test_load_addr_is_the_metas_own_bytes),
+        IMG_TEST(test_load_addr_without_bytes_is_none),
+        IMG_TEST(test_load_addr_is_where_the_part_is_loaded),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);

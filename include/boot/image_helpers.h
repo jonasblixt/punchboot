@@ -12,6 +12,44 @@
 
 #include <boot/boot.h>
 #include <bpak/bpak.h>
+#include <bpak/id.h>
+#include <pb/errors.h>
+#include <string.h>
+
+/**
+ * The load address of the part 'part_id': its pb-load-addr meta, a u64 as
+ * the bpak CLI's integer encoder writes it (compatibility.md).
+ *
+ * The address is made of the meta's own bytes, whatever the meta's size is
+ * (F-065): every reader of an image's load addresses asks here, so that what
+ * is placed is what is loaded and jumped to.
+ *
+ * - 8 bytes or more: the first 8, as every release read them.
+ * - Fewer: those, zero extended. It is what a release read from a header
+ *   that has zeros after the meta, which is how bpak lays one out (a value
+ *   starts at a multiple of 8). The bytes after it are no longer read.
+ * - None: the part has no load address.
+ *
+ * @param[in] hdr A header that bpak_valid_header() accepts
+ * @param[in] part_id The part
+ * @param[out] addr In 64 bits, as the image has it
+ *
+ * @return PB_OK, or -PB_ERR_BAD_META for a part without a load address
+ */
+static inline int boot_image_load_addr(struct bpak_header *hdr, bpak_id_t part_id, uint64_t *addr)
+{
+    struct bpak_meta_header *mh;
+    uint64_t value = 0;
+
+    if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, part_id, &mh) != BPAK_OK || mh->size == 0)
+        return -PB_ERR_BAD_META;
+
+    memcpy(&value,
+           bpak_get_meta_ptr(hdr, mh, uint8_t),
+           (mh->size < sizeof(value)) ? mh->size : sizeof(value));
+    *addr = value;
+    return PB_OK;
+}
 
 /**
  * Authenticate a BPAK header

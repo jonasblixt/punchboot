@@ -16,6 +16,7 @@
  */
 
 #include <boot/dtb.h>
+#include <boot/image_helpers.h>
 #include <boot/image_regions.h>
 #include <bpak/id.h>
 #include <inttypes.h>
@@ -34,19 +35,19 @@ static bool overlaps(uintptr_t a, size_t a_len, uintptr_t b, size_t b_len)
 static int dtb_part(struct bpak_header *hdr, bpak_id_t dtb_id, uintptr_t *addr, size_t *part_size)
 {
     struct bpak_part_header *ph;
-    struct bpak_meta_header *mh;
+    uint64_t load_addr;
 
     if (bpak_get_part(hdr, dtb_id, &ph) != BPAK_OK) {
         LOG_ERR("Could not read dtb bpak part meta");
         return -PB_ERR_BAD_META;
     }
 
-    if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, dtb_id, &mh) != BPAK_OK) {
+    if (boot_image_load_addr(hdr, dtb_id, &load_addr) != PB_OK) {
         LOG_ERR("Could not read dtb load addr meta");
         return -PB_ERR_BAD_META;
     }
 
-    *addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+    *addr = (uintptr_t)load_addr;
     *part_size = bpak_part_size(ph);
 
     /* The header is read at the load address: it is in bytes the payload's
@@ -89,7 +90,7 @@ static int dtb_size(const void *fdt, size_t part_size, size_t *size)
 int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt)
 {
     int rc;
-    struct bpak_meta_header *mh;
+    uint64_t p_load_addr;
     uintptr_t addr;
     size_t part_size;
     size_t size;
@@ -117,10 +118,10 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
         if (!p->id)
             break;
 
-        if (p->id == dtb_id || bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh) != BPAK_OK)
+        if (p->id == dtb_id || boot_image_load_addr(hdr, p->id, &p_load_addr) != PB_OK)
             continue;
 
-        uintptr_t p_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+        uintptr_t p_addr = (uintptr_t)p_load_addr;
 
         if (overlaps(addr, room, p_addr, bpak_part_size(p))) {
             LOG_ERR("Device tree with headroom overlaps part 0x%x", p->id);
