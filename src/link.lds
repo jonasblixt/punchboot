@@ -92,10 +92,14 @@ SECTIONS
         PROVIDE(_pb_end = .);
     } > ram
 
-    .no_init (NOLOAD):
+    /* buffers: the platform's region, from its origin to the end of what is
+     * linked there (platform.md 5.1). pb's own start at PB_BUFFERS_BASE,
+     * after what a platform links at the region's start (the i.MX8M) */
+    PROVIDE(_buffers_start = ORIGIN(buffers));
+
+    .no_init PB_BUFFERS_BASE (NOLOAD):
     {
         . = ALIGN(PB_SECTION_ALIGNMENT);
-        PROVIDE(_buffers_start = .);
         PROVIDE(_no_init_start = .);
         *(.no_init .no_init*)
         . = ALIGN(PB_SECTION_ALIGNMENT);

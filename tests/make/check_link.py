@@ -103,7 +103,17 @@ CASES = [
     # The i.MX8X: in the reset stub's region, and in pb's after it
     ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x80010000"}, BUFFERS_OVERLAP),
     ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x80030000"}, BUFFERS_OVERLAP),
-    ("imx8mpevk", {"CONFIG_PB_BUFFERS_BASE": "0x930000"}, BUFFERS_OVERLAP),
+    # The i.MX8M's are in the DRAM, after the DDR controller's state there
+    (
+        "imx8mpevk",
+        {"CONFIG_PB_BUFFERS_BASE": "0x930000", "CONFIG_PB_BUFFERS_SIZE": "0x10000"},
+        BUFFERS_NOT_IN + "the board's DRAM, after the DDR controller's state",
+    ),
+    (
+        "imx8mpevk",
+        {"CONFIG_PB_BUFFERS_BASE": "0x4001f000"},
+        BUFFERS_NOT_IN + "the board's DRAM, after the DDR controller's state",
+    ),
     # The i.MX6UL's windows are the board's DRAM and the OCRAM from 0x908000:
     # below the DRAM, at its end, and in the OCRAM's part that is the ROM's
     ("jiffy", {"CONFIG_PB_ENTRY": "0x7ffff000"}, IMX6UL_ENTRY),
@@ -139,7 +149,12 @@ CASES = [
     (
         "imx8mpevk",
         {"CONFIG_PB_BUFFERS_BASE": "0x3f800000"},
-        BUFFERS_NOT_IN + "the board's DRAM or the OCRAM",
+        BUFFERS_NOT_IN + "the board's DRAM, after the DDR controller's state",
+    ),
+    (
+        "imx8mpevk",
+        {"CONFIG_PB_BUFFERS_BASE": "0xbf800000"},
+        BUFFERS_NOT_IN + "the board's DRAM, after the DDR controller's state",
     ),
     ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x70000000"}, BUFFERS_NOT_IN + "the board's DRAM"),
     (
@@ -209,8 +224,7 @@ REGIONS = {
     },
     "imx8mpevk": {
         "ram": (0x920000, 0x60000),
-        "umctl2": (0x40000000, 0x20000),
-        "buffers": (0x40060000, 0x1000000),
+        "buffers": (0x40000000, 0x1060000),
     },
 }
 
@@ -249,6 +263,12 @@ ALLOWED = [
     # A board that gives pb less
     ("imx8mpevk", {"CONFIG_PB_SIZE": "0x50000"}, {"ram": (0x920000, 0x50000)}),
     ("imxrt1060evk", {"CONFIG_PB_SIZE": "0x30000"}, {"ram": (0x20249000, 0x30000)}),
+    # The i.MX8M's buffers right after the DDR controller's state
+    (
+        "imx8mpevk",
+        {"CONFIG_PB_BUFFERS_BASE": "0x40020000"},
+        {"buffers": (0x40000000, 0x1020000)},
+    ),
     # The Firmware Handoff region in the on-chip RAM
     ("jiffy-fh", {"CONFIG_BOOT_FH_REGION_BASE": "0x00900000"}, {}),
     ("imx8mpevk-fh", {"CONFIG_BOOT_FH_REGION_BASE": "0x00980000"}, {}),

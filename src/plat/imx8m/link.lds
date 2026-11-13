@@ -12,8 +12,18 @@
  * IMX8M_OCRAM_SIZE.
  */
 
+/* The start of the DRAM, where the DDR controller's state is: TF-A's i.MX8M
+ * DRAM driver reads it there (plat/imx8m/dram.h) */
+IMX8M_DDR_BASE = 0x40000000;
+
 /* pb runs from on-chip RAM: it has the ROM's load window from PB_ENTRY to
  * the window's end; a board with PB_SIZE gives it less.
+ *
+ * The buffers region is the DRAM from its start to the end of the board's
+ * buffers: the controller's state is linked there too, so that everything pb
+ * links in the DRAM is in the region, and no image data region of a board
+ * may hold it (platform.md 5.3). pb's own buffers start at PB_BUFFERS_BASE,
+ * as everywhere (src/link.lds).
  *
  * The length is written out in MEMORY: a symbol that this script makes from
  * the board's values isn't known yet when ld works MEMORY out, and the
@@ -23,8 +33,8 @@ MEMORY
 {
     ram (rx)  : ORIGIN = PB_ENTRY,
                 LENGTH = (PB_SIZE != 0 ? PB_ENTRY + PB_SIZE : IMX8M_LOAD_END) - PB_ENTRY
-    umctl2 (rx) : ORIGIN = 0x40000000, LENGTH = 128K
-    buffers (rx)   : ORIGIN = PB_BUFFERS_BASE, LENGTH = PB_BUFFERS_SIZE
+    buffers (rx)   : ORIGIN = IMX8M_DDR_BASE,
+                     LENGTH = PB_BUFFERS_BASE + PB_BUFFERS_SIZE - IMX8M_DDR_BASE
 }
 
 IMX8M_OCRAM_BASE = 0x00900000;
@@ -38,11 +48,11 @@ ASSERT(PB_ENTRY >= IMX8M_LOAD_BASE && PB_ENTRY < IMX8M_LOAD_END,
 ASSERT(PB_REGION_END > PB_ENTRY && PB_REGION_END <= IMX8M_LOAD_END,
        "CONFIG_PB_SIZE ends pb's region after the memory the ROM loads pb to")
 
-ASSERT((PB_BUFFERS_BASE >= BOARD_DRAM_BASE &&
-        PB_BUFFERS_BASE + PB_BUFFERS_SIZE <= BOARD_DRAM_END) ||
-       (PB_BUFFERS_BASE >= IMX8M_OCRAM_BASE &&
-        PB_BUFFERS_BASE + PB_BUFFERS_SIZE <= IMX8M_OCRAM_END),
-       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM or the OCRAM")
+/* The buffers are in the DRAM here, after the controller's state: the on-chip
+ * RAM has no room for them, and the region is one range */
+ASSERT(PB_BUFFERS_BASE >= BOARD_DRAM_BASE && PB_BUFFERS_BASE >= ADDR(.umctl) + SIZEOF(.umctl) &&
+       PB_BUFFERS_BASE + PB_BUFFERS_SIZE <= BOARD_DRAM_END,
+       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM, after the DDR controller's state")
 
 ASSERT(ORIGIN(buffers) + LENGTH(buffers) <= ORIGIN(ram) ||
        ORIGIN(buffers) >= ORIGIN(ram) + LENGTH(ram),
@@ -61,13 +71,13 @@ ASSERT(DEFINED(BOOT_FH_REGION_BASE) ?
 
 SECTIONS
 {
-    .umctl (NOLOAD):
+    .umctl IMX8M_DDR_BASE (NOLOAD):
     {
         PROVIDE(_umctl2_start = .);
         *(.umctl2 .umctl2*)
         . = ALIGN(8);
         PROVIDE(_umctl2_end = .);
-    } > umctl2
+    } > buffers
 }
 
 /* TF-A's bl_params are where BL31 takes them from (plat.c, makefile.mk) */
