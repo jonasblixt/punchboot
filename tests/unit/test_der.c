@@ -15,6 +15,7 @@
 
 #include <cmocka.h>
 
+#include <bpak/keystore.h>
 #include <pb/der_helpers.h>
 #include <pb/pb.h>
 #include <stdlib.h>
@@ -415,6 +416,98 @@ static void test_ec_public_key_bit_string(void **state)
     assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind), -PB_ERR_ASN1);
 }
 
+/* The point is uncompressed, with no unused bits, and of its curve's length.
+ * The two bytes before it were skipped unchecked, and its length wasn't
+ * compared with the curve's (F-410) */
+static void test_ec_public_key_point(void **state)
+{
+    static const uint8_t forms[] = { 0x00, 0x02, 0x03, 0x06, 0x07 };
+    uint8_t key[256];
+    uint8_t out[160];
+    dsa_t kind;
+    size_t length;
+    (void)state;
+
+    /* The unused bits are at 25 of the secp256r1 key, the form at 26 */
+    length = make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+    assert_int_equal(key[25], 0x00);
+    assert_int_equal(key[26], 0x04);
+    key[25] = 0x01;
+    assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind), -PB_ERR_ASN1);
+
+    for (size_t i = 0; i < ARRAY_SIZE(forms); i++) {
+        length = make_ec_key(key, secp256r1, sizeof(secp256r1), 64);
+        key[26] = forms[i];
+        assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind),
+                         -PB_ERR_ASN1);
+    }
+
+    /* A compressed point's length, one byte short, one too many, another
+     * curve's */
+    static const struct {
+        const uint8_t *oid;
+        size_t oid_len;
+        size_t point_len;
+    } lengths[] = {
+        { secp256r1, sizeof(secp256r1), 32 },  { secp256r1, sizeof(secp256r1), 63 },
+        { secp256r1, sizeof(secp256r1), 65 },  { secp256r1, sizeof(secp256r1), 96 },
+        { secp384r1, sizeof(secp384r1), 64 },  { secp384r1, sizeof(secp384r1), 97 },
+        { secp521r1, sizeof(secp521r1), 131 }, { secp521r1, sizeof(secp521r1), 96 },
+    };
+
+    for (size_t i = 0; i < ARRAY_SIZE(lengths); i++) {
+        length = make_ec_key(key, lengths[i].oid, lengths[i].oid_len, lengths[i].point_len);
+        assert_int_equal(der_ec_public_key_data(key, length, out, sizeof(out), &kind),
+                         -PB_ERR_ASN1);
+    }
+}
+
+/* The keys that verified before still parse: every key of a keystore is as
+ * bpak writes it (bpak generate keystore re-encodes each with Mbed TLS's
+ * mbedtls_pk_write_pubkey_der()), as the internal keystore's three are */
+static void test_ec_public_key_keystore(void **state)
+{
+    extern const struct bpak_keystore keystore_pb;
+
+    static const struct {
+        enum bpak_key_kind bpak;
+        dsa_t dsa;
+        size_t coordinate;
+    } kinds[] = {
+        { BPAK_KEY_PUB_PRIME256v1, DSA_EC_SECP256r1, 32 },
+        { BPAK_KEY_PUB_SECP384r1, DSA_EC_SECP384r1, 48 },
+        { BPAK_KEY_PUB_SECP521r1, DSA_EC_SECP521r1, 66 },
+    };
+
+    uint8_t out[160];
+    unsigned int seen = 0;
+    (void)state;
+
+    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
+        const struct bpak_key *key = keystore_pb.keys[i];
+        size_t point = 0;
+        dsa_t kind = 0;
+
+        for (size_t k = 0; k < ARRAY_SIZE(kinds); k++) {
+            if (kinds[k].bpak == key->kind) {
+                assert_int_equal(
+                    der_ec_public_key_data(key->data, key->size, out, sizeof(out), &kind), PB_OK);
+                assert_int_equal(kind, kinds[k].dsa);
+                point = 2 * kinds[k].coordinate;
+                seen |= 1u << k;
+            }
+        }
+
+        /* The BIT STRING ends the key: no unused bits, uncompressed */
+        assert_int_not_equal(point, 0);
+        assert_int_equal(key->data[key->size - point - 2], 0x00);
+        assert_int_equal(key->data[key->size - point - 1], 0x04);
+        assert_memory_equal(out, &key->data[key->size - point], point);
+    }
+
+    assert_int_equal(seen, 7);
+}
+
 static void test_ec_public_key_bad_encoding(void **state)
 {
     /* Offsets in the secp256r1 key: outer SEQUENCE, AlgorithmIdentifier
@@ -461,6 +554,8 @@ int main(void)
         cmocka_unit_test(test_ec_public_key_oid_lengths),
         cmocka_unit_test(test_ec_public_key_bit_string),
         cmocka_unit_test(test_ec_public_key_bad_encoding),
+        cmocka_unit_test(test_ec_public_key_point),
+        cmocka_unit_test(test_ec_public_key_keystore),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

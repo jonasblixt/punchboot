@@ -167,6 +167,7 @@ int der_ec_public_key_data(const uint8_t *pub_key_der,
                            dsa_t *key_kind)
 {
     size_t s;
+    size_t coordinate;
     int rc;
     const uint8_t *p = pub_key_der;
     const uint8_t *end = pub_key_der + pub_key_der_length;
@@ -200,25 +201,31 @@ int der_ec_public_key_data(const uint8_t *pub_key_der,
     if (rc != PB_OK)
         return rc;
 
-    if (OID_IS(p, s, secp256r1_oid))
+    if (OID_IS(p, s, secp256r1_oid)) {
         *key_kind = DSA_EC_SECP256r1;
-    else if (OID_IS(p, s, secp384r1_oid))
+        coordinate = 32;
+    } else if (OID_IS(p, s, secp384r1_oid)) {
         *key_kind = DSA_EC_SECP384r1;
-    else if (OID_IS(p, s, secp521r1_oid))
+        coordinate = 48;
+    } else if (OID_IS(p, s, secp521r1_oid)) {
         *key_kind = DSA_EC_SECP521r1;
-    else
+        coordinate = 66;
+    } else {
         return -PB_ERR_NOT_IMPLEMENTED;
+    }
 
     p += s;
 
     /* subjectPublicKey, a BIT STRING: the number of unused bits, the point's
-     * form, then the point */
+     * form, then the point. No unused bits, the uncompressed form (SEC 1
+     * 2.3.3) and x and y of the curve's length: what Mbed TLS writes, and
+     * bpak writes every key of a keystore so */
     rc = der_header(&p, end, 0x03, &s);
 
     if (rc != PB_OK)
         return rc;
 
-    if (s < 2)
+    if (s != 2 + 2 * coordinate || p[0] != 0x00 || p[1] != 0x04)
         return -PB_ERR_ASN1;
 
     p += 2;

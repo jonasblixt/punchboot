@@ -58,7 +58,8 @@ pb_unit_test(test_wire SOURCES
     ${PROJECT_SOURCE_DIR}/src/wire.c
 )
 
-pb_unit_test(test_der)
+# With the internal keystore, whose keys the parser must take
+pb_unit_test(test_der LIBS pb_keystore)
 
 pb_unit_test(test_tzc380 SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/tzc/tzc380.c

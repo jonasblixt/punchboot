@@ -27,7 +27,9 @@ int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *
 /**
  * Extract public key data from a DER encoded key
  *
- * Every length in the key is checked against 'pub_key_der_length'.
+ * Every length in the key is checked against 'pub_key_der_length'. The point
+ * is uncompressed, with no unused bits, and its x and y are of the curve's
+ * length; 'output' gets x and y.
  *
  * @param[in] pub_key_der DER bytes, a SubjectPublicKeyInfo
  * @param[in] pub_key_der_length Number of bytes in pub_key_der, nothing past
