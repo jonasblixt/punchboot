@@ -81,8 +81,9 @@ int cm_transport_disconnect(void);
  * inside the call, its transfers with a timeout.
  *
  * @return PB_OK to be called again. An error ends the loop of the tasks and
- *         pb resets: the set up failed, no host came in time, or a command
- *         asked for the reset
+ *         pb resets: the set up failed, no host came in time, a command
+ *         asked for the reset, or a boot the host started returned after the
+ *         transport's disconnect
  */
 int cm_main_task(void);
 

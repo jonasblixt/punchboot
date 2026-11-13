@@ -136,6 +136,8 @@ static struct {
     int connect_ok_after;
     int connect_calls;
     int disconnect_calls;
+    bool disconnected; /* Until the transport is started again */
+    int after_disconnect; /* Calls of a transport that is disconnected */
     int complete_calls;
     int rounds; /* Rounds of the tasks: calls of the other task */
 
@@ -158,11 +160,13 @@ int cm_transport_init(void)
         t.stopped_polls = 0;
     }
     t.init_calls++;
+    t.disconnected = false;
     return (t.init_calls > t.max_inits) ? -PB_ERR_IO : PB_OK;
 }
 
 int cm_transport_connect(void)
 {
+    t.after_disconnect += t.disconnected;
     t.connect_calls++;
     if (t.connect_ok_after >= 0 && t.connect_calls > t.connect_ok_after)
         return PB_OK;
@@ -172,11 +176,13 @@ int cm_transport_connect(void)
 int cm_transport_disconnect(void)
 {
     t.disconnect_calls++;
+    t.disconnected = true;
     return PB_OK;
 }
 
 int cm_transport_read(void *buf, size_t length)
 {
+    t.after_disconnect += t.disconnected;
     if (++t.read_calls == t.lose_read_start)
         return -PB_ERR_IO; /* Lost while no transfer ran (usb.md 4.3) */
     if (t.fail_reads_after == 0)
@@ -191,6 +197,7 @@ int cm_transport_read(void *buf, size_t length)
 
 int cm_transport_write(const void *buf, size_t length)
 {
+    t.after_disconnect += t.disconnected;
     if (t.fail_writes_after == 0)
         return -PB_ERR_IO;
     if (t.fail_writes_after > 0)
@@ -214,6 +221,7 @@ int cm_transport_write(const void *buf, size_t length)
 
 int cm_transport_complete(void)
 {
+    t.after_disconnect += t.disconnected;
     t.complete_calls++;
 
     if (t.n_complete_rcs > 0) {
@@ -366,6 +374,8 @@ static struct {
     int load_calls;
     uuid_t load_uu;
     int jump_calls;
+    int jump_rc; /* What boot_jump() returns. 0: -PB_ERR, the jump returned */
+    bool jump_ok; /* boot_jump() returns PB_OK, which the real one never does */
     int set_part_rc;
     uuid_t set_part_uu;
     uint32_t flags;
@@ -412,7 +422,9 @@ int boot_load(uuid_t boot_part_override_uu)
 int boot_jump(void)
 {
     fake_boot.jump_calls++;
-    return -PB_ERR; /* The jump returned */
+    if (fake_boot.jump_ok)
+        return PB_OK;
+    return (fake_boot.jump_rc != PB_OK) ? fake_boot.jump_rc : -PB_ERR;
 }
 
 int boot_set_boot_partition(uuid_t part_uu)
@@ -2312,7 +2324,8 @@ static void test_hidden_partition(void **state)
     host_cmd(PB_CMD_PART_TBL_INSTALL, &install, sizeof(install));
     memcpy(bpak_boot.uuid, UU_HIDDEN, 16);
     host_cmd(PB_CMD_BOOT_BPAK, &bpak_boot, sizeof(bpak_boot));
-    run();
+    /* The last one boots: the fake's jump returns and the task leaves */
+    assert_int_equal(cm_run(), -PB_ERR);
 
     for (int i = 0; i < 7; i++)
         expect_result(-PB_RESULT_NOT_FOUND);
@@ -2787,14 +2800,15 @@ static void test_boot_part(void **state)
     expect_end();
     assert_int_equal(t.disconnect_calls, 0);
 
-    /* The fake jump returns, which is a command error */
+    /* The fake jump returns, after the disconnect: the task ends the loop
+     * (command-mode.md 2.3) */
     t.init_calls = 0;
     fake_boot.load_rc = PB_OK;
     host_cmd(PB_CMD_BOOT_PART, &req, sizeof(req));
-    run();
+    assert_int_equal(cm_run(), -PB_ERR);
     expect_result(PB_RESULT_OK);
     assert_int_equal(fake_boot.jump_calls, 1);
-    assert_true(t.disconnect_calls >= 1);
+    assert_int_equal(t.disconnect_calls, 1);
 }
 
 static void test_boot_bpak(void **state)
@@ -2825,9 +2839,9 @@ static void test_boot_bpak(void **state)
     board_cfg = &cfg_all_callbacks;
     t.connect_ok_after = 0;
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
-    run();
+    assert_int_equal(cm_run(), -PB_ERR);
     assert_int_equal(fake_boot.jump_calls, 1);
-    assert_true(t.disconnect_calls >= 1);
+    assert_int_equal(t.disconnect_calls, 1);
 
     /* The first result can't be sent */
     t.init_calls = 0;
@@ -2860,6 +2874,73 @@ static void test_boot_bpak_refused_before_the_header(void **state)
     expect_result(PB_RESULT_OK);
     expect_end();
     assert_int_equal(fake_boot.jump_calls, 0);
+}
+
+/*
+ * command-mode.md 2.3, 5.5 and board.md 5.4 (F-252, F-190): after the last OK
+ * the transport is disconnected and the session is over, whatever follows. A
+ * boot that returns after it ends command mode's task, so that pb resets:
+ * late_boot()'s stop or failure, a failed plat_lockdown(), a jump that came
+ * back. Nothing is read from the transport that is gone, it is disconnected
+ * once and it isn't started again.
+ */
+static void test_boot_fails_after_the_disconnect(void **state)
+{
+    static const struct {
+        int jump_rc;
+        bool jump_ok;
+        int task_rc;
+    } cases[] = {
+        { .jump_rc = -PB_ERR_ABORT, .task_rc = -PB_ERR_ABORT }, /* late_boot()'s stop */
+        { .jump_rc = -PB_ERR_IO, .task_rc = -PB_ERR_IO }, /* It, or the lockdown, failed */
+        { .jump_rc = -PB_ERR, .task_rc = -PB_ERR }, /* The jump returned */
+        { .jump_ok = true, .task_rc = -PB_ERR }, /* No error is one all the same */
+    };
+    struct pb_command_boot_part part = { 0 };
+    struct pb_command_bpak_boot bpak = { 0 };
+    static struct bpak_header header;
+    (void)state;
+
+    memcpy(part.uuid, UU_RW, 16);
+
+    for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+        for (int from_ram = 0; from_ram < 2; from_ram++) {
+            size_t sent;
+
+            memset(&t, 0, sizeof(t));
+            t.max_inits = 2; /* A restart would succeed */
+            t.fail_reads_after = -1;
+            t.fail_writes_after = -1;
+            t.connect_ok_after = -1;
+            memset(&fake_boot, 0, sizeof(fake_boot));
+            fake_boot.jump_rc = cases[i].jump_rc;
+            fake_boot.jump_ok = cases[i].jump_ok;
+
+            if (from_ram) {
+                fake_boot.reads_header = true;
+                host_cmd(PB_CMD_BOOT_BPAK, &bpak, sizeof(bpak));
+                host_send(&header, sizeof(header));
+            } else {
+                host_cmd(PB_CMD_BOOT_PART, &part, sizeof(part));
+            }
+            sent = t.in_len;
+            /* The host goes on, as one that didn't see the device leave */
+            host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+
+            assert_int_equal(cm_run(), cases[i].task_rc);
+
+            /* The first result, and for 'boot bpak' the header's */
+            expect_result(PB_RESULT_OK);
+            if (from_ram)
+                expect_result(PB_RESULT_OK);
+            expect_end();
+            assert_int_equal(fake_boot.jump_calls, 1);
+            assert_int_equal(t.disconnect_calls, 1);
+            assert_int_equal(t.after_disconnect, 0);
+            assert_int_equal(t.in_pos, sent);
+            assert_int_equal(t.init_calls, 1);
+        }
+    }
 }
 
 static void test_run_errors(void **state)
@@ -3890,6 +3971,7 @@ int main(void)
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
         CM_TEST(test_boot_bpak_refused_before_the_header),
+        CM_TEST(test_boot_fails_after_the_disconnect),
         CM_TEST(test_run_errors),
         CM_TEST(test_lost_at_the_start_of_a_read),
         CM_TEST(test_setup_platform_first),

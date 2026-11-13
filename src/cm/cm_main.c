@@ -85,6 +85,12 @@ static const struct cm_config *cfg;
  * 4.6): the session is over, the command's other transfers fail at once and
  * the task restarts the transport */
 static bool transfer_lost;
+/* A command ended command mode (command-mode.md 2.3): the task leaves when
+ * the command is done, whatever the command returned */
+static bool leave_requested;
+/* The device left the bus, until the transport is started again: it leaves
+ * once, before a jump or before the reset */
+static bool disconnected;
 
 #ifdef CONFIG_BOOT_LINUX_RAMOOPS
 static const struct linux_ramoops_config ramoops = {
@@ -925,6 +931,35 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
+static void cm_disconnect(void)
+{
+    if (!disconnected)
+        cm_transport_disconnect();
+
+    disconnected = true;
+}
+
+/*
+ * The end of both boot commands, after the host's last OK (command-mode.md
+ * 5.5, board.md 5.4): the transport is disconnected, then late_boot(),
+ * plat_lockdown() and the jump. The session is over whatever follows, so a
+ * boot that returns here, stopped or failed, leaves command mode and pb
+ * resets (2.3): nothing is read from the transport that is gone.
+ */
+static int cm_boot_jump(void)
+{
+    int rc;
+
+    cm_disconnect();
+
+    rc = boot_jump();
+
+    LOG_ERR("The boot returned after the disconnect (%i), resetting", rc);
+    leave_requested = true;
+
+    return (rc != PB_OK) ? rc : -PB_ERR;
+}
+
 /* Set when the boot has read from the host: the header comes first */
 static bool bpak_boot_read_any;
 
@@ -971,9 +1006,7 @@ static int cmd_boot_bpak(void)
         return rc;
     }
 
-    cm_transport_disconnect();
-
-    return boot_jump();
+    return cm_boot_jump();
 }
 
 static int cmd_slc_read(void)
@@ -1300,14 +1333,11 @@ static int pb_command_parse(void)
         pb_wire_init_result(&result, error_to_wire(rc));
         cm_write(&result, sizeof(result));
 
-        if (rc == PB_OK) {
-            /* Only disconnect when booting, the task reads the next command
-             * from the transport after an error */
-            cm_transport_disconnect();
+        /* Only disconnect when booting, the task reads the next command
+         * from the transport after an error */
+        if (rc == PB_OK)
+            rc = cm_boot_jump();
 
-            rc = boot_jump();
-            /* Should not return */
-        }
         return rc;
     } break;
     case PB_CMD_DEVICE_IDENTIFIER_READ: {
@@ -1493,6 +1523,7 @@ static int cm_start(void)
      * that is (re)started here (command-mode.md 3.1) */
     cm_session_end();
     transfer_lost = false;
+    disconnected = false;
 
     rc = cm_transport_init();
 
@@ -1512,7 +1543,8 @@ static int cm_start(void)
  * runs the task again all the same finds it at its first call */
 static int cm_leave(int rc)
 {
-    cm_transport_disconnect();
+    cm_disconnect();
+    leave_requested = false;
     state = CM_SETUP;
     return rc;
 }
@@ -1525,7 +1557,8 @@ static int cm_leave(int rc)
  * the core kicks the watchdog meanwhile. A command that has come runs to its
  * end inside the call, with its own kicks and its transfers' timeout (4.6).
  * An error ends the loop of the tasks: the set up failed, no host came in
- * time, or a command asked for the reset.
+ * time, a command asked for the reset, or a boot the host started returned
+ * after the transport's disconnect.
  */
 int cm_main_task(void)
 {
@@ -1599,7 +1632,7 @@ int cm_main_task(void)
 
             rc = pb_command_parse();
 
-            if (rc == -PB_ERR_ABORT)
+            if (leave_requested || rc == -PB_ERR_ABORT)
                 return cm_leave(rc);
 
             if (transfer_lost) {
