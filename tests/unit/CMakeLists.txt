@@ -868,4 +868,4 @@ target_include_directories(test_imx_ocotp BEFORE PRIVATE
 pb_unit_test(test_snprintf SOURCES
     ${PROJECT_SOURCE_DIR}/src/lib/libc/snprintf.c
 )
-target_compile_definitions(test_snprintf PRIVATE snprintf=pb_snprintf)
+target_compile_definitions(test_snprintf PRIVATE snprintf=pb_snprintf vsnprintf=pb_vsnprintf)

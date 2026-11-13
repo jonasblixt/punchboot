@@ -6,7 +6,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * pb's reduced snprintf() (src/lib/libc/snprintf.c, from TF-A), built for the
- * host as pb_snprintf() (CMakeLists.txt renames it, the host has its own).
+ * host as pb_snprintf() and pb_vsnprintf() (CMakeLists.txt renames them, the
+ * host has its own).
  * It writes at most n - 1 characters and the terminator, and returns the
  * number of characters the whole output has (F-089). A specifier it doesn't
  * have ends the output where it stands.
@@ -137,16 +138,43 @@ static void test_unsupported_ends(void **state)
     check_guard(o.buf, 2);
 }
 
+/* vsnprintf() is snprintf() with the arguments in a va_list */
+static int call_vsnprintf(char *s, size_t n, const char *fmt, ...)
+{
+    va_list args;
+    int rc;
+
+    va_start(args, fmt);
+    rc = vsnprintf(s, n, fmt, args);
+    va_end(args);
+    return rc;
+}
+
+static void test_vsnprintf(void **state)
+{
+    struct out o;
+    (void)state;
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(call_vsnprintf(o.buf, 32, "%s %i 0x%08x", "ev", -3, 0x87ee00u), 16);
+    assert_string_equal(o.buf, "ev -3 0x0087ee00");
+    check_guard(o.buf, 32);
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(call_vsnprintf(o.buf, 8, "%s %i 0x%08x", "ev", -3, 0x87ee00u), 16);
+    assert_string_equal(o.buf, "ev -3 0");
+    check_guard(o.buf, 8);
+}
+
 int main(void)
 {
     /* A spin in the code under test fails the test in seconds */
     alarm(10);
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_x_fits),
-        cmocka_unit_test(test_x_bounded),
-        cmocka_unit_test(test_d_u_s_bounded),
-        cmocka_unit_test(test_unsupported_ends),
+        cmocka_unit_test(test_x_fits),        cmocka_unit_test(test_x_bounded),
+        cmocka_unit_test(test_d_u_s_bounded), cmocka_unit_test(test_unsupported_ends),
+        cmocka_unit_test(test_vsnprintf),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

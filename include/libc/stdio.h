@@ -23,6 +23,7 @@
 
 int printf(const char *fmt, ...) __printflike(1, 2);
 int snprintf(char *s, size_t n, const char *fmt, ...) __printflike(3, 4);
+int vsnprintf(char *s, size_t n, const char *fmt, va_list args);
 
 int vprintf(const char *fmt, va_list args);
 
