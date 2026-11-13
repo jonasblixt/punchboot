@@ -726,6 +726,21 @@ target_compile_options(test_imx_usdhc PRIVATE -fno-pie)
 target_compile_definitions(test_imx_usdhc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 target_link_options(test_imx_usdhc PRIVATE -no-pie)
 
+# The MMC drivers with no log level compiled in (LOGLEVEL 0, no RAM log): no
+# variable is left that only a log line uses (F-397), with -Werror
+foreach(src mmc_core mmc_emmc mmc_sd imx_usdhc)
+    add_test(NAME unit.mmc_log_disabled_${src}
+        COMMAND ${CMAKE_C_COMPILER} -std=gnu99 -fsyntax-only -Wall -Wextra -Werror
+                -include ${PROJECT_SOURCE_DIR}/src/plat/host/compat.h
+                -DLOGLEVEL=0 -DCONFIG_MMC_CORE_HS200_TUNE=1 -DCONFIG_MMC_CORE_MAX_DEVICES=1
+                -DCONFIG_IMX_USDHC_MAX_INSTANCES=1
+                -I${CMAKE_CURRENT_BINARY_DIR}/log_disabled -I${PROJECT_SOURCE_DIR}/include
+                -I${PROJECT_SOURCE_DIR}/src/arch/host/include
+                ${PROJECT_SOURCE_DIR}/src/drivers/mmc/${src}.c
+    )
+    set_tests_properties(unit.mmc_log_disabled_${src} PROPERTIES LABELS unit TIMEOUT 60)
+endforeach()
+
 pb_unit_test(test_imx_hab_fuses SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_hab_fuses.c
 )

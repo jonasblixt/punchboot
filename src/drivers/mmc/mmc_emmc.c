@@ -383,6 +383,8 @@ static int hs200_tune(struct mmc_device *dev)
     unsigned int start = plat_get_us_tick();
     int best_lo = -1, best_hi = -1, run_lo = -1;
 
+    (void)start; /* Only the log line uses it, LOG_INFO may not be compiled in */
+
     if (taps == 0 || dev->hal->set_delay_tap == NULL)
         return PB_OK;
 
