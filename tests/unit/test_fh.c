@@ -116,6 +116,9 @@ enum hook_action {
     HOOK_SETS_PBS_PROPERTIES,
     /* It makes the tree larger than the room the region has for it */
     HOOK_GROWS_PAST_THE_REGION,
+    /* It makes the tree larger than the room and fills it to the room's last
+     * bytes: its own writes stay inside the region, pb's wouldn't */
+    HOOK_FILLS_TO_THE_REGIONS_END,
     /* It takes the free space out */
     HOOK_PACKS,
     /* It takes the free space out and leaves 1 KiB */
@@ -157,6 +160,30 @@ static const char *const pbs_properties[] = {
     "pb,active-system", "pb,boot-mode", "pb,boot-partition", "pb,version",
 };
 
+/* What a tree holds: its blocks end with the strings */
+static size_t fdt_used(const void *fdt)
+{
+    return fdt_off_dt_strings(fdt) + fdt_size_dt_strings(fdt);
+}
+
+/* A property that leaves 'left' bytes, or up to 3 more, between the tree's
+ * blocks and 'end'. It costs its header, its value in whole cells and its
+ * name among the strings */
+static int fill_to(void *fdt, int offset, size_t end, size_t left)
+{
+    static uint8_t value[CONFIG_BOOT_FH_REGION_SIZE];
+    const size_t cost = 12 + sizeof("fill");
+    size_t used = fdt_used(fdt);
+    size_t length;
+
+    if (used + cost + left > end)
+        return -FDT_ERR_NOSPACE;
+
+    length = (end - left - used - cost) & ~(size_t)3;
+    memset(value, 0x11, sizeof(value));
+    return fdt_setprop(fdt, offset, "fill", value, (int)length);
+}
+
 static int patch_dtb(void *fdt, int offset)
 {
     int rc;
@@ -185,6 +212,15 @@ static int patch_dtb(void *fdt, int offset)
         /* Only the header changes: nothing is written past the old size */
         if (rc == 0)
             rc = fdt_open_into(fdt, fdt, (int)(ROOM + 8));
+        break;
+    case HOOK_FILLS_TO_THE_REGIONS_END:
+        if (rc == 0)
+            rc = fdt_open_into(fdt, fdt, (int)(ROOM + 4096));
+        if (rc == 0)
+            rc = fill_to(fdt, offset, ROOM, 16);
+        /* The hook wrote nothing past the region itself */
+        if (rc == 0 && (fdt_used(fdt) > ROOM || fdt_used(fdt) < ROOM - 20))
+            rc = -FDT_ERR_INTERNAL;
         break;
     case HOOK_PACKS:
         if (rc == 0)
@@ -1215,6 +1251,35 @@ static void test_hook_changes_the_trees_size(void **state)
     assert_string_equal(chosen_string(fdt, "pb,version"), VERSION);
 }
 
+/* The hook may make the tree larger than the region's room and fill it up
+ * to the room's end. pb's properties are written with the size the tree
+ * says: they would move the strings past the region. Such a tree is refused
+ * before pb writes to it, and nothing is written after the region (boot.md
+ * 5.4: the list is in the region) */
+static void test_hook_fills_the_tree_past_the_room(void **state)
+{
+    (void)state;
+
+    add_app();
+    add_dtb(DTB_PART_SIZE, DTB_PART_SIZE);
+    assert_int_equal(boot_handover_fh_init(&cfg_dt), PB_OK);
+
+    hook_action = HOOK_FILLS_TO_THE_REGIONS_END;
+    assert_int_equal(prepare(), -PB_ERR_MEM);
+    assert_int_equal(patch_calls, 1);
+    assert_guard_is_untouched();
+    assert_next_is_empty();
+    assert_no_list();
+
+    /* What the hook left is as it left it: no property of pb's was added */
+    assert_int_equal(fdt_totalsize(REGION + DATA_OFFSET), ROOM + 4096);
+    assert_true(fdt_used(REGION + DATA_OFFSET) <= ROOM);
+    assert_null(fdt_getprop(REGION + DATA_OFFSET,
+                            fdt_path_offset(REGION + DATA_OFFSET, "/chosen"),
+                            "pb,device-uuid",
+                            NULL));
+}
+
 /* An image without the part the board names fails to boot (boot.md 5.4) */
 static void test_image_without_the_device_tree_part(void **state)
 {
@@ -1382,6 +1447,7 @@ int main(void)
         cmocka_unit_test_setup(test_device_tree_without_a_hook, setup),
         cmocka_unit_test_setup(test_hook_fails, setup),
         cmocka_unit_test_setup(test_hook_changes_the_trees_size, setup),
+        cmocka_unit_test_setup(test_hook_fills_the_tree_past_the_room, setup),
         cmocka_unit_test_setup(test_image_without_the_device_tree_part, setup),
         cmocka_unit_test_setup(test_device_tree_is_inside_its_part, setup),
         cmocka_unit_test_setup(test_device_tree_that_does_not_fit_the_region, setup),

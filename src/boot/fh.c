@@ -41,6 +41,8 @@
 /* The least: a list with pb's structure. A device tree's is checked when
  * the tree is there */
 #define FH_MIN_SIZE    (FH_DATA_OFFSET + FH_ALIGN_UP(sizeof(struct pb_fh_handover)))
+/* What the region has for the entry's data */
+#define FH_ROOM        ((size_t)(FH_SIZE - FH_DATA_OFFSET))
 
 /* The specification's rules for the list's memory (boot.md 5.4), and
  * placement's for a range (boot.md 4.3), on the board's two values */
@@ -221,19 +223,52 @@ static int add_handover(const struct boot_info *info, void *data, size_t *data_s
     return PB_OK;
 }
 
+/* The tree in the entry's data is one, and no larger than the region's room */
+static int dt_fits(const void *fdt, size_t *size)
+{
+    if (fdt_check_header(fdt) < 0 || fdt_totalsize(fdt) < sizeof(struct fdt_header) ||
+        fdt_totalsize(fdt) > FH_ROOM) {
+        LOG_ERR("The device tree doesn't fit the Firmware Handoff region any more");
+        return -PB_ERR_MEM;
+    }
+
+    *size = fdt_totalsize(fdt);
+    return PB_OK;
+}
+
+/*
+ * The board's hook, and the tree as it left it. The hook has the whole tree
+ * and may have made it larger. pb's properties are written with the size
+ * the tree says it has: in a tree that is larger than the region's room
+ * they would be written past the region. So such a tree is refused here,
+ * after the hook and before pb writes anything to it.
+ */
+static int dt_hook(void *fdt, int offset)
+{
+    size_t size;
+
+    if (cfg->dtb_patch_cb) {
+        int rc = cfg->dtb_patch_cb(fdt, offset);
+
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    return dt_fits(fdt, &size);
+}
+
 /*
  * The image's device tree: opened into the entry's data with its headroom,
  * then the board's hook and pb's /chosen on that copy (boot.md 5.5).
  */
-static int
-add_dt(struct bpak_header *hdr, const struct boot_info *info, void *data, size_t room, size_t *size)
+static int add_dt(struct bpak_header *hdr, const struct boot_info *info, void *data, size_t *size)
 {
     const struct boot_dtb_chosen chosen = {
-        .patch_cb = cfg->dtb_patch_cb,
+        .patch_cb = dt_hook,
     };
     int rc;
 
-    rc = boot_dtb_open_into(hdr, cfg->dtb_bpak_id, CONFIG_BOOT_DTB_HEADROOM, data, room);
+    rc = boot_dtb_open_into(hdr, cfg->dtb_bpak_id, CONFIG_BOOT_DTB_HEADROOM, data, FH_ROOM);
 
     if (rc != PB_OK)
         return rc;
@@ -243,16 +278,8 @@ add_dt(struct bpak_header *hdr, const struct boot_info *info, void *data, size_t
     if (rc != PB_OK)
         return rc;
 
-    /* The tree is the entry's data, all of it. The hook had the whole tree:
-     * one that it left larger than the region's room isn't handed over */
-    *size = fdt_totalsize(data);
-
-    if (fdt_check_header(data) < 0 || *size < sizeof(struct fdt_header) || *size > room) {
-        LOG_ERR("The device tree doesn't fit the Firmware Handoff region any more");
-        return -PB_ERR_MEM;
-    }
-
-    return PB_OK;
+    /* The tree is the entry's data, all of it */
+    return dt_fits(data, size);
 }
 
 static uint8_t byte_sum(const uint8_t *bytes, size_t length)
@@ -272,7 +299,6 @@ int boot_handover_fh_prepare(struct bpak_header *hdr,
     struct pb_fh_tl_header *tl = (struct pb_fh_tl_header *)(uintptr_t)FH_BASE;
     struct pb_fh_tl_entry *te = (struct pb_fh_tl_entry *)(tl + 1);
     void *data = te + 1;
-    const size_t room = (size_t)FH_SIZE - FH_DATA_OFFSET;
     uintptr_t entry;
     uintptr_t dt = 0;
     uint32_t tag;
@@ -300,7 +326,7 @@ int boot_handover_fh_prepare(struct bpak_header *hdr,
     if (cfg->dtb_bpak_id) {
         tag = PB_FH_TAG_FDT;
         dt = (uintptr_t)data;
-        rc = add_dt(hdr, info, data, room, &data_size);
+        rc = add_dt(hdr, info, data, &data_size);
     } else {
         tag = PB_FH_TAG_HANDOVER;
         rc = add_handover(info, data, &data_size);
