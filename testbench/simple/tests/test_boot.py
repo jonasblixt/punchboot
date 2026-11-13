@@ -35,7 +35,17 @@ RUN_TIMEOUT_S = 15
 # What the application checks of Firmware Handoff (src/main.c): the registers,
 # the transfer list and pb's structure in it. A run without them is one of an
 # application from before pb handed a transfer list over
-HANDOVER_CHECKS = {"fh-r1", "fh-r3", "fh-checksum", "fh-entry", "system-name", "system-uuid"}
+HANDOVER_CHECKS = {
+    "fh-r1",
+    "fh-r3",
+    "fh-used-size",
+    "fh-checksum",
+    "fh-entry",
+    "fh-entry-hdr-size",
+    "fh-data-size",
+    "system-name",
+    "system-uuid",
+}
 
 
 def assert_clean_handover(run_text: str, system: str) -> None:

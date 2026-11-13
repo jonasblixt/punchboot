@@ -140,6 +140,12 @@ static bool uuid_equal(const uint8_t *a, const uint8_t *uu)
     return true;
 }
 
+/* The list pb writes for this board: the list's header, the entry's, pb's
+ * structure and the padding to the next multiple of 8 */
+#define LIST_USED_SIZE                                                \
+    (sizeof(struct pb_fh_tl_header) + sizeof(struct pb_fh_tl_entry) + \
+     ((sizeof(struct pb_fh_handover) + 7) & ~(size_t)7))
+
 /* The entry after 'last' in the list's used part, the first one with NULL,
  * or NULL at its end: an entry starts at the next multiple of 8 after the
  * one before it */
@@ -199,7 +205,10 @@ static const struct pb_fh_handover *list_checks(void)
     check("fh-total-size", tl->total_size == APP_FH_REGION_SIZE, "total_size", tl->total_size);
     sizes = tl->used_size >= sizeof(*tl) && tl->used_size <= tl->total_size &&
             (tl->used_size % 8) == 0 && tl->total_size <= APP_FH_REGION_SIZE;
-    check("fh-used-size", sizes, "used_size", tl->used_size);
+    /* The image is built from the tree whose pb it tests, so it knows the
+     * list to the byte: the two headers, pb's structure and its padding to
+     * the next multiple of 8. An image in the field reads what the sizes say */
+    check("fh-used-size", sizes && tl->used_size == LIST_USED_SIZE, "used_size", tl->used_size);
     check("fh-flags", tl->flags == PB_FH_TL_FLAG_HAS_CHECKSUM, "flags", tl->flags);
 
     if (tl->signature != PB_FH_TL_SIGNATURE || tl->hdr_size != sizeof(*tl) || !sizes) {
@@ -228,17 +237,25 @@ static const struct pb_fh_handover *list_checks(void)
     if (!found)
         return NULL;
 
-    /* This image reads every field of today's structure. A later pb's is
-     * larger, with fields appended */
+    /* The data follows the entry's header, whose size the entry says: 8 in
+     * this version of the list. With another size the structure isn't where
+     * this image would read it */
+    check("fh-entry-hdr-size",
+          PB_FH_TL_ENTRY_HDR_SIZE(found) == sizeof(*found),
+          "hdr_size",
+          PB_FH_TL_ENTRY_HDR_SIZE(found));
+
+    /* pb's structure of this tree, no smaller and no larger */
     check("fh-data-size",
-          found->data_size >= sizeof(struct pb_fh_handover),
+          found->data_size == sizeof(struct pb_fh_handover),
           "data_size",
           found->data_size);
 
-    if (found->data_size < sizeof(struct pb_fh_handover))
+    if (PB_FH_TL_ENTRY_HDR_SIZE(found) != sizeof(*found) ||
+        found->data_size < sizeof(struct pb_fh_handover))
         return NULL;
 
-    return (const struct pb_fh_handover *)(found + 1);
+    return (const struct pb_fh_handover *)((const uint8_t *)found + PB_FH_TL_ENTRY_HDR_SIZE(found));
 }
 
 /* pb's information in pb's structure (boot.md 5.6) */
