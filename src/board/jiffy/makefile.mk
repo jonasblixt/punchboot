@@ -11,7 +11,6 @@ PB_IMG_PEM   = $(patsubst "%",%,$(CONFIG_IMX6UL_IMAGE_SIGN_CERT))
 
 SED = $(shell which sed)
 
-PB_ENTRY     = 0x80001000
 
 cflags-y += -DBOARD_RAM_BASE=0x80000000
 cflags-y += -DBOARD_RAM_END=0xc0000000
@@ -19,7 +18,7 @@ cflags-y += -DBOARD_RAM_END=0xc0000000
 src-y += $(BOARD)/board.c
 
 imx6ul_image: $(BUILD_DIR)/$(TARGET).bin
-	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
+	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(CONFIG_PB_ENTRY) \
 				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx
 
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
@@ -36,7 +35,7 @@ imx6ul_sign_image: imx6ul_image
 	@echo Using $(CST_TOOL)
 	$(eval PB_FILESIZE=$(shell stat -c%s "${BUILD_DIR}/pb.imx"))
 	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE)" | bc	))
-	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0xC00 ))" | bc	))
+	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(CONFIG_PB_ENTRY) - 0xC00 ))" | bc	))
 	@echo "PB imx image size: $(PB_FILESIZE) bytes ($(PB_FILESIZE_HEX)), cst addr $(PB_CST_ADDR)"
 	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x000 $(PB_FILESIZE_HEX) "$(BUILD_DIR)\/pb.imx"/g' < $(PB_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__KEY_INDEX__#$(CONFIG_IMX6UL_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf

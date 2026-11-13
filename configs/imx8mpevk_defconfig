@@ -25,6 +25,12 @@ CONFIG_IMX8M_CM_USB1=y
 #
 # CONFIG_IMX_OCOTP_DEBUG is not set
 # end of imx8m configuration
+
+#
+# Memory
+#
+CONFIG_PB_ENTRY=0x920000
+# end of Memory
 # end of Platform support
 
 #

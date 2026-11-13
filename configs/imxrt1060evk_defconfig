@@ -8,6 +8,12 @@ CONFIG_ARCH_ARMV7M=y
 CONFIG_SOC_FAMILY_IMX=y
 CONFIG_PLAT_IMXRT=y
 CONFIG_IMXRT_CM_USB_OTG1=y
+
+#
+# Memory
+#
+CONFIG_PB_ENTRY=0x20249000
+# end of Memory
 # end of Platform support
 
 #

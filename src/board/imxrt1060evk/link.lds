@@ -10,6 +10,6 @@
 
 MEMORY
 {
-    ram (rw)  : ORIGIN = 0x20249000, LENGTH = 256k
+    ram (rw)  : ORIGIN = PB_ENTRY, LENGTH = 256k
     buffers (rw)  : ORIGIN = 0x20289000, LENGTH = 220k
 }

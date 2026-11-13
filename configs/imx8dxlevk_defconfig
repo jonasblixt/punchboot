@@ -29,6 +29,12 @@ CONFIG_IMX8X_CM_USB_OTG2=y
 CONFIG_IMX8X_CREATE_IMX_IMAGE=y
 # CONFIG_IMX8X_SIGN_IMAGE is not set
 # end of Output image
+
+#
+# Memory
+#
+CONFIG_PB_ENTRY=0x80000000
+# end of Memory
 # end of Platform support
 
 #

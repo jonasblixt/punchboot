@@ -70,4 +70,18 @@ endchoice
 
 source "src/plat/*/Kconfig"
 
+menu "Memory"
+    depends on !PLAT_HOST
+
+config PB_ENTRY
+    hex "Where pb is loaded and linked"
+    help
+        The address the ROM loads pb to, where pb is linked and entered
+        (platform.md 5.1). The board's choice, in memory the ROM may load
+        to: the platform's link script has the rule. It reaches the linker,
+        the image stages and C. There is no default: a board's defconfig
+        sets it, and a build without it stops.
+
+endmenu
+
 endmenu

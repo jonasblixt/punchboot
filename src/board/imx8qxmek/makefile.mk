@@ -1,4 +1,3 @@
-PB_ENTRY     = 0x80000000
 CST_TOOL ?= cst
 IMX8X_MKIMAGE ?= mkimage_imx8
 IMX8X_AHAB_IMAGE ?= mx8qx-ahab-container.img
@@ -30,7 +29,7 @@ imx8x_image: $(BUILD_DIR)/$(TARGET).bin
 				  -e emmc_fast \
 				  -append $(IMX8X_AHAB_IMAGE) \
 				  -c -scfw $(IMX8X_SCFW_IMAGE) \
-				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(PB_ENTRY) \
+				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(CONFIG_PB_ENTRY) \
 				  -out $(BUILD_DIR)/pb.imx
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
 

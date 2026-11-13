@@ -7,7 +7,6 @@
 #
 # i.MX8M Plus EVK. pb runs from OCRAM at 0x920000, after the ROM's part of it.
 
-PB_ENTRY      = 0x920000
 
 MKIMAGE ?= mkimage
 
@@ -36,7 +35,7 @@ blobs-y  = $(IMX8M_UMCTL_TRAIN_1D_D) \
 # download (uuu)
 imx8mp_image: $(BUILD_DIR)/pb.bin
 	@echo Generating $(BUILD_DIR)/pb.imx
-	@printf 'ROM_VERSION v2\nBOOT_FROM sd\nLOADER $(BUILD_DIR)/pb.bin $(PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
-	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
+	@printf 'ROM_VERSION v2\nBOOT_FROM sd\nLOADER $(BUILD_DIR)/pb.bin $(CONFIG_PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
+	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(CONFIG_PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
 
 plat-y += imx8mp_image

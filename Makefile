@@ -44,6 +44,14 @@ endif
 
 include $(BUILD_CONFIG)
 
+# What the link needs from the board's defconfig (platform.md 5.1). A value
+# that is missing would otherwise fail in the linker, without its name.
+ifneq ($(filter-out menuconfig olddefconfig clean,$(or $(MAKECMDGOALS),all)),)
+ifeq ($(CONFIG_PB_ENTRY),)
+$(error CONFIG_PB_ENTRY is not set: where pb is loaded and linked, in the board's defconfig (platform.md 5.1))
+endif
+endif
+
 # $(call value_file,<variable>) gives $(BUILD_DIR)/value/<variable>, a file
 # with the variable's value that is rewritten only when the value changes. What
 # is made from a variable depends on its file, so it is made again when the
@@ -117,7 +125,7 @@ include src/plat/*/makefile.mk
 include src/cm/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
-ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)
+ldflags-y += --defsym=PB_ENTRY=$(CONFIG_PB_ENTRY)
 ldflags-y += --defsym=PB_STACK_SIZE_KiB=$(CONFIG_STACK_SIZE_KiB)
 ldflags-y += -T$(CONFIG_LINK_FILE) --build-id=none
 ldflags-y += --gc-sections

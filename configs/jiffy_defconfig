@@ -18,6 +18,12 @@ CONFIG_IMX6UL_KEY_INDEX=0
 CONFIG_IMX6UL_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
 CONFIG_IMX6UL_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
 # end of Output image
+
+#
+# Memory
+#
+CONFIG_PB_ENTRY=0x80001000
+# end of Memory
 # end of Platform support
 
 #

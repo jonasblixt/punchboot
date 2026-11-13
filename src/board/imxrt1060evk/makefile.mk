@@ -1,4 +1,3 @@
-PB_ENTRY      = 0x20249000
 MKIMAGE ?= mkimage
 
 src-y += $(BOARD)/board.c
@@ -11,7 +10,7 @@ fcb-$(CONFIG_BOARD_IMXRT1060EVK_REV_B) = $(BOARD)/fcb_is25wp064.c
 fcb-$(CONFIG_BOARD_IMXRT1060EVK_REV_C) = $(BOARD)/fcb_w25q128jw.c
 
 imxrt_image: $(BUILD_DIR)/$(TARGET).bin
-	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
+	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(CONFIG_PB_ENTRY) \
 				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx
 
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
