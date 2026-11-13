@@ -766,16 +766,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | install leaves in the pool. Command mode's cached life cycle isn't read again after an install: | | |
 | | | on the host board the fuse partition's handle can die with variant 2. `test_part.py` still says | | |
 | | | the new table is used after the next boot. 4.5's table has no row for `PB_RESULT_BAD_PAYLOAD` | | |
-| F-425 | `src/cm/`, `include/pb/`, link scripts | The named commands (`command-mode.md` 5.6) | Contract | open |
-| | | of D-076 aren't in the code: `DEFINE_COMMAND()` and `pb/command.h`, the `pb_commands` section in | | |
-| | | `src/link.lds` and `src/link_flash.lds`, the list's check in the set up (2.1), | | |
-| | | `BOARD_COMMAND`'s look up in the list, `PB_CMD_COMMAND_LIST` and its result in `wire.h`, | | |
-| | | `abi.txt`, a transcript. `struct board`'s `command` removed and the boards' commands declared | | |
-| | | under their names; `cm_board_cmd_request_reboot_on_success()` renamed | | |
-| | | `cm_request_reset_on_success()` | | |
-| F-426 | `tools/punchboot/` | The host's named commands (D-076) aren't in the code: | Contract | open |
-| | | `Session.command_list()`, `punchboot command list` and `punchboot command <name>` with | | |
-| | | `board command`'s options and the request from stdin | | |
 
 ## Dependencies / vendored code
 

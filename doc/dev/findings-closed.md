@@ -1185,6 +1185,18 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 8MP EVK and the MEK ran the same code without it. `drivers.md` 4.2, 3 and 5. Fixed: the | | |
 | | | two entries in `caam_ring`, each on a 64-byte line of its own; ran on the 8MP EVK, the MEK | | |
 | | | and jiffy (Linux to the login; on jiffy also a wrong and a right `part verify` and token) | | |
+| F-425 | `src/cm/`, `include/pb/`, link scripts | The named commands (`command-mode.md` 5.6) | Contract | fixed (`a2f05771`) |
+| | | of D-076 aren't in the code: `DEFINE_COMMAND()` and `pb/command.h`, the `pb_commands` section in | | |
+| | | `src/link.lds` and `src/link_flash.lds`, the list's check in the set up (2.1), | | |
+| | | `BOARD_COMMAND`'s look up in the list, `PB_CMD_COMMAND_LIST` and its result in `wire.h`, | | |
+| | | `abi.txt`, a transcript. `struct board`'s `command` removed and the boards' commands declared | | |
+| | | under their names; `cm_board_cmd_request_reboot_on_success()` renamed | | |
+| | | `cm_request_reset_on_success()` | | |
+| | | In: the list, its check, the look up and COMMAND_LIST, the boards' commands as named commands | | |
+| F-426 | `tools/punchboot/` | The host's named commands (D-076) aren't in the code: | Contract | fixed (`d7f9e06f`) |
+| | | `Session.command_list()`, `punchboot command list` and `punchboot command <name>` with | | |
+| | | `board command`'s options and the request from stdin | | |
+| | | In: `command_list()`, `command_run()`, the CLI with stdin, the transcript `commands` | | |
 
 ## Dependencies / vendored code
 
