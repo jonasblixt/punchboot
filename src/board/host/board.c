@@ -183,8 +183,44 @@ static const struct static_part_table nor_table[] = {
     },
 };
 
+/*
+ * For the tests of a stop in a boot that command mode started (board.md
+ * 5.4): the board command 'test-boot-stop' arms one, in the hook and with
+ * the error that its request names. It stops the next boot and no other.
+ */
+static int early_boot_stop;
+static int late_boot_stop;
+
+static const struct {
+    const char *request;
+    int *stop;
+    int rc;
+} boot_stops[] = {
+    { "early:abort", &early_boot_stop, -PB_ERR_ABORT },
+    { "early:fail", &early_boot_stop, -PB_ERR_IO },
+    { "late:abort", &late_boot_stop, -PB_ERR_ABORT },
+    { "late:fail", &late_boot_stop, -PB_ERR_IO },
+};
+
+static int boot_stop_take(int *stop, const char *hook)
+{
+    int rc = *stop;
+
+    *stop = PB_OK;
+
+    if (rc != PB_OK)
+        LOG_INFO("Stopping the boot in %s (%i)", hook, rc);
+
+    return rc;
+}
+
 static int early_boot(void)
 {
+    int rc = boot_stop_take(&early_boot_stop, "early_boot");
+
+    if (rc != PB_OK)
+        return rc;
+
     if (boot_get_flags() & BOOT_FLAG_CMD) {
         return PB_OK;
     } else {
@@ -199,6 +235,11 @@ static int early_boot(void)
 
 static int late_boot(uuid_t boot_part_uu)
 {
+    int rc = boot_stop_take(&late_boot_stop, "late_boot");
+
+    if (rc != PB_OK)
+        return rc;
+
     LOG_DBG("Boot!");
 
     char name;
@@ -371,6 +412,18 @@ static int board_command(uint32_t command,
     } else if (command == 0xdfa7c4ad) {
         (*response_size) = snprintf(response, resp_buf_size, "Should return error code -128\n");
         return -128;
+    } else if (command == 0x70c3e5f7) { /* test-boot-stop */
+        (*response_size) = 0;
+
+        for (size_t i = 0; i < ARRAY_SIZE(boot_stops); i++) {
+            if (size == strlen(boot_stops[i].request) &&
+                memcmp(bfr, boot_stops[i].request, size) == 0) {
+                *boot_stops[i].stop = boot_stops[i].rc;
+                return PB_OK;
+            }
+        }
+
+        return -PB_ERR_PARAM;
     } else {
         LOG_ERR("Unknown command %x", command);
         (*response_size) = 0;

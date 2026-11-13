@@ -285,3 +285,86 @@ def test_disabled_boot_enters_command_mode(device: Device, tmp_path: pathlib.Pat
     device.start(command_mode=False)
     device.wait_command_mode()
     assert device.boot_status is None
+
+
+# A stop in a boot that command mode started (board.md 5.4, command-mode.md
+# 2.3 and 5.5, F-252). The host board's command 'test-boot-stop' arms a stop
+# of the next boot in early_boot() or late_boot(): with -PB_ERR_ABORT, a
+# hook's stop, or with -PB_ERR_IO, a hook's failure.
+EARLY_STOPS = [
+    pytest.param("abort", punchboot.GenericError, id="abort"),
+    pytest.param("fail", punchboot.IOError, id="fail"),
+]
+
+
+@pytest.mark.parametrize(("how", "error"), EARLY_STOPS)
+def test_boot_part_stopped_in_early_boot_stays_in_command_mode(
+    device: Device, tmp_path: pathlib.Path, how: str, error: type[punchboot.Error]
+) -> None:
+    # Before the disconnect: the host gets the error and command mode goes
+    # on, in the same session. After a stop (-PB_ERR_ABORT) the device reset.
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+
+    with device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        s.board_run_command("test-boot-stop", f"early:{how}".encode())
+        with pytest.raises(error):
+            s.boot_partition(SYSTEM_A_UUID)
+        assert s.device_get_boardname()
+        assert device.running
+        assert device.boot_status is None
+        # The stop was that boot's: the next one goes on
+        s.boot_partition(SYSTEM_A_UUID)
+
+    assert device.wait_exit() == 0
+    assert device.boot_status == "A"
+
+
+@pytest.mark.parametrize(("how", "error"), EARLY_STOPS)
+def test_boot_bpak_stopped_in_early_boot_stays_in_command_mode(
+    device: Device, tmp_path: pathlib.Path, how: str, error: type[punchboot.Error]
+) -> None:
+    # The boot is refused before the header is read: the host sends the
+    # header after the first OK, and the header's result carries the refusal
+    # (command-mode.md 5.5). The session goes on.
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+
+    with device.session() as s:
+        s.board_run_command("test-boot-stop", f"early:{how}".encode())
+        with pytest.raises(error):
+            s.boot_bpak(img, NULL_UUID)
+        assert s.device_get_boardname()
+        assert device.running
+        assert device.boot_status is None
+        s.boot_bpak(img, NULL_UUID)
+
+    assert device.wait_exit() == 0
+    assert device.boot_status == "?"
+
+
+@pytest.mark.parametrize("how", ["abort", "fail"])
+@pytest.mark.parametrize("source", ["part", "bpak"])
+def test_boot_stopped_in_late_boot_resets(
+    device: Device, tmp_path: pathlib.Path, source: str, how: str
+) -> None:
+    # After the disconnect: the host has its last OK, "loaded and verified",
+    # and pb resets, whatever the hook returned. After a failure (not
+    # -PB_ERR_ABORT) the device went back to reading commands.
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+
+    with device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        s.board_run_command("test-boot-stop", f"late:{how}".encode())
+        if source == "part":
+            s.boot_partition(SYSTEM_A_UUID)
+        else:
+            s.boot_bpak(img, NULL_UUID)
+
+    assert device.wait_exit() == 0
+    # The hook stopped before it reported a boot
+    assert device.boot_status is None
+
+
+def test_boot_stop_command_refuses_an_unknown_request(device: Device) -> None:
+    with device.session() as s, pytest.raises(punchboot.ArgumentError):
+        s.board_run_command("test-boot-stop", b"later")
