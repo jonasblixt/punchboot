@@ -46,7 +46,7 @@ int imx_wdog_kick(uintptr_t base)
 
 int imx_wdog_reset_now(uintptr_t base)
 {
-    /* SRS 0: a software reset */
+    /* SRS 0: a software reset. WDA 0: WDOG_B is asserted too (imx_wdog.h) */
     mmio_write_16(base + WDOG_WCR, WDOG_WCR_SRE | WDOG_WCR_WDE);
 
     /* The reset follows */

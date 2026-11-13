@@ -52,6 +52,13 @@ int imx_wdog_kick(uintptr_t base);
  * Reset the SoC through the WDOG's software reset (WCR.SRS). It doesn't
  * return: it waits for the reset. The WDOG's clock must be on.
  *
+ * The same write leaves WDA 0, and WDOG_B is asserted for as long as WDA is
+ * 0: on a board whose WDOG_B pad is muxed and reaches its PMIC, this reset
+ * goes through the PMIC, as a time-out's does (imx_wdog_init() sets WDT).
+ * Kept so (F-206): a board in the field may rely on it, and platform.md 2.1
+ * asks for resets that are cold where the SoC can make them so. No board in
+ * the tree muxes the pad.
+ *
  * @param[in] base The WDOG's base address
  */
 int imx_wdog_reset_now(uintptr_t base) __attribute__((noreturn));
