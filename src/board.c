@@ -182,12 +182,10 @@ int board_setup(void)
     if (rc != PB_OK) {
         LOG_ERR("Boot policy init failed (%i)", rc);
         /* The handover all the same (board.md 2.1): a boot from RAM needs
-         * no policy. The policy itself isn't called after its init failed:
-         * A/B's functions would write its state through partitions the init
-         * never looked up. Until they can be (F-178), 'boot activate'
-         * answers -PB_ERR_NOT_SUPPORTED, as it did without a boot driver */
+         * no policy, and 'boot activate' reaches the policy, which repairs
+         * its state where it can and writes nothing where it can't (A/B:
+         * F-393) */
         (void)setup_boot_driver();
-        boot_policy_set(NULL);
         return rc;
     }
 

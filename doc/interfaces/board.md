@@ -116,12 +116,6 @@ which, skips the steps after it, sets up the handover all the same, and returns 
 `main()` then enters command mode, where the host can install the partition table, repair the
 policy's state (`boot activate`) or boot an image from RAM (`boot bpak`).
 
-**Not yet in the code (F-178)**: after a failed `boot_policy_init()` the handover is set up and
-the policy isn't called. A boot from RAM works; `boot activate` answers `-PB_ERR_NOT_SUPPORTED`
-and can't repair the policy's state. A/B's functions aren't safe to call after its init failed:
-with a slot missing from the table they write the state through partitions the init never
-looked up.
-
 - A board failure doesn't reset (a platform failure does, `platform.md` 2): command mode has what
   `plat_init()` set up.
 - A failed RoT or SLC fails closed (`security.md` 4.4). Command mode asks for authentication when

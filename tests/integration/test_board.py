@@ -99,9 +99,9 @@ def test_boot_from_ram_after_a_failed_policy_init(
 def test_boot_activate_after_a_failed_policy_init_writes_no_state(
     no_policy_device: Device,
 ) -> None:
-    # A/B's init failed before it looked its state partitions up. Whatever
-    # 'boot activate' answers then (F-178), it writes no state: with the
-    # policy called, the state went to LBA 0 of the disk
+    # A/B's init failed before it looked its state partitions up. 'boot
+    # activate' reaches the policy (F-178), which answers an error and writes
+    # no state (F-393): before that, the state went to LBA 0 of the disk
     before = no_policy_device.read_blocks(0, DISK_BLOCKS)
 
     with no_policy_device.session() as s:

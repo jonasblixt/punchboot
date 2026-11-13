@@ -526,8 +526,9 @@ static void test_failed_hook_sets_up_the_handover(void **state)
  * late_init() and sets up the handover all the same: command mode boots an
  * image from RAM. The policy's error is the one returned.
  *
- * What 'boot activate' reaches after it isn't tested here: the policy isn't
- * called once its init failed, which is F-178's open part. */
+ * The policy stays the board's: 'boot activate' reaches it, and what it
+ * answers after a failed init is its own (A/B: test_ab_state.c,
+ * test_failed_init_leaves_the_functions_safe). */
 static void test_failed_policy_sets_up_the_handover(void **state)
 {
     (void)state;
