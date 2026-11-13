@@ -135,6 +135,43 @@ def test_board_register_takes_32_bits(device: Device) -> None:
     assert "1: 80000000" in info
 
 
+def test_info_prints_the_state(device: Device) -> None:
+    # What scripts parse: the same, line for line, as long as the state can
+    # be read
+    device.pbstate("-s", "a")
+    device.pbstate("-s", "b", "-c", "3")
+    device.pbstate("-w", "0", "5")
+    device.pbstate("-w", "3", "0xcafe")
+
+    assert device.pbstate("-i") == (
+        "Punchboot status:\n"
+        "\n"
+        "System A is disabled and verified\n"
+        "System B is enabled and not verified\n"
+        "Errors : 0x00000000\n"
+        "Remaining boot attempts: 3\n"
+        "\n"
+        "Board registers:\n"
+        "    0: 00000005\n"
+        "    1: 00000000\n"
+        "    2: 00000000\n"
+        "    3: 0000CAFE\n"
+    )
+
+
+def test_info_fails_without_printing_a_state_it_could_not_read(device: Device) -> None:
+    # F-408: with both copies bad, the systems were printed as disabled and
+    # not verified before the error
+    device.write_blocks(PRIMARY_STATE_LBA, bytes(512))
+    device.write_blocks(BACKUP_STATE_LBA, bytes(512))
+
+    result = device.pbstate_run("-i")
+    assert result.returncode == errno.EIO
+    assert "System A" not in result.stdout
+    assert "Punchboot status" not in result.stdout
+    assert "Error: operation failed (-5)" in result.stdout
+
+
 def test_the_library_keeps_its_crc32_next_to_zlib(device: Device) -> None:
     # zlib's crc32() has the library's name for its own and other results.
     # The library exported its own: with zlib loaded first it got zlib's, and

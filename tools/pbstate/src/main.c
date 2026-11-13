@@ -59,44 +59,61 @@ static bool trailing_characters(const char *end)
 
 static int print_configuration(void)
 {
-    int rc;
+    static const pbstate_system_t systems[] = { PBSTATE_SYSTEM_A, PBSTATE_SYSTEM_B };
+    int active[2];
+    int verified[2];
     uint32_t errors = 0;
-    uint32_t boot_attempts = 0;
-    printf("Punchboot status:\n\n");
-    printf("System A is %s and %s\n",
-           pbstate_is_system_active(PBSTATE_SYSTEM_A) > 0 ? "enabled" : "disabled",
-           pbstate_is_system_verified(PBSTATE_SYSTEM_A) > 0 ? "verified" : "not verified");
+    unsigned int boot_attempts = 0;
+    uint32_t regs[PB_STATE_NO_OF_BOARD_REGS];
+    int rc;
 
-    printf("System B is %s and %s\n",
-           pbstate_is_system_active(PBSTATE_SYSTEM_B) > 0 ? "enabled" : "disabled",
-           pbstate_is_system_verified(PBSTATE_SYSTEM_B) > 0 ? "verified" : "not verified");
+    /* Everything is read before anything is printed: a state that can't be
+     * read is the error, not two systems that are disabled (F-408) */
+    for (unsigned int i = 0; i < 2; i++) {
+        active[i] = pbstate_is_system_active(systems[i]);
+
+        if (active[i] < 0)
+            return active[i];
+
+        verified[i] = pbstate_is_system_verified(systems[i]);
+
+        if (verified[i] < 0)
+            return verified[i];
+    }
 
     rc = pbstate_get_errors(&errors);
 
     if (rc < 0)
         return rc;
 
-    printf("Errors : 0x%08x\n", errors);
-
     rc = pbstate_get_remaining_boot_attempts(&boot_attempts);
 
     if (rc < 0)
         return rc;
 
-    printf("Remaining boot attempts: %u\n", boot_attempts);
-    printf("\n");
-    printf("Board registers:\n");
     for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++) {
-        uint32_t reg;
-        int rc;
-
-        rc = pbstate_read_board_reg(i, &reg);
+        rc = pbstate_read_board_reg(i, &regs[i]);
 
         if (rc < 0)
             return rc;
-
-        printf("    %i: %08X\n", i, reg);
     }
+
+    printf("Punchboot status:\n\n");
+
+    for (unsigned int i = 0; i < 2; i++) {
+        printf("System %c is %s and %s\n",
+               "AB"[i],
+               active[i] > 0 ? "enabled" : "disabled",
+               verified[i] > 0 ? "verified" : "not verified");
+    }
+
+    printf("Errors : 0x%08x\n", errors);
+    printf("Remaining boot attempts: %u\n", boot_attempts);
+    printf("\n");
+    printf("Board registers:\n");
+
+    for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++)
+        printf("    %i: %08X\n", i, regs[i]);
 
     return 0;
 }
