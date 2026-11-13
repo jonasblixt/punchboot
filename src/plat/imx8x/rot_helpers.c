@@ -56,6 +56,11 @@ int imx8x_revoke_key(const struct rot_key *key)
 
     LOG_INFO("Revoking keys as specified in image header");
 
+#ifdef CONFIG_IMX8X_FUSE_DRY_RUN
+    LOG_INFO("Fuse dry run: Would commit the revocation of key %u", key->slot);
+    return PB_OK;
+#endif
+
     /* Commit OEM revocations = 0x10 */
     info = 0x10;
 

@@ -7,8 +7,6 @@
  *
  */
 
-#include <arch/arch_helpers.h>
-#include <arch/armv8a/timer.h>
 #include <board/password.h>
 #include <boot/ab_state.h>
 #include <boot/atf.h>
@@ -30,10 +28,6 @@
 #include <pb/slc.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
-#include <sci/svc/misc/api.h>
-#include <sci/svc/pad/api.h>
-#include <sci/svc/pm/api.h>
-#include <sci/svc/seco/api.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <uuid.h>
