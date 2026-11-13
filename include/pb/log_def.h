@@ -36,12 +36,16 @@ void log_prefix(const char *level, const char *func);
         console_uart_mute(false);      \
     } while (0)
 
+/* A level that isn't compiled in is still a statement: `else LOG_DBG(...);`
+ * has a body (F-109) */
 #if LOGLEVEL >= 2
 #define LOG_INFO(...) LOG_LINE("I", __VA_ARGS__)
 #elif LOG_MAX_LEVEL >= 2
 #define LOG_INFO(...) LOG_LINE_RAMLOG("I", __VA_ARGS__)
 #else
-#define LOG_INFO(...)
+#define LOG_INFO(...) \
+    do {              \
+    } while (0)
 #endif
 
 #if LOGLEVEL >= 3
@@ -49,7 +53,9 @@ void log_prefix(const char *level, const char *func);
 #elif LOG_MAX_LEVEL >= 3
 #define LOG_DBG(...) LOG_LINE_RAMLOG("D", __VA_ARGS__)
 #else
-#define LOG_DBG(...)
+#define LOG_DBG(...) \
+    do {             \
+    } while (0)
 #endif
 
 /* Level 1 is errors only, warnings come with level 2 */
@@ -58,7 +64,9 @@ void log_prefix(const char *level, const char *func);
 #elif LOG_MAX_LEVEL >= 2
 #define LOG_WARN(...) LOG_LINE_RAMLOG("W", __VA_ARGS__)
 #else
-#define LOG_WARN(...)
+#define LOG_WARN(...) \
+    do {              \
+    } while (0)
 #endif
 
 #if LOGLEVEL >= 1
@@ -66,7 +74,9 @@ void log_prefix(const char *level, const char *func);
 #elif LOG_MAX_LEVEL >= 1
 #define LOG_ERR(...) LOG_LINE_RAMLOG("E", __VA_ARGS__)
 #else
-#define LOG_ERR(...)
+#define LOG_ERR(...) \
+    do {             \
+    } while (0)
 #endif
 
 #endif
