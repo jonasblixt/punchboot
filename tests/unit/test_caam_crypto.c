@@ -560,6 +560,41 @@ static void test_4_codes(void **state)
     assert_false(verified);
 }
 
+/* 4: the verdict is this call's, for this key. A key whose point is shorter
+ * than its curve's left the rest of the point of the key before it in the
+ * driver's buffer, which the engine read: P-256's key with its y cut off
+ * verified the token after the whole key had (F-410) */
+static void test_4_nothing_of_the_key_before(void **state)
+{
+    static uint8_t key[256];
+    const struct token *t = &tokens[0];
+    const struct bpak_key *p256 = find_key(t->key_id);
+    bool verified = true;
+    (void)state;
+
+    /* SubjectPublicKeyInfo, 0x59 bytes: the BIT STRING's length is at 24,
+     * then its unused bits, the point's form, x and y */
+    assert_int_equal(p256->size, 91);
+    assert_int_equal(p256->data[1], 0x59);
+    assert_int_equal(p256->data[24], 0x42);
+    memcpy(key, p256->data, 59);
+    key[1] = 0x39;
+    key[24] = 0x22;
+
+    assert_int_equal(verify_token(t, true, &verified), PB_OK);
+    assert_int_not_equal(dsa_verify(t->dsa,
+                                    signature,
+                                    t->signature_length,
+                                    key,
+                                    59,
+                                    t->hash,
+                                    digest,
+                                    t->digest_length,
+                                    &verified),
+                         PB_OK);
+    assert_false(verified);
+}
+
 /* drivers.md 4.2: an address the engine can't take is refused, not cut. The
  * descriptors hold 32 bits: a buffer above 4 GiB was hashed, and a digest
  * verified, at the address cut to 32 bits (F-410). Here that is the test's
@@ -1142,6 +1177,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_4_verdict, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_codes, setup, teardown),
         cmocka_unit_test_setup_teardown(test_an_address_above_4gib_is_refused, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_4_nothing_of_the_key_before, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_starts_clean, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_new_context, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_verdict_is_this_calls, setup, teardown),

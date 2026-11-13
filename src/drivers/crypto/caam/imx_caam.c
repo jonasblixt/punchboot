@@ -328,6 +328,9 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     if (rc != PB_OK)
         return rc;
 
+    /* Nothing of the key before: the engine reads the curve's length */
+    memset(caam.ecdsa_key, 0, sizeof(caam.ecdsa_key));
+
     rc = der_ec_public_key_data(
         der_key, key_length, caam.ecdsa_key, sizeof(caam.ecdsa_key), &key_kind);
 
