@@ -309,6 +309,16 @@ add_test(NAME unit.cm_auth_needs_a_method
 set_tests_properties(unit.cm_auth_needs_a_method PROPERTIES LABELS unit TIMEOUT 60
     PASS_REGULAR_EXPRESSION "CONFIG_CM_AUTH needs a method")
 
+# A LOG macro whose level isn't compiled in is a statement (F-109): pb/log_def.h
+# at LOGLEVEL 0 without the RAM log, after an if and an else, with -Werror
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/log_disabled/config.h "")
+add_test(NAME unit.log_disabled_is_a_statement
+    COMMAND ${CMAKE_C_COMPILER} -fsyntax-only -Wall -Wextra -Werror -DLOGLEVEL=0
+            -I${CMAKE_CURRENT_BINARY_DIR}/log_disabled -I${PROJECT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/log_disabled.c
+)
+set_tests_properties(unit.log_disabled_is_a_statement PROPERTIES LABELS unit TIMEOUT 60)
+
 # Command mode's USB port is the platform's Kconfig choice, in the board's
 # defconfig (platform.md 3.10): its test reads Kconfig
 add_test(
@@ -525,6 +535,7 @@ pb_unit_test(test_imx_hab_fuses SOURCES
 pb_unit_test(test_imx_ocotp SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_ocotp.c
 )
+
 # The virtio block driver against a model of a legacy virtio-mmio device,
 # without PIE: the driver hands the device 32-bit addresses
 pb_unit_test(test_virtio_block SOURCES
@@ -539,3 +550,8 @@ target_include_directories(test_virtio_block BEFORE PRIVATE
 target_compile_options(test_virtio_block PRIVATE -fno-pie)
 target_link_options(test_virtio_block PRIVATE -no-pie)
 
+# pb's own snprintf(), as pb_snprintf(): the host's C library has one (F-089)
+pb_unit_test(test_snprintf SOURCES
+    ${PROJECT_SOURCE_DIR}/src/lib/libc/snprintf.c
+)
+target_compile_definitions(test_snprintf PRIVATE snprintf=pb_snprintf)

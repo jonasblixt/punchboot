@@ -1034,7 +1034,10 @@ static int cmd_slc_read(void)
 
     /* The wire has 16 slots for each list (command-mode.md 5.2): a keystore
      * with more keys doesn't write past them */
-    size_t no_of_keys = rot_no_of_keys();
+    size_t no_of_keys = 0;
+
+    /* Without a RoT: empty lists, and its error as the result (F-346) */
+    rc = rot_no_of_keys(&no_of_keys);
 
     if (no_of_keys > ARRAY_SIZE(key_status.active)) {
         LOG_ERR("The keystore has more keys than the %zu that are listed",
@@ -1043,8 +1046,11 @@ static int cmd_slc_read(void)
     }
 
     for (size_t i = 0; i < no_of_keys; i++) {
-        int key_rc = rot_read_key_status_by_idx(i);
-        key_id_t key_id = rot_key_idx_to_id(i);
+        key_id_t key_id = 0;
+        int key_rc = rot_key_idx_to_id(i, &key_id);
+
+        if (key_rc == PB_OK)
+            key_rc = rot_read_key_status_by_idx(i);
 
         if (key_rc == PB_OK)
             key_status.active[i] = key_id;

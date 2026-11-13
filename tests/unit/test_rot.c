@@ -54,12 +54,18 @@ static void test_rot_not_initialized(void **state)
     dsa_t kind;
     const uint8_t *der;
     size_t der_length;
+    size_t count = 77;
+    key_id_t id = 0x77;
     (void)state;
 
     assert_int_equal(rot_read_key_status(KEY_P256), -PB_ERR_NOT_SUPPORTED);
-    assert_int_equal((int)rot_no_of_keys(), -PB_ERR_NOT_SUPPORTED);
+    /* An error is the result, and no count or id comes with it (F-346): the
+     * error was the count, 2^64 - 19 keys, and the id */
+    assert_int_equal(rot_no_of_keys(&count), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(count, 77);
     assert_int_equal(rot_read_key_status_by_idx(0), -PB_ERR_NOT_SUPPORTED);
-    assert_int_equal((int)rot_key_idx_to_id(0), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(rot_key_idx_to_id(0, &id), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(id, 0x77);
     assert_int_equal(rot_revoke_key(KEY_P256), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(rot_get_dsa_key(KEY_P256, &kind, &der, &der_length), -PB_ERR_NOT_SUPPORTED);
 }
@@ -78,11 +84,15 @@ static void test_rot_without_callbacks(void **state)
     dsa_t kind;
     const uint8_t *der;
     size_t der_length;
+    size_t count = 0;
+    key_id_t id = 0;
     (void)state;
 
     assert_int_equal(rot_init(&rot_cfg_no_callbacks), PB_OK);
-    assert_int_equal(rot_no_of_keys(), 3);
-    assert_int_equal(rot_key_idx_to_id(1), KEY_P384);
+    assert_int_equal(rot_no_of_keys(&count), PB_OK);
+    assert_int_equal(count, 3);
+    assert_int_equal(rot_key_idx_to_id(1, &id), PB_OK);
+    assert_int_equal(id, KEY_P384);
     assert_int_equal(rot_read_key_status(KEY_P256), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(rot_read_key_status_by_idx(0), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(rot_revoke_key(KEY_P256), -PB_ERR_NOT_SUPPORTED);
@@ -91,19 +101,25 @@ static void test_rot_without_callbacks(void **state)
 
 static void test_rot_key_status(void **state)
 {
+    size_t count = 0;
+    key_id_t id = 0;
     (void)state;
 
     revoked = 0;
     assert_int_equal(rot_init(&rot_cfg), PB_OK);
-    assert_int_equal(rot_no_of_keys(), 3);
+    assert_int_equal(rot_no_of_keys(&count), PB_OK);
+    assert_int_equal(count, 3);
 
     assert_int_equal(rot_read_key_status(KEY_P384), PB_OK);
     assert_int_equal(rot_read_key_status(0x12345678), -PB_ERR_KEY_NOT_FOUND);
 
     assert_int_equal(rot_read_key_status_by_idx(2), PB_OK);
     assert_int_equal(rot_read_key_status_by_idx(3), -PB_ERR_PARAM);
-    assert_int_equal(rot_key_idx_to_id(2), KEY_P521);
-    assert_int_equal((int)rot_key_idx_to_id(3), -PB_ERR_PARAM);
+    assert_int_equal(rot_key_idx_to_id(2, &id), PB_OK);
+    assert_int_equal(id, KEY_P521);
+    /* An index the keystore doesn't have: no id, the one before stays */
+    assert_int_equal(rot_key_idx_to_id(3, &id), -PB_ERR_PARAM);
+    assert_int_equal(id, KEY_P521);
 }
 
 static void test_rot_get_dsa_key(void **state)
@@ -417,6 +433,47 @@ static void test_slc_fuses_config(void **state)
     assert_int_equal(fuse_writes, 0);
 }
 
+/* F-220: the order is checked against the state (slc.c), so a life cycle that
+ * can't be read gets no configuration, like no lock and no EOL. It was
+ * written when the read answered -PB_ERR_NOT_SUPPORTED: a board whose slc
+ * has a configuration and no read_status. */
+static void test_slc_configuration_needs_the_state(void **state)
+{
+    static const struct slc_config no_read = {
+        .set_configuration = fake_set_configuration,
+        .set_configuration_locked = fake_set_configuration_locked,
+        .set_eol = fake_set_eol,
+        .fuses = boot_fuses,
+        .fuses_length = ARRAY_SIZE(boot_fuses),
+        .fuse_read = fake_fuse_read,
+        .fuse_write = fake_fuse_write,
+    };
+    static const struct slc_config fuses_no_read = {
+        .fuses = boot_fuses,
+        .fuses_length = ARRAY_SIZE(boot_fuses),
+        .fuse_read = fake_fuse_read,
+        .fuse_write = fake_fuse_write,
+    };
+    (void)state;
+
+    memset(fuses, 0, sizeof(fuses));
+    fuse_writes = 0;
+    slc_writes = 0;
+    slc_state = SLC_CONFIGURATION_LOCKED; /* What nothing can read */
+
+    assert_int_equal(slc_init(&no_read), PB_OK);
+    assert_int_equal(slc_read_status(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(slc_set_configuration(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(slc_set_configuration_locked(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(slc_set_eol(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(slc_writes, 0);
+    assert_int_equal(fuse_writes, 0);
+
+    assert_int_equal(slc_init(&fuses_no_read), PB_OK);
+    assert_int_equal(slc_set_configuration(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(fuse_writes, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -433,6 +490,7 @@ int main(void)
         cmocka_unit_test(test_slc_fuses),
         cmocka_unit_test(test_slc_fuses_config),
         cmocka_unit_test(test_slc_order),
+        cmocka_unit_test(test_slc_configuration_needs_the_state),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

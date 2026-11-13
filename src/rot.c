@@ -114,11 +114,13 @@ int rot_read_key_status(key_id_t id)
     return cfg->read_key_status(&key);
 }
 
-size_t rot_no_of_keys(void)
+int rot_no_of_keys(size_t *count)
 {
     if (!cfg)
         return -PB_ERR_NOT_SUPPORTED;
-    return keystore_pb.no_of_keys;
+
+    *count = keystore_pb.no_of_keys;
+    return PB_OK;
 }
 
 int rot_read_key_status_by_idx(unsigned int index)
@@ -131,14 +133,15 @@ int rot_read_key_status_by_idx(unsigned int index)
     return rot_read_key_status(keystore_pb.keys[index]->id);
 }
 
-key_id_t rot_key_idx_to_id(unsigned int index)
+int rot_key_idx_to_id(unsigned int index, key_id_t *id)
 {
     if (!cfg)
         return -PB_ERR_NOT_SUPPORTED;
     if (!(index < keystore_pb.no_of_keys))
         return -PB_ERR_PARAM;
 
-    return keystore_pb.keys[index]->id;
+    *id = keystore_pb.keys[index]->id;
+    return PB_OK;
 }
 
 int rot_revoke_key(key_id_t id)

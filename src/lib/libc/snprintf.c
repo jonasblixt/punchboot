@@ -44,6 +44,7 @@ static void unsigned_dec_print(char **s, size_t n, size_t *chars_printed, unsign
 }
 
 static int unsigned_num_print(char **s,
+                              size_t n,
                               unsigned long long int unum,
                               size_t *chars_printed,
                               unsigned int radix,
@@ -67,8 +68,10 @@ static int unsigned_num_print(char **s,
 
     if (padn > 0) {
         while (i < padn) {
-            *(*s) = padc;
-            (*s)++;
+            if (*chars_printed < n) {
+                *(*s) = padc;
+                (*s)++;
+            }
             (*chars_printed)++;
             count++;
             padn--;
@@ -76,8 +79,10 @@ static int unsigned_num_print(char **s,
     }
 
     while (--i >= 0) {
-        *(*s) = num_buf[i];
-        (*s)++;
+        if (*chars_printed < n) {
+            *(*s) = num_buf[i];
+            (*s)++;
+        }
         (*chars_printed)++;
         count++;
     }
@@ -93,7 +98,8 @@ static int unsigned_num_print(char **s,
  * %s - string format
  * %u - unsigned decimal format
  *
- * The function panics on all other formats specifiers.
+ * Any other format specifier ends the output where it stands: the
+ * text before it is terminated, and its length is returned.
  *
  * It returns the number of characters that would be written if the
  * buffer was big enough. If it returns a value lower than n, the
@@ -156,7 +162,7 @@ snprintf_loop:
                 break;
             case 'x':
                 unum = va_arg(args, unsigned int);
-                unsigned_num_print(&s, unum, &chars_printed, 16, padc, padn);
+                unsigned_num_print(&s, n, unum, &chars_printed, 16, padc, padn);
                 break;
             case '0':
                 padc = '0';
@@ -174,12 +180,11 @@ snprintf_loop:
                 while (1)
                     __asm__("nop");
             default:
-                /* Panic on any other format specifier. */
+                /* Any other format specifier ends the output here (F-089) */
                 LOG_ERR("snprintf: specifier with ASCII"
                         " code '%d' not supported.",
                         *fmt);
-                while (1) {
-                } // TODO(jb): add plat_panic
+                goto out;
             }
             fmt++;
             continue;
@@ -194,6 +199,7 @@ snprintf_loop:
         chars_printed++;
     }
 
+out:
     va_end(args);
 
     if (n > 0U)
