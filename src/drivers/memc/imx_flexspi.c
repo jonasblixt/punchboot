@@ -14,6 +14,7 @@
 #include <pb/errors.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
+#include <string.h>
 
 #include <drivers/memc/imx_flexspi.h>
 
@@ -145,11 +146,17 @@ static int imx_flexspi_writeblocking(uint8_t *buffer, size_t size)
 
             size = size - 8 * txWatermark;
         } else {
-            for (i = 0; i < (size / 4 + 1); i++) {
-                mmio_write_32(cfg->base + FLEXSPI_TFDR0 + i * 4, *((uint32_t *)buffer));
-                buffer += 4;
+            /* The last piece: whole words, the last one padded, and not
+             * a byte past the buffer. IDATSZ says how many go out */
+            for (i = 0; size > 0; i++) {
+                uint32_t word = 0;
+                size_t n = (size < 4) ? size : 4;
+
+                memcpy(&word, buffer, n);
+                mmio_write_32(cfg->base + FLEXSPI_TFDR0 + i * 4, word);
+                buffer += n;
+                size -= n;
             }
-            size = 0;
         }
 
         /* Push a watermark level datas into IP TX FIFO. */

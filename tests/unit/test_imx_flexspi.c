@@ -39,6 +39,8 @@
 #include <pb/bio.h>
 #include <pb/pb.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include "fakes/plat.h"
 #include "fakes/regs.h"
@@ -661,6 +663,49 @@ static void test_read_64k_and_more(void **state)
     assert_memory_equal(out_device, nor.mem, CAPACITY);
 }
 
+/* A buffer of len bytes that ends where a page nobody may touch starts:
+ * a read past it faults */
+static uint8_t *guarded(size_t len, uint8_t **map, size_t *map_len)
+{
+    size_t page = (size_t)sysconf(_SC_PAGESIZE);
+
+    assert_true(len <= page);
+    *map_len = 2 * page;
+    *map = mmap(NULL, *map_len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    assert_true(*map != MAP_FAILED);
+    assert_int_equal(mprotect(*map + page, page, PROT_NONE), 0);
+    return *map + page - len;
+}
+
+/* F-284: a write reads exactly the length of the buffer (bio.md 3.2), also
+ * when the last piece for the FIFO isn't whole words. A flash with 4 byte
+ * pages makes every page program such a piece */
+static void test_write_reads_only_the_buffer(void **state)
+{
+    static const size_t pages[] = { 4, 8, 16, PAGE };
+    uint8_t *map;
+    size_t map_len;
+    uint8_t *buf = guarded(BLOCK, &map, &map_len);
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(pages); i++) {
+        reset_model();
+        nor_cfg.page_size = pages[i];
+        nor.page = pages[i];
+        assert_int_equal(init(), PB_OK);
+
+        fill(buf, BLOCK, (unsigned int)i);
+        assert_int_equal(bio_erase(dev, 3, 1), PB_OK);
+        assert_int_equal(bio_write(dev, 3, BLOCK, buf), PB_OK);
+        assert_mem_is(2 * BLOCK, 0xa5, BLOCK);
+        assert_mem(3 * BLOCK, buf, BLOCK);
+        assert_mem_is(4 * BLOCK, 0xa5, BLOCK);
+        assert_int_equal(nor.violations, 0);
+    }
+
+    munmap(map, map_len);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -674,6 +719,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_erase_exactly_the_blocks, setup, teardown),
         cmocka_unit_test_setup_teardown(test_erase_smaller_than_a_unit, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_64k_and_more, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_write_reads_only_the_buffer, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
