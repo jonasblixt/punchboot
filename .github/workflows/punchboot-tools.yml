@@ -76,6 +76,23 @@ jobs:
       id-token: write
     if: github.repository == 'jonasblixt/punchboot' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
+      # Before the download: checkout cleans the workspace
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: version.txt
+          sparse-checkout-cone-mode: false
+
+      # A release's tag is v and version.txt's content (F-228): any other v*
+      # tag publishes nothing
+      - name: Check the tag against version.txt
+        shell: bash
+        run: |
+          version="$(tr -d '[:space:]' < version.txt)"
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+              echo "::error::The tag $GITHUB_REF_NAME is not v$version, from version.txt: nothing is published"
+              exit 1
+          fi
+
       - uses: actions/download-artifact@v8
         with:
           name: punchboot-tools
