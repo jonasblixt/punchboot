@@ -2,6 +2,8 @@
 *.bino
 *.bak
 *.bin
+# The test PKI's SRK tables and fuse files are sources
+!/pki/**/*.bin
 *.imx
 *.dero
 *.xmio
