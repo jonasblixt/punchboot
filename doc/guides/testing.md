@@ -44,7 +44,8 @@ Coverage (2026-10-22, all host tests): 99.2% of lines (2337/2356), 100% of funct
 branches in `src/`, excluding vendored libs and the host platform. It was 59% before the unit tests
 below. After `jiffy-fixes` 18 lines are left, unreachable or behind a known bug:
 
-- Unreachable: `gpt.c` 298 and 383-389 (after recovery the primary is valid), `cm_main.c` 663 and
+- Unreachable: `gpt.c`'s lines then (after recovery the primary is valid; that code is gone with
+  the GPT's repair, F-195), `cm_main.c` 663 and
   the `default:` case (every command id is handled), `boot.c` 96 (the boot device is valid), `rot.c` 114 (`rot_init` checks the key ids) and
   126-127 (the keystore has only EC keys), `main.c` 51, `mbedtls_pb.c` 252 (needs a full DSA table
   with room for a hash provider; both tables hold one entry).
