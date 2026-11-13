@@ -177,7 +177,6 @@ The second kind is what pb couldn't do and booted anyway, which pb reports to th
 (`boot.md` 5.6, D-050). It is one entry for every board: what it stands for is in the log and
 in `status()`. Valid in `init()`, `late_init()` and `early_boot()`; pb's information is
 collected after `early_boot()` (`boot.md` 2), so a call from `late_boot()` comes too late.
-**Not yet in the code (F-248).**
 
 NULL: no hardware of the board's own.
 

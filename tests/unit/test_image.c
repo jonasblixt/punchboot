@@ -97,8 +97,9 @@ bool boot_image_in_place(void)
 }
 
 static const char *const pbs_properties[] = {
-    "pb,device-uuid",   "pb,slc",       "pb,slc-active-key", "pb,slc-available-keys",
-    "pb,active-system", "pb,boot-mode", "pb,boot-partition", "pb,version",
+    "pb,device-uuid",        "pb,slc",           "pb,slc-active-key",
+    "pb,slc-available-keys", "pb,active-system", "pb,boot-mode",
+    "pb,boot-partition",     "pb,version",       "pb,status",
 };
 
 static int patch_dtb(void *fdt, int offset)
@@ -827,9 +828,6 @@ static void test_chosen_new_bytes(void **state)
     assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
     assert_int_equal(prepare(), PB_OK);
     assert_chosen_bytes(new_props, ARRAY_SIZE(new_props));
-    /* pb's status isn't written until the boot checks its preconditions
-     * (F-248): an empty list would say "nothing to report" */
-    assert_chosen_has_no("pb,status");
 
     make_dtb("chosen");
     info.boot_mode = BOOT_POLICY_MODE_FALLBACK;
@@ -842,6 +840,54 @@ static void test_chosen_new_bytes(void **state)
     assert_int_equal(prepare(), PB_OK);
     assert_chosen_bytes(
         &(struct chosen_bytes){ "pb,boot-mode", 12, (const uint8_t *)"speculative" }, 1);
+}
+
+/* The longest pb,status: every string of its list, 34 bytes */
+#define STATUS_ALL "watchdog-not-armed\0board-degraded"
+
+/* boot.md 5.6 (F-248): pb's status in /chosen, a list of strings, one for
+ * each bit of pb's status in the bits' order. It is there and empty when
+ * there is nothing to report, so that a next stage can tell "nothing" from a
+ * pb that doesn't report. Fixed like the released ones from the release
+ * that has it */
+static void test_chosen_status_bytes(void **state)
+{
+    static const struct {
+        uint32_t status;
+        struct chosen_bytes prop;
+    } lists[] = {
+        { 0, { "pb,status", 0, (const uint8_t *)"" } },
+        { BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED,
+          { "pb,status", 19, (const uint8_t *)"watchdog-not-armed" } },
+        { BOOT_INFO_STATUS_BOARD_DEGRADED, { "pb,status", 15, (const uint8_t *)"board-degraded" } },
+        { BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED | BOOT_INFO_STATUS_BOARD_DEGRADED,
+          { "pb,status", 34, (const uint8_t *)STATUS_ALL } },
+        /* A bit without a string yet is pb's structure's only */
+        { UINT32_C(1) << 31, { "pb,status", 0, (const uint8_t *)"" } },
+        { UINT32_MAX, { "pb,status", 34, (const uint8_t *)STATUS_ALL } },
+    };
+
+    (void)state;
+
+    /* The bits boot.md 5.6 and D-050 give them */
+    assert_int_equal(BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED, 1u << 0);
+    assert_int_equal(BOOT_INFO_STATUS_BOARD_DEGRADED, 1u << 1);
+
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+
+    for (size_t i = 0; i < ARRAY_SIZE(lists); i++) {
+        make_dtb("chosen");
+        info.status = lists[i].status;
+        assert_int_equal(prepare(), PB_OK);
+        assert_chosen_bytes(&lists[i].prop, 1);
+    }
+
+    /* The released properties are what they were, next to a full list */
+    make_dtb("chosen");
+    available_keys(2, KEY_ID_1, KEY_ID_2, 0);
+    info.status = UINT32_MAX;
+    assert_int_equal(prepare(), PB_OK);
+    assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
 }
 
 /* 'boot bpak' without a partition (boot.md 5.6): no pb,boot-partition, the
@@ -902,6 +948,8 @@ static void test_pbs_values_win_over_the_hook(void **state)
     assert_string_equal(chosen_string("pb,boot-partition"), BOOT_PART_UUID);
     assert_string_equal(chosen_string("pb,boot-mode"), "normal");
     assert_string_equal(chosen_string("pb,version"), VERSION);
+    /* Nothing to report: the hook's string is gone */
+    assert_chosen_bytes(&(struct chosen_bytes){ "pb,status", 0, (const uint8_t *)"" }, 1);
 }
 
 /* A device without an SLC, booting with a policy that has no names, from
@@ -997,7 +1045,7 @@ static void test_chosen_without_a_version(void **state)
  * A device tree built the 2.x way: /chosen has a placeholder of the final
  * size for every property a release wrote and for the board's bootargs, and
  * the tree has 'spare' free bytes. With a headroom of 0 that is all the room
- * there is. 'new_too': also for the three new properties, as the README says
+ * there is. 'new_too': also for the four new properties, as the README says
  * to build one now.
  */
 static void make_dtb_with_placeholders(int spare, bool new_too)
@@ -1022,6 +1070,8 @@ static void make_dtb_with_placeholders(int spare, bool new_too)
         assert_int_equal(fdt_property(dtb, "pb,boot-mode", zeros, 12), 0);
         assert_int_equal(fdt_property(dtb, "pb,boot-partition", zeros, 37), 0);
         assert_int_equal(fdt_property(dtb, "pb,version", zeros, sizeof(VERSION)), 0);
+        /* The status' has room for every string of its list */
+        assert_int_equal(fdt_property(dtb, "pb,status", zeros, sizeof(STATUS_ALL)), 0);
     }
 
     assert_int_equal(fdt_end_node(dtb), 0);
@@ -1043,11 +1093,12 @@ static int set_chosen(void)
     return boot_dtb_set_chosen(dtb, hdr, &info, &chosen_cfg);
 }
 
-static void assert_new_props(bool mode, bool partition, bool version)
+static void assert_new_props(bool mode, bool partition, bool version, bool status)
 {
     assert_true((fdt_getprop(dtb, chosen(), "pb,boot-mode", NULL) != NULL) == mode);
     assert_true((fdt_getprop(dtb, chosen(), "pb,boot-partition", NULL) != NULL) == partition);
     assert_true((fdt_getprop(dtb, chosen(), "pb,version", NULL) != NULL) == version);
+    assert_true((fdt_getprop(dtb, chosen(), "pb,status", NULL) != NULL) == status);
 }
 
 /* D-008: an image whose device tree has room for the released properties
@@ -1062,14 +1113,22 @@ static void test_tree_without_room_boots_without_the_new_properties(void **state
     make_dtb_with_placeholders(0, false);
     assert_int_equal(set_chosen(), PB_OK);
     assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
-    assert_new_props(false, false, false);
+    assert_new_props(false, false, false, false);
 
     /* The same when the policy's second candidate boots */
     make_dtb_with_placeholders(0, false);
     info.boot_mode = BOOT_POLICY_MODE_FALLBACK;
     assert_int_equal(set_chosen(), PB_OK);
     assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
-    assert_new_props(false, false, false);
+    assert_new_props(false, false, false, false);
+
+    /* And when pb has something to report: it is in the log, not in the
+     * tree, and the image boots as it did */
+    make_dtb_with_placeholders(0, false);
+    info.status = BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED | BOOT_INFO_STATUS_BOARD_DEGRADED;
+    assert_int_equal(set_chosen(), PB_OK);
+    assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
+    assert_new_props(false, false, false, false);
 }
 
 /* A released property that doesn't fit fails the candidate, as it did */
@@ -1084,13 +1143,16 @@ static void test_tree_without_room_for_a_released_property_fails(void **state)
 }
 
 /*
- * The three new properties take 138 bytes in a tree that has none of them:
+ * The four new properties take 196 bytes in a tree that has none of them:
  * pb,boot-mode 37 with its longest string, pb,boot-partition 70, pb,version
- * 31 ("3.0.0"). With less room each is left out on its own, in that order
- * of preference, and which of them a next stage finds doesn't depend on the
- * mode: "normal" is four bytes shorter than the other two, and with 134 to
- * 137 spare bytes a tree would have the version in a normal boot and lose
- * it in the boot that fell back.
+ * 31 ("3.0.0"), pb,status 58 with every string of its list. With less room
+ * each is left out on its own, in that order of preference, and which of
+ * them a next stage finds doesn't depend on the mode: "normal" is four
+ * bytes shorter than the other two, and with 134 to 137 spare bytes a tree
+ * would have the version in a normal boot and lose it in the boot that fell
+ * back. Nor does it depend on what pb has to report: an empty pb,status
+ * takes 22 bytes, and a tree with 160 spare bytes would have it until there
+ * is something in it.
  */
 static void test_new_properties_that_fit_do_not_depend_on_the_mode(void **state)
 {
@@ -1099,18 +1161,31 @@ static void test_new_properties_that_fit_do_not_depend_on_the_mode(void **state)
         bool mode;
         bool partition;
         bool version;
+        bool status;
     } rooms[] = {
-        { 36, false, false, false },
+        { 36, false, false, false, false },
         /* The mode alone */
-        { 37, true, false, false },
+        { 37, true, false, false, false },
         /* Not the partition: the version, which is smaller, still fits */
-        { 106, true, false, true },
-        { 107, true, true, false },
-        { 134, true, true, false },
-        { 135, true, true, false },
-        { 136, true, true, false },
-        { 137, true, true, false },
-        { 138, true, true, true },
+        { 106, true, false, true, false },
+        { 107, true, true, false, false },
+        { 134, true, true, false, false },
+        { 135, true, true, false, false },
+        { 136, true, true, false, false },
+        { 137, true, true, false, false },
+        { 138, true, true, true, false },
+        /* Room for an empty pb,status, and for each of its strings alone */
+        { 138 + 22, true, true, true, false },
+        { 138 + 44, true, true, true, false },
+        { 195, true, true, true, false },
+        { 196, true, true, true, true },
+    };
+
+    static const uint32_t statuses[] = {
+        0,
+        BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED,
+        BOOT_INFO_STATUS_BOARD_DEGRADED,
+        BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED | BOOT_INFO_STATUS_BOARD_DEGRADED,
     };
 
     static const struct {
@@ -1133,7 +1208,7 @@ static void test_new_properties_that_fit_do_not_depend_on_the_mode(void **state)
             assert_int_equal(set_chosen(), PB_OK);
 
             assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
-            assert_new_props(rooms[r].mode, rooms[r].partition, rooms[r].version);
+            assert_new_props(rooms[r].mode, rooms[r].partition, rooms[r].version, rooms[r].status);
 
             /* What is there is pb's value, whole */
             if (rooms[r].mode)
@@ -1143,7 +1218,28 @@ static void test_new_properties_that_fit_do_not_depend_on_the_mode(void **state)
             if (rooms[r].version)
                 assert_string_equal(chosen_string("pb,version"), VERSION);
         }
+
+        /* The same whatever pb has to report */
+        info.boot_mode = BOOT_POLICY_MODE_NORMAL;
+
+        for (size_t s = 0; s < ARRAY_SIZE(statuses); s++) {
+            make_dtb_with_placeholders(rooms[r].spare, false);
+            info.status = statuses[s];
+            assert_int_equal(set_chosen(), PB_OK);
+
+            assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
+            assert_new_props(rooms[r].mode, rooms[r].partition, rooms[r].version, rooms[r].status);
+        }
+
+        info.status = 0;
     }
+
+    /* With the room, the list is this boot's */
+    make_dtb_with_placeholders(196, false);
+    info.status = BOOT_INFO_STATUS_BOARD_DEGRADED;
+    assert_int_equal(set_chosen(), PB_OK);
+    assert_chosen_bytes(
+        &(struct chosen_bytes){ "pb,status", 15, (const uint8_t *)"board-degraded" }, 1);
 }
 
 /* A device tree built with placeholders for all of pb's properties (the
@@ -1159,12 +1255,21 @@ static void test_tree_with_placeholders_for_the_new_properties(void **state)
         info.boot_mode = mode;
         assert_int_equal(set_chosen(), PB_OK);
         assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
-        assert_new_props(true, true, true);
+        assert_new_props(true, true, true, true);
         assert_string_equal(chosen_string("pb,boot-partition"), BOOT_PART_UUID);
         assert_string_equal(chosen_string("pb,version"), VERSION);
+        /* Nothing to report: empty, not the image's placeholder */
+        assert_chosen_bytes(&(struct chosen_bytes){ "pb,status", 0, (const uint8_t *)"" }, 1);
     }
 
     assert_string_equal(chosen_string("pb,boot-mode"), "speculative");
+
+    /* And with everything pb can report */
+    make_dtb_with_placeholders(0, true);
+    info.status = BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED | BOOT_INFO_STATUS_BOARD_DEGRADED;
+    assert_int_equal(set_chosen(), PB_OK);
+    assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
+    assert_chosen_bytes(&(struct chosen_bytes){ "pb,status", 34, (const uint8_t *)STATUS_ALL }, 1);
 }
 
 /* A placeholder that holds "normal" and no more has no room for the other
@@ -1182,7 +1287,30 @@ static void test_mode_placeholder_too_short_for_the_longest(void **state)
 
     assert_int_equal(set_chosen(), PB_OK);
     assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
-    assert_new_props(false, false, false);
+    assert_new_props(false, false, false, false);
+}
+
+/* The same for pb,status: a placeholder that holds one of its strings and
+ * no more has no room for the list. It is left out in every boot, also the
+ * one with nothing to report, and the image's placeholder doesn't stay */
+static void test_status_placeholder_too_short_for_the_list(void **state)
+{
+    static const uint32_t statuses[] = { 0, BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED };
+    (void)state;
+
+    available_keys(2, KEY_ID_1, KEY_ID_2, 0);
+
+    for (size_t s = 0; s < ARRAY_SIZE(statuses); s++) {
+        make_dtb_with_placeholders(0, false);
+        assert_int_equal(fdt_open_into(dtb, dtb, fdt_totalsize(dtb) + 42), 0);
+        assert_int_equal(fdt_setprop_string(dtb, chosen(), "pb,status", "watchdog-not-armed"), 0);
+        assert_int_equal(fdt_pack(dtb), 0);
+
+        info.status = statuses[s];
+        assert_int_equal(set_chosen(), PB_OK);
+        assert_chosen_bytes(released_props, ARRAY_SIZE(released_props));
+        assert_new_props(false, false, false, false);
+    }
 }
 
 /* The hook has the whole tree: what it adds before /chosen moves /chosen,
@@ -1478,6 +1606,8 @@ int main(void)
         IMAGE_TEST(test_released_property_without_a_value_keeps_the_hooks),
         IMAGE_TEST(test_released_property_without_a_value_keeps_the_images),
         IMAGE_TEST(test_chosen_without_a_version),
+        IMAGE_TEST(test_chosen_status_bytes),
+        IMAGE_TEST(test_status_placeholder_too_short_for_the_list),
         IMAGE_TEST(test_tree_without_room_boots_without_the_new_properties),
         IMAGE_TEST(test_tree_without_room_for_a_released_property_fails),
         IMAGE_TEST(test_new_properties_that_fit_do_not_depend_on_the_mode),

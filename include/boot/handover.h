@@ -64,9 +64,9 @@ struct boot_info {
     uint32_t available_keys[BOOT_INFO_MAX_KEYS]; /*!< The ids of the keys not revoked,
                                                       in the keystore's order */
     /** What pb booted without, BOOT_INFO_STATUS_* (boot.md 5.6): 'status' in
-     * pb's structure. From the boot's preconditions, checked before
-     * early_boot(), and from the board, asked after it. A device tree gets
-     * no pb,status yet (F-248) */
+     * pb's structure, pb,status in a device tree. From the boot's
+     * preconditions, checked before early_boot(), and from the board, asked
+     * after it */
     uint32_t status;
 
     /* The candidate's, set before each prepare */

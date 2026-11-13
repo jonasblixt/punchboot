@@ -113,6 +113,13 @@ struct pb_fh_tl_entry {
 #define PB_FH_BOOT_MODE_FALLBACK        1 /*!< Another one, the first failed */
 #define PB_FH_BOOT_MODE_SPECULATIVE     2 /*!< A/B's speculative mode */
 
+/** status: what pb couldn't do and booted anyway, a bit each (boot.md
+ * 5.6). 0: nothing. A bit keeps its meaning and new ones are appended:
+ * ignore the bits you don't know */
+#define PB_FH_STATUS_WATCHDOG_NOT_ARMED (UINT32_C(1) << 0) /*!< The watchdog didn't arm */
+/** The board reported a failure the boot went on without */
+#define PB_FH_STATUS_BOARD_DEGRADED     (UINT32_C(1) << 1)
+
 /** slc of a device without a security life cycle */
 #define PB_FH_NO_SLC                    (-1)
 
@@ -137,7 +144,7 @@ struct pb_fh_handover {
     uint32_t active_key; /*!< The id of the key the image is signed with */
     uint32_t no_of_available_keys;
     uint32_t available_keys[PB_FH_MAX_KEYS]; /*!< The ids of the keys not revoked */
-    uint32_t status; /*!< What pb booted without, bit flags (boot.md 5.6); 0: nothing */
+    uint32_t status; /*!< What pb booted without, PB_FH_STATUS_*; 0: nothing */
     char version[32]; /*!< pb's version, NUL terminated */
 };
 

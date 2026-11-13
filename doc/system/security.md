@@ -103,8 +103,7 @@ can't be read is unusable; a life cycle that can't be read requires authenticati
 boot (`system.md` 4).
 
 **4.5 No silent boot.** pb doesn't boot when something the boot's security rests on failed
-(`platform.md` 2.3). **Not yet in the code (F-248).** The conditions are sorted by what rests on
-them:
+(`platform.md` 2.3). The conditions are sorted by what rests on them:
 
 - What 2.1 to 2.4 rest on refuses the boot: the secure world's isolation not in effect, a failed
   verification engine without a fallback that verifies the same. pb enters command mode and logs

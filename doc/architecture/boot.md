@@ -108,9 +108,8 @@ The two new steps:
 
 - **The preconditions are checked in every boot**, also one command mode started, and the same
   in every life cycle state (`security.md` 4.5). What integrity rests on refuses the boot; what
-  only availability rests on boots and is reported in the handover (5.6). **Not yet in the code
-  (F-248).** They sit before `early_boot()`, so that a boot that will be refused starts no
-  hardware.
+  only availability rests on boots and is reported in the handover (5.6). They sit before
+  `early_boot()`, so that a boot that will be refused starts no hardware.
 - **pb's information is read before the loop.** The device's identity, the life cycle and the
   keys don't depend on the candidate, so a failure to read them is no candidate's fault and stops
   the boot: a life cycle that can't be read doesn't boot, with any handover (`security.md` 4.4,
@@ -574,9 +573,9 @@ for an inventory or a report (D-043). A next stage that needs one of the entries
 that entry, not for a version: an entry that is absent was added after the pb that booted it.
 
 pb's status (`system.md` 3, `security.md` 4.5) is what pb couldn't do and booted anyway, so that
-the next stage can report it or act on it. **Not yet in the code (F-248).** A list of strings in
-the DT, its own idiom and readable without a table; bit flags in pb's structure, whose fields
-have a fixed size (Jonas, D-041):
+the next stage can report it or act on it. A list of strings in the DT, its own idiom and
+readable without a table; bit flags in pb's structure, whose fields have a fixed size (Jonas,
+D-041):
 
 | Condition                                                              | String in `pb,status` | Bit in `status` |
 | ---------------------------------------------------------------------- | --------------------- | --------------- |
@@ -651,5 +650,4 @@ Like the wire (D-008, `compatibility.md`):
 | Finding | What                                                                         |
 | ------- | ---------------------------------------------------------------------------- |
 | F-259   | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
-| F-248   | The boot's preconditions in the flow (2), pb's status in the handover (5.6)  |
 | F-180   | The A/B review's fixes, `pbstate`                                            |

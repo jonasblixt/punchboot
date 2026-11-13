@@ -327,6 +327,57 @@ set_initrd(void *fdt, int offset, struct bpak_header *hdr, const struct boot_dtb
     return PB_OK;
 }
 
+/* The strings of pb,status (boot.md 5.6), one for each bit of pb's status,
+ * in the bits' order. They are never renamed, and new ones are appended */
+static const struct {
+    uint32_t bit;
+    const char *name;
+} status_names[] = {
+    { BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED, "watchdog-not-armed" },
+    { BOOT_INFO_STATUS_BOARD_DEGRADED, "board-degraded" },
+};
+
+/* pb,status as the list of the strings whose bit 'status' has: none is an
+ * empty property. A bit without a string is pb's structure's only */
+static int write_status(void *fdt, int offset, uint32_t status)
+{
+    /* Not NULL: fdt_setprop() copies from it, 0 bytes */
+    int rc = fdt_setprop(fdt, offset, "pb,status", "", 0);
+
+    for (size_t i = 0; rc == 0 && i < ARRAY_SIZE(status_names); i++) {
+        if (status & status_names[i].bit)
+            rc = fdt_appendprop_string(fdt, offset, "pb,status", status_names[i].name);
+    }
+
+    return rc;
+}
+
+/*
+ * pb's status, new with pb's information like the three before it, and left
+ * out the same way when the tree has no room. It is always written where it
+ * has room, empty when there is nothing to report, so that a next stage can
+ * tell "nothing" from a pb that doesn't report.
+ *
+ * Room is asked for with every string of the list, and the boot's own list
+ * is set after it, which is never longer: a tree that has room for the empty
+ * list and not for an entry would otherwise lose the property in the very
+ * boot that has something to report.
+ */
+static int set_status(void *fdt, int offset, uint32_t status)
+{
+    int rc = write_status(fdt, offset, UINT32_MAX);
+
+    if (rc == -FDT_ERR_NOSPACE) {
+        LOG_WARN("No room in the device tree for pb,status: left out");
+        return del_prop(fdt, offset, "pb,status");
+    }
+
+    if (rc == 0)
+        rc = write_status(fdt, offset, status);
+
+    return prop_result("pb,status", rc);
+}
+
 /* The longest of the modes' names: room for pb,boot-mode is asked for with it */
 #define MODE_NAME_LONGEST "speculative"
 
@@ -417,11 +468,12 @@ int boot_dtb_set_chosen(void *fdt,
 
     /*
      * The new ones, each left out when the tree has no room for it: the
-     * mode first, then the partition, then the version. Room for the mode
-     * is asked for with the longest name, and its value is set last, so
-     * that which of them a next stage finds doesn't depend on how this boot
-     * was chosen: a tree that has "normal" and not "fallback" would lose
-     * the mode, or the version after it, in the boot that fell back.
+     * mode first, then the partition, then the version, then pb's status.
+     * Room for the mode is asked for with the longest name, and its value
+     * is set last, so that which of them a next stage finds doesn't depend
+     * on how this boot was chosen: a tree that has "normal" and not
+     * "fallback" would lose the mode, or the version after it, in the boot
+     * that fell back.
      */
     rc = set_new_string(fdt, offset, "pb,boot-mode", MODE_NAME_LONGEST);
 
@@ -440,6 +492,11 @@ int boot_dtb_set_chosen(void *fdt,
         return rc;
 
     rc = set_new_string(fdt, offset, "pb,version", info->version);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = set_status(fdt, offset, info->status);
 
     if (rc != PB_OK)
         return rc;

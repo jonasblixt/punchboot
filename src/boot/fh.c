@@ -62,6 +62,10 @@ _Static_assert(FH_SIZE <= UINT32_MAX && FH_BASE <= UINTPTR_MAX &&
 _Static_assert(sizeof(PB_VERSION) <= sizeof(((struct pb_fh_handover *)0)->version),
                "PB_VERSION has no room in struct pb_fh_handover");
 _Static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "The transfer list is little-endian");
+/* pb's status is copied: the core's bits are the structure's (boot.md 5.6) */
+_Static_assert(BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED == PB_FH_STATUS_WATCHDOG_NOT_ARMED &&
+                   BOOT_INFO_STATUS_BOARD_DEGRADED == PB_FH_STATUS_BOARD_DEGRADED,
+               "pb's status has other bits in struct pb_fh_handover");
 
 /* The least of the entry's part that the hash covers. ARMv7-M: the jump reads
  * the initial stack pointer and the reset vector from it, the vector table's

@@ -161,11 +161,16 @@ image's device tree:
 | `pb,slc-active-key`                      | the id of the key the image is signed with             |
 | `pb,slc-available-keys`                  | the ids of the keys that aren't revoked                |
 | `pb,version`                             | the version of the pb that booted the system           |
+| `pb,status`                              | what pb booted without, a list of strings; often empty |
 | `linux,initrd-start`, `linux,initrd-end` | the ramdisk, if the image has one                      |
 | `bootargs` and others                    | whatever the board's callback sets                     |
 
-`pb,boot-partition`, `pb,boot-mode` and `pb,version` are new in 3.0.0: look
-for the property, an older pb doesn't write it. `pb,boot-mode` is `fallback`
+`pb,boot-partition`, `pb,boot-mode`, `pb,version` and `pb,status` are new in
+3.0.0: look for the property, an older pb doesn't write it. `pb,status` lists
+what pb couldn't do and booted anyway: `watchdog-not-armed`, and
+`board-degraded` for a failure the board reported (pb's log and `board status`
+say which). It is there and empty when there is nothing to report; ignore the
+strings you don't know. `pb,boot-mode` is `fallback`
 when the system pb tried first didn't load or verify in this boot and another
 one was booted, and `normal` for an image the host named or sent (`boot part`,
 `boot bpak`). `boot bpak` without a partition has no `pb,boot-partition`. The
@@ -185,14 +190,17 @@ a 30 KB device tree) that is too little to measure. A device tree built with
 the properties and free space for them (`dtc -p`) works with a headroom of 0.
 
 Such a device tree, built for an older pb, has no room for `pb,boot-mode`,
-`pb,boot-partition` and `pb,version`. With a headroom of 0 it boots as before,
-and each of the three that doesn't fit is left out, with a warning in pb's
-log. pb fits the mode first, then the partition, then the version, each on its
-own, and leaves out the same ones whatever the mode is. To get them, give the device tree the three properties
-(`pb,boot-mode` with room for `speculative`, 12 bytes; `pb,boot-partition` 37;
-`pb,version` its string) or 138 bytes of padding for them (70 for the
-partition, 37 for the mode, 31 for a version like `3.0.0`). A property of the
-older ones that doesn't fit fails the boot, as it always did.
+`pb,boot-partition`, `pb,version` and `pb,status`. With a headroom of 0 it
+boots as before, and each of the four that doesn't fit is left out, with a
+warning in pb's log. pb fits the mode first, then the partition, then the
+version, then the status, each on its own, and leaves out the same ones
+whatever the mode is and whatever it has to report. To get them, give the
+device tree the four properties (`pb,boot-mode` with room for `speculative`,
+12 bytes; `pb,boot-partition` 37; `pb,version` its string; `pb,status` with
+room for both of its strings, 34) or 196 bytes of padding for them (70 for the
+partition, 37 for the mode, 31 for a version like `3.0.0`, 58 for the status).
+A property of the older ones that doesn't fit fails the boot, as it always
+did.
 
 ## Command mode
 

@@ -156,8 +156,9 @@ bool boot_image_in_regions(uint64_t addr, uint64_t size)
 }
 
 static const char *const pbs_properties[] = {
-    "pb,device-uuid",   "pb,slc",       "pb,slc-active-key", "pb,slc-available-keys",
-    "pb,active-system", "pb,boot-mode", "pb,boot-partition", "pb,version",
+    "pb,device-uuid",        "pb,slc",           "pb,slc-active-key",
+    "pb,slc-available-keys", "pb,active-system", "pb,boot-mode",
+    "pb,boot-partition",     "pb,version",       "pb,status",
 };
 
 /* What a tree holds: its blocks end with the strings */
@@ -915,15 +916,32 @@ static void test_what_a_boot_does_not_have(void **state)
 }
 
 /* pb's status is the core's to collect (F-248): the handover writes the
- * bits it is given (boot.md 5.6) */
+ * bits it is given (boot.md 5.6). The next stage's names for them are
+ * pb_fh.h's, with the bits boot.md 5.6 and D-050 give them: fixed like the
+ * layout */
 static void test_status_is_the_cores(void **state)
 {
     (void)state;
 
+    assert_int_equal(PB_FH_STATUS_WATCHDOG_NOT_ARMED, 1u << 0);
+    assert_int_equal(PB_FH_STATUS_BOARD_DEGRADED, 1u << 1);
+
     add_app();
     assert_int_equal(boot_handover_fh_init(&cfg_app), PB_OK);
 
-    info.status = 0x00000003;
+    /* Nothing to report */
+    assert_int_equal(prepare(), PB_OK);
+    assert_int_equal(le32(pbs_structure() + PB_OFF_STATUS), 0);
+
+    info.status = BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED;
+    assert_int_equal(prepare(), PB_OK);
+    assert_int_equal(le32(pbs_structure() + PB_OFF_STATUS), PB_FH_STATUS_WATCHDOG_NOT_ARMED);
+
+    info.status = BOOT_INFO_STATUS_BOARD_DEGRADED;
+    assert_int_equal(prepare(), PB_OK);
+    assert_int_equal(le32(pbs_structure() + PB_OFF_STATUS), PB_FH_STATUS_BOARD_DEGRADED);
+
+    info.status = BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED | BOOT_INFO_STATUS_BOARD_DEGRADED;
     assert_int_equal(prepare(), PB_OK);
     assert_int_equal(le32(pbs_structure() + PB_OFF_STATUS), 3);
 }
@@ -1140,6 +1158,34 @@ static void test_list_holds_the_device_tree(void **state)
     assert_memory_equal(dtb, before, DTB_BUF_SIZE);
     free(before);
     assert_guard_is_untouched();
+}
+
+/* With a device tree in the list pb's status is in its /chosen, like the
+ * rest of pb's information (boot.md 5.4, 5.6): pb,status, a list of strings,
+ * there and empty when there is nothing to report */
+static void test_status_in_the_device_tree(void **state)
+{
+    const void *fdt;
+    const char *list;
+    int len = -1;
+    (void)state;
+
+    add_app();
+    add_dtb(DTB_PART_SIZE, DTB_PART_SIZE);
+    assert_int_equal(boot_handover_fh_init(&cfg_dt), PB_OK);
+
+    assert_int_equal(prepare(), PB_OK);
+    fdt = the_device_tree(NULL);
+    assert_non_null(fdt_getprop(fdt, fdt_path_offset(fdt, "/chosen"), "pb,status", &len));
+    assert_int_equal(len, 0);
+
+    info.status = BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED | BOOT_INFO_STATUS_BOARD_DEGRADED;
+    assert_int_equal(prepare(), PB_OK);
+    fdt = the_device_tree(NULL);
+    list = fdt_getprop(fdt, fdt_path_offset(fdt, "/chosen"), "pb,status", &len);
+    assert_non_null(list);
+    assert_int_equal(len, 34);
+    assert_memory_equal(list, "watchdog-not-armed\0board-degraded", 34);
 }
 
 /* The board's hook runs on the copy, with the whole tree, before pb writes
@@ -1438,6 +1484,7 @@ int main(void)
         cmocka_unit_test_setup(test_boot_mode, setup),
         cmocka_unit_test_setup(test_what_a_boot_does_not_have, setup),
         cmocka_unit_test_setup(test_status_is_the_cores, setup),
+        cmocka_unit_test_setup(test_status_in_the_device_tree, setup),
         cmocka_unit_test_setup(test_sixteen_keys, setup),
         cmocka_unit_test_setup(test_strings_that_do_not_fit, setup),
         cmocka_unit_test_setup(test_a_failed_candidate_leaves_no_list, setup),
