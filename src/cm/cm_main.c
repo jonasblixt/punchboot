@@ -1227,11 +1227,12 @@ static int pb_command_parse(void)
     } break;
     case PB_CMD_DEVICE_IDENTIFIER_READ: {
         LOG_INFO("Read identifier");
-        struct pb_result_device_identifier *ident = (struct pb_result_device_identifier *)buffer;
-        memset(ident->board_id, 0, sizeof(ident->board_id));
-        memcpy(ident->board_id, cfg->name, strlen(cfg->name));
-        memcpy(ident->device_uuid, device_uu, 16);
-        pb_wire_init_result2(&result, error_to_wire(rc), ident, sizeof(*ident));
+        /* Its own, zeroed: the reserved bytes are zero, and nothing of the
+         * buffers is sent before authentication (command-mode.md 4.3) */
+        struct pb_result_device_identifier ident = { 0 };
+        memcpy(ident.board_id, cfg->name, strlen(cfg->name));
+        memcpy(ident.device_uuid, device_uu, 16);
+        pb_wire_init_result2(&result, error_to_wire(rc), &ident, sizeof(ident));
     } break;
     case PB_CMD_PART_ACTIVATE: {
         struct pb_command_activate_part *activate_cmd =

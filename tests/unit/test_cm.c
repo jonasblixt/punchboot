@@ -806,6 +806,36 @@ static void test_board_id_fills_the_field(void **state)
     expect_end();
 }
 
+/* command-mode.md 4.3 (F-190): a result's reserved bytes and every byte the
+ * command didn't produce are zero. The identifier is answered before
+ * authentication, and the buffer then holds what the last host sent: here a
+ * token that didn't verify. */
+static void test_identifier_sends_only_the_identifier(void **state)
+{
+    static const uint8_t zeros[PB_RESULT_RESPONSE_MAX_SIZE];
+    uint8_t token[1024];
+    (void)state;
+
+    memset(token, 0xa5, sizeof(token));
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_auth(PB_AUTH_ASYM_TOKEN, token, sizeof(token), KEY_ID);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_device_identifier *id = (const void *)r->response;
+    uuid_t uu;
+    uuid_parse(DEVICE_UUID, uu);
+    assert_memory_equal(id->device_uuid, uu, 16);
+    assert_memory_equal(id->board_id, "unit test\0\0\0\0\0\0\0", sizeof(id->board_id));
+    assert_memory_equal(id->rz, zeros, sizeof(id->rz));
+    assert_memory_equal(r->rz, zeros, sizeof(r->rz));
+    assert_memory_equal(r->response + sizeof(*id), zeros, sizeof(r->response) - sizeof(*id));
+    expect_end();
+}
+
 static void test_invalid_command(void **state)
 {
     struct pb_command cmd;
@@ -3428,6 +3458,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         CM_TEST(test_basic_commands),
         CM_TEST(test_board_id_fills_the_field),
+        CM_TEST(test_identifier_sends_only_the_identifier),
         CM_TEST(test_invalid_command),
         CM_TEST(test_deprecated_commands),
         CM_TEST(test_part_table_read),
