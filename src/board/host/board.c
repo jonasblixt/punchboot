@@ -401,12 +401,15 @@ static int board_command(uint32_t command,
     LOG_DBG("%x, %p, %zu", command, bfr, size);
 
     if (command == 0xc72b6e9e) { /* test-command */
-        char *arg = (char *)bfr;
-        arg[size] = 0;
+        /* The request isn't terminated: at most its size, up to a NUL. The
+         * core refuses one larger than 1024 bytes */
+        const char *arg = (const char *)bfr;
+        int arg_length = (int)size;
 
-        LOG_DBG("test-command (%s)", arg);
+        LOG_DBG("test-command (%.*s)", arg_length, arg);
 
-        (*response_size) = snprintf(response, resp_buf_size, "Hello test-command: %s\n", arg);
+        (*response_size) =
+            snprintf(response, resp_buf_size, "Hello test-command: %.*s\n", arg_length, arg);
 
         return PB_OK;
     } else if (command == 0xdfa7c4ad) {
