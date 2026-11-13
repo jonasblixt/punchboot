@@ -30,7 +30,10 @@ DIST_EXTRA_CONFIG="$python_build/setup.cfg" \
     pip install --quiet --no-build-isolation --no-deps .
 
 echo "=== Building pbstate"
-cmake -S tools/pbstate -B "$BUILD_DIR/pbstate" -DCMAKE_INSTALL_PREFIX=/opt/pb > /dev/null
+# With the run's arguments: -DPB_SANITIZE=ON builds pbstate with the
+# sanitizers too. Those pbstate doesn't have are left unused
+cmake -S tools/pbstate -B "$BUILD_DIR/pbstate" -DCMAKE_INSTALL_PREFIX=/opt/pb \
+    --no-warn-unused-cli "$@" > /dev/null
 cmake --build "$BUILD_DIR/pbstate" -j"$(nproc)" > /dev/null
 cmake --install "$BUILD_DIR/pbstate" > /dev/null
 

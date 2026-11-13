@@ -16,6 +16,15 @@ set(CMAKE_C_STANDARD 99)
 
 add_compile_options(-Wall -Werror -Wextra -pedantic)
 
+# As the host tests' build (the top level CMakeLists.txt), which passes it on
+option(PB_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+if(PB_SANITIZE)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer
+                        -fno-sanitize-recover=undefined)
+    string(APPEND CMAKE_EXE_LINKER_FLAGS " -fsanitize=address,undefined")
+    string(APPEND CMAKE_SHARED_LINKER_FLAGS " -fsanitize=address,undefined")
+endif()
+
 include(GNUInstallDirs)
 
 
