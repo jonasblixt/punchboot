@@ -182,8 +182,7 @@ A boot's candidates start over after a candidate was reported with `PB_OK` and a
 returned none: a boot that command mode starts later (`boot part` with the null UUID, 6) begins
 with the first candidate again, and counts like any boot.
 
-When that write fails (**not yet in the code, F-179**: today any failed write ends the boot), the
-write decides only where skipping it would be unsafe:
+When that write fails, the write decides only where skipping it would be unsafe:
 
 - A rollback that can't be written: the verified slot is handed out. The next boot decides the
   same again.
@@ -289,7 +288,7 @@ The A/B state is `struct pb_boot_state` (`include/boot/pb_state_blob.h`), 512 by
 partitions: the primary is written first, the backup second. Its format is fixed (section 7): an
 extension takes a field from `rz[]`, where zero means today's behaviour. The four board registers
 (`board_regs[]`) are the board's, and part of the format. `pbstate` is the OS's side
-and isn't Linux specific. **Not yet in the code (roadmap, F-179, F-180)**: one
+and isn't Linux specific. **Not yet in the code (roadmap, F-180)**: one
 freestanding core shared by pb and `pbstate` (Linux, Zephyr, bare metal; the simple target's copy
 goes), the other policies in `pbstate`, the fixes of the A/B review.
 
@@ -652,5 +651,5 @@ Like the wire (D-008, `compatibility.md`):
 | ------------ | ---------------------------------------------------------------------------- |
 | F-259        | Firmware Handoff (5.4): the list, the region, pb's structure and its tag     |
 | F-248        | The boot's preconditions in the flow (2), pb's status in the handover (5.6)  |
-| F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate`                |
+| F-180        | The A/B review's fixes, `pbstate`                                            |
 | F-252, F-076 | A stop in a boot command mode started; a part outside the hash refused (4.2) |

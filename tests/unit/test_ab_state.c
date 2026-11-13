@@ -659,15 +659,179 @@ static void test_no_rollback_to_unverified_system(void **state)
 }
 #endif
 
-static void test_get_commit_error(void **state)
+/*
+ * boot.md 3.2 (D-040, F-179): the state write of a decision that fails
+ * decides only where skipping it would be unsafe. One test per case.
+ *
+ * A rollback that can't be written: the verified slot is handed out, and
+ * the next boot decides the same again.
+ */
+static void assert_rollback_without_a_write(struct fixture *f,
+                                            uint32_t enable,
+                                            uint32_t verified,
+                                            bio_dev_t target,
+                                            uint32_t enable_after,
+                                            uint32_t error_after)
+{
+    uuid_t uu;
+
+    write_state(f, enable, verified, 0, 0);
+    reboot(f, &cfg_normal);
+
+    /* Nothing can be written, as on an eMMC that went read only */
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(hand_out(uu), target);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    boot_policy_ab_ops.report(uu, PB_OK);
+    assert_disk_state(f, enable, verified, 0, 0);
+
+    /* The next boots, with the fault: the same */
+    for (unsigned int boot = 0; boot < 2; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(boot_once(), target);
+        assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+        assert_disk_state(f, enable, verified, 0, 0);
+    }
+
+    /* The fault passes: the rollback is written */
+    f->disk->fail_writes_after = -1;
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), target);
+    assert_disk_state(f, enable_after, verified, 0, error_after);
+}
+
+static void test_rollback_that_cannot_be_written_is_handed_out(void **state)
 {
     struct fixture *f = *state;
+    uuid_t uu;
+
+    assert_rollback_without_a_write(f,
+                                    PB_STATE_B_ENABLED,
+                                    PB_STATE_A_VERIFIED,
+                                    f->sys_a,
+                                    PB_STATE_A_ENABLED,
+                                    PB_STATE_ERROR_B_ROLLBACK);
+    assert_rollback_without_a_write(f,
+                                    PB_STATE_A_ENABLED,
+                                    PB_STATE_B_VERIFIED,
+                                    f->sys_b,
+                                    PB_STATE_B_ENABLED,
+                                    PB_STATE_ERROR_A_ROLLBACK);
+
+    /* Only the backup can't be written: the same, and the next boot finds
+     * the rollback in the primary */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    f->disk->fail_writes_after = 1;
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
+    assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_B_ENABLED);
+
+    attach(f, true, true);
+    f->disk->fail_writes_after = 1;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_B_ROLLBACK);
+}
+
+/*
+ * A trial's attempt that can't be written, while the other slot is
+ * verified: that slot is handed out instead, mode fallback (3.5, rule 3).
+ * pb makes this choice again on every boot with the fault, so an image that
+ * verifies and hangs isn't started for ever beside a confirmed system. The
+ * trial that wasn't started spent no attempt.
+ */
+static void assert_no_trial_without_a_write(struct fixture *f,
+                                            uint32_t enable,
+                                            uint32_t verified,
+                                            bio_dev_t trial,
+                                            bio_dev_t other)
+{
+    uuid_t uu;
+
+    write_state(f, enable, verified, 2, 0);
+    reboot(f, &cfg_normal);
+
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(hand_out(uu), other);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+    boot_policy_ab_ops.report(uu, PB_OK);
+    assert_disk_state(f, enable, verified, 2, 0);
+
+    /* 'boot status' is the enabled slot (boot.md 3.4): the trial's */
+    boot_policy_ab_ops.status(uu);
+    assert_int_equal(bio_get_part_by_uu(uu), trial);
+
+    /* Every boot with the fault, more of them than the trial has attempts */
+    for (unsigned int boot = 0; boot < 4; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(boot_once(), other);
+        assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+        assert_disk_state(f, enable, verified, 2, 0);
+    }
+
+    /* The fault passes: the trial is started, with the attempts it had */
+    f->disk->fail_writes_after = -1;
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), trial);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_disk_state(f, enable, verified, 1, 0);
+}
+
+static void test_trial_attempt_that_cannot_be_written_boots_the_verified_slot(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    assert_no_trial_without_a_write(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, f->sys_b, f->sys_a);
+    assert_no_trial_without_a_write(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, f->sys_a, f->sys_b);
+
+    /* Only the backup can't be written: the same */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, 0);
+    reboot(f, &cfg_normal);
+    f->disk->fail_writes_after = 1;
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+    assert_int_equal(state_at(f, BACKUP_LBA)->remaining_boot_attempts, 2);
+}
+
+/* A trial's attempt that can't be written, and nothing else to boot: the
+ * trial is handed out uncounted */
+static void test_trial_attempt_that_cannot_be_written_and_no_verified_slot(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
 
     write_state(f, PB_STATE_A_ENABLED, 0, 3, 0);
     reboot(f, &cfg_normal);
 
     f->disk->fail_writes_after = 0;
-    assert_int_equal(boot_once(), -PB_ERR_IO);
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    boot_policy_ab_ops.report(uu, PB_OK);
+    assert_disk_state(f, PB_STATE_A_ENABLED, 0, 3, 0);
+
+    /* More boots with the fault than it has attempts: the trial each time */
+    for (unsigned int boot = 0; boot < 5; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(boot_once(), f->sys_a);
+        assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+        assert_disk_state(f, PB_STATE_A_ENABLED, 0, 3, 0);
+    }
+
+    /* The same from B, on its last attempt */
+    f->disk->fail_writes_after = -1;
+    write_state(f, PB_STATE_B_ENABLED, 0, 1, 0);
+    reboot(f, &cfg_normal);
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_disk_state(f, PB_STATE_B_ENABLED, 0, 1, 0);
 }
 
 static void test_set_boot_partition(void **state)
@@ -1047,25 +1211,6 @@ static void test_no_speculative_mode_without_the_symbol(void **state)
     assert_disk_state(f, 0, 0, 0, 0);
 }
 #endif
-
-/* A state write that fails ends the candidates (F-179 changes that): the
- * next boot starts over */
-static void test_next_starts_over_after_an_error(void **state)
-{
-    struct fixture *f = *state;
-    uuid_t uu;
-
-    write_state(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, 3, 0);
-    reboot(f, &cfg_normal);
-
-    f->disk->fail_writes_after = 0;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
-    f->disk->fail_writes_after = -1;
-
-    /* Not B as a fallback: A, as the first candidate of a new boot */
-    assert_int_equal(boot_once(), f->sys_a);
-    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
-}
 
 /*
  * What A/B writes where it has a viable candidate, byte for byte, the same
@@ -1870,68 +2015,101 @@ static void test_speculative_writes_only_enable(void **state)
     assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_B_VERIFIED);
 }
 
-/* The alternation's write fails: that ends the boot today, like any state
- * write that fails. boot.md 3.2 hands the slot out anyway (F-179) */
-static void test_speculative_write_error(void **state)
+/*
+ * boot.md 3.2 (D-040, F-179): speculative mode's alternation that can't be
+ * written: the slot is handed out. A hang then comes back to the same
+ * slot, which is still better than no system.
+ */
+static void test_speculative_alternation_that_cannot_be_written_is_handed_out(void **state)
 {
     struct fixture *f = *state;
     uuid_t uu;
 
+    /* From the state */
     write_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
     reboot(f, &cfg_normal);
 
     f->disk->fail_writes_after = 0;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
-    assert_mode(NORMAL);
+    assert_int_equal(hand_out(uu), f->sys_b);
+    assert_mode(SPECULATIVE);
     assert_disk_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
+
+    /* It hangs: the reset finds the state as it was, and B again */
+    for (unsigned int boot = 0; boot < 3; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(hand_out(uu), f->sys_b);
+        assert_mode(SPECULATIVE);
+        assert_disk_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
+    }
+
+    /* In the same boot, when its slot fails, the other is tried (3.6, rule
+     * 3), which needs no write */
+    boot_policy_ab_ops.report(uu, -PB_ERR_BAD_PAYLOAD);
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_mode(SPECULATIVE);
+    boot_policy_ab_ops.report(uu, PB_OK);
+
+    /* Nothing enabled: A, and A again */
+    f->disk->fail_writes_after = -1;
+    write_state(f, 0, 0, 0, 0);
+    reboot(f, &cfg_normal);
+    f->disk->fail_writes_after = 0;
+
+    for (unsigned int boot = 0; boot < 2; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(hand_out(uu), f->sys_a);
+        assert_mode(SPECULATIVE);
+        assert_disk_state(f, 0, 0, 0, 0);
+    }
+
+    /* The fault passes: the alternation is written again */
+    f->disk->fail_writes_after = -1;
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_disk_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_disk_state(f, PB_STATE_B_ENABLED, 0, 0, 0);
 }
 
 /*
- * The alternation's second write fails: the primary has the other slot, the
- * backup can't be written. The boot ends, as above, with the other slot
- * already enabled in memory. With a backup that never takes a write, the
- * primary wins at each init and is flipped again by each boot, and nothing
- * boots. This pins what the code does: boot.md 3.2 hands the slot out
- * (F-179).
+ * A backup that takes no write, for good: the alternation's second write
+ * fails on every boot, and init can't bring the backup up to date either.
+ * Each boot hands its slot out all the same (boot.md 3.2), and since the
+ * primary takes the write the slots still alternate. Before F-179 the
+ * primary alternated and nothing booted.
  */
-static void test_speculative_backup_write_error(void **state)
+static void test_speculative_backup_that_cannot_be_written(void **state)
 {
     struct fixture *f = *state;
     uuid_t uu;
 
     write_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
-    reboot(f, &cfg_normal);
 
-    f->disk->fail_writes_after = 1;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
-    assert_mode(NORMAL);
-    assert_true(state_valid(f, PRIMARY_LBA));
-    assert_true(state_valid(f, BACKUP_LBA));
-    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
-    assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_A_ENABLED);
+    for (unsigned int boot = 0; boot < 6; boot++) {
+        bool b_turn = (boot % 2 == 0);
 
-    /* In memory the other slot is enabled, though no boot got it */
-    boot_policy_ab_ops.status(uu);
-    assert_memory_equal(uu, UU_SYS_B, 16);
-
-    /* A boot that command mode starts flips it back, and fails the same */
-    f->disk->fail_writes_after = 1;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
-    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
-    assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_A_ENABLED);
-
-    /* The next boots: the primary alternates, the backup stays, none boots.
-     * The backup takes no write from init either, which finds it behind the
-     * primary every other boot (F-176) */
-    for (unsigned int boot = 0; boot < 4; boot++) {
+        attach(f, true, true);
         f->disk->fail_writes_after = 1;
-        reboot(f, &cfg_normal);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+
         f->disk->fail_writes_after = 1;
-        assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
+        assert_int_equal(hand_out(uu), b_turn ? f->sys_b : f->sys_a);
+        assert_mode(SPECULATIVE);
+        boot_policy_ab_ops.report(uu, PB_OK);
+
+        assert_true(state_valid(f, PRIMARY_LBA));
+        assert_true(state_valid(f, BACKUP_LBA));
         assert_int_equal(state_at(f, PRIMARY_LBA)->enable,
-                         (boot % 2 == 0) ? PB_STATE_B_ENABLED : PB_STATE_A_ENABLED);
+                         b_turn ? PB_STATE_B_ENABLED : PB_STATE_A_ENABLED);
         assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_A_ENABLED);
         assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 0);
+
+        /* 'boot status': the enabled slot, the one that booted */
+        boot_policy_ab_ops.status(uu);
+        assert_int_equal(bio_get_part_by_uu(uu), b_turn ? f->sys_b : f->sys_a);
     }
 }
 
@@ -1953,10 +2131,11 @@ static void test_speculative_power_loss_between_the_copies(void **state)
     assert_disk_state(f, PB_STATE_B_ENABLED, 0, 0, 0);
 
     /* The next boot enables A, and power is lost after the primary's
-     * write: the backup still has B, and A was never loaded */
+     * write: the backup still has B, and A was never loaded. Here the
+     * backup's write fails and the candidate is never loaded or reported */
     reboot(f, &cfg_normal);
     f->disk->fail_writes_after = 1;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
+    assert_int_equal(hand_out(uu), f->sys_a);
     f->disk->fail_writes_after = -1;
     assert_true(state_valid(f, PRIMARY_LBA));
     assert_true(state_valid(f, BACKUP_LBA));
@@ -2032,7 +2211,9 @@ int main(void)
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
         AB_TEST(test_no_rollback_to_unverified_system),
 #endif
-        AB_TEST(test_get_commit_error),
+        AB_TEST(test_rollback_that_cannot_be_written_is_handed_out),
+        AB_TEST(test_trial_attempt_that_cannot_be_written_boots_the_verified_slot),
+        AB_TEST(test_trial_attempt_that_cannot_be_written_and_no_verified_slot),
         AB_TEST(test_set_boot_partition),
         AB_TEST(test_activate_unknown_uuid_changes_nothing),
         AB_TEST(test_part_names),
@@ -2042,7 +2223,6 @@ int main(void)
         AB_TEST(test_fallback_to_the_verified_slot),
         AB_TEST(test_fallback_fails_too),
         AB_TEST(test_trial_that_fails_falls_back),
-        AB_TEST(test_next_starts_over_after_an_error),
         AB_TEST(test_writes_with_a_viable_candidate),
         AB_TEST(test_rollback_keeps_the_other_slots_bit),
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
@@ -2065,8 +2245,8 @@ int main(void)
         AB_TEST(test_speculative_mode_is_reported),
         AB_TEST(test_speculative_then_rollback_keeps_both_bits),
         AB_TEST(test_speculative_writes_only_enable),
-        AB_TEST(test_speculative_write_error),
-        AB_TEST(test_speculative_backup_write_error),
+        AB_TEST(test_speculative_alternation_that_cannot_be_written_is_handed_out),
+        AB_TEST(test_speculative_backup_that_cannot_be_written),
         AB_TEST(test_speculative_power_loss_between_the_copies),
 #endif
     };

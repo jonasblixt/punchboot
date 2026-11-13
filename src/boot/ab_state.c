@@ -232,11 +232,19 @@ static void speculative_enable(uint32_t slot)
  * rolls back to. With speculative mode a boot without such a candidate has
  * one (boot.md 3.6): the other slot, or A when nothing is enabled. What the
  * decision changes is written before it returns.
+ *
+ * A write that fails decides only where skipping it would be unsafe (boot.md
+ * 3.2): a rollback or speculative mode's slot is handed out all the same. A
+ * trial isn't started while the other slot is verified, which is handed out
+ * instead, mode fallback; with nothing else to boot the trial is handed out
+ * uncounted.
  */
 static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode *how)
 {
     int rc;
     const unsigned char *boot_part_uu = NULL;
+    const unsigned char *trial_other_uu = NULL;
+    uint32_t trial_other_verified = 0;
     bool commit = false;
 
     LOG_DBG(
@@ -250,6 +258,8 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
             boot_state.remaining_boot_attempts--;
             commit = true; /* Update state data */
             boot_part_uu = cfg->sys_a_uu;
+            trial_other_uu = cfg->sys_b_uu;
+            trial_other_verified = PB_STATE_B_VERIFIED;
         } else if (!(boot_state.verified & PB_STATE_A_VERIFIED)) {
             LOG_ERR("Rollback to B system");
             if (!(boot_state.verified & PB_STATE_B_VERIFIED)) {
@@ -278,6 +288,8 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
             boot_state.remaining_boot_attempts--;
             commit = true; /* Update state data */
             boot_part_uu = cfg->sys_b_uu;
+            trial_other_uu = cfg->sys_a_uu;
+            trial_other_verified = PB_STATE_A_VERIFIED;
         } else if (!(boot_state.verified & PB_STATE_B_VERIFIED)) {
             LOG_ERR("Rollback to A system");
             if (!(boot_state.verified & PB_STATE_A_VERIFIED)) {
@@ -314,8 +326,19 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
     if (commit) {
         rc = pb_boot_state_commit();
 
-        if (rc != PB_OK)
-            return rc;
+        if (rc != PB_OK && (boot_state.verified & trial_other_verified)) {
+            /* The trial isn't started, so no attempt of it is spent */
+            LOG_ERR("Boot state not written (%i): no trial, system %s for this boot",
+                    rc,
+                    boot_ab_part_uu_to_name((unsigned char *)trial_other_uu));
+            boot_state.remaining_boot_attempts++;
+            boot_part_uu = trial_other_uu;
+            *how = BOOT_POLICY_MODE_FALLBACK;
+        } else if (rc != PB_OK) {
+            LOG_ERR("Boot state not written (%i), system %s all the same",
+                    rc,
+                    boot_ab_part_uu_to_name((unsigned char *)boot_part_uu));
+        }
     }
 
     if (boot_part_uu == NULL)
