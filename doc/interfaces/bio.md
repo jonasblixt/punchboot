@@ -432,7 +432,7 @@ The partition tables:
 | Every entry checked                 | yes (`test_gpt`)     | partly |                     |
 | The device's block size             | no: 512 in four      | yes    | F-283               |
 |                                     | places               |        |                     |
-| Repair writes only the bad copy     | yes (`test_gpt`)     | n/a    | F-064               |
+| Repair writes only the bad copy     | yes (`test_gpt`)     | n/a    |                     |
 | An installed table in effect        | no                   | n/a    | F-194               |
 | Tested on the host                  | yes (`test_gpt`,     | no     | F-230               |
 |                                     | `test_gpt.py`)       |        |                     |
@@ -462,6 +462,5 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |
 | F-199, F-200, F-281 | Timeouts and their codes; sizes from the card; addresses above 4 GiB           |
-| F-064               | The last usable block that a GPT's header names (4)                            |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

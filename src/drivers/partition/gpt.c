@@ -200,7 +200,10 @@ static int gpt_init_tbl(bio_dev_t dev)
     hdr->first_lba =
         (hdr->current_lba + 1 + (hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
     hdr->backup_lba = last_lba;
-    hdr->last_lba = (last_lba - (hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
+    /* The last usable block is the one before the backup's array (F-064).
+     * Releases up to 2.8.0 wrote the array's own first block here: such a
+     * table is read and repaired as it is */
+    hdr->last_lba = (last_lba - (hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / 512) - 1;
     hdr->entries_start_lba = primary.hdr.current_lba + 1;
     hdr->part_entry_sz = sizeof(struct gpt_part_hdr);
 
@@ -227,7 +230,10 @@ gpt_add_part(int part_idx, unsigned int no_of_blocks, const uuid_t type_uuid, co
 
     part->last_lba = part->first_lba + no_of_blocks - 1;
 
-    if (part->last_lba >= primary.hdr.last_lba)
+    /* A partition may end on the last usable block: the layouts that fit
+     * are the ones that fitted when the header named one block more and the
+     * block it named was refused */
+    if (part->last_lba > primary.hdr.last_lba)
         return -PB_ERR_MEM;
 
     if (strlen(part_name) > GPT_PART_NAME_MAX_SIZE)

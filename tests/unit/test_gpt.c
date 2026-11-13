@@ -18,6 +18,7 @@
 #include <pb/bio.h>
 #include <pb/crc.h>
 #include <pb/pb.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -714,7 +715,7 @@ static void test_repair_needs_a_place(void **state)
     static const uint32_t no_place[] = {
         5000, /* In a partition's blocks */
         40, /* Before the 33 blocks of a backup end */
-        DISK_BLOCKS - 2, /* The array would start in the last usable blocks */
+        DISK_BLOCKS - 3, /* The array would start in the last usable blocks */
         DISK_BLOCKS, /* Outside the device */
     };
     uint8_t *before;
@@ -752,6 +753,145 @@ static void test_repair_needs_a_place(void **state)
     assert_int_equal(boot(f), PB_OK);
     assert_part(UU_SYS_A, 34, 1057, "System A");
     assert_int_equal(f->disk->writes, 0);
+}
+
+/* F-064: the header's last usable block is the one before the backup's
+ * array, in both copies, and a partition may end on it. The layouts that fit
+ * are the ones that fitted in a release: the largest ends on that block, and
+ * one block more is refused. */
+static void test_last_usable_block(void **state)
+{
+    struct fixture *f = *state;
+    static const struct gpt_part_table fits[] = {
+        { .uu = UU_SYS_A, .description = "Fits", .size = (BACKUP_ARRAY - 34) * 512 },
+    };
+    static const struct gpt_part_table too_large[] = {
+        { .uu = UU_SYS_A, .description = "Too large", .size = (BACKUP_ARRAY - 34 + 1) * 512 },
+    };
+    static const struct gpt_table_list layouts[] = {
+        { .name = "Fits", .variant = 0, .table = fits, .table_length = 1 },
+        { .name = "Too large", .variant = 1, .table = too_large, .table_length = 1 },
+    };
+
+    install_and_reboot(f, 0);
+    assert_int_equal(get_hdr_field(ramdisk_block(f->disk, PRIMARY_HDR), HDR_LAST_USABLE),
+                     BACKUP_ARRAY - 1);
+    assert_int_equal(get_hdr_field(ramdisk_block(f->disk, BACKUP_HDR), HDR_LAST_USABLE),
+                     BACKUP_ARRAY - 1);
+    assert_int_equal(get_hdr_field(ramdisk_block(f->disk, PRIMARY_HDR), HDR_FIRST_USABLE), 34);
+
+    bio_reset();
+    f->dev = ramdisk_attach(f->disk, UU_DISK);
+    assert_int_equal(gpt_ptbl_init(f->dev, layouts, ARRAY_SIZE(layouts)), PB_OK);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 1), -PB_ERR_MEM);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, 34, BACKUP_ARRAY - 1, "Fits");
+}
+
+/* The table as releases up to 2.8.0 installed it: the same bytes but for
+ * the last usable block, which was the backup array's first (F-064) */
+static void install_released_table(struct fixture *f)
+{
+    install_and_reboot(f, 0);
+    set_hdr_field(ramdisk_block(f->disk, PRIMARY_HDR), HDR_LAST_USABLE, BACKUP_ARRAY);
+    set_hdr_field(ramdisk_block(f->disk, BACKUP_HDR), HDR_LAST_USABLE, BACKUP_ARRAY);
+    f->disk->writes = 0;
+}
+
+/* board.md 8, F-064: a table that a release installed is used as it is, with
+ * the partitions it gave and without a write, and when a copy is lost it is
+ * repaired to the bytes the release wrote */
+static void test_table_of_a_release_is_used_as_it_is(void **state)
+{
+    struct fixture *f = *state;
+    const lba_t headers[] = { PRIMARY_HDR, BACKUP_HDR };
+    uint8_t *released;
+
+    install_released_table(f);
+    released = snapshot(f);
+
+    for (int boots = 0; boots < 2; boots++) {
+        assert_int_equal(boot(f), PB_OK);
+        assert_part(UU_SYS_A, 34, 1057, "System A");
+        assert_part(UU_SYS_B, 1058, 2081, "System B");
+        assert_part(UU_STATE, 2082, 2082, "State");
+        assert_int_equal(f->disk->writes, 0);
+    }
+
+    for (size_t i = 0; i < ARRAY_SIZE(headers); i++) {
+        memset(ramdisk_block(f->disk, headers[i]), 0, RAMDISK_BLOCK_SIZE);
+        assert_int_equal(boot(f), PB_OK);
+        assert_disk_equal(f, released);
+        assert_part(UU_STATE, 2082, 2082, "State");
+    }
+
+    free(released);
+}
+
+/* What releases 1.0.0 to 2.8.0 do with a table at boot (gpt_ptbl_init() of
+ * those releases): the primary is the 33 blocks from LBA 1 and the backup
+ * the device's last 33, a copy is valid when its signature, its header's
+ * CRC and its array's CRC are, with at most 128 entries of 128 bytes, and
+ * two valid copies mean no write. No LBA of a header is read. The
+ * partitions are the primary's entries up to the first empty one. */
+static bool release_accepts_copy(struct fixture *f, lba_t hdr_lba, lba_t array_lba)
+{
+    const uint8_t *hdr = ramdisk_block(f->disk, hdr_lba);
+    uint8_t copy[HDR_SIZE];
+    uint32_t entries = get_hdr_field(hdr, HDR_NO_OF_PARTS);
+
+    if (entries > 128)
+        return false;
+
+    memcpy(copy, hdr, sizeof(copy));
+    memset(&copy[HDR_CRC], 0, 4);
+
+    const uint32_t hdr_crc = (uint32_t)(crc32(~0L, copy, sizeof(copy)) ^ ~0UL);
+    const uint32_t array_crc =
+        (uint32_t)(crc32(~0L, ramdisk_block(f->disk, array_lba), entries * ENTRY_SIZE) ^ ~0UL);
+
+    return memcmp(hdr, "EFI PART", 8) == 0 && hdr_crc == get_hdr_field(hdr, HDR_CRC) &&
+           entries <= 128 && get_hdr_field(hdr, HDR_PART_ENTRY_SZ) == ENTRY_SIZE &&
+           array_crc == get_hdr_field(hdr, HDR_PART_ARRAY_CRC);
+}
+
+/* board.md 8, F-064: a table this pb installs is one a release uses as it
+ * is. Both copies are valid for it, so it repairs nothing, and it makes the
+ * partitions this pb makes: a device can go back to a release. */
+static void test_installed_table_is_valid_for_a_release(void **state)
+{
+    struct fixture *f = *state;
+
+    static const struct {
+        const unsigned char *uu;
+        uint64_t first;
+        uint64_t last;
+    } expect[] = {
+        { UU_SYS_A, 34, 1057 },
+        { UU_SYS_B, 1058, 2081 },
+        { UU_STATE, 2082, 2082 },
+    };
+
+    install_and_reboot(f, 0);
+
+    assert_true(release_accepts_copy(f, PRIMARY_HDR, PRIMARY_ARRAY));
+    assert_true(release_accepts_copy(f, BACKUP_HDR, BACKUP_ARRAY));
+
+    for (size_t i = 0; i < ARRAY_SIZE(expect); i++) {
+        const uint8_t *e = entry(f, PRIMARY_ARRAY, (int)i);
+        uuid_t guid;
+        uint64_t lba[2];
+
+        uuid_to_guid(expect[i].uu, guid);
+        memcpy(lba, e + ENTRY_FIRST_LBA, sizeof(lba));
+        assert_memory_equal(e + 16, guid, 16);
+        assert_int_equal(lba[0], expect[i].first);
+        assert_int_equal(lba[1], expect[i].last);
+    }
+
+    /* The list ends with the first empty entry */
+    assert_int_equal(get_hdr_field(entry(f, PRIMARY_ARRAY, 3), ENTRY_FIRST_LBA), 0);
 }
 
 static void test_install_long_name_fails(void **state)
@@ -1003,6 +1143,10 @@ int main(void)
             test_repair_that_fails_leaves_the_good_copy, setup, teardown),
         cmocka_unit_test_setup_teardown(test_backup_is_where_the_primary_says, setup, teardown),
         cmocka_unit_test_setup_teardown(test_repair_needs_a_place, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_last_usable_block, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_table_of_a_release_is_used_as_it_is, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_installed_table_is_valid_for_a_release, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_long_name_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_init_invalid_device, setup, teardown),
         cmocka_unit_test_setup_teardown(test_primary_header_crc_error_recovers, setup, teardown),
