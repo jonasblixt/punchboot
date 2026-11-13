@@ -36,19 +36,18 @@ bump is for the porting API. Each item's history is in `log/`.
 ## Next steps
 
 0. **Resume here (2026-11-13, night): `log/2026-11-13.md`, "The evening and the night".**
-   Landed in the second round, a package per agent: command mode's boot commands (F-252),
-   the platform's tick and reset reason (F-238, F-236), the boot core (F-076, F-346, F-404),
-   the build (F-398, F-396, F-089), the MMC drivers (F-199, F-116), the fuses and the
-   FlexSPI (F-196 to F-198, F-284). 87 of 87 at `37dfcea8`; the sanitizers and the six
-   boards last ran at `54c36b42`. Nothing of the round ran on a board. First:
-   - Verify `37dfcea8` whole (sanitizers, six boards). Then land what the five branches
-     hold: `pkg-boards-tools`, `pkg-usb`, `pkg-crypto2`, `pkg-cm2`, `pkg-link` (briefs in
-     the log's method; read each diff first).
+   The second round, a package per agent, unattended. Landed and verified at `bc640ba1`
+   (87 of 87, the sanitizers, six boards): command mode's boot commands (F-252), the
+   platform's tick and reset reason (F-238, F-236), the boot core (F-076, F-346, F-404), the
+   build (F-398, F-396, F-089), the MMC drivers (F-199, F-116), the fuses and the FlexSPI
+   (F-196 to F-198, F-284). Nothing of the round ran on a board. First:
+   - Land what the branches hold, each read first: `pkg-boards-tools`, `pkg-usb`,
+     `pkg-crypto2`, `pkg-cm2`, `pkg-link`, `pkg-precond`.
    - `bec794b7` on `pkg-plat` is not landed (the watchdog half a second shorter, F-206).
    - The 8MP EVK is in the ROM's serial download: power cycle it with the switches on
      eMMC, then the bench of all four boards with both rounds' "not run on a board" lists.
-   - Next packages: F-248 with F-251 (the boot's preconditions, serial download), F-247,
-     F-282, the host test ones (F-347, F-341), then the guides (`roadmap.md`).
+   - Next packages: F-247, F-282, the host test ones (F-347, F-341), then the guides
+     (`roadmap.md`).
    - The log's "For Jonas" lists.
 1. What 3.0.0 waits for besides the code is `roadmap.md`'s first section: the Firmware
    Handoff tag (Jonas, upstream), the bench run, the two guides, the release notes.
