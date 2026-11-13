@@ -43,6 +43,21 @@ What it changed in the documents beside it:
 - `compatibility.md`: "Fixed elsewhere" has a line for section 7, and "New command" says what
   a closed device answers (3.2) and what a build that left the command out answers (4.5).
 
+**The named commands (D-076, reviewed by Jonas, 2026-11-13).** 5.6 is rewritten: any part of
+pb declares a command, and `COMMAND_LIST` lists them. The draft's items, as Jonas answered
+them:
+
+| Item | Rule                                                                                      | By    |
+| ---- | ----------------------------------------------------------------------------------------- | ----- |
+| 9    | A list entry is 128 bytes: a name of 1 to 31 characters, a help line of at most 79 (5.6)  | Jonas |
+| 10   | The list is checked in the set up (2.1): a name outside `[a-z0-9-]`, two names with one   | Jonas |
+|      | id, the name `list`, or a list larger than a buffer is a failure: no command mode         |       |
+| 11   | A list entry has the name, no id: the host computes `pb_id()` of it (5.6)                 | Jonas |
+| 12   | The board's `command()` is removed, an accepted break of the porting API in 3.0.0         | Jonas |
+|      | (D-031): every command is declared (5.6, `board.md` 4.4)                                  |       |
+| 13   | The reset request is named for every command, `cm_request_reset_on_success()`, and works  | Jonas |
+|      | as before (5.6)                                                                           |       |
+
 ## 1. Words and scope
 
 | Word         | Means                                                                                     |
@@ -56,9 +71,9 @@ What it changed in the documents beside it:
 | Stream       | The partition a host selected for reading or writing, and the two buffers                 |
 
 Not here: the bytes (`compatibility.md`, `include/pb-tools/wire.h`), the boot a command starts
-(`boot.md` 6, `board.md` 5.4), the life cycle's states and order (`system.md` 4, D-027), the
-board's own commands (`board.md` 4.4), the transport's functions and its driver (`usb.md`),
-the host tools (`system.md` 3).
+(`boot.md` 6, `board.md` 5.4), the life cycle's states and order (`system.md` 4, D-027), what
+each named command does (5.6, `board.md` 4.4), the transport's functions and its driver
+(`usb.md`), the host tools (`system.md` 3).
 
 The rules it implements are level 1's: who may use command mode in which state (`system.md` 4,
 `security.md` 4.7), what a host can reach (`security.md` 2), that a failure is never silent and
@@ -92,7 +107,8 @@ On the task's first call, in this order:
 
 1. `plat_cm_init()`: the USB device port (`platform.md` 3.10).
 2. What only command mode reads: the logs' sources that aren't pb's own (5.7).
-3. The board's data that command mode uses is checked (`board.md` 3).
+3. The board's data that command mode uses is checked (`board.md` 3), and the list of named
+   commands (5.6).
 4. The life cycle is read, for the gate (3.2). A read that fails is not a failure of the set up:
    the life cycle is unknown and the gate is closed (`security.md` 4.4).
 5. The transport is started.
@@ -299,6 +315,7 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
 | `STREAM_PREPARE_BUFFER` | `C R >size R`                               | The host sends the data anyway     |
 | `STREAM_READ_BUFFER`    | `C R <size R`                               | Ends                               |
 | `PART_TBL_READ`         | `C R <n*128 R`, no data when n is 0         | Ends                               |
+| `COMMAND_LIST`          | `C R <n*128 R`, no data when n is 0         | Ends                               |
 | `PART_BPAK_READ`        | `C R <4096 R`                               | Ends                               |
 | `SLC_READ`              | `C R <128 R`                                | Ends                               |
 | `LOG_READ`              | `C R`, and `<size R` when the size isn't 0  | Ends                               |
@@ -564,22 +581,63 @@ Hosts stop at an error there. Nothing changes in the sequence, and it doesn't re
 checking the first result. `boot.md` 2 puts more before the load than the code has today, so
 this becomes the common refusal.
 
-### 5.6 The board
+### 5.6 Named commands and the board's status
 
-| Command             | Means                                                |
-| ------------------- | ---------------------------------------------------- |
-| `BOARD_COMMAND`     | Runs the board's command of that id (`board.md` 4.4) |
-| `BOARD_STATUS_READ` | The board's status, as text (`board.md` 4.3)         |
+| Command             | Means                                                      |
+| ------------------- | ---------------------------------------------------------- |
+| `BOARD_COMMAND`     | Runs the named command whose id is `pb_id()` of its name   |
+| `COMMAND_LIST`      | The list of named commands: each one's name and help line  |
+| `BOARD_STATUS_READ` | The board's status, as text (`board.md` 4.3)               |
 
-- Both are behind the gate like every command, and the board's function runs only after it.
-- **The request** is at most 1024 bytes and the board gets exactly `request_size` of them.
+A named command is a function of pb's that a host calls by name, with bytes in and bytes out.
+The core, a platform, a driver and the board each declare their own, with no member in
+`struct board` or `plat.h` (D-076). Every command is declared: the board's `command()` is
+removed (`board.md` 4.4). **Not yet in the code (F-425).**
+
+```
+DEFINE_COMMAND(name, help, fn)
+int fn(const uint8_t *request, size_t request_size, uint8_t *response, size_t *response_size)
+```
+
+- **The list.** `DEFINE_COMMAND()` (`pb/command.h`) puts an entry in a section of its own, which
+  the link scripts keep (`platform.md` 5.1), like the tasks (D-051). It is constant: nothing is
+  set up, nothing runs on the boot path (D-023). A command that only a build has is declared
+  under that build's option.
+- **The name** is 1 to 31 characters of `[a-z0-9-]`, the help line at most 79 printable ones.
+  The id is `pb_id(name)`, the id hosts have sent since 1.0.0: a board's command that a
+  release answered keeps its id under the name hosts call it by. `list` is the host's word
+  (`command list`) and no command's name. The set up checks the list (2.1): a name outside
+  the set, two names with one id, the name `list`, or a list larger than a buffer.
+- **`BOARD_COMMAND`** looks the id up in the list. An id that isn't there is
+  `NOT_SUPPORTED`, the answer of every release to an id the board didn't have.
+- **`COMMAND_LIST`** sends the result with the number of entries n, then n entries of 128
+  bytes in the list's order, when n isn't 0. An entry: the name and the help line, each NUL
+  padded to 32 and 80 bytes, then 16 reserved bytes of zero. No id: the host computes it. A
+  build with no named commands answers OK with n of 0. A device older than the command
+  answers `INVALID_COMMAND`: a host says the device can't list its commands, and still runs
+  one by name.
+- All three are behind the gate like every command (3.2), and a command's function runs only
+  after it. Nothing of it, not even the list, is answered before authentication.
+- **The request** is at most 1024 bytes and the function gets exactly `request_size` of them.
+  It is the host's, untrusted in every state (`security.md` 4.7): the core bounds the buffer,
+  the function checks every size and offset it reads in it against `request_size` (F-063).
 - **The response** is at most what the host said it can take (`response_buffer_size`) and at
-  most a buffer.
-- **A reset after a command**: a board's command may ask for one
-  (`cm_board_cmd_request_reboot_on_success()`). When the command then returns OK, the device
-  sends the last result and leaves command mode as for `DEVICE_RESET` (2.3). A command that
-  fails doesn't reset.
-- The board's commands stay inside the core's rules (`security.md` 4.8, `board.md` 4.4).
+  most a buffer. `*response_size` holds its room on the call, and the function sets it also
+  when it fails.
+- **The result** is the function's: `PB_OK` or `-PB_ERR_*`, which the host gets.
+- **Time**: command mode kicks the watchdog between commands (4.6), not inside one. A command
+  that runs long calls `plat_wdog_kick()` as it makes progress.
+- **A reset after a command**: a named command may ask for one with
+  `cm_request_reset_on_success()`, which was `cm_board_cmd_request_reboot_on_success()`.
+  When the command then returns OK, the device sends the last result and leaves command mode
+  as for `DEVICE_RESET` (2.3). A command that fails doesn't reset. **Not yet in the code
+  (F-425).**
+- **The core's rules** (`security.md` 4.8): a named command starts no image, writes no fuse,
+  and changes neither the keys nor the life cycle. Those are the core's commands. What it may
+  do is the declarer's contract: `board.md` 4.4 for a board's, `platform.md` 5.1 for a
+  platform's.
+- **Fixed** (section 7): once released, a command's name and what its bytes mean. A command
+  is retired like a core one (5.8): it stays in the list and answers `NOT_SUPPORTED`.
 
 ### 5.7 Logs
 
@@ -695,6 +753,7 @@ Like the wire (D-008, `compatibility.md`), from the 1.0.0 release on (`system.md
 - Which life cycle states are open (3.2).
 - The USB interface (section 6).
 - The partition flags' meaning (5.3), which boards in the field rely on.
+- A named command's name and bytes, once released, and the list entry's layout (5.6).
 
 Only security comes before it (`principles.md` 3). What 3.0.0 answers differently from a
 release, each for a rule of `security.md`, named in D-058:
@@ -724,6 +783,8 @@ For a change to command mode, a new command or a new method:
 - [ ] Does it name an image format? Only the three places of 5.9 mean bpak; another format
       gets its own commands.
 - [ ] Nothing of it runs on the boot path (D-023).
+- [ ] Could it be a named command (5.6) instead of a new one in `wire.h`? A named command needs
+      no host release and no new exchange.
 
 ## 9. Not yet in the code
 
@@ -733,3 +794,6 @@ For a change to command mode, a new command or a new method:
 | F-375               | The caps' erase timeout (4.6)                                                        |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
+| F-425               | The named commands: `DEFINE_COMMAND()`, the list's check, `BOARD_COMMAND`'s look up, |
+|                     | `COMMAND_LIST`, the board's `command()` removed, the reset request renamed (5.6)     |
+| F-426               | The host's `command list` and `command <name>` (5.6)                                 |

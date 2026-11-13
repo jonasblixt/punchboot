@@ -92,6 +92,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-073 | The drivers' contracts, the final read           | In force                                           |
 | D-074 | An entry in an empty part is refused             | Waits for Jonas's review                           |
 | D-075 | The decisions have an index                      | In force                                           |
+| D-076 | Named commands, declared anywhere and listed     | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1768,3 +1769,60 @@ is corrected in the table; it needs no entry.
 
 From the same review (`log/2026-11-12.md`): `roadmap.md` starts with what 3.0.0 waits for
 besides the code, and `status.md` is short again.
+
+## D-076: Named commands, declared anywhere and listed (2026-11-13)
+
+Jonas: a host can't learn which board commands a device has, and the commands shouldn't be
+the board's only: the i.MX8M needs one for its DRAM training data, which is the platform's.
+He wants them declared anywhere, like the tasks, and doesn't want it complicated. Typed
+("dynamic") arguments he was unsure of: they cost code.
+
+What the draft says (`command-mode.md` 5.6):
+
+- **`DEFINE_COMMAND(name, help, fn)`** puts an entry in a linker list (`pb_commands`), like
+  `DEFINE_TASK()` (D-051): the core, a platform, a driver and the board declare commands with
+  no member in `struct board` or `plat.h`. Constant, nothing on the boot path (D-023).
+- **No new exchange to run one.** `BOARD_COMMAND` looks the id up in the list. The id stays
+  `pb_id(name)`, what hosts have sent since 1.0.0, so every released host runs a platform's
+  command by name, and a board's command keeps its id when it moves into the list.
+- **One new command, `COMMAND_LIST`** (Jonas: behind the gate, with the help line on the
+  wire): `C R <n*128 R`, as `PART_TBL_READ`. Fixed entries, not text, so `abi.txt` freezes
+  them and the reserved bytes leave room. An entry is the name and the help line, no id
+  (Jonas): the host computes `pb_id()`.
+- **No typed arguments.** The request stays bytes, which the function checks (F-063). Typing
+  would put a decoder for the host's input in the trusted computing base, for what the host
+  can pack in a few lines of Python. A fixed set of five arguments would be ignored by most
+  commands, and gives way to bytes at the first string.
+- **The host** (Jonas): `punchboot command list` and `punchboot command <name> [args]`, no
+  `run`. `list` is therefore reserved, and the device refuses it as a name. The options are
+  `board command`'s (`--output-fmt`, `--args-from-file`). The request may also come from
+  stdin (`echo -n data | punchboot command name`): it is read when stdin isn't a terminal and
+  neither `args` nor `--args-from-file` is given; two sources are an error. The host checks
+  the 1024 bytes before it sends. `board command` and `board status` stay as released.
+
+Jonas's answers to the draft's items (`command-mode.md`, items 9 to 13), before his review:
+
+- **9**: the entry of 128 bytes, a name of up to 31 characters, a help line of up to 79.
+- **10**: a bad list (a name outside `[a-z0-9-]`, two names with one id, `list`, larger than
+  a buffer) fails the set up: no command mode.
+- **11**: the entry has the name, no id.
+- **12**: the board's `command()` is removed. I had proposed to keep it for out-of-tree
+  boards; Jonas: an acceptable break of the API. 3.0.0 is the major release for the porting
+  API (D-031), and the wire doesn't change: a board's command moves into the list under the
+  name hosts call it by, and keeps its id. The boards in the tree have the names (the host
+  board's `test-command`, `test-command2`, `test-boot-stop`, the RT1060's and imx8mevk's
+  `test`).
+- **13**: `cm_board_cmd_request_reboot_on_success()` becomes `cm_request_reset_on_success()`,
+  the same function for every command.
+
+Jonas approved the draft (2026-11-13). In his review: `board.md` 4.4, `command()`, goes
+entirely once the code is in, not as a section that says it was removed. Its sections after it
+are renumbered with it: 4.5, `password_auth()`, becomes 4.4, and 4.6, the tasks, 4.5. The
+citations in the documents and the code follow; the records (the log, the decisions, the
+closed findings) keep the numbers of their time.
+
+The DRAM training data is a design of its own, after this one: where it is kept, how it is
+protected, when a boot may use it (`security.md`: what pb reads from storage before an image
+is verified).
+
+Code: F-425 (pb), F-426 (the host).

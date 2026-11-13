@@ -39,6 +39,9 @@ Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/c
   doesn't have (`command-mode.md` 3.2, D-058): a host asks again once it is authenticated.
   A device whose release defines the command and whose build left it out answers
   `-PB_RESULT_NOT_SUPPORTED`, never `-PB_RESULT_INVALID_COMMAND` (`command-mode.md` 4.5, D-060).
+- **A function a host calls by name** needs no new command: it is a named command
+  (`command-mode.md` 5.6, D-076), run through `BOARD_COMMAND` by `pb_id()` of its name, which
+  every released host can send. Its name, id and bytes are then fixed like a command's.
 - **Capabilities**: `PB_CMD_DEVICE_READ_CAPS` is the only negotiation. New capabilities go in its
   `rz[18]`. The host must handle zero (an old device) for every caps field, including today's.
 - **Retiring a command** (F-032): the handler may answer `-PB_RESULT_NOT_SUPPORTED`, but the enum

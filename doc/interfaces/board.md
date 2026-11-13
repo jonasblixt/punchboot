@@ -433,32 +433,35 @@ NUL.
 
 NULL: "Board status OK!".
 
-### 4.4 Function : command() [optional]
+### 4.4 Function : command() [removed in 3.0.0]
 
-```
-Argument : uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size
-Return   : int, PB_OK or -PB_ERR_*, the result the host gets
-```
+**Not yet in the code (F-425)**: `struct board` still has `command`, and the boards in the
+tree answer their commands through it.
 
-Answers `board command`: the board's own commands, by id. Behind the same auth gate as every
-command (`security.md` 4.7; open in EOL, D-011). `bfr` is the host's request, `bfr_length` at most
-1024 bytes. `rsp` holds `*rsp_size` bytes (the command buffer).
+Removed (Jonas, D-076): a board declares each of its commands with `DEFINE_COMMAND()`, as a
+named command that a host can list (`command-mode.md` 5.6). A break of the porting API that
+3.0.0 accepts (D-031); the wire doesn't change. A board that had `command()` moves each
+`if (cmd == id)` into a command of its own, under the name whose `pb_id()` is that id, the
+name hosts call it by, so the id stays. Once that is in the code, this section goes and the
+ones after it are renumbered (Jonas, D-076).
+
+The rules are those of `command-mode.md` 5.6, and for a board's command:
 
 - The request comes from the host and is untrusted in every state, authenticated or not
   (`security.md` 4.7). The core bounds the buffer; the board checks every size and offset it
-  reads in the request against `bfr_length` (F-063).
+  reads in the request against `request_size` (F-063).
 - A board's command stays inside the core's rules (`security.md` 4.8): it starts no image, writes
   no fuse, and changes neither the keys nor the life cycle. Those are the core's commands.
-- `*rsp_size` is set also when it fails.
+- `*response_size` is set also when it fails.
 - Command mode kicks the watchdog between commands and per chunk inside its own
   (`command-mode.md` 4.6), not inside a board's: a command that runs long calls
   `plat_wdog_kick()` as it makes progress.
-- A command may ask for a reset: it calls `cm_board_cmd_request_reboot_on_success()`, and when
-  it then returns PB_OK the core sends its result and resets. A command that fails doesn't
-  reset (`command-mode.md` 5.6).
-- The ids and their answers are the board's wire (section 8).
+- A command may ask for a reset: it calls `cm_request_reset_on_success()`, and when it then
+  returns PB_OK the core sends its result and resets. A command that fails doesn't reset
+  (`command-mode.md` 5.6).
+- The names of the board's commands and their answers are the board's wire (section 8).
 
-NULL: the core's default, `-PB_ERR_NOT_SUPPORTED` for every id.
+An id that no command has: `-PB_ERR_NOT_SUPPORTED`, the core's default of every release.
 
 ### 4.5 Function : password_auth() [mandatory with CONFIG_CM_AUTH_PASSWORD]
 
@@ -712,8 +715,10 @@ changes them only for a new product, never in an update:
   `boot.md` 7's.
 - The configuration fuses (`slc.fuses`) and the keystore's slots (`CONFIG_KEYSTORE_SLOTS`, D-027):
   fuses can't be unwritten.
-- The ids of the board's commands, and their answers (4.4). The core's default answer is fixed
-  too (F-218: it changed the 8X boards' answer from OK to NOT_SUPPORTED).
+- The names of the board's commands, so their ids (`pb_id()` of each), and their answers (4.4).
+  A command a released board answered through `command()` keeps its id as a named command. The
+  core's default answer is fixed too (F-218: it changed the 8X boards' answer from OK to
+  NOT_SUPPORTED).
 - The handover, its delivery and the parts the board names for them (2.7): an image that a
   released pb booted gets the same entry and arguments (`boot.md` 7). With Firmware Handoff also
   the transfer list's region (`boot.md` 5.4): the images' memory maps keep it free.

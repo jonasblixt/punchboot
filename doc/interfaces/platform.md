@@ -531,6 +531,11 @@ Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
   `board.md` 4.6), which the core calls while pb is stopped, sit in a section of their own in
   rodata, which no code names, so the linker would drop it. It provides the list's start and end. A
   platform may define tasks too, by the same rules.
+- It keeps the list of named commands the same way (`pb_commands`, `command-mode.md` 5.6,
+  D-076). A platform declares its own commands there, for what only its SoC has (the 8M's DRAM
+  training data): a command of the platform's stays inside the core's rules
+  (`security.md` 4.8), and its name, id and bytes are fixed like a board's (`board.md` 8) for
+  every board of the platform. **Not yet in the code (F-425).**
 
 The RAM log is in `pb`, which works from the first instruction. `buffers` may be in DRAM the
 platform trains, so nothing before `plat_init()` uses `.no_init`.
