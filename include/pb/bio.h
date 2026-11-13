@@ -110,11 +110,10 @@ void bio_reset(void);
  * @param[in] description String description of device
  *
  * @return A new block device handle on success,
- *         -PB_ERR_IO, On invalid parent device,
  *         -PB_ERR_MEM, When the block device pool is full,
- *         -PB_ERR_PARAM, On invalid lba's or block_size, a range that
- *                        isn't inside the parent's, or a UUID that another
- *                        device has
+ *         -PB_ERR_PARAM, On invalid parent device, invalid lba's or
+ *                        block_size, a range that isn't inside the
+ *                        parent's, or a UUID that another device has
  */
 bio_dev_t bio_allocate_parent(bio_dev_t parent,
                               lba_t first_lba,
@@ -315,10 +314,12 @@ int64_t bio_get_no_of_blocks(bio_dev_t dev);
  * @param[in] length Length in bytes
  * @param[out] buf Output buffer
  *
- * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying read function,
- *         -PB_ERR_PARAM, lba and/or length is out of range,
+ * @return PB_OK, on success, also for a length of 0,
+ *         -PB_ERR_NOT_SUPPORTED, when there is no underlying read function,
+ *         -PB_ERR_PARAM, bad device handle, or lba and/or length is out of
+ *                        range,
  *         -PB_ERR_IO, Driver I/O errors,
- *         -PB_TIMEOUT, Driver timeouts
+ *         -PB_ERR_TIMEOUT, Driver timeouts
  */
 int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf);
 
@@ -330,10 +331,12 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf);
  * @param[in] length Length in bytes
  * @param[in] buf Input buffer
  *
- * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying write function
- *         -PB_ERR_PARAM, lba and/or length is out of range
- *         -PB_ERR_IO, Driver I/O errors
- *         -PB_TIMEOUT, Driverr timeouts
+ * @return PB_OK, on success, also for a length of 0,
+ *         -PB_ERR_NOT_SUPPORTED, when there is no underlying write function,
+ *         -PB_ERR_PARAM, bad device handle, or lba and/or length is out of
+ *                        range,
+ *         -PB_ERR_IO, Driver I/O errors,
+ *         -PB_ERR_TIMEOUT, Driver timeouts
  */
 int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
 
@@ -344,9 +347,12 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
  * @param[in] first_lba First block to erase
  * @param[in] count Number of blocks to erase
  *
- * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying write function
- *         -PB_ERR_IO, Driver I/O errors
- *         -PB_TIMEOUT, Driverr timeouts
+ * @return PB_OK, on success, also for a count of 0,
+ *         -PB_ERR_NOT_SUPPORTED, when there is no underlying erase function,
+ *         -PB_ERR_PARAM, bad device handle, or first_lba and/or count is
+ *                        out of range,
+ *         -PB_ERR_IO, Driver I/O errors,
+ *         -PB_ERR_TIMEOUT, Driver timeouts
  */
 int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count);
 
@@ -357,10 +363,10 @@ int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count);
  * @param[in] configuration_index Optional configuration/variant
  *
  * @return PB_OK, on success
- *         -PB_ERR_PARAM, on bad device handle / uuid,
+ *         -PB_ERR_NOT_FOUND, when no device has the uuid,
  *         -PB_ERR_NOT_SUPPORTED, if there is no callback,
- *         -PB_ERR_IO, Driver I/O errors,
- *         -PB_TIMEOUT, Driver timeouts
+ *         or the callback's error: -PB_ERR_PARAM for a variant the board
+ *         doesn't have, -PB_ERR_IO and -PB_ERR_TIMEOUT from the driver
  */
 int bio_install_partition_table(const uuid_t part_uu, int variant);
 
