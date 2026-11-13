@@ -700,6 +700,102 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | Fixed: the CLI prints the fixed text and the exception's message; OSError and ValueError give a line | | |
 | | | and exit 1; PartitionFlags has a member for every bit on the wire (FLAG_RFU4, FLAG_RFU7), so a newer | | |
 | | | device's bits are kept. | | |
+| F-173 | `src/boot/ab_state.c` | `init` ignores `bio_read()`'s result: a copy that can't | Verified | fixed (`0647e0a7`) |
+| | | be read counts as corrupt. When both reads fail and writes work, it writes the defaults | | |
+| | | (nothing enabled) over a good state and returns `PB_OK`: the next boot has no active | | |
+| | | partition and stays in command mode. Shown on the ramdisk (`fail_reads_after`). Install | | |
+| | | the defaults only when both copies were read and are bad, else return the read error. | | |
+| | | Fixed: a copy is validated only when it was read; the defaults are installed only when both were | | |
+| | | read and are bad; with no good copy and a read that failed, init returns the read error and writes | | |
+| | | nothing. One good copy beside an unreadable one is used and repaired, as beside a corrupt one. | | |
+| F-175 | `src/boot/ab_state.c` | `boot activate` with an unknown UUID clears `enable`, | Verified | fixed (`b5862c4b`) |
+| | | `verified` and `error` in RAM, then returns `-PB_ERR_PART_NOT_BOOTABLE`. For the rest of | | |
+| | | command mode `boot status` says none and booting the active slot fails, and the next | | |
+| | | commit writes it (on the host board a board register write: nothing to boot after the | | |
+| | | reset). `test_set_boot_partition` asserts the RAM change. Return before the change. | | |
+| F-176 | `src/boot/ab_state.c` | `init` keeps two valid copies that differ (power lost | Verified | fixed (`17341a73`) |
+| | | between the two writes, by pb or `pbstate`). A verified system never commits, so the | | |
+| | | stale backup can stay, and it comes back when the primary goes bad (shown: B verified | | |
+| | | in the primary, the old trial state in the backup, a bad primary rolls back to A). | | |
+| | | Commit when they differ: the primary is always written first. | | |
+| | | Fixed: two valid copies that differ get the primary's state. When that can't be written init still | | |
+| | | returns PB_OK with the primary's state, as before: F-403. | | |
+| F-179 | `src/boot/ab_state.c` | Minor. With both `enable` bits set `get()` boots A, | Verified | fixed (`f524c80b`, `9da04895`) |
+| | | `boot_ab_state_get_boot_partition()` reports none and `pbstate` both active (no writer | | |
+| | | sets both today; `validate()` could reject bits outside A and B). Normal mode with no | | |
+| | | verified fallback logs "Rollback to B system", then fails with `-PB_ERR`. A rollback to | | |
+| | | a verified slot fails when its commit fails (read-only eMMC); booting it would be safe, | | |
+| | | the next boot picks it again. `boot activate` leaves `remaining_boot_attempts` as it | | |
+| | | was. `pb_boot_state_defaults(&boot_state_backup)` does nothing: commit writes only | | |
+| | | `boot_state`. `boot.md` 3.2 (D-040): a rollback or an alternation that can't be written is | | |
+| | | handed out; a trial whose attempt can't be written only when no verified slot is left. | | |
+| | | With speculative mode (F-257) a backup that can't be written means the primary alternates | | |
+| | | on every boot and nothing boots (`test_speculative_backup_write_error` pins it) | | |
+| | | Fixed: a rollback and speculative mode's alternation are handed out when the write fails; a trial | | |
+| | | isn't started while the other slot is verified, which is handed out, mode fallback; with nothing | | |
+| | | else to boot the trial is handed out uncounted (boot.md 3.2, D-040). The log says rollback only for | | |
+| | | a rollback; the two calls that did nothing are gone. Left as they are, the contract is silent: both | | |
+| | | enable bits set, and boot activate leaves the attempts (F-403). | | |
+| F-007 | `src/boot/ab_state.c` | If a state partition is missing, it still does I/O with a | Verified | fixed (`84e6a619`) |
+| | | negative handle. The B→A rollback branch is not symmetric with A→B. `validate()` | | |
+| | | zeroes `crc` as a side effect. `init` sets `cfg` before validating, so a failed init | | |
+| | | leaves it half set up. NULL-`cfg` part split out as F-012. Checked 2026-11-09: `bio` | | |
+| | | rejects the negative handle (`-PB_ERR_PARAM`) and init then fails on the commit; the | | |
+| | | B→A branch ends in the same state as A→B. Read errors: F-173. | | |
+| | | Fixed: init does no I/O without both state partitions, and validate() puts the crc back. The B to A | | |
+| | | branch was symmetric already; cfg set before validating was F-393. | | |
+| F-393 | `src/boot/ab_state.c` | After a failed init the state functions write through | Verified (host) | fixed (`7f219ffb`) |
+| | | partitions the init never looked up: `cfg` is set before the lookups and an early return (System A | | |
+| | | or B not in the table) leaves `primary_part` and `backup_part` at 0, the first bio device. With the | | |
+| | | policy attached, `boot activate A` answered OK and overwrote LBA 0 of the disk (host, table variant | | |
+| | | 2). `boot_ab_state_write_board_reg()` reaches the same from board code. Until it is fixed | | |
+| | | `board_setup()` detaches the policy after a failed init (F-178). Found with F-178 | | |
+| | | Fixed: without its state partitions nothing is read or written: boot activate, next() and a board | | |
+| | | register write return -PB_ERR_STATE. With the partitions found and the state unreadable, boot | | |
+| | | activate writes a new state and the module works from it. | | |
+| F-178 | `src/board.c` | When `boot_ab_state_init()` fails (a repair write, a state partition | Verified | fixed (`eb1ad645`, `4c96d5e9`) |
+| | | missing from the table), `board_setup()` returns before `late_init` and the boot | | |
+| | | driver: in command mode `boot activate` is `-PB_ERR_NOT_SUPPORTED` and `boot partition` | | |
+| | | `-PB_ERR_PARAM`, the commands that would repair it. The GPT failure path above sets up | | |
+| | | the driver for that reason. | | |
+| | | 2026-11-13 (`eb1ad645`): the handover is set up after a failed policy init, so a boot from RAM | | |
+| | | works. The policy is detached until F-393 is fixed: `boot activate` still answers NOT_SUPPORTED. | | |
+| | | Left: delete `boot_policy_set(NULL)` in `board_setup()` with F-393 | | |
+| | | Fixed: after a failed policy init the handover is set up and the policy stays attached; A/B repairs | | |
+| | | or refuses (F-393), the fixed and the chain policy answer -PB_ERR_STATE (read). | | |
+| F-182 | `src/drivers/mmc/mmc_core.c:163`, `cm_main.c` | High. `mmc_rw()` uses `blocks = length / | Verified | fixed (`f059c75d`) |
+| | | 512` while bio's range check rounds up: a `part write` whose size isn't a block multiple loses its tail | | |
+| | | and returns OK; under 512 bytes CMD24 goes out with no data and the card stays in rcv. `part verify` of | | |
+| | | such a size hashes stale buffer bytes. The host disk and the ramdisk write exact byte counts, so no test | | |
+| | | sees it. In cm: zero-pad the tail and round up (hosts send raw sizes, D-008). | | |
+| | | Fixed: the core has a block buffer (CONFIG_BIO_MAX_BLOCK_SIZE, in .no_init); a write's last partial | | |
+| | | block is written from it, padded with zeros, a read's is read into it and trimmed. The drivers | | |
+| | | refuse a length that isn't whole blocks. tests/unit/conformance/ runs five tests against eight | | |
+| | | devices, mmc_core on the card models and the uSDHC model among them. | | |
+| F-267 | `src/board/*/board.c`, `src/board.c`, `src/cm/`, `include/pb/cm.h` | Command | Verified (code) | fixed (`cab6dd53` to `3290a752`) |
+| | | mode's USB is set up by each board's `cm_init` (clocks or power domains, the PHY, the | | |
+| | | controller: SoC work on every board), and the transport is `cm_transport` in `struct board`, | | |
+| | | a `struct cm_transport_ops` copied into `cm_config`. D-049, `board.md` 4.1 and 4.2, `platform.md` | | |
+| | | 3.10: `plat_cm_init()` at the start of `cm_run()`, the port a Kconfig choice of the platform's; | | |
+| | | command mode calls the transport's functions directly, linked to the USB class driver or to the | | |
+| | | host platform's socket (today in `src/board/host/board.c`). `cm_init` and `cm_transport` leave | | |
+| | | `struct board` | | |
+| | | Fixed: plat_cm_init() per platform, the port a Kconfig choice in the defconfig, the six | | |
+| | | cm_transport_*() functions linked (the USB class driver, the host's socket); cm_init and | | |
+| | | cm_transport left struct board. The set up is the boards' code moved: the compiled code is the same | | |
+| | | on jiffy and the RT, and differs on the 8X and the 8M only in where a handle is read and how the | | |
+| | | functions are split. One option per port in use only: F-402. | | |
+| F-268 | `src/cm/cm_main.c`, `include/pb/cm.h`, `src/board.c`, the link scripts | Command | Verified (code) | fixed (`b46dcf8b`) |
+| | | mode's `process` hook (`struct cm_config`, called while it waits for a command) can't be set by a | | |
+| | | board since D-026: `cm_board_init()` doesn't copy it and `struct board` has no member. Out-of-tree | | |
+| | | boards use it (Jonas). D-051, `board.md` 4.6: `DEFINE_TASK(name, run)` puts a task into a linker | | |
+| | | section that every link script keeps; `main()` calls the tasks in turn while pb is stopped, also | | |
+| | | without `CONFIG_CM`, in no order, until one returns an error; command mode becomes one of them | | |
+| | | (`cm_main_task`: `cm_main.c`'s blocking loop turned into a step); `process` goes. With F-239 | | |
+| | | (the link scripts) and F-267 | | |
+| | | Fixed: DEFINE_TASK() and the section pb_tasks in both link scripts; main() runs the tasks in turn | | |
+| | | while pb is stopped, a kick per round, and resets when one returns an error or there is none; | | |
+| | | cm_main_task() is command mode as a step; process is gone. | | |
 
 ## Dependencies / vendored code
 

@@ -16,12 +16,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 |---|---|---|---|---|
 | F-004 | `src/board/imx8{qxmek,dxlevk}/board.c:~288` | `strncmp(expected, password, length)` with `length` taken from the host accepts any prefix ("i"). `LOG_DBG` prints a password that is not NUL-terminated. Example boards, but the pattern gets copied. | Verified | open |
 | F-006 | `src/drivers/partition/gpt.c:~411` | Loop over `p->first_lba` has no 128-entry limit. Primary and backup tables are never compared. | Reported | partly fixed (claude-work): entry loop bounded by `no_of_parts` (F-056); tables still not compared |
-| F-007 | `src/boot/ab_state.c` | If a state partition is missing, it still does I/O with a | Verified | open |
-| | | negative handle. The B→A rollback branch is not symmetric with A→B. `validate()` | | |
-| | | zeroes `crc` as a side effect. `init` sets `cfg` before validating, so a failed init | | |
-| | | leaves it half set up. NULL-`cfg` part split out as F-012. Checked 2026-11-09: `bio` | | |
-| | | rejects the negative handle (`-PB_ERR_PARAM`) and init then fails on the commit; the | | |
-| | | B→A branch ends in the same state as A→B. Read errors: F-173. | | |
 | F-008 | `src/drivers/crypto/mbedtls/mbedtls_pb.c` | Return values of the `mbedtls_sha*` calls are ignored. | Reported | open |
 | F-010 | `tools/pbstate/CMakeLists.txt` | `BACKUP_PART` is set from `PB_STATE_PRIMARY_PART` (copy-paste). The target is listed twice in `install`. | Reported | open |
 | F-064 | `src/drivers/partition/gpt.c:152` | Header `last_lba` (last usable) is `last - 32`, which is the first backup-entry block; should be `last - 33`. pb's own allocation is unaffected; other tools could overlap the backup array. | Verified (code) | open |
@@ -90,40 +84,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the write helped. The cdns3 bulk path's TODOs (TRB count, burst, TRBERR) are the | | |
 | | | suspects. A reset with garbage in the enabled boot partition leaves the MEK dead | | |
 | | | until SW2 is set to serial download. | | |
-| F-173 | `src/boot/ab_state.c` | `init` ignores `bio_read()`'s result: a copy that can't | Verified | open |
-| | | be read counts as corrupt. When both reads fail and writes work, it writes the defaults | | |
-| | | (nothing enabled) over a good state and returns `PB_OK`: the next boot has no active | | |
-| | | partition and stays in command mode. Shown on the ramdisk (`fail_reads_after`). Install | | |
-| | | the defaults only when both copies were read and are bad, else return the read error. | | |
-| F-175 | `src/boot/ab_state.c` | `boot activate` with an unknown UUID clears `enable`, | Verified | open |
-| | | `verified` and `error` in RAM, then returns `-PB_ERR_PART_NOT_BOOTABLE`. For the rest of | | |
-| | | command mode `boot status` says none and booting the active slot fails, and the next | | |
-| | | commit writes it (on the host board a board register write: nothing to boot after the | | |
-| | | reset). `test_set_boot_partition` asserts the RAM change. Return before the change. | | |
-| F-176 | `src/boot/ab_state.c` | `init` keeps two valid copies that differ (power lost | Verified | open |
-| | | between the two writes, by pb or `pbstate`). A verified system never commits, so the | | |
-| | | stale backup can stay, and it comes back when the primary goes bad (shown: B verified | | |
-| | | in the primary, the old trial state in the backup, a bad primary rolls back to A). | | |
-| | | Commit when they differ: the primary is always written first. | | |
-| F-178 | `src/board.c` | When `boot_ab_state_init()` fails (a repair write, a state partition | Verified | open |
-| | | missing from the table), `board_setup()` returns before `late_init` and the boot | | |
-| | | driver: in command mode `boot activate` is `-PB_ERR_NOT_SUPPORTED` and `boot partition` | | |
-| | | `-PB_ERR_PARAM`, the commands that would repair it. The GPT failure path above sets up | | |
-| | | the driver for that reason. | | |
-| | | 2026-11-13 (`eb1ad645`): the handover is set up after a failed policy init, so a boot from RAM | | |
-| | | works. The policy is detached until F-393 is fixed: `boot activate` still answers NOT_SUPPORTED. | | |
-| | | Left: delete `boot_policy_set(NULL)` in `board_setup()` with F-393 | | |
-| F-179 | `src/boot/ab_state.c` | Minor. With both `enable` bits set `get()` boots A, | Verified | open |
-| | | `boot_ab_state_get_boot_partition()` reports none and `pbstate` both active (no writer | | |
-| | | sets both today; `validate()` could reject bits outside A and B). Normal mode with no | | |
-| | | verified fallback logs "Rollback to B system", then fails with `-PB_ERR`. A rollback to | | |
-| | | a verified slot fails when its commit fails (read-only eMMC); booting it would be safe, | | |
-| | | the next boot picks it again. `boot activate` leaves `remaining_boot_attempts` as it | | |
-| | | was. `pb_boot_state_defaults(&boot_state_backup)` does nothing: commit writes only | | |
-| | | `boot_state`. `boot.md` 3.2 (D-040): a rollback or an alternation that can't be written is | | |
-| | | handed out; a trial whose attempt can't be written only when no verified slot is left. | | |
-| | | With speculative mode (F-257) a backup that can't be written means the primary alternates | | |
-| | | on every boot and nothing boots (`test_speculative_backup_write_error` pins it) | | |
 | F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
 | | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
 | | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
@@ -135,11 +95,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `auth token` then accepted any well-formed signature on a locked device. Not run on hardware. Same root | | |
 | | | as F-127. Drain the ring in `caam_hash_init()` and before a verify, take the status from the ring entry, | | |
 | | | finish the hash on every error path. | | |
-| F-182 | `src/drivers/mmc/mmc_core.c:163`, `cm_main.c` | High. `mmc_rw()` uses `blocks = length / | Verified | open |
-| | | 512` while bio's range check rounds up: a `part write` whose size isn't a block multiple loses its tail | | |
-| | | and returns OK; under 512 bytes CMD24 goes out with no data and the card stays in rcv. `part verify` of | | |
-| | | such a size hashes stale buffer bytes. The host disk and the ramdisk write exact byte counts, so no test | | |
-| | | sees it. In cm: zero-pad the tail and round up (hosts send raw sizes, D-008). | | |
 | F-184 | `src/drivers/usb/cdns3_udc_core.c:263` | The clean covers `desc_count` TRBs, not the | Verified | open |
 | | | terminating one at `trb[desc_count]`: for some counts its flags word is in a cache line that isn't | | |
 | | | cleaned, and a stale TRB from a larger transfer stays in memory. The effect on the controller is | | |
@@ -160,6 +115,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-193 | `gpt.c:263,446` | LBAs from the disk aren't validated: an entry at LBA 1 becomes | Reported (probe) | open |
 | | | a writable partition over the GPT, a 64-bit `last_lba` is truncated, a primary with MyLBA 5000 makes the | | |
 | | | repair write there. | | |
+| | | 2026-11-13 (`076b7ae4`): `bio_allocate_parent()` refuses a range outside the parent. Left: what | | |
+| | | `gpt.c` reads from the disk. A table on a partition would be refused now: are a child's LBAs | | |
+| | | relative to its parent or to the root, for Jonas | | |
 | F-194 | `gpt.c:296`, `src/bio.c` | Installing a table from command mode doesn't update | Reported (probe) | open |
 | | | the bio pool: until a reset the old partitions are listed and written at their old LBAs. Not documented | | |
 | | | either. D-070, `bio.md` 4: in effect at once. An unchanged partition (UUID and blocks) keeps its | | |
@@ -189,6 +147,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | a zero BOOT_MULT gives a 2^32 block bio. `imx_usdhc.c`: ADMA2 addresses truncated to 32 bits. | | |
 | | | `plat_get_unique_id()` (6UL, 8M, RT) ignores `imx_ocotp_read()` errors: the device UUID comes from | | |
 | | | uninitialised stack. | | |
+| | | 2026-11-13: `mmc_bio_xfer()` with `max_chunk_bytes == 0` ends with -PB_ERR_PARAM since F-182, where | | |
+| | | it looped | | |
 | F-201 | `src/drivers/usb/usbd.c:28` | `enumerated` is never cleared: on the 8MP EVK a replug or | Reported | open |
 | | | bus reset ends in a read on an unconfigured EP2, `cm_run` exits and the board resets. Clear it in | | |
 | | | `usbd_init()` and on bus reset. | | |
@@ -300,6 +260,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | flags, `PB_RAM_LENGTH` set by hand although it follows from the ROM's load window and `PB_ENTRY`. Nothing | | |
 | | | checks at link time that pb is where the ROM may load it, `buffers` in working memory, or that they don't | | |
 | | | overlap. `platform.md` 5.1: Kconfig values, `BOARD_DRAM_*`, the `pb` region, `ASSERT`s | | |
+| | | 2026-11-13, from F-259: the Firmware Handoff region is checked at link time against `ram` and | | |
+| | | `buffers` only; that it lies in working memory needs the board's DRAM here too | | |
 | F-240 | `src/board/*/makefile.mk` | The SoC's packaging and signing are in the boards: | Verified (code) | open |
 | | | jiffy holds the 6UL CSF recipe (IVT at `PB_ENTRY - 0xC00`, uuu's 0x00910000), the MEK and DXL repeat the 8X | | |
 | | | recipe. `FINAL_OUTPUT` is set with `$(eval)` in recipes. Signing inputs are Kconfig on the 6UL, make | | |
@@ -437,22 +399,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | header (D-047: a board that doesn't ask for the header doesn't include it); `pb/board.h` | | |
 | | | forward declares `struct bpak_header`; the RT's board includes `<bpak/bpak.h>` and | | |
 | | | `<boot/image_helpers.h>`. Taking the include out of `boot.h` needs a look at who relied on it | | |
-| F-267 | `src/board/*/board.c`, `src/board.c`, `src/cm/`, `include/pb/cm.h` | Command | Verified (code) | open |
-| | | mode's USB is set up by each board's `cm_init` (clocks or power domains, the PHY, the | | |
-| | | controller: SoC work on every board), and the transport is `cm_transport` in `struct board`, | | |
-| | | a `struct cm_transport_ops` copied into `cm_config`. D-049, `board.md` 4.1 and 4.2, `platform.md` | | |
-| | | 3.10: `plat_cm_init()` at the start of `cm_run()`, the port a Kconfig choice of the platform's; | | |
-| | | command mode calls the transport's functions directly, linked to the USB class driver or to the | | |
-| | | host platform's socket (today in `src/board/host/board.c`). `cm_init` and `cm_transport` leave | | |
-| | | `struct board` | | |
-| F-268 | `src/cm/cm_main.c`, `include/pb/cm.h`, `src/board.c`, the link scripts | Command | Verified (code) | open |
-| | | mode's `process` hook (`struct cm_config`, called while it waits for a command) can't be set by a | | |
-| | | board since D-026: `cm_board_init()` doesn't copy it and `struct board` has no member. Out-of-tree | | |
-| | | boards use it (Jonas). D-051, `board.md` 4.6: `DEFINE_TASK(name, run)` puts a task into a linker | | |
-| | | section that every link script keeps; `main()` calls the tasks in turn while pb is stopped, also | | |
-| | | without `CONFIG_CM`, in no order, until one returns an error; command mode becomes one of them | | |
-| | | (`cm_main_task`: `cm_main.c`'s blocking loop turned into a step); `process` goes. With F-239 | | |
-| | | (the link scripts) and F-267 | | |
 | F-269 | `include/pb/board.h`, `src/plat/*/plat.c`, `src/plat/*/makefile.mk` | A board | Verified (code) | open |
 | | | can't map hardware the platform didn't: the tables are built by each platform's | | |
 | | | `plat_mmu_init()` from its own `imx_mmap[]`, and `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` are | | |
@@ -507,6 +453,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the RAM disk and the host's disk write exact byte counts, the drivers don't (`bio.md` 8) | | |
 | | | D-073, `bio.md` 2.6: nothing refuses a second device with a UUID that is taken; the block | | |
 | | | getters return `int`, so 2^31 blocks or more read as an error (verified in `bio.c`) | | |
+| | | 2026-11-13 (`8feab2e9`, `5fae6bda`, `e3d8f37b`, `d9f0e19a`, `4d25aeca`, `f799b8e2`, `2bc5a469`): a | | |
+| | | block above `CONFIG_BIO_MAX_BLOCK_SIZE` and a second device with a taken UUID are refused, a length | | |
+| | | of 0 doesn't reach the driver, a second `mmc_init()` registers nothing again, the block getters are | | |
+| | | 64 bits, `bio.h` names the codes, the A/B state's erase counts the device's blocks. Left: the GPT's | | |
+| | | four `512` (on a 4 KiB device the entries would sit at byte 512 of LBA 1: a real 4Kn GPT, a refusal, | | |
+| | | or that layout; for Jonas), and the rest of the conformance suite (erase, `write_done`, a write that | | |
+| | | fails half way, the FlexSPI) | | |
 | F-284 | `src/drivers/memc/imx_flexspi.c` | A write copies `size / 4 + 1` | Reported (read) | open |
 | | | words into the FIFO in its last round: 1 to 4 bytes past the caller's buffer (whether they | | |
 | | | reach the flash is unverified, the data size is the exact length). A read whose length isn't | | |
@@ -736,12 +689,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `STREAM_PREPARE_BUFFER` is overwritten, and a `STREAM_WRITE_BUFFER` after them writes the | | |
 | | | partition's bytes. `command-mode.md` 5.3: `PART_VERIFY` changes nothing, the stream neither. | | |
 | | | Released hosts prepare before every write, so no released flow meets it | | |
-| F-393 | `src/boot/ab_state.c` | After a failed init the state functions write through | Verified (host) | open |
-| | | partitions the init never looked up: `cfg` is set before the lookups and an early return (System A | | |
-| | | or B not in the table) leaves `primary_part` and `backup_part` at 0, the first bio device. With the | | |
-| | | policy attached, `boot activate A` answered OK and overwrote LBA 0 of the disk (host, table variant | | |
-| | | 2). `boot_ab_state_write_board_reg()` reaches the same from board code. Until it is fixed | | |
-| | | `board_setup()` detaches the policy after a failed init (F-178). Found with F-178 | | |
 | F-394 | `src/board/host/board.c` | Low. The host board sets up its disk before Mbed TLS, | Verified (code) | open |
 | | | the real boards their crypto engine first: a failed `init()` on the host leaves no crypto, so the | | |
 | | | RAM boot after a failed `init()` (F-216, `board.md` 2.1) has no end-to-end test | | |
@@ -770,6 +717,42 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | host's timeout on USB a device before 3.0.0 can still hold the late result, which the next session | | |
 | | | reads as its first answer (read, not tried). `pyproject.toml` says Python 3.10 and up; only 3.13 is | | |
 | | | tested | | |
+| F-402 | `src/plat/*/Kconfig`, `platform.md` 3.10 | `platform.md` 3.10 has one option per | Verified (code) | open |
+| | | port of the SoC that can be a device; each platform's choice has only the port a board in the tree | | |
+| | | uses. Without an option: the 6UL's USB OTG2, the 8MQ's and the 8MP's USB2, the 8QXP's USB OTG1, the | | |
+| | | 8DXL's USB OTG1, the RT1060's USB OTG2. Their set up would be SoC code nobody can run. For Jonas: | | |
+| | | write it untested, or does the rule mean the ports that have code. From F-267 | | |
+| F-403 | `doc/architecture/boot.md` 3, `ab_state.c` | What the A/B policy does where the | Verified (code) | open |
+| | | contract is silent, from the fixes of F-173 to F-393, for Jonas. (1) A resync of two valid copies | | |
+| | | that can't be written: init returns PB_OK with the primary's state, while a repair of a corrupt or | | |
+| | | unreadable backup that can't be written fails init; both go on, or both fail? (2) Both enable bits | | |
+| | | set: next() boots A, `boot status` answers none, pbstate says both. (3) The verified slot handed out | | |
+| | | in place of a trial fails in the same boot: without speculative mode there is no candidate. (4) | | |
+| | | After a write that failed, the decision stays in memory: a later write in the same power cycle | | |
+| | | persists it, and an uncounted trial is then counted. (5) No entry in pb's status for a state that | | |
+| | | couldn't be written (D-043 expects one). (6) After a failed init: -PB_ERR_STATE for activate, next() | | |
+| | | and a register write, a register reads 0 with PB_OK, the system's name is still answered; should 3.1 | | |
+| | | ask every policy to be safe after a failed init? (7) `boot activate` after an unreadable state | | |
+| | | writes the defaults and the activation: the board registers on the disk are lost. (8) One good copy | | |
+| | | beside an unreadable one is used and repaired | | |
+| F-404 | `src/boot/ab_state.c` | A repair of the backup alone (corrupt, unreadable, or the resync | Reported | open |
+| | | of F-176) goes through the commit that writes both copies: power lost while the good primary is | | |
+| | | rewritten leaves a torn primary beside a stale backup. Write only the backup. Read, not run | | |
+| F-405 | `include/boot/policy.h`, `boot.c`, `ab_state.h`, `tools/pbstate` | Low. Comments that no | Reported | open |
+| | | longer hold: `policy.h` and `boot.c` say next() can return the error of a state write that failed | | |
+| | | (A/B no longer does), `ab_state.h` lists errors `boot_ab_state_set_boot_partition()` doesn't return. | | |
+| | | pbstate returns a primary's read error without trying the backup, where pb uses a good backup; it | | |
+| | | reads the backup only when the primary is corrupt | | |
+| F-406 | `src/drivers/mmc/`, `tests/`, `ab_state.c` | Low, from F-283. `mmc_init()` that fails | Reported | open |
+| | | after it registered its devices leaves them registered and pointing at a slot that is free again | | |
+| | | (`drivers.md` 2.1: nothing is registered when init fails). A card of another size at a second | | |
+| | | `mmc_init()` keeps the first one's range. `host_disk_init()` called twice leaks a descriptor | | |
+| | | (tests). `pb_boot_state_write()` with a handle that isn't one tests a flag on a negative value; the | | |
+| | | result is -PB_ERR_PARAM either way | | |
+| F-407 | `src/drivers/usb/imx_ci_udc.c:38`, `CMakeLists.txt` | Low. A build without | Verified (build) | open |
+| | | `CONFIG_CM` doesn't compile while `DRIVER_IMX_CI_UDC` is on, its default: the driver uses | | |
+| | | `CONFIG_CM_BUF_SIZE_KiB` (the 6UL, the RT, the DXL). On the host `pb_core` is a static library, so a | | |
+| | | task in a file nothing else references isn't linked into pb-host (read). From F-268 | | |
 
 ## Dependencies / vendored code
 
