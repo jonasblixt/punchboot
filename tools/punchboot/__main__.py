@@ -500,6 +500,85 @@ def board_command(
         click.echo(result.decode(errors="replace").strip())
 
 
+# A named command's request goes in one transfer of this size (command-mode.md 5.6)
+COMMAND_REQUEST_SIZE = 1024
+
+
+def _command_request(args: str | None, args_from_file: pathlib.Path | None) -> bytes:
+    """Return a named command's request: ARGS, the file, or stdin when it is piped."""
+    if args is not None and args_from_file:
+        msg = "Use either ARGS or --args-from-file"
+        raise click.BadParameter(msg)
+    if args is not None:
+        request = args.encode()
+    elif args_from_file:
+        request = args_from_file.read_bytes()
+    elif not sys.stdin.isatty():
+        request = sys.stdin.buffer.read()
+    else:
+        request = b""
+    if len(request) > COMMAND_REQUEST_SIZE:
+        msg = f"The request is {len(request)} bytes, at most {COMMAND_REQUEST_SIZE}"
+        raise click.BadParameter(msg)
+    return request
+
+
+@cli.command("command")
+@click.argument("command", type=str)
+@click.argument("args", type=str, required=False)
+@click.option(
+    "out_fmt",
+    "--output-fmt",
+    type=click.Choice(["str", "binary"]),
+    default="str",
+    help="Print command result to stdout as binary or a string (Default: string)",
+)
+@click.option(
+    "args_from_file",
+    "--args-from-file",
+    type=click.Path(path_type=pathlib.Path),
+    required=False,
+    help="Pass contents of a file as argument",
+)
+@pb_session
+@click.pass_context
+def named_command(
+    _ctx: click.Context,
+    s: Session,
+    command: str,
+    args: str | None,
+    out_fmt: str,
+    args_from_file: pathlib.Path | None,
+) -> None:
+    """Run the device's command COMMAND, or 'list' its commands.
+
+    The request is ARGS, the contents of --args-from-file, or stdin when
+    neither is given and stdin isn't a terminal:
+
+        echo -n data | punchboot command some-command
+
+    In a script whose stdin stays open, give ARGS or use < /dev/null.
+    """
+    if command == "list":
+        try:
+            commands = s.command_list()
+        except punchboot.CommandError:
+            msg = "The device can't list its commands (before 3.0.0); run one by its name"
+            raise click.ClickException(msg) from None
+        width = max((len(c.name) for c in commands), default=0)
+        for c in commands:
+            click.echo(f"{c.name:<{width}}  {c.help}".rstrip())
+        return
+
+    result = s.command_run(command, _command_request(args, args_from_file))
+
+    if out_fmt == "binary":
+        sys.stdout.buffer.write(result)
+    else:
+        # A response may be binary (F-225)
+        click.echo(result.decode(errors="replace").strip())
+
+
 @board.command("status")
 @pb_session
 @click.pass_context

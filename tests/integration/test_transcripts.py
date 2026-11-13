@@ -183,6 +183,18 @@ SCENARIOS = [
         ],
     ),
     Scenario(
+        "commands",
+        setup=_install_table,
+        steps=[
+            ("command_list", lambda s, _: s.command_list()),
+            ("command_run", lambda s, _: s.command_run("test-command", b"abc")),
+            ("command_run_no_request", lambda s, _: s.command_run("test-command")),
+            ("command_run_unknown", lambda s, _: s.command_run("test-unknown")),
+            ("command_run_failing", lambda s, _: s.command_run("test-command2")),
+            ("device_reset", lambda s, _: s.device_reset()),
+        ],
+    ),
+    Scenario(
         "security",
         setup=_install_table,
         steps=[

@@ -43,6 +43,36 @@ TEST_COMMAND = 0xC72B6E9E  # pb_id("test-command")
 PB_RESULT_INVALID_ARGUMENT = 5
 
 
+def test_command_list(device: Device) -> None:
+    # command-mode.md 5.6: the host board's named commands, with the ids it
+    # answered before 3.0.0
+    with device.session() as s:
+        commands = s.command_list()
+
+    assert {c.name for c in commands} == {"test-command", "test-command2", "test-boot-stop"}
+    ids = {c.name: c.id for c in commands}
+    assert ids["test-command"] == TEST_COMMAND
+    assert ids["test-command2"] == 0xDFA7C4AD
+    assert ids["test-boot-stop"] == 0x70C3E5F7
+    assert all(c.help for c in commands)
+
+
+def test_command_run(device: Device) -> None:
+    with device.session() as s:
+        assert s.command_run("test-command", b"abc") == b"Hello test-command: abc\n"
+        with pytest.raises(punchboot.NotSupportedError):
+            s.command_run("test-unknown")
+        with pytest.raises(punchboot.NoMemoryError):
+            s.command_run("test-command", bytes(1025))
+
+
+def test_unknown_command_is_not_supported(device: Device) -> None:
+    # An id no command has: NOT_SUPPORTED, as on every board (command-mode.md
+    # 5.6). The host board answered ERROR before 3.0.0
+    with device.session() as s, pytest.raises(punchboot.NotSupportedError):
+        s.board_run_command(0xDEAD)
+
+
 def test_board_command(device: Device) -> None:
     with device.session() as s:
         response = s.board_run_command("test-command", b"0x11223344")

@@ -793,4 +793,3 @@ For a change to command mode, a new command or a new method:
 | F-375               | The caps' erase timeout (4.6)                                                        |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
-| F-426               | The host's `command list` and `command <name>` (5.6)                                 |

@@ -13,7 +13,7 @@ CI runs these tests (D-006).
 | `src/arch/host/`          | No-op cache/MMU. `arch_jump` exits.                                                    |
 | `src/plat/host/`          | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode |
 |                           | transport                                                                              |
-| `src/board/host/`         | Test board (partitions, keys, board commands, fuses on disk)                           |
+| `src/board/host/`         | Test board (partitions, keys, named commands, fuses on disk)                           |
 | `tests/unit/`             | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`,            |
 |                           | `fakes/plat.c`)                                                                        |
 | `tests/integration/`      | pytest tests that drive `pb-host` through the `punchboot` Python package               |
