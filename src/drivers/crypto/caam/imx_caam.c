@@ -74,6 +74,48 @@
 #define CAAM_CHAVID_LS             0x0fec
 #define CAAM_CAAMVID_MS            0x0ff8
 
+/* Version registers, aliased in every job ring page */
+#define CAAM_RNG_VERSION           0x0ef8 /* Era 10 and later */
+#define CAAM_CTPR_MS               0x0fa8
+
+/* RNG4 registers, in the controller page (page 0) */
+#define CAAM_RTMCTL                0x0600 /* TRNG miscellaneous control */
+#define CAAM_RTSCMISC              0x0604 /* Statistical check miscellaneous */
+#define CAAM_RTPKRRNG              0x0608 /* Poker range */
+#define CAAM_RTPKRMAX              0x060c /* Poker maximum limit */
+#define CAAM_RTSDCTL               0x0610 /* Seed control */
+#define CAAM_RTFRQMIN              0x0618 /* Frequency count minimum */
+#define CAAM_RTFRQMAX              0x061c /* Frequency count maximum */
+#define CAAM_RTSCML                0x0620 /* Monobit limits */
+#define CAAM_RTSCR1L               0x0624 /* Run length 1 limits */
+#define CAAM_RTSCR2L               0x0628
+#define CAAM_RTSCR3L               0x062c
+#define CAAM_RTSCR4L               0x0630
+#define CAAM_RTSCR5L               0x0634
+#define CAAM_RTSCR6PL              0x0638
+#define CAAM_RDSTA                 0x06c0 /* RNG DRNG status */
+
+#define CAAM_RTMCTL_SAMP_MODE_MASK 0x3
+#define CAAM_RTMCTL_SAMP_MODE_RAW  0x1 /* Raw data in the entropy shifter and the checker */
+#define CAAM_RTMCTL_ACC            BIT(5)
+#define CAAM_RTMCTL_ERR            BIT(12)
+#define CAAM_RTMCTL_PRGM           BIT(16)
+#define CAAM_RTSDCTL_ENT_DLY(x)    (((x) & 0xffff) << 16)
+#define CAAM_RTSDCTL_DLY_GET(x)    (((x) >> 16) & 0xffff)
+#define CAAM_RTSDCTL_SAMP_SIZE     512
+#define CAAM_RDSTA_IF(sh)          BIT(sh) /* State handle instantiated */
+#define CAAM_RDSTA_PR(sh)          BIT(4 + (sh)) /* ... with prediction resistance */
+#define CAAM_RDSTA_SKVN            BIT(30) /* Secure keys generated */
+#define CAAM_CTPR_MS_RNG_I(x)      (((x) >> 8) & 0x7)
+#define CAAM_CHAVID_LS_RNGVID(x)   (((x) >> 16) & 0xf)
+#define CAAM_RNG_VERSION_VID(x)    (((x) >> 24) & 0xff)
+#define CAAM_RNG_SH_MAX            2
+
+/* Entropy delay, in TRNG clocks per sample */
+#define CAAM_RNG_ENT_DLY_MIN       3200
+#define CAAM_RNG_ENT_DLY_MAX       12800
+#define CAAM_RNG_ENT_DLY_STEP      200
+
 #define CAAM_ORSFR_ORSF_MASK       0x3ff
 #define CAAM_CCBVID_CAAM_ERA(x)    (((x) >> 24) & 0xff)
 #define CAAM_CHAVID_LS_MDVID(x)    (((x) >> 12) & 0xf)
@@ -485,6 +527,144 @@ static int caam_hash_final(uint8_t *output, size_t size)
     caam.hash_align_buf_len = 0;
 
     return err;
+}
+
+/* Program the TRNG's entropy delay and statistical test limits, the values
+ * NXP uses in its OP-TEE driver, and clear the TRNG's error bit. */
+static void caam_rng_kick(uintptr_t ctrl_base, uint32_t ent_delay)
+{
+    /* Program mode. Setting ACC too invalidates the entropy register and
+     * makes the TRNG generate new entropy. */
+    mmio_setbits_32(ctrl_base + CAAM_RTMCTL, CAAM_RTMCTL_PRGM | CAAM_RTMCTL_ACC);
+
+    /* A delay shorter than one already programmed is no use. RTSDCTL reads
+     * zero outside program mode. */
+    ent_delay = MAX(ent_delay, CAAM_RTSDCTL_DLY_GET(mmio_read_32(ctrl_base + CAAM_RTSDCTL)));
+
+    mmio_write_32(ctrl_base + CAAM_RTSDCTL,
+                  CAAM_RTSDCTL_ENT_DLY(ent_delay) | CAAM_RTSDCTL_SAMP_SIZE);
+    mmio_write_32(ctrl_base + CAAM_RTFRQMIN, ent_delay >> 2);
+    mmio_write_32(ctrl_base + CAAM_RTFRQMAX, ent_delay << 4);
+    mmio_write_32(ctrl_base + CAAM_RTSCMISC, (2 << 16) | 32); /* Retries, longest run */
+    mmio_write_32(ctrl_base + CAAM_RTPKRRNG, 570);
+    mmio_write_32(ctrl_base + CAAM_RTPKRMAX, 1600);
+    mmio_write_32(ctrl_base + CAAM_RTSCML, (122 << 16) | 317);
+    mmio_write_32(ctrl_base + CAAM_RTSCR1L, (80 << 16) | 107);
+    mmio_write_32(ctrl_base + CAAM_RTSCR2L, (57 << 16) | 62);
+    mmio_write_32(ctrl_base + CAAM_RTSCR3L, (39 << 16) | 39);
+    mmio_write_32(ctrl_base + CAAM_RTSCR4L, (27 << 16) | 26);
+    mmio_write_32(ctrl_base + CAAM_RTSCR5L, (19 << 16) | 18);
+    mmio_write_32(ctrl_base + CAAM_RTSCR6PL, (18 << 16) | 17);
+
+    /* Run mode, raw sampling */
+    mmio_clrsetbits_32(ctrl_base + CAAM_RTMCTL,
+                       CAAM_RTMCTL_PRGM | CAAM_RTMCTL_ACC | CAAM_RTMCTL_SAMP_MODE_MASK,
+                       CAAM_RTMCTL_SAMP_MODE_RAW);
+
+    /* The error bit is set if the TRNG clock was out of range, e.g. before
+     * the PLLs were set up. Write 1 to clear. */
+    mmio_setbits_32(ctrl_base + CAAM_RTMCTL, CAAM_RTMCTL_ERR);
+}
+
+/* One job for state handle sh: tear it down if it was instantiated without
+ * prediction resistance, instantiate it with, and for state handle 0 generate
+ * the secure keys if they aren't. */
+static int caam_rng_instantiate_sh(uint32_t sh, uint32_t rdsta)
+{
+    int dc = 1;
+
+    if (rdsta & CAAM_RDSTA_IF(sh)) {
+        caam.desc[dc++] = RNG_SH_UNINST(sh);
+        /* Wait for class 1 done, then clear it for the next operation */
+        caam.desc[dc++] = JUMP_C1_LOCAL(TST_ALL_COND_TRUE, JUMP_TST_COND(NONE), 1);
+        caam.desc[dc++] = LD_NOCLASS_IMM(REG_CLEAR_WRITTEN, sizeof(uint32_t));
+        caam.desc[dc++] = 1;
+    }
+
+    caam.desc[dc++] = RNG_SH_INST_PR(sh);
+
+    if (sh == 0 && !(rdsta & CAAM_RDSTA_SKVN)) {
+        caam.desc[dc++] = JUMP_C1_LOCAL(TST_ALL_COND_TRUE, JUMP_TST_COND(NONE), 1);
+        caam.desc[dc++] = LD_NOCLASS_IMM(REG_CLEAR_WRITTEN, sizeof(uint32_t));
+        caam.desc[dc++] = 1;
+        caam.desc[dc++] = RNG_GEN_SECKEYS;
+    }
+
+    caam.desc[0] = DESC_HEADER(dc);
+
+    return caam_shedule_job_sync();
+}
+
+int imx_caam_rng_init(uintptr_t ctrl_base)
+{
+    int rc = PB_OK;
+    uint32_t rng_vid;
+
+    if (!caam.caam_initialized)
+        return -PB_ERR_STATE;
+
+    uint32_t era = CAAM_CCBVID_CAAM_ERA(mmio_read_32(caam.base + CAAM_CCBVID));
+
+    if (era < 10)
+        rng_vid = CAAM_CHAVID_LS_RNGVID(mmio_read_32(caam.base + CAAM_CHAVID_LS));
+    else
+        rng_vid = CAAM_RNG_VERSION_VID(mmio_read_32(caam.base + CAAM_RNG_VERSION));
+
+    /* Before RNG4 there are no state handles to instantiate */
+    if (rng_vid < 4) {
+        LOG_INFO("RNG version %" PRIu32 ", nothing to instantiate", rng_vid);
+        return PB_OK;
+    }
+
+    uint32_t nr_sh = CAAM_CTPR_MS_RNG_I(mmio_read_32(caam.base + CAAM_CTPR_MS));
+
+    if (nr_sh == 0 || nr_sh > CAAM_RNG_SH_MAX) {
+        LOG_ERR("Unexpected number of RNG state handles: %" PRIu32, nr_sh);
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
+    uint32_t rdsta_start = mmio_read_32(ctrl_base + CAAM_RDSTA);
+    uint32_t ent_delay = CAAM_RNG_ENT_DLY_MIN;
+    uint32_t rdsta = rdsta_start;
+
+    for (uint32_t sh = 0; sh < nr_sh; sh++) {
+        const uint32_t done = CAAM_RDSTA_IF(sh) | CAAM_RDSTA_PR(sh);
+
+        while ((rdsta & done) != done) {
+            /* The TRNG is only programmed while no state handle is
+             * instantiated; it can't be changed under one. */
+            if ((rdsta & (CAAM_RDSTA_IF(0) | CAAM_RDSTA_IF(1))) == 0)
+                caam_rng_kick(ctrl_base, ent_delay);
+
+            rc = caam_rng_instantiate_sh(sh, rdsta);
+            rdsta = mmio_read_32(ctrl_base + CAAM_RDSTA);
+
+            if ((rdsta & done) == done)
+                break;
+
+            /* A job timeout won't get better with more entropy */
+            if (rc == -PB_ERR_TIMEOUT)
+                goto err_out;
+
+            /* Not enough entropy: try again with a longer delay */
+            ent_delay += CAAM_RNG_ENT_DLY_STEP;
+
+            if (ent_delay > CAAM_RNG_ENT_DLY_MAX) {
+                rc = -PB_ERR;
+                goto err_out;
+            }
+        }
+    }
+
+    LOG_INFO("RNG4: %" PRIu32 " state handles, RDSTA %08" PRIx32 " -> %08" PRIx32,
+             nr_sh,
+             rdsta_start,
+             rdsta);
+    return PB_OK;
+
+err_out:
+    LOG_ERR("RNG4 instantiation failed (%i), RDSTA %08" PRIx32, rc, rdsta);
+    return rc;
 }
 
 int imx_caam_init(uintptr_t base)
