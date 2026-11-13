@@ -320,7 +320,8 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | The key's curve is `alg`             | no                      | no                   | F-286        |
 | Every wait bounded                   | yes (1 s)               | n/a                  |              |
 | Nothing left at the jump             | no                      | n/a                  | F-286        |
-| The library's results checked        | n/a                     | no: the SHA calls'   | F-008        |
+| The library's results checked        | n/a                     | yes                  |              |
+|                                      |                         | (`test_mbedtls`)     |              |
 | An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |
 | isn't registered                     |                         |                      |              |
 | Known answer tests                   | partly: "abc", 1000     | partly: "abc", P-256 | F-230        |
@@ -353,6 +354,5 @@ simple target (D-025): F-181 was found in such a model, not on hardware.
 | F-220        | The block buffer isn't refilled while a job reads it (3.3)                      |
 | F-081        | The digest is copied, not written by the engine into the user's memory (3.5)    |
 | F-066        | The key is parsed inside its length (4)                                         |
-| F-008        | The software backend checks the library's results                               |
 | F-247        | The platform sets the backend up (2)                                            |
 | F-230        | The backends' tests (9)                                                         |

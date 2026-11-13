@@ -7,6 +7,9 @@
  *
  * The Mbed TLS crypto provider (src/drivers/crypto/mbedtls) through the crypto
  * API, with the keys from the internal keystore and the host auth token.
+ *
+ * The linker wraps the library's hash calls (--wrap, see CMakeLists.txt), so
+ * that a test can fail one, as a library with hardware acceleration can.
  */
 
 #include <setjmp.h>
@@ -18,6 +21,10 @@
 
 #include <bpak/keystore.h>
 #include <drivers/crypto/mbedtls.h>
+#include <mbedtls/error.h>
+#include <mbedtls/md5.h>
+#include <mbedtls/sha256.h>
+#include <mbedtls/sha512.h>
 #include <pb/crypto.h>
 #include <pb/pb.h>
 #include <stdio.h>
@@ -53,6 +60,35 @@ static const uint8_t sha512_abc[] = {
 
 static uint8_t token[128];
 static size_t token_length;
+
+/* The library call that fails, or NULL */
+static const char *failing;
+
+#define WRAP(name, params, args)                            \
+    int __real_##name params;                               \
+    int __wrap_##name params;                               \
+    int __wrap_##name params                                \
+    {                                                       \
+        if (failing != NULL && strcmp(failing, #name) == 0) \
+            return MBEDTLS_ERR_PLATFORM_HW_ACCEL_FAILED;    \
+        return __real_##name args;                          \
+    }
+
+WRAP(mbedtls_md5_starts, (mbedtls_md5_context * ctx), (ctx))
+WRAP(mbedtls_md5_update,
+     (mbedtls_md5_context * ctx, const unsigned char *input, size_t ilen),
+     (ctx, input, ilen))
+WRAP(mbedtls_md5_finish, (mbedtls_md5_context * ctx, unsigned char *output), (ctx, output))
+WRAP(mbedtls_sha256_starts, (mbedtls_sha256_context * ctx, int is224), (ctx, is224))
+WRAP(mbedtls_sha256_update,
+     (mbedtls_sha256_context * ctx, const unsigned char *input, size_t ilen),
+     (ctx, input, ilen))
+WRAP(mbedtls_sha256_finish, (mbedtls_sha256_context * ctx, unsigned char *output), (ctx, output))
+WRAP(mbedtls_sha512_starts, (mbedtls_sha512_context * ctx, int is384), (ctx, is384))
+WRAP(mbedtls_sha512_update,
+     (mbedtls_sha512_context * ctx, const unsigned char *input, size_t ilen),
+     (ctx, input, ilen))
+WRAP(mbedtls_sha512_finish, (mbedtls_sha512_context * ctx, unsigned char *output), (ctx, output))
 
 static const struct bpak_key *find_key(uint32_t id)
 {
@@ -102,6 +138,78 @@ static void test_digests(void **state)
     check_digest(HASH_SHA256, sha256_abc, sizeof(sha256_abc));
     check_digest(HASH_SHA384, sha384_abc, sizeof(sha384_abc));
     check_digest(HASH_SHA512, sha512_abc, sizeof(sha512_abc));
+}
+
+/* crypto.md 9, "The library's results checked": a call of the library that
+ * fails is the backend's error, never a digest (F-008) */
+static void test_library_results(void **state)
+{
+    static const struct {
+        hash_t alg;
+        const char *starts;
+        const char *update;
+        const char *finish;
+        const uint8_t *abc;
+        size_t length;
+    } algs[] = {
+        { HASH_MD5,
+          "mbedtls_md5_starts",
+          "mbedtls_md5_update",
+          "mbedtls_md5_finish",
+          md5_abc,
+          sizeof(md5_abc) },
+        { HASH_SHA256,
+          "mbedtls_sha256_starts",
+          "mbedtls_sha256_update",
+          "mbedtls_sha256_finish",
+          sha256_abc,
+          sizeof(sha256_abc) },
+        { HASH_SHA384,
+          "mbedtls_sha512_starts",
+          "mbedtls_sha512_update",
+          "mbedtls_sha512_finish",
+          sha384_abc,
+          sizeof(sha384_abc) },
+        { HASH_SHA512,
+          "mbedtls_sha512_starts",
+          "mbedtls_sha512_update",
+          "mbedtls_sha512_finish",
+          sha512_abc,
+          sizeof(sha512_abc) },
+    };
+
+    uint8_t digest[CRYPTO_MD_MAX_SZ];
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(algs); i++) {
+        failing = algs[i].starts;
+        assert_int_equal(hash_init(algs[i].alg), -PB_ERR_IO);
+        failing = NULL;
+
+        assert_int_equal(hash_init(algs[i].alg), PB_OK);
+        failing = algs[i].update;
+        assert_int_equal(hash_update("abc", 3), -PB_ERR_IO);
+        failing = NULL;
+
+        assert_int_equal(hash_init(algs[i].alg), PB_OK);
+        assert_int_equal(hash_update("abc", 3), PB_OK);
+        failing = algs[i].finish;
+        assert_int_equal(hash_final(digest, sizeof(digest)), -PB_ERR_IO);
+        failing = NULL;
+
+        /* After an error the next hash is right */
+        assert_int_equal(hash_init(algs[i].alg), PB_OK);
+        assert_int_equal(hash_update("abc", 3), PB_OK);
+        assert_int_equal(hash_final(digest, sizeof(digest)), PB_OK);
+        assert_memory_equal(digest, algs[i].abc, algs[i].length);
+    }
+}
+
+static int clear_failing(void **state)
+{
+    (void)state;
+    failing = NULL;
+    return 0;
 }
 
 static void test_copy_update_and_async_fallbacks(void **state)
@@ -234,6 +342,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_digests),
+        cmocka_unit_test_teardown(test_library_results, clear_failing),
         cmocka_unit_test(test_copy_update_and_async_fallbacks),
         cmocka_unit_test(test_unknown_alg),
         cmocka_unit_test(test_verify_auth_token),

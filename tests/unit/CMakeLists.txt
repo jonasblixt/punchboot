@@ -115,6 +115,11 @@ pb_unit_test(test_mbedtls
 target_compile_definitions(test_mbedtls PRIVATE
     PB_AUTH_TOKEN_PATH="${PROJECT_SOURCE_DIR}/tests/02e49231-756e-35ee-a982-378e5ba866a9.token"
 )
+# The library's hash calls go through the test, which can fail them
+foreach(call md5_starts md5_update md5_finish sha256_starts sha256_update sha256_finish
+             sha512_starts sha512_update sha512_finish)
+    target_link_options(test_mbedtls PRIVATE -Wl,--wrap=mbedtls_${call})
+endforeach()
 
 pb_unit_test(test_rot
     SOURCES

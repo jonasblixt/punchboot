@@ -38,108 +38,125 @@ static union {
 
 static hash_t current_hash;
 
+/* What a call of the library returned, as the backend's result */
+static int mbedtls_result(int rc)
+{
+    if (rc != 0) {
+        LOG_ERR("Mbed TLS: -0x%04x", (unsigned int)-rc);
+        return -PB_ERR_IO;
+    }
+
+    return PB_OK;
+}
+
 static int mbedtls_hash_init(hash_t pb_alg)
 {
+    int rc;
+
     current_hash = pb_alg;
 
     switch (pb_alg) {
 #if defined(CONFIG_MBEDTLS_MD_SHA512)
     case HASH_SHA512:
         mbedtls_sha512_init(&mbed_hash.sha512);
-        mbedtls_sha512_starts(&mbed_hash.sha512, 0);
+        rc = mbedtls_sha512_starts(&mbed_hash.sha512, 0);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA384)
     case HASH_SHA384:
         mbedtls_sha512_init(&mbed_hash.sha512);
-        mbedtls_sha512_starts(&mbed_hash.sha512, 1);
+        rc = mbedtls_sha512_starts(&mbed_hash.sha512, 1);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA256)
     case HASH_SHA256:
         mbedtls_sha256_init(&mbed_hash.sha256);
-        mbedtls_sha256_starts(&mbed_hash.sha256, 0);
+        rc = mbedtls_sha256_starts(&mbed_hash.sha256, 0);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_MD5)
     case HASH_MD5:
         mbedtls_md5_init(&mbed_hash.md5);
-        mbedtls_md5_starts(&mbed_hash.md5);
+        rc = mbedtls_md5_starts(&mbed_hash.md5);
         break;
 #endif
     default:
         return -PB_ERR_PARAM;
     }
 
-    return PB_OK;
+    return mbedtls_result(rc);
 }
 
 static int mbedtls_hash_update(const void *buf, size_t length)
 {
+    int rc;
+
     switch (current_hash) {
 #if defined(CONFIG_MBEDTLS_MD_SHA512)
     case HASH_SHA512:
-        mbedtls_sha512_update(&mbed_hash.sha512, (const unsigned char *)buf, length);
+        rc = mbedtls_sha512_update(&mbed_hash.sha512, (const unsigned char *)buf, length);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA384)
     case HASH_SHA384:
-        mbedtls_sha512_update(&mbed_hash.sha512, (const unsigned char *)buf, length);
+        rc = mbedtls_sha512_update(&mbed_hash.sha512, (const unsigned char *)buf, length);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA256)
     case HASH_SHA256:
-        mbedtls_sha256_update(&mbed_hash.sha256, (const unsigned char *)buf, length);
+        rc = mbedtls_sha256_update(&mbed_hash.sha256, (const unsigned char *)buf, length);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_MD5)
     case HASH_MD5:
-        mbedtls_md5_update(&mbed_hash.md5, (const unsigned char *)buf, length);
+        rc = mbedtls_md5_update(&mbed_hash.md5, (const unsigned char *)buf, length);
         break;
 #endif
     default:
         return -PB_ERR_PARAM;
     }
 
-    return PB_OK;
+    return mbedtls_result(rc);
 }
 
 static int mbedtls_hash_final(uint8_t *output, size_t size)
 {
+    int rc;
+
     switch (current_hash) {
 #if defined(CONFIG_MBEDTLS_MD_SHA512)
     case HASH_SHA512:
         if (size < 64)
             return -PB_ERR_BUF_TOO_SMALL;
-        mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *)output);
+        rc = mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *)output);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA384)
     case HASH_SHA384:
         if (size < 48)
             return -PB_ERR_BUF_TOO_SMALL;
-        mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *)output);
+        rc = mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *)output);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA256)
     case HASH_SHA256:
         if (size < 32)
             return -PB_ERR_BUF_TOO_SMALL;
-        mbedtls_sha256_finish(&mbed_hash.sha256, (unsigned char *)output);
+        rc = mbedtls_sha256_finish(&mbed_hash.sha256, (unsigned char *)output);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_MD5)
     case HASH_MD5:
         if (size < 16)
             return -PB_ERR_BUF_TOO_SMALL;
-        mbedtls_md5_finish(&mbed_hash.md5, (unsigned char *)output);
+        rc = mbedtls_md5_finish(&mbed_hash.md5, (unsigned char *)output);
         break;
 #endif
     default:
         return -PB_ERR_PARAM;
     }
 
-    return PB_OK;
+    return mbedtls_result(rc);
 }
 
 #ifdef CONFIG_MBEDTLS_ECDSA
