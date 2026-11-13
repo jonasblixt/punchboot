@@ -114,12 +114,12 @@ void plat_reset(void)
     exit(EXIT_SUCCESS);
 }
 
-unsigned int plat_get_us_tick(void)
+uint32_t plat_get_us_tick(void)
 {
     struct timespec ts;
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (unsigned int)(ts.tv_sec * 1000000ull + ts.tv_nsec / 1000);
+    return (uint32_t)(ts.tv_sec * 1000000ull + ts.tv_nsec / 1000);
 }
 
 void plat_wdog_kick(void)
