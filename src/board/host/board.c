@@ -389,6 +389,16 @@ static int board_late_init(void)
     return PB_OK;
 }
 
+/* snprintf() returns the length of the whole text, also when only room - 1
+ * bytes of it and the NUL fit: the size is what it wrote */
+static size_t written(int n, size_t room)
+{
+    if (n < 0)
+        return 0;
+
+    return ((size_t)n < room) ? (size_t)n : room;
+}
+
 static int board_command(uint32_t command,
                          uint8_t *bfr,
                          size_t size,
@@ -408,12 +418,14 @@ static int board_command(uint32_t command,
 
         LOG_DBG("test-command (%.*s)", arg_length, arg);
 
-        (*response_size) =
-            snprintf(response, resp_buf_size, "Hello test-command: %.*s\n", arg_length, arg);
+        (*response_size) = written(
+            snprintf(response, resp_buf_size, "Hello test-command: %.*s\n", arg_length, arg),
+            resp_buf_size);
 
         return PB_OK;
     } else if (command == 0xdfa7c4ad) {
-        (*response_size) = snprintf(response, resp_buf_size, "Should return error code -128\n");
+        (*response_size) = written(
+            snprintf(response, resp_buf_size, "Should return error code -128\n"), resp_buf_size);
         return -128;
     } else if (command == 0x70c3e5f7) { /* test-boot-stop */
         (*response_size) = 0;
