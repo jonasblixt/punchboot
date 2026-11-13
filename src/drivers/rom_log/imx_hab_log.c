@@ -10,7 +10,9 @@
 #include <drivers/rom_log/imx_hab_log.h>
 #include <pb/log_source.h>
 #include <pb/pb.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 /* HABv4 values, as in include/plat/imx6ul/hab.h */
@@ -109,10 +111,6 @@ static const char *find_name(const struct name *names, size_t n, uint32_t value)
 
 #define NAME(table, value) find_name(table, ARRAY_SIZE(table), value)
 
-/*
- * A small writer: the firmware snprintf has no field widths, and its %x
- * doesn't check the buffer size, so text goes through these.
- */
 struct text {
     char *buf;
     size_t size;
@@ -120,51 +118,36 @@ struct text {
     bool truncated;
 };
 
-static void put_str(struct text *t, const char *s)
+/* Add to the text; what doesn't fit is cut, and the text stays terminated.
+ * The firmware's vsnprintf() has %s, %i, %u, %x and %0<width>x */
+static void put(struct text *t, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+
+static void put(struct text *t, const char *fmt, ...)
 {
-    while (*s) {
-        if (t->len + 1 >= t->size) {
-            t->truncated = true;
-            return;
-        }
-        t->buf[t->len++] = *s++;
+    size_t left = t->size - t->len;
+    va_list args;
+    int n;
+
+    if (t->truncated)
+        return;
+
+    va_start(args, fmt);
+    n = vsnprintf(&t->buf[t->len], left, fmt, args);
+    va_end(args);
+
+    if (n < 0 || (size_t)n >= left) {
+        t->len = t->size - 1;
+        t->truncated = true;
+        return;
     }
-    t->buf[t->len] = '\0';
-}
 
-static void put_hex(struct text *t, uint32_t value, unsigned int digits)
-{
-    static const char hex[] = "0123456789abcdef";
-    char s[9];
-
-    for (unsigned int i = 0; i < digits; i++)
-        s[i] = hex[(value >> (4 * (digits - 1 - i))) & 0xf];
-    s[digits] = '\0';
-    put_str(t, s);
-}
-
-static void put_dec(struct text *t, uint32_t value)
-{
-    char s[11];
-    size_t i = sizeof(s) - 1;
-
-    s[i] = '\0';
-    do {
-        s[--i] = (char)('0' + value % 10);
-        value /= 10;
-    } while (value);
-    put_str(t, &s[i]);
+    t->len += (size_t)n;
 }
 
 /* "label: name (0xNN)" */
 static void put_named(struct text *t, const char *label, const char *name, uint32_t value)
 {
-    put_str(t, label);
-    put_str(t, ": ");
-    put_str(t, name);
-    put_str(t, " (0x");
-    put_hex(t, value, 2);
-    put_str(t, ")");
+    put(t, "%s: %s (0x%02x)", label, name, (unsigned int)value);
 }
 
 int imx_hab_log_decode(imx_hab_report_status_t *report_status,
@@ -185,7 +168,7 @@ int imx_hab_log_decode(imx_hab_report_status_t *report_status,
     put_named(&t, "HAB status", NAME(statuses, status), status);
     put_named(&t, ", config", NAME(configs, config), config);
     put_named(&t, ", state", NAME(states, state), state);
-    put_str(&t, "\n");
+    put(&t, "\n");
 
     for (uint32_t i = 0;; i++) {
         size_t bytes = sizeof(event);
@@ -194,24 +177,22 @@ int imx_hab_log_decode(imx_hab_report_status_t *report_status,
             break;
 
         bytes = MIN(bytes, sizeof(event));
-        put_str(&t, "Event ");
-        put_dec(&t, i);
+        put(&t, "Event %u", (unsigned int)i);
         if (bytes >= 8 && event[0] == HAB_TAG_EVT) {
             put_named(&t, ": status", NAME(statuses, event[4]), event[4]);
             put_named(&t, ", reason", NAME(reasons, event[5]), event[5]);
             put_named(&t, ", context", NAME(contexts, event[6]), event[6]);
             put_named(&t, ", engine", NAME(engines, event[7]), event[7]);
         } else {
-            put_str(&t, ": not an event record");
+            put(&t, ": not an event record");
         }
-        put_str(&t, "\n ");
+        put(&t, "\n ");
         for (size_t j = 0; j < bytes; j++) {
-            put_str(&t, " ");
-            put_hex(&t, event[j], 2);
+            put(&t, " %02x", (unsigned int)event[j]);
             if ((j % 16) == 15 && j + 1 < bytes)
-                put_str(&t, "\n ");
+                put(&t, "\n ");
         }
-        put_str(&t, "\n");
+        put(&t, "\n");
     }
 
     *out_len = t.len;
