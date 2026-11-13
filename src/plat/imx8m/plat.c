@@ -93,6 +93,47 @@ const char *plat_boot_reason_str(void)
     return "";
 }
 
+/* SRC_SRSR as plat_early_init() read it */
+static uint32_t srsr;
+
+/* The causes, the highest priority first (plat/imx8m/mm.h) */
+static const struct {
+    uint32_t bit;
+    enum pb_boot_reason_kind kind;
+    const char *name;
+} boot_reasons[] = {
+    { SRC_SRSR_TEMP_RST_B, PB_BOOT_REASON_FAULT, "temp" },
+#ifdef CONFIG_PLAT_IMX8MQ
+    { SRC_SRSR_WDOG4_RST_B, PB_BOOT_REASON_WDOG, "wdog4" },
+#else
+    { SRC_SRSR_WDOG4_RST_B, PB_BOOT_REASON_WDOG, "wdog2" },
+#endif
+    { SRC_SRSR_WDOG3_RST_B, PB_BOOT_REASON_WDOG, "wdog3" },
+    { SRC_SRSR_JTAG_SW_RST, PB_BOOT_REASON_DEBUG, "jtag_sw" },
+    { SRC_SRSR_JTAG_RST_B, PB_BOOT_REASON_DEBUG, "jtag_rst" },
+    { SRC_SRSR_WDOG1_RST_B, PB_BOOT_REASON_WDOG, "wdog" },
+    { SRC_SRSR_IPP_USER_RST_B, PB_BOOT_REASON_UNKNOWN, "User" },
+    { SRC_SRSR_CSU_RST_B, PB_BOOT_REASON_FAULT, "CSU" },
+    { SRC_SRSR_IPP_RST_B, PB_BOOT_REASON_POR, "POR" },
+};
+
+int plat_get_boot_reason(struct pb_boot_reason *reason)
+{
+    reason->kind = PB_BOOT_REASON_UNKNOWN;
+    reason->raw = srsr;
+    reason->name = "Unknown";
+
+    for (size_t i = 0; i < ARRAY_SIZE(boot_reasons); i++) {
+        if (srsr & boot_reasons[i].bit) {
+            reason->kind = boot_reasons[i].kind;
+            reason->name = boot_reasons[i].name;
+            break;
+        }
+    }
+
+    return PB_OK;
+}
+
 int plat_get_unique_id(uint8_t *output, size_t *length)
 {
     union {
@@ -241,6 +282,10 @@ static int tzasc_open_dram(void)
 
 int plat_early_init(void)
 {
+    /* The reset reason. Read only: the OS reads the same register. The SRC
+     * has no clock gate */
+    srsr = mmio_read_32(IMX8M_SRC_SRSR);
+
     imx_rom_log_save(&rom_log_cfg);
     (void)imx_hab_log_init(&hab_log_cfg);
 

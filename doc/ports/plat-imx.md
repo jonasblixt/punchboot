@@ -31,7 +31,7 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 | pb runs from     | DRAM (jiffy: 0x80001000)      | OCRAM                   | DRAM, a reset stub at   | OCRAM      |
 |                  |                               |                         | 0x80000000              |            |
 | Watchdog         | WDOG1 (`imx_wdog`)            | WDOG1                   | The SCFW (`sc_timer_*`) | WDOG1      |
-| Reset reason     | SRC_SRSR                      | not implemented         | `sc_pm_reset_reason()`  | WDOG1 WRSR |
+| Reset reason     | SRC_SRSR                      | SRC_SRSR                | `sc_pm_reset_reason()`  | WDOG1 WRSR |
 | ROM state saved  | ROM log, the serial           | ROM log                 | -                       | -          |
 |                  | downloader's USB address      |                         |                         |            |
 | HAB log          | yes                           | yes                     | - (AHAB)                | yes        |

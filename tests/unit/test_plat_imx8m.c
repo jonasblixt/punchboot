@@ -178,11 +178,105 @@ static void test_tick_not_restarted_by_plat_init(void **state)
     assert_int_equal(fake_mmu_enables, 1);
 }
 
+/* What plat_get_boot_reason() makes of a value of SRC_SRSR */
+static struct pb_boot_reason reason_of(uint32_t srsr)
+{
+    struct pb_boot_reason reason;
+
+    memset(&reason, 0xff, sizeof(reason));
+    fake_regs_set(IMX8M_SRC_SRSR, srsr);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_get_boot_reason(&reason), PB_OK);
+    assert_int_equal(reason.raw, srsr);
+    return reason;
+}
+
+/* platform.md 3.4: every cause of SRC_SRSR has a kind and a name, and raw is
+ * the register (plat/imx8m/mm.h has the table). Bit 8 is the i.MX8M Plus's
+ * WDOG2 */
+static void test_boot_reason_kinds(void **state)
+{
+    static const struct {
+        uint32_t srsr;
+        enum pb_boot_reason_kind kind;
+        const char *name;
+    } causes[] = {
+        { SRC_SRSR_IPP_RST_B, PB_BOOT_REASON_POR, "POR" },
+        { SRC_SRSR_CSU_RST_B, PB_BOOT_REASON_FAULT, "CSU" },
+        { SRC_SRSR_IPP_USER_RST_B, PB_BOOT_REASON_UNKNOWN, "User" },
+        { SRC_SRSR_WDOG1_RST_B, PB_BOOT_REASON_WDOG, "wdog" },
+        { SRC_SRSR_JTAG_RST_B, PB_BOOT_REASON_DEBUG, "jtag_rst" },
+        { SRC_SRSR_JTAG_SW_RST, PB_BOOT_REASON_DEBUG, "jtag_sw" },
+        { SRC_SRSR_WDOG3_RST_B, PB_BOOT_REASON_WDOG, "wdog3" },
+        { SRC_SRSR_WDOG4_RST_B, PB_BOOT_REASON_WDOG, "wdog2" },
+        { SRC_SRSR_TEMP_RST_B, PB_BOOT_REASON_FAULT, "temp" },
+        /* Nothing set (the OS cleared it), a reserved bit */
+        { 0, PB_BOOT_REASON_UNKNOWN, "Unknown" },
+        { BIT(1), PB_BOOT_REASON_UNKNOWN, "Unknown" },
+    };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(causes); i++) {
+        struct pb_boot_reason reason = reason_of(causes[i].srsr);
+
+        assert_int_equal(reason.kind, causes[i].kind);
+        assert_string_equal(reason.name, causes[i].name);
+    }
+}
+
+/* platform.md 3.4: the status is sticky, so several causes are set after the
+ * resets that follow a power on. The priority of the platform header decides:
+ * the highest bit, and a power on is the lowest */
+static void test_boot_reason_priority(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    reason = reason_of(SRC_SRSR_IPP_RST_B | SRC_SRSR_WDOG1_RST_B);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_WDOG);
+    assert_string_equal(reason.name, "wdog");
+
+    reason = reason_of(SRC_SRSR_IPP_RST_B | SRC_SRSR_IPP_USER_RST_B);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_UNKNOWN);
+    assert_string_equal(reason.name, "User");
+
+    reason = reason_of(SRC_SRSR_IPP_RST_B | SRC_SRSR_WDOG1_RST_B | SRC_SRSR_JTAG_SW_RST);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_DEBUG);
+    assert_string_equal(reason.name, "jtag_sw");
+
+    reason = reason_of(0x3fd);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_FAULT);
+    assert_string_equal(reason.name, "temp");
+}
+
+/* platform.md 2.1, 3.4: the reason is read in plat_early_init() and never
+ * cleared: the OS reads the same register (D-053) */
+static void test_boot_reason_is_read_once_and_not_cleared(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    reason = reason_of(SRC_SRSR_IPP_RST_B | SRC_SRSR_WDOG1_RST_B);
+    assert_int_equal(plat_init(), PB_OK);
+
+    /* What the register reads later doesn't matter */
+    fake_regs_set(IMX8M_SRC_SRSR, SRC_SRSR_IPP_RST_B);
+    assert_int_equal(plat_get_boot_reason(&reason), PB_OK);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_WDOG);
+    assert_int_equal(reason.raw, SRC_SRSR_IPP_RST_B | SRC_SRSR_WDOG1_RST_B);
+
+    assert_int_equal(fake_regs_writes(IMX8M_SRC_SRSR), 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
+        cmocka_unit_test_setup(test_boot_reason_kinds, setup),
+        cmocka_unit_test_setup(test_boot_reason_priority, setup),
+        cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

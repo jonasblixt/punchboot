@@ -34,15 +34,31 @@
 #define IMX8M_OCOTP_BASE           (0x30350000)
 
 #define IMX8M_SRC_BASE             (0x30390000)
+/*
+ * The boot reason (plat_get_boot_reason(), platform.md 3.4): raw is SRC_SRSR
+ * (8MP RM 6.5.5.22, 8MQ RM 6.5.7.17) as plat_early_init() read it. A reset
+ * sets its cause's bit, and only a power on reset (ipp_reset_b) or a 1
+ * written to a bit clears one. pb writes none, so every cause survives the
+ * resets that follow it, and the kind is the highest priority cause since
+ * the OS last cleared the register, not the cause of this reset.
+ *
+ * The priority is the bit's number, the highest first; a power on is last.
+ * The kind and the name of each:
+ */
 #define IMX8M_SRC_SRSR             (0x3039005c)
-#define SRC_SRSR_TEMP_RST_B        BIT(9)
+#define SRC_SRSR_TEMP_RST_B        BIT(9) /* FAULT, "temp": the temperature sensor */
+/* WDOG: "wdog2" on the i.MX8M Plus, "wdog4" on the i.MX8M Quad */
 #define SRC_SRSR_WDOG4_RST_B       BIT(8)
-#define SRC_SRSR_WDOG3_RST_B       BIT(7)
-#define SRC_SRSR_JTAG_SW_RST       BIT(6)
-#define SRC_SRSR_JTAG_RST_B        BIT(5)
+#define SRC_SRSR_WDOG3_RST_B       BIT(7) /* WDOG, "wdog3" */
+#define SRC_SRSR_JTAG_SW_RST       BIT(6) /* DEBUG, "jtag_sw": a software reset over JTAG */
+#define SRC_SRSR_JTAG_RST_B        BIT(5) /* DEBUG, "jtag_rst": the JTAG reset */
+/* WDOG, "wdog": WDOG1's time-out, and its software reset too, which is
+ * plat_reset() and the OS's reboot: SRSR can't tell them apart */
 #define SRC_SRSR_WDOG1_RST_B       BIT(4)
-#define SRC_SRSR_IPP_USER_RST_B    BIT(3)
-#define SRC_SRSR_CSU_RST_B         BIT(2)
+#define SRC_SRSR_IPP_USER_RST_B    BIT(3) /* UNKNOWN, "User": no kind fits */
+#define SRC_SRSR_CSU_RST_B         BIT(2) /* FAULT, "CSU": the CSU's alarm */
+#define SRC_SRSR_IPP_RST_B         BIT(0) /* POR, "POR" */
+/* No cause set: UNKNOWN, "Unknown" */
 
 /* DDR controller and PHY resets, a set bit holds the reset */
 #define SRC_DDRC_RCR_ADDR          0x30391000
