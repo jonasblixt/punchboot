@@ -356,6 +356,27 @@ static int load_auth_verify_from_cb(void)
     return rc;
 }
 
+#ifdef CONFIG_CM_ON_SERIAL_DOWNLOAD
+/*
+ * The serial download stop (board.md 5.1): the ROM's serial downloader
+ * loaded pb, over USB or a UART. Whoever loaded it is at the other end and
+ * wants command mode, not the system on the storage. Only the platform knows
+ * how its ROM tells (plat_get_boot_source()): one that can't, this time or
+ * at all, doesn't stop the boot.
+ */
+static bool loaded_by_serial_download(void)
+{
+    struct pb_boot_source src;
+
+    memset(&src, 0, sizeof(src));
+
+    if (plat_get_boot_source(&src) != PB_OK)
+        return false;
+
+    return src.kind == PB_BOOT_SOURCE_USB || src.kind == PB_BOOT_SOURCE_UART;
+}
+#endif
+
 /*
  * The boot's preconditions (security.md 4.5, platform.md 2.3): no silent
  * boot. What plat_init() couldn't fail on and recorded is checked here, in
@@ -590,6 +611,16 @@ int boot_load(uuid_t boot_part_override_uu)
     /* This boot has verified nothing yet */
     header_verified = false;
     image_in_place = false;
+
+#ifdef CONFIG_CM_ON_SERIAL_DOWNLOAD
+    /* Before anything else (boot.md 2), and never in a boot that command
+     * mode started: the host asked for that one */
+    if (!(boot_flags & BOOT_FLAG_CMD) && loaded_by_serial_download()) {
+        LOG_INFO("Loaded by the ROM's serial downloader: command mode");
+        rc = -PB_ERR_ABORT;
+        goto err_out;
+    }
+#endif
 
     if (boot_cfg->handover == NULL) {
         rc = -PB_ERR_NOT_SUPPORTED;

@@ -43,5 +43,10 @@ extern unsigned int fake_lockdown_wdog_kicks;
 /* What plat_get_status() answers, and the number of its calls */
 extern struct plat_status fake_plat_status;
 extern unsigned int fake_plat_status_calls;
+/* What plat_get_boot_source() returns, -PB_ERR_NOT_SUPPORTED by default, the
+ * kind it answers with PB_OK, and the number of its calls */
+extern int fake_boot_source_rc;
+extern enum pb_boot_source_kind fake_boot_source;
+extern unsigned int fake_boot_source_calls;
 
 #endif // TESTS_UNIT_FAKES_PLAT_H

@@ -779,6 +779,10 @@ static void reset_fakes(struct fixture *f)
     /* Nothing of the platform's failed */
     fake_plat_status = (struct plat_status)FAKE_PLAT_STATUS_DEFAULT;
     fake_plat_status_calls = 0;
+    /* A platform that can't tell where pb was loaded from */
+    fake_boot_source_rc = -PB_ERR_NOT_SUPPORTED;
+    fake_boot_source = PB_BOOT_SOURCE_UNKNOWN;
+    fake_boot_source_calls = 0;
     assert_int_equal(boot_init(&driver), PB_OK);
     boot_configure_load_cb(NULL, NULL);
 }
@@ -1613,6 +1617,125 @@ static void test_mode_is_normal_after_a_failed_fallback(void **state)
     assert_int_equal(boot_load((unsigned char *)UU_SYS_A), PB_OK);
     assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
 }
+
+/* board.md 5.1 (F-251): the serial download stop is the core's. When the
+ * ROM's serial downloader loaded pb, over USB or a UART, a boot that command
+ * mode didn't start stops before anything else, with -PB_ERR_ABORT: not the
+ * preconditions, not early_boot(), nothing read */
+static void test_serial_download_stops_the_boot(void **state)
+{
+    static const enum pb_boot_source_kind stops[] = { PB_BOOT_SOURCE_USB, PB_BOOT_SOURCE_UART };
+    struct fixture *f = *state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(stops); i++) {
+        reset_fakes(f);
+        fake_boot_source_rc = PB_OK;
+        fake_boot_source = stops[i];
+#ifdef CONFIG_CM_ON_SERIAL_DOWNLOAD
+        assert_int_equal(boot(NULL), -PB_ERR_ABORT);
+        assert_int_equal(fake_boot_source_calls, 1);
+        assert_int_equal(fake_plat_status_calls, 0);
+        assert_int_equal(fake.early_calls, 0);
+        assert_int_equal(fake.device_uuid_calls, 0);
+        assert_int_equal(fake.next_calls, 0);
+        assert_int_equal(fake.auth_calls, 0);
+        assert_int_equal(fake.prepare_calls, 0);
+        assert_int_equal(fake.late_calls, 0);
+        assert_int_equal(fake.jump_calls, 0);
+        assert_int_equal(boot_get_flags(), 0);
+        assert_null(boot_image_get_bpak_header());
+#else
+        assert_int_equal(boot_load(NULL), PB_OK);
+        assert_int_equal(fake_boot_source_calls, 0);
+#endif
+    }
+}
+
+/* Only a serial download stops it: storage, a debugger, a platform that
+ * can't tell this time (unknown) and one that can't at all boot */
+static void test_serial_download_stop_is_for_usb_and_uart_only(void **state)
+{
+    static const enum pb_boot_source_kind boots[] = {
+        PB_BOOT_SOURCE_UNKNOWN,
+        PB_BOOT_SOURCE_STORAGE,
+        PB_BOOT_SOURCE_DEBUGGER,
+    };
+    struct fixture *f = *state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(boots); i++) {
+        reset_fakes(f);
+        fake_boot_source_rc = PB_OK;
+        fake_boot_source = boots[i];
+        assert_int_equal(boot_load(NULL), PB_OK);
+        assert_int_equal(fake.early_calls, 1);
+        assert_int_equal(fake.prepare_calls, 1);
+    }
+
+    /* Not supported: what is in the answer isn't one, whatever it holds */
+    reset_fakes(f);
+    fake_boot_source_rc = -PB_ERR_NOT_SUPPORTED;
+    fake_boot_source = PB_BOOT_SOURCE_USB;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 1);
+
+    reset_fakes(f);
+    fake_boot_source_rc = -PB_ERR_IO;
+    fake_boot_source = PB_BOOT_SOURCE_USB;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 1);
+}
+
+/* board.md 5.1: a boot that command mode started is never stopped by it,
+ * the host asked for that boot: a partition it names, the policy's, and its
+ * stream. The platform isn't even asked */
+static void test_serial_download_never_stops_a_boot_command_mode_started(void **state)
+{
+    struct fixture *f = *state;
+
+    fake_boot_source_rc = PB_OK;
+    fake_boot_source = PB_BOOT_SOURCE_USB;
+
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), PB_OK);
+    assert_int_equal(fake.prepare_calls, 1);
+    assert_int_equal(fake_boot_source_calls, 0);
+
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 2);
+
+    reset_fakes(f);
+    fake_boot_source_rc = PB_OK;
+    fake_boot_source = PB_BOOT_SOURCE_UART;
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    boot_clear_set_flags(0, BOOT_FLAG_CMD | BOOT_FLAG_VERBOSE);
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.read_cb_calls, 1);
+    assert_int_equal(fake.prepare_calls, 1);
+    assert_int_equal(fake_boot_source_calls, 0);
+}
+
+#ifdef CONFIG_CM_ON_SERIAL_DOWNLOAD
+/* boot.md 2: the stop comes first. A device that was loaded over USB and
+ * whose DRAM filter is bypassed stops for the download, and the refusal is
+ * what the host's boot command gets afterwards */
+static void test_serial_download_stop_is_before_the_preconditions(void **state)
+{
+    (void)state;
+
+    fake_boot_source_rc = PB_OK;
+    fake_boot_source = PB_BOOT_SOURCE_USB;
+    fake_plat_status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    assert_int_equal(boot(NULL), -PB_ERR_ABORT);
+    assert_int_equal(fake_plat_status_calls, 0);
+
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), -PB_ERR_STATE);
+    assert_int_equal(fake_plat_status_calls, 1);
+    assert_int_equal(fake.early_calls, 0);
+}
+#endif
 
 /* A boot that a precondition refused read nothing and started nothing: not
  * the board's early_boot(), not pb's information, no candidate */
@@ -2775,6 +2898,12 @@ int main(void)
         BOOT_TEST(test_info_without_a_system_name),
         BOOT_TEST(test_mode_of_the_policys_candidates),
         BOOT_TEST(test_mode_is_normal_after_a_failed_fallback),
+        BOOT_TEST(test_serial_download_stops_the_boot),
+        BOOT_TEST(test_serial_download_stop_is_for_usb_and_uart_only),
+        BOOT_TEST(test_serial_download_never_stops_a_boot_command_mode_started),
+#ifdef CONFIG_CM_ON_SERIAL_DOWNLOAD
+        BOOT_TEST(test_serial_download_stop_is_before_the_preconditions),
+#endif
         BOOT_TEST(test_precondition_dram_filter),
         BOOT_TEST(test_precondition_in_a_boot_command_mode_started),
         BOOT_TEST(test_precondition_in_every_life_cycle_state),

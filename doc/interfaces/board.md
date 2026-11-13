@@ -504,9 +504,9 @@ The boot path is where boot time goes: the hooks start what is slow and don't wa
 
 ### 5.1 The serial download stop (the core's)
 
-**Not yet in the code (F-251)**: the 8X reads the ROM's boot mode itself (`early_boot`, the
-SCU's boot type), and the RT has no check; only the 6UL's `plat_get_boot_source()` reports a
-serial download.
+**Not yet in the code (F-251)**: the 8X's boards read the ROM's boot mode themselves
+(`early_boot`, the SCU's boot type); only the 6UL's `plat_get_boot_source()` reports a serial
+download, so the core's stop triggers there and nowhere else.
 
 With `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default y): when `plat_get_boot_source()` reports `USB` or
 `UART`, the ROM's serial downloader loaded pb, and command mode didn't start the boot, `boot()`
@@ -664,8 +664,6 @@ aren't the board's data (`system.md` 6):
 (`BOOT_LINUX`), as it names both objects. Before 3.0.0 `BOOT_ATF` was a whole boot driver and
 selected the device tree code: a board that is ported sets the handover's option with it, or it
 doesn't link.
-
-**Not yet in the code (F-251)**: `CM_ON_SERIAL_DOWNLOAD`.
 
 **Not yet in the code (F-239)**: the board's addresses (`PB_ENTRY`, `BOARD_RAM_BASE`, `_END`) are
 make variables and `-D` flags in `makefile.mk`; `platform.md` 5.1 makes them Kconfig values

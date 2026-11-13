@@ -14,13 +14,38 @@
 #include <plat/host/host.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void pb_main(void);
 
 /* Options without a short form */
 enum {
     OPT_DRAM_FILTER_BYPASSED = 0x100,
+    OPT_BOOT_SOURCE,
 };
+
+/* --boot-source: what the ROM would have loaded pb from */
+static int parse_boot_source(const char *name)
+{
+    static const struct {
+        const char *name;
+        enum pb_boot_source_kind kind;
+    } kinds[] = {
+        { "unknown", PB_BOOT_SOURCE_UNKNOWN },   { "storage", PB_BOOT_SOURCE_STORAGE },
+        { "usb", PB_BOOT_SOURCE_USB },           { "uart", PB_BOOT_SOURCE_UART },
+        { "debugger", PB_BOOT_SOURCE_DEBUGGER },
+    };
+
+    for (size_t i = 0; i < sizeof(kinds) / sizeof(kinds[0]); i++) {
+        if (strcmp(name, kinds[i].name) == 0) {
+            host_opts.boot_source = kinds[i].kind;
+            host_opts.boot_source_set = true;
+            return 0;
+        }
+    }
+
+    return -1;
+}
 
 struct host_options host_opts = {
     .disk_path = "disk.img",
@@ -39,6 +64,8 @@ static void usage(const char *name)
            "  -c, --command-mode       Force command mode\n"
            "      --dram-filter-bypassed  The platform reports a bypassed TrustZone\n"
            "                           DRAM filter: no boot\n"
+           "      --boot-source KIND   Where pb was loaded from: unknown, storage,\n"
+           "                           usb, uart or debugger (default: not supported)\n"
            "  -h, --help               Show this help\n",
            name);
 }
@@ -52,6 +79,7 @@ int main(int argc, char **argv)
         { "boot-status", required_argument, NULL, 'b' },
         { "command-mode", no_argument, NULL, 'c' },
         { "dram-filter-bypassed", no_argument, NULL, OPT_DRAM_FILTER_BYPASSED },
+        { "boot-source", required_argument, NULL, OPT_BOOT_SOURCE },
         { "help", no_argument, NULL, 'h' },
         { NULL, 0, NULL, 0 },
     };
@@ -76,6 +104,12 @@ int main(int argc, char **argv)
             break;
         case OPT_DRAM_FILTER_BYPASSED:
             host_opts.dram_filter_bypassed = true;
+            break;
+        case OPT_BOOT_SOURCE:
+            if (parse_boot_source(optarg) != 0) {
+                usage(argv[0]);
+                return EXIT_FAILURE;
+            }
             break;
         case 'h':
             usage(argv[0]);

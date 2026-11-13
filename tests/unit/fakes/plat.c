@@ -23,6 +23,9 @@ unsigned int fake_lockdown_wdog_kicks;
 int fake_lockdown_rc;
 struct plat_status fake_plat_status = FAKE_PLAT_STATUS_DEFAULT;
 unsigned int fake_plat_status_calls;
+enum pb_boot_source_kind fake_boot_source = PB_BOOT_SOURCE_UNKNOWN;
+int fake_boot_source_rc = -PB_ERR_NOT_SUPPORTED;
+unsigned int fake_boot_source_calls;
 
 uint32_t plat_get_us_tick(void)
 {
@@ -38,6 +41,17 @@ void plat_wdog_kick(void)
         fake_wdog_max_gap_us = fake_us_tick - fake_wdog_kick_tick;
     fake_wdog_kick_tick = fake_us_tick;
     fake_wdog_kicks++;
+}
+
+/* A platform that doesn't support it leaves 'src' as it got it */
+int plat_get_boot_source(struct pb_boot_source *src)
+{
+    fake_boot_source_calls++;
+
+    if (fake_boot_source_rc == PB_OK)
+        src->kind = fake_boot_source;
+
+    return fake_boot_source_rc;
 }
 
 void plat_get_status(struct plat_status *status)

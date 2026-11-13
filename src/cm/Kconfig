@@ -2,6 +2,20 @@ config CM
     bool "Command mode support"
     default y
 
+config CM_ON_SERIAL_DOWNLOAD
+    bool "Stop in command mode after a serial download"
+    default y
+    depends on CM
+    help
+        When the ROM's serial downloader loaded pb, over USB or a UART
+        (plat_get_boot_source()), the boot stops before anything else and pb
+        enters command mode: the host that loaded pb is at the other end
+        (board.md 5.1). A boot that command mode starts isn't stopped.
+
+        Off: pb boots from storage after a serial download too. A platform
+        that can't tell how pb was loaded never stops for it, whatever this
+        is.
+
 config CM_BUF_SIZE_KiB
     int "Command buffer size in KiB"
     default 4096

@@ -434,6 +434,62 @@ def test_boot_is_refused_with_a_bypassed_dram_filter(
     assert run.count("No boot: the TrustZone DRAM filter is bypassed") == 3
 
 
+# The serial download stop (board.md 5.1, F-251). pb-host's --boot-source
+# says where its platform reports pb was loaded from.
+@pytest.mark.parametrize("source", ["usb", "uart"])
+def test_serial_download_stops_in_command_mode(
+    device: Device, tmp_path: pathlib.Path, source: str
+) -> None:
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+
+    with device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+    device.reset()
+
+    # A bootable system, and pb stops: the host that loaded pb wants it
+    device.extra_args = ["--boot-source", source]
+    device.start(command_mode=False)
+    device.wait_command_mode()
+    assert device.boot_status is None
+    run = device.log.read_text(errors="replace").rpartition("=== start:")[2]
+    assert "Loaded by the ROM's serial downloader" in run
+
+    # A boot the host starts is never stopped by it
+    with device.session() as s:
+        s.boot_partition(SYSTEM_A_UUID)
+    assert device.wait_exit() == 0
+    assert device.boot_status == "A"
+
+
+@pytest.mark.parametrize("source", ["storage", "unknown", "debugger"])
+def test_other_boot_sources_boot(device: Device, tmp_path: pathlib.Path, source: str) -> None:
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+
+    with device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+    device.reset()
+
+    device.extra_args = ["--boot-source", source]
+    assert device.boot() == "A"
+
+
+def test_serial_download_stop_then_boot_from_ram(device: Device, tmp_path: pathlib.Path) -> None:
+    # The factory's flow: pb loaded over USB, an image sent to RAM and run
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+    device.reset()
+
+    device.extra_args = ["--boot-source", "usb"]
+    device.start(command_mode=False)
+    device.wait_command_mode()
+
+    with device.session() as s:
+        s.boot_bpak(img, NULL_UUID)
+    assert device.wait_exit() == 0
+    assert device.boot_status == "?"
+
+
 def test_boot_stop_command_refuses_an_unknown_request(device: Device) -> None:
     with device.session() as s, pytest.raises(punchboot.ArgumentError):
         s.board_run_command("test-boot-stop", b"later")

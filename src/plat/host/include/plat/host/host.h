@@ -21,12 +21,16 @@
  *    TrustZone, no watchdog, no crypto engine of the platform's, no ROM.
  *    With --dram-filter-bypassed it reports a TrustZone DRAM filter that is
  *    bypassed, for the tests of the boot's preconditions.
+ *  - Where pb was loaded from (plat_get_boot_source()) isn't supported: a
+ *    process has no ROM. With --boot-source it is what the option names,
+ *    for the tests of the serial download stop.
  */
 
 #ifndef PLAT_HOST_HOST_H
 #define PLAT_HOST_HOST_H
 
 #include <pb/bio.h>
+#include <pb/plat.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <uuid.h>
@@ -38,6 +42,8 @@ struct host_options {
     const char *boot_status_path; /* Written by the board on 'boot' */
     bool force_command_mode; /* Abort boot and enter command mode */
     bool dram_filter_bypassed; /* plat_get_status(): PLAT_TZ_DRAM_BYPASSED */
+    bool boot_source_set; /* plat_get_boot_source() answers boot_source */
+    enum pb_boot_source_kind boot_source;
 };
 
 extern struct host_options host_opts;

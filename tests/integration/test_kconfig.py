@@ -3,6 +3,8 @@
 pb's timeouts count microseconds in 32 bits (pb/delay.h), so a time in seconds
 that Kconfig lets through must fit there. Kconfig is where a build's values are
 decided, so these tests read Kconfig as the build does; no device runs.
+
+Also the option of the core's serial download stop (board.md 5.1, F-251).
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 READY_TIMEOUT = "CM_TRANSPORT_READY_TIMEOUT"
+SERIAL_DOWNLOAD_STOP = "CM_ON_SERIAL_DOWNLOAD"
 # pb_timeout_init_us() refuses 0 and UINT32_MAX: a refused timeout has expired
 TIMEOUT_US_MAX = 2**32 - 2
 DEFCONFIGS = sorted(p.name for p in (REPO_ROOT / "configs").glob("*_defconfig"))
@@ -90,3 +93,30 @@ def test_eol_is_off_by_default(load_config: Callable[[str], Any]) -> None:
     eol.unset_value()
 
     assert eol.str_value == "n"
+
+
+@pytest.mark.parametrize("defconfig", DEFCONFIGS)
+def test_serial_download_stop_is_on_where_there_is_command_mode(
+    load_config: Callable[[str], Any], defconfig: str
+) -> None:
+    # board.md 5.1 (F-251): the core's serial download stop is on by default,
+    # in every build that has a command mode to stop in, and no board in the
+    # tree turns it off
+    kconf = load_config(defconfig)
+
+    assert kconf.syms[SERIAL_DOWNLOAD_STOP].str_value == kconf.syms["CM"].str_value
+
+
+def test_serial_download_stop_is_an_option(load_config: Callable[[str], Any]) -> None:
+    # A product that boots from storage after a serial download turns it off
+    kconf = load_config("host_defconfig")
+    sym = kconf.syms[SERIAL_DOWNLOAD_STOP]
+
+    assert sym.str_value == "y"
+    sym.set_value("n")
+    assert sym.str_value == "n"
+
+    # Without command mode there is nothing to turn on
+    sym.set_value("y")
+    kconf.syms["CM"].set_value("n")
+    assert sym.str_value == "n"

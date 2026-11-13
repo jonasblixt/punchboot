@@ -154,7 +154,12 @@ void boot_get_boot_partition(uuid_t part_uu);
  * policy hears the result, and the first that succeeds is booted. With it,
  * that partition is the one candidate; the policy isn't asked.
  *
- * First the boot's preconditions are checked, in every boot (security.md
+ * With CONFIG_CM_ON_SERIAL_DOWNLOAD a boot that command mode didn't start
+ * (no BOOT_FLAG_CMD) stops before anything else when the ROM's serial
+ * downloader loaded pb, plat_get_boot_source() reports USB or UART:
+ * -PB_ERR_ABORT, and pb enters command mode (board.md 5.1).
+ *
+ * Then the boot's preconditions are checked, in every boot (security.md
  * 4.5, platform.md 2.3): what the platform recorded in plat_get_status().
  * A TrustZone DRAM filter that is bypassed and a crypto engine of the
  * platform's that failed refuse the boot, before the board's early_boot()
@@ -175,7 +180,8 @@ void boot_get_boot_partition(uuid_t part_uu);
  * @return This function will not return on sucess. The first candidate's
  *  error when every candidate failed, -PB_ERR_NO_ACTIVE_BOOT_PARTITION when
  *  the policy had none, the error of pb's information that couldn't be
- *  read, -PB_ERR_STATE when a precondition refused the boot.
+ *  read, -PB_ERR_STATE when a precondition refused the boot,
+ *  -PB_ERR_ABORT when a hook or the serial download stop stopped it.
  */
 int boot(uuid_t boot_part_override_uu);
 

@@ -145,10 +145,16 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
     return PB_OK;
 }
 
+/* A process has no ROM that loaded it: not supported, unless a test of the
+ * serial download stop says where pb came from (--boot-source) */
 int plat_get_boot_source(struct pb_boot_source *src)
 {
-    (void)src;
-    return -PB_ERR_NOT_SUPPORTED;
+    if (!host_opts.boot_source_set)
+        return -PB_ERR_NOT_SUPPORTED;
+
+    memset(src, 0, sizeof(*src));
+    src->kind = host_opts.boot_source;
+    return PB_OK;
 }
 
 /* A process has no TrustZone, no watchdog and no ROM, and the crypto backend
