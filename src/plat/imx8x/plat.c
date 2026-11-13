@@ -373,6 +373,10 @@ const char *plat_boot_reason_str(void)
         return "SECO";
     case SC_PM_RESET_REASON_SCFW_FAULT:
         return "SCFW Fault";
+    case SC_PM_RESET_REASON_V2X_DEBUG:
+        return "V2X DEBUG";
+    case SC_PM_RESET_REASON_BOOT_STAGE:
+        return "BOOT STAGE";
     default:
         return "Unknown";
     }
