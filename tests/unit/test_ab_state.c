@@ -1729,17 +1729,23 @@ static void test_rollback_keeps_the_other_slots_bit(void **state)
 
 /*
  * The OS confirms a slot, as pbstate does (pbstate_set_system_verified() in
- * tools/pbstate): the slot's verified bit is set and the attempts are zeroed.
- * The enabled slot and the error bits stay. Both copies are written.
+ * tools/pbstate): the slot's verified bit is set, and the attempts are zeroed
+ * when the slot is the enabled one: confirming the other slot leaves the
+ * enabled one's trial going (F-180). The enabled slot and the error bits
+ * stay. Both copies are written.
  */
 static void pbstate_confirms(struct fixture *f, uint32_t verified_bit)
 {
+    /* The slot's enabled bit is its verified bit */
+    const uint32_t enabled_bit = (verified_bit == PB_STATE_A_VERIFIED) ? PB_STATE_A_ENABLED
+                                                                       : PB_STATE_B_ENABLED;
     struct pb_boot_state s;
 
     assert_true(state_valid(f, PRIMARY_LBA));
     memcpy(&s, state_at(f, PRIMARY_LBA), sizeof(s));
     s.verified |= verified_bit;
-    s.remaining_boot_attempts = 0;
+    if (s.enable & enabled_bit)
+        s.remaining_boot_attempts = 0;
     s.crc = 0;
     s.crc = crc32(0, (const uint8_t *)&s, sizeof(s));
     memcpy(state_at(f, PRIMARY_LBA), &s, sizeof(s));
