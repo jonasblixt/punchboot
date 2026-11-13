@@ -379,6 +379,7 @@ static const struct flexspi_core_config core = {
 static bio_dev_t dev;
 static uint8_t out[128 * 1024];
 static uint8_t in[128 * 1024];
+static uint8_t out_device[CAPACITY];
 
 static void reset_model(void)
 {
@@ -638,6 +639,28 @@ static void test_erase_smaller_than_a_unit(void **state)
     assert_int_equal(nor.erases, 0);
 }
 
+/* F-198: IDATSZ is 16 bits. A read of 64 KiB or more is split, not
+ * truncated (bio.md 3.1: no limit on the length but the device's size) */
+static void test_read_64k_and_more(void **state)
+{
+    static const size_t lengths[] = { 64 * 1024, 96 * 1024, 128 * 1024 };
+    (void)state;
+
+    fill(nor.mem, CAPACITY, 3);
+
+    for (size_t i = 0; i < ARRAY_SIZE(lengths); i++) {
+        lba_t first = 5 + i;
+
+        memset(in, 0, sizeof(in));
+        assert_int_equal(bio_read(dev, first, lengths[i], in), PB_OK);
+        assert_memory_equal(in, nor.mem + first * BLOCK, lengths[i]);
+    }
+
+    /* The whole device */
+    assert_int_equal(bio_read(dev, 0, CAPACITY, out_device), PB_OK);
+    assert_memory_equal(out_device, nor.mem, CAPACITY);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -650,6 +673,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_busy_poll_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_erase_exactly_the_blocks, setup, teardown),
         cmocka_unit_test_setup_teardown(test_erase_smaller_than_a_unit, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_64k_and_more, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

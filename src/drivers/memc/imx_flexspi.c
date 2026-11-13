@@ -31,6 +31,9 @@ static const struct flexspi_core_config *cfg;
  */
 #define FLEXSPI_TIMEOUT_us (1000 * 1000)
 
+/* The longest read in one IP command: IPCR1.IDATSZ is 16 bits */
+#define FLEXSPI_READ_CHUNK (32 * 1024)
+
 static inline bool imx_flexspi_getbusidle(void)
 {
     static const uint32_t mask = FLEXSPI_STS0_SEQIDLE | FLEXSPI_STS0_ARBIDLE;
@@ -245,6 +248,10 @@ static int imx_flexspi_xfer(enum flexspi_port port,
     int rc = 0;
     int rc_idle;
 
+    /* IDATSZ is 16 bits: a longer transfer would be truncated */
+    if (data_length > FLEXSPI_IPCR1_IDATSZ_MASK)
+        return -PB_ERR_PARAM;
+
     /* Clear sequence pointer before sending data to external devices. */
     switch (port) {
     case FLEXSPI_PORT_A1:
@@ -397,8 +404,22 @@ static int imx_flexspi_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     if (rc != PB_OK)
         return rc;
 
-    return imx_flexspi_xfer(
-        cfg_nor->port, cfg_nor->lut_id_read, address, FLEXSPI_READ, buffer, length);
+    /* In pieces that IDATSZ, 16 bits, holds */
+    while (length > 0) {
+        size_t chunk = length > FLEXSPI_READ_CHUNK ? FLEXSPI_READ_CHUNK : length;
+
+        rc = imx_flexspi_xfer(
+            cfg_nor->port, cfg_nor->lut_id_read, address, FLEXSPI_READ, buffer, chunk);
+
+        if (rc != PB_OK)
+            return rc;
+
+        buffer += chunk;
+        address += chunk;
+        length -= chunk;
+    }
+
+    return PB_OK;
 }
 
 static int imx_flexspi_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
