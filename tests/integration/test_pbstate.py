@@ -12,8 +12,11 @@ import ctypes
 import ctypes.util
 import errno
 import os
+import pathlib
 import re
+import shutil
 import struct
+import subprocess
 from typing import TYPE_CHECKING
 
 import pytest
@@ -127,3 +130,48 @@ def test_the_library_exports_its_header() -> None:
     for function in functions:
         assert hasattr(lib, function), function
     assert not hasattr(lib, "crc32")
+
+
+def test_the_build_s_default_partitions(device: Device, tmp_path: pathlib.Path) -> None:
+    """A build with PB_STATE_PRIMARY_PART and PB_STATE_BACKUP_PART runs without -p and -b.
+
+    Each is its copy's: the backup's was the primary's (F-010), so the tool
+    wrote the primary twice and never the backup. The install installs each
+    file once.
+    """
+    cmake = shutil.which("cmake")
+    assert cmake is not None
+    primary = tmp_path / "primary"
+    backup = tmp_path / "backup"
+    primary.write_bytes(device.read_blocks(PRIMARY_STATE_LBA))
+    backup.write_bytes(device.read_blocks(BACKUP_STATE_LBA))
+    state = primary.read_bytes()
+    build = tmp_path / "build"
+    for args in (
+        [
+            "-S",
+            str(REPO_ROOT / "tools" / "pbstate"),
+            "-B",
+            str(build),
+            f"-DCMAKE_INSTALL_PREFIX={tmp_path / 'prefix'}",
+            f"-DPB_STATE_PRIMARY_PART={primary}",
+            f"-DPB_STATE_BACKUP_PART={backup}",
+        ],
+        ["--build", str(build)],
+        ["--install", str(build)],
+    ):
+        subprocess.run([cmake, *args], check=True, capture_output=True)  # noqa: S603
+
+    installed = (build / "install_manifest.txt").read_text().split()
+    assert len(installed) == len(set(installed))
+    tool = next(path for path in installed if path.endswith("/bin/pbstate"))
+    lib = next(path for path in installed if path.endswith("/libpbstate.so.0"))
+
+    subprocess.run(  # noqa: S603
+        [tool, "-w", "0", "0x12345678"],
+        check=True,
+        capture_output=True,
+        env={**os.environ, "LD_LIBRARY_PATH": str(pathlib.Path(lib).parent)},
+    )
+    assert primary.read_bytes() != state
+    assert backup.read_bytes() == primary.read_bytes()
