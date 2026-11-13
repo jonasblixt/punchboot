@@ -156,8 +156,7 @@ command mode started, the transport is gone by then and pb resets (`board.md` 5.
   block read, written, erased), and the core asks in pieces that fit the watchdog with room
   to spare: a chunk at a time (`platform.md` 3.3, `command-mode.md` 4.6). No driver promises
   a time for a request of any size.
-- **The timeout's arithmetic** is `pb_timeout_*()`'s. **Not yet in the code (F-211)**: a wait
-  that spans the tick's wrap takes 71 minutes more.
+- **The timeout's arithmetic** is `pb_timeout_*()`'s.
 
 What a driver returns:
 

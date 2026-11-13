@@ -10,41 +10,28 @@
 #include <pb/delay.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <string.h>
 
 int pb_timeout_init_us(struct pb_timeout *timeout, uint32_t timeout_us)
 {
-    if ((timeout_us == 0) || (timeout_us == UINT32_MAX))
-        return -PB_ERR;
-
-    memset(timeout, 0, sizeof(*timeout));
     timeout->ts_start = plat_get_us_tick();
 
-    if ((UINT32_MAX - timeout->ts_start) <= timeout_us) {
-        timeout->rollover = true;
-        timeout->ts_end = timeout_us - (UINT32_MAX - timeout->ts_start);
-    } else {
-        timeout->ts_end = timeout->ts_start + timeout_us;
+    /* A refused timeout has expired: a caller that ignores the result doesn't wait */
+    if ((timeout_us == 0) || (timeout_us == UINT32_MAX)) {
+        timeout->timeout_us = 0;
+        return -PB_ERR;
     }
 
+    timeout->timeout_us = timeout_us;
     return PB_OK;
 }
 
 bool pb_timeout_has_expired(struct pb_timeout *timeout)
 {
-    uint32_t ts = plat_get_us_tick();
+    /* A difference, never an end tick: it holds across the tick's wrap
+     * (platform.md 3.2) */
+    uint32_t elapsed = (uint32_t)(plat_get_us_tick() - timeout->ts_start);
 
-    if (timeout->rollover) {
-        if ((ts >= timeout->ts_end) && (ts < timeout->ts_start))
-            return true;
-        else
-            return false;
-    } else {
-        if (ts >= timeout->ts_end)
-            return true;
-        else
-            return false;
-    }
+    return elapsed >= timeout->timeout_us;
 }
 
 void pb_delay_us(unsigned int us)
