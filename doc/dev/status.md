@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-13, night_
+_Last updated: 2026-11-13, evening (the bench at `bc640ba1`)_
 
 ## Current focus
 
@@ -20,11 +20,10 @@ bump is for the porting API. Each item's history is in `log/`.
   coverage is 91.0% by F-230's count; the 99.2% in `testing.md` is from 2026-10-22.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a compile check
   of all six boards, Coverity (master only, unverified until merged).
-- **Boards:** jiffy (i.MX6UL) and imx8qxmek run `2d9437b9` from BOOT1, imxrt1060evk runs
-  `b1186de2` from its NOR (flashed 2026-11-13, the log has what they showed). imx8mpevk is in
-  the ROM's serial download: not power cycled since its switches were set back (F-409, not a
-  defect), so a reset lands there; BOOT0 has `a793102b`'s pb, BOOT1 `b1186de2`'s, not run
-  yet. imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on the 8MP EVK,
+- **Boards (2026-11-13, evening, log "The bench of all four boards"):** the RT1060 runs
+  `bc640ba1` from its NOR; jiffy (BOOT0), the 8MP EVK and the MEK (BOOT1) run `bc640ba1`
+  with the F-424 fix (`b6a3df47`). All four in command mode, nothing enabled.
+  imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on the 8MP EVK,
   never run SLC or fuse commands on the MEK. Untested on any board: fuse writes, the 8X
   closed state.
 - **Test benches:** Linux (`testbench/`, D-022): jiffy, the 8MP EVK and the MEK boot to the
@@ -40,12 +39,12 @@ bump is for the porting API. Each item's history is in `log/`.
    (87 of 87, the sanitizers, six boards): command mode's boot commands (F-252), the
    platform's tick and reset reason (F-238, F-236), the boot core (F-076, F-346, F-404), the
    build (F-398, F-396, F-089), the MMC drivers (F-199, F-116), the fuses and the FlexSPI
-   (F-196 to F-198, F-284). Nothing of the round ran on a board. First:
+   (F-196 to F-198, F-284). The bench at `bc640ba1`: RT1060 7/7, 8MP EVK and MEK to the
+   login; jiffy found F-424, fixed (`b6a3df47`); with the fix all four pass. First:
    - Land what the branches hold, each read first: `pkg-boards-tools`, `pkg-usb`,
      `pkg-crypto2`, `pkg-cm2`, `pkg-link`, `pkg-precond`.
    - `bec794b7` on `pkg-plat` is not landed (the watchdog half a second shorter, F-206).
-   - The 8MP EVK is in the ROM's serial download: power cycle it with the switches on
-     eMMC, then the bench of all four boards with both rounds' "not run on a board" lists.
+   - The rest of both rounds' "not run on a board" lists (the log's last entry has them).
    - Next packages: F-247, F-282, the host test ones (F-347, F-341), then the guides
      (`roadmap.md`).
    - The log's "For Jonas" lists.

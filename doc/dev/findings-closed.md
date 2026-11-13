@@ -1175,6 +1175,16 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | slot; the stream ends and the policy's init runs again; no board hook runs. A full pool answers | | |
 | | | `-PB_ERR_MEM` with the table on the device. The same bytes on the medium and on the wire as before. | | |
 | | | Not run on a board | | |
+| F-424 | `imx_caam.c` | High, on jiffy (2026-11-13, `bc640ba1`) every CAAM job | Seen on the board | fixed (`b6a3df47`) |
+| | | fails. The job ring's entries were in `struct caam`, on a line with the driver's state, and | | |
+| | | since `7d79b150` (F-181) `caam_shedule_job_async()` writes `job_pending` after it cleans that | | |
+| | | line, so the line is dirty while the CAAM writes its output entry, and the wait's invalidate | | |
+| | | gets back the CPU's stale entry (`0`, `0`: "Completion of another descriptor"). The first job | | |
+| | | (the RNG's SH0) completed and SH0 is instantiated (RDSTA `0x40000011`), every later wait times | | |
+| | | out, the device's identity can't be read, so jiffy (SLC locked) can't be reached on USB. The | | |
+| | | 8MP EVK and the MEK ran the same code without it. `drivers.md` 4.2, 3 and 5. Fixed: the | | |
+| | | two entries in `caam_ring`, each on a 64-byte line of its own; ran on the 8MP EVK, the MEK | | |
+| | | and jiffy (Linux to the login; on jiffy also a wrong and a right `part verify` and token) | | |
 
 ## Dependencies / vendored code
 
