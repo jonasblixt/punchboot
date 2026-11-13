@@ -359,6 +359,8 @@ static void dwc3_handle_connect_done(void)
     uint32_t speed =
         DWC3_FIELD_GET(mmio_read_32(base + DWC3_DSTS), DSTS_CONNECTSPD_SHIFT, DSTS_CONNECTSPD_MASK);
 
+    /* Only the log line uses it, and that isn't compiled in at every level */
+    (void)speed;
     LOG_INFO("Connected, %s speed", speed == DWC3_SPEED_HIGH ? "high" : "full");
 
     mmio_clrsetbits_32(
@@ -651,6 +653,8 @@ static int dwc3_udc_init(void)
     uint32_t caplength = mmio_read_32(base + DWC3_CAPLENGTH);
     int rc;
 
+    /* Only the log line uses it, and that isn't compiled in at every level */
+    (void)caplength;
     LOG_INFO("HCI version 0x%x",
              (unsigned int)DWC3_FIELD_GET(
                  caplength, CAPLENGTH_HCIVERSION_SHIFT, CAPLENGTH_HCIVERSION_MASK));
