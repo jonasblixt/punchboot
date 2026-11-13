@@ -1,8 +1,6 @@
 #include <boot/ab_state.h>
 #include <boot/boot.h>
 #include <boot/fh.h>
-#include <boot/image_helpers.h>
-#include <bpak/bpak.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/memc/imx_flexspi.h>
 #include <drivers/partition/gpt.h>

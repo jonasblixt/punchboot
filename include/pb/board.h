@@ -50,7 +50,6 @@
 #include <stdint.h>
 #include <uuid.h>
 
-struct bpak_header;
 struct rot_config;
 struct slc_config;
 

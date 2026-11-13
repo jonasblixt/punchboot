@@ -10,6 +10,7 @@
 #include <arch/arch.h>
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
+#include <bpak/bpak.h>
 #include <drivers/partition/static.h>
 #include <inttypes.h>
 #include <pb/arch.h>

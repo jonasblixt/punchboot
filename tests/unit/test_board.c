@@ -41,6 +41,13 @@
 #undef board
 struct board_decl board;
 
+/* D-047 (F-326): a board that asks for nothing of the image's format gets
+ * nothing of it. boot/boot.h, which a board includes for boot_get_flags(),
+ * and pb/board.h bring no <bpak/bpak.h>, as this file's other headers */
+#ifdef BPAK_HEADER_MAGIC
+#error "boot/boot.h or pb/board.h includes <bpak/bpak.h>"
+#endif
+
 static const unsigned char *DISK_UU = (const unsigned char *)"disk-uuid-012345";
 
 /* The calls, in order */

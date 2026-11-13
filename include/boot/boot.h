@@ -12,7 +12,6 @@
 
 #include <boot/handover.h>
 #include <boot/policy.h>
-#include <bpak/bpak.h>
 #include <pb/bio.h>
 #include <pb/utils_def.h>
 #include <uuid.h>
