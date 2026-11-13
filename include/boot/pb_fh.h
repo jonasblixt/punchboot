@@ -142,26 +142,30 @@ struct pb_fh_handover {
 };
 
 /* The layouts, checked where the header is compiled: C has _Static_assert,
- * a next stage in C++ static_assert */
+ * a next stage in C++ static_assert. PB_STATIC_ASSERT is pb's
+ * (pb/utils_def.h); it is defined here too, the same, because a next stage
+ * has this header and nothing else of pb's */
+#ifndef PB_STATIC_ASSERT
 #ifdef __cplusplus
-#define PB_FH_STATIC_ASSERT(_condition, _message) static_assert(_condition, _message)
+#define PB_STATIC_ASSERT(_condition, _message) static_assert(_condition, _message)
 #else
-#define PB_FH_STATIC_ASSERT(_condition, _message) _Static_assert(_condition, _message)
+#define PB_STATIC_ASSERT(_condition, _message) _Static_assert(_condition, _message)
+#endif
 #endif
 
-PB_FH_STATIC_ASSERT(sizeof(struct pb_fh_tl_header) == 0x18, "transfer list header");
-PB_FH_STATIC_ASSERT(sizeof(struct pb_fh_tl_entry) == 8, "transfer list entry header");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, device_uuid) == 4, "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, boot_partition_uuid) == 20,
-                    "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, system_name) == 36, "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, slc) == 44, "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, active_key) == 48, "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, no_of_available_keys) == 52,
-                    "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, available_keys) == 56, "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, status) == 120, "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(offsetof(struct pb_fh_handover, version) == 124, "pb_fh_handover layout");
-PB_FH_STATIC_ASSERT(sizeof(struct pb_fh_handover) == 156, "pb_fh_handover size");
+PB_STATIC_ASSERT(sizeof(struct pb_fh_tl_header) == 0x18, "transfer list header");
+PB_STATIC_ASSERT(sizeof(struct pb_fh_tl_entry) == 8, "transfer list entry header");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, device_uuid) == 4, "pb_fh_handover layout");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, boot_partition_uuid) == 20,
+                 "pb_fh_handover layout");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, system_name) == 36, "pb_fh_handover layout");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, slc) == 44, "pb_fh_handover layout");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, active_key) == 48, "pb_fh_handover layout");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, no_of_available_keys) == 52,
+                 "pb_fh_handover layout");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, available_keys) == 56, "pb_fh_handover layout");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, status) == 120, "pb_fh_handover layout");
+PB_STATIC_ASSERT(offsetof(struct pb_fh_handover, version) == 124, "pb_fh_handover layout");
+PB_STATIC_ASSERT(sizeof(struct pb_fh_handover) == 156, "pb_fh_handover size");
 
 #endif /* INCLUDE_BOOT_PB_FH_H */
