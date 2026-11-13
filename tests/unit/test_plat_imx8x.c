@@ -30,6 +30,7 @@
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/sci/rpc.h>
+#include <plat/imx8x/sci/svc/misc/api.h>
 #include <plat/imx8x/sci/svc/pm/api.h>
 #include <string.h>
 
@@ -37,26 +38,27 @@
 #include "fakes/xlat.h"
 
 /* The messaging unit, the port's side (src/plat/imx8x/sci/imx8_mu.h) */
-#define MU_ATR(n)              (SC_IPC_BASE + 0x00 + 4 * (n))
-#define MU_ARR(n)              (SC_IPC_BASE + 0x10 + 4 * (n))
-#define MU_ASR                 (SC_IPC_BASE + 0x20)
-#define MU_ACR                 (SC_IPC_BASE + 0x24)
-#define MU_ASR_TE_ALL          (0xfu << 20)
-#define MU_ASR_RF_ALL          (0xfu << 24)
+#define MU_ATR(n)               (SC_IPC_BASE + 0x00 + 4 * (n))
+#define MU_ARR(n)               (SC_IPC_BASE + 0x10 + 4 * (n))
+#define MU_ASR                  (SC_IPC_BASE + 0x20)
+#define MU_ACR                  (SC_IPC_BASE + 0x24)
+#define MU_ASR_TE_ALL           (0xfu << 20)
+#define MU_ASR_RF_ALL           (0xfu << 24)
 
 /* The functions' indexes (src/plat/imx8x/sci/svc/pm/rpc.h) */
-#define PM_FUNC_SET_CLOCK_RATE 5
-#define PM_FUNC_RESET_REASON   10
-#define PM_FUNC_RESET          13
+#define PM_FUNC_SET_CLOCK_RATE  5
+#define PM_FUNC_RESET_REASON    10
+#define PM_FUNC_RESET           13
 /* src/plat/imx8x/sci/svc/misc/rpc.h */
-#define MISC_FUNC_GET_TEMP     13
-#define MISC_FUNC_BUILD_INFO   15
+#define MISC_FUNC_GET_TEMP      13
+#define MISC_FUNC_BUILD_INFO    15
+#define MISC_FUNC_GET_BOOT_TYPE 33
 
 /* The GPT's control register and its software reset */
-#define GPT_CR                 0x0
-#define GPT_CR_SWR             BIT(15)
+#define GPT_CR                  0x0
+#define GPT_CR_SWR              BIT(15)
 
-#define MAX_CALLS              64
+#define MAX_CALLS               64
 
 static struct {
     /* The message that is being written */
@@ -78,6 +80,8 @@ static struct {
     uint32_t temp; /* sc_misc_get_temp()'s word: celsius in 15:0, tenths in 23:16 */
     uint8_t temp_err;
     uint8_t timer_err; /* ... for every call of its timer service */
+    uint8_t boot_type; /* What the ROM booted from, SC_MISC_BT_* */
+    uint8_t boot_type_err; /* The SCFW's error for the question, 0: none */
 } scfw;
 
 /* A reset leaves the code under test through here */
@@ -141,6 +145,9 @@ static void scfw_call(void)
         err = scfw.temp_err;
     } else if (svc == SC_RPC_SVC_TIMER) {
         err = scfw.timer_err;
+    } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_GET_BOOT_TYPE) {
+        data = scfw.boot_type;
+        err = scfw.boot_type_err;
     }
 
     fake_regs_set(MU_ARR(0), (err << 24) | (SC_RPC_SVC_RETURN << 16) | (4 << 8) | SC_RPC_VERSION);
@@ -356,6 +363,71 @@ static void test_status_wdog_not_armed(void **state)
     assert_true(status_now().wdog_armed);
 }
 
+/* How often the SCFW was asked for the boot type */
+static unsigned int boot_type_calls(void)
+{
+    unsigned int calls = 0;
+
+    for (size_t i = 0; i < scfw.n_calls; i++) {
+        if (scfw.calls[i].svc == SC_RPC_SVC_MISC && scfw.calls[i].func == MISC_FUNC_GET_BOOT_TYPE)
+            calls++;
+    }
+
+    return calls;
+}
+
+/* platform.md 3.9 (F-251): where pb was loaded from is the platform's to
+ * tell, from the SCFW's boot type, which the boards read themselves in
+ * early_boot(). Serial is the ROM's serial downloader: USB. The other types
+ * are a boot from storage, whose partition isn't named: unknown */
+static void test_boot_source(void **state)
+{
+    static const struct {
+        uint8_t type;
+        enum pb_boot_source_kind kind;
+    } types[] = {
+        { SC_MISC_BT_PRIMARY, PB_BOOT_SOURCE_UNKNOWN },
+        { SC_MISC_BT_SECONDARY, PB_BOOT_SOURCE_UNKNOWN },
+        { SC_MISC_BT_RECOVERY, PB_BOOT_SOURCE_UNKNOWN },
+        { SC_MISC_BT_MANUFACTURE, PB_BOOT_SOURCE_UNKNOWN },
+        { SC_MISC_BT_SERIAL, PB_BOOT_SOURCE_USB },
+        /* One the SCFW adds later */
+        { 5, PB_BOOT_SOURCE_UNKNOWN },
+    };
+    struct pb_boot_source src;
+
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    /* Not asked on the way: plat_early_init() is on every boot */
+    assert_int_equal(boot_type_calls(), 0);
+
+    for (size_t i = 0; i < ARRAY_SIZE(types); i++) {
+        memset(&src, 0xff, sizeof(src));
+        scfw.boot_type = types[i].type;
+        scfw.n_calls = 0;
+        assert_int_equal(plat_get_boot_source(&src), PB_OK);
+        assert_int_equal(src.kind, types[i].kind);
+        assert_int_equal(boot_type_calls(), 1);
+        assert_int_equal(scfw.n_calls, 1);
+    }
+}
+
+/* An SCFW that refuses the question: the platform can't tell this time,
+ * which is "unknown" with PB_OK, whatever the answer's data holds */
+static void test_boot_source_scfw_error(void **state)
+{
+    struct pb_boot_source src;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    memset(&src, 0xff, sizeof(src));
+    scfw.boot_type = SC_MISC_BT_SERIAL;
+    scfw.boot_type_err = SC_ERR_NOACCESS;
+    assert_int_equal(plat_get_boot_source(&src), PB_OK);
+    assert_int_equal(src.kind, PB_BOOT_SOURCE_UNKNOWN);
+}
+
 /* platform.md 3.6, 3.7: the platform's UUID namespace never changes.
  * aeda39be-792b-4de5-858a-4c357b9b6302 */
 static void test_platform_ns_uuid(void **state)
@@ -433,6 +505,8 @@ int main(void)
         cmocka_unit_test_setup(test_boot_reason_scfw_error, setup),
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_wdog_not_armed, setup),
+        cmocka_unit_test_setup(test_boot_source, setup),
+        cmocka_unit_test_setup(test_boot_source_scfw_error, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
         cmocka_unit_test_setup(test_info_command, setup),
     };

@@ -523,10 +523,28 @@ int plat_get_boot_reason(struct pb_boot_reason *reason)
     return PB_OK;
 }
 
+/*
+ * Where pb was loaded from (platform.md 3.9): the SCFW's boot type, which
+ * it has from the ROM. Serial is the ROM's serial downloader, USB on the
+ * i.MX8X. The other types are a boot from the boot device, whose partition
+ * isn't named: unknown, and so is an SCFW that doesn't answer. Asked when it
+ * is called, as the boards' early_boot() did: valid from plat_early_init(),
+ * which opens the channel.
+ */
 int plat_get_boot_source(struct pb_boot_source *src)
 {
-    (void)src;
-    return -PB_ERR_NOT_SUPPORTED;
+    sc_misc_bt_t type = SC_MISC_BT_PRIMARY;
+
+    memset(src, 0, sizeof(*src));
+    src->kind = PB_BOOT_SOURCE_UNKNOWN;
+
+    if (sc_misc_get_boot_type(plat.ipc, &type) != SC_ERR_NONE)
+        return PB_OK;
+
+    if (type == SC_MISC_BT_SERIAL)
+        src->kind = PB_BOOT_SOURCE_USB;
+
+    return PB_OK;
 }
 
 int plat_lockdown(void)
