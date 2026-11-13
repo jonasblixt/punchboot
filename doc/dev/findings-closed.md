@@ -1133,6 +1133,31 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | pbstate and a primary's read error | | |
 | | | The comments are corrected, and pbstate uses the backup when the primary can't be read; a write | | |
 | | | repairs the primary | | |
+| F-201 | `src/drivers/usb/usbd.c:28` | `enumerated` is never cleared: on the 8MP EVK a replug or | Reported | fixed (`be1e1841`) |
+| | | bus reset ends in a read on an unconfigured EP2, `cm_run` exits and the board resets. Clear it in | | |
+| | | `usbd_init()` and on bus reset. | | |
+| | | `enumerated` is cleared in `usbd_init()`, `usbd_disconnect()` and on every error of | | |
+| | | `usbd_xfer_complete()`: a replug inside a session enumerates again. Not run on a board | | |
+| F-184 | `src/drivers/usb/cdns3_udc_core.c:263` | The clean covers `desc_count` TRBs, not the | Verified | fixed (`0bb7128e`) |
+| | | terminating one at `trb[desc_count]`: for some counts its flags word is in a cache line that isn't | | |
+| | | cleaned, and a stale TRB from a larger transfer stays in memory. The effect on the controller is | | |
+| | | unverified; it fits F-172 (a small write after a large one). Clean `desc_count + 1`. | | |
+| | | The clean covers the terminating TRB. `test_cdns3_udc` fails at 5 TRBs without it; on the MEK a full | | |
+| | | 4 MiB chunk (33 TRBs) was covered by chance, last chunks of 5, 10, 16, 21 TRBs were not. Whether it | | |
+| | | is F-172's cause is for the bench | | |
+| F-134 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_complete` | For an OUT transfer into a buffer that isn't 4 KiB aligned, the data is copied from `align_buffer` into the buffer and then the buffer is invalidated (DCIMVAC), which architecturally discards the copy while the lines are dirty. Every command read takes this path (`cmd` at 0x81826200 in the jiffy build), yet commands work on jiffy, and the D-cache does hold dirty lines there (the F-130 breadcrumbs in `.no_init` were lost on reset without a clean, log 2026-10-29). Not understood: perhaps the Cortex-A7 performs DCIMVAC as clean and invalidate (unchecked; that would also hide F-081 on jiffy). | Verified (code, symbol map); why it works is open | fixed (`7c03e5c8`) |
+| | | The caller's buffer is invalidated before the copy from the bounce buffer; the two blocks changed | | |
+| | | places, nothing else. Why it worked on jiffy before is still not known | | |
+| F-131 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_start` | For a buffer that isn't 4 KiB aligned, page 0 of the dTD is `align_buffer` at offset 0 with only `align_length` bytes valid, but the controller fills page 0 up to its 4 KiB boundary before page 1, so an unaligned transfer longer than `align_length` sends or receives the wrong bytes. pb's large buffers are aligned, the small ones fit in one page, so nothing hits it today. | Verified (code) | fixed (`7c03e5c8`) |
+| | | Page 0 of the descriptor is the bounce buffer at the head's offset, `align_length` is used once | | |
+| | | (F-205's item), and the first descriptor's count is what its pages hold. A transfer of more than a | | |
+| | | page into a buffer not on a page failed and now works; nothing that runs today changes | | |
+| F-397 | `mmc_emmc.c:362`, `dwc3_udc.c:359,651` | Low. At `CONFIG_LOGLEVEL` 0 or 1 | Verified (build) | fixed (`bd2df79f`, `fc10e2a0`) |
+| | | without the RAM log, variables that only a log line uses are unused (`start`, `speed`, `caplength`): | | |
+| | | warnings in the imx8mpevk build. Seen with F-109 | | |
+| | | 2026-11-13 (`bd2df79f`): the MMC line is done, with a test that compiles the MMC sources at log | | |
+| | | level 0. Left: `dwc3_udc.c` (the USB package) | | |
+| | | The MMC's and the DWC3's variables that only a log line uses | | |
 
 ## Dependencies / vendored code
 
