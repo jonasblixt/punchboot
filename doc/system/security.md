@@ -149,7 +149,6 @@ mechanisms that means is the platform's (`platform.md` 4.3, 4.5). **Not yet in t
 F-261, F-246).**
 
 **4.10 Secrets are compared whole and in constant time, and never logged** (`board.md` 4.5).
-**Not yet in the code (F-004).**
 
 ## 5. Known limits
 

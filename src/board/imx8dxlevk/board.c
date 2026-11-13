@@ -9,6 +9,7 @@
 
 #include <arch/arch_helpers.h>
 #include <arch/armv8a/timer.h>
+#include <board/password.h>
 #include <boot/ab_state.h>
 #include <boot/atf.h>
 #include <boot/boot.h>
@@ -171,13 +172,13 @@ static int board_password_auth(const char *password, size_t length)
      * A real implementation should use some kind of OTP storage for a
      * device unique password that's not easily accesible.
      * For example RPMB if there is an eMMC present.
+     *
+     * The whole password is compared, in constant time, and not logged
+     * (board.md 4.5).
      */
-    LOG_DBG("Got password '%s', length = %zu", password, length);
+    static const char expected[] = "imx8qxpmek";
 
-    if (strncmp("imx8qxpmek", password, length) == 0 && length > 0)
-        return PB_OK;
-    else
-        return -PB_ERR_AUTHENTICATION_FAILED;
+    return board_password_check(expected, sizeof(expected) - 1, password, length);
 }
 
 /*

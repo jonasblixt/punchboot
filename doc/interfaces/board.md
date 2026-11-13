@@ -471,7 +471,6 @@ The password comes from the host, `length` bytes, not NUL terminated. The board 
 password (the lengths match too) in constant time, never logs it (`security.md` 4.10), and keeps
 the secret device unique and out of the image (an RPMB, a fuse). It is the one secret pb holds
 (`security.md` 2), and what it is and where it is kept is the product's (`system.md` 6).
-**Not yet in the code (F-004)**: the 8X examples accept any prefix and log the password.
 
 Token authentication (a signature over the device's UUID) is the core's.
 
@@ -769,7 +768,7 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-301   |
 | No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251   |
 | `status()` (4.3)               | yes   | default | yes | yes     | default    | default  | default |         |
-| `password_auth()` (4.5)        | n/a   | n/a     | no  | no      | n/a        | n/a      | n/a     | F-004   |
+| `password_auth()` (4.5)        | n/a   | n/a     | yes | yes     | n/a        | n/a      | n/a     |         |
 | The order of section 2         | yes   | yes     | yes | yes     | yes        | yes      | no      | F-217   |
 | Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-033   |
 
