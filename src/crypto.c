@@ -86,6 +86,15 @@ int hash_final(uint8_t *digest_output, size_t length)
 
 int hash_add_ops(const struct hash_ops *ops)
 {
+    /* An algorithm comes from one backend: a second registration of it is a
+     * mistake of the build, and nothing of it is registered (crypto.md 2) */
+    for (size_t i = 0; i < no_of_hash_ops; i++) {
+        if (hash_ops[i]->alg_bits & ops->alg_bits) {
+            LOG_ERR("%s: 0x%x is %s's", ops->name, ops->alg_bits, hash_ops[i]->name);
+            return -PB_ERR_PARAM;
+        }
+    }
+
     if (no_of_hash_ops >= CONFIG_CRYPTO_MAX_HASH_OPS)
         return -PB_ERR_MEM;
 
@@ -132,6 +141,14 @@ int dsa_verify(dsa_t alg,
 
 int dsa_add_ops(const struct dsa_ops *ops)
 {
+    /* As hash_add_ops() */
+    for (size_t i = 0; i < no_of_dsa_ops; i++) {
+        if (dsa_ops[i]->alg_bits & ops->alg_bits) {
+            LOG_ERR("%s: 0x%x is %s's", ops->name, ops->alg_bits, dsa_ops[i]->name);
+            return -PB_ERR_PARAM;
+        }
+    }
+
     if (no_of_dsa_ops >= CONFIG_CRYPTO_MAX_DSA_OPS)
         return -PB_ERR_MEM;
 

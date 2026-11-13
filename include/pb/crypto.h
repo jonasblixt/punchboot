@@ -135,11 +135,15 @@ int hash_final(uint8_t *digest_output, size_t length);
 /**
  * Register hash op's
  *
- * Used by drivers to expose hashing functions.
+ * Used by drivers to expose hashing functions. Each algorithm comes from one
+ * backend (doc/interfaces/crypto.md 2): nothing is registered when another
+ * backend has one of the algorithms.
  *
  * @param[in] ops Hashing op's structure
  *
- * @return PB_OK on success
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM, when another backend registered one of the algorithms
+ *        -PB_ERR_MEM, when CONFIG_CRYPTO_MAX_HASH_OPS backends are registered
  */
 int hash_add_ops(const struct hash_ops *ops);
 
@@ -164,6 +168,13 @@ int dsa_verify(dsa_t alg,
                size_t md_length,
                bool *verified);
 
+/**
+ * Register signature verification, as hash_add_ops()
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM, when another backend registered one of the curves
+ *        -PB_ERR_MEM, when CONFIG_CRYPTO_MAX_DSA_OPS backends are registered
+ */
 int dsa_add_ops(const struct dsa_ops *ops);
 
 #endif

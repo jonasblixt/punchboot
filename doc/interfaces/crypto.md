@@ -79,8 +79,7 @@ with the algorithms it has (`alg_bits`).
 - **No fallback at run time** (Jonas): an algorithm has one backend, chosen by the build. A
   fallback would be a second implementation that must verify the same, and `security.md` 4.5
   asks that of one before it may stand in. An algorithm that two backends register is a
-  mistake of the build: the second registration is refused. **Not yet in the code (F-286)**:
-  the first backend registered that has the algorithm is used, silently.
+  mistake of the build: the second registration is refused.
 - **Together the build's backends have every algorithm its keys and images use**: the
   header's hash, the keystore keys' curves, SHA-256 for `part verify`, MD5 for the identity.
   No single backend needs them all. One that lacks an algorithm on some hardware (an engine
@@ -327,7 +326,7 @@ The core:
 
 | Requirement                                      | Today                             | Finding |
 | ------------------------------------------------ | --------------------------------- | ------- |
-| An algorithm is registered once                  | no: the first registered is used  | F-286   |
+| An algorithm is registered once                  | yes (`test_crypto`)               |         |
 | No context after a failed `hash_init()`          | yes (`test_crypto`)               |         |
 | `dsa_verify()` is refused while a hash is open   | yes (`test_crypto`)               |         |
 | `md_length` is the digest size of `md_alg`       | no: not checked                   | F-286   |

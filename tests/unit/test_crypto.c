@@ -151,8 +151,31 @@ static void test_register_providers(void **state)
 
     /* CONFIG_CRYPTO_MAX_HASH_OPS and _DSA_OPS are 1 in the host build */
     assert_int_equal(hash_add_ops(&other_hash_ops), -PB_ERR_MEM);
-    assert_int_equal(dsa_add_ops(&fake_dsa_ops), -PB_ERR_MEM);
-    assert_int_equal(mbedtls_pb_init(), -PB_ERR_MEM);
+}
+
+/* crypto.md 2: an algorithm comes from one backend. A second registration of
+ * it is refused, whole, and the first backend stays the algorithm's: the
+ * first registered was used, silently (F-286 (12)) */
+static void test_2_a_second_registration_is_refused(void **state)
+{
+    static const struct hash_ops sha384_too = {
+        .name = "sha384-too",
+        .alg_bits = HASH_SHA384 | HASH_SHA512,
+        .init = fake_init,
+        .update = fake_update,
+        .final = fake_final,
+    };
+    (void)state;
+
+    assert_int_equal(hash_add_ops(&sha384_too), -PB_ERR_PARAM);
+    assert_int_equal(hash_add_ops(&fake_hash_ops), -PB_ERR_PARAM);
+    assert_int_equal(dsa_add_ops(&fake_dsa_ops), -PB_ERR_PARAM);
+    /* A software backend that has the same algorithms */
+    assert_int_equal(mbedtls_pb_init(), -PB_ERR_PARAM);
+
+    /* Nothing of them was registered */
+    assert_int_equal(hash_init(HASH_SHA512), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(hash_init(HASH_MD5), -PB_ERR_NOT_SUPPORTED);
 }
 
 static void test_hash_dispatch(void **state)
@@ -290,6 +313,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_without_providers),
         cmocka_unit_test(test_register_providers),
+        cmocka_unit_test(test_2_a_second_registration_is_refused),
         cmocka_unit_test(test_hash_dispatch),
         cmocka_unit_test(test_3_1_no_context_after_a_failed_init),
         cmocka_unit_test(test_dsa_dispatch),
