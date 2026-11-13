@@ -26,6 +26,7 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <string.h>
+#include <sys/mman.h>
 
 /* A test of an open bug, it runs once the finding is fixed (testing.md) */
 #define SKIP_OPEN(finding)                             \
@@ -426,6 +427,39 @@ static void test_imx8mpevk_sd_v1(void **state)
     assert_bench_clean();
 }
 
+/* drivers.md 4.2 (F-200): ADMA2's addresses are 32 bits. A buffer above
+ * 4 GiB is refused with -PB_ERR_PARAM before a command is sent, where its
+ * address was truncated and the controller moved the data elsewhere. On the
+ * host an anonymous mapping is above 4 GiB */
+static void test_buffer_above_4gib_is_refused(void **state)
+{
+    const size_t len = 64 * 1024;
+    (void)state;
+
+    uint8_t *high = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+    assert_true(high != MAP_FAILED);
+    if ((uint64_t)(uintptr_t)high < (1ULL << 32)) {
+        munmap(high, len);
+        skip();
+    }
+    memset(high, 0x5a, len);
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    unsigned int cmds = usdhc_model_cmds();
+
+    assert_int_equal(bio_read(part(UU_USER), 0, len, high), -PB_ERR_PARAM);
+    assert_int_equal(bio_write(part(UU_USER), 0, len, high), -PB_ERR_PARAM);
+    assert_int_equal(bio_read(part(UU_USER), 0, 512, high), -PB_ERR_PARAM);
+    assert_int_equal(usdhc_model_cmds(), cmds);
+    assert_int_equal(high[0], 0x5a);
+    munmap(high, len);
+
+    /* The next transfer works */
+    read_write();
+    assert_bench_clean();
+}
+
 /* CD_B says there is no card */
 static void test_imx8mpevk_no_sd(void **state)
 {
@@ -485,6 +519,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd_v1, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_no_sd, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_buffer_above_4gib_is_refused, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

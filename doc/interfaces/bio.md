@@ -402,8 +402,8 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | A length of 0                | yes: the core's    | yes               | yes                 |         |
 |                              | (`test_mmc_emmc`)  |                   |                     |         |
 | Any length in one call       | yes (chunks)       | no: below 64 KiB  | yes                 | F-198   |
-| Addresses above 4 GiB        | no: truncated      | n/a (no DMA)      | n/a                 | F-200   |
-| refused                      |                    |                   |                     |         |
+| Addresses above 4 GiB        | yes (`test_imx_`   | n/a (no DMA)      | n/a                 |         |
+| refused                      | `usdhc`)           |                   |                     |         |
 | Every wait bounded           | yes (`test_mmc_`   | no                | n/a                 | F-198   |
 |                              | `emmc`)            |                   |                     |         |
 | The codes of `drivers.md` 3  | yes (`test_mmc_`   | no                | yes                 | F-284   |
@@ -466,6 +466,6 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |
-| F-200               | Sizes from the card (the user area's SEC_COUNT 0); addresses above 4 GiB       |
+| F-200               | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                   |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

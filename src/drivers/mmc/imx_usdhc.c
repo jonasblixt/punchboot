@@ -201,15 +201,37 @@ static int imx_usdhc_set_delay_tap(void *priv, unsigned int tap)
     return PB_OK;
 }
 
+/*
+ * The address the controller gets for 'len' bytes at 'addr'. ADMA_SYS_ADDR
+ * and an ADMA2 descriptor's address are 32 bits: a range that doesn't end
+ * below 4 GiB is refused, not truncated (drivers.md 4.2)
+ */
+static int usdhc_dma_addr(const void *addr, size_t len, uint32_t *dma_addr)
+{
+    if ((uint64_t)(uintptr_t)addr + len > (uint64_t)UINT32_MAX + 1)
+        return -PB_ERR_PARAM;
+
+    *dma_addr = (uint32_t)(uintptr_t)addr;
+    return PB_OK;
+}
+
 /* The ADMA2 descriptors and block attributes of a transfer */
 static int imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, size_t blocks)
 {
     uintptr_t buf_ptr = (uintptr_t)buf;
     size_t length = block_size * blocks;
     size_t n = 0;
+    uint32_t buf_addr;
+    uint32_t tbl_addr;
 
     if (blocks > BLK_ATT_BLKCNT_MAX || length > ADMA2_DESCS * ADMA2_MAX_BYTES)
         return -PB_ERR_IO;
+
+    if (usdhc_dma_addr(buf, length, &buf_addr) != PB_OK ||
+        usdhc_dma_addr(u->tbl, sizeof(u->tbl[0]) * ADMA2_DESCS, &tbl_addr) != PB_OK) {
+        LOG_ERR("DMA above 4 GiB: buffer %p, descriptors %p", buf, (void *)u->tbl);
+        return -PB_ERR_PARAM;
+    }
 
     arch_clean_cache_range(buf_ptr, length);
 
@@ -219,14 +241,14 @@ static int imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, 
         length -= chunk;
         u->tbl[n].len = chunk;
         u->tbl[n].attr = ADMA2_ATTR_ACT_TRAN | ADMA2_ATTR_VALID | (length ? 0 : ADMA2_ATTR_END);
-        u->tbl[n].addr = (uint32_t)buf_ptr;
-        buf_ptr += chunk;
+        u->tbl[n].addr = buf_addr;
+        buf_addr += chunk;
         n++;
     }
 
     arch_clean_cache_range((uintptr_t)u->tbl, sizeof(u->tbl[0]) * n);
 
-    usdhc_write(u, USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t)u->tbl);
+    usdhc_write(u, USDHC_ADMA_SYS_ADDR, tbl_addr);
     usdhc_write(u, USDHC_BLK_ATT, BLK_ATT_BLKCNT(blocks) | BLK_ATT_BLKSIZE(block_size));
     return PB_OK;
 }

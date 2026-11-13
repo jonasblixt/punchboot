@@ -382,7 +382,7 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 
 | Driver                  | Every wait bounded    | DMA memory owns lines   | `stop`              | Finding       |
 | ----------------------- | --------------------- | ----------------------- | ------------------- | ------------- |
-| MMC, SD and the uSDHC   | yes (`test_mmc_emmc`) | partly: aligned, in     | n/a: synchronous    | F-200         |
+| MMC, SD and the uSDHC   | yes (`test_mmc_emmc`) | partly: aligned, in     | n/a: synchronous    |               |
 |                         |                       | `.no_init`, next to the |                     |               |
 |                         |                       | driver's state          |                     |               |
 | FlexSPI                 | no                    | n/a: no DMA             | n/a: synchronous    | F-198         |
