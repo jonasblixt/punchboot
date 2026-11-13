@@ -113,6 +113,12 @@ static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
 
 void plat_reset(void)
 {
+    /* Valid before plat_early_init() has opened the channel to the SCFW
+     * (platform.md 3.1): the arch's exception handlers call it. Without a
+     * handle the call below sends nothing, so open it here, as there */
+    if (plat.ipc == 0)
+        sc_ipc_open(&plat.ipc, SC_IPC_BASE);
+
     sc_pm_reset(plat.ipc, SC_PM_RESET_TYPE_BOARD);
 
     /* sc_pm_reset() returns when the SCFW refused the reset (SCFW API,

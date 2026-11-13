@@ -234,6 +234,10 @@ Unit tests, by module under test:
 |                                               | `imx_gpt.c`, `imx_wdog.c`:   | register file; the fuses, the    |
 |                                               | the port against             | HAB, Mbed TLS                    |
 |                                               | `platform.md`                |                                  |
+| `test_plat_imx8x.c`                           | `plat/imx8x/plat.c`, its     | a model of the SCFW behind its   |
+|                                               | SCFW client (`sci/`),        | messaging unit; the fuses, the   |
+|                                               | `imx_gpt.c`                  | RoT and SLC helpers, the MMU     |
+|                                               |                              | (`fakes/xlat.c`)                 |
 | `test_mmc_core.c`                             | `mmc_core.c` (boot partition | fake card                        |
 |                                               | updates, power loss)         |                                  |
 | `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |

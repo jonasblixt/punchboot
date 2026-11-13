@@ -373,15 +373,18 @@ set_tests_properties(unit.test_main_no_tasks PROPERTIES LABELS unit TIMEOUT 60)
 # built for the host with the SoC's registers in a register file behind the
 # fake pb/mmio.h (fakes/regs.h), the drivers its test names and the port's
 # Kconfig symbols, which the host's config.h doesn't have.
+# A port with an MMU gets fakes/xlat.c for its set up.
 # pb_plat_test(name SOURCES <the port and its drivers> DEFINITIONS <symbols>
-#              INCLUDES <directories, before the others>)
+#              INCLUDES <directories, before the others> OPTIONS <for the compiler>)
 function(pb_plat_test name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;DEFINITIONS;INCLUDES" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "SOURCES;DEFINITIONS;INCLUDES;OPTIONS" ${ARGN})
     add_executable(${name} ${name}.c fakes/regs.c ${ARG_SOURCES})
     target_include_directories(${name} BEFORE PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio ${ARG_INCLUDES})
-    target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories(${name} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/include/xlat_tables)
     target_compile_definitions(${name} PRIVATE ${ARG_DEFINITIONS})
+    target_compile_options(${name} PRIVATE ${ARG_OPTIONS})
     target_link_libraries(${name} PRIVATE pb_lib PkgConfig::CMOCKA)
     add_test(NAME unit.${name} COMMAND ${name})
     set_tests_properties(unit.${name} PROPERTIES LABELS unit TIMEOUT 60)
@@ -393,6 +396,28 @@ pb_plat_test(test_plat_imxrt
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+)
+
+# The i.MX8QXP, with the port's SCFW client: the test is the SCFW. xlat.h
+# declares the ARMv8-A enable of the MMU for plat.c
+set(PB_IMX8X_SCI ${PROJECT_SOURCE_DIR}/src/plat/imx8x/sci)
+pb_plat_test(test_plat_imx8x
+    SOURCES
+        fakes/xlat.c
+        ${PROJECT_SOURCE_DIR}/src/plat/imx8x/plat.c
+        ${PB_IMX8X_SCI}/ipc.c
+        ${PB_IMX8X_SCI}/imx8_mu.c
+        ${PB_IMX8X_SCI}/svc/misc/misc_rpc_clnt.c
+        ${PB_IMX8X_SCI}/svc/pad/pad_rpc_clnt.c
+        ${PB_IMX8X_SCI}/svc/pm/pm_rpc_clnt.c
+        ${PB_IMX8X_SCI}/svc/rm/rm_rpc_clnt.c
+        ${PB_IMX8X_SCI}/svc/timer/timer_rpc_clnt.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
+    DEFINITIONS
+        CONFIG_PLAT_IMX8X=1 CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+        BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+    INCLUDES ${PROJECT_SOURCE_DIR}/include/plat/imx8x
+    OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
 
 # The transport that a build for a SoC links (usb.md 2): pb's USB class and

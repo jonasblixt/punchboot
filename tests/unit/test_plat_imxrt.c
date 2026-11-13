@@ -167,6 +167,23 @@ static void test_plat_reset(void **state)
     assert_int_equal(fake_reg_log[fake_reg_log_len - 1].value, WDOG_WCR_SRE | WDOG_WCR_WDE);
 }
 
+/* platform.md 3.1: valid from the first instruction after arch_init(), also
+ * before plat_early_init(). The reset needs nothing that the port sets up:
+ * one write, to WDOG1, whose clock the ROM leaves on (plat-imx.md 3) */
+static void test_plat_reset_before_early_init(void **state)
+{
+    (void)state;
+
+    if (setjmp(soc_reset) == 0) {
+        plat_reset();
+        fail_msg("plat_reset() returned");
+    }
+
+    assert_int_equal(fake_reg_log_len, 1);
+    assert_int_equal(fake_reg_log[0].addr, IMXRT_WDOG1_BASE + WDOG_WCR);
+    assert_int_equal(fake_reg_log[0].value, WDOG_WCR_SRE | WDOG_WCR_WDE);
+}
+
 /* platform.md 3.6, 3.7: the platform's UUID namespace is declared in
  * pb/plat.h, and it never changes: the device's UUID and its tokens are made
  * from it. 48f8c6cb-8d07-4066-b921-0c1d8fd05471 */
@@ -185,6 +202,7 @@ int main(void)
         cmocka_unit_test_setup(test_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_plat_reset, setup),
+        cmocka_unit_test_setup(test_plat_reset_before_early_init, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
     };
 

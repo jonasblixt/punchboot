@@ -64,6 +64,19 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 
 ## 3. Services
 
+- **Reset**: WDOG1's software reset on the 6UL, the 8M and the RT (`imx_wdog_reset_now()`), a
+  board reset through the SCFW on the 8X (`sc_pm_reset()`). Before `plat_early_init()`
+  (`platform.md` 3.1):
+  - The WDOG's driver keeps no state, so what `plat_reset()` needs is WDOG1's clock, and that
+    is on when the ROM hands over. The 6UL's and the RT's ROM gate a list of clocks that
+    WDOG1's isn't in (6UL RM 8.4.3, Table 8-5; RT RM 9.5.3, Table 9-6: not CCGR3's CG8). The
+    8M's ROM uses WDOG1 and opens its gate (8MP RM 6.1.4.3, Table 6-6; 8MQ RM 6.1.4.3,
+    Table 6-7), and WDOG_CLK_ROOT is on out of reset (CCM_TARGET_ROOT114 resets to
+    0x10000000, 8MP and 8MQ RM 5.1.7.10). By the manuals: not tried on a board, and not true
+    for a pb that a debugger loaded after gating clocks.
+  - The 8X's `plat_reset()` opens the SCFW's channel itself when `plat_early_init()` hasn't
+    yet. When the SCFW refuses the reset, `sc_pm_reset()` returns (SCFW API 13.4.3.19: an
+    invalid type, or no access to `SC_R_SYSTEM`) and `plat_reset()` waits for the watchdog.
 - **Unique id**: OCOTP words (6UL, 8M, RT; the 8M's are words 1 and 2, F-169), `sc_misc_unique_id()`
   on the 8X. 8 bytes each.
 - **Boot source**: only the 6UL, from the ROM log (AN12853 Table 7) and the eMMC's boot partition
@@ -235,8 +248,8 @@ Where each port is (2026-11-11).
 | Watchdog armed in early init         | yes          | yes               | yes        | yes       | F-233         |
 | Power-down counters disabled         | yes          | yes               | n/a        | yes       | F-245         |
 | `plat_reset()` without the watchdog  | yes          | yes               | yes        | yes       | F-234         |
-| `plat_reset()` before early init     | unchecked    | unchecked         | no         | unchecked | F-262         |
-| `plat_wdog_kick()` before arming     | yes          | yes               | unchecked  | yes       | F-234         |
+| `plat_reset()` before early init     | yes          | yes               | yes        | yes       | F-262         |
+| `plat_wdog_kick()` before arming     | yes          | yes               | yes        | yes       | F-234         |
 | `plat_get_boot_reason()`             | no           | no                | no         | no        | F-236         |
 | The unique id fails on a failed read | no           | no                | unchecked  | no        | F-200         |
 | Serial download in                   | USB only     | no                | no         | no        | F-251         |
