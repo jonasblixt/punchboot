@@ -140,6 +140,10 @@ config BOOT_DTB_HEADROOM
         size in the header. A device tree built with the properties and free
         space for them (dtc -p) doesn't need it, set 0 then.
 
+        Firmware Handoff (BOOT_FH) copies the device tree into its transfer
+        list and grows the copy by as much: the room is the list's region's
+        then, and none is needed after the part.
+
         With 0, a device tree that was built for an older pb has no room
         for the three new properties. They take 138 bytes together (with
         the version "3.0.0"): add them to the device tree, pb,boot-mode with
@@ -147,9 +151,6 @@ config BOOT_DTB_HEADROOM
         image boots as before and each of the three that doesn't fit is
         left out, with a warning in the log. A property of the older ones
         that doesn't fit fails the boot, as it always did.
-
-config BOOT_SIMPLE
-    bool "Simple boot protocol (include/boot/simple.h)"
 
 config BOOT_LOAD_CHUNK_kB
     int "Copy/Hash load chunk size (kB)"

@@ -209,7 +209,6 @@ Unit tests, by module under test:
 | `test_policy.c`                               | `policy.c`,                  | ramdisk                          |
 |                                               | `policy_fixed.c`,            |                                  |
 |                                               | `policy_chain.c`             |                                  |
-| `test_simple.c`                               | `simple.c`                   | none                             |
 | `test_fh.c`                                   | `fh.c`, `dtb.c` (not in      | arch (the cache); a receiver of  |
 |                                               | pb-host), once per register  | the test's own reads the list in |
 |                                               | convention                   | a region the test maps           |

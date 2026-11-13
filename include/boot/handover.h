@@ -14,7 +14,7 @@
  * A handover turns the verified image and pb's information into the next
  * stage's entry, its four arguments and what it reads in memory (a device
  * tree's /chosen, a transfer list): BOOT_HANDOVER_IMAGE() (boot/image.h),
- * BOOT_HANDOVER_FH() (boot/fh.h), BOOT_HANDOVER_SIMPLE() (boot/simple.h).
+ * BOOT_HANDOVER_FH() (boot/fh.h).
  *
  * A delivery brings them to the next stage. Without one the core does it
  * directly: arch_jump(entry, a0..a3), at the exception level pb runs at.

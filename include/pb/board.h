@@ -77,7 +77,7 @@ struct board {
 
     int (*late_init)(void); /*!< After the partition table and the policy */
 
-    /* The handover: BOOT_HANDOVER_IMAGE() or BOOT_HANDOVER_SIMPLE() */
+    /* The handover: BOOT_HANDOVER_IMAGE() or BOOT_HANDOVER_FH() */
     struct boot_handover boot_handover;
     /* Its delivery: BOOT_DELIVERY_TFA(). Absent: directly */
     struct boot_delivery boot_delivery;

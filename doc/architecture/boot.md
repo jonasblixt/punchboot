@@ -468,10 +468,8 @@ AArch64 entry point info) is a later path, for a BL31 that takes it.
 
 ### 5.4 Handover : Firmware Handoff, generic [optional, CONFIG_BOOT_FH]
 
-**Not yet in the code (F-259)**: the generic handover is `simple` (r0 = the system's name, r1 = the
-boot partition's UUID, only on the 3.0.0 branch). Released pb (`armv7m_baremetal`) passed nothing,
-so images that ignore their registers keep working. It replaces `simple`, it doesn't stand next
-to it.
+Released pb (`armv7m_baremetal`) passed nothing, so images that ignore their registers keep
+working. It replaces `simple`, it doesn't stand next to it.
 
 For any next stage: an RTOS, an application, a hypervisor, a stage that parses a DT. The board
 gives: the entry's part (on ARMv7-M its vector table, D-028; in place, its mapped address), the
@@ -528,6 +526,9 @@ entry's layout to the specification, so the layout above is settled first. pb's 
 in a release before its tag is allocated: what is released is
 fixed (section 7, `system.md` 3), and the tag can't change afterwards. The DT variant doesn't wait
 for it.
+
+**Not yet in the code (F-259)**: the tag isn't allocated. Until it is, `PB_FH_TAG_HANDOVER`
+(`boot/pb_fh.h`) is a number from the specification's non-standard range.
 
 ### 5.5 What pb writes into a DT
 
@@ -649,7 +650,7 @@ Like the wire (D-008, `compatibility.md`):
 
 | Finding      | What                                                                         |
 | ------------ | ---------------------------------------------------------------------------- |
-| F-259        | Firmware Handoff (5.4): the list, the region, pb's structure and its tag     |
+| F-259        | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
 | F-248        | The boot's preconditions in the flow (2), pb's status in the handover (5.6)  |
 | F-180        | The A/B review's fixes, `pbstate`                                            |
 | F-252, F-076 | A stop in a boot command mode started; a part outside the hash refused (4.2) |

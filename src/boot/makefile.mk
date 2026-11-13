@@ -7,7 +7,6 @@ src-y  += src/boot/image_helpers.c
 src-$(CONFIG_BOOT_LINUX) += src/boot/image.c
 src-$(CONFIG_BOOT_ATF) += src/boot/atf.c
 src-$(CONFIG_BOOT_DTB) += src/boot/dtb.c
-src-$(CONFIG_BOOT_SIMPLE) += src/boot/simple.c
 src-$(CONFIG_BOOT_FH) += src/boot/fh.c
 
 # The transfer list's region reaches the linker too (platform.md 5.1), which

@@ -232,8 +232,9 @@ set(PB_TEST_MEMORY
 target_link_options(test_image_helpers PRIVATE ${PB_TEST_MEMORY})
 
 # The same with what a handover writes outside the parts, which pb-host has
-# none of: the Firmware Handoff region (F-259) and a platform's region for
-# bl_params (platform.md 5.3), both between the suite's two image data regions
+# none of: the Firmware Handoff region (boot.md 5.4) and a platform's region
+# for bl_params (platform.md 5.3), both between the suite's two image data
+# regions
 add_executable(test_image_helpers_handover test_image_helpers.c
     ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c
     ${PROJECT_SOURCE_DIR}/src/crypto.c
@@ -266,10 +267,6 @@ target_include_directories(test_image_armv7 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_image_armv7 PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
 add_test(NAME unit.test_image_armv7 COMMAND test_image_armv7)
 set_tests_properties(unit.test_image_armv7 PROPERTIES LABELS unit TIMEOUT 60)
-
-pb_unit_test(test_simple SOURCES
-    ${PROJECT_SOURCE_DIR}/src/boot/simple.c
-)
 
 # The generic handover, Firmware Handoff (boot.md 5.4), isn't in pb-host. Its
 # test gets the option and a region, which the test maps where the build has
