@@ -160,8 +160,7 @@ Reads `length` bytes from block `lba` of the device into `buf`.
 
 - **Exactly `length` bytes are written to `buf`**, never more.
 - **`length` is bytes.** A length that isn't whole blocks is the core's: the last
-  block is read into the core's block buffer and the bytes asked for are copied. **Not yet in
-  the code (F-284)**: the FlexSPI's driver refuses a length that isn't a multiple of 4.
+  block is read into the core's block buffer and the bytes asked for are copied.
 - **A length of 0** is `PB_OK` and reads nothing; the driver isn't called.
 - **The buffer** starts on a cache line and owns its lines (`drivers.md` 4.3).
   One that doesn't is refused, `-PB_ERR_ALIGN`, before the driver is called. An image part
@@ -199,8 +198,7 @@ Return   : int, PB_OK or -PB_ERR_*
 
 Writes `length` bytes of `buf` from block `lba` on.
 
-- **Exactly `length` bytes are read from `buf`**, never more. **Not yet in the code (F-284)**:
-  the FlexSPI's driver reads up to four bytes past it.
+- **Exactly `length` bytes are read from `buf`**, never more.
 - **A length that isn't whole blocks.** The core writes the last block from its
   block buffer: the bytes given, then zeros (`command-mode.md` 5.4). Nothing is read back to
   keep what the block held.
@@ -395,16 +393,16 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 |                              | user area's        |                   |                     |         |
 |                              | SEC_COUNT 0 isn't  |                   |                     |         |
 |                              | (`test_mmc_emmc`)  |                   |                     |         |
-| Exactly `length` bytes of    | yes                | no: a write reads | yes                 | F-284   |
-| the buffer                   |                    | 1 to 4 bytes more |                     |         |
+| Exactly `length` bytes of    | yes                | yes (`test_imx_`  | yes                 |         |
+| the buffer                   |                    | `flexspi`)        |                     |         |
 | A length of 0                | yes: the core's    | yes               | yes                 |         |
 |                              | (`test_mmc_emmc`)  |                   |                     |         |
-| Any length in one call       | yes (chunks)       | no: below 64 KiB  | yes                 | F-198   |
+| Any length in one call       | yes (chunks)       | yes (chunks)      | yes                 |         |
 | Addresses above 4 GiB        | yes (`test_imx_`   | n/a (no DMA)      | n/a                 |         |
 | refused                      | `usdhc`)           |                   |                     |         |
 | Every wait bounded           | yes (`test_mmc_`   | yes (`test_imx_`  | n/a                 |         |
 |                              | `emmc`)            | `flexspi`)        |                     |         |
-| The codes of `drivers.md` 3  | yes (`test_mmc_`   | no                | yes                 | F-284   |
+| The codes of `drivers.md` 3  | yes (`test_mmc_`   | yes               | yes                 |         |
 |                              | `emmc`, `test_`    |                   |                     |         |
 |                              | `imx_usdhc`)       |                   |                     |         |
 | Erase: exactly the blocks    | n/a (no erase)     | yes (`test_imx_`  | n/a (no erase)      |         |
@@ -462,8 +460,6 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | Finding             | What                                                                           |
 | ------------------- | ------------------------------------------------------------------------------ |
 | F-283               | The block size asked, not assumed; the rest of the conformance suite (2, 8)    |
-| F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
-| F-198               | The FlexSPI's reads of 64 KiB and more (3.1)                                   |
 | F-200               | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                   |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |
