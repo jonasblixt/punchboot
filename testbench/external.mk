@@ -2,12 +2,15 @@
 # is in
 PB_TESTBENCH_PUNCHBOOT_SRCDIR = $(realpath $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/..)
 
-# What is not part of the punchboot sources: build directories and this
-# test bench, with its Buildroot, downloads and output
+# What is not part of the punchboot sources: build directories, this test
+# bench, with its Buildroot, downloads and output, and the hidden directories
+# at the top, which are tools' own (worktrees with builds and the tests'
+# sparse disk images in them, which rsync would write out in full)
 PB_TESTBENCH_PUNCHBOOT_RSYNC_EXCLUSIONS = \
 	--exclude=/testbench \
 	--exclude=/build* \
 	--exclude=/blobs \
+	--exclude=/.*/ \
 	--exclude=*.egg-info
 
 # bpak and kickstart are built from a branch of their git repositories, by
