@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-13, night (named commands, D-076)_
+_Last updated: 2026-11-14 (the 8X's log `seco`)_
 
 ## Current focus
 
@@ -22,7 +22,8 @@ bump is for the porting API. Each item's history is in `log/`.
   of all six boards, Coverity (master only, unverified until merged).
 - **Boards (2026-11-13, evening, log "The bench of all four boards"):** the RT1060 runs
   `bc640ba1` from its NOR; jiffy (BOOT0), the 8MP EVK and the MEK (BOOT1) run `bc640ba1`
-  with the F-424 fix (`b6a3df47`). All four in command mode, nothing enabled.
+  with the F-424 fix (`b6a3df47`); the MEK runs the uncommitted `seco` log from BOOT0 since
+  2026-11-14 (BOOT1 keeps `bc640ba1`). All four in command mode, nothing enabled.
   imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on the 8MP EVK,
   never run SLC or fuse commands on the MEK. Untested on any board: fuse writes, the 8X
   closed state.
@@ -50,6 +51,9 @@ bump is for the porting API. Each item's history is in `log/`.
    - The log's "For Jonas" lists.
    - Named commands (D-076) are in, F-425 and F-426, not run on a board. Next: the 8M's DRAM
      training data as a platform command, a design of its own (log, "Named commands").
+   - The 8X's log `seco`, `vsnprintf()`, `log <tab>`, the 8X's builds in the boot log and its
+     command `info`, no board status (log 2026-11-14): run on the MEK (BOOT0, BOOT1 keeps
+     `bc640ba1`).
 1. What 3.0.0 waits for besides the code is `roadmap.md`'s first section: the Firmware
    Handoff tag (Jonas, upstream), the bench run, the two guides, the release notes.
 2. Jonas's review of the board work's code (D-026, D-027; its shape is D-046's since F-265).

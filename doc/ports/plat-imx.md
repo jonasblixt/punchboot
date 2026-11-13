@@ -35,6 +35,7 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 | ROM state saved  | ROM log, the serial           | ROM log                 | -                       | -          |
 |                  | downloader's USB address      |                         |                         |            |
 | HAB log          | yes                           | yes                     | - (AHAB)                | yes        |
+| SECO log         | -                             | -                       | yes                     | -          |
 
 - **Watchdog power-down counters.** Each WDOG's power-down counter is enabled out of every reset
   and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3); whether that resets
@@ -49,7 +50,16 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   version 2: IDs in bits 31:24), where the log is in the ROM's part of the OCRAM, below pb
   (Tables 6, 11, 13). `plat_early_init()` saves it before anything overwrites it. The 8M's ticks
   have no documented unit, and the 8MP EVK's ROM logs a tick with event 0x82, which Table 9
-  doesn't list. Not saved: the 8X's (four buffers).
+  doesn't list. The 8X's can't be: its ROM runs on the SCU, and its log (four buffers, Table 13)
+  is in the SCU's TCM, which the SCFW locks to all but the MUs (8QXP RM 2.2.8.1); the SCFW API
+  has no call that reads it.
+- **The SECO log** (the log `seco`, 8X): the life cycle (`sc_seco_chip_info()`) and the SECO's
+  events (`sc_seco_get_event()`), the responses other than success to any request since it
+  started, as U-Boot's `ahab_status` prints them: the request in bits 23:16, the indication in
+  15:8, the status in 7:0, named by the SECO API Reference Guide's tables ("Responses").
+  Registered by `plat_cm_init()` (D-023) and read through the SCFW at the first read, once. On
+  the MEK (open, no SRK fused): life cycle 0x0020, one event, `authenticate container`,
+  `bad key hash`, status success.
 - **The HAB log** (the log `hab`) is read through the ROM's HAB API, `report_status` and
   `report_event` in its vector table (RVT): at 0x100 on the 6UL, 0x00200300 on the RT1060 (RM
   9.12.1), 0x900 on the 8M Plus and 0x880 on the 8MQ. The 8M's have 64-bit pointers and are
@@ -77,6 +87,9 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   - The 8X's `plat_reset()` opens the SCFW's channel itself when `plat_early_init()` hasn't
     yet. When the SCFW refuses the reset, `sc_pm_reset()` returns (SCFW API 13.4.3.19: an
     invalid type, or no access to `SC_R_SYSTEM`) and `plat_reset()` waits for the watchdog.
+- **The firmware in the log**: the 8X's `plat_init()` logs the SCFW's and the SECO's builds,
+  the SoC id and revision and the temperature (~40 µs on the MEK); the boards have no status.
+  The named command `info` answers the same, read again.
 - **Unique id**: OCOTP words (6UL, 8M, RT; the 8M's are words 1 and 2, F-169), `sc_misc_unique_id()`
   on the 8X. 8 bytes each.
 - **Boot source**: only the 6UL, from the ROM log (AN12853 Table 7) and the eMMC's boot partition
