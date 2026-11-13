@@ -172,6 +172,12 @@ static int mmc_rw(struct mmc_device *dev, unsigned int lba, size_t length, uintp
     LOG_DBG("%s %u, %zu, %p", write ? "write" : "read", lba, length, (void *)buf);
 #endif
 
+    /* Whole blocks only, as bio hands them over (bio.md 3.1): a tail would be
+     * dropped, and a command for no block at all leaves the card waiting
+     * for data */
+    if (length == 0 || (length % MMC_BLOCK_SIZE) != 0)
+        return -PB_ERR_PARAM;
+
     if (dev->hal->max_chunk_bytes > 0 && length > dev->hal->max_chunk_bytes)
         return -PB_ERR_IO;
 

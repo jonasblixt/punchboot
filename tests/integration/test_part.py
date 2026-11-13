@@ -91,6 +91,35 @@ def test_verify_partition(device: Device, tmp_path: pathlib.Path) -> None:
             s.part_verify(other, SYSTEM_A_UUID)
 
 
+def test_write_and_verify_a_size_that_is_not_whole_blocks(
+    device: Device, tmp_path: pathlib.Path
+) -> None:
+    """Hosts send a file's size as it is (command-mode.md 5.3 and 5.4, F-182).
+
+    The last block is written padded with zeros, and exactly the file's bytes are
+    hashed. The host's disk takes whole blocks only, as a driver does.
+    """
+    size = 64 * 1024 + 300
+    blocks = size // 512 + 1
+    data = os.urandom(size)
+    path = tmp_path / "data"
+    path.write_bytes(data)
+    device.write_blocks(SYSTEM_A_LBA, b"\xff" * ((blocks + 1) * 512))
+
+    with device.session() as s:
+        s.part_write(path, SYSTEM_A_UUID)
+        s.part_verify(path, SYSTEM_A_UUID)
+        # The last byte, in the block that was padded, is hashed
+        path.write_bytes(data[:-1] + bytes([data[-1] ^ 1]))
+        with pytest.raises(punchboot.PartVerifyError):
+            s.part_verify(path, SYSTEM_A_UUID)
+
+    written = device.read_blocks(SYSTEM_A_LBA, blocks + 1)
+    assert written[:size] == data
+    assert written[size : blocks * 512] == bytes(blocks * 512 - size)
+    assert written[blocks * 512 :] == b"\xff" * 512
+
+
 def test_verify_partition_from_file_handle_at_eof(device: Device, tmp_path: pathlib.Path) -> None:
     """part_verify must rewind file handles, otherwise 0 bytes are verified."""
     data = tmp_path / "data"

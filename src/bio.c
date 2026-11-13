@@ -29,6 +29,15 @@ struct bio_device {
 static struct bio_device bio_pool[CONFIG_BIO_MAX_DEVS];
 static unsigned int n_bios = 0;
 
+/* The block buffer: where the core makes a length that isn't whole blocks
+ * whole, so that a driver sees whole blocks only (bio.md 3.1, 3.2). It holds
+ * the largest block (bio_allocate()), and a driver's device writes into it:
+ * it starts on a cache line and owns its lines (drivers.md 4.3) */
+#define BIO_BLOCK_BUF_ALIGN 64
+static uint8_t block_buf[round_up(CONFIG_BIO_MAX_BLOCK_SIZE, BIO_BLOCK_BUF_ALIGN)] __section(".no_"
+                                                                                             "init")
+    __aligned(BIO_BLOCK_BUF_ALIGN);
+
 static int check_dev(bio_dev_t dev)
 {
     if (dev < 0 || dev >= CONFIG_BIO_MAX_DEVS)
@@ -213,7 +222,29 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     if (length == 0)
         return PB_OK;
 
-    return bio_pool[dev].read(dev, bio_pool[dev].first_lba + lba, length, buf);
+    /* A driver sees whole blocks only (bio.md 3.1). The range check counted
+     * the last, partial block, so that it is inside the device */
+    const struct bio_device *d = &bio_pool[dev];
+    size_t tail = length % d->block_sz;
+    size_t whole = length - tail;
+    lba_t first = d->first_lba + lba;
+
+    if (whole > 0) {
+        rc = d->read(dev, first, whole, buf);
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    if (tail > 0) {
+        /* The last block is read into the block buffer, and the bytes asked
+         * for are copied: exactly 'length' bytes are written to 'buf' */
+        rc = d->read(dev, first + (lba_t)(whole / d->block_sz), d->block_sz, block_buf);
+        if (rc != PB_OK)
+            return rc;
+        memcpy((uint8_t *)buf + whole, block_buf, tail);
+    }
+
+    return PB_OK;
 }
 
 int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
@@ -233,7 +264,29 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
     if (length == 0)
         return PB_OK;
 
-    return bio_pool[dev].write(dev, bio_pool[dev].first_lba + lba, length, buf);
+    /* A driver sees whole blocks only (bio.md 3.2), as in bio_read() */
+    const struct bio_device *d = &bio_pool[dev];
+    size_t tail = length % d->block_sz;
+    size_t whole = length - tail;
+    lba_t first = d->first_lba + lba;
+
+    if (whole > 0) {
+        rc = d->write(dev, first, whole, buf);
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    if (tail > 0) {
+        /* The last block is written from the block buffer: the bytes given,
+         * then zeros. Nothing is read back to keep what the block held */
+        memcpy(block_buf, (const uint8_t *)buf + whole, tail);
+        memset(block_buf + tail, 0, d->block_sz - tail);
+        rc = d->write(dev, first + (lba_t)(whole / d->block_sz), d->block_sz, block_buf);
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    return PB_OK;
 }
 
 int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count)

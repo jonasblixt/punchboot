@@ -2038,6 +2038,85 @@ static void test_stream(void **state)
     assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 2), data, sizeof(data));
 }
 
+/* command-mode.md 5.4 (F-182): hosts send the size as it is. A write whose
+ * size isn't a multiple of the block writes its last block padded with
+ * zeros, and a read sends 'size' bytes. The RAM disk takes whole blocks
+ * only, as a driver does */
+static void test_stream_size_that_isnt_whole_blocks(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t data[RAMDISK_BLOCK_SIZE + 200];
+    uint8_t *medium = ramdisk_block(f->disk, RW_FIRST_LBA + 2);
+
+    for (size_t i = 0; i < sizeof(data); i++)
+        data[i] = (uint8_t)(i * 5 + 1);
+    memset(medium, 0xff, 3 * RAMDISK_BLOCK_SIZE);
+
+    stream_init(UU_RW);
+    stream_prepare(1, sizeof(data), data);
+    stream_write(1, sizeof(data), 2 * RAMDISK_BLOCK_SIZE);
+    stream_read(0, sizeof(data), 2 * RAMDISK_BLOCK_SIZE);
+    stream_read(0, 100, 3 * RAMDISK_BLOCK_SIZE);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    assert_memory_equal(expect_data(sizeof(data)), data, sizeof(data));
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    assert_memory_equal(expect_data(100), data + RAMDISK_BLOCK_SIZE, 100);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    assert_memory_equal(medium, data, sizeof(data));
+    for (size_t i = sizeof(data); i < 2 * RAMDISK_BLOCK_SIZE; i++)
+        assert_int_equal(medium[i], 0);
+    for (size_t i = 2 * RAMDISK_BLOCK_SIZE; i < 3 * RAMDISK_BLOCK_SIZE; i++)
+        assert_int_equal(medium[i], 0xff);
+}
+
+/* command-mode.md 5.3 (F-182): 'size' is any number of bytes inside the
+ * partition, and exactly those bytes are hashed */
+static void test_part_verify_size_that_isnt_whole_blocks(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, RW_FIRST_LBA);
+    const size_t part_size = RW_BLOCKS * RAMDISK_BLOCK_SIZE;
+
+    for (size_t i = 0; i < part_size; i++)
+        part[i] = (uint8_t)(i * 13 + 5);
+
+    /* Less than a block, and more than a buffer */
+    struct pb_command_verify_part small = verify_req(300, false, part);
+    struct pb_command_verify_part large = verify_req(BUF_SIZE + 1000, false, part);
+    host_cmd(PB_CMD_PART_VERIFY, &small, sizeof(small));
+    host_cmd(PB_CMD_PART_VERIFY, &large, sizeof(large));
+    /* The last byte is hashed, the one after it isn't */
+    part[BUF_SIZE + 1000] ^= 1;
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+static void test_part_verify_size_that_isnt_whole_blocks_last_byte(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, RW_FIRST_LBA);
+    struct pb_command_verify_part req = verify_req(BUF_SIZE + 1000, false, part);
+
+    part[BUF_SIZE + 999] ^= 1;
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+
+    expect_result(-PB_RESULT_PART_VERIFY_FAILED);
+    expect_end();
+}
+
 /* PART_VERIFY changes nothing, the stream neither (command-mode.md 5.3,
  * F-186): a write after a verify of another partition, and after one that
  * found none, goes to the stream's partition */
@@ -3229,6 +3308,9 @@ int main(void)
         CM_TEST(test_part_erase_needs_writable),
         CM_TEST(test_hidden_partition),
         CM_TEST(test_stream),
+        CM_TEST(test_stream_size_that_isnt_whole_blocks),
+        CM_TEST(test_part_verify_size_that_isnt_whole_blocks),
+        CM_TEST(test_part_verify_size_that_isnt_whole_blocks_last_byte),
         CM_TEST(test_part_verify_keeps_the_stream),
         CM_TEST(test_stream_errors),
         CM_TEST(test_stream_offset_inside_a_block),

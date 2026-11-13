@@ -21,6 +21,7 @@
 struct ramdisk {
     uint8_t *data;
     size_t blocks;
+    size_t block_size;
     unsigned int reads;
     unsigned int writes;
     /* Fault injection: -1 never fails, n lets n more operations succeed and
@@ -29,13 +30,18 @@ struct ramdisk {
     int fail_writes_after;
 };
 
-/* Allocate 'blocks' zeroed blocks of backing memory */
+/* Allocate 'blocks' zeroed blocks of RAMDISK_BLOCK_SIZE bytes of backing memory */
 struct ramdisk *ramdisk_new(size_t blocks);
+/* The same with blocks of 'block_size' bytes */
+struct ramdisk *ramdisk_new_block_size(size_t blocks, size_t block_size);
 void ramdisk_free(struct ramdisk *disk);
 
 /**
  * Register the ramdisk as a visible, writable block device. Can be called
  * again after bio_reset() to simulate a reboot with the same disk contents.
+ *
+ * Its callbacks are no more forgiving than a driver's (bio.md 8): they take
+ * whole blocks and never none, and answer -PB_ERR_PARAM for anything else.
  */
 bio_dev_t ramdisk_attach(struct ramdisk *disk, const uuid_t uu);
 

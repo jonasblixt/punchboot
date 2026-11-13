@@ -164,8 +164,7 @@ Reads `length` bytes from block `lba` of the device into `buf`.
 - **Exactly `length` bytes are written to `buf`**, never more.
 - **`length` is bytes.** A length that isn't whole blocks is the core's: the last
   block is read into the core's block buffer and the bytes asked for are copied. **Not yet in
-  the code (F-182, F-284)**: the length goes to the driver as it is; the MMC driver drops the
-  tail and returns OK, the FlexSPI's refuses a length that isn't a multiple of 4.
+  the code (F-284)**: the FlexSPI's driver refuses a length that isn't a multiple of 4.
 - **A length of 0** is `PB_OK` and reads nothing; the driver isn't called.
 - **The buffer** starts on a cache line and owns its lines (`drivers.md` 4.3).
   One that doesn't is refused, `-PB_ERR_ALIGN`, before the driver is called. An image part
@@ -423,7 +422,7 @@ The core:
 
 | Requirement                                         | Today                        | Finding |
 | --------------------------------------------------- | ---------------------------- | ------- |
-| A length that isn't whole blocks is the core's      | no: it goes to the driver    | F-182   |
+| A length that isn't whole blocks is the core's      | yes (the suite, below)       |         |
 | A length of 0 doesn't reach the driver              | yes (`test_bio`)             |         |
 | A buffer that doesn't start on a line is refused    | no                           | F-282   |
 | A block larger than the block buffer is refused     | yes (`test_bio`)             |         |
@@ -441,19 +440,28 @@ The partition tables:
 | Tested on the host                  | yes (`test_gpt`,     | no     | F-230               |
 |                                     | `test_gpt.py`)       |        |                     |
 
-**The conformance suite** (`process.md` 7). **Not yet in the code (F-283)**: one set of tests
+**The conformance suite** (`process.md` 7): one set of tests
 for section 3, run on the host against every device that can run there: the RAM disk, the host's
 disk, and the MMC and SD drivers on their card models through the uSDHC's model. The fakes pass
 the same suite, so that none is more forgiving than a driver (F-182 hid behind two that wrote
 exact byte counts). The FlexSPI's driver has no model: the bench, through the simple target
 (D-025).
 
+`tests/unit/conformance/bio_conformance.c` has its start: a length that isn't whole blocks, a
+length of 0, a range outside the device, a length of more than a driver's chunk. It runs
+against the RAM disk (512 byte and 4 KiB blocks, and a partition), the host's disk and its
+flash (`test_bio_conformance`), and `mmc_core` on the e.MMC and the SD model (`test_mmc_emmc`,
+`test_mmc_sd`) and through the uSDHC's driver and model (`test_imx_usdhc`). The RAM disk and
+the host's devices refuse what a driver never gets: a length that isn't whole blocks, or 0.
+**Not yet in the code (F-283)**: the rest of section 3: an erase, `write_done`, a device
+without a callback, a driver's errors and their codes, a write that fails half way.
+
 ## 9. Not yet in the code
 
 | Finding             | What                                                                           |
 | ------------------- | ------------------------------------------------------------------------------ |
-| F-182, F-283        | Partial blocks are the core's; the block buffer; the block size asked, not     |
-|                     | assumed; devices registered once; the conformance suite (2, 3)                 |
+| F-283               | The block size asked, not assumed; devices registered once; the rest of the    |
+|                     | conformance suite (2, 8)                                                       |
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |

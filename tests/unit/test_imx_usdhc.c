@@ -34,6 +34,7 @@
         skip();                                        \
     } while (0)
 
+#include "conformance/bio_conformance.h"
 #include "models/bench.h"
 #include "models/emmc_model.h"
 #include "models/sd_model.h"
@@ -224,6 +225,23 @@ static void read_write(void)
     assert_int_equal(bio_write_done(part(UU_BOOT1)), PB_OK);
     assert_int_equal(bio_read(part(UU_BOOT1), 0, 64 * 1024, in), PB_OK);
     assert_memory_equal(out, in, 64 * 1024);
+}
+
+/* The block device conformance tests (bio.md 8) on the user area, through
+ * mmc_core, the uSDHC driver and its register model, as the 8MP EVK has its
+ * e.MMC: each ends without a violation */
+static void conformance_after(void)
+{
+    assert_bench_clean();
+}
+
+static int conformance_setup(void **state)
+{
+    setup(state);
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    bio_conformance_dev = part(UU_USER);
+    bio_conformance_after = conformance_after;
+    return 0;
 }
 
 static void test_imx8mpevk_emmc(void **state)
@@ -438,6 +456,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_no_sd, setup, teardown),
+        BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

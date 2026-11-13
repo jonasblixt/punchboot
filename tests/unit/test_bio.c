@@ -120,6 +120,74 @@ static void test_huge_length_rejected(void **state)
     assert_int_equal(f->disk->reads, 0);
 }
 
+static void assert_all(const uint8_t *buf, size_t len, uint8_t value)
+{
+    for (size_t i = 0; i < len; i++) {
+        if (buf[i] != value)
+            fail_msg("Byte %zu of %zu is 0x%02x, not 0x%02x", i, len, buf[i], value);
+    }
+}
+
+/* bio.md 3.2 (F-182): a length that isn't whole blocks is the core's. The
+ * driver gets whole blocks, which the RAM disk insists on, and the last
+ * block is the bytes given, then zeros. In the partition's blocks */
+static void test_a_write_that_isnt_whole_blocks_is_padded(void **state)
+{
+    struct fixture *f = *state;
+    const size_t len = RAMDISK_BLOCK_SIZE + 100;
+
+    memset(ramdisk_block(f->disk, PART_FIRST - 1), 0xff, 5 * RAMDISK_BLOCK_SIZE);
+
+    assert_int_equal(bio_write(f->part, 1, len, f->buf), PB_OK);
+    /* The whole block, then the last one */
+    assert_int_equal(f->disk->writes, 2);
+    assert_all(ramdisk_block(f->disk, PART_FIRST - 1), 2 * RAMDISK_BLOCK_SIZE, 0xff);
+    assert_memory_equal(ramdisk_block(f->disk, PART_FIRST + 1), f->buf, len);
+    assert_all(ramdisk_block(f->disk, PART_FIRST + 2) + 100, RAMDISK_BLOCK_SIZE - 100, 0);
+    assert_all(ramdisk_block(f->disk, PART_FIRST + 3), RAMDISK_BLOCK_SIZE, 0xff);
+
+    /* Less than a block: one call */
+    assert_int_equal(bio_write(f->part, 0, 1, f->buf), PB_OK);
+    assert_int_equal(f->disk->writes, 3);
+    assert_int_equal(*ramdisk_block(f->disk, PART_FIRST), 0xa5);
+    assert_all(ramdisk_block(f->disk, PART_FIRST) + 1, RAMDISK_BLOCK_SIZE - 1, 0);
+
+    /* A failure of either call is the write's */
+    f->disk->fail_writes_after = 1;
+    assert_int_equal(bio_write(f->part, 1, len, f->buf), -PB_ERR_IO);
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(bio_write(f->part, 1, len, f->buf), -PB_ERR_IO);
+}
+
+/* bio.md 3.1 (F-182): the last block is read into the core's block buffer,
+ * and exactly 'length' bytes are written to the caller's */
+static void test_a_read_that_isnt_whole_blocks_is_trimmed(void **state)
+{
+    struct fixture *f = *state;
+    const size_t len = RAMDISK_BLOCK_SIZE + 100;
+    uint8_t *medium = ramdisk_block(f->disk, PART_FIRST + 1);
+
+    for (size_t i = 0; i < 3 * RAMDISK_BLOCK_SIZE; i++)
+        medium[i] = (uint8_t)(i * 3 + 1);
+
+    assert_int_equal(bio_read(f->part, 1, len, f->buf), PB_OK);
+    assert_int_equal(f->disk->reads, 2);
+    assert_memory_equal(f->buf, medium, len);
+    assert_all(f->buf + len, sizeof(f->buf) - len, 0xa5);
+
+    memset(f->buf, 0xa5, sizeof(f->buf));
+    assert_int_equal(bio_read(f->part, 2, 1, f->buf), PB_OK);
+    assert_int_equal(f->disk->reads, 3);
+    assert_int_equal(f->buf[0], medium[RAMDISK_BLOCK_SIZE]);
+    assert_all(f->buf + 1, sizeof(f->buf) - 1, 0xa5);
+
+    /* A failure of either call is the read's */
+    f->disk->fail_reads_after = 1;
+    assert_int_equal(bio_read(f->part, 1, len, f->buf), -PB_ERR_IO);
+    f->disk->fail_reads_after = 0;
+    assert_int_equal(bio_read(f->part, 1, len, f->buf), -PB_ERR_IO);
+}
+
 /* bio.md 3.1, 3.2: a length of 0 is PB_OK, nothing is read or written and
  * the driver isn't called */
 static void test_a_length_of_0_doesnt_reach_the_driver(void **state)
@@ -362,6 +430,10 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_past_end_rejected, setup, teardown),
         cmocka_unit_test_setup_teardown(test_lba_wrap_rejected, setup, teardown),
         cmocka_unit_test_setup_teardown(test_huge_length_rejected, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_a_write_that_isnt_whole_blocks_is_padded, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_a_read_that_isnt_whole_blocks_is_trimmed, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_length_of_0_doesnt_reach_the_driver, setup, teardown),
         cmocka_unit_test_setup_teardown(test_invalid_handles, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_rejects, setup, teardown),

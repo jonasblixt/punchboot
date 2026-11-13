@@ -23,6 +23,7 @@
 #include <pb/pb.h>
 #include <string.h>
 
+#include "conformance/bio_conformance.h"
 #include "models/bench.h"
 #include "models/hal_model.h"
 #include "models/sd_model.h"
@@ -81,6 +82,22 @@ static void fill(uint8_t *buf, size_t len, unsigned int seed)
 {
     for (size_t i = 0; i < len; i++)
         buf[i] = (uint8_t)(i * 11 + seed + (i >> 9));
+}
+
+/* The block device conformance tests (bio.md 8) on the card, through
+ * mmc_core and the card model: each ends without a violation */
+static void conformance_after(void)
+{
+    assert_bench_clean();
+}
+
+static int conformance_setup(void **state)
+{
+    setup(state);
+    assert_int_equal(init(), PB_OK);
+    bio_conformance_dev = sd();
+    bio_conformance_after = conformance_after;
+    return 0;
 }
 
 static void read_write(uint64_t lba)
@@ -210,6 +227,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_slow_power_up, setup, teardown),
         cmocka_unit_test_setup_teardown(test_no_card, setup, teardown),
         cmocka_unit_test_setup_teardown(test_data_errors, setup, teardown),
+        BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -26,9 +26,19 @@ static int nor_fd = -1;
 static const uint8_t *nor_map;
 static size_t nor_size;
 
+/* What a driver's callback gets (bio.md 3.1): whole blocks, never none */
+static bool whole_blocks(size_t length)
+{
+    return length != 0 && (length % HOST_NOR_BLOCK_SIZE) == 0;
+}
+
 static int host_nor_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 {
     (void)dev;
+
+    if (!whole_blocks(length))
+        return -PB_ERR_PARAM;
+
     memcpy(buf, &nor_map[(size_t)lba * HOST_NOR_BLOCK_SIZE], length);
     return PB_OK;
 }
@@ -36,6 +46,10 @@ static int host_nor_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 static int host_nor_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
 {
     (void)dev;
+
+    if (!whole_blocks(length))
+        return -PB_ERR_PARAM;
+
     ssize_t bytes = pwrite(nor_fd, buf, length, (off_t)lba * HOST_NOR_BLOCK_SIZE);
 
     if (bytes < 0 || (size_t)bytes != length) {
