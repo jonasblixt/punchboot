@@ -99,6 +99,27 @@ fuse_read_helper(uint8_t bank, uint8_t row, uint8_t shift, uint32_t mask, uint32
 /* SRC_SRSR as plat_early_init() read it */
 static uint32_t srsr;
 
+/* What plat_early_init() and plat_init() recorded (platform.md 3.8). The
+ * TZASC counts as bypassed until tzasc_init() has shown that it isn't */
+static struct plat_status status = {
+    .tz_dram_filter = PLAT_TZ_DRAM_BYPASSED,
+};
+
+void plat_get_status(struct plat_status *out)
+{
+    *out = status;
+}
+
+/* The ROM's event log was saved: a dump into no room fails with
+ * -PB_ERR_NOT_FOUND only when there is no log, which it logs */
+static bool rom_log_found(void)
+{
+    char none;
+    size_t length = 0;
+
+    return imx_rom_log_dump(&none, &length) != -PB_ERR_NOT_FOUND;
+}
+
 /* The causes, the highest priority first (plat/imx6ul/imx6ul.h) */
 static const struct {
     uint32_t bit;
@@ -274,8 +295,14 @@ int plat_early_init(void)
     /* The reset reason. Read only: the OS reads the same register */
     srsr = mmio_read_32(IMX6UL_SRC_SRSR);
 
+    /* Both of the ROM's logs, or it is recorded: logged, nothing of the
+     * boot's rests on them (platform.md 2.3) */
     imx_rom_log_save(&rom_log_cfg);
-    (void)imx_hab_log_init(&hab_log_cfg);
+    status.rom_log = rom_log_found();
+
+    if (imx_hab_log_init(&hab_log_cfg) != PB_OK)
+        status.rom_log = false;
+
     /* Before the USB driver resets the controller */
     if (imx_rom_log_has_event(IMX_ROM_LOG_V0_SERIAL_DOWNLOAD))
         save_rom_usb_state();
@@ -293,10 +320,11 @@ int plat_early_init(void)
                        SRC_SCR_MASK_WDOG_RST_MASK | SRC_SCR_WARM_RESET_ENABLE,
                        SRC_SCR_MASK_WDOG_RST(10));
 
+    status.wdog_armed = false;
 #if CONFIG_ENABLE_WATCHDOG
     /* Enable WDT */
     mmio_clrsetbits_32(IMX6UL_CCM_CCGR3, 0, CCM_CCGR3_WDOG1);
-    imx_wdog_init(IMX6UL_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
+    status.wdog_armed = (imx_wdog_init(IMX6UL_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT) == PB_OK);
 #endif
 
     /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal */
@@ -385,11 +413,15 @@ int plat_init(void)
     imx_wdog_kick(IMX6UL_WDOG1_BASE);
     plat_mmu_init();
 
-    /* Not fatal: without board_setup() command mode can't be used to recover */
+    /* Not plat_init()'s error: command mode needs no TZASC, and main() would
+     * reset (platform.md 2.2). It is recorded, and no boot goes on without
+     * it (platform.md 2.3, F-241) */
     rc = tzasc_init();
 
     if (rc != PB_OK)
         LOG_ERR("TZASC setup failed (%i)", rc);
+
+    status.tz_dram_filter = (rc == PB_OK) ? PLAT_TZ_DRAM_ACTIVE : PLAT_TZ_DRAM_BYPASSED;
 
     return PB_OK;
 }

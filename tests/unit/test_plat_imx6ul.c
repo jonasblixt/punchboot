@@ -50,9 +50,27 @@ static struct {
     unsigned int fail_at; /* The call that fails, counted from 1; 0: none */
 } fuses;
 
+/* The ROM's logs and the TZASC's driver: what each answers */
+static struct {
+    bool no_rom_log;
+    int hab_log_rc;
+    int tzc_init_rc;
+    int tzc_region_rc;
+    unsigned int tzc_regions;
+} f;
+
 void imx_rom_log_save(const struct imx_rom_log_config *cfg)
 {
     (void)cfg;
+}
+
+/* As the driver's: no log is -PB_ERR_NOT_FOUND, and a log that has no room
+ * in 'out' is -PB_ERR_BUF_TOO_SMALL with nothing written */
+int imx_rom_log_dump(char *out, size_t *out_len)
+{
+    (void)out;
+    assert_int_equal(*out_len, 0);
+    return f.no_rom_log ? -PB_ERR_NOT_FOUND : -PB_ERR_BUF_TOO_SMALL;
 }
 
 bool imx_rom_log_has_event(uint32_t event)
@@ -64,7 +82,7 @@ bool imx_rom_log_has_event(uint32_t event)
 int imx_hab_log_init(const struct imx_hab_log_config *cfg)
 {
     (void)cfg;
-    return PB_OK;
+    return f.hab_log_rc;
 }
 
 int hab_has_no_errors(void)
@@ -114,7 +132,7 @@ void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
 int tzc380_init(uintptr_t base)
 {
     (void)base;
-    return PB_OK;
+    return f.tzc_init_rc;
 }
 
 int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp)
@@ -123,7 +141,8 @@ int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t 
     (void)region_base;
     (void)size;
     (void)sp;
-    return PB_OK;
+    f.tzc_regions++;
+    return f.tzc_region_rc;
 }
 
 void log_time_start(void)
@@ -158,6 +177,7 @@ static int setup(void **state)
 {
     (void)state;
     memset(&fuses, 0, sizeof(fuses));
+    memset(&f, 0, sizeof(f));
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
     /* The board's DCD took the TZASC out of bypass */
@@ -291,6 +311,102 @@ static void test_wdog_armed_by_the_option(void **state)
     assert_int_equal(fake_regs_writes_in(0, 0x1000), 0);
 }
 
+/* What plat_get_status() answers, every field set by the port */
+static struct plat_status status_now(void)
+{
+    struct plat_status status;
+
+    memset(&status, 0xff, sizeof(status));
+    plat_get_status(&status);
+    return status;
+}
+
+/* platform.md 3.8: what plat_init() recorded. The TZASC is out of bypass and
+ * DRAM is open in region 1, the watchdog is armed when the option is on and
+ * reported as not armed without it, the ROM's logs were found, and the
+ * platform sets no crypto engine up (the board does, F-247) */
+static void test_status(void **state)
+{
+    struct plat_status status;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    status = status_now();
+
+    assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+    assert_int_equal(f.tzc_regions, 1);
+#if CONFIG_ENABLE_WATCHDOG
+    assert_true(status.wdog_armed);
+#else
+    assert_false(status.wdog_armed);
+#endif
+    assert_false(status.crypto_engine);
+    assert_true(status.rom_log);
+}
+
+/* platform.md 2.2, 4.3 (F-241, F-248): a TZASC that the board's DCD left in
+ * bypass isn't plat_init()'s error, command mode runs without it. It is
+ * recorded, and no region is programmed */
+static void test_status_tzasc_bypassed(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMX6UL_IOMUXC_GPR9, 0);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+    assert_int_equal(f.tzc_regions, 0);
+}
+
+/* The same for a set up that failed with the TZASC out of bypass: the
+ * controller has no region, or refuses DRAM's. Neither is the state 4.3
+ * asks for, and the boot is refused the same way */
+static void test_status_tzasc_setup_failed(void **state)
+{
+    (void)state;
+
+    f.tzc_init_rc = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    f.tzc_init_rc = PB_OK;
+    f.tzc_region_rc = -PB_ERR_PARAM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    /* And it is the state of this plat_init(), not of an earlier one */
+    f.tzc_region_rc = PB_OK;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+}
+
+/* platform.md 2.3: the ROM's logs are two, its event log and the HAB's.
+ * Without either the platform goes on and records it */
+static void test_status_rom_logs_missing(void **state)
+{
+    (void)state;
+
+    f.no_rom_log = true;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().rom_log);
+
+    f.no_rom_log = false;
+    f.hab_log_rc = -PB_ERR_NOT_FOUND;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().rom_log);
+
+    f.hab_log_rc = PB_OK;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_true(status_now().rom_log);
+}
+
 /* platform.md 3.3: plat_wdog_kick() is safe at any time, also before the
  * watchdog is armed and without CONFIG_ENABLE_WATCHDOG: WDOG1's service
  * sequence, at WDOG1 (F-206: it went to address 0 without the option) */
@@ -408,6 +524,10 @@ int main(void)
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
+        cmocka_unit_test_setup(test_status, setup),
+        cmocka_unit_test_setup(test_status_tzasc_bypassed, setup),
+        cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
+        cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
         cmocka_unit_test_setup(test_plat_reset_after_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_priority, setup),
