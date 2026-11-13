@@ -283,8 +283,52 @@ static void test_allocate_pool_full(void **state)
         assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"), i);
 
     assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"), -PB_ERR_MEM);
-    dev = bio_allocate_parent(f->part, 0, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x");
+    dev =
+        bio_allocate_parent(f->part, PART_FIRST, PART_FIRST + 1, RAMDISK_BLOCK_SIZE, UU_PART, "x");
     assert_int_equal(dev, -PB_ERR_MEM);
+}
+
+/* bio.md 2.2 (F-193): a partition lies inside its parent, and the core
+ * checks it. The blocks are the parent's, as the driver counts them */
+static void test_a_partition_lies_inside_its_parent(void **state)
+{
+    struct fixture *f = *state;
+
+    const struct {
+        bio_dev_t parent;
+        lba_t first;
+        lba_t last;
+    } outside[] = {
+        { 0, DISK_BLOCKS - 1, DISK_BLOCKS }, /* Ends after the device */
+        { 0, DISK_BLOCKS, DISK_BLOCKS + 10 }, /* All of it after the device */
+        { 0, 0, UINT32_MAX },
+        { f->part, PART_FIRST - 1, PART_FIRST + 10 }, /* Starts before a partition */
+        { f->part, PART_LAST, PART_LAST + 1 }, /* Ends after it */
+        { f->part, 0, 1 }, /* On the device, not in the partition */
+    };
+
+    bio_dev_t dev;
+
+    for (size_t i = 0; i < ARRAY_SIZE(outside); i++) {
+        dev = bio_allocate_parent(outside[i].parent,
+                                  outside[i].first,
+                                  outside[i].last,
+                                  RAMDISK_BLOCK_SIZE,
+                                  UU_OTHER,
+                                  "Outside");
+        assert_int_equal(dev, -PB_ERR_PARAM);
+    }
+
+    /* Nothing was registered */
+    assert_int_equal(bio_get_part_by_uu(UU_OTHER), -PB_ERR_NOT_FOUND);
+    assert_false(bio_valid(f->part + 1));
+
+    /* The parent's first and last block are inside */
+    dev = bio_allocate_parent(f->part, PART_FIRST, PART_LAST, RAMDISK_BLOCK_SIZE, UU_OTHER, "All");
+    assert_int_equal(dev, f->part + 1);
+    dev = bio_allocate_parent(
+        0, DISK_BLOCKS - 1, DISK_BLOCKS - 1, RAMDISK_BLOCK_SIZE, UU_OTHER, "Last");
+    assert_int_equal(dev, f->part + 2);
 }
 
 static void test_properties(void **state)
@@ -440,6 +484,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(
             test_a_block_larger_than_the_largest_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_pool_full, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_partition_lies_inside_its_parent, setup, teardown),
         cmocka_unit_test_setup_teardown(test_properties, setup, teardown),
         cmocka_unit_test_setup_teardown(test_flags, setup, teardown),
         cmocka_unit_test_setup_teardown(test_missing_ops, setup, teardown),

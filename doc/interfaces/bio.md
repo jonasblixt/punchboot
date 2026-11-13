@@ -75,7 +75,7 @@ description, then the callbacks and the flags.
 A partition table makes partitions with `bio_allocate_parent()` (section 4). A partition:
 
 - **Lies inside its parent.** Its range is in the parent's blocks, as the table says, and the
-  core checks that it is inside. **Not yet in the code (F-193)**: any range is accepted.
+  core checks that it is inside.
 - **Has the parent's block size**, callbacks, driver flags and private value, and starts with
   the parent's flags. It doesn't get the parent's `write_done` or its table's install callback.
 - **Is addressed from its own first block.** A user never adds the partition's offset; the
@@ -426,7 +426,7 @@ The core:
 | A length of 0 doesn't reach the driver              | yes (`test_bio`)             |         |
 | A buffer that doesn't start on a line is refused    | no                           | F-282   |
 | A block larger than the block buffer is refused     | yes (`test_bio`)             |         |
-| A partition lies inside its parent                  | no: not checked              | F-193   |
+| A partition lies inside its parent                  | yes (`test_bio`)             |         |
 
 The partition tables:
 

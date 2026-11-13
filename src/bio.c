@@ -98,6 +98,11 @@ bio_dev_t bio_allocate_parent(bio_dev_t parent,
     if (rc != PB_OK)
         return rc;
 
+    /* A partition lies inside its parent (bio.md 2.2): its blocks are the
+     * parent's, as the driver counts them */
+    if (first_lba < bio_pool[parent].first_lba || last_lba > bio_pool[parent].last_lba)
+        return -PB_ERR_PARAM;
+
     new = bio_allocate(first_lba, last_lba, block_size, uu, description);
 
     if (new < 0)
