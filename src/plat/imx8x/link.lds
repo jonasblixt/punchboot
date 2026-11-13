@@ -24,6 +24,11 @@ MEMORY
 ASSERT(PB_ENTRY == ORIGIN(reset),
        "CONFIG_PB_ENTRY is not 0x80000000, where the i.MX8X starts pb")
 
+/* pb here is the reset region too: BL31 is loaded there once pb's stub ran */
+ASSERT(ORIGIN(buffers) + LENGTH(buffers) <= ORIGIN(reset) ||
+       ORIGIN(buffers) >= ORIGIN(ram) + LENGTH(ram),
+       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb")
+
 SECTIONS
 {
     . = ORIGIN(reset);

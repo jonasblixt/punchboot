@@ -18,3 +18,7 @@ MEMORY
     ram (rx)  : ORIGIN = PB_ENTRY, LENGTH = 1M
     buffers (rx)  : ORIGIN = PB_BUFFERS_BASE, LENGTH = PB_BUFFERS_SIZE
 }
+
+ASSERT(ORIGIN(buffers) + LENGTH(buffers) <= ORIGIN(ram) ||
+       ORIGIN(buffers) >= ORIGIN(ram) + LENGTH(ram),
+       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb")

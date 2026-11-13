@@ -7,13 +7,22 @@
  *
  */
 
+/* pb runs from on-chip RAM: it has the ROM's load window, IMX8M_LOAD_BASE to
+ * IMX8M_LOAD_END (the SoC's, makefile.mk), from the board's PB_ENTRY to the
+ * window's end. Its buffers are in DRAM (platform.md 5.1) */
 MEMORY
 {
-    /* PB_ENTRY from the board's makefile.mk, PB_RAM_LENGTH from the SoC's in makefile.mk */
-    ram (rx)  : ORIGIN = PB_ENTRY, LENGTH = PB_RAM_LENGTH
+    ram (rx)  : ORIGIN = PB_ENTRY, LENGTH = IMX8M_LOAD_END - PB_ENTRY
     umctl2 (rx) : ORIGIN = 0x40000000, LENGTH = 128K
     buffers (rx)   : ORIGIN = PB_BUFFERS_BASE, LENGTH = PB_BUFFERS_SIZE
 }
+
+ASSERT(PB_ENTRY >= IMX8M_LOAD_BASE && PB_ENTRY < IMX8M_LOAD_END,
+       "CONFIG_PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to")
+
+ASSERT(ORIGIN(buffers) + LENGTH(buffers) <= ORIGIN(ram) ||
+       ORIGIN(buffers) >= ORIGIN(ram) + LENGTH(ram),
+       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb")
 
 /* Used to store run-time training data for the dram -controller
  */
