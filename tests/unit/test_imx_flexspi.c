@@ -727,6 +727,47 @@ static void test_unaligned_buffer(void **state)
     }
 }
 
+/* F-284: a read of a length that isn't a multiple of 4 reads it, exactly
+ * (bio.md 3.1), where it was refused after the command had started. A
+ * flash with 1 byte blocks gives the driver such lengths */
+static void test_read_any_length(void **state)
+{
+    static const struct {
+        lba_t first;
+        size_t len;
+    } reads[] = { { 5, 1 }, { 9, 3 }, { 17, 6 }, { 100, 13 }, { 4093, 7 }, { 0, 4 } };
+
+    uint8_t *map;
+    size_t map_len;
+    uint8_t *page_end = guarded(0, &map, &map_len);
+    (void)state;
+
+    reset_model();
+    nor_cfg.block_size = 1;
+    assert_int_equal(init(), PB_OK);
+    fill(nor.mem, CAPACITY, 5);
+
+    for (size_t i = 0; i < ARRAY_SIZE(reads); i++) {
+        uint8_t *buf = page_end - reads[i].len;
+
+        assert_int_equal(bio_read(dev, reads[i].first, reads[i].len, buf), PB_OK);
+        assert_memory_equal(buf, nor.mem + reads[i].first, reads[i].len);
+    }
+
+    munmap(map, map_len);
+}
+
+/* The codes of drivers.md 3: a port the controller doesn't have is the
+ * caller's argument */
+static void test_port_out_of_range(void **state)
+{
+    (void)state;
+
+    reset_model();
+    nor_cfg.port = FLEXSPI_PORT_COUNT;
+    assert_int_equal(imx_flexspi_init(&core), -PB_ERR_PARAM);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -742,6 +783,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_64k_and_more, setup, teardown),
         cmocka_unit_test_setup_teardown(test_write_reads_only_the_buffer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_unaligned_buffer, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_any_length, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_port_out_of_range, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

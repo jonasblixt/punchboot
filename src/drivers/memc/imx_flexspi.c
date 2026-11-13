@@ -235,12 +235,15 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
 
             size = size - 8 * rxWatermark;
         } else {
-            // size has to be dividable by 4 (is checked in transferblocking)
-            for (i = 0; i < (size / 4); i++) {
-                *((uint32_t *)buffer) = mmio_read_32(cfg->base + FLEXSPI_RFDR0 + i * 4);
-                buffer += 4;
+            /* The last piece: the bytes asked for, not one more */
+            for (i = 0; size > 0; i++) {
+                uint32_t word = mmio_read_32(cfg->base + FLEXSPI_RFDR0 + i * 4);
+                size_t n = (size < 4) ? size : 4;
+
+                memcpy(buffer, &word, n);
+                buffer += n;
+                size -= n;
             }
-            size = 0;
         }
 
         /* Pop out a watermark level datas from IP RX FIFO. */
@@ -281,7 +284,7 @@ static int imx_flexspi_xfer(enum flexspi_port port,
         port_off = FLEXSPI_FLSHB2CR2;
         break;
     default:
-        return -PB_ERR_INVALID_ARGUMENT;
+        return -PB_ERR_PARAM;
     }
 
     mmio_clrsetbits_32(cfg->base + port_off, 0, FLEXSPI_FLSHCR2_CLRINSTRPTR_MASK);
@@ -315,10 +318,6 @@ static int imx_flexspi_xfer(enum flexspi_port port,
     if ((command_type == FLEXSPI_WRITE) || (command_type == FLEXSPI_CONFIG)) {
         rc = imx_flexspi_writeblocking(data, data_length);
     } else if (command_type == FLEXSPI_READ) {
-        if ((data_length % 4) != 0) {
-            LOG_ERR("Size must be divisible by 4");
-            return -PB_ERR_INVALID_ARGUMENT;
-        }
         rc = imx_flexspi_readblocking(data, data_length);
     }
 
@@ -379,7 +378,7 @@ imx_flexspi_pp(struct flexspi_nor_config *cfg_nor, uint32_t address, uint8_t *da
 
     if ((size > bytes_to_next_page_boundry) || (size > cfg_nor->page_size)) {
         LOG_ERR("Page program failed at address 0x%x, page boundry crossed", address);
-        return -PB_ERR_IO;
+        return -PB_ERR_PARAM;
     }
 
     /* Write enable */
