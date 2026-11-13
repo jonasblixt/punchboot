@@ -664,10 +664,8 @@ aren't the board's data (`system.md` 6):
 selected the device tree code: a board that is ported sets the handover's option with it, or it
 doesn't link.
 
-**Not yet in the code (F-239)**: the board's addresses (`PB_ENTRY`, `BOARD_RAM_BASE`, `_END`) are
-make variables and `-D` flags in `makefile.mk`; `platform.md` 5.1 makes them Kconfig values
-(`CONFIG_PB_ENTRY`, `CONFIG_BOARD_DRAM_*`). **Not yet in the code (F-240)**: the boards hold the
-SoC's image recipes; `platform.md` 6.2 moves them to the platform.
+**Not yet in the code (F-240)**: the boards hold the SoC's image recipes; `platform.md` 6.2
+moves them to the platform.
 
 ## 8. Fixed once a product ships
 

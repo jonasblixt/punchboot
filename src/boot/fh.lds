@@ -9,7 +9,8 @@
  * BOOT_FH_REGION_BASE and BOOT_FH_REGION_SIZE from its defconfig. pb writes
  * the transfer list there before the jump, so neither pb's region nor its
  * buffers' may be in it: the regions as the platform's MEMORY has them,
- * with the room pb grows in.
+ * with the room pb grows in. That the region is in memory that works after
+ * plat_init() is the platform's to check, in its link.lds.
  */
 
 ASSERT(BOOT_FH_REGION_BASE + BOOT_FH_REGION_SIZE <= ORIGIN(ram) ||

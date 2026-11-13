@@ -59,6 +59,13 @@ ASSERT(ORIGIN(buffers) + LENGTH(buffers) <= ORIGIN(reset) ||
        ORIGIN(buffers) >= ORIGIN(ram) + LENGTH(ram),
        "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb")
 
+/* The Firmware Handoff region is the board's too (CONFIG_BOOT_FH): in the
+ * same memory. src/boot/fh.lds keeps it off pb and the buffers */
+BOOT_FH_REGION_END = DEFINED(BOOT_FH_REGION_BASE) ? BOOT_FH_REGION_BASE + BOOT_FH_REGION_SIZE : 0;
+ASSERT(DEFINED(BOOT_FH_REGION_BASE) ?
+       (BOOT_FH_REGION_BASE >= BOARD_DRAM_BASE && BOOT_FH_REGION_END <= BOARD_DRAM_END) : 1,
+       "The Firmware Handoff region (CONFIG_BOOT_FH_REGION_BASE, _SIZE) is not in the board's DRAM")
+
 SECTIONS
 {
     . = ORIGIN(reset);

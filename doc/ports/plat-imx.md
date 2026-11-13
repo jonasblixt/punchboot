@@ -240,8 +240,7 @@ keys, and CAAM's MID for OP-TEE.
 - **SoC regions.** i.MX8M: the umctl2 save area at the start of DRAM. i.MX8X: `reset`, 128 KiB at
   0x80000000, pb's reset stub and then BL31's load address.
 - **`buffers`.** In DRAM on the 6UL, 8M and 8X; in OCRAM on the RT.
-- **The RT's `MEMORY`** is in its board (`src/board/imxrt1060evk/link.lds`) and moves to
-  `src/plat/imxrt/link.lds` (F-239).
+- **The RT's `MEMORY`** is in `src/plat/imxrt/link.lds`.
 
 ## 6. Image stages
 
@@ -294,6 +293,6 @@ Where each port is (2026-11-11).
 | Crypto engine and RNG in             | no           | no                | no         | yes       | F-247         |
 | `plat_init()`                        |              |                   |            |           |               |
 | MMU from `pb_mmu_init()`             | no           | no                | no         | n/a       | F-158         |
-| Link script without addresses        | no           | partly            | no         | no        | F-239         |
+| Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
 | Image stages                         | no           | no                | no         | no        | F-240         |
 | `<p>_plat()` accessor                | yes          | no                | yes        | no        |               |

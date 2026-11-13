@@ -11,12 +11,15 @@ message:
   check_link.py <source dir> <work dir>
 
 A value is changed on make's command line, so only the link is made again.
+The Firmware Handoff region is checked too: only the RT1060 EVK has one, so
+the other boards are also built with a defconfig that has it ("<board>-fh").
 It needs the firmware's tools (arm-none-eabi-gcc, aarch64-linux-gnu-gcc and
 the bpak CLI, all in the dev container) and is skipped without them.
 """
 
 from __future__ import annotations
 
+import concurrent.futures
 import os
 import pathlib
 import shutil
@@ -44,6 +47,14 @@ IMX8M_FIRMWARE = {
     "IMX8M_UMCTL_TRAIN_2D_D": "lpddr4_pmu_train_2d_dmem.bin",
 }
 
+# A Firmware Handoff region that links, for the boards whose defconfig has none
+FH_REGION = {
+    "jiffy": "0x81020000",
+    "imx8qxmek": "0x84000000",
+    "imx8mpevk": "0x42000000",
+}
+
+FH_NOT_IN = "The Firmware Handoff region (CONFIG_BOOT_FH_REGION_BASE, _SIZE) is not in "
 BUFFERS_OVERLAP = "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb"
 BUFFERS_NOT_IN = "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) are not in "
 PB_SIZE_AFTER = "CONFIG_PB_SIZE ends pb's region after the memory the ROM loads pb to"
@@ -146,6 +157,44 @@ CASES = [
         {"CONFIG_PB_BUFFERS_BASE": "0x80000000"},
         BUFFERS_NOT_IN + "the OCRAM, the DTCM or the board's DRAM",
     ),
+    # A Firmware Handoff region that isn't in such memory: in the ROM's data,
+    # in the flash, in no memory, over the DRAM's end and below it, over the
+    # OCRAM's end
+    (
+        "imxrt1060evk",
+        {"CONFIG_BOOT_FH_REGION_BASE": "0x20207000"},
+        FH_NOT_IN + "the OCRAM, the DTCM or the board's DRAM",
+    ),
+    (
+        "imxrt1060evk",
+        {"CONFIG_BOOT_FH_REGION_BASE": "0x60000000"},
+        FH_NOT_IN + "the OCRAM, the DTCM or the board's DRAM",
+    ),
+    (
+        "jiffy-fh",
+        {"CONFIG_BOOT_FH_REGION_BASE": "0x10000000"},
+        FH_NOT_IN + "the board's DRAM or the OCRAM",
+    ),
+    (
+        "jiffy-fh",
+        {"CONFIG_BOOT_FH_REGION_BASE": "0xbffff800"},
+        FH_NOT_IN + "the board's DRAM or the OCRAM",
+    ),
+    (
+        "imx8qxmek-fh",
+        {"CONFIG_BOOT_FH_REGION_BASE": "0x7ffff000"},
+        FH_NOT_IN + "the board's DRAM",
+    ),
+    (
+        "imx8mpevk-fh",
+        {"CONFIG_BOOT_FH_REGION_BASE": "0x3ffff000"},
+        FH_NOT_IN + "the board's DRAM or the OCRAM",
+    ),
+    (
+        "imx8mpevk-fh",
+        {"CONFIG_BOOT_FH_REGION_BASE": "0x98f800"},
+        FH_NOT_IN + "the board's DRAM or the OCRAM",
+    ),
 ]
 
 # The regions the boards' defconfigs give, (origin, length), as pb.map has
@@ -200,6 +249,10 @@ ALLOWED = [
     # A board that gives pb less
     ("imx8mpevk", {"CONFIG_PB_SIZE": "0x50000"}, {"ram": (0x920000, 0x50000)}),
     ("imxrt1060evk", {"CONFIG_PB_SIZE": "0x30000"}, {"ram": (0x20249000, 0x30000)}),
+    # The Firmware Handoff region in the on-chip RAM
+    ("jiffy-fh", {"CONFIG_BOOT_FH_REGION_BASE": "0x00900000"}, {}),
+    ("imx8mpevk-fh", {"CONFIG_BOOT_FH_REGION_BASE": "0x00980000"}, {}),
+    ("imxrt1060evk", {"CONFIG_BOOT_FH_REGION_BASE": "0x20000000"}, {}),
 ]
 
 
@@ -209,13 +262,15 @@ def say(text: str) -> None:
 
 
 class Links:
-    """The boards' builds, a build directory each in the work directory."""
+    """The boards' builds, a build directory each in the work directory.
+
+    A check returns its line of the report, which starts with "ok" or "FAILED".
+    """
 
     def __init__(self, root: pathlib.Path, work: pathlib.Path) -> None:
         """Start with an empty work directory."""
         self.root = root
         self.work = work
-        self.problems = 0
         shutil.rmtree(work, ignore_errors=True)
         work.mkdir(parents=True)
         # Not the jobserver or the variables of a make that runs the tests
@@ -226,30 +281,43 @@ class Links:
         for name, file in IMX8M_FIRMWARE.items():
             (work / file).write_bytes(bytes(1024))
             self.firmware[name] = str(work / file)
+        # The boards' defconfigs with a Firmware Handoff region
+        for board, base in FH_REGION.items():
+            lines = (root / f"configs/{board}_defconfig").read_text().splitlines()
+            lines = [line for line in lines if "CONFIG_BOOT_FH" not in line]
+            lines += [
+                "CONFIG_BOOT_FH=y",
+                f"CONFIG_BOOT_FH_REGION_BASE={base}",
+                "CONFIG_BOOT_FH_REGION_SIZE=0x1000",
+            ]
+            (work / f"{board}_fh_defconfig").write_text("\n".join(lines) + "\n")
 
-    def make(self, board: str, values: dict[str, str]) -> subprocess.CompletedProcess[str]:
-        """Link the board's pb with its defconfig and the values."""
-        build = self.work / board
+    def make(self, build: str, values: dict[str, str]) -> subprocess.CompletedProcess[str]:
+        """Link pb with the values: a board's, or "<board>-fh" with the region."""
+        board = build.removesuffix("-fh")
+        config = f"configs/{board}_defconfig"
+        if build != board:
+            config = str(self.work / f"{board}_fh_defconfig")
         if board == "imx8mpevk":
             values = {**self.firmware, **values}
         cmd = [
             "make",
             f"-j{os.cpu_count() or 1}",
             f"BOARD=src/board/{board}",
-            f"KCONFIG_CONFIG=configs/{board}_defconfig",
+            f"KCONFIG_CONFIG={config}",
             f"CROSS_COMPILE={BOARDS[board]}",
-            f"BUILD_DIR={build}",
+            f"BUILD_DIR={self.work / build}",
             *(f"{name}={value}" for name, value in values.items()),
-            f"{build}/pb",
+            f"{self.work / build}/pb",
         ]
         return subprocess.run(  # noqa: S603
             cmd, cwd=self.root, env=self.env, capture_output=True, text=True, check=False
         )
 
-    def regions(self, board: str) -> dict[str, tuple[int, int]]:
-        """Return the regions of the board's last link, from its map."""
+    def regions(self, build: str) -> dict[str, tuple[int, int]]:
+        """Return the regions of the build's last link, from its map."""
         regions = {}
-        lines = (self.work / board / "pb.map").read_text().splitlines()
+        lines = (self.work / build / "pb.map").read_text().splitlines()
         for line in lines[lines.index("Memory Configuration") + 3 :]:
             fields = line.split()
             if not fields or fields[0] == "*default*":
@@ -257,51 +325,52 @@ class Links:
             regions[fields[0]] = (int(fields[1], 16), int(fields[2], 16))
         return regions
 
-    def check_links(self, what: str) -> None:
-        """Check that every board links with its defconfig, with its regions."""
-        for board in BOARDS:
-            result = self.make(board, {})
-            if result.returncode != 0:
-                say(f"FAILED: {board}: {what}:\n{result.stdout}{result.stderr}")
-                self.problems += 1
-            elif self.regions(board) != REGIONS[board]:
-                say(f"FAILED: {board}: {what}: with the regions {self.regions(board)}")
-                self.problems += 1
-            else:
-                say(f"ok: {board}: {what}")
+    def check_links(self, build: str, what: str) -> str:
+        """Check that the build links with its defconfig, with the board's regions."""
+        result = self.make(build, {})
+        if result.returncode != 0:
+            return f"FAILED: {build}: {what}:\n{result.stdout}{result.stderr}"
+        if self.regions(build) != REGIONS[build.removesuffix("-fh")]:
+            return f"FAILED: {build}: {what}: with the regions {self.regions(build)}"
+        return f"ok: {build}: {what}"
 
-    def check_refused(self, board: str, values: dict[str, str], message: str) -> None:
-        """Check that the board's link with the values fails with the message."""
-        result = self.make(board, values)
+    def check_refused(self, build: str, values: dict[str, str], message: str) -> str:
+        """Check that the build's link with the values fails with the message."""
+        result = self.make(build, values)
         what = ", ".join(f"{name}={value}" for name, value in values.items())
         if result.returncode != 0 and message in result.stderr:
-            say(f"ok: {board}: {what}: {message}")
-        else:
-            say(
-                f"FAILED: {board}: {what}: exit {result.returncode}, expected '{message}':\n"
-                f"{result.stderr}"
-            )
-            self.problems += 1
+            return f"ok: {build}: {what}: {message}"
+        return (
+            f"FAILED: {build}: {what}: exit {result.returncode}, expected '{message}':\n"
+            f"{result.stderr}"
+        )
 
     def check_allowed(
-        self, board: str, values: dict[str, str], expected: dict[str, tuple[int, int]]
-    ) -> None:
-        """Check that no check refuses the board's link with the values, and its regions."""
-        (self.work / board / "pb.map").unlink()
-        result = self.make(board, values)
+        self, build: str, values: dict[str, str], expected: dict[str, tuple[int, int]]
+    ) -> str:
+        """Check that no check refuses the build's link with the values, and its regions."""
+        (self.work / build / "pb.map").unlink()
+        result = self.make(build, values)
         what = ", ".join(f"{name}={value}" for name, value in values.items())
         refused = [line for line in result.stderr.splitlines() if "CONFIG_" in line]
-        regions = self.regions(board)
+        regions = self.regions(build)
         found = {name: regions.get(name) for name in expected}
         if refused:
-            say(f"FAILED: {board}: {what}: refused:\n{result.stderr}")
-            self.problems += 1
-        elif found != expected:
-            say(f"FAILED: {board}: {what}: the regions {found}, expected {expected}")
-            self.problems += 1
-        else:
-            fits = "links" if result.returncode == 0 else "is allowed (pb doesn't fit there)"
-            say(f"ok: {board}: {what}: {fits}")
+            return f"FAILED: {build}: {what}: refused:\n{result.stderr}"
+        if found != expected:
+            return f"FAILED: {build}: {what}: the regions {found}, expected {expected}"
+        fits = "links" if result.returncode == 0 else "is allowed (pb doesn't fit there)"
+        return f"ok: {build}: {what}: {fits}"
+
+    def check_board(self, board: str) -> list[str]:
+        """Run the board's cases, and those of its build with the region."""
+        report = []
+        for build in (board, f"{board}-fh") if board in FH_REGION else (board,):
+            report.append(self.check_links(build, "its defconfig links"))
+            report += [self.check_refused(*case) for case in CASES if case[0] == build]
+            report += [self.check_allowed(*case) for case in ALLOWED if case[0] == build]
+            report.append(self.check_links(build, "and its defconfig links again"))
+        return report
 
 
 def main() -> int:
@@ -315,15 +384,16 @@ def main() -> int:
         say(f"skipped: no {', '.join(missing)}")
         return SKIP
 
+    # The boards at once, each in build directories of its own. A board's two
+    # builds run after each other: the i.MX8M's both copy its firmware to blobs/
     links = Links(root, work)
-    links.check_links("its defconfig links")
-    for board, values, message in CASES:
-        links.check_refused(board, values, message)
-    for board, values, regions in ALLOWED:
-        links.check_allowed(board, values, regions)
-    links.check_links("and its defconfig links again")
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        reports = list(pool.map(links.check_board, BOARDS))
 
-    return links.problems
+    lines = [line for report in reports for line in report]
+    for line in lines:
+        say(line)
+    return sum(not line.startswith("ok: ") for line in lines)
 
 
 if __name__ == "__main__":
