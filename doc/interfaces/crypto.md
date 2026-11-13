@@ -329,7 +329,7 @@ The core:
 | ------------------------------------------------ | --------------------------------- | ------- |
 | An algorithm is registered once                  | no: the first registered is used  | F-286   |
 | No context after a failed `hash_init()`          | yes (`test_crypto`)               |         |
-| `dsa_verify()` is refused while a hash is open   | no: not looked at                 | F-286   |
+| `dsa_verify()` is refused while a hash is open   | yes (`test_crypto`)               |         |
 | `md_length` is the digest size of `md_alg`       | no: not checked                   | F-286   |
 
 **The conformance suite** (`process.md` 7). **Not yet in the code (F-286)**: one set of tests

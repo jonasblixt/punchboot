@@ -107,6 +107,15 @@ int dsa_verify(dsa_t alg,
 {
     const struct dsa_ops *ops = NULL;
 
+    /* False until a backend's own computation says otherwise */
+    *verified = false;
+
+    /* Not while a hash is open, whichever backends the build has. One that
+     * was given up is ended by the next hash_init(), and every verification
+     * hashes first (crypto.md 3.1 and 4) */
+    if (current_hash_ops != NULL)
+        return -PB_ERR_STATE;
+
     for (size_t i = 0; i < CONFIG_CRYPTO_MAX_DSA_OPS; i++) {
         if (dsa_ops[i] && (dsa_ops[i]->alg_bits & alg)) {
             ops = dsa_ops[i];

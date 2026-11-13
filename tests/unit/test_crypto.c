@@ -138,6 +138,8 @@ static void test_without_providers(void **state)
                                 sizeof(digest),
                                 &verified),
                      -PB_ERR_NOT_SUPPORTED);
+    /* crypto.md 4: false until the signature verified */
+    assert_false(verified);
 }
 
 static void test_register_providers(void **state)
@@ -240,6 +242,49 @@ static void test_dsa_dispatch(void **state)
     assert_false(verified);
 }
 
+/* crypto.md 4: not while a hash is open. The core refuses, the backend isn't
+ * asked, and the next hash_init() ends the hash that was given up
+ * (F-286 (13)) */
+static void test_4_not_while_a_hash_is_open(void **state)
+{
+    uint8_t sig[1] = { 0 };
+    uint8_t key[1] = { 0 };
+    uint8_t src[16] = { 0 };
+    uint8_t md[32] = { 0 };
+    bool verified = true;
+    (void)state;
+
+    verify_alg = 0;
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(
+        dsa_verify(
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA256, md, 32, &verified),
+        -PB_ERR_STATE);
+    assert_false(verified);
+
+    /* A hash that was given up after an update is open too */
+    assert_int_equal(hash_update(src, sizeof(src)), PB_OK);
+    verified = true;
+    assert_int_equal(
+        dsa_verify(
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA256, md, 32, &verified),
+        -PB_ERR_STATE);
+    assert_false(verified);
+    assert_int_equal(verify_alg, 0);
+
+    /* As a verification does it: a hash from its start to its end, then
+     * the signature */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update(src, sizeof(src)), PB_OK);
+    assert_int_equal(hash_final(md, sizeof(md)), PB_OK);
+    assert_int_equal(
+        dsa_verify(
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA256, md, 32, &verified),
+        PB_OK);
+    assert_true(verified);
+    assert_int_equal(verify_alg, HASH_SHA256);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -248,6 +293,7 @@ int main(void)
         cmocka_unit_test(test_hash_dispatch),
         cmocka_unit_test(test_3_1_no_context_after_a_failed_init),
         cmocka_unit_test(test_dsa_dispatch),
+        cmocka_unit_test(test_4_not_while_a_hash_is_open),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

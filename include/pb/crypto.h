@@ -143,7 +143,17 @@ int hash_final(uint8_t *digest_output, size_t length);
  */
 int hash_add_ops(const struct hash_ops *ops);
 
-/* DSA interface */
+/**
+ * Verify an ECDSA signature over a digest (doc/interfaces/crypto.md 4)
+ *
+ * *verified is false unless the signature verified. Not while a hash is
+ * open: a hash that was given up is ended by the next hash_init().
+ *
+ * @return PB_OK when the signature verified,
+ *        -PB_ERR_STATE, while a hash is open
+ *        -PB_ERR_NOT_SUPPORTED, when no backend has the curve
+ *        or the backend's error
+ */
 int dsa_verify(dsa_t alg,
                const uint8_t *der_signature,
                size_t signature_length,
