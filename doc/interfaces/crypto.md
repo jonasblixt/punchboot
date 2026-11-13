@@ -108,8 +108,7 @@ Opens a context for one algorithm.
   next `hash_init()` is the cleanup. Until then the context counts as open, and a
   verification is refused (section 4), which is a no; every verification hashes first, so it
   starts with a `hash_init()`.
-- **When it fails there is no context**: the next update is `-PB_ERR_STATE`. **Not yet in the
-  code (F-286)**: the backend stays selected after a failed `init`.
+- **When it fails there is no context**: the next update is `-PB_ERR_STATE`.
 - `-PB_ERR_NOT_SUPPORTED`: no backend has the algorithm. `-PB_ERR_PARAM`: `alg` isn't one
   algorithm.
 
@@ -329,7 +328,7 @@ The core:
 | Requirement                                      | Today                             | Finding |
 | ------------------------------------------------ | --------------------------------- | ------- |
 | An algorithm is registered once                  | no: the first registered is used  | F-286   |
-| No context after a failed `hash_init()`          | no: the backend stays selected    | F-286   |
+| No context after a failed `hash_init()`          | yes (`test_crypto`)               |         |
 | `dsa_verify()` is refused while a hash is open   | no: not looked at                 | F-286   |
 | `md_length` is the digest size of `md_alg`       | no: not checked                   | F-286   |
 

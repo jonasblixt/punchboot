@@ -68,12 +68,14 @@ struct dsa_ops {
 
 /**
  * Initialize the hashing context. The crypto API only supports one running
- * context, calling this function will reset the context.
+ * context, calling this function will reset the context. When it fails there
+ * is no context.
  *
  * param[in] alg Hashing algorithm to use
  *
  * @return PB_OK on success,
- *        -PB_ERR_PARAM, on invalid hash alg
+ *        -PB_ERR_PARAM, when alg isn't one algorithm
+ *        -PB_ERR_NOT_SUPPORTED, when no backend has the algorithm
  */
 int hash_init(hash_t alg);
 

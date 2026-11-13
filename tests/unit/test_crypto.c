@@ -30,10 +30,12 @@ static struct {
     size_t final_length;
 } calls;
 
+static int fake_init_rc;
+
 static int fake_init(hash_t alg)
 {
     calls.init_alg = alg;
-    return PB_OK;
+    return fake_init_rc;
 }
 
 static int fake_update(const void *buf, size_t length)
@@ -181,6 +183,37 @@ static void test_hash_dispatch(void **state)
     assert_int_equal(hash_update(src, sizeof(src)), -PB_ERR_STATE);
 }
 
+/* crypto.md 3.1: when hash_init() fails there is no context, whatever was
+ * open before (F-286 (1)) */
+static void test_3_1_no_context_after_a_failed_init(void **state)
+{
+    uint8_t src[16] = { 0 };
+    uint8_t digest[48];
+    (void)state;
+
+    /* The backend's init fails */
+    fake_init_rc = -PB_ERR_IO;
+    assert_int_equal(hash_init(HASH_SHA256), -PB_ERR_IO);
+    fake_init_rc = PB_OK;
+    assert_int_equal(hash_update(src, sizeof(src)), -PB_ERR_STATE);
+    assert_int_equal(hash_update_async(src, sizeof(src)), -PB_ERR_STATE);
+    assert_int_equal(hash_copy_update(src, src, sizeof(src)), -PB_ERR_STATE);
+    assert_int_equal(hash_final(digest, sizeof(digest)), -PB_ERR_STATE);
+
+    /* Not one algorithm: -PB_ERR_PARAM, and the backend isn't asked */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    calls.init_alg = 0;
+    assert_int_equal(hash_init(HASH_SHA256 | HASH_SHA384), -PB_ERR_PARAM);
+    assert_int_equal(hash_init(0), -PB_ERR_PARAM);
+    assert_int_equal(calls.init_alg, 0);
+    assert_int_equal(hash_update(src, sizeof(src)), -PB_ERR_STATE);
+
+    /* An algorithm no backend has */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_init(HASH_MD5), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(hash_final(digest, sizeof(digest)), -PB_ERR_STATE);
+}
+
 static void test_dsa_dispatch(void **state)
 {
     uint8_t sig[1] = { 0 };
@@ -213,6 +246,7 @@ int main(void)
         cmocka_unit_test(test_without_providers),
         cmocka_unit_test(test_register_providers),
         cmocka_unit_test(test_hash_dispatch),
+        cmocka_unit_test(test_3_1_no_context_after_a_failed_init),
         cmocka_unit_test(test_dsa_dispatch),
     };
 

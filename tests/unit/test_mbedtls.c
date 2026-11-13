@@ -232,10 +232,10 @@ static void test_unknown_alg(void **state)
     uint8_t digest[64];
     (void)state;
 
-    /* Two algorithms at once matches the provider, which rejects it */
+    /* Two algorithms at once: no context (crypto.md 3.1) */
     assert_int_equal(hash_init(HASH_SHA256 | HASH_SHA512), -PB_ERR_PARAM);
-    assert_int_equal(hash_update("abc", 3), -PB_ERR_PARAM);
-    assert_int_equal(hash_final(digest, sizeof(digest)), -PB_ERR_PARAM);
+    assert_int_equal(hash_update("abc", 3), -PB_ERR_STATE);
+    assert_int_equal(hash_final(digest, sizeof(digest)), -PB_ERR_STATE);
 
     assert_int_equal(hash_init(HASH_MD5_BROKEN), -PB_ERR_NOT_SUPPORTED);
 }

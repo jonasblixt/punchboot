@@ -20,12 +20,23 @@ static const struct hash_ops *current_hash_ops; /* Currently active context */
 
 int hash_init(hash_t alg)
 {
+    int rc;
+
     current_hash_ops = NULL;
+
+    /* One algorithm, not none and not several */
+    if (alg == 0 || (alg & (alg - 1)) != 0)
+        return -PB_ERR_PARAM;
 
     for (int i = 0; i < CONFIG_CRYPTO_MAX_HASH_OPS; i++) {
         if (hash_ops[i] && (hash_ops[i]->alg_bits & alg)) {
-            current_hash_ops = hash_ops[i];
-            return current_hash_ops->init(alg);
+            rc = hash_ops[i]->init(alg);
+
+            /* When it fails there is no context (crypto.md 3.1) */
+            if (rc == PB_OK)
+                current_hash_ops = hash_ops[i];
+
+            return rc;
         }
     }
 
