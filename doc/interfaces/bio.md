@@ -291,8 +291,7 @@ device with no table on it (`board.md` 2.4).
 - **A table on the medium is input** (`security.md` 3). Every entry is checked before a
   partition is made of it: inside the device, outside the table's own blocks, first not after
   last, values that fit `lba_t`. An entry that fails is skipped and logged, an empty entry is
-  skipped, and the others are made. **Not yet in the code (F-006)**: the two copies of a GPT
-  aren't compared with each other.
+  skipped, and the others are made.
 - **A table can't make pb jump to anything.** It names where images are; the boot verifies
   them (`security.md` 3). It can hide a system or point two UUIDs at the same blocks; pb then
   ends in command mode.
@@ -430,7 +429,7 @@ The partition tables:
 
 | Requirement                         | GPT                  | Static | Finding             |
 | ----------------------------------- | -------------------- | ------ | ------------------- |
-| Every entry checked                 | yes (`test_gpt`)     | partly | F-006               |
+| Every entry checked                 | yes (`test_gpt`)     | partly |                     |
 | The device's block size             | no: 512 in four      | yes    | F-283               |
 |                                     | places               |        |                     |
 | Repair writes only the bad copy     | yes (`test_gpt`)     | n/a    | F-064               |
@@ -463,7 +462,6 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |
 | F-199, F-200, F-281 | Timeouts and their codes; sizes from the card; addresses above 4 GiB           |
-| F-006               | A GPT's two copies are compared (4)                                            |
 | F-064               | The last usable block that a GPT's header names (4)                            |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

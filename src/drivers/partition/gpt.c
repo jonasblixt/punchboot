@@ -604,16 +604,15 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
         }
     }
 
-    /* Note/TODO: We check that both primary and backup tables are OK,
-     * but we don't compare them. It's possible that we could have two
-     * tables with correct checksum's but they disagree with each other
-     * regarding partition layout.
-     *
-     * We here asume that if both checksum's are OK the primary table contains
-     * the thruth
-     *
-     * It's likely not worth the extra boot up time to compare the tables.
-     */
+    /* Both copies are valid here. They are compared (F-006): when their
+     * entries differ, after an install or another tool's update that was cut
+     * off between the two, the primary's are the table, as in every release,
+     * and it is logged that the backup isn't a copy of it. Comparing costs
+     * no read: the headers hold the arrays' CRCs. */
+    if (primary.hdr.no_of_parts != backup.hdr.no_of_parts ||
+        primary.hdr.part_array_crc != backup.hdr.part_array_crc) {
+        LOG_ERR("The backup GPT's entries differ from the primary's, the primary's are used");
+    }
 
     for (struct gpt_part_hdr *p = primary.part; p < &primary.part[primary.hdr.no_of_parts]; p++) {
         int n = 0;

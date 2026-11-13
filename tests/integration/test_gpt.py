@@ -11,6 +11,8 @@ start of the disk instead. Both cases are covered properly here.
 from __future__ import annotations
 
 import os
+import struct
+import zlib
 from typing import TYPE_CHECKING
 
 import punchboot
@@ -130,3 +132,27 @@ def test_table_with_fewer_entries(blank_device: Device) -> None:
         assert blank_device.read_blocks(0, DISK_BLOCKS) == before
 
     blank_device.start()
+
+
+def test_copies_that_differ(device: Device) -> None:
+    """Two valid copies with other entries: the primary's are used, and it is logged (F-006)."""
+    device.stop()
+    # The primary loses its first entry, the backup keeps it
+    array = bytearray(device.read_blocks(2, 32))
+    array[:128] = bytes(128)
+    header = bytearray(device.read_blocks(1, 1))
+    struct.pack_into("<I", header, 88, zlib.crc32(array))
+    struct.pack_into("<I", header, 16, 0)
+    struct.pack_into("<I", header, 16, zlib.crc32(header[:92]))
+    device.write_blocks(1, bytes(header) + bytes(array))
+    before = device.read_blocks(0, DISK_BLOCKS)
+
+    device.start()
+
+    parts = partitions(device)
+    assert SYSTEM_A_UUID not in parts
+    assert SYSTEM_B_UUID in parts
+    assert "backup GPT's entries differ" in device.log.read_text().rpartition("=== start:")[2]
+    device.stop()
+    assert device.read_blocks(0, DISK_BLOCKS) == before
+    device.start()
