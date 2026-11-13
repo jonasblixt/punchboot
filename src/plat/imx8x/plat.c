@@ -23,6 +23,7 @@
 #include <plat/imx8x/sci/svc/pm/api.h>
 #include <plat/imx8x/sci/svc/seco/api.h>
 #include <plat/imx8x/sci/svc/timer/api.h>
+#include <plat/imx8x/seco_log.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
@@ -286,7 +287,7 @@ int plat_init(void)
 #ifdef CONFIG_IMX8X_CM_USB3
 /* Command mode's USB (platform.md 3.10): the i.MX8QXP's USB 3.0 port, the
  * Cadence USB3 controller with its PHY, SC_R_USB_2 */
-int plat_cm_init(void)
+static int cm_usb_init(void)
 {
     int rc;
 
@@ -329,7 +330,7 @@ int plat_cm_init(void)
 #ifdef CONFIG_IMX8X_CM_USB_OTG2
 /* Command mode's USB (platform.md 3.10): the i.MX8DXL's USB OTG2, the second
  * ChipIdea controller with its PHY, SC_R_USB_1 */
-int plat_cm_init(void)
+static int cm_usb_init(void)
 {
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_1, SC_PM_PW_MODE_ON);
@@ -338,6 +339,18 @@ int plat_cm_init(void)
     imx_usb2_phy_init(IMX8DXL_USB2_PHY2_BASE);
 
     return imx_ci_udc_init(IMX8DXL_USB_OTG2_BASE);
+}
+#endif
+
+#if defined(CONFIG_IMX8X_CM_USB3) || defined(CONFIG_IMX8X_CM_USB_OTG2)
+int plat_cm_init(void)
+{
+    /* Only read over USB, so not on the boot path (D-023); the SECO keeps
+     * its events until the next reset */
+    if (imx8x_seco_log_init(plat.ipc) != PB_OK)
+        LOG_ERR("No room for the SECO log in the logs");
+
+    return cm_usb_init();
 }
 #endif
 

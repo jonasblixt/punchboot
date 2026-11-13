@@ -578,6 +578,15 @@ pb_unit_test(test_imx8x_dry_run SOURCES
 target_compile_definitions(test_imx8x_dry_run PRIVATE
     CONFIG_PLAT_IMX8X=1 CONFIG_IMX8X_FUSE_DRY_RUN=1)
 target_include_directories(test_imx8x_dry_run PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
+
+# The i.MX8X's SECO log, with the SCFW's two calls faked by the test
+pb_unit_test(test_imx8x_seco_log SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/seco_log.c
+    ${PROJECT_SOURCE_DIR}/src/log_source.c
+    ${PROJECT_SOURCE_DIR}/src/ramlog.c
+)
+target_compile_definitions(test_imx8x_seco_log PRIVATE CONFIG_PLAT_IMX8X=1)
+target_include_directories(test_imx8x_seco_log PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
 # The WDOG's driver alone, on the register file
 pb_plat_test(test_imx_wdog
     SOURCES ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
