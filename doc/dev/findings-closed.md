@@ -958,6 +958,81 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `plat_boot_reason()` and `plat_boot_reason_str()` are gone. No port writes a status register. The | | |
 | | | banner is `PB <ver>, <name> (0x<raw>)`. The mappings chosen where the contract is silent are in the | | |
 | | | log (2026-11-13), for Jonas. Not run on a board | | |
+| F-076 | `src/boot/image_helpers.c` (payload hash and load) | bpak compat (D-008): punchboot hashes every part, while upstream `verify.c` skips parts with `BPAK_FLAG_EXCLUDE_FROM_HASH` (`bpak add --set-flag dont-hash`). Such images verify with the bpak CLI but fail to boot in punchboot. Supporting the flag only accepts more images, so it is a compatible fix. | Verified (code) | fixed (`ec32bacf`) |
+| | | Decided (D-035, `security.md` 4.2): an image with a `dont-hash` part is refused, before the | | |
+| | | load, with its own error. Not loaded unhashed as upstream does, and not skipped | | |
+| | | An image with a `dont-hash` part is refused before anything is loaded, with `-PB_ERR_NOT_SUPPORTED` | | |
+| | | and a log line that names the part, for an image that is loaded and for one in place. Such an image | | |
+| | | never booted: every release hashed the part and the payload hash failed after the load (shown with | | |
+| | | the golden 0.9.3 and 1.0.1 images) | | |
+| F-346 | `src/rot.c` | `rot_no_of_keys()` returns its error, | Verified (code) | fixed (`5d5cc8b9`) |
+| | | `-PB_ERR_NOT_SUPPORTED` as a `size_t` when the RoT isn't set up, and `rot_key_idx_to_id()` an error | | |
+| | | as a `key_id_t`: a caller can't tell them from a count or an id. A loop over the count runs to | | |
+| | | `SIZE_MAX` (`dtb.c` had one; unreachable, no image verifies without a RoT). `boot.c` | | |
+| | | (`collect_info()`, F-260) takes a count above 255, the most a keystore holds, for the error and | | |
+| | | stops the boot. An `int` with the count or the id as an out argument, or 0 keys without a RoT | | |
+| | | `int rot_no_of_keys(size_t *count)` and `int rot_key_idx_to_id(unsigned int index, key_id_t *id)`; | | |
+| | | `collect_info()` returns the RoT's own error, `cmd_slc_read()` without a RoT sends the same | | |
+| | | transfers as before | | |
+| F-404 | `src/boot/ab_state.c` | A repair of the backup alone (corrupt, unreadable, or the resync | Reported | fixed (`b272b2a9`) |
+| | | of F-176) goes through the commit that writes both copies: power lost while the good primary is | | |
+| | | rewritten leaves a torn primary beside a stale backup. Write only the backup. Read, not run | | |
+| | | The three repairs of the backup write the backup only (the fake counts the writes per block). A | | |
+| | | repair of the primary alone still goes through the commit and rewrites the good backup second | | |
+| F-326 | `include/boot/boot.h`, `include/pb/board.h`, `src/board/imxrt1060evk/board.c` | bpak | Verified (code) | fixed (`fd9ce4bb`) |
+| | | is still named where nothing of it is used, since F-266: `boot/boot.h` includes | | |
+| | | `<bpak/bpak.h>`, so every board that includes it for `boot_get_flags()` gets the format's | | |
+| | | header (D-047: a board that doesn't ask for the header doesn't include it); `pb/board.h` | | |
+| | | forward declares `struct bpak_header`; the RT's board includes `<bpak/bpak.h>` and | | |
+| | | `<boot/image_helpers.h>`. Taking the include out of `boot.h` needs a look at who relied on it | | |
+| | | `boot/boot.h` no longer includes `<bpak/bpak.h>`, `pb/board.h` has no forward declaration, the RT | | |
+| | | board no bpak include; `test_board.c` doesn't compile if either header brings it back | | |
+| F-220 | security core, low | `caam_hash_input()` refills the alignment buffer while its async | Reported | fixed (`997f6a8a`, `58d39d9d`, `5d5cc8b9`, `4cd64a20`) |
+| | | job may read it (wrong digest, fails closed). `rot.c:117,134` return error codes through unsigned types: | | |
+| | | `slc read` loops ~2^32 times after a failed `rot_init()`. Parts are 512-aligned, a 4 KiB block device | | |
+| | | fails mid-load on a second part. `mbedtls_pb.c:183` skips `mbedtls_pk_free()`. `slc_set_configuration()` | | |
+| | | goes on when the state read is NOT_SUPPORTED. D-068 (Jonas): no read at a byte offset in `bio` for | | |
+| | | now, so the 4 KiB case stays a limit (`bio.md` 3.1, `roadmap.md`) | | |
+| | | 2026-11-13 (`997f6a8a`, `58d39d9d`): the CAAM's block buffer isn't refilled under its job, and the | | |
+| | | key's context is freed when it doesn't parse (nothing leaked with Mbed TLS 3.4.0). Left: `rot.c`'s | | |
+| | | error codes through unsigned types, `slc_set_configuration()` on NOT_SUPPORTED, the 4 KiB limit | | |
+| | | (D-068) | | |
+| | | 2026-11-13: `rot.c`'s codes are F-346's, and `slc_set_configuration()` returns any error of the | | |
+| | | state's read, also NOT_SUPPORTED (a board with fuses and no `read_status` now gets it from `slc | | |
+| | | configure`; none in the tree or in v2.7.1). The 4 KiB case stays a limit (D-068, `bio.md` 3.1, | | |
+| | | `roadmap.md`) | | |
+| F-398 | `Makefile` | Nothing depends on the flags: a changed `cflags` or `ldflags` | Verified (build) | fixed (`b4081b15`) |
+| | | (`CONFIG_OPTIMIZE` on the command line, an edited `makefile.mk`) neither compiles nor links again in | | |
+| | | an existing build directory, shown with F-090's flag. `srk_fuse.o` doesn't depend on `scripts/gen- | | |
+| | | srk-fuse.py` (read). The value files of F-183 are the way | | |
+| | | A changed compiler or linker flag, link script (from the `-T` flags) or `gen-srk-fuse.py` builds pb | | |
+| | | again; six new cases in `make.rebuild` | | |
+| F-407 | `src/drivers/usb/imx_ci_udc.c:38`, `CMakeLists.txt` | Low. A build without | Verified (build) | fixed (`0f3ca672`, `c90e303d`) |
+| | | `CONFIG_CM` doesn't compile while `DRIVER_IMX_CI_UDC` is on, its default: the driver uses | | |
+| | | `CONFIG_CM_BUF_SIZE_KiB` (the 6UL, the RT, the DXL). On the host `pb_core` is a static library, so a | | |
+| | | task in a file nothing else references isn't linked into pb-host (read). From F-268 | | |
+| | | `DRIVER_IMX_CI_UDC` depends on `CM`; `pb_core` is an object library, so every file of the core is in | | |
+| | | pb-host (`policy_chain.c` and `policy_fixed.c` were not), checked by `make.host_link` | | |
+| F-396 | `src/link.lds`, the armv7 links | Low. jiffy's and the RT1060's ELF have | Verified (readelf) | fixed (`03dd1de6`) |
+| | | everything in one RWE LOAD segment, as the aarch64 boards had (F-090); arm-none-eabi's ld doesn't | | |
+| | | warn. Only the ELF's headers | | |
+| | | No RWE LOAD segment in jiffy's and the RT1060's ELF; `pb.bin`, the symbols and the sections are the | | |
+| | | same before and after. `build-firmware.sh` checks every board. The RT1060's first segment still | | |
+| | | holds the ELF's headers (F-418) | | |
+| F-400 | `scripts/pbdev`, `scripts/ci/host-test.sh` | Low. Two `scripts/pbdev test` runs at | Verified (run) | fixed (`17fe70cf`) |
+| | | once in one tree fail: both install the package through setuptools' `build/` directory and the wheel | | |
+| | | builds collide ("Failed building wheel for punchboot"). The default and the sanitizer run must go | | |
+| | | one after the other | | |
+| | | Each `BUILD_DIR` builds the Python package in a directory of its own (`DIST_EXTRA_CONFIG`): the | | |
+| | | default and the sanitizer run pass side by side | | |
+| F-242 | `src/arch` | `src/arch/armv8a/Kconfig`, `src/arch/{armv7a,armv8a}/asm_macros.S`: | Reported | fixed (`dd7acc8d`, `11e492fa`) |
+| | | Leftovers: the Kconfig help mentions sunxi FEL (no sunxi platform), a TF-A stack macro calls | | |
+| | | `plat_my_core_pos`, which no platform defines (the macro seems unused) | | |
+| | | The sunxi sentence and the unused `get_my_mp_stack` are gone (`get_up_stack` is unused too, F-418) | | |
+| F-089 | `src/lib/libc/snprintf.c` (vendored) `unsigned_num_print` | `%x` writes the digits and padding without checking the buffer size `n`, so `snprintf` with `%x` can overflow a small buffer (`%d`/`%u`/`%s` are bounded). Unsupported specifiers (`%zu`, `%2u`, `%c`, ...) spin forever instead of failing. | Verified (code) | fixed (`c6744cc1`, `0210d1f3`) |
+| | | `%x` and its padding stay inside the buffer; an unsupported letter logs an error and ends the output | | |
+| | | there, terminated, where pb hung. `test_snprintf.c`. `pb.bin` changes on all six boards, in | | |
+| | | `snprintf` only | | |
 
 ## Dependencies / vendored code
 
@@ -972,6 +1047,8 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-034 | Bash tests that exist but don't run: `test_config`, `test_invalid_key_index2`, `test_setup_lock`, `test_bpak_show`, `test_part_offset_write`. They use commands and tools that no longer exist. | removed with the bash suite |
 | F-146 | `src/boot/atf.c` (+ `atf-interface/`, ~1,050 lines) is never compiled: no defconfig sets `BOOT_ATF`. Its `/chosen` patching duplicates `linux.c` (with F-071). Keep for an 8MP TF-A handover, or remove. | closed: kept, the 8MP EVK boots with it (`ac10a592`), warnings fixed (`8ceeea5a`); the duplicated `/chosen` code waits for Jonas' boot review |
 | F-031 | Stale `-I src/libc/include/...` in the armv7a/armv8a makefiles. The gcovr excludes still name `bearssl` and `src/fdt`. | fixed (`45a13b44`): the three -I paths; the gcovr excludes were gone since `5e336062` |
+| F-030 | libc files never compiled: `memcpy.c`, `strncmp.c`, `strlcpy.c`, `strnlen.c`, `strrchr.c`. Also `xlat_tables_v2/aarch32/nonlpae_tables.c`. | fixed (`6a2828b7`) |
+| | The six files are removed; no board and no host build compiled one | |
 
 ## Build / CI / docs
 

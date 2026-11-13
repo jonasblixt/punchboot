@@ -20,12 +20,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | image data regions and off the other parts (F-254). Left: the load address is read as a | | |
 | | | `uint64_t` without a look at the meta's size, and `keystore_id` is only logged. Anti-rollback | | |
 | | | is `roadmap.md`'s | | |
+| | | 2026-11-13 (`d00140db`): the load address is read by one function, `boot_image_load_addr()`, from | | |
+| | | the meta's own bytes: 8 or more as before, 1 to 7 zero extended (what a release read when zeros | | |
+| | | follow, bpak's layout), none is `-PB_ERR_BAD_META` before the load. Left: `keystore_id` is only | | |
+| | | logged; `atf.c`'s `optee-arch` meta has the same unchecked read (F-417) | | |
 | F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | partly fixed (`jiffy-fixes`): `der_ecsig_to_rs` now pads short r/s and is used by the CAAM (F-057). `der_ec_public_key_data` is still open |
 | | | 2026-11-13 (`ab002f9f`): `der_ec_public_key_data()` takes the key's length and reads nothing past | | |
 | | | it; OIDs match on length and bytes. What is left of F-066 is in F-410 (the point's form and length) | | |
-| F-076 | `src/boot/image_helpers.c` (payload hash and load) | bpak compat (D-008): punchboot hashes every part, while upstream `verify.c` skips parts with `BPAK_FLAG_EXCLUDE_FROM_HASH` (`bpak add --set-flag dont-hash`). Such images verify with the bpak CLI but fail to boot in punchboot. Supporting the flag only accepts more images, so it is a compatible fix. | Verified (code) | open |
-| | | Decided (D-035, `security.md` 4.2): an image with a `dont-hash` part is refused, before the | | |
-| | | load, with its own error. Not loaded unhashed as upstream does, and not skipped | | |
 | F-078 | jiffy (hardware / boot ROM) | An SRST reset from the JTAG adapter (OpenOCD `reset`, SRSR = 1, POR) makes the boot ROM fall back to the serial downloader (`15a2:007d`) within a second, instead of booting pb from eMMC. A second clean SRST pulse did the same. A watchdog reset does too (SRSR = 0x11, after pb without WDBG was halted over JTAG, and after the `auth token` hang below). Earlier resets when the ULINK was plugged in did reboot into pb, and a power cycle does. Cause unknown. Suspect: pb leaves the eMMC in 8-bit DDR52, and a warm reset doesn't reset the eMMC. Other options: HAB, or the reset itself. `src/board/jiffy/openocd.cfg` has no `reset_config` because of this. | Seen on the board (2026-10-22) | open: a power cycle boots pb. Forcing serial download with the boot mode buttons and resetting works (uuu loads `pb_signed_uuu.imx`), but in the downloader the ROM falls back to after a failed boot, every SDP command with a data phase (write, dcd) hangs. Hardware (jiffy R1 netlist): JTAG SRST is the `RST_N` net (POR_B, LP3470 supervisor, button PB2). The eMMC RST_n is a separate net from pad NAND_WP_B with a 46.4k pull-up, so a POR_B reset doesn't reset the eMMC (see F-079). Likely cause: the same SNVS SV1/Non-Secure state as F-080 (every warm reset after JTAG activity landed in the downloader, the one without JTAG since power-on booted; a direct test is blocked because `dev reset` needs `auth`). SNVS survives a warm reset, so HAB fails on the next boot and the ROM falls back to the downloader, where data writes then hang. A power cycle clears it. Fits every reset seen so far except one SRST at 12:26. |
 | F-079 | `src/board/jiffy/board.c` `usdhc_emmc_setup` | Muxes NAND_DQS (ball E6) as the eMMC reset, but on jiffy R1 NAND_DQS isn't connected. The eMMC RST_n is on NAND_WP_B (ball D5, `eMMC_RST_N`, 46.4k pull-up), which pb never configures, so the eMMC never gets a hardware reset. Possibly related to F-078. | Verified (netlist) | open: check NAND_WP_B's USDHC1_RESET_B alt in the RM, and whether the eMMC has RST_n_FUNCTION enabled |
 | F-081 | `src/arch/armv7a/cp15.S` `arch_invalidate_cache_range`, callers in `imx_caam.c` | The invalidate rounds the start down to a cache line and uses DCIMVAC (invalidate, no clean), so dirty CPU data sharing the first or last line is lost. `caam_wait_for_job` invalidates `caam.output` (0x8001a20c in the jiffy debug build), whose line also holds the tail of `struct caam` (`init`, `async_hashing`, `hash_align_buf_len`...), `wpb`, another `base`, `mmc_current_part` and `mmc_current_part_config`. Not shown to cause F-080. | Verified (code, symbol map) | open: clean+invalidate (DCCIMVAC) partial lines, or keep DMA buffers in their own cache-line-aligned sections |
@@ -34,7 +35,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | and a bulk read without it answers an I/O error. The eMMC's BOOT0 and BOOT1 on 2.8.0 the same | | |
 | | | (was F-142). Left: which partitions a board lets a host read | | |
 | F-087 | `src/cm/cm_main.c` `error_to_wire` | `-PB_ERR_BAD_PAYLOAD` (payload hash mismatch) has no wire result, so the host reports "Generic error". `include/pb-tools/error.h` has no payload code. | Seen on jiffy (2026-10-22) | open: a new result code is a wire change, see `compatibility.md` (old hosts must handle an unknown code) |
-| F-089 | `src/lib/libc/snprintf.c` (vendored) `unsigned_num_print` | `%x` writes the digits and padding without checking the buffer size `n`, so `snprintf` with `%x` can overflow a small buffer (`%d`/`%u`/`%s` are bounded). Unsupported specifiers (`%zu`, `%2u`, `%c`, ...) spin forever instead of failing. | Verified (code) | open: `imx_rom_log.c` works around it (only writes a line with 128 bytes left) |
 | F-100 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The timing copy for TF-A in `.umctl2` (NOLOAD, 0x40000000) never writes `fsp_msg`/`fsp_msg_num`, so TF-A gets whatever DRAM held. The copy's size (~12.5 KiB for the EVK) is not checked against the 128 KiB region, and nothing pins `struct dram_timing_info` to TF-A's layout. | Verified (read) | partly fixed (`imx8m-dram-cleanup`): the copy is a 128 KiB `struct dram_timing_save` and too large tables fail with `-PB_ERR_MEM`; `fsp_msg` is never read by upstream TF-A (only `fsp_table` and the tables), so harmless there; the layout pin is open |
 | F-102 | `src/drivers/ddr/{umctl2,dwc_ddrphy}.c`, `src/plat/imx8m/ddr_imx8mq.c` | Every poll in the DDR init (STAT, PHY mailbox, CalBusy, DFISTAT, SWSTAT, PLL lock) spins forever. A stuck PHY or bad board table hangs the board without a log. | Verified (read) | open: timeouts need a measurement on hardware |
 | F-104 | `src/drivers/ddr/dwc_ddrphy.c` `dwc_ddrphy_train` | The training results in the message block are never read. U-Boot (all i.MX8M) reads the trained critical delay differences after each 1D run and widens the rank-to-rank gaps (`DRAMTMG2` rd2wr/wr2rd, `RANKCTL`, per P-state) before the DFI init. The imx8mevk has two ranks (`MSTR.active_ranks` 3). TF-A reads these registers back at boot and restores them after retention, so it expects the bootloader to have applied the workaround. | Verified (read, and in the differential trace: U-Boot rewrites `DRAMTMG2`, `FREQ1_DRAMTMG2` and `RANKCTL` before `dfi_init_start`) | open: needs the message block layout and an imx8mevk |
@@ -190,16 +190,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | validated, `CM_AUTH_PASSWORD=y` without a callback: moved to F-249. Dead Kconfig symbols | | |
 | | | (`ARMV8_EL3`, `choice BOARD`, `IMXRT_FLASH`). GPT tables can't align partitions. 8X | | |
 | | | `early_boot()` ignores SCU results. | | |
-| F-220 | security core, low | `caam_hash_input()` refills the alignment buffer while its async | Reported | open |
-| | | job may read it (wrong digest, fails closed). `rot.c:117,134` return error codes through unsigned types: | | |
-| | | `slc read` loops ~2^32 times after a failed `rot_init()`. Parts are 512-aligned, a 4 KiB block device | | |
-| | | fails mid-load on a second part. `mbedtls_pb.c:183` skips `mbedtls_pk_free()`. `slc_set_configuration()` | | |
-| | | goes on when the state read is NOT_SUPPORTED. D-068 (Jonas): no read at a byte offset in `bio` for | | |
-| | | now, so the 4 KiB case stays a limit (`bio.md` 3.1, `roadmap.md`) | | |
-| | | 2026-11-13 (`997f6a8a`, `58d39d9d`): the CAAM's block buffer isn't refilled under its job, and the | | |
-| | | key's context is freed when it doesn't parse (nothing leaked with Mbed TLS 3.4.0). Left: `rot.c`'s | | |
-| | | error codes through unsigned types, `slc_set_configuration()` on NOT_SUPPORTED, the 4 KiB limit | | |
-| | | (D-068) | | |
 | F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
 | | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
 | | | command's. Several error paths leave transfers unread the same way. | | |
@@ -215,6 +205,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | check against `version.txt`, master or the tests. Actions are pinned by tag, the publish action gets a | | |
 | | | long-lived token. The dev image is partly pinned and rebuilt per job. CI builds only `pb.bin` (never the | | |
 | | | signed images or `testbench/simple`), warnings don't fail. | | |
+| | | 2026-11-13 (`b31112fc`, `54c36b42`): the publish job fails unless the tag is `v` plus `version.txt`; | | |
+| | | every action is pinned to the commit its tag names (checked with `git ls-remote`). Left: the long- | | |
+| | | lived token, the dev image, CI builds only `pb.bin`, warnings don't fail | | |
 | F-230 | `doc/guides/testing.md`, `status.md` | Line coverage is 91.0% (4445/4886), not | Reported (probe) | open |
 | | | 99.2%. `imx_caam.c` 38%: `caam_ecda_verify` and the hash path 0%. Never compiled by a host test: | | |
 | | | `boot/atf.c`, `boot/simple.c`, `usbd.c`, `pb_dev_cls.c`, `partition/static.c`. No tests: `imx_ocotp.c`, | | |
@@ -222,6 +215,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-231 | build, low | Pre-release builds identify as 3.0.0. `blobs/` is shared in the source root | Reported | open |
 | | | (pb relinks every make). pbstate is built without sanitizers. `-fno-stack-protector`, no `-Wundef`. | | |
 | | | `.gitignore` ignores `*.bin` globally, matching tracked pki files. | | |
+| | | 2026-11-13 (`564da2d5`, `b88ebf5a`): `.gitignore` keeps `pki/`'s `.bin` files, pbstate is built with | | |
+| | | the sanitizers in a sanitizer run. `-Wundef` isn't added: 785 warnings from 28 lines in 15 files | | |
+| | | (the vendored TF-A arch headers, `cm_main.c`, `mbedtls_pb.c`). Left: the version of a pre-release | | |
+| | | build, `blobs/`, the stack protector, `-Wundef` | | |
 | F-232 | docs | The README (also the PyPI page) describes removed things (PBI, C parts and binary | Reported | open |
 | | | wheels, the auth cookie, Bebop/PICO) and lacks the 8MP EVK and RT1060. Missing: a porting guide for | | |
 | | | 3.0.0, firmware build and image signing, the A/B update flow and pbstate, the SLC and fusing procedure, | | |
@@ -246,9 +243,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | no lock bit (RM p. 1277), so the secure OS's CSU policy decides whether the normal world can bypass it; the | | |
 | | | TZASC_ENABLE fuse (RM p. 209) makes the ROM enable it. GPR1 TZASC1_BOOT_LOCK unread (TZC-380 TRM, DDI0431, | | |
 | | | not on the share) | | |
-| F-242 | `src/arch` | `src/arch/armv8a/Kconfig`, `src/arch/{armv7a,armv8a}/asm_macros.S`: | Reported | open |
-| | | Leftovers: the Kconfig help mentions sunxi FEL (no sunxi platform), a TF-A stack macro calls | | |
-| | | `plat_my_core_pos`, which no platform defines (the macro seems unused) | | |
 | F-320 | `doc/interfaces/platform.md` 3.3, `src/boot/boot.c` | Stretches without a kick on the boot | Verified (code) | open |
 | | | path that aren't in 3.3's list of what `CONFIG_WATCHDOG_TIMEOUT` must be longer than. Since F-243 the | | |
 | | | kicks are: after each chunk, and before the jump. (1) 3.3 doesn't say whether a chunk's kick comes before | | |
@@ -365,12 +359,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | candidate that failed later in prepare points at unverified bytes while the next one is | | |
 | | | loaded. For the contract: say (1) to (4) in 5.3 | | |
 | | | From the review of F-266: the header handed out has its signature cleared (`signature` zero, `signature_sz` 0): those are the bytes that were signed, and the text should say so | | |
-| F-326 | `include/boot/boot.h`, `include/pb/board.h`, `src/board/imxrt1060evk/board.c` | bpak | Verified (code) | open |
-| | | is still named where nothing of it is used, since F-266: `boot/boot.h` includes | | |
-| | | `<bpak/bpak.h>`, so every board that includes it for `boot_get_flags()` gets the format's | | |
-| | | header (D-047: a board that doesn't ask for the header doesn't include it); `pb/board.h` | | |
-| | | forward declares `struct bpak_header`; the RT's board includes `<bpak/bpak.h>` and | | |
-| | | `<boot/image_helpers.h>`. Taking the include out of `boot.h` needs a look at who relied on it | | |
 | F-269 | `include/pb/board.h`, `src/plat/*/plat.c`, `src/plat/*/makefile.mk` | A board | Verified (code) | open |
 | | | can't map hardware the platform didn't: the tables are built by each platform's | | |
 | | | `plat_mmu_init()` from its own `imx_mmap[]`, and `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` are | | |
@@ -520,6 +508,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | F-253's host tests, whose images have a kernel part only. `boot.md` 4.1 and 5.2 don't say | | |
 | | | what the image handover does with a DT in place; Firmware Handoff (5.4, F-259) copies the DT | | |
 | | | into its region and has no such problem. Until decided: refuse it before the DT is touched | | |
+| | | 2026-11-13 (`49e2ee3f`): refused before the tree is read, grown or hooked, with | | |
+| | | `-PB_ERR_NOT_SUPPORTED` and a log line (since F-254 it ended in `-PB_ERR_MEM` unless the regions | | |
+| | | cover the flash). A kernel alone in place still boots. No released configuration is refused: in | | |
+| | | place is new in 3.0.0 (D-048). Open for the decision: refuse for good, or copy the tree to RAM, and | | |
+| | | where | | |
 | F-331 | `doc/dev/decisions.md`, `doc/architecture/boot.md` | F-292's refusal has no | Verified (code) | open |
 | | | decision entry and no contract text. `compatibility.md` asks for an entry that names what a | | |
 | | | security fix rejects and why: an image whose kernel, BL31, BL32 or generic entry part is empty | | |
@@ -610,12 +603,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`boot_ab_part_uu_to_name()`), the fixed and the chain policy have none, and the handover then | | |
 | | | writes no `pb,active-system` and an empty `system_name`. To write into 3.4, with whether a policy | | |
 | | | without systems may name its partitions | | |
-| F-346 | `src/rot.c` | `rot_no_of_keys()` returns its error, | Verified (code) | open |
-| | | `-PB_ERR_NOT_SUPPORTED` as a `size_t` when the RoT isn't set up, and `rot_key_idx_to_id()` an error | | |
-| | | as a `key_id_t`: a caller can't tell them from a count or an id. A loop over the count runs to | | |
-| | | `SIZE_MAX` (`dtb.c` had one; unreachable, no image verifies without a RoT). `boot.c` | | |
-| | | (`collect_info()`, F-260) takes a count above 255, the most a keystore holds, for the error and | | |
-| | | stops the boot. An `int` with the count or the id as an out argument, or 0 keys without a RoT | | |
 | F-348 | `doc/architecture/boot.md` 5.5, 5.6 | pb's properties in a device tree: the | Verified (code) | open |
 | | | text is silent on two things the device tree code decides. (1) Does pb own the `pb,*` names, and | | |
 | | | remove a property it has no value for (an image's placeholder, what a hook wrote)? 5.5 says pb's | | |
@@ -667,20 +654,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | a NUL at `response[*response_size]` after `snprintf()`, the pattern of F-250 in a board command | | |
 | | | (latent with a 4 MiB buffer; `board.md` 4.4 has no clamp rule for a command's response). The RT's | | |
 | | | `board_command()` has an unused variable `rc` (line 350), the one warning of its build | | |
-| F-396 | `src/link.lds`, the armv7 links | Low. jiffy's and the RT1060's ELF have | Verified (readelf) | open |
-| | | everything in one RWE LOAD segment, as the aarch64 boards had (F-090); arm-none-eabi's ld doesn't | | |
-| | | warn. Only the ELF's headers | | |
 | F-397 | `mmc_emmc.c:362`, `dwc3_udc.c:359,651` | Low. At `CONFIG_LOGLEVEL` 0 or 1 | Verified (build) | open |
 | | | without the RAM log, variables that only a log line uses are unused (`start`, `speed`, `caplength`): | | |
 | | | warnings in the imx8mpevk build. Seen with F-109 | | |
-| F-398 | `Makefile` | Nothing depends on the flags: a changed `cflags` or `ldflags` | Verified (build) | open |
-| | | (`CONFIG_OPTIMIZE` on the command line, an edited `makefile.mk`) neither compiles nor links again in | | |
-| | | an existing build directory, shown with F-090's flag. `srk_fuse.o` doesn't depend on `scripts/gen- | | |
-| | | srk-fuse.py` (read). The value files of F-183 are the way | | |
-| F-400 | `scripts/pbdev`, `scripts/ci/host-test.sh` | Low. Two `scripts/pbdev test` runs at | Verified (run) | open |
-| | | once in one tree fail: both install the package through setuptools' `build/` directory and the wheel | | |
-| | | builds collide ("Failed building wheel for punchboot"). The default and the sanitizer run must go | | |
-| | | one after the other | | |
 | F-401 | `tools/punchboot/session.py` | Low. `part_erase` masks `start_lba` to 32 bits, so a | Reported | open |
 | | | partition past block 2^32 wraps (pb 3.0.0 refuses the range, older devices unchecked). After a | | |
 | | | host's timeout on USB a device before 3.0.0 can still hold the late result, which the next session | | |
@@ -704,24 +680,19 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | ask every policy to be safe after a failed init? (7) `boot activate` after an unreadable state | | |
 | | | writes the defaults and the activation: the board registers on the disk are lost. (8) One good copy | | |
 | | | beside an unreadable one is used and repaired | | |
-| F-404 | `src/boot/ab_state.c` | A repair of the backup alone (corrupt, unreadable, or the resync | Reported | open |
-| | | of F-176) goes through the commit that writes both copies: power lost while the good primary is | | |
-| | | rewritten leaves a torn primary beside a stale backup. Write only the backup. Read, not run | | |
 | F-405 | `include/boot/policy.h`, `boot.c`, `ab_state.h`, `tools/pbstate` | Low. Comments that no | Reported | open |
 | | | longer hold: `policy.h` and `boot.c` say next() can return the error of a state write that failed | | |
 | | | (A/B no longer does), `ab_state.h` lists errors `boot_ab_state_set_boot_partition()` doesn't return. | | |
 | | | pbstate returns a primary's read error without trying the backup, where pb uses a good backup; it | | |
 | | | reads the backup only when the primary is corrupt | | |
+| | | 2026-11-13 (`8612b37a`): the comments in `policy.h`, `boot.c` and `ab_state.h` are corrected. Left: | | |
+| | | pbstate and a primary's read error | | |
 | F-406 | `src/drivers/mmc/`, `tests/`, `ab_state.c` | Low, from F-283. `mmc_init()` that fails | Reported | open |
 | | | after it registered its devices leaves them registered and pointing at a slot that is free again | | |
 | | | (`drivers.md` 2.1: nothing is registered when init fails). A card of another size at a second | | |
 | | | `mmc_init()` keeps the first one's range. `host_disk_init()` called twice leaks a descriptor | | |
 | | | (tests). `pb_boot_state_write()` with a handle that isn't one tests a flag on a negative value; the | | |
 | | | result is -PB_ERR_PARAM either way | | |
-| F-407 | `src/drivers/usb/imx_ci_udc.c:38`, `CMakeLists.txt` | Low. A build without | Verified (build) | open |
-| | | `CONFIG_CM` doesn't compile while `DRIVER_IMX_CI_UDC` is on, its default: the driver uses | | |
-| | | `CONFIG_CM_BUF_SIZE_KiB` (the 6UL, the RT, the DXL). On the host `pb_core` is a static library, so a | | |
-| | | task in a file nothing else references isn't linked into pb-host (read). From F-268 | | |
 | F-408 | `tools/pbstate`, `testbench/simple/src/pbstate.c` | Low, from F-180 and F-221. pbstate | Reported | open |
 | | | accepts trailing characters after a number (`-c 3x`, `-w 0 1zz`); `print_configuration()` ignores | | |
 | | | the getters' errors and prints both systems as disabled on a CRC failure before it fails; `-v` with | | |
@@ -771,6 +742,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `CONFIG_WATCHDOG_TIMEOUT` has no Kconfig range, the i.MX driver clamps silently (0 is 0.5 s). The | | |
 | | | 6UL and the RT rely on GPT1's clock gates being open from reset. `testing.md` has no rows for | | |
 | | | `test_plat_imx6ul`, `test_plat_imx8m` and `test_imx_wdog` | | |
+| F-417 | `src/boot/atf.c` `optee_rw()` | Low. The `optee-arch` meta is read as a `uint32_t` | Reported (read) | open |
+| | | without a look at the meta's size: F-065's class, signed input only. From F-065's package | | |
+| F-418 | build, low | From the build package. `tests/02e49231-...token` is tracked and matches | Reported | open |
+| | | `*.token` in `.gitignore`. `include/libc/string.h` declares `strncmp`, `strnlen`, `strrchr` and | | |
+| | | `strlcpy`, which nothing defines. `get_up_stack` in both `asm_macros.S` is unused. The RT1060's | | |
+| | | first LOAD segment holds the ELF's headers, 248 bytes below `PB_ENTRY`. After an unsupported | | |
+| | | format letter `snprintf()` returns a length below the buffer's, so a caller can't tell the | | |
+| | | text was cut | | |
 
 ## Dependencies / vendored code
 
@@ -783,7 +762,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 
 | ID | Finding | Status |
 |---|---|---|
-| F-030 | libc files never compiled: `memcpy.c`, `strncmp.c`, `strlcpy.c`, `strnlen.c`, `strrchr.c`. Also `xlat_tables_v2/aarch32/nonlpae_tables.c`. | open |
 | F-032 | Deprecated commands still handled: `PART_TBL_INSTALL`, `PART_RESIZE`, `AUTH_SET_PASSWORD`. `pb_wire_command_string`/`pb_wire_slc_string` are stubs. Corrected 2026-11-12 (`command-mode.md` 5.3, 5.8): only `PART_RESIZE` is retired. `PART_TBL_INSTALL` is in use (`board.md` 2.4), and `AUTH_SET_PASSWORD` was never implemented and is to be (`roadmap.md`). | open: removing them breaks old hosts (D-008); at most answer `NOT_SUPPORTED`, never reuse the slots |
 | | Left after the correction: `PART_RESIZE` still has its case in `cm_main.c`, and the two string | |
 | | functions in `src/wire.c` return "" | |
