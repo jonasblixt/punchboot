@@ -389,9 +389,13 @@ static int imx_flexspi_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     uint8_t *buffer = (uint8_t *)buf;
     uint32_t address = lba * bio_block_size(dev);
     struct flexspi_nor_config *cfg_nor = (struct flexspi_nor_config *)bio_get_private(dev);
+    int rc;
 
     /* Bounded by the longest operation, an erase of the largest block */
-    imx_flexspi_busy_wait(cfg_nor, 100, cfg_nor->erase_cmds[0].erase_time_ms);
+    rc = imx_flexspi_busy_wait(cfg_nor, 100, cfg_nor->erase_cmds[0].erase_time_ms);
+
+    if (rc != PB_OK)
+        return rc;
 
     return imx_flexspi_xfer(
         cfg_nor->port, cfg_nor->lut_id_read, address, FLEXSPI_READ, buffer, length);
@@ -473,14 +477,21 @@ static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
         LOG_DBG("Erasing addr=0x%08x, block_sz=%zu, lut_id=%u", addr, erase_block_sz, lut_id);
 
         /* Write enable */
-        imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_enable, 0, FLEXSPI_COMMAND, NULL, 0);
+        rc =
+            imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_enable, 0, FLEXSPI_COMMAND, NULL, 0);
+
+        if (rc != 0)
+            return rc;
 
         rc = imx_flexspi_xfer(cfg_nor->port, lut_id, addr, FLEXSPI_COMMAND, NULL, 0);
 
         if (rc != 0)
             return rc;
 
-        imx_flexspi_busy_wait(cfg_nor, erase_time_ms, erase_time_ms);
+        rc = imx_flexspi_busy_wait(cfg_nor, erase_time_ms, erase_time_ms);
+
+        if (rc != 0)
+            return rc;
 
         bytes_erased += erase_block_sz;
         bytes_to_erase -= (erase_block_sz > bytes_to_erase) ? bytes_to_erase : erase_block_sz;

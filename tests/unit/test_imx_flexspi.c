@@ -528,6 +528,57 @@ static void test_reset_stays(void **state)
     assert_int_equal(imx_flexspi_init(&core), -PB_ERR_TIMEOUT);
 }
 
+/* F-198: an erase whose write enable failed is an error, and erases
+ * nothing */
+static void test_erase_write_enable_fails(void **state)
+{
+    (void)state;
+
+    nor.fail_seq = SEQ_WREN;
+    assert_int_equal(bio_erase(dev, 4, 1), -PB_ERR_IO);
+    assert_int_equal(nor.erases, 0);
+    assert_mem_is(4 * BLOCK, 0xa5, BLOCK);
+
+    nor.fail_seq = -1;
+    assert_int_equal(bio_erase(dev, 4, 1), PB_OK);
+    assert_mem_is(4 * BLOCK, 0xff, BLOCK);
+}
+
+/* F-198, F-284: an erase whose busy poll failed stops there, it doesn't
+ * send the next command to a busy flash */
+static void test_erase_busy_poll_fails(void **state)
+{
+    (void)state;
+
+    nor.fail_seq = SEQ_READ_STATUS;
+    assert_int_equal(bio_erase(dev, 4, 2), -PB_ERR_IO);
+    assert_int_equal(nor.erases, 1);
+    nor.busy = 0;
+
+    /* An erase that doesn't end */
+    nor.fail_seq = -1;
+    nor.busy_after = 1000000000;
+    assert_int_equal(bio_erase(dev, 8, 2), -PB_ERR_TIMEOUT);
+    assert_int_equal(nor.erases, 2);
+    nor.busy = 0;
+}
+
+/* F-284: a read whose busy poll failed is that error, and reads nothing */
+static void test_read_busy_poll_fails(void **state)
+{
+    (void)state;
+
+    nor.fail_seq = SEQ_READ_STATUS;
+    assert_int_equal(bio_read(dev, 0, BLOCK, in), -PB_ERR_IO);
+
+    nor.fail_seq = -1;
+    nor.stuck_busy = true;
+    assert_int_equal(bio_read(dev, 0, BLOCK, in), -PB_ERR_TIMEOUT);
+    nor.stuck_busy = false;
+
+    assert_int_equal(bio_read(dev, 0, BLOCK, in), PB_OK);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -535,6 +586,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_flash_stays_busy, setup, teardown),
         cmocka_unit_test_setup_teardown(test_controller_stays_busy, setup, teardown),
         cmocka_unit_test_setup_teardown(test_reset_stays, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_erase_write_enable_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_erase_busy_poll_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_busy_poll_fails, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
