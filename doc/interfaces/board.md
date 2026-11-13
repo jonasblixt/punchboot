@@ -764,7 +764,7 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | ------------------------------ | ----- | ------- | --- | ------- | ---------- | -------- | ------- | ------- |
 | Data (3)                       | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300   |
 | A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300   |
-| Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270   |
+| Only the headers of section 6  | yes   | yes     | yes | yes     | yes        | yes      | yes     |         |
 | No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-301   |
 | No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251   |
 | `status()` (4.3)               | yes   | default | yes | yes     | default    | default  | default |         |

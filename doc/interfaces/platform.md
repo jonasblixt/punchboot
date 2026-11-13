@@ -706,8 +706,7 @@ nothing from `src/plat/` (the same list as `board.md` 6).
 A board that asks for the verified header also includes the image format's header,
 `<bpak/bpak.h>` (`board.md` 5.3, D-047).
 
-Nothing else (Jonas, D-056). **Not yet in the code (F-270)**: the two 8X boards include the
-arch's headers, and the system controller's API by its own path.
+Nothing else (Jonas, D-056).
 
 - **Not the arch's headers** (`arch/arch_helpers.h`, `arch/armv8a/timer.h`). What a board needs
   from the arch comes through `include/pb/arch.h`.

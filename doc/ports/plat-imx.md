@@ -261,7 +261,7 @@ Where each port is (2026-11-11).
 | The board's regions in the map (5.2) | no           | no                | no         | n/a       | F-269, F-158  |
 | SoC memory for image data,           | n/a          | partly            | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |
-| The system controller's API through  | n/a          | n/a               | partly     | n/a       | F-270         |
+| The system controller's API through  | n/a          | n/a               | yes        | n/a       |               |
 | the platform header (7)              |              |                   |            |           |               |
 | TrustZone filter                     | partly       | partly            | n/a (BL31) | n/a       | F-241, F-208, |
 |                                      |              |                   |            |           | F-261         |
