@@ -14,6 +14,7 @@ import contextlib
 import ctypes
 import hashlib
 import logging
+import os
 import pathlib
 import uuid
 from typing import IO, TYPE_CHECKING
@@ -58,6 +59,8 @@ VERSION_SIZE = 64
 PART_TABLE_ENTRIES = 128
 PART_TABLE_ENTRIES_WRITE = 256
 MAX_KEYS = 16
+# pb_command_verify_part.size is 32 bits
+VERIFY_SIZE_MAX = 0xFFFFFFFF
 
 
 def _partuuid_to_uuid(uu: PartUUIDType) -> uuid.UUID:
@@ -557,6 +560,7 @@ class Session:
         PartVerifyError       -- The file contents does not match the partition
         NotFoundError         -- Partition was not found
         NotAuthenticatedError -- Authentication required
+        ArgumentError         -- The file is larger than 4 GiB, which the command can't carry
 
         On success this function returns nothing.
         """
@@ -570,6 +574,10 @@ class Session:
         def _chunk_reader(fh: IO[bytes]) -> int:
             length: int = 0
             nonlocal bpak_header_valid
+            # A size the command can't carry is refused before it is hashed
+            if fh.seek(0, os.SEEK_END) > VERIFY_SIZE_MAX:
+                raise ArgumentError
+            fh.seek(0)
             # Check if the first 4k contains a valid BPAK header
             if chunk := fh.read(bpak_header_len):
                 hash_ctx.update(chunk)
@@ -596,10 +604,14 @@ class Session:
             msg = "File is not a supported type"
             raise TypeError(msg)
 
+        # The size went masked to 32 bits, and the device hashed fewer bytes
+        # than the host (F-227)
+        if data_length > VERIFY_SIZE_MAX:
+            raise ArgumentError
         verify = wire.pb_command_verify_part(
             uuid=_u8_array(uu.bytes),
             sha256=_u8_array(hash_ctx.digest()),
-            size=data_length & 0xFFFFFFFF,
+            size=data_length,
             bpak=1 if bpak_header_valid else 0,
         )
         self._command(Command.PB_CMD_PART_VERIFY, verify)
