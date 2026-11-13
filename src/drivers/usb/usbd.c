@@ -262,6 +262,10 @@ int usbd_init(void)
     if (hal_ops == NULL)
         return -PB_ERR_IO;
 
+    /* The controller starts with nothing configured (usb.md 4.1), and so
+     * does the stack: ready is when the host has configured the device */
+    enumerated = false;
+
     return hal_ops->init();
 }
 
@@ -302,6 +306,8 @@ int usbd_disconnect(void)
     if (hal_ops == NULL)
         return -PB_ERR_IO;
 
+    enumerated = false;
+
     if (hal_ops->stop)
         return hal_ops->stop();
     else
@@ -329,13 +335,10 @@ int usbd_xfer_cancel(void)
     return PB_OK;
 }
 
-int usbd_xfer_complete(void)
+static int usbd_xfer_poll(void)
 {
     int rc;
     struct usb_setup_packet pkt;
-
-    if (hal_ops == NULL)
-        return -PB_ERR_IO;
 
     if (hal_ops->poll_setup_pkt(&pkt) == PB_OK) {
         hal_ops->xfer_cancel(cur_xfer_ep);
@@ -353,4 +356,21 @@ int usbd_xfer_complete(void)
     }
 
     return hal_ops->xfer_complete(cur_xfer_ep);
+}
+
+int usbd_xfer_complete(void)
+{
+    int rc;
+
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
+
+    rc = usbd_xfer_poll();
+
+    /* Every error is "lost" (usb.md 2.4): the bus was reset or the host is
+     * gone. Nothing is configured after it (usb.md 3.2) */
+    if (rc != PB_OK && rc != -PB_ERR_AGAIN)
+        enumerated = false;
+
+    return rc;
 }

@@ -159,9 +159,9 @@ on the way (3.2) is bounded.
   transport reports each as an error of the transfer that was running. One is always running
   while a session waits for a command. What happens while none runs, inside a command, is
   kept and is the error of the next transfer, so nothing is missed. **Not yet in the code
-  (F-201, F-287, F-363)**: two controllers report
-  nothing, the third only a bus reset during a bulk transfer; the stack's "enumerated" is never
-  cleared; and command mode keeps polling after `-PB_ERR_TIMEOUT`.
+  (F-287, F-363)**: two controllers report
+  nothing, the third only a bus reset during a bulk transfer; and command mode keeps polling
+  after `-PB_ERR_TIMEOUT`.
 - It is also where the stack answers endpoint 0 (3.2).
 
 ### 2.5 Function : cm_transport_disconnect() [mandatory]
@@ -403,8 +403,8 @@ what the code doesn't settle without the hardware.
 | Every wait bounded               | no                  | yes                 | no                | F-136,  |
 |                                  |                     |                     |                   | F-205   |
 | High speed, or not ready         | no                  | asks, doesn't act   | no                | F-287   |
-| A bus reset and an unplug are    | no                  | a reset during a    | no                | F-201,  |
-| reported                         |                     | bulk transfer only  |                   | F-287   |
+| A bus reset and an unplug are    | no                  | a reset during a    | no                | F-287,  |
+| reported                         |                     | bulk transfer only  |                   | F-363   |
 | OUT: nothing past `length`       | yes; an overflow    | no: rounded up to a | unverified        | F-205,  |
 |                                  | isn't seen          | packet              |                   | F-137   |
 | OUT: a short packet is an error  | no                  | no                  | no                | F-137,  |
@@ -436,7 +436,7 @@ The stack and the transport:
 
 | Requirement                                   | Today                                    | Finding      |
 | --------------------------------------------- | ---------------------------------------- | ------------ |
-| Lost ends the session                         | yes, when the controller reports it      | F-201, F-363 |
+| Lost ends the session                         | yes, when the controller reports it      | F-363        |
 | A restart disconnects first                   | no                                       | F-287        |
 | Unknown requests stalled, control transfers   | no                                       | F-138        |
 | bounded                                       |                                          |              |
@@ -457,7 +457,7 @@ checklist's last item.
 
 | Finding             | What                                                                         |
 | ------------------- | ---------------------------------------------------------------------------- |
-| F-201, F-287, F-363 | Lost is reported and ends the session; a restart disconnects first (2.4)     |
+| F-287, F-363        | Lost is reported and ends the session; a restart disconnects first (2.4)     |
 | F-137, F-205        | An OUT transfer ends at `length`, writes nothing past it, and its result is  |
 |                     | the controller's (2.3, 4.3)                                                  |
 | F-280               | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)        |

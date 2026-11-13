@@ -90,25 +90,24 @@ static void assert_answered(size_t length)
 }
 
 /* What a host does with a new device, as Linux: the device descriptor, an
- * address, the configuration, then it configures the device. The stack's
- * "enumerated" outlives a session (F-201), so what connect answers on the
- * way is checked only by the first test */
+ * address, the configuration, then it configures the device. Ready after the
+ * last, and not before (usb.md 2.2) */
 static void enumerate(void)
 {
     host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
-    (void)cm_transport_connect();
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
     assert_answered(18);
 
     host_set_address(5);
-    (void)cm_transport_connect();
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
     assert_answered(0);
 
     host_get_descriptor(USB_DESC_TYPE_CONFIG, 0, 9);
-    (void)cm_transport_connect();
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
     assert_answered(9);
 
     host_get_descriptor(USB_DESC_TYPE_CONFIG, 0, 32);
-    (void)cm_transport_connect();
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
     assert_answered(32);
 
     host_set_configuration(1);
@@ -410,6 +409,54 @@ static void test_reported_bus_reset_is_lost(void **state)
     assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
 }
 
+/* usb.md 2.1, 2.2, 3.2: a session that was lost leaves nothing behind. The
+ * transport is started again and is ready when the host has configured the
+ * device again, not at the host's first request (F-201: the next read was
+ * then started on an endpoint that isn't set up, and the board reset) */
+static void test_restart_after_lost_starts_over(void **state)
+{
+    static const struct usb_host_config reports_reset = { .reports_reset = true };
+    (void)state;
+
+    start(&reports_reset);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_bus_reset();
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+
+    /* Command mode restarts the transport (command-mode.md 3.1) */
+    assert_int_equal(cm_transport_init(), PB_OK);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(buf, data, PACKET);
+}
+
+/* usb.md 3.2: the stack keeps the configuration, and it is cleared when the
+ * bus is reset or the controller is stopped: also without a restart, the
+ * device isn't ready until the host configures it */
+static void test_bus_reset_and_stop_clear_the_configuration(void **state)
+{
+    static const struct usb_host_config reports_reset = { .reports_reset = true };
+    (void)state;
+
+    start(&reports_reset);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_bus_reset();
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+    enumerate();
+
+    assert_int_equal(cm_transport_disconnect(), PB_OK);
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+}
+
 /* usb.md 2.3: the controller's refusal of a transfer is the transport's */
 static void test_start_error(void **state)
 {
@@ -446,6 +493,8 @@ int main(void)
         cmocka_unit_test(test_write),
         cmocka_unit_test(test_request_while_waiting_for_a_command),
         cmocka_unit_test(test_reported_bus_reset_is_lost),
+        cmocka_unit_test(test_restart_after_lost_starts_over),
+        cmocka_unit_test(test_bus_reset_and_stop_clear_the_configuration),
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
     };
