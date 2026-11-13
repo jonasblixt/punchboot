@@ -23,6 +23,18 @@ static struct imxrt_platform plat;
 /* WDOG1's WRSR as plat_early_init() read it */
 static uint16_t wrsr;
 
+/* What plat_early_init() and plat_init() recorded (platform.md 3.8). The
+ * Cortex-M7 has no TrustZone: no DRAM filter. The ROM's log here is the
+ * HAB's, the port saves no event log */
+static struct plat_status status = {
+    .tz_dram_filter = PLAT_TZ_DRAM_NONE,
+};
+
+void plat_get_status(struct plat_status *out)
+{
+    *out = status;
+}
+
 static uint32_t fuse_read_helper(uint8_t row, uint8_t shift, uint32_t mask, uint32_t default_value)
 {
     int rc;
@@ -67,8 +79,9 @@ int plat_early_init(void)
     /* The reset reason. The register is read only */
     wrsr = mmio_read_16(IMXRT_WDOG1_BASE + WDOG_WRSR);
 
+    status.wdog_armed = false;
 #if CONFIG_ENABLE_WATCHDOG
-    imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
+    status.wdog_armed = (imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT) == PB_OK);
 #endif
 
     /* Commont UART clock source config:
@@ -121,7 +134,8 @@ int plat_init(void)
 {
     int rc;
 
-    (void)imx_hab_log_init(&hab_log_cfg);
+    /* Without it: logged, nothing of the boot's rests on it (platform.md 2.3) */
+    status.rom_log = (imx_hab_log_init(&hab_log_cfg) == PB_OK);
 
     imx_ocotp_init(IMXRT_OCOTP_BASE, IMXRT_FUSE_WORDS_PER_BANK, 0); /* No rate: no writes (F-148) */
     imx_hab_fuses_init(&hab_fuses);
@@ -216,13 +230,15 @@ int plat_init(void)
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
     /* Command mode can start without it, so it isn't plat_init()'s error
-     * (platform.md 2.2): main() would reset. Without a provider no image
-     * verifies, and the boot stops with that. To be recorded in
-     * plat_get_status() (F-248) */
+     * (platform.md 2.2): main() would reset. It is recorded: without a
+     * provider no image verifies, and the boot's preconditions refuse the
+     * boot before anything is loaded (platform.md 2.3) */
     rc = mbedtls_pb_init();
 
     if (rc != PB_OK)
         LOG_ERR("Mbed TLS init failed (%i)", rc);
+
+    status.crypto_engine = (rc == PB_OK);
 
     return PB_OK;
 }
@@ -310,10 +326,34 @@ uint32_t plat_get_us_tick(void)
     return imx_gpt_get_tick();
 }
 
+/* SRC_SBMR2's BMOD, the boot mode the ROM used: BOOT_MODE[1:0] as the pins
+ * or the fuses gave it. 0b01 is the serial downloader; an EVK set to
+ * internal boot reads 0b10, and 0b00 is a boot from the fuses */
+#define SBMR2_BMOD_SHIFT           24
+#define SBMR2_BMOD_SERIAL_DOWNLOAD 1
+
+/*
+ * Where pb was loaded from (platform.md 3.9). The boot mode says when the
+ * ROM was told to start its serial downloader, which listens on USB and on
+ * a UART: nothing here says which of them the image came over, so it is
+ * reported as USB. The core's stop treats the two alike (board.md 5.1).
+ *
+ * Not told: a ROM that fell back to the serial downloader by itself, with
+ * the boot mode on internal boot or the fuses and no image in the flash.
+ * The sign of that is a blank IVT at the flash's start
+ * (IMXRT_FLEXSPI_NOR_IVT), and reading it means an AHB read of the FlexSPI's
+ * window on every boot, which no board has run with pb's set up of the
+ * controller (F-251). Then, and for a boot from the flash, whose partition
+ * isn't named: unknown.
+ */
 int plat_get_boot_source(struct pb_boot_source *src)
 {
-    (void)src;
-    return -PB_ERR_NOT_SUPPORTED;
+    uint32_t bmod = (mmio_read_32(IMXRT_SRC_SBMR2) & IMXRT_SRC_SBMR2_BMOD_MASK) >> SBMR2_BMOD_SHIFT;
+
+    memset(src, 0, sizeof(*src));
+    src->kind = (bmod == SBMR2_BMOD_SERIAL_DOWNLOAD) ? PB_BOOT_SOURCE_USB : PB_BOOT_SOURCE_UNKNOWN;
+
+    return PB_OK;
 }
 
 int plat_lockdown(void)

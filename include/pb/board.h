@@ -115,6 +115,19 @@ extern const struct board board;
 int board_setup(void);
 
 /**
+ * Report a failure of the board's that the boot goes on without (board.md
+ * 2.3): what init() or late_init() logged and didn't fail on, because
+ * neither the boot nor its security rests on it. The next stage finds
+ * 'board-degraded' in pb's status in the handover (boot.md 5.6). One entry
+ * for every board: what it stands for is in the log and in status().
+ *
+ * Valid in init(), late_init() and early_boot(). pb's information is
+ * collected after early_boot(), so a call from late_boot() comes too late
+ * for the boot it is called in. It holds until the reset.
+ */
+void board_report_degraded(void);
+
+/**
  * A boot driver DTB patch callback (dtb_patch_cb): sets /chosen/bootargs to
  * board.bootargs, or board.bootargs_verbose with BOOT_FLAG_VERBOSE
  */

@@ -391,23 +391,44 @@ cmd_info(const uint8_t *request, size_t request_size, uint8_t *response, size_t 
 
 DEFINE_COMMAND("info", "imx8x system info", cmd_info);
 
+/* The SCFW's answer to arming the watchdog, once plat_early_init() asked */
 static sc_err_t wdog_rc;
+static bool wdog_asked;
 
 int plat_early_init(void)
 {
     sc_ipc_open(&plat.ipc, SC_IPC_BASE);
 
     wdog_rc = imx8x_wdog_init();
+    wdog_asked = true;
     imx8x_systick_setup();
     log_time_start();
     imx8x_load_boot_reason();
     return PB_OK;
 }
 
+/*
+ * What plat_early_init() recorded (platform.md 3.8). The DRAM filter is a
+ * later stage's: BL31 partitions the memory through the SCFW. The crypto
+ * engine is the board's (F-247), and the ROM's logs aren't saved.
+ */
+void plat_get_status(struct plat_status *status)
+{
+    status->tz_dram_filter = PLAT_TZ_DRAM_LATER_STAGE;
+#ifdef CONFIG_ENABLE_WATCHDOG
+    status->wdog_armed = wdog_asked && wdog_rc == SC_ERR_NONE;
+#else
+    status->wdog_armed = false;
+#endif
+    status->crypto_engine = false;
+    status->rom_log = false;
+}
+
 int plat_init(void)
 {
     if (wdog_rc != 0) {
-        /* We'll continue anyway, best effort */
+        /* Not plat_init()'s error: it is recorded (plat_get_status()), and
+         * the boot goes on and reports it (platform.md 2.3) */
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
     }
 
@@ -534,10 +555,28 @@ int plat_get_boot_reason(struct pb_boot_reason *reason)
     return PB_OK;
 }
 
+/*
+ * Where pb was loaded from (platform.md 3.9): the SCFW's boot type, which
+ * it has from the ROM. Serial is the ROM's serial downloader, USB on the
+ * i.MX8X. The other types are a boot from the boot device, whose partition
+ * isn't named: unknown, and so is an SCFW that doesn't answer. Asked when it
+ * is called, as the boards' early_boot() did: valid from plat_early_init(),
+ * which opens the channel.
+ */
 int plat_get_boot_source(struct pb_boot_source *src)
 {
-    (void)src;
-    return -PB_ERR_NOT_SUPPORTED;
+    sc_misc_bt_t type = SC_MISC_BT_PRIMARY;
+
+    memset(src, 0, sizeof(*src));
+    src->kind = PB_BOOT_SOURCE_UNKNOWN;
+
+    if (sc_misc_get_boot_type(plat.ipc, &type) != SC_ERR_NONE)
+        return PB_OK;
+
+    if (type == SC_MISC_BT_SERIAL)
+        src->kind = PB_BOOT_SOURCE_USB;
+
+    return PB_OK;
 }
 
 int plat_lockdown(void)

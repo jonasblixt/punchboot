@@ -92,6 +92,27 @@ static const mmap_region_t imx_mmap[] = {
 /* SRC_SRSR as plat_early_init() read it */
 static uint32_t srsr;
 
+/* What plat_early_init() and plat_init() recorded (platform.md 3.8). The
+ * TZASC counts as bypassed until plat_init() has shown that it isn't */
+static struct plat_status status = {
+    .tz_dram_filter = PLAT_TZ_DRAM_BYPASSED,
+};
+
+void plat_get_status(struct plat_status *out)
+{
+    *out = status;
+}
+
+/* The ROM's event log was saved: a dump into no room fails with
+ * -PB_ERR_NOT_FOUND only when there is no log, which it logs */
+static bool rom_log_found(void)
+{
+    char none;
+    size_t length = 0;
+
+    return imx_rom_log_dump(&none, &length) != -PB_ERR_NOT_FOUND;
+}
+
 /* The causes, the highest priority first (plat/imx8m/mm.h) */
 static const struct {
     uint32_t bit;
@@ -250,7 +271,7 @@ static const struct imx_hab_log_config hab_log_cfg = {
  * ID_SWAP_BYPASS, which the RM asks for (8MP RM 4.9.1.2), and lock both:
  * the normal world reaches the GPRs. OP-TEE checks all three.
  */
-static void tzasc_enable(void)
+static int tzasc_enable(void)
 {
     const uint32_t bits = GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS;
     const uint32_t locks = GPR10_LOCK_TZASC_EN | GPR10_LOCK_TZASC_ID_SWAP;
@@ -260,8 +281,12 @@ static void tzasc_enable(void)
     mmio_clrsetbits_32(IMX8M_IOMUXC_GPR10, 0, locks);
     gpr10 = mmio_read_32(IMX8M_IOMUXC_GPR10);
 
-    if ((gpr10 & (bits | locks)) != (bits | locks))
+    if ((gpr10 & (bits | locks)) != (bits | locks)) {
         LOG_ERR("TZASC not enabled, GPR10 %08" PRIx32, gpr10);
+        return -PB_ERR_STATE;
+    }
+
+    return PB_OK;
 }
 
 /*
@@ -302,8 +327,13 @@ int plat_early_init(void)
      * has no clock gate */
     srsr = mmio_read_32(IMX8M_SRC_SRSR);
 
+    /* Both of the ROM's logs, or it is recorded: logged, nothing of the
+     * boot's rests on them (platform.md 2.3) */
     imx_rom_log_save(&rom_log_cfg);
-    (void)imx_hab_log_init(&hab_log_cfg);
+    status.rom_log = rom_log_found();
+
+    if (imx_hab_log_init(&hab_log_cfg) != PB_OK)
+        status.rom_log = false;
 
     /* The WDOGs' power-down counters, whether the watchdog is used or not */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
@@ -314,11 +344,12 @@ int plat_early_init(void)
     imx_wdog_disable_powerdown(IMX8M_WDOG2_BASE);
     imx_wdog_disable_powerdown(IMX8M_WDOG3_BASE);
 
+    status.wdog_armed = false;
 #if CONFIG_ENABLE_WATCHDOG
     /* Enable and ungate WDOG1 clock */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
     mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
-    imx_wdog_init(IMX8M_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
+    status.wdog_armed = (imx_wdog_init(IMX8M_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT) == PB_OK);
 #endif
 
     /* Configure systick. GPT1_CLK_ROOT is on out of reset, on the 24 MHz
@@ -331,6 +362,7 @@ int plat_early_init(void)
 
 int plat_init(void)
 {
+    int tzasc_rc;
     int rc;
 
     /* Init fusebox (reading only), its clock gate may be closed */
@@ -368,7 +400,7 @@ int plat_init(void)
     /* The rest of the gates and the PLLs */
     imx8m_soc_clock_init();
 
-    tzasc_enable();
+    tzasc_rc = tzasc_enable();
 
     rc = imx8m_ddr_init();
     if (rc != PB_OK) {
@@ -378,11 +410,16 @@ int plat_init(void)
 
     LOG_DBG("LPDDR4 training complete");
 
-    /* Not fatal: without board_setup() command mode can't be used to recover */
+    /* Not plat_init()'s error: command mode's prerequisites are there, and
+     * main() would reset (platform.md 2.2). It is recorded, with the enable
+     * above, and no boot goes on without both (platform.md 2.3) */
     rc = tzasc_open_dram();
 
     if (rc != PB_OK)
         LOG_ERR("TZASC setup failed (%i)", rc);
+
+    status.tz_dram_filter = (tzasc_rc == PB_OK && rc == PB_OK) ? PLAT_TZ_DRAM_ACTIVE
+                                                               : PLAT_TZ_DRAM_BYPASSED;
 
     imx_wdog_kick(IMX8M_WDOG1_BASE);
     plat_mmu_init();
@@ -414,10 +451,26 @@ int plat_cm_init(void)
 }
 #endif
 
+/* The ROM's event when it starts its serial downloader, in the i.MX 8M's
+ * event definitions (AN12853 Table 9, "Serial download") */
+#define ROM_LOG_V2_SERIAL_DOWNLOAD 0xd0
+
+/*
+ * Where pb was loaded from (platform.md 3.9), from the ROM's event log,
+ * which plat_early_init() saved. The ROM logs when it starts its serial
+ * downloader, and what it loads then comes over USB: the i.MX 8M's serial
+ * downloader has no UART. Without that event, and without a log, it is a
+ * boot from the boot device, whose partition isn't named: unknown.
+ */
 int plat_get_boot_source(struct pb_boot_source *src)
 {
-    (void)src;
-    return -PB_ERR_NOT_SUPPORTED;
+    memset(src, 0, sizeof(*src));
+    src->kind = PB_BOOT_SOURCE_UNKNOWN;
+
+    if (imx_rom_log_has_event(ROM_LOG_V2_SERIAL_DOWNLOAD))
+        src->kind = PB_BOOT_SOURCE_USB;
+
+    return PB_OK;
 }
 
 int plat_lockdown(void)

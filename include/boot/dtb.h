@@ -99,6 +99,10 @@ int boot_dtb_open_into(struct bpak_header *hdr,
  * | pb,boot-partition     | string, a UUID              | no partition, no    |
  * |                       |                             | room                |
  * | pb,version            | string                      | no room             |
+ * | pb,status             | string list, what pb booted | no room             |
+ * |                       | without: "watchdog-not-     |                     |
+ * |                       | armed", "board-degraded";   |                     |
+ * |                       | empty: nothing              |                     |
  *
  * They are only added to, and a property keeps its encoding (boot.md 7).
  *
@@ -107,15 +111,20 @@ int boot_dtb_open_into(struct bpak_header *hdr,
  * it, from the image or the hook (but the key list, which is removed first,
  * as it was): pb doesn't remove a released property (D-008, F-348).
  *
- * The last three are new. A tree without room for one, e.g. one built with
+ * The last four are new. A tree without room for one, e.g. one built with
  * placeholders for the released properties and booted with a headroom of 0,
  * does without it: the property is left out with a warning and the boot
  * goes on. In this order, each on its own: pb,boot-mode, pb,boot-partition,
- * pb,version. Room for the mode is asked for with the longest of its
- * strings, so what is left out doesn't depend on the mode. A new property
- * pb doesn't write is not in the tree afterwards, whoever put one there.
- * Together they take 138 bytes in a tree that has none of them, with the
- * version "3.0.0": 37, 70 and 31.
+ * pb,version, pb,status. Room for the mode is asked for with the longest of
+ * its strings and room for the status with every string of its list, so
+ * what is left out depends neither on the mode nor on what there is to
+ * report. A new property pb doesn't write is not in the tree afterwards,
+ * whoever put one there. Together they take 196 bytes in a tree that has
+ * none of them, with the version "3.0.0": 37, 70, 31 and 58.
+ *
+ * pb,status is written whenever it has room, also empty: a next stage tells
+ * "nothing to report" from a pb that doesn't report by the property being
+ * there (boot.md 5.6). Each string is a bit of 'status' in pb's information.
  *
  * @param[in] fdt The device tree, with room for them (boot_dtb_grow())
  * @param[in] hdr The verified image header, for the ramdisk's size

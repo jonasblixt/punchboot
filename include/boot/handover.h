@@ -33,11 +33,17 @@
 struct bpak_header;
 
 /** 'slc' of a board without a security life cycle */
-#define BOOT_INFO_NO_SLC   (-1)
+#define BOOT_INFO_NO_SLC                    (-1)
+
+/** 'status': what pb couldn't do and booted anyway, a bit per condition
+ * (boot.md 5.6). A bit keeps its meaning, new ones are appended */
+#define BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED (UINT32_C(1) << 0) /*!< The watchdog didn't arm */
+/** The board reported a failure the boot goes on without (board.md 2.3) */
+#define BOOT_INFO_STATUS_BOARD_DEGRADED     (UINT32_C(1) << 1)
 
 /** Room for every key a keystore can hold: its number of keys is a uint8_t.
  * A device tree's list has no limit, and no released build gets one here */
-#define BOOT_INFO_MAX_KEYS 255
+#define BOOT_INFO_MAX_KEYS                  255
 
 /**
  * pb's information (boot.md 5.6): what the next stage learns about the
@@ -57,9 +63,10 @@ struct boot_info {
     size_t no_of_available_keys;
     uint32_t available_keys[BOOT_INFO_MAX_KEYS]; /*!< The ids of the keys not revoked,
                                                       in the keystore's order */
-    /** What pb booted without, bit flags (boot.md 5.6): 'status' in pb's
-     * structure. Not yet: always 0, until the boot checks its preconditions,
-     * and a device tree gets no pb,status (F-248) */
+    /** What pb booted without, BOOT_INFO_STATUS_* (boot.md 5.6): 'status' in
+     * pb's structure, pb,status in a device tree. From the boot's
+     * preconditions, checked before early_boot(), and from the board, asked
+     * after it */
     uint32_t status;
 
     /* The candidate's, set before each prepare */

@@ -49,6 +49,7 @@
 
 static struct {
     int mbedtls_rc;
+    int hab_log_rc;
     uint32_t speed_grade;
     unsigned int log_time_starts;
     /* The register log's length when log_time_start() was called */
@@ -73,7 +74,7 @@ int mbedtls_pb_init(void)
 int imx_hab_log_init(const struct imx_hab_log_config *cfg)
 {
     (void)cfg;
-    return PB_OK;
+    return f.hab_log_rc;
 }
 
 int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz)
@@ -161,9 +162,20 @@ static uint64_t gpt_runs(uintptr_t addr, uint64_t value)
     return value;
 }
 
+/* What plat_get_status() answers, every field set by the port */
+static struct plat_status status_now(void)
+{
+    struct plat_status status;
+
+    memset(&status, 0xff, sizeof(status));
+    plat_get_status(&status);
+    return status;
+}
+
 /* platform.md 2.2: plat_init() returns an error only when what command mode
  * needs is missing, and main() then resets. A crypto engine that failed
- * isn't that: PB_OK, and the boot has nothing to verify with */
+ * isn't that: PB_OK, and it is recorded (3.8, F-248), so that the boot is
+ * refused before anything is loaded */
 static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
 {
     (void)state;
@@ -171,6 +183,41 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     assert_int_equal(plat_early_init(), PB_OK);
     f.mbedtls_rc = -PB_ERR_MEM;
     assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* And it is the state of this plat_init(), not of an earlier one */
+    f.mbedtls_rc = PB_OK;
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+}
+
+/* platform.md 3.8: what plat_init() recorded. The Cortex-M7 has no
+ * TrustZone, the watchdog is armed (the test is built with the option), the
+ * crypto engine is the platform's Mbed TLS, and the ROM's log is the HAB's */
+static void test_status(void **state)
+{
+    struct plat_status status;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    status = status_now();
+
+    assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_NONE);
+    assert_true(status.wdog_armed);
+    assert_true(status.crypto_engine);
+    assert_true(status.rom_log);
+}
+
+/* platform.md 2.3: without the HAB's log the platform goes on and records it */
+static void test_status_rom_log_missing(void **state)
+{
+    (void)state;
+
+    f.hab_log_rc = -PB_ERR_NOT_FOUND;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().rom_log);
 }
 
 static void test_plat_init(void **state)
@@ -502,6 +549,46 @@ static void test_plat_reset_before_early_init(void **state)
     assert_int_equal(fake_reg_log[0].value, WDOG_WCR_SRE | WDOG_WCR_WDE);
 }
 
+/* platform.md 3.9 (F-251): the ROM's serial downloader loaded pb when the
+ * boot mode says so, SRC_SBMR2's BMOD 0b01. An EVK set to internal boot
+ * reads 0b10 there, which is why "BMOD isn't 0" would have stopped every
+ * boot on the bench (F-264): it and a boot from the fuses are a boot from
+ * the flash, whose partition isn't named. Nothing is written, and the
+ * flash's window isn't read */
+static void test_boot_source(void **state)
+{
+    static const struct {
+        uint32_t sbmr2;
+        enum pb_boot_source_kind kind;
+    } modes[] = {
+        { 0x0u << 24, PB_BOOT_SOURCE_UNKNOWN }, /* The fuses */
+        { 0x1u << 24, PB_BOOT_SOURCE_USB }, /* The serial downloader */
+        { 0x2u << 24, PB_BOOT_SOURCE_UNKNOWN }, /* Internal boot */
+        { 0x3u << 24, PB_BOOT_SOURCE_UNKNOWN }, /* Reserved */
+        /* The register's other bits are not the mode */
+        { (0x2u << 24) | 0x00ffffff, PB_BOOT_SOURCE_UNKNOWN },
+        { (0x1u << 24) | 0xfc000019, PB_BOOT_SOURCE_USB },
+        { 0xfcffffff, PB_BOOT_SOURCE_UNKNOWN },
+    };
+    struct pb_boot_source src;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    for (size_t i = 0; i < ARRAY_SIZE(modes); i++) {
+        size_t writes = fake_reg_log_len;
+
+        memset(&src, 0xff, sizeof(src));
+        fake_regs_set(IMXRT_SRC_SBMR2, modes[i].sbmr2);
+        assert_int_equal(plat_get_boot_source(&src), PB_OK);
+        assert_int_equal(src.kind, modes[i].kind);
+        assert_int_equal(fake_reg_log_len, writes);
+    }
+
+    assert_int_equal(fake_regs_reads(IMXRT_FLEXSPI_NOR_IVT), 0);
+}
+
 /* platform.md 3.6, 3.7: the platform's UUID namespace is declared in
  * pb/plat.h, and it never changes: the device's UUID and its tokens are made
  * from it. 48f8c6cb-8d07-4066-b921-0c1d8fd05471 */
@@ -522,6 +609,9 @@ int main(void)
         cmocka_unit_test_setup(test_vdd_soc_for_600_mhz, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_status, setup),
+        cmocka_unit_test_setup(test_status_rom_log_missing, setup),
+        cmocka_unit_test_setup(test_boot_source, setup),
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),

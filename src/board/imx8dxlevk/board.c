@@ -104,19 +104,11 @@ static int usdhc_emmc_setup(void)
 static int early_boot(void)
 {
     sc_bool_t btn_status;
-    sc_misc_bt_t boot_type;
 
     sc_misc_get_button_status(imx8x_ipc(), &btn_status);
 
     /* Always stop when button is pressed */
     if (btn_status == 1) {
-        return -PB_ERR_ABORT;
-    }
-
-    sc_misc_get_boot_type(imx8x_ipc(), &boot_type);
-
-    /* Don't stop boot flow when command mode requested the boot */
-    if (!(boot_get_flags() & BOOT_FLAG_CMD) && (boot_type == SC_MISC_BT_SERIAL)) {
         return -PB_ERR_ABORT;
     }
 
