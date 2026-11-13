@@ -42,6 +42,12 @@ SECTIONS
         *(.igot.plt)
         *(.got .got.*)
         *(.rodata .rodata.*)
+        /* The tasks that DEFINE_TASK() defines (pb/task.h). No code names
+         * them, so they are kept here (platform.md 5.1) */
+        . = ALIGN(8);
+        PROVIDE (__start_pb_tasks = .);
+        KEEP(*(pb_tasks))
+        PROVIDE (__stop_pb_tasks = .);
         . = ALIGN(8);
         . = ALIGN(PB_SECTION_ALIGNMENT);
         _edata = .;

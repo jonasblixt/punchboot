@@ -1,3 +1,19 @@
+choice IMX8M_CM_USB
+    bool "Command mode's USB port"
+    depends on PLAT_IMX8M_COMMON && CM
+    help
+        The USB device port command mode uses. plat_cm_init() sets up its
+        clocks, its power, its PHY and its controller when command mode
+        starts (platform.md 3.10).
+
+config IMX8M_CM_USB1
+    bool "USB1"
+    select DRIVER_USB_DEVICE
+    select DRIVER_USB_PB_CLS
+    select DRIVER_IMX8M_PHY
+    select DRIVER_IMX_DWC3_UDC
+endchoice
+
 menu "imx8m configuration"
     depends on PLAT_IMX8M_COMMON
     comment "Console configuration"

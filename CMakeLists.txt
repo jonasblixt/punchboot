@@ -130,7 +130,10 @@ add_custom_command(
 add_library(pb_keystore STATIC ${CMAKE_CURRENT_BINARY_DIR}/keystore.c)
 target_link_libraries(pb_keystore PUBLIC pb_host_flags)
 
-# The firmware core: everything that is not arch, platform or board specific
+# The firmware core: everything that is not arch, platform or board specific.
+# A static library: a file of it is linked into pb-host only when something
+# refers to it, so a task (pb/task.h) needs another symbol of its file to be
+# used. Command mode's is linked through cm_init(), which src/board.c calls.
 add_library(pb_core STATIC
     src/main.c
     src/bio.c

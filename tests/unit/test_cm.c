@@ -10,10 +10,14 @@
  * error paths can be reached. The integration tests cover the commands
  * against the real modules and the punchboot host library.
  *
+ * Command mode is a task (cm_main_task(), board.md 4.6): cm_run() here calls
+ * it as main()'s loop does, round after round with a kick of the watchdog
+ * and another task in each, until it returns an error.
+ *
  * A test queues the host's side of the conversation (commands and data) with
  * host_*(), runs cm_run() until the queue is empty, and then checks what the
  * device sent back with expect_*(). When the queue runs dry the transport
- * reports a disconnect, cm_run() re-initializes the transport, and the fake
+ * reports a disconnect, the task re-initializes the transport, and the fake
  * fails that, which ends cm_run() with -PB_ERR_IO. host_lost() and
  * t.lose_write lose a transfer on the way, as a host that went away.
  * host_stops() and t.stop_write leave one pending, as a host that stopped.
@@ -37,6 +41,7 @@
 #include <pb/device_uuid.h>
 #include <pb/log_source.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/ramlog.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
@@ -83,7 +88,7 @@
 /* A stopped transfer polled this often was waited for past the timeout */
 #define STOPPED_POLLS_MAX   (2 * TRANSFER_TIMEOUT_US / TICK_STEP_US)
 
-/* The fake transport */
+/* The fake transport: the cm_transport_*() functions that command mode links */
 static struct {
     uint8_t in[32 * 1024]; /* Host to device */
     size_t in_len;
@@ -122,18 +127,19 @@ static struct {
     int connect_ok_after;
     int connect_calls;
     int disconnect_calls;
-    int process_calls;
+    int complete_calls;
+    int rounds; /* Rounds of the tasks: calls of the other task */
 
     /* fake_us_tick when each read completed and each write was sent */
     unsigned int read_ticks[64];
     size_t n_reads;
     unsigned int write_ticks[64];
     size_t n_writes;
-    struct ramdisk *heal; /* fake_process() ends heal's write faults */
-    int heal_at; /* at this call */
+    struct ramdisk *heal; /* The other task ends heal's write faults */
+    int heal_at; /* in this round */
 } t;
 
-static int fake_init(void)
+int cm_transport_init(void)
 {
     if (t.stopped) {
         /* The next host */
@@ -146,7 +152,7 @@ static int fake_init(void)
     return (t.init_calls > t.max_inits) ? -PB_ERR_IO : PB_OK;
 }
 
-static int fake_connect(void)
+int cm_transport_connect(void)
 {
     t.connect_calls++;
     if (t.connect_ok_after >= 0 && t.connect_calls > t.connect_ok_after)
@@ -154,13 +160,13 @@ static int fake_connect(void)
     return t.connect_rc;
 }
 
-static int fake_disconnect(void)
+int cm_transport_disconnect(void)
 {
     t.disconnect_calls++;
     return PB_OK;
 }
 
-static int fake_read(void *buf, size_t length)
+int cm_transport_read(void *buf, size_t length)
 {
     if (t.fail_reads_after == 0)
         return -PB_ERR_IO;
@@ -172,7 +178,7 @@ static int fake_read(void *buf, size_t length)
     return PB_OK;
 }
 
-static int fake_write(const void *buf, size_t length)
+int cm_transport_write(const void *buf, size_t length)
 {
     if (t.fail_writes_after == 0)
         return -PB_ERR_IO;
@@ -195,8 +201,10 @@ static int fake_write(const void *buf, size_t length)
     return PB_OK;
 }
 
-static int fake_complete(void)
+int cm_transport_complete(void)
 {
+    t.complete_calls++;
+
     if (t.n_complete_rcs > 0) {
         int rc = t.complete_rcs[0];
         memmove(&t.complete_rcs[0], &t.complete_rcs[1], sizeof(int) * --t.n_complete_rcs);
@@ -238,11 +246,14 @@ static int fake_complete(void)
     return PB_OK;
 }
 
-static void fake_process(void)
+/* Another task of the build, which runs once per round whatever command
+ * mode's task waits for (board.md 4.6) */
+static int other_task(void)
 {
-    t.process_calls++;
-    if (t.heal != NULL && t.process_calls == t.heal_at)
+    t.rounds++;
+    if (t.heal != NULL && t.rounds == t.heal_at)
         t.heal->fail_writes_after = -1;
+    return PB_OK;
 }
 
 /* The board */
@@ -252,13 +263,10 @@ static int
 board_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
 static int password_auth(const char *password, size_t length);
 
-#define TOPS .init = fake_init, .read = fake_read, .write = fake_write, .complete = fake_complete
-
 static const struct cm_config cfg_default = {
     .name = "unit test",
     .status = board_status,
     .command = board_command,
-    .tops = { TOPS },
 };
 
 static const struct cm_config cfg_all_callbacks = {
@@ -266,17 +274,33 @@ static const struct cm_config cfg_all_callbacks = {
     .status = board_status,
     .command = board_command,
     .password_auth = password_auth,
-    .process = fake_process,
-    .tops = { TOPS, .connect = fake_connect, .disconnect = fake_disconnect },
 };
 
 static const struct cm_config *board_cfg;
+static int board_init_calls;
 
 int cm_board_init(void)
 {
+    board_init_calls++;
     if (board_init_rc != PB_OK)
         return board_init_rc;
     return cm_init(board_cfg);
+}
+
+/* The platform's part of the set up: the USB port (platform.md 3.10) */
+static struct {
+    int rc;
+    int calls;
+    int board_inits_before; /* cm_board_init() calls when it was called */
+    int transport_inits_before;
+} plat_cm;
+
+int plat_cm_init(void)
+{
+    plat_cm.calls++;
+    plat_cm.board_inits_before = board_init_calls;
+    plat_cm.transport_inits_before = t.init_calls;
+    return plat_cm.rc;
 }
 
 static int board_status_rc;
@@ -609,6 +633,24 @@ static void host_stops(void)
     t.max_inits++;
 }
 
+/* The loop of the tasks, as main() runs it while pb is stopped (board.md
+ * 4.6): the watchdog is kicked once per round, and each task is called in
+ * turn until one returns an error */
+static int cm_run(void)
+{
+    int rc;
+
+    do {
+        plat_wdog_kick();
+        rc = other_task();
+
+        if (rc == PB_OK)
+            rc = cm_main_task();
+    } while (rc == PB_OK);
+
+    return rc;
+}
+
 /* Runs command mode until the host is done */
 static void run(void)
 {
@@ -687,6 +729,8 @@ static int setup(void **state)
     crypto.verify_ok = true;
     board_cfg = &cfg_default;
     board_init_rc = PB_OK;
+    board_init_calls = 0;
+    memset(&plat_cm, 0, sizeof(plat_cm));
     board_status_rc = PB_OK;
     /* The clock runs: a failed authentication waits on it (F-276) */
     fake_us_tick_step = TICK_STEP_US;
@@ -744,7 +788,6 @@ static void test_board_id_fills_the_field(void **state)
         .name = "16 characters...",
         .status = board_status,
         .command = board_command,
-        .tops = { TOPS },
     };
     (void)state;
 
@@ -2234,7 +2277,9 @@ static void test_stream_write_done(void **state)
     t.connect_ok_after = 0;
     f->disk->fail_writes_after = 0;
     t.heal = f->disk;
-    t.heal_at = t.process_calls + 4;
+    /* The first round sets up and starts the read of the first command, so
+     * the fourth command is handled in the fifth round */
+    t.heal_at = t.rounds + 5;
     stream_write_block(0);
     stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
     stream_write(1, RAMDISK_BLOCK_SIZE, 0);
@@ -2386,6 +2431,102 @@ static void test_run_errors(void **state)
     assert_int_equal(t.disconnect_calls, 1);
 }
 
+/* The set up starts with the platform's (command-mode.md 2.1, platform.md
+ * 3.10): plat_cm_init(), before the board's data is checked and before the
+ * transport is started, and once: not again when the transport is restarted */
+static void test_setup_platform_first(void **state)
+{
+    (void)state;
+
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(plat_cm.calls, 1);
+    assert_int_equal(plat_cm.board_inits_before, 0);
+    assert_int_equal(plat_cm.transport_inits_before, 0);
+    assert_int_equal(board_init_calls, 1);
+}
+
+/* A platform that can't set up the port: no command mode (platform.md 3.10).
+ * Nothing after it is set up, and the error is what pb resets on */
+static void test_setup_platform_fails(void **state)
+{
+    (void)state;
+
+    plat_cm.rc = -PB_ERR_TIMEOUT;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    assert_int_equal(cm_run(), -PB_ERR_TIMEOUT);
+    assert_int_equal(plat_cm.calls, 1);
+    assert_int_equal(board_init_calls, 0);
+    assert_int_equal(t.init_calls, 0);
+    expect_end();
+}
+
+/*
+ * board.md 4.6, command-mode.md 2: command mode is a task, and a call never
+ * waits for the host. Its first call sets up and starts the transport;
+ * without a session a call polls the transport once (2.2), with one it polls
+ * the read of the next command once (usb.md 2.4), and each returns PB_OK to
+ * be called again. It doesn't kick the watchdog while it waits: the core
+ * does, once per round. A command that has come runs to its end in the call,
+ * and the read of the next one is started.
+ */
+static void test_task_polls_once_per_call(void **state)
+{
+    unsigned int kicks = fake_wdog_kicks;
+    (void)state;
+
+    t.connect_rc = -PB_ERR_AGAIN;
+    t.connect_ok_after = 2;
+    t.complete_rcs[0] = -PB_ERR_AGAIN;
+    t.complete_rcs[1] = -PB_ERR_AGAIN;
+    t.n_complete_rcs = 2;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+
+    /* Its first call: the set up, the transport started, one poll */
+    assert_int_equal(cm_main_task(), PB_OK);
+    assert_int_equal(plat_cm.calls, 1);
+    assert_int_equal(board_init_calls, 1);
+    assert_int_equal(t.init_calls, 1);
+    assert_int_equal(t.connect_calls, 1);
+
+    assert_int_equal(cm_main_task(), PB_OK);
+    assert_int_equal(t.connect_calls, 2);
+    assert_false(t.read_pending);
+
+    /* Ready: the session starts with the read of its first command */
+    assert_int_equal(cm_main_task(), PB_OK);
+    assert_int_equal(t.connect_calls, 3);
+    assert_true(t.read_pending);
+    assert_int_equal(t.complete_calls, 0);
+
+    /* No command yet */
+    assert_int_equal(cm_main_task(), PB_OK);
+    assert_int_equal(t.complete_calls, 1);
+    assert_int_equal(cm_main_task(), PB_OK);
+    assert_int_equal(t.complete_calls, 2);
+    assert_int_equal(t.out_len, 0);
+    assert_int_equal(fake_wdog_kicks, kicks);
+    /* The set up ran once, the transport was started once */
+    assert_int_equal(plat_cm.calls, 1);
+    assert_int_equal(t.init_calls, 1);
+
+    /* The command has come */
+    assert_int_equal(cm_main_task(), PB_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_true(t.read_pending);
+
+    /* The host goes, and the fake has no second one: the task ends the loop */
+    run();
+    expect_end();
+}
+
 static void test_run_connect(void **state)
 {
     (void)state;
@@ -2398,7 +2539,8 @@ static void test_run_connect(void **state)
     run();
     assert_int_equal(t.connect_calls, 3);
     expect_result(PB_RESULT_OK);
-    assert_true(t.process_calls >= 1);
+    /* The other task ran while the transport wasn't ready (usb.md 2.2) */
+    assert_true(t.rounds >= 3);
 
     /* A connect error */
     t.init_calls = 0;
@@ -3237,6 +3379,9 @@ int main(void)
         CM_TEST(test_boot_bpak),
         CM_TEST(test_boot_bpak_refused_before_the_header),
         CM_TEST(test_run_errors),
+        CM_TEST(test_setup_platform_first),
+        CM_TEST(test_setup_platform_fails),
+        CM_TEST(test_task_polls_once_per_call),
         CM_TEST(test_run_connect),
         CM_TEST(test_run_retries),
         CM_TEST(test_transport_errors_in_commands),

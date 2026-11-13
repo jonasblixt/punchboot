@@ -5,7 +5,9 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * Command mode transport over a unix domain socket.
+ * Command mode transport over a unix domain socket: the host platform's
+ * implementation of the cm_transport_*() functions (pb/cm.h, usb.md 2.6),
+ * which pb-host links in place of the USB class driver.
  *
  * The command mode loop uses an asynchronous API: 'read'/'write' queue a
  * transfer and 'complete' polls it (usb.md 2.4): it moves what the socket
@@ -17,6 +19,7 @@
  */
 
 #include <errno.h>
+#include <pb/cm.h>
 #include <pb/pb.h>
 #include <plat/host/host.h>
 #include <poll.h>
@@ -80,7 +83,7 @@ static int socket_listen(void)
     return PB_OK;
 }
 
-int host_socket_init(void)
+int cm_transport_init(void)
 {
     int rc;
 
@@ -108,7 +111,21 @@ int host_socket_init(void)
     return PB_OK;
 }
 
-int host_socket_read(void *buf, size_t length)
+/* The accept is in init, which blocks until a client connects (F-287):
+ * nothing is left to wait for */
+int cm_transport_connect(void)
+{
+    return PB_OK;
+}
+
+/* Nothing, as before the transport was linked: the connection stays until
+ * init accepts the next client or the process exits */
+int cm_transport_disconnect(void)
+{
+    return PB_OK;
+}
+
+int cm_transport_read(void *buf, size_t length)
 {
     xfer.pending = true;
     xfer.is_read = true;
@@ -118,7 +135,7 @@ int host_socket_read(void *buf, size_t length)
     return PB_OK;
 }
 
-int host_socket_write(const void *buf, size_t length)
+int cm_transport_write(const void *buf, size_t length)
 {
     xfer.pending = true;
     xfer.is_read = false;
@@ -128,7 +145,7 @@ int host_socket_write(const void *buf, size_t length)
     return PB_OK;
 }
 
-int host_socket_complete(void)
+int cm_transport_complete(void)
 {
     struct pollfd pfd = { .fd = client_fd };
 

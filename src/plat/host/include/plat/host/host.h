@@ -12,7 +12,8 @@
  *  - Block devices are backed by files.
  *  - With --nor, a file is also mapped read only at BOARD_NOR_BASE: a memory
  *    mapped flash, for partitions that are booted in place.
- *  - The command mode transport is a unix domain socket.
+ *  - The command mode transport is a unix domain socket (socket.c has the
+ *    cm_transport_*() functions of pb/cm.h).
  *  - A reset terminates the process.
  */
 
@@ -52,11 +53,5 @@ int host_nor_map(const char *path, uintptr_t base, size_t size);
  * writes the file. -PB_ERR_NOT_FOUND without --nor.
  */
 bio_dev_t host_nor_init(const uuid_t uu, const char *description);
-
-/* Command mode transport over a unix domain socket */
-int host_socket_init(void);
-int host_socket_read(void *buf, size_t length);
-int host_socket_write(const void *buf, size_t length);
-int host_socket_complete(void);
 
 #endif // PLAT_HOST_HOST_H

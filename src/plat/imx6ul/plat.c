@@ -14,6 +14,8 @@
 #include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/tzc/tzc380.h>
+#include <drivers/usb/imx_ci_udc.h>
+#include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
@@ -401,6 +403,19 @@ int plat_init(void)
 
     return PB_OK;
 }
+
+#ifdef CONFIG_IMX6UL_CM_USB_OTG1
+/* Command mode's USB (platform.md 3.10): USB OTG1, with USBPHY1 and the
+ * clocks of PLL_USB1 */
+int plat_cm_init(void)
+{
+    /* Enable USB PLL */
+    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
+
+    imx_usb2_phy_init(IMX6UL_USBPHY1_BASE);
+    return imx_ci_udc_init(IMX6UL_USB1_BASE);
+}
+#endif
 
 int plat_get_boot_source(struct pb_boot_source *src)
 {

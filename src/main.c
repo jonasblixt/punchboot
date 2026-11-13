@@ -10,12 +10,40 @@
 #include <boot/boot.h>
 #include <pb/arch.h>
 #include <pb/board.h>
-#include <pb/cm.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/ramlog.h>
+#include <pb/task.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+/*
+ * Stopped (system.md 2): the build's tasks, one after the other, again and
+ * again, until one returns an error (board.md 4.6). Command mode is one of
+ * them, in a build that has it. The watchdog is kicked once per round, and
+ * no task kicks it. A build without a task returns at once.
+ */
+static void run_tasks(void)
+{
+    bool ran;
+
+    do {
+        ran = false;
+        plat_wdog_kick();
+
+        for (const struct pb_task *task = __start_pb_tasks; task < __stop_pb_tasks; task++) {
+            int rc = task->run();
+
+            ran = true;
+
+            if (rc != PB_OK) {
+                LOG_INFO("Task %s ended (%i)", task->name, rc);
+                return;
+            }
+        }
+    } while (ran);
+}
 
 void main(void)
 {
@@ -50,9 +78,7 @@ void main(void)
 
 enter_command_mode:
     printf("Boot aborted (%i), entering command mode\n\r", rc);
-#ifdef CONFIG_CM
-    cm_run();
-#endif
+    run_tasks();
     plat_reset();
 }
 
