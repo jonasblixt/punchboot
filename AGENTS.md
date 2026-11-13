@@ -64,8 +64,8 @@ Skip unless the task is about them: `pki/` (test keys), vendored code
 
 - Firmware: C99 freestanding, return `PB_OK` or `-PB_ERR_*`, log via `LOG_ERR/INFO/DBG`.
 - Format: clang-format (C), ruff (Python, `select = ["ALL"]`). `pre-commit run --all-files` before committing.
-- Keep the boot path short (D-023): what only command mode uses is set up in `cm_run()`, not in
-  `main()` or the platform/board init. Defer whatever can wait.
+- Keep the boot path short (D-023): what only command mode uses is set up on the first call of
+  `cm_main_task()`, not in `main()` or the platform/board init. Defer whatever can wait.
 - Tests: `scripts/pbdev test` (~10 s once built). Firmware: `scripts/pbdev firmware jiffy`.
 - Release: bump `version.txt`, then tag `vX.Y.Z` on master. The tag publishes to PyPI.
 - Author email is `jonas@blxt.se`: commits and the copyright header of new files

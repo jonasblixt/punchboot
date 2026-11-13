@@ -1064,6 +1064,8 @@ static void test_board_command_requests_reboot(void **state)
     expect_result(PB_RESULT_OK);
     /* The next command is never read */
     expect_end();
+    /* The device leaves the bus before the reset (command-mode.md 2.3) */
+    assert_int_equal(t.disconnect_calls, 1);
 }
 
 static void test_device_reset(void **state)
@@ -1074,6 +1076,9 @@ static void test_device_reset(void **state)
     assert_int_equal(cm_run(), -PB_ERR_ABORT);
     expect_result(PB_RESULT_OK);
     expect_end();
+    /* The result is sent, then the transport is disconnected, then pb
+     * resets (command-mode.md 2.3) */
+    assert_int_equal(t.disconnect_calls, 1);
 }
 
 static void test_locked_device_requires_auth(void **state)
@@ -2512,19 +2517,27 @@ static void test_run_errors(void **state)
 
 /* The set up starts with the platform's (command-mode.md 2.1, platform.md
  * 3.10): plat_cm_init(), before the board's data is checked and before the
- * transport is started, and once: not again when the transport is restarted */
+ * transport is started, and once: not again when the transport is restarted,
+ * neither after a host that was lost while pb waited for a command nor after
+ * a transfer that was lost inside one */
 static void test_setup_platform_first(void **state)
 {
+    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
     (void)state;
 
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    /* Lost while waiting for a command */
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    /* Lost inside a command: the board command's request */
     host_lost(-PB_ERR_IO);
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
     run();
     expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* The board command's first, no second */
     expect_result(PB_RESULT_OK);
     expect_end();
-    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.init_calls, 4);
     assert_int_equal(plat_cm.calls, 1);
     assert_int_equal(plat_cm.board_inits_before, 0);
     assert_int_equal(plat_cm.transport_inits_before, 0);
@@ -2643,16 +2656,20 @@ static void test_run_retries(void **state)
 {
     (void)state;
 
-    /* The command read completes after a timeout and a retry */
+    /* The command read completes after a timeout and a retry: -PB_ERR_TIMEOUT
+     * while pb waits for a command is polled on, like -PB_ERR_AGAIN, and is
+     * not a lost transport (F-287). The fake starts once (max_inits is 1), so
+     * a restart on the timeout would end command mode with the command
+     * unanswered */
     t.complete_rcs[0] = -PB_ERR_TIMEOUT;
     t.complete_rcs[1] = -PB_ERR_AGAIN;
     t.n_complete_rcs = 2;
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
-    /* The host reconnects */
-    t.max_inits = 2;
     run();
     expect_result(PB_RESULT_OK);
-    assert_int_equal(t.init_calls, 3);
+    expect_end();
+    /* The start, and the restart when the host was gone after its command */
+    assert_int_equal(t.init_calls, 2);
 }
 
 static void test_transport_errors_in_commands(void **state)
