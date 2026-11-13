@@ -437,6 +437,16 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | or a parser in the core, for Jonas), (6) the signature's outer length (how strict: (b) and (c) | | |
 | | | refuse what a release took on the CAAM, for Jonas), (8) `stop`, (10) the RT1060's hashes, (11) the | | |
 | | | suite for both backends, (12) a second registration's code | | |
+| | | 2026-11-13 (`b982841b`, `539e946a`, `75debca1`, `279ea82f`, `109ce871`, `cd00f7df`): (3), (4), (11) | | |
+| | | and (12) are done: `final` checks its room and the CAAM stores the digest in a buffer of its own | | |
+| | | that is copied; a signature that doesn't verify is `-PB_ERR_SIGNATURE`, an engine error | | |
+| | | `-PB_ERR_IO`, a key that doesn't parse `-PB_ERR_ASN1` on both backends (every caller turns any of | | |
+| | | them into a refusal, nothing changes on the wire); one conformance suite runs against Mbed TLS and | | |
+| | | the CAAM's model; a second registration is `-PB_ERR_PARAM`. (8): `imx_caam_stop()` exists and | | |
+| | | nothing calls it yet (with F-247). Left: (5) and (6) for Jonas, (8)'s caller, (10): the RT1060 | | |
+| | | registers SHA-256 and MD5 while its keystore has P-384 and P-521 keys, so a SHA-384 or SHA-512 | | |
+| | | header and those keys' tokens are refused there (`crypto.md` 2: the build has every algorithm its | | |
+| | | keys use; the defconfig, for Jonas because of the flash it costs) | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
 | | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |
@@ -666,6 +676,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | timed out can still write the caller's buffer later (F-081). The i.MX8M Mini SRM's verify PDB | | |
 | | | differs from what the driver and OP-TEE use; the 6UL SRM asks for data on INIT, pb starts a short | | |
 | | | hash with none | | |
+| | | 2026-11-13 (`e6d029fe`, `6cdc2a6e`, `92ef51e5`): an address that isn't below 4 GiB is refused, the | | |
+| | | key buffer is cleared before a key is parsed (a cut key verified after a full one in the test), the | | |
+| | | key's point must be uncompressed and of its curve's length (what bpak writes for every key of a | | |
+| | | keystore; the three internal keys are pinned). Left, each needing a board: no job ring reset in | | |
+| | | init, the 8M Mini SRM's verify PDB, a short hash that starts with INIT and no data. And | | |
+| | | `imx_caam_init()` leaves its hash ops registered when `dsa_add_ops()` fails | | |
 | F-411 | `src/boot/dtb.c`, `src/lib/fdt` | A device tree part whose header lies about | Verified (run, host) | open |
 | | | more than `totalsize` reads outside its part: only the magic, the version and `totalsize` are | | |
 | | | checked, and `fdt_open_into()` trusts `off_dt_struct`, `off_dt_strings`, `off_mem_rsvmap` and the | | |
@@ -738,6 +754,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | ID | Finding | Status |
 |---|---|---|
 | F-020 | Mbed TLS pinned to 3.4.0 (EOL). The file list in `src/drivers/crypto/mbedtls/makefile.mk` is tied to that release. `mbedtls_config.h` enables MD5/BASE64/PKCS1_V21, which are unused. Corrected 2026-11-12: MD5 is used, for the device's UUID (`uuid3.c`, `crypto.md` 5); BASE64 and PKCS1_V21 unchecked. | open |
+| | 2026-11-13 (`a1c5a80f`): BASE64 and PKCS1_V21 are off; neither was compiled into a build, the | |
+| | RT1060's `pb.bin` is the same with and without. Left: the pin to 3.4.0 | |
 | F-022 | Vendored code has no version record: Kconfiglib, libfdt, libuuid, TF-A xlat_tables_v2 + libc, NXP SCFW (littlefs was removed). | open |
 
 ## Dead code / cleanup
