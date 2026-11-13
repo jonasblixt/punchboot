@@ -33,7 +33,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | The cause (F-190, `command-mode.md` 5.3): no board in the tree sets `READABLE` on a partition, | | |
 | | | and a bulk read without it answers an I/O error. The eMMC's BOOT0 and BOOT1 on 2.8.0 the same | | |
 | | | (was F-142). Left: which partitions a board lets a host read | | |
-| F-087 | `src/cm/cm_main.c` `error_to_wire` | `-PB_ERR_BAD_PAYLOAD` (payload hash mismatch) has no wire result, so the host reports "Generic error". `include/pb-tools/error.h` has no payload code. | Seen on jiffy (2026-10-22) | open: a new result code is a wire change, see `compatibility.md` (old hosts must handle an unknown code) |
 | F-100 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The timing copy for TF-A in `.umctl2` (NOLOAD, 0x40000000) never writes `fsp_msg`/`fsp_msg_num`, so TF-A gets whatever DRAM held. The copy's size (~12.5 KiB for the EVK) is not checked against the 128 KiB region, and nothing pins `struct dram_timing_info` to TF-A's layout. | Verified (read) | partly fixed (`imx8m-dram-cleanup`): the copy is a 128 KiB `struct dram_timing_save` and too large tables fail with `-PB_ERR_MEM`; `fsp_msg` is never read by upstream TF-A (only `fsp_table` and the tables), so harmless there; the layout pin is open |
 | F-102 | `src/drivers/ddr/{umctl2,dwc_ddrphy}.c`, `src/plat/imx8m/ddr_imx8mq.c` | Every poll in the DDR init (STAT, PHY mailbox, CalBusy, DFISTAT, SWSTAT, PLL lock) spins forever. A stuck PHY or bad board table hangs the board without a log. | Verified (read) | open: timeouts need a measurement on hardware |
 | F-104 | `src/drivers/ddr/dwc_ddrphy.c` `dwc_ddrphy_train` | The training results in the message block are never read. U-Boot (all i.MX8M) reads the trained critical delay differences after each 1D run and widens the rank-to-rank gaps (`DRAMTMG2` rd2wr/wr2rd, `RANKCTL`, per P-state) before the DFI init. The imx8mevk has two ranks (`MSTR.active_ranks` 3). TF-A reads these registers back at boot and restores them after retention, so it expects the bootloader to have applied the workaround. | Verified (read, and in the differential trace: U-Boot rewrites `DRAMTMG2`, `FREQ1_DRAMTMG2` and `RANKCTL` before `dfi_init_start`) | open: needs the message block layout and an imx8mevk |
@@ -96,13 +95,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `disconnect()` (F-252's second half) and `BIO_FLAG_READABLE` (F-083) | | |
 | | | 2026-11-13 (`132f13fc`): `boot_jump()` returning after `disconnect()` is done with F-252. Left: | | |
 | | | `BIO_FLAG_READABLE` (F-083) | | |
-| F-194 | `gpt.c:296`, `src/bio.c` | Installing a table from command mode doesn't update | Reported (probe) | open |
-| | | the bio pool: until a reset the old partitions are listed and written at their old LBAs. Not documented | | |
-| | | either. D-070, `bio.md` 4: in effect at once. An unchanged partition (UUID and blocks) keeps its | | |
-| | | handle and flags, a changed one's handle is dead and its slot unused until the reset, a new one | | |
-| | | gets a new slot; the stream ends and the policy's init runs again; no board hook runs again. For | | |
-| | | the code: `bio_get_part_by_uu()` and `cmd_part_tbl_read()` stop at the first slot that isn't | | |
-| | | valid; the pool needs room for both tables' partitions | | |
 | F-200 | storage, low | `imx_hab_fuses.c:159`: a partly programmed SRK word is refused as already | Reported | open |
 | | | fused. `mmc_core.c`: `mmc_wait_state()` and `mmc_bio_xfer()` (`max_chunk_bytes == 0`) can loop forever; | | |
 | | | a zero BOOT_MULT gives a 2^32 block bio. `imx_usdhc.c`: ADMA2 addresses truncated to 32 bits. | | |
@@ -333,6 +325,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
 | | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
 | | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |
+| | | 2026-11-13 (`404803b1`): `CONFIG_SLC_EOL`, off by default, on in the host's defconfig: without it | | |
+| | | `slc_set_eol()` and SLC_SET_EOL answer NOT_SUPPORTED and reach nothing, which is what every board | | |
+| | | answered already (no port has `set_eol`). Left: each port's own end of life, or why it can't | | |
 | F-325 | `doc/interfaces/board.md` 5.3, `include/boot/image_helpers.h` | What 5.3 doesn't say | Verified (code) | open |
 | | | about `boot_image_get_bpak_header()`, and what the code does since F-266. (1) Its header: | | |
 | | | `boot/image_helpers.h`, with the format's other functions, so a board that asks for the header | | |
@@ -727,6 +722,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `test_plat_imx6ul`, `test_plat_imx8m` and `test_imx_wdog` | | |
 | | | 2026-11-13 (`caf92c7b`): the USB serial number of a device without an identity is the nil UUID. | | |
 | | | Left: `cm_setup()` (command mode's second package), the rest | | |
+| | | 2026-11-13 (`f1876f9e`): command mode's set-up fails when the device's UUID can't be read, as its | | |
+| | | other set-up errors do, and pb resets: a token over a null UUID would be every such device's. Left: | | |
+| | | the 8X's unique id that can't fail, `CONFIG_WATCHDOG_TIMEOUT`'s range, the GPT1 gates, | | |
+| | | `testing.md`'s rows | | |
 | F-417 | `src/boot/atf.c` `optee_rw()` | Low. The `optee-arch` meta is read as a `uint32_t` | Reported (read) | open |
 | | | without a look at the meta's size: F-065's class, signed input only. From F-065's package | | |
 | F-418 | build, low | From the build package. `tests/02e49231-...token` is tracked and matches | Reported | open |
@@ -760,6 +759,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | command mode leaves. The ChipIdea's cancel and restart loses a command that arrives between the | | |
 | | | stack's check and the flush. `transport.py` `_usb_uuid()` has F-287 (9)'s stale sentence. | | |
 | | | `testing.md` has no rows for `test_usbd`, `test_imx_ci_udc` and `test_cdns3_udc` | | |
+| F-423 | `error.h`, `bio.md` 4, `cm_main.c`, `command-mode.md` 4.5 | Low, from command mode's | Reported (read) | open |
+| | | second package. `include/pb-tools/error.h` declares `pb_error_string()`, which nothing defines. | | |
+| | | `bio.md` 4 doesn't say which flags a new partition of an installed table starts with (the code: | | |
+| | | the device's at set-up, and none a released partition with its UUID lacked), nor what a failed | | |
+| | | install leaves in the pool. Command mode's cached life cycle isn't read again after an install: | | |
+| | | on the host board the fuse partition's handle can die with variant 2. `test_part.py` still says | | |
+| | | the new table is used after the next boot. 4.5's table has no row for `PB_RESULT_BAD_PAYLOAD` | | |
 
 ## Dependencies / vendored code
 
@@ -774,9 +780,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 
 | ID | Finding | Status |
 |---|---|---|
-| F-032 | Deprecated commands still handled: `PART_TBL_INSTALL`, `PART_RESIZE`, `AUTH_SET_PASSWORD`. `pb_wire_command_string`/`pb_wire_slc_string` are stubs. Corrected 2026-11-12 (`command-mode.md` 5.3, 5.8): only `PART_RESIZE` is retired. `PART_TBL_INSTALL` is in use (`board.md` 2.4), and `AUTH_SET_PASSWORD` was never implemented and is to be (`roadmap.md`). | open: removing them breaks old hosts (D-008); at most answer `NOT_SUPPORTED`, never reuse the slots |
-| | Left after the correction: `PART_RESIZE` still has its case in `cm_main.c`, and the two string | |
-| | functions in `src/wire.c` return "" | |
 | F-033 | imx8mevk unfinished (`board_init` returns error, no Kconfig). Orphan defconfigs `bebop`, `pico8ml`. imxrt untouched since 2023. | open: ask Jonas |
 | | Checked 2026-11-12: imx8mevk is described by `struct board` and builds, what it lacks is F-300. | |
 | | The RT1060 EVK runs on the bench. Left: `bebop_defconfig` and `pico8ml_defconfig` have no | |

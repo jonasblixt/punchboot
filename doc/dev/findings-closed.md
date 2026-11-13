@@ -1158,6 +1158,23 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-13 (`bd2df79f`): the MMC line is done, with a test that compiles the MMC sources at log | | |
 | | | level 0. Left: `dwc3_udc.c` (the USB package) | | |
 | | | The MMC's and the DWC3's variables that only a log line uses | | |
+| F-087 | `src/cm/cm_main.c` `error_to_wire` | `-PB_ERR_BAD_PAYLOAD` (payload hash mismatch) has no wire result, so the host reports "Generic error". `include/pb-tools/error.h` has no payload code. | Seen on jiffy (2026-10-22) | fixed (`3be3bece`) |
+| | | `PB_RESULT_BAD_PAYLOAD` (18) is appended before the sentinel and `abi.txt` grew by its line; the | | |
+| | | host has `BadPayloadError`, a `GenericError`. A v2.7.1 host (the same at v2.0.0) takes any code from | | |
+| | | `PB_RESULT_END` up as a generic error, as it reported this case before; the 1.x host isn't in the | | |
+| | | tree and wasn't read. Only a corrupt image's `boot part` and `boot bpak` answer differently | | |
+| F-194 | `gpt.c:296`, `src/bio.c` | Installing a table from command mode doesn't update | Reported (probe) | fixed (`6cb29af9`) |
+| | | the bio pool: until a reset the old partitions are listed and written at their old LBAs. Not documented | | |
+| | | either. D-070, `bio.md` 4: in effect at once. An unchanged partition (UUID and blocks) keeps its | | |
+| | | handle and flags, a changed one's handle is dead and its slot unused until the reset, a new one | | |
+| | | gets a new slot; the stream ends and the policy's init runs again; no board hook runs again. For | | |
+| | | the code: `bio_get_part_by_uu()` and `cmd_part_tbl_read()` stop at the first slot that isn't | | |
+| | | valid; the pool needs room for both tables' partitions | | |
+| | | An installed table is in effect at once: an unchanged partition keeps its handle and flags, a | | |
+| | | changed or removed one's handle is dead and its slot unused until the reset, a new one gets a new | | |
+| | | slot; the stream ends and the policy's init runs again; no board hook runs. A full pool answers | | |
+| | | `-PB_ERR_MEM` with the table on the device. The same bytes on the medium and on the wire as before. | | |
+| | | Not run on a board | | |
 
 ## Dependencies / vendored code
 
@@ -1174,6 +1191,13 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-031 | Stale `-I src/libc/include/...` in the armv7a/armv8a makefiles. The gcovr excludes still name `bearssl` and `src/fdt`. | fixed (`45a13b44`): the three -I paths; the gcovr excludes were gone since `5e336062` |
 | F-030 | libc files never compiled: `memcpy.c`, `strncmp.c`, `strlcpy.c`, `strnlen.c`, `strrchr.c`. Also `xlat_tables_v2/aarch32/nonlpae_tables.c`. | fixed (`6a2828b7`) |
 | | The six files are removed; no board and no host build compiled one | |
+| F-032 | Deprecated commands still handled: `PART_TBL_INSTALL`, `PART_RESIZE`, `AUTH_SET_PASSWORD`. `pb_wire_command_string`/`pb_wire_slc_string` are stubs. Corrected 2026-11-12 (`command-mode.md` 5.3, 5.8): only `PART_RESIZE` is retired. `PART_TBL_INSTALL` is in use (`board.md` 2.4), and `AUTH_SET_PASSWORD` was never implemented and is to be (`roadmap.md`). | closed (`17a3be7c`) |
+| | Left after the correction: `PART_RESIZE` still has its case in `cm_main.c`, and the two string | |
+| | functions in `src/wire.c` return "" | |
+| | What was left is what the contract has: `PART_RESIZE` keeps its case and answers NOT_SUPPORTED | |
+| | behind the gate (`command-mode.md` 5.8), the comments say so now; nothing calls | |
+| | `pb_wire_command_string()` and `pb_wire_slc_string()`, which have returned "" since 1.0.0 and are | |
+| | left | |
 
 ## Build / CI / docs
 
