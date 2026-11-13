@@ -92,6 +92,7 @@ enum pb_commands {
     PB_CMD_PART_RESIZE,
     PB_CMD_BOOT_STATUS,
     PB_CMD_LOG_READ,
+    PB_CMD_COMMAND_LIST,
     PB_CMD_END, /* Sentinel, must be the last entry */
 };
 
@@ -359,6 +360,27 @@ PACK(struct pb_command_board {
 PACK(struct pb_result_board {
     uint32_t size; /*!< Bytes to read after the result structure */
     uint8_t rz[28]; /*!< Reserved */
+});
+
+/**
+ * The named commands' list (doc/architecture/command-mode.md 5.6)
+ *
+ * COMMAND_LIST answers with this result, then 'count' entries of
+ * struct pb_result_command_list_entry when 'count' isn't 0. A command is
+ * run with PB_CMD_BOARD_COMMAND, by pb_id() of its name.
+ */
+PACK(struct pb_result_command_list {
+    uint32_t count; /*!< Entries to read after the result structure */
+    uint8_t rz[28]; /*!< Reserved */
+});
+
+/**
+ * A named command in the list
+ */
+PACK(struct pb_result_command_list_entry {
+    char name[32]; /*!< 1 to 31 characters of [a-z0-9-], NUL padded */
+    char help[80]; /*!< One line, at most 79 characters, NUL padded */
+    uint8_t rz[16]; /*!< Reserved */
 });
 
 /**

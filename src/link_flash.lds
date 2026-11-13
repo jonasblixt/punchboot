@@ -73,6 +73,12 @@ SECTIONS
         PROVIDE (__start_pb_tasks = .);
         KEEP(*(pb_tasks))
         PROVIDE (__stop_pb_tasks = .);
+        /* The named commands that DEFINE_COMMAND() declares (pb/command.h),
+         * kept for the same reason (platform.md 5.1) */
+        . = ALIGN(8);
+        PROVIDE (__start_pb_commands = .);
+        KEEP(*(pb_commands))
+        PROVIDE (__stop_pb_commands = .);
         . = ALIGN(16);
         . = ALIGN(1024);
         _erodata = .;

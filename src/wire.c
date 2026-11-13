@@ -44,6 +44,9 @@ _Static_assert(sizeof(struct pb_command_bpak_boot) == 32, "pb_command_bpak_boot 
 _Static_assert(sizeof(struct pb_command_board) == 32, "pb_command_board size");
 _Static_assert(sizeof(struct pb_result_board) == 32, "pb_result_board size");
 _Static_assert(sizeof(struct pb_result_board_status) == 32, "pb_result_board_status size");
+_Static_assert(sizeof(struct pb_result_command_list) == 32, "pb_result_command_list size");
+_Static_assert(sizeof(struct pb_result_command_list_entry) == 128,
+               "pb_result_command_list_entry size");
 _Static_assert(sizeof(struct pb_result_boot_status) == 32, "pb_result_boot_status size");
 _Static_assert(sizeof(struct pb_command_log_read) == 32, "pb_command_log_read size");
 _Static_assert(sizeof(struct pb_result_log_read) == 32, "pb_result_log_read size");

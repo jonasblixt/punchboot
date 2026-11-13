@@ -20,7 +20,7 @@
 
 /*
  * Stopped (system.md 2): the build's tasks, one after the other, again and
- * again, until one returns an error (board.md 4.6). Command mode is one of
+ * again, until one returns an error (board.md 4.5). Command mode is one of
  * them, in a build that has it. The watchdog is kicked once per round, and
  * no task kicks it. A build without a task returns at once.
  */

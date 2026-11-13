@@ -73,6 +73,7 @@ static void wire(void)
     VALUE(PB_CMD_PART_RESIZE);
     VALUE(PB_CMD_BOOT_STATUS);
     VALUE(PB_CMD_LOG_READ);
+    VALUE(PB_CMD_COMMAND_LIST);
     ID(PB_LOG_ID_PB);
     ID(PB_LOG_ID_LIST);
 
@@ -239,6 +240,12 @@ static void wire(void)
     FIELD(pb_result_log_read, size);
     FIELD(pb_result_log_read, head);
     FIELD(pb_result_log_read, log);
+
+    STRUCT(pb_result_command_list);
+    FIELD(pb_result_command_list, count);
+    STRUCT(pb_result_command_list_entry);
+    FIELD(pb_result_command_list_entry, name);
+    FIELD(pb_result_command_list_entry, help);
 }
 
 static void bpak(void)

@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * Tasks: what runs while pb is stopped (doc/interfaces/board.md 4.6, D-051).
+ * Tasks: what runs while pb is stopped (doc/interfaces/board.md 4.5, D-051).
  *
  * When the boot failed, was refused or was stopped, main() calls every task
  * of the build, one after the other, again and again, until one returns an
