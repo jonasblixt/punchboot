@@ -141,5 +141,12 @@ void emmc_model_fail_write(enum bus_data_status status); /* Next block written *
 void emmc_model_status_error(uint8_t idx, uint32_t bits);
 /* Power is lost after 'blocks' more written blocks, < 0: never */
 void emmc_model_power_loss_after(int blocks);
+/*
+ * From now on every CMD13 reports CURRENT_STATE 'state' and READY_FOR_DATA as
+ * given, whatever the device does: a device that never gets there. Each
+ * such CMD13 takes 1 us of simulated time; polling it for more than the
+ * bench's limit fails the test (bench_check_stuck())
+ */
+void emmc_model_stuck(enum emmc_state state, bool ready_for_data);
 
 #endif // TESTS_UNIT_MODELS_EMMC_MODEL_H

@@ -552,6 +552,20 @@ static void test_power_off(void **state)
     assert_bench_clean();
 }
 
+/* drivers.md 3 (F-200): a device that answers CMD13 ready but never reaches
+ * Transfer state after CMD7 fails the init with -PB_ERR_TIMEOUT, within
+ * the wait's bound, where mmc_wait_state() polled it for ever */
+static void test_wait_state_is_bounded(void **state)
+{
+    (void)state;
+
+    card = emmc_model_init(&card_cfg);
+    emmc_model_stuck(EMMC_STBY, true);
+    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), -PB_ERR_TIMEOUT);
+    assert_true(bench_now_us() < 1000000);
+    assert_int_equal(emmc_model_cmd_count(MMC_CMD_SEND_EXT_CSD), 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -585,6 +599,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_cmd6_times_not_defined, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ext_csd_at_tran_speed, setup, teardown),
         cmocka_unit_test_setup_teardown(test_tran_speed_20mhz, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_wait_state_is_bounded, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

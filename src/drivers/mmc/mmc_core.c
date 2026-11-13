@@ -141,15 +141,23 @@ int mmc_device_state(struct mmc_device *dev, unsigned int timeout_ms)
 
 int mmc_wait_state(struct mmc_device *dev, int state, unsigned int timeout_ms)
 {
+    struct pb_timeout to;
     int rc;
 
-    do {
+    /* timeout_ms bounds the whole wait, the caller's source is its bound's */
+    pb_timeout_init_us(&to, timeout_ms * 1000);
+
+    while (true) {
         rc = mmc_device_state(dev, timeout_ms);
         if (rc < 0)
             return rc;
-    } while (rc != state);
-
-    return PB_OK;
+        if (rc == state)
+            return PB_OK;
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Card state %i, not %i, after %u ms", rc, state, timeout_ms);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 }
 
 int mmc_set_bus_clock(struct mmc_device *dev, unsigned int clk_hz)

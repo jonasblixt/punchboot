@@ -298,6 +298,8 @@ static struct emmc {
     int status_error_idx;
     uint32_t status_error_bits;
     int power_loss_blocks;
+    int stuck_state; /* < 0: CMD13 reports the device's state */
+    bool stuck_ready;
 } emmc;
 
 static const char *state_name(enum emmc_state s)
@@ -1281,6 +1283,16 @@ static void card_cmd(struct bus_card *card, const struct bus_cmd *cmd, struct bu
                 (emmc.app_cmd ? ST_APP_CMD : 0);
     emmc.status &= ~(pending & ST_ERROR_BITS);
 
+    /* A device that doesn't move on: each status takes a microsecond, and a
+     * host that polls it for ever is stuck */
+    if (cmd->idx == 13 && emmc.stuck_state >= 0) {
+        rsp->r[0] &= ~((0xfu << ST_STATE_SHIFT) | ST_READY_FOR_DATA);
+        rsp->r[0] |= ((uint32_t)emmc.stuck_state << ST_STATE_SHIFT) |
+                     (emmc.stuck_ready ? ST_READY_FOR_DATA : 0);
+        bench_advance_us(1);
+        bench_check_stuck("CMD13 polled");
+    }
+
     /* Execution mode errors for the test, reported with the next response */
     if ((int)cmd->idx == emmc.status_error_idx) {
         emmc.status_error_idx = -1;
@@ -1503,6 +1515,7 @@ struct bus_card *emmc_model_init(const struct emmc_model_config *cfg)
     emmc.fail_switch_index = -1;
     emmc.status_error_idx = -1;
     emmc.power_loss_blocks = -1;
+    emmc.stuck_state = -1;
     go_idle();
     return &emmc.bus;
 }
@@ -1621,4 +1634,10 @@ void emmc_model_status_error(uint8_t idx, uint32_t bits)
 void emmc_model_power_loss_after(int blocks)
 {
     emmc.power_loss_blocks = blocks;
+}
+
+void emmc_model_stuck(enum emmc_state state, bool ready_for_data)
+{
+    emmc.stuck_state = (int)state;
+    emmc.stuck_ready = ready_for_data;
 }
