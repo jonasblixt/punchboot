@@ -240,6 +240,9 @@ Unit tests, by module under test:
 |                                               | SCFW client (`sci/`),        | messaging unit; the fuses, the   |
 |                                               | `imx_gpt.c`                  | RoT and SLC helpers, the MMU     |
 |                                               |                              | (`fakes/xlat.c`)                 |
+| `test_imx8x_dry_run.c`                        | `plat/imx8x/`'s fuse, RoT    | the SCFW's fuse and SECO calls   |
+|                                               | and SLC helpers, with the    |                                  |
+|                                               | fuse dry run                 |                                  |
 | `test_mmc_core.c`                             | `mmc_core.c` (boot partition | fake card                        |
 |                                               | updates, power loss)         |                                  |
 | `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |

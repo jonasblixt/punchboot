@@ -521,6 +521,16 @@ pb_plat_test(test_plat_imx8x
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
 
+# The i.MX8X's fuse dry run: the fuse, RoT and SLC helpers with the SCFW's
+# calls faked by the test
+pb_unit_test(test_imx8x_dry_run SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/fusebox.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/rot_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/slc_helpers.c
+)
+target_compile_definitions(test_imx8x_dry_run PRIVATE
+    CONFIG_PLAT_IMX8X=1 CONFIG_IMX8X_FUSE_DRY_RUN=1)
+target_include_directories(test_imx8x_dry_run PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
 # The WDOG's driver alone, on the register file
 pb_plat_test(test_imx_wdog
     SOURCES ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
