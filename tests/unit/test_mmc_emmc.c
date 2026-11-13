@@ -591,6 +591,22 @@ static void test_no_boot_partitions(void **state)
     assert_bench_clean();
 }
 
+/* drivers.md 3 (F-281): after a transfer the card's state is polled until
+ * it is back in Transfer state, for a bounded time. A card that stays in
+ * Programming, ready for data, fails the write with -PB_ERR_TIMEOUT */
+static void test_state_after_a_transfer_is_bounded(void **state)
+{
+    static uint8_t out[512];
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    uint64_t start = bench_now_us();
+
+    emmc_model_stuck(EMMC_PRG, true);
+    assert_int_equal(bio_write(part(UU_USER), 0, sizeof(out), out), -PB_ERR_TIMEOUT);
+    assert_true(bench_now_us() - start < 2000000);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -626,6 +642,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_tran_speed_20mhz, setup, teardown),
         cmocka_unit_test_setup_teardown(test_wait_state_is_bounded, setup, teardown),
         cmocka_unit_test_setup_teardown(test_no_boot_partitions, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_state_after_a_transfer_is_bounded, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

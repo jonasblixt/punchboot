@@ -17,19 +17,28 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MMC_CORE_MAX_DEVICES   CONFIG_MMC_CORE_MAX_DEVICES
-#define MMC_DEFAULT_TIMEOUT_ms 15
-#define MMC_ID_CLK_HZ          400000 /* Identification clock */
+#define MMC_CORE_MAX_DEVICES    CONFIG_MMC_CORE_MAX_DEVICES
+#define MMC_DEFAULT_TIMEOUT_ms  15
+#define MMC_ID_CLK_HZ           400000 /* Identification clock */
 
 /* The largest value of the EXT_CSD timeout fields, used until they are read and when they are
  * 0, "not defined" (JESD84-B51 7.4.31, 7.4.32, 7.4.56) */
-#define MMC_CMD6_TIME_MAX_ms   2550
+#define MMC_CMD6_TIME_MAX_ms    2550
+
+/*
+ * The card's state after a block transfer. The HAL has waited for the end of
+ * the data and of the busy after written data (struct mmc_cmd), so a card is
+ * back in Transfer state at the first CMD13. The bound is twice the longest
+ * write busy the SD Physical Layer allows, 500 ms for SDXC (4.6.2.2), far
+ * above that
+ */
+#define MMC_XFER_END_TIMEOUT_ms 1000
 
 /* bio HAL flags: the e.MMC hardware partition of a bio device */
-#define MMC_BIO_FLAG_BOOT0     BIT(0)
-#define MMC_BIO_FLAG_BOOT1     BIT(1)
-#define MMC_BIO_FLAG_RPMB      BIT(2)
-#define MMC_BIO_FLAG_USER      BIT(3)
+#define MMC_BIO_FLAG_BOOT0      BIT(0)
+#define MMC_BIO_FLAG_BOOT1      BIT(1)
+#define MMC_BIO_FLAG_RPMB       BIT(2)
+#define MMC_BIO_FLAG_USER       BIT(3)
 
 struct mmc_device {
     uint8_t ext_csd[512] __aligned(64); /* e.MMC */

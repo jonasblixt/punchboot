@@ -174,6 +174,7 @@ static int mmc_rw(struct mmc_device *dev, unsigned int lba, size_t length, uintp
         .blocks = length / MMC_BLOCK_SIZE,
         .write = write,
     };
+    struct pb_timeout to;
     int ret;
 
 #ifdef CONFIG_MMC_CORE_DEBUG_IOS
@@ -218,14 +219,19 @@ static int mmc_rw(struct mmc_device *dev, unsigned int lba, size_t length, uintp
     }
 
     /* Wait buffer empty */
-    do {
+    pb_timeout_init_us(&to, MMC_XFER_END_TIMEOUT_ms * 1000);
+    while (true) {
         ret = mmc_device_state(dev, MMC_DEFAULT_TIMEOUT_ms);
         if (ret < 0) {
             return ret;
         }
-    } while ((ret != MMC_STATE_TRAN) && (ret != (write ? MMC_STATE_RCV : MMC_STATE_DATA)));
-
-    return PB_OK;
+        if ((ret == MMC_STATE_TRAN) || (ret == (write ? MMC_STATE_RCV : MMC_STATE_DATA)))
+            return PB_OK;
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("CMD%u: card state %i after %u ms", cmd.idx, ret, MMC_XFER_END_TIMEOUT_ms);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 }
 
 int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf, bool write)
