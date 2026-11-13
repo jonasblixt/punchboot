@@ -178,6 +178,7 @@ and `configs/test_defconfig` were then removed.
 | `test_compat.py`      | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 (xfail) |
 | `test_transcripts.py` | new: recorded wire transcripts served to the current host (D-008, guard 4)              |
 | `test_in_place.py`    | new: the in place source on the host's flash: boot, placement, verification (F-253)     |
+| `test_pbstate.py`     | new: the pbstate tool's command line on pb-host's disk (F-221)                          |
 
 Unit tests, by module under test:
 

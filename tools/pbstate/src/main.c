@@ -34,7 +34,7 @@ static void print_help(void)
     printf("    -b, --backup  <Path>       Backup state partition\n");
     printf("\n");
     printf("Commands:\n");
-    printf("    -s, --switch <System ID>   Switch active system\n");
+    printf("    -s, --switch <a|b|none>    Switch active system, none disables both\n");
     printf("    -v, --verified <System ID> Set system to verified state\n");
     printf("    -i, --info                 Print current state\n");
     printf("    -w, --write-board-reg <0-3> <0x12341234> Write a 32-bit board register\n");
@@ -241,12 +241,18 @@ int main(int argc, char *const argv[])
     if (flag_show) {
         err = print_configuration();
     } else if (flag_switch) {
+        /* The first letter decides, as it always has for a and b, and n is
+         * none. Anything else disabled both systems, a typo too (F-221) */
         if (strncasecmp(system, "a", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_A, counter);
         else if (strncasecmp(system, "b", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_B, counter);
-        else
+        else if (strncasecmp(system, "n", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_NONE, 0);
+        else {
+            fprintf(stderr, "Error: -s takes a, b or none, not '%s'\n", system);
+            return EINVAL;
+        }
     } else if (flag_verify) {
         if (strncasecmp(system_verified, "a", 1) == 0)
             err = pbstate_set_system_verified(PBSTATE_SYSTEM_A);
