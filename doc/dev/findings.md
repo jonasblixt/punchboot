@@ -14,7 +14,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 
 | ID | Where | Finding | Check | Status |
 |---|---|---|---|---|
-| F-004 | `src/board/imx8{qxmek,dxlevk}/board.c:~288` | `strncmp(expected, password, length)` with `length` taken from the host accepts any prefix ("i"). `LOG_DBG` prints a password that is not NUL-terminated. Example boards, but the pattern gets copied. | Verified | open |
 | F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | open; the `fdt_totalsize` <= part check is done (`39276b9c`) |
 | | | Checked 2026-11-12: `CHECK_OVERLAP` is gone, and placement keeps every part inside the board's | | |
 | | | image data regions and off the other parts (F-254). Left: the load address is read as a | | |
@@ -162,9 +161,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `imx_uart.h`: `UFCR_RFDIV_1` is divide by 2. | | |
 | | | D-053: pb doesn't clear the reset reason (SRSR), the OS reads the same register; that item | | |
 | | | is closed | | |
-| F-212 | `src/board/imx8dxlevk` | The DXL board offers `slc lock`, but its build can't sign pb | Reported | open |
-| | | (`imx8xl_sign_image`: not supported): a locked DXL rejects the only image there is. Drop | | |
-| | | `set_configuration_locked` until signing exists. | | |
 | F-213 | `configs/*`, board `makefile.mk` | The SRK hash that is fused (`CONFIG_SRK_FUSE`) and | Reported | open |
 | | | the SRK table pb is signed with are independent settings: a product that changes one fuses a hash that | | |
 | | | closes the device to its own images. D-027 and `srk_fuse.h` claim they match. Derive or check at build | | |
@@ -180,6 +176,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | validated, `CM_AUTH_PASSWORD=y` without a callback: moved to F-249. Dead Kconfig symbols | | |
 | | | (`ARMV8_EL3`, `choice BOARD`, `IMXRT_FLASH`). GPT tables can't align partitions. 8X | | |
 | | | `early_boot()` ignores SCU results. | | |
+| | | 2026-11-13 (`bd8bb259`, `1f0f581f`): with `IMX8X_FUSE_DRY_RUN` the lock and a revocation log and | | |
+| | | return OK without a call to the SECO (the MEK's defconfig has it on); `choice BOARD` and | | |
+| | | `IMXRT_FLASH` are gone. `ARMV8_EL3` stays, four defconfigs set it. Left: the 8X boards' answer to an | | |
+| | | unknown command, GPT tables that can't align partitions, the 8X `early_boot()` ignoring SCU results | | |
 | F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
 | | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
 | | | command's. Several error paths leave transfers unread the same way. | | |
@@ -356,13 +356,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `struct board`, a list of `PB_MAP_DEVICE`, `PB_MAP_MEMORY_RO` and `PB_MAP_MEMORY_RW` regions | | |
 | | | (`include/pb/mmu.h`), mapped by `pb_mmu_init()`, which refuses a region that overlaps pb, the | | |
 | | | board's DRAM or a region of the platform's; the two numbers become Kconfig values. With F-158 | | |
-| F-270 | `src/board/{imx8qxmek,imx8dxlevk}/board.c`, `include/plat/imx8x/imx8x.h` | The | Verified (code) | open |
-| | | two 8X boards include the arch's headers (`arch/arch_helpers.h`, `arch/armv8a/timer.h`) and the system | | |
-| | | controller's API by its own path (`sci/svc/{misc,pad,pm,seco}/api.h`, found through the | | |
-| | | platform's `-Iinclude/plat/imx8x/`). `imx8x.h` includes only `sci/ipc.h` and the pad service. | | |
-| | | D-056, `platform.md` 7: the API stays with the platform; `imx8x.h` includes the services boards | | |
-| | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
-| | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
 | F-280 | `src/boot/image_helpers.c` `boot_image_load_and_hash()`, the USB drivers | `boot | Reported | open |
 | | | bpak`: the device reads a part `CONFIG_BOOT_LOAD_CHUNK_kB` at a time (1 MiB on the imx8mpevk | | |
 | | | and jiffy, 4 KiB on the RT1060 with a 32 KiB buffer, 4 MiB elsewhere), hosts send it in | | |
@@ -631,20 +624,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-394 | `src/board/host/board.c` | Low. The host board sets up its disk before Mbed TLS, | Verified (code) | open |
 | | | the real boards their crypto engine first: a failed `init()` on the host leaves no crypto, so the | | |
 | | | RAM boot after a failed `init()` (F-216, `board.md` 2.1) has no end-to-end test | | |
-| F-395 | `src/board/{imx8mevk,imxrt1060evk}/board.c` | Low. imx8mevk's `board_command()` appends | Reported | open |
-| | | a NUL at `response[*response_size]` after `snprintf()`, the pattern of F-250 in a board command | | |
-| | | (latent with a 4 MiB buffer; `board.md` 4.4 has no clamp rule for a command's response). The RT's | | |
-| | | `board_command()` has an unused variable `rc` (line 350), the one warning of its build | | |
 | F-397 | `mmc_emmc.c:362`, `dwc3_udc.c:359,651` | Low. At `CONFIG_LOGLEVEL` 0 or 1 | Verified (build) | open |
 | | | without the RAM log, variables that only a log line uses are unused (`start`, `speed`, `caplength`): | | |
 | | | warnings in the imx8mpevk build. Seen with F-109 | | |
 | | | 2026-11-13 (`bd2df79f`): the MMC line is done, with a test that compiles the MMC sources at log | | |
 | | | level 0. Left: `dwc3_udc.c` (the USB package) | | |
-| F-401 | `tools/punchboot/session.py` | Low. `part_erase` masks `start_lba` to 32 bits, so a | Reported | open |
-| | | partition past block 2^32 wraps (pb 3.0.0 refuses the range, older devices unchecked). After a | | |
-| | | host's timeout on USB a device before 3.0.0 can still hold the late result, which the next session | | |
-| | | reads as its first answer (read, not tried). `pyproject.toml` says Python 3.10 and up; only 3.13 is | | |
-| | | tested | | |
 | F-402 | `src/plat/*/Kconfig`, `platform.md` 3.10 | `platform.md` 3.10 has one option per | Verified (code) | open |
 | | | port of the SoC that can be a device; each platform's choice has only the port a board in the tree | | |
 | | | uses. Without an option: the 6UL's USB OTG2, the 8MQ's and the 8MP's USB2, the 8QXP's USB OTG1, the | | |
@@ -663,13 +647,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | ask every policy to be safe after a failed init? (7) `boot activate` after an unreadable state | | |
 | | | writes the defaults and the activation: the board registers on the disk are lost. (8) One good copy | | |
 | | | beside an unreadable one is used and repaired | | |
-| F-405 | `include/boot/policy.h`, `boot.c`, `ab_state.h`, `tools/pbstate` | Low. Comments that no | Reported | open |
-| | | longer hold: `policy.h` and `boot.c` say next() can return the error of a state write that failed | | |
-| | | (A/B no longer does), `ab_state.h` lists errors `boot_ab_state_set_boot_partition()` doesn't return. | | |
-| | | pbstate returns a primary's read error without trying the backup, where pb uses a good backup; it | | |
-| | | reads the backup only when the primary is corrupt | | |
-| | | 2026-11-13 (`8612b37a`): the comments in `policy.h`, `boot.c` and `ab_state.h` are corrected. Left: | | |
-| | | pbstate and a primary's read error | | |
 | F-406 | `src/drivers/mmc/`, `tests/`, `ab_state.c` | Low, from F-283. `mmc_init()` that fails | Reported | open |
 | | | after it registered its devices leaves them registered and pointing at a slot that is free again | | |
 | | | (`drivers.md` 2.1: nothing is registered when init fails). A card of another size at a second | | |
@@ -681,12 +658,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | card of another size or without a partition at a second init is `-PB_ERR_IO`. Left: devices | | |
 | | | registered before the bio pool filled up stay (bio has no release), `host_disk_init()` twice, | | |
 | | | `pb_boot_state_write()` with a bad handle | | |
-| F-408 | `tools/pbstate`, `testbench/simple/src/pbstate.c` | Low, from F-180 and F-221. pbstate | Reported | open |
-| | | accepts trailing characters after a number (`-c 3x`, `-w 0 1zz`); `print_configuration()` ignores | | |
-| | | the getters' errors and prints both systems as disabled on a CRC failure before it fails; `-v` with | | |
-| | | anything but a or b exits 1, not EINVAL; `-c` without `-s` is ignored. The simple target's copy | | |
-| | | still zeroes the attempts whichever slot it confirms, where pbstate now keeps the trial when the | | |
-| | | other slot is confirmed, and so does the helper `pbstate_confirms()` in `test_ab_state.c` | | |
 | F-410 | `src/drivers/crypto/caam/imx_caam.c` | From F-181's package and its review. Every buffer | Reported | open |
 | | | address is cut to 32 bits (`drivers.md` 4.2: refuse). `imx_caam_init()` empties the output ring and | | |
 | | | doesn't reset the job ring (`drivers.md` 2.1; a reset can't be tried from here). The key parser | | |
@@ -720,9 +691,16 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | after a connect is restarted every round for ever with the watchdog kicked, as after a failed | | |
 | | | `complete()`. `board.md` 4.4 says `rsp` holds `*rsp_size` bytes "(the command buffer)"; since F-095 | | |
 | | | it is the smaller of the host's size and a buffer | | |
+| | | 2026-11-13: the boards' items are done (imx8mevk, the RT's and the host board's test commands write | | |
+| | | only what fits, the host board's size is what it wrote). Left: a transport restarted for ever, | | |
+| | | `board.md` 4.4's words, the status functions returning `snprintf()`'s full length | | |
 | F-414 | `doc/guides/testing.md`, `bio.md` | From F-191's package. The coverage note in | Reported (read) | open |
 | | | `testing.md` names `gpt.c` lines 298 and 383 to 389 as unreachable; that code is gone. The tables in | | |
 | | | `bio.md` 2.4 and section 8 are wider than the aligner makes them (they were before the package) | | |
+| | | 2026-11-13 (`e1680053`): the coverage note is corrected. Left: the tables' widths in `bio.md` (the | | |
+| | | commit that padded them, `193e1ff7` on `pkg-boards-tools`, collides with the rows two other packages | | |
+| | | changed and wasn't landed) and, found with it, in `crypto.md`, `drivers.md`, `usb.md`, `boot.md` 9 | | |
+| | | and `command-mode.md` 9 | | |
 | F-416 | `cm_main.c`, `pb_dev_cls.c`, `plat/imx8x`, Kconfig | From F-236's package. `cm_setup()` | Reported (read) | open |
 | | | and `pb_dev_cls.c:129` ignore `device_uuid()`'s error: after a failed fuse read command mode keeps a | | |
 | | | null UUID and the USB serial string comes from an uninitialised local. The 8X's | | |
@@ -749,6 +727,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | that is set. `TXWMRK`/`RXWMRK` don't shift into their field (right for 8 bytes only). Erase and | | |
 | | | write don't wait for the flash before their first command. OCOTP reads and writes before | | |
 | | | `imx_ocotp_init()` aren't `-PB_ERR_STATE`. `bio.md` 8 still says the FlexSPI has no model | | |
+| F-421 | `tools/pbstate`, `session.py`, `src/board` | Low, from the boards and host tools | Reported (read) | open |
+| | | package. pbstate: `-i` beats `-s`, `-v` and `-w` silently, and `-s` beats `-v`. `part_erase` | | |
+| | | would loop for ever on a partition whose last block is below its first. The 8X boards' example | | |
+| | | password is in the image and the same on every device (`board.md` 4.5). `<board/password.h>` is | | |
+| | | under `src/board/`, which `board.md` 6 and D-056 don't list among the headers a board includes | | |
 
 ## Dependencies / vendored code
 

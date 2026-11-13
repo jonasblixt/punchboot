@@ -1083,6 +1083,56 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `bio.md` 3. The write's tail is verified in the code, the rest is as reported | | |
 | | | A write reads no byte past the buffer, a read takes any length, the buffer may have any alignment, | | |
 | | | the codes are `drivers.md` 3's | | |
+| F-004 | `src/board/imx8{qxmek,dxlevk}/board.c:~288` | `strncmp(expected, password, length)` with `length` taken from the host accepts any prefix ("i"). `LOG_DBG` prints a password that is not NUL-terminated. Example boards, but the pattern gets copied. | Verified | fixed (`1b4fbf6b`, `0b6c7ff1`) |
+| | | Both 8X boards compare the whole password in constant time through `board_password_check()` | | |
+| | | (`src/board/password.c`) and log nothing; a prefix or extra bytes are AUTHENTICATION_FAILED, the | | |
+| | | password as released hosts send it (no NUL) still works. Not run on a board | | |
+| F-212 | `src/board/imx8dxlevk` | The DXL board offers `slc lock`, but its build can't sign pb | Reported | fixed (`52e665d0`) |
+| | | (`imx8xl_sign_image`: not supported): a locked DXL rejects the only image there is. Drop | | |
+| | | `set_configuration_locked` until signing exists. | | |
+| | | The DXL board has no `set_configuration_locked`: `slc lock` answers NOT_SUPPORTED and closes nothing | | |
+| F-395 | `src/board/{imx8mevk,imxrt1060evk}/board.c` | Low. imx8mevk's `board_command()` appends | Reported | fixed (`ce19d2c6`, `8bc79131`) |
+| | | a NUL at `response[*response_size]` after `snprintf()`, the pattern of F-250 in a board command | | |
+| | | (latent with a 4 MiB buffer; `board.md` 4.4 has no clamp rule for a command's response). The RT's | | |
+| | | `board_command()` has an unused variable `rc` (line 350), the one warning of its build | | |
+| | | imx8mevk's NUL stays in the room the core gives; the RT's unused `rc` is gone, its build has no | | |
+| | | warning of pb's own left | | |
+| F-270 | `src/board/{imx8qxmek,imx8dxlevk}/board.c`, `include/plat/imx8x/imx8x.h` | The | Verified (code) | fixed (`ab960b07`) |
+| | | two 8X boards include the arch's headers (`arch/arch_helpers.h`, `arch/armv8a/timer.h`) and the system | | |
+| | | controller's API by its own path (`sci/svc/{misc,pad,pm,seco}/api.h`, found through the | | |
+| | | platform's `-Iinclude/plat/imx8x/`). `imx8x.h` includes only `sci/ipc.h` and the pad service. | | |
+| | | D-056, `platform.md` 7: the API stays with the platform; `imx8x.h` includes the services boards | | |
+| | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
+| | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
+| | | `imx8x.h` includes the misc, pm and seco services and the two boards include only it; the MEK's and | | |
+| | | the DXL's `pb.bin` are byte for byte the same | | |
+| F-408 | `tools/pbstate`, `testbench/simple/src/pbstate.c` | Low, from F-180 and F-221. pbstate | Reported | fixed (`0cfd2c81`..`d2787c45`) |
+| | | accepts trailing characters after a number (`-c 3x`, `-w 0 1zz`); `print_configuration()` ignores | | |
+| | | the getters' errors and prints both systems as disabled on a CRC failure before it fails; `-v` with | | |
+| | | anything but a or b exits 1, not EINVAL; `-c` without `-s` is ignored. The simple target's copy | | |
+| | | still zeroes the attempts whichever slot it confirms, where pbstate now keeps the trial when the | | |
+| | | other slot is confirmed, and so does the helper `pbstate_confirms()` in `test_ab_state.c` | | |
+| | | pbstate refuses a number with characters after it, `-v` with anything but a or b and `-c` without | | |
+| | | `-s` exit EINVAL, `-i` prints nothing of a state it couldn't read; the simple target's copy and the | | |
+| | | test helper keep the trial when the other slot is confirmed. Valid invocations keep their output and | | |
+| | | exit code | | |
+| F-401 | `tools/punchboot/session.py` | Low. `part_erase` masks `start_lba` to 32 bits, so a | Reported | fixed (`5acd3b49`) |
+| | | partition past block 2^32 wraps (pb 3.0.0 refuses the range, older devices unchecked). After a | | |
+| | | host's timeout on USB a device before 3.0.0 can still hold the late result, which the next session | | |
+| | | reads as its first answer (read, not tried). `pyproject.toml` says Python 3.10 and up; only 3.13 is | | |
+| | | tested | | |
+| | | `part_erase` refuses a chunk that would start past LBA 2^32 - 1 before anything is sent (the wire's | | |
+| | | field is 32 bits). Left as notes: a late result after a timeout on a device before 3.0.0, and that | | |
+| | | only Python 3.13 is tested | | |
+| F-405 | `include/boot/policy.h`, `boot.c`, `ab_state.h`, `tools/pbstate` | Low. Comments that no | Reported | fixed (`8612b37a`, `2b092649`) |
+| | | longer hold: `policy.h` and `boot.c` say next() can return the error of a state write that failed | | |
+| | | (A/B no longer does), `ab_state.h` lists errors `boot_ab_state_set_boot_partition()` doesn't return. | | |
+| | | pbstate returns a primary's read error without trying the backup, where pb uses a good backup; it | | |
+| | | reads the backup only when the primary is corrupt | | |
+| | | 2026-11-13 (`8612b37a`): the comments in `policy.h`, `boot.c` and `ab_state.h` are corrected. Left: | | |
+| | | pbstate and a primary's read error | | |
+| | | The comments are corrected, and pbstate uses the backup when the primary can't be read; a write | | |
+| | | repairs the primary | | |
 
 ## Dependencies / vendored code
 
