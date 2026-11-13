@@ -211,6 +211,7 @@ static void test_both_tables_corrupt_fails(void **state)
 /* Offsets in the on-disk GPT header */
 #define HDR_CRC            16
 #define HDR_MY_LBA         24
+#define HDR_ALTERNATE_LBA  32
 #define HDR_FIRST_USABLE   40
 #define HDR_LAST_USABLE    48
 #define HDR_ENTRIES_LBA    72
@@ -548,6 +549,211 @@ static void test_backup_array_place_is_checked(void **state)
     assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
 }
 
+static uint8_t *snapshot(struct fixture *f)
+{
+    uint8_t *copy = malloc((size_t)DISK_BLOCKS * RAMDISK_BLOCK_SIZE);
+
+    assert_non_null(copy);
+    memcpy(copy, f->disk->data, (size_t)DISK_BLOCKS * RAMDISK_BLOCK_SIZE);
+    return copy;
+}
+
+static void assert_disk_equal(struct fixture *f, const uint8_t *copy)
+{
+    assert_memory_equal(f->disk->data, copy, (size_t)DISK_BLOCKS * RAMDISK_BLOCK_SIZE);
+}
+
+/* bio.md 4: a repair writes only what is bad (F-195). The good copy isn't
+ * written, so power lost in the repair leaves it, and the repaired table is
+ * the one that was installed, byte for byte. */
+static void test_repair_writes_only_the_bad_copy(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *installed;
+
+    install_and_reboot(f, 0);
+    installed = snapshot(f);
+
+    /* The primary's header: one write, the header and its array */
+    memset(ramdisk_block(f->disk, PRIMARY_HDR), 0, RAMDISK_BLOCK_SIZE);
+    f->disk->writes = 0;
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(f->disk->writes, 1);
+    assert_disk_equal(f, installed);
+
+    /* The primary's array */
+    ramdisk_block(f->disk, PRIMARY_ARRAY)[0] ^= 1;
+    f->disk->writes = 0;
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(f->disk->writes, 1);
+    assert_disk_equal(f, installed);
+
+    /* The backup: its array, then its header */
+    memset(ramdisk_block(f->disk, BACKUP_HDR), 0, RAMDISK_BLOCK_SIZE);
+    ramdisk_block(f->disk, BACKUP_ARRAY)[0] ^= 1;
+    f->disk->writes = 0;
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(f->disk->writes, 2);
+    assert_disk_equal(f, installed);
+
+    /* The protective MBR is written with the primary when it is gone too */
+    memset(ramdisk_block(f->disk, 0), 0x17, 2 * RAMDISK_BLOCK_SIZE);
+    f->disk->writes = 0;
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(f->disk->writes, 2);
+    assert_disk_equal(f, installed);
+
+    /* And left when it is another tool's: a second partition in it */
+    ramdisk_block(f->disk, 0)[446 + 16 + 4] = 0x83;
+    memset(ramdisk_block(f->disk, PRIMARY_HDR), 0, RAMDISK_BLOCK_SIZE);
+    f->disk->writes = 0;
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(f->disk->writes, 1);
+    assert_int_equal(ramdisk_block(f->disk, 0)[446 + 16 + 4], 0x83);
+
+    /* A valid table is never written */
+    f->disk->writes = 0;
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(f->disk->writes, 0);
+    free(installed);
+}
+
+/* A repair that fails leaves the good copy: the next boot repairs */
+static void test_repair_that_fails_leaves_the_good_copy(void **state)
+{
+    struct fixture *f = *state;
+    const lba_t headers[] = { PRIMARY_HDR, BACKUP_HDR };
+    uint8_t *installed;
+
+    install_and_reboot(f, 0);
+    installed = snapshot(f);
+
+    for (size_t i = 0; i < ARRAY_SIZE(headers); i++) {
+        memset(ramdisk_block(f->disk, headers[i]), 0, RAMDISK_BLOCK_SIZE);
+        f->disk->fail_writes_after = 0;
+        assert_int_equal(boot(f), -PB_ERR);
+        assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+
+        f->disk->fail_writes_after = -1;
+        assert_int_equal(boot(f), PB_OK);
+        assert_disk_equal(f, installed);
+    }
+
+    free(installed);
+}
+
+/* The table of an image that was written to a larger device: its backup
+ * isn't in the device's last block but where the image ended, and the
+ * primary says so */
+#define IMAGE_BLOCKS       40000
+#define IMAGE_BACKUP_HDR   (IMAGE_BLOCKS - 1)
+#define IMAGE_BACKUP_ARRAY (IMAGE_BLOCKS - 33)
+
+static void install_image_table(struct fixture *f)
+{
+    uint8_t *primary = ramdisk_block(f->disk, PRIMARY_HDR);
+    uint8_t *backup = ramdisk_block(f->disk, IMAGE_BACKUP_HDR);
+
+    install_and_reboot(f, 0);
+    memcpy(ramdisk_block(f->disk, IMAGE_BACKUP_ARRAY),
+           ramdisk_block(f->disk, BACKUP_ARRAY),
+           33 * RAMDISK_BLOCK_SIZE);
+    memset(ramdisk_block(f->disk, BACKUP_ARRAY), 0, 33 * RAMDISK_BLOCK_SIZE);
+    set_hdr_field(primary, HDR_ALTERNATE_LBA, IMAGE_BACKUP_HDR);
+    set_hdr_field(primary, HDR_LAST_USABLE, IMAGE_BACKUP_ARRAY - 1);
+    set_hdr_field(backup, HDR_MY_LBA, IMAGE_BACKUP_HDR);
+    set_hdr_field(backup, HDR_LAST_USABLE, IMAGE_BACKUP_ARRAY - 1);
+    set_hdr_field(backup, HDR_ENTRIES_LBA, IMAGE_BACKUP_ARRAY);
+    f->disk->writes = 0;
+}
+
+/* bio.md 4: a repair writes only a copy whose place the good copy gives
+ * (F-195). The backup is where the valid primary says: it is used there, and
+ * repaired there. The device's last blocks, which the primary doesn't name,
+ * are not written. */
+static void test_backup_is_where_the_primary_says(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *image;
+
+    install_image_table(f);
+    image = snapshot(f);
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_part(UU_STATE, 2082, 2082, "State");
+    assert_int_equal(f->disk->writes, 0);
+
+    memset(ramdisk_block(f->disk, IMAGE_BACKUP_HDR), 0, RAMDISK_BLOCK_SIZE);
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(f->disk->writes, 2);
+    assert_disk_equal(f, image);
+    assert_part(UU_SYS_B, 1058, 2081, "System B");
+
+    /* An entry over that backup isn't a partition, one after it is */
+    set_entry_blocks(f, 0, IMAGE_BACKUP_HDR, IMAGE_BLOCKS);
+    memcpy(entry(f, IMAGE_BACKUP_ARRAY, 0), entry(f, PRIMARY_ARRAY, 0), ENTRY_SIZE);
+    seal(f, IMAGE_BACKUP_HDR, IMAGE_BACKUP_ARRAY);
+    assert_int_equal(boot(f), PB_OK);
+    assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+
+    set_entry_blocks(f, 0, IMAGE_BLOCKS, DISK_BLOCKS - 1);
+    memcpy(entry(f, IMAGE_BACKUP_ARRAY, 0), entry(f, PRIMARY_ARRAY, 0), ENTRY_SIZE);
+    seal(f, IMAGE_BACKUP_HDR, IMAGE_BACKUP_ARRAY);
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, IMAGE_BLOCKS, DISK_BLOCKS - 1, "System A");
+    free(image);
+}
+
+/* bio.md 4: a copy whose place the good copy doesn't give isn't written,
+ * and the device has no partitions (F-195, F-193). */
+static void test_repair_needs_a_place(void **state)
+{
+    struct fixture *f = *state;
+    /* Where a valid primary says its backup is, on a table pb installed */
+    static const uint32_t no_place[] = {
+        5000, /* In a partition's blocks */
+        40, /* Before the 33 blocks of a backup end */
+        DISK_BLOCKS - 2, /* The array would start in the last usable blocks */
+        DISK_BLOCKS, /* Outside the device */
+    };
+    uint8_t *before;
+
+    for (size_t i = 0; i < ARRAY_SIZE(no_place); i++) {
+        install_and_reboot(f, 0);
+        set_hdr_field(ramdisk_block(f->disk, PRIMARY_HDR), HDR_ALTERNATE_LBA, no_place[i]);
+        memset(ramdisk_block(f->disk, BACKUP_HDR), 0, RAMDISK_BLOCK_SIZE);
+        before = snapshot(f);
+
+        assert_int_equal(boot(f), -PB_ERR);
+        assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+        assert_disk_equal(f, before);
+        free(before);
+    }
+
+    /* A valid backup that doesn't say that the primary is in LBA 1 */
+    install_and_reboot(f, 0);
+    set_hdr_field(ramdisk_block(f->disk, BACKUP_HDR), HDR_ALTERNATE_LBA, 5000);
+    memset(ramdisk_block(f->disk, PRIMARY_HDR), 0, RAMDISK_BLOCK_SIZE);
+    before = snapshot(f);
+
+    assert_int_equal(boot(f), -PB_ERR);
+    assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+    assert_disk_equal(f, before);
+    free(before);
+
+    /* With both copies valid nothing is to be placed: the table is used as
+     * it is, as by every release */
+    install_and_reboot(f, 0);
+    set_hdr_field(ramdisk_block(f->disk, PRIMARY_HDR), HDR_ALTERNATE_LBA, 5000);
+    set_hdr_field(ramdisk_block(f->disk, PRIMARY_HDR), HDR_MY_LBA, 5000);
+    set_hdr_field(ramdisk_block(f->disk, BACKUP_HDR), HDR_ALTERNATE_LBA, 5000);
+    f->disk->writes = 0;
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_int_equal(f->disk->writes, 0);
+}
+
 static void test_install_long_name_fails(void **state)
 {
     struct fixture *f = *state;
@@ -792,6 +998,11 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_table_with_fewer_entries, setup, teardown),
         cmocka_unit_test_setup_teardown(test_table_with_fewer_entries_is_repaired, setup, teardown),
         cmocka_unit_test_setup_teardown(test_backup_array_place_is_checked, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_repair_writes_only_the_bad_copy, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_repair_that_fails_leaves_the_good_copy, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_backup_is_where_the_primary_says, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_repair_needs_a_place, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_long_name_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_init_invalid_device, setup, teardown),
         cmocka_unit_test_setup_teardown(test_primary_header_crc_error_recovers, setup, teardown),
