@@ -513,6 +513,80 @@ static void test_buffer_from_inside_a_page_over_several(void **state)
                      -PB_ERR_MEM);
 }
 
+/* The host resets the bus: USBSTS's reset bit, which the driver reads and
+ * clears at its next poll */
+static void bus_reset(void)
+{
+    fake_regs_set(BASE + CI_USBSTS, USBSTS_URI);
+}
+
+/* usb.md 2.2, 2.4, 4.3: a bus reset of a device that was configured ends the
+ * bulk transfer that runs with -PB_ERR_IO, and with none running it is kept
+ * for the next that is started or polled. Before the device is configured
+ * it is no error, and endpoint 0 goes on through it: the host enumerates
+ * (F-363: the driver flushed, went on and reported nothing) */
+static void test_bus_reset_is_reported(void **state)
+{
+    static const struct usb_endpoint_descriptor eps[] = {
+        { .bLength = 7,
+          .bDescriptorType = USB_DESC_TYPE_ENDPOINT,
+          .bEndpointAddress = USB_EP_ADDR_IN | 1,
+          .bmAttributes = USB_EP_ATTR_BULK,
+          .wMaxPacketSize = 512 },
+        { .bLength = 7,
+          .bDescriptorType = USB_DESC_TYPE_ENDPOINT,
+          .bEndpointAddress = 2,
+          .bmAttributes = USB_EP_ATTR_BULK,
+          .wMaxPacketSize = 512 },
+    };
+    struct usb_setup_packet pkt;
+    (void)state;
+
+    /* Not configured: a host resets the bus when it enumerates */
+    bus_reset();
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(fake_regs_get(BASE + CI_USBSTS), 0);
+    assert_int_equal(ops->set_configuration(eps, ARRAY_SIZE(eps)), PB_OK);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+
+    /* During a bulk transfer */
+    bus_reset();
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), -PB_ERR_IO);
+
+    /* Endpoint 0 answers the host's new enumeration */
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, arena, 18), PB_OK);
+    assert_int_equal(controller_run(USB_EP0_IN, host, 18), 18);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
+
+    /* Configured again, it is a new session */
+    assert_int_equal(ops->set_configuration(eps, ARRAY_SIZE(eps)), PB_OK);
+    transfer_out(0x200, 512);
+
+    /* With no transfer running, seen while endpoint 0 is polled: kept */
+    bus_reset();
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(fake_regs_get(BASE + CI_USBSTS), 0);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_IO);
+
+    /* The transport is restarted: nothing is kept (usb.md 4.1) */
+    assert_int_equal(ops->init(), PB_OK);
+    bus_reset();
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(ops->set_configuration(eps, ARRAY_SIZE(eps)), PB_OK);
+    transfer_out(0x200, 512);
+
+    /* And after a stop */
+    bus_reset();
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(ops->stop(), PB_OK);
+    assert_int_equal(ops->init(), PB_OK);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -523,6 +597,7 @@ int main(void)
         cmocka_unit_test_setup(test_write_from_inside_a_page, setup),
         cmocka_unit_test_setup(test_read_into_a_page, setup),
         cmocka_unit_test_setup(test_buffer_from_inside_a_page_over_several, setup),
+        cmocka_unit_test_setup(test_bus_reset_is_reported, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

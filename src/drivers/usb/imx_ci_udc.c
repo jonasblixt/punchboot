@@ -56,6 +56,11 @@ static size_t xfer_length;
 static struct imx_ci_udc_transfer_head *xfer_head;
 static usb_ep_t xfer_ep;
 static uintptr_t imx_ci_udc_base;
+/* The host configured the device, and reset the bus after that: every bulk
+ * transfer fails until the device is configured or started again
+ * (usb.md 2.4, 4.3) */
+static bool configured;
+static bool bus_reset_seen;
 
 /* The bit of an endpoint in ENDPTPRIME, ENDPTFLUSH, ENDPTSTAT and ENDPTCOMPLETE */
 static uint32_t ep_bit(usb_ep_t ep)
@@ -79,6 +84,8 @@ static void imx_ci_udc_reset_queues(void)
     xfer_length = 0;
     xfer_ep = 0;
     xfer_head = NULL;
+    configured = false;
+    bus_reset_seen = false;
 }
 
 static void imx_ci_udc_reset(void)
@@ -131,6 +138,11 @@ static int imx_ci_udc_irq_process(void)
         mmio_write_32(imx_ci_udc_base + CI_DEVICEADDR, 0);
 
         LOG_DBG("Bus reset");
+
+        /* Before the device is configured a reset is the host's
+         * enumeration and no error (usb.md 2.2) */
+        if (configured)
+            bus_reset_seen = true;
     }
 
     if (sts & USBSTS_UEI) {
@@ -158,6 +170,11 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
 
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
+
+    /* A bus reset while no transfer ran is the error of the next one.
+     * Endpoint 0 goes on: the host enumerates */
+    if (bus_reset_seen && ep >= USB_EP1_OUT)
+        return -PB_ERR_IO;
 
     if (bytes_to_tx == 0) {
         dtd->next = DTD_NEXT_T;
@@ -276,6 +293,10 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     if (rc != PB_OK)
         return rc;
 
+    /* A bus reset ends a bulk transfer: lost */
+    if (bus_reset_seen && ep >= USB_EP1_OUT)
+        return -PB_ERR_IO;
+
     if (xfer_head == NULL)
         return -PB_ERR;
 
@@ -389,6 +410,9 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
         mmio_write_32(imx_ci_udc_base + epctrl, ep_reg);
         imx_ci_udc_config_ep(ep, max_pkt_sz, 0);
     }
+
+    configured = true;
+    bus_reset_seen = false;
 
     return PB_OK;
 }
