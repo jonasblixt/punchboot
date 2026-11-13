@@ -22,6 +22,18 @@ static struct imxrt_platform plat;
 /* WDOG1's WRSR as plat_early_init() read it */
 static uint16_t wrsr;
 
+/* What plat_early_init() and plat_init() recorded (platform.md 3.8). The
+ * Cortex-M7 has no TrustZone: no DRAM filter. The ROM's log here is the
+ * HAB's, the port saves no event log */
+static struct plat_status status = {
+    .tz_dram_filter = PLAT_TZ_DRAM_NONE,
+};
+
+void plat_get_status(struct plat_status *out)
+{
+    *out = status;
+}
+
 static uint32_t fuse_read_helper(uint8_t row, uint8_t shift, uint32_t mask, uint32_t default_value)
 {
     int rc;
@@ -66,8 +78,9 @@ int plat_early_init(void)
     /* The reset reason. The register is read only */
     wrsr = mmio_read_16(IMXRT_WDOG1_BASE + WDOG_WRSR);
 
+    status.wdog_armed = false;
 #if CONFIG_ENABLE_WATCHDOG
-    imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
+    status.wdog_armed = (imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT) == PB_OK);
 #endif
 
     /* Commont UART clock source config:
@@ -89,7 +102,8 @@ int plat_init(void)
 {
     int rc;
 
-    (void)imx_hab_log_init(&hab_log_cfg);
+    /* Without it: logged, nothing of the boot's rests on it (platform.md 2.3) */
+    status.rom_log = (imx_hab_log_init(&hab_log_cfg) == PB_OK);
 
     imx_ocotp_init(IMXRT_OCOTP_BASE, IMXRT_FUSE_WORDS_PER_BANK, 0); /* No rate: no writes (F-148) */
     imx_hab_fuses_init(&hab_fuses);
@@ -160,13 +174,15 @@ int plat_init(void)
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
     /* Command mode can start without it, so it isn't plat_init()'s error
-     * (platform.md 2.2): main() would reset. Without a provider no image
-     * verifies, and the boot stops with that. To be recorded in
-     * plat_get_status() (F-248) */
+     * (platform.md 2.2): main() would reset. It is recorded: without a
+     * provider no image verifies, and the boot's preconditions refuse the
+     * boot before anything is loaded (platform.md 2.3) */
     rc = mbedtls_pb_init();
 
     if (rc != PB_OK)
         LOG_ERR("Mbed TLS init failed (%i)", rc);
+
+    status.crypto_engine = (rc == PB_OK);
 
     return PB_OK;
 }

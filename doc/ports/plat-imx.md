@@ -269,7 +269,7 @@ Where each port is (2026-11-11).
 | `plat_get_boot_source()`             |              |                   |            |           |               |
 | `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
 | command mode                         |              |                   |            |           |               |
-| `plat_get_status()`                  | yes          | yes               | yes        | no        | F-248         |
+| `plat_get_status()`                  | yes          | yes               | yes        | yes       | F-248         |
 | `plat_cm_init()`                     | one port     | one port          | one port   | one port  | F-402         |
 | The board's regions in the map (5.2) | no           | no                | no         | n/a       | F-269, F-158  |
 | SoC memory for image data,           | n/a          | partly            | yes        | yes       | F-294         |

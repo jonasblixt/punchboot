@@ -305,8 +305,6 @@ fixed like the wire (D-008). A new platform generates its namespace once, at ran
 
 ### 3.8 Function : plat_get_status() [mandatory]
 
-**Not yet in the code (F-248)**: today the platforms only log.
-
 ```
 Argument : struct plat_status *
 Return   : void

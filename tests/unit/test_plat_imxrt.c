@@ -49,6 +49,7 @@
 
 static struct {
     int mbedtls_rc;
+    int hab_log_rc;
     uint32_t speed_grade;
     unsigned int log_time_starts;
     /* The register log's length when log_time_start() was called */
@@ -73,7 +74,7 @@ int mbedtls_pb_init(void)
 int imx_hab_log_init(const struct imx_hab_log_config *cfg)
 {
     (void)cfg;
-    return PB_OK;
+    return f.hab_log_rc;
 }
 
 int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz)
@@ -149,9 +150,20 @@ static int setup(void **state)
     return 0;
 }
 
+/* What plat_get_status() answers, every field set by the port */
+static struct plat_status status_now(void)
+{
+    struct plat_status status;
+
+    memset(&status, 0xff, sizeof(status));
+    plat_get_status(&status);
+    return status;
+}
+
 /* platform.md 2.2: plat_init() returns an error only when what command mode
  * needs is missing, and main() then resets. A crypto engine that failed
- * isn't that: PB_OK, and the boot has nothing to verify with */
+ * isn't that: PB_OK, and it is recorded (3.8, F-248), so that the boot is
+ * refused before anything is loaded */
 static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
 {
     (void)state;
@@ -159,6 +171,41 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     assert_int_equal(plat_early_init(), PB_OK);
     f.mbedtls_rc = -PB_ERR_MEM;
     assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* And it is the state of this plat_init(), not of an earlier one */
+    f.mbedtls_rc = PB_OK;
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+}
+
+/* platform.md 3.8: what plat_init() recorded. The Cortex-M7 has no
+ * TrustZone, the watchdog is armed (the test is built with the option), the
+ * crypto engine is the platform's Mbed TLS, and the ROM's log is the HAB's */
+static void test_status(void **state)
+{
+    struct plat_status status;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    status = status_now();
+
+    assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_NONE);
+    assert_true(status.wdog_armed);
+    assert_true(status.crypto_engine);
+    assert_true(status.rom_log);
+}
+
+/* platform.md 2.3: without the HAB's log the platform goes on and records it */
+static void test_status_rom_log_missing(void **state)
+{
+    (void)state;
+
+    f.hab_log_rc = -PB_ERR_NOT_FOUND;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().rom_log);
 }
 
 static void test_plat_init(void **state)
@@ -420,6 +467,8 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_status, setup),
+        cmocka_unit_test_setup(test_status_rom_log_missing, setup),
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
