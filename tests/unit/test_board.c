@@ -66,6 +66,11 @@ static struct {
     int regions, rot, slc, init, part, ptbl, policy, late_init, handover, delivery, cm;
 } rc;
 
+/* The hooks that call board_report_degraded() (board.md 2.3) */
+static struct {
+    bool init, late_init, early_boot, late_boot;
+} reports;
+
 static const struct rot_config *rot_cfg;
 static const struct slc_config *slc_cfg;
 static const struct ptbl *ptbl_arg;
@@ -217,17 +222,28 @@ int cm_init(const struct cm_config *cfg)
 static int board_hw_init(void)
 {
     call("init");
+
+    if (reports.init)
+        board_report_degraded();
+
     return rc.init;
 }
 
 static int board_late_init(void)
 {
     call("late");
+
+    if (reports.late_init)
+        board_report_degraded();
+
     return rc.late_init;
 }
 
 static int early_boot(void)
 {
+    if (reports.early_boot)
+        board_report_degraded();
+
     return PB_OK;
 }
 
@@ -292,6 +308,7 @@ static int setup(void **state)
     (void)state;
     memset(calls, 0, sizeof(calls));
     memset(&rc, 0, sizeof(rc));
+    memset(&reports, 0, sizeof(reports));
     regions_arg = NULL;
     regions_calls = 0;
     ptbl_arg = NULL;
@@ -374,6 +391,58 @@ static void test_setup(void **state)
     assert_ptr_equal(handover_cfg, &test_handover_config);
 
     assert_driver(true);
+}
+
+/* board.md 2.3, D-050 (F-248): a failure the board goes on without is
+ * reported with board_report_degraded(), in init(), late_init() or
+ * early_boot(). The core asks the boot driver after early_boot(). A board
+ * that reports nothing isn't degraded */
+static void test_report_degraded(void **state)
+{
+    (void)state;
+
+    assert_int_equal(board_setup(), PB_OK);
+    assert_non_null(driver->degraded_cb);
+    assert_false(driver->degraded_cb());
+
+    /* In early_boot(), which the core calls before it asks */
+    reports.early_boot = true;
+    assert_int_equal(driver->early_boot_cb(), PB_OK);
+    assert_true(driver->degraded_cb());
+
+    /* It holds: nothing takes it back before the reset */
+    reports.early_boot = false;
+    assert_int_equal(driver->early_boot_cb(), PB_OK);
+    assert_true(driver->degraded_cb());
+
+    /* The next start has none */
+    memset(calls, 0, sizeof(calls));
+    assert_int_equal(board_setup(), PB_OK);
+    assert_false(driver->degraded_cb());
+
+    reports.init = true;
+    memset(calls, 0, sizeof(calls));
+    assert_int_equal(board_setup(), PB_OK);
+    assert_true(driver->degraded_cb());
+
+    reports.init = false;
+    reports.late_init = true;
+    memset(calls, 0, sizeof(calls));
+    assert_int_equal(board_setup(), PB_OK);
+    assert_true(driver->degraded_cb());
+}
+
+/* A setup that failed after the report: the boot driver is set up all the
+ * same (board.md 2.1), and a boot command mode starts carries the report */
+static void test_report_degraded_and_a_failed_setup(void **state)
+{
+    (void)state;
+
+    reports.init = true;
+    rc.late_init = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_IO);
+    assert_non_null(driver);
+    assert_true(driver->degraded_cb());
 }
 
 /* The handover is the last step: when it fails there is no boot driver, and
@@ -1245,6 +1314,8 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_setup, setup),
+        cmocka_unit_test_setup(test_report_degraded, setup),
+        cmocka_unit_test_setup(test_report_degraded_and_a_failed_setup, setup),
         cmocka_unit_test_setup(test_failed_handover, setup),
         cmocka_unit_test_setup(test_failed_rot_or_slc_sets_up_the_handover, setup),
         cmocka_unit_test_setup(test_failed_hook_sets_up_the_handover, setup),

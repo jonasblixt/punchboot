@@ -370,6 +370,9 @@ static void boards_boot(const struct layout *at)
     assert_non_null(chosen_prop("pb,slc", NULL));
     assert_string_equal(chosen_prop("pb,boot-mode", NULL), "normal");
     assert_string_equal(chosen_prop("pb,version", NULL), PB_VERSION);
+    /* pb's status: there, and empty with nothing to report (boot.md 5.6) */
+    assert_non_null(chosen_prop("pb,status", &len));
+    assert_int_equal(len, 0);
     initrd = chosen_prop("linux,initrd-start", &len);
     assert_non_null(initrd);
     assert_int_equal(len, 4);

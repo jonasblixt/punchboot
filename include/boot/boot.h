@@ -14,6 +14,7 @@
 #include <boot/policy.h>
 #include <pb/bio.h>
 #include <pb/utils_def.h>
+#include <stdbool.h>
 #include <uuid.h>
 
 /* Reads 'length' bytes at 'offset' bytes from the start of the image's
@@ -49,6 +50,10 @@ enum boot_source {
 struct boot_driver {
     enum boot_source default_boot_source;
     int (*early_boot_cb)(void);
+    /* The board reported a failure the boot goes on without (board.md 2.3):
+     * BOOT_INFO_STATUS_BOARD_DEGRADED in pb's information. Asked once in a
+     * boot, after early_boot_cb. NULL: nothing to report */
+    bool (*degraded_cb)(void);
     /* The board's boot source policy (boot/policy.h). NULL, or one without
      * ops: no boot from storage */
     const struct boot_policy *policy;
@@ -149,6 +154,19 @@ void boot_get_boot_partition(uuid_t part_uu);
  * policy hears the result, and the first that succeeds is booted. With it,
  * that partition is the one candidate; the policy isn't asked.
  *
+ * With CONFIG_CM_ON_SERIAL_DOWNLOAD a boot that command mode didn't start
+ * (no BOOT_FLAG_CMD) stops before anything else when the ROM's serial
+ * downloader loaded pb, plat_get_boot_source() reports USB or UART:
+ * -PB_ERR_ABORT, and pb enters command mode (board.md 5.1).
+ *
+ * Then the boot's preconditions are checked, in every boot (security.md
+ * 4.5, platform.md 2.3): what the platform recorded in plat_get_status().
+ * A TrustZone DRAM filter that is bypassed and a crypto engine of the
+ * platform's that failed refuse the boot, before the board's early_boot()
+ * and before anything is read. A watchdog that didn't arm is reported in
+ * pb's information and the boot goes on, and so is what the board reported
+ * (board_report_degraded()) up to and in its early_boot().
+ *
  * Before the first candidate, pb's information for the handover is
  * collected (struct boot_info, boot.md 5.6): the device's identity, the
  * life cycle and the keys that aren't revoked. One that can't be read
@@ -162,7 +180,8 @@ void boot_get_boot_partition(uuid_t part_uu);
  * @return This function will not return on sucess. The first candidate's
  *  error when every candidate failed, -PB_ERR_NO_ACTIVE_BOOT_PARTITION when
  *  the policy had none, the error of pb's information that couldn't be
- *  read.
+ *  read, -PB_ERR_STATE when a precondition refused the boot,
+ *  -PB_ERR_ABORT when a hook or the serial download stop stopped it.
  */
 int boot(uuid_t boot_part_override_uu);
 

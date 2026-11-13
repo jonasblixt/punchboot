@@ -17,6 +17,7 @@
 
 #include <pb-tools/wire.h>
 #include <pb/pb.h>
+#include <stdbool.h>
 #include <uuid.h>
 
 /** Where the boot ROM (or a debugger) loaded pb from */
@@ -47,6 +48,30 @@ struct pb_boot_reason {
     enum pb_boot_reason_kind kind; /*!< Portable: for the core and the boards */
     uint32_t raw; /*!< The SoC's value, documented in the platform header */
     const char *name; /*!< For the banner and the log, never NULL */
+};
+
+/** The TrustZone DRAM filter (doc/interfaces/platform.md 4.3) */
+enum plat_tz_dram_filter {
+    PLAT_TZ_DRAM_NONE, /*!< No TrustZone, e.g. a Cortex-M core */
+    PLAT_TZ_DRAM_LATER_STAGE, /*!< Owned by a later stage, e.g. BL31 through a
+                                   system controller */
+    PLAT_TZ_DRAM_ACTIVE, /*!< Set up by pb */
+    PLAT_TZ_DRAM_BYPASSED, /*!< The SoC has one, and it doesn't check DRAM
+                                accesses, or pb's set up of it failed */
+};
+
+/**
+ * What plat_init() recorded of what it couldn't fail on, for the boot's
+ * preconditions and for command mode's log (doc/interfaces/platform.md 2.3,
+ * 3.8). A platform without a field's feature reports it as absent:
+ * PLAT_TZ_DRAM_NONE, false.
+ */
+struct plat_status {
+    enum plat_tz_dram_filter tz_dram_filter;
+    bool wdog_armed; /*!< false also without CONFIG_ENABLE_WATCHDOG */
+    bool crypto_engine; /*!< The engine plat_init() sets up works; false when
+                             the platform sets none up */
+    bool rom_log; /*!< The ROM's logs were found */
 };
 
 /**
@@ -113,6 +138,17 @@ void plat_wdog_kick(void);
  * @return PB_OK, or a negative number when the platform could not read it
  */
 int plat_get_boot_reason(struct pb_boot_reason *reason);
+
+/**
+ * What plat_init() recorded: the state of what the boot's security and
+ * availability rest on. Valid from plat_init(). The core decides what a
+ * state means for a boot (boot(), doc/interfaces/platform.md 2.3): a
+ * bypassed DRAM filter and a crypto engine that failed refuse it, a
+ * watchdog that didn't arm is reported to the next stage.
+ *
+ * @param[out] status Every field is set
+ */
+void plat_get_status(struct plat_status *status);
 
 /**
  * The UUID namespace of the platform, 16 bytes: a constant. device_uuid()

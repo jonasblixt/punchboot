@@ -43,21 +43,45 @@
 /* A write that resets the SoC leaves the code under test through here */
 static jmp_buf soc_reset;
 
+/* The ROM's logs and the TZASC's driver: what each answers */
+static struct {
+    /* The events in the ROM's log, 0 ends them */
+    uint32_t rom_events[4];
+    bool no_rom_log;
+    int hab_log_rc;
+    int tzc_init_rc;
+    int tzc_region_rc;
+    unsigned int tzc_regions;
+} f;
+
 void imx_rom_log_save(const struct imx_rom_log_config *cfg)
 {
     (void)cfg;
 }
 
+/* As the driver's: no log is -PB_ERR_NOT_FOUND, and a log that has no room
+ * in 'out' is -PB_ERR_BUF_TOO_SMALL with nothing written */
+int imx_rom_log_dump(char *out, size_t *out_len)
+{
+    (void)out;
+    assert_int_equal(*out_len, 0);
+    return f.no_rom_log ? -PB_ERR_NOT_FOUND : -PB_ERR_BUF_TOO_SMALL;
+}
+
 bool imx_rom_log_has_event(uint32_t event)
 {
-    (void)event;
+    for (size_t i = 0; i < ARRAY_SIZE(f.rom_events) && f.rom_events[i] != 0; i++) {
+        if (f.rom_events[i] == event)
+            return true;
+    }
+
     return false;
 }
 
 int imx_hab_log_init(const struct imx_hab_log_config *cfg)
 {
     (void)cfg;
-    return PB_OK;
+    return f.hab_log_rc;
 }
 
 int hab_has_no_errors(void)
@@ -100,7 +124,7 @@ void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
 int tzc380_init(uintptr_t base)
 {
     (void)base;
-    return PB_OK;
+    return f.tzc_init_rc;
 }
 
 int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp)
@@ -109,7 +133,8 @@ int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t 
     (void)region_base;
     (void)size;
     (void)sp;
-    return PB_OK;
+    f.tzc_regions++;
+    return f.tzc_region_rc;
 }
 
 void log_time_start(void)
@@ -143,6 +168,7 @@ static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
 static int setup(void **state)
 {
     (void)state;
+    memset(&f, 0, sizeof(f));
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
     /* The board's DCD took the TZASC out of bypass */
@@ -276,6 +302,175 @@ static void test_wdog_armed_by_the_option(void **state)
     assert_int_equal(fake_regs_writes_in(0, 0x1000), 0);
 }
 
+/* What plat_get_status() answers, every field set by the port */
+static struct plat_status status_now(void)
+{
+    struct plat_status status;
+
+    memset(&status, 0xff, sizeof(status));
+    plat_get_status(&status);
+    return status;
+}
+
+/* platform.md 3.8: what plat_init() recorded. The TZASC is out of bypass and
+ * DRAM is open in region 1, the watchdog is armed when the option is on and
+ * reported as not armed without it, the ROM's logs were found, and the
+ * platform sets no crypto engine up (the board does, F-247) */
+static void test_status(void **state)
+{
+    struct plat_status status;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    status = status_now();
+
+    assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+    assert_int_equal(f.tzc_regions, 1);
+#if CONFIG_ENABLE_WATCHDOG
+    assert_true(status.wdog_armed);
+#else
+    assert_false(status.wdog_armed);
+#endif
+    assert_false(status.crypto_engine);
+    assert_true(status.rom_log);
+}
+
+/* platform.md 2.2, 4.3 (F-241, F-248): a TZASC that the board's DCD left in
+ * bypass isn't plat_init()'s error, command mode runs without it. It is
+ * recorded, and no region is programmed */
+static void test_status_tzasc_bypassed(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMX6UL_IOMUXC_GPR9, 0);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+    assert_int_equal(f.tzc_regions, 0);
+}
+
+/* The same for a set up that failed with the TZASC out of bypass: the
+ * controller has no region, or refuses DRAM's. Neither is the state 4.3
+ * asks for, and the boot is refused the same way */
+static void test_status_tzasc_setup_failed(void **state)
+{
+    (void)state;
+
+    f.tzc_init_rc = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    f.tzc_init_rc = PB_OK;
+    f.tzc_region_rc = -PB_ERR_PARAM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    /* And it is the state of this plat_init(), not of an earlier one */
+    f.tzc_region_rc = PB_OK;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+}
+
+/* platform.md 2.3: the ROM's logs are two, its event log and the HAB's.
+ * Without either the platform goes on and records it */
+static void test_status_rom_logs_missing(void **state)
+{
+    (void)state;
+
+    f.no_rom_log = true;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().rom_log);
+
+    f.no_rom_log = false;
+    f.hab_log_rc = -PB_ERR_NOT_FOUND;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().rom_log);
+
+    f.hab_log_rc = PB_OK;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_true(status_now().rom_log);
+}
+
+/* USB OTG1's device address register, and the address in it */
+#define USB1_DEVICEADDR  (IMX6UL_USB1_BASE + 0x154)
+#define DEVICEADDR_ADDR7 (7u << 25)
+
+/* What plat_get_boot_source() answers after a plat_early_init() */
+static enum pb_boot_source_kind boot_source_now(void)
+{
+    struct pb_boot_source src;
+
+    memset(&src, 0xff, sizeof(src));
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_get_boot_source(&src), PB_OK);
+    return src.kind;
+}
+
+/* The ROM's log of a serial download, as jiffy's (test_imx_rom_log.c) */
+static void rom_log_of_a_serial_download(void)
+{
+    f.rom_events[0] = IMX_ROM_LOG_V0_SERIAL_DOWNLOAD;
+    f.rom_events[1] = IMX_ROM_LOG_V0_JUMP_SDP;
+}
+
+/* platform.md 3.9 (F-251): the ROM's serial downloader loaded pb, and a USB
+ * host gave the ROM's device an address, as uuu does: USB */
+static void test_boot_source_usb_download(void **state)
+{
+    (void)state;
+
+    rom_log_of_a_serial_download();
+    fake_regs_set(IMX6UL_CCM_CCGR6, CCM_CCGR6_USBOH3);
+    fake_regs_set(USB1_DEVICEADDR, DEVICEADDR_ADDR7);
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_USB);
+}
+
+/* The same without an address: the image came over the UART, the serial
+ * downloader's other port. It was reported as unknown, which the core's
+ * serial download stop doesn't stop for (board.md 5.1) */
+static void test_boot_source_uart_download(void **state)
+{
+    (void)state;
+
+    rom_log_of_a_serial_download();
+    fake_regs_set(IMX6UL_CCM_CCGR6, CCM_CCGR6_USBOH3);
+    fake_regs_set(USB1_DEVICEADDR, 0);
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UART);
+
+    /* With the USB's clock gated its registers aren't read: no USB host */
+    fake_regs_reset();
+    fake_regs_on_write = soc_on_write;
+    fake_regs_set(USB1_DEVICEADDR, DEVICEADDR_ADDR7);
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UART);
+    assert_int_equal(fake_regs_reads(USB1_DEVICEADDR), 0);
+}
+
+/* Not a serial download: nothing of the USB is read, and without the eMMC's
+ * driver in the build the partition isn't named. Unknown, which boots */
+static void test_boot_source_not_a_download(void **state)
+{
+    (void)state;
+
+    f.rom_events[0] = IMX_ROM_LOG_V0_PRIMARY_IMAGE;
+    f.rom_events[1] = IMX_ROM_LOG_V0_PRIMARY_SD_MMC;
+    f.rom_events[2] = IMX_ROM_LOG_V0_JUMP;
+    fake_regs_set(IMX6UL_CCM_CCGR6, CCM_CCGR6_USBOH3);
+    fake_regs_set(USB1_DEVICEADDR, DEVICEADDR_ADDR7);
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UNKNOWN);
+    assert_int_equal(fake_regs_reads(USB1_DEVICEADDR), 0);
+
+    /* No log at all */
+    memset(f.rom_events, 0, sizeof(f.rom_events));
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UNKNOWN);
+}
+
 /* platform.md 3.3: plat_wdog_kick() is safe at any time, also before the
  * watchdog is armed and without CONFIG_ENABLE_WATCHDOG: WDOG1's service
  * sequence, at WDOG1 (F-206: it went to address 0 without the option) */
@@ -333,6 +528,13 @@ int main(void)
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
+        cmocka_unit_test_setup(test_status, setup),
+        cmocka_unit_test_setup(test_status_tzasc_bypassed, setup),
+        cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
+        cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
+        cmocka_unit_test_setup(test_boot_source_usb_download, setup),
+        cmocka_unit_test_setup(test_boot_source_uart_download, setup),
+        cmocka_unit_test_setup(test_boot_source_not_a_download, setup),
         cmocka_unit_test_setup(test_plat_reset_after_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_priority, setup),
