@@ -342,7 +342,6 @@ static int board_command(uint32_t command,
                          uint8_t *response_bfr,
                          size_t *response_size)
 {
-    int rc;
     size_t room = *response_size;
     LOG_DBG("%x, %p, %zu", command, bfr, size);
     *response_size = 0;
