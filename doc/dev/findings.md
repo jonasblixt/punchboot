@@ -102,6 +102,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | SLC_READ lists 16 keys at most, the buffers' bounds are static asserts; the board's name and a | | |
 | | | failed read in `cmd_stream_prep_buffer` were handled already. Left: `boot_jump()` returning after | | |
 | | | `disconnect()` (F-252's second half) and `BIO_FLAG_READABLE` (F-083) | | |
+| | | 2026-11-13 (`132f13fc`): `boot_jump()` returning after `disconnect()` is done with F-252. Left: | | |
+| | | `BIO_FLAG_READABLE` (F-083) | | |
 | F-194 | `gpt.c:296`, `src/bio.c` | Installing a table from command mode doesn't update | Reported (probe) | open |
 | | | the bio pool: until a reset the old partitions are listed and written at their old LBAs. Not documented | | |
 | | | either. D-070, `bio.md` 4: in effect at once. An unchanged partition (UUID and blocks) keeps its | | |
@@ -304,12 +306,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default y) in `boot()` before `early_boot()`, the platforms report | | |
 | | | it, the boards drop theirs. jiffy and the 8MP EVK then stop in command mode after a `uuu` load | | |
 | | | instead of booting from storage | | |
-| F-252 | `src/cm/cm_main.c` | A stop in a boot command mode started: `-PB_ERR_ABORT` | Verified (code) | open |
-| | | is command mode's "leave and reset" (`device reset`), so a hook's stop in `boot part` or | | |
-| | | `boot bpak` resets the board (the 8X's button, which stops these boots on purpose). After the | | |
-| | | transport's disconnect, a failed `late_boot` or `plat_lockdown()` other than ABORT returns to the | | |
-| | | loop, which reads from the disconnected transport (unchecked). `board.md` 5.4: before the | | |
-| | | disconnect the host gets the error and command mode goes on, after it pb resets | | |
 | F-390 | `src/plat/imx8m/link.lds`, `src/plat/imx8x/link.lds` | Not everything pb links is in | Verified (code) | open |
 | | | `pb` or `buffers`, which `platform.md` 5.3 rests the check of a board's image data regions on | | |
 | | | (F-254): the i.MX8M's DDR controller state (`.umctl2`, 128 KiB at the start of the DRAM, 0x40000000) | | |
@@ -679,8 +675,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`CONFIG_OPTIMIZE` on the command line, an edited `makefile.mk`) neither compiles nor links again in | | |
 | | | an existing build directory, shown with F-090's flag. `srk_fuse.o` doesn't depend on `scripts/gen- | | |
 | | | srk-fuse.py` (read). The value files of F-183 are the way | | |
-| F-399 | `src/cm/Kconfig`, `cm_main.c` | Low. `CONFIG_CM_TRANSPORT_READY_TIMEOUT` has no range, | Reported | open |
-| | | and its `* 1000000L` overflows a 32-bit long above 2147 s | | |
 | F-400 | `scripts/pbdev`, `scripts/ci/host-test.sh` | Low. Two `scripts/pbdev test` runs at | Verified (run) | open |
 | | | once in one tree fail: both install the package through setuptools' `build/` directory and the wheel | | |
 | | | builds collide ("Failed building wheel for punchboot"). The default and the sanitizer run must go | | |

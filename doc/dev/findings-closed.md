@@ -926,6 +926,24 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | unaffected; other tools could overlap the backup array. | | |
 | | | An install writes last usable = last - 33; a release's table is used as it is, and a release uses | | |
 | | | the new one (tried with both pb-host binaries). | | |
+| F-252 | `src/cm/cm_main.c` | A stop in a boot command mode started: `-PB_ERR_ABORT` | Verified (code) | fixed (`132f13fc`, `d804cbf3`) |
+| | | is command mode's "leave and reset" (`device reset`), so a hook's stop in `boot part` or | | |
+| | | `boot bpak` resets the board (the 8X's button, which stops these boots on purpose). After the | | |
+| | | transport's disconnect, a failed `late_boot` or `plat_lockdown()` other than ABORT returns to the | | |
+| | | loop, which reads from the disconnected transport (unchecked). `board.md` 5.4: before the | | |
+| | | disconnect the host gets the error and command mode goes on, after it pb resets | | |
+| | | A stop or a failure before the disconnect is the host's result and command mode goes on; a boot that | | |
+| | | returns after the disconnect, whatever it returns, leaves command mode and pb resets. A flag set by | | |
+| | | DEVICE_RESET, a board's reboot on PB_OK and the boot commands' end replaces the test for | | |
+| | | `-PB_ERR_ABORT`. Not run on a board (the MEK's button) | | |
+| F-399 | `src/cm/Kconfig`, `cm_main.c` | Low. `CONFIG_CM_TRANSPORT_READY_TIMEOUT` has no range, | Reported | fixed (`5d04d0ec`) |
+| | | and its `* 1000000L` overflows a 32-bit long above 2147 s | | |
+| | | The range is 1 to 4294 s, the product is unsigned and a static assert holds it. 0 expired at once, | | |
+| | | above 4294 s the microseconds wrapped | | |
+| F-415 | `src/cm/cm_main.c` `pb_command_parse()` | A board command that asked | Verified (test) | fixed (`c0f87447`) |
+| | | for the reboot and then failed left the request standing: the next command that returned PB_OK | | |
+| | | reset the board, a frame the gate refused included. Found with F-252. The request is dropped | | |
+| | | with the command that failed (`command-mode.md` 5.6: only when that command returned PB_OK) | | |
 
 ## Dependencies / vendored code
 
