@@ -11,7 +11,19 @@
 #ifndef TESTS_UNIT_FAKES_PLAT_H
 #define TESTS_UNIT_FAKES_PLAT_H
 
+#include <pb/plat.h>
+
 #define FAKE_US_TICK_DEFAULT 0x12345678
+
+/* A platform where nothing failed: no TrustZone, the watchdog armed, a
+ * crypto engine that works, the ROM's logs found */
+#define FAKE_PLAT_STATUS_DEFAULT             \
+    {                                        \
+        .tz_dram_filter = PLAT_TZ_DRAM_NONE, \
+        .wdog_armed = true,                  \
+        .crypto_engine = true,               \
+        .rom_log = true,                     \
+    }
 
 /* Value returned by the next plat_get_us_tick() */
 extern unsigned int fake_us_tick;
@@ -28,5 +40,8 @@ extern unsigned int fake_lockdown_calls;
 extern int fake_lockdown_rc;
 /* fake_wdog_kicks when plat_lockdown() was last called */
 extern unsigned int fake_lockdown_wdog_kicks;
+/* What plat_get_status() answers, and the number of its calls */
+extern struct plat_status fake_plat_status;
+extern unsigned int fake_plat_status_calls;
 
 #endif // TESTS_UNIT_FAKES_PLAT_H

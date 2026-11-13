@@ -151,6 +151,16 @@ int plat_get_boot_source(struct pb_boot_source *src)
     return -PB_ERR_NOT_SUPPORTED;
 }
 
+/* A process has no TrustZone, no watchdog and no ROM, and the crypto backend
+ * is the board's: everything is absent (platform.md 3.8) */
+void plat_get_status(struct plat_status *status)
+{
+    status->tz_dram_filter = PLAT_TZ_DRAM_NONE;
+    status->wdog_armed = false;
+    status->crypto_engine = false;
+    status->rom_log = false;
+}
+
 int plat_lockdown(void)
 {
     return PB_OK;

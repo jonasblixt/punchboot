@@ -21,6 +21,8 @@ unsigned int fake_wdog_max_gap_us;
 unsigned int fake_lockdown_calls;
 unsigned int fake_lockdown_wdog_kicks;
 int fake_lockdown_rc;
+struct plat_status fake_plat_status = FAKE_PLAT_STATUS_DEFAULT;
+unsigned int fake_plat_status_calls;
 
 uint32_t plat_get_us_tick(void)
 {
@@ -36,6 +38,12 @@ void plat_wdog_kick(void)
         fake_wdog_max_gap_us = fake_us_tick - fake_wdog_kick_tick;
     fake_wdog_kick_tick = fake_us_tick;
     fake_wdog_kicks++;
+}
+
+void plat_get_status(struct plat_status *status)
+{
+    fake_plat_status_calls++;
+    *status = fake_plat_status;
 }
 
 int plat_lockdown(void)
