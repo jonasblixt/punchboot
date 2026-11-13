@@ -114,6 +114,8 @@ static struct {
     int lose_write; /* The write with this number (from 1) is lost */
     int write_calls;
     bool write_lost;
+    int lose_read_start; /* The read with this number (from 1) can't be started, once */
+    int read_calls;
     int fail_reads_after; /* -1: never, n: read() fails after n calls */
     int fail_writes_after;
     /* The host stops: a read that starts at input position stop_at, or the
@@ -173,6 +175,8 @@ int cm_transport_disconnect(void)
 
 int cm_transport_read(void *buf, size_t length)
 {
+    if (++t.read_calls == t.lose_read_start)
+        return -PB_ERR_IO; /* Lost while no transfer ran (usb.md 4.3) */
     if (t.fail_reads_after == 0)
         return -PB_ERR_IO;
     if (t.fail_reads_after > 0)
@@ -2764,14 +2768,49 @@ static void test_run_errors(void **state)
     assert_int_equal(cm_run(), -PB_ERR_IO);
     assert_int_equal(t.init_calls, 1);
 
-    /* The transport can't read */
+    /* The transport can't start a read: it is restarted (F-364), which the
+     * fake refuses the second time */
     t.max_inits = 1;
     t.init_calls = 0;
     t.fail_reads_after = 0;
     board_cfg = &cfg_all_callbacks;
     t.connect_ok_after = 0;
     assert_int_equal(cm_run(), -PB_ERR_IO);
-    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(t.init_calls, 2);
+    assert_int_equal(t.disconnect_calls, 0);
+}
+
+/*
+ * usb.md 2.4, 4.3 and command-mode.md 2.2, 3.1 (F-364): an unplug or a bus
+ * reset while no transfer runs is kept, and is the error of the next transfer
+ * that is started. When that is the read of the next command, the session
+ * ends and the transport is restarted, as for a lost that a running read
+ * reports: the device waits for a host and doesn't reset. The next host
+ * isn't authenticated. The restart is the next round's, so the other tasks
+ * run in between.
+ */
+static void test_lost_at_the_start_of_a_read(void **state)
+{
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    t.max_inits = 2;
+    host_auth_token();
+    /* The third read: the token's command and data are the first two */
+    t.lose_read_start = 3;
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    /* The next host */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.connect_calls, 2);
+    assert_int_equal(t.disconnect_calls, 0);
+    /* The failed start ended its round: the restart was the next one's */
+    assert_int_equal(t.rounds, 5);
 }
 
 /* The set up starts with the platform's (command-mode.md 2.1, platform.md
@@ -3743,6 +3782,7 @@ int main(void)
         CM_TEST(test_boot_bpak),
         CM_TEST(test_boot_bpak_refused_before_the_header),
         CM_TEST(test_run_errors),
+        CM_TEST(test_lost_at_the_start_of_a_read),
         CM_TEST(test_setup_platform_first),
         CM_TEST(test_setup_platform_fails),
         CM_TEST(test_task_polls_once_per_call),

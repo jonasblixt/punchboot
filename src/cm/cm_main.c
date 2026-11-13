@@ -1548,9 +1548,16 @@ int cm_main_task(void)
         case CM_READ:
             rc = cm_transport_read(&cmd, sizeof(cmd));
 
-            /* A transport that is lost here ends command mode (F-364) */
-            if (rc != PB_OK)
-                return cm_leave(rc);
+            /* Lost while no transfer ran is the error of the next one that
+             * is started (usb.md 4.3): the session is over, the transport
+             * is restarted and the device waits for a host (command-mode.md
+             * 2.2, 3.1). In the next round, so that the tasks run and the
+             * watchdog is kicked also when the start fails again */
+            if (rc != PB_OK) {
+                LOG_ERR("Read error %i", rc);
+                state = CM_START;
+                return PB_OK;
+            }
 
             state = CM_COMMAND;
             return PB_OK;
