@@ -414,8 +414,8 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 |                              | `core`)            |                   |                     |         |
 | Flags no wider than the      | yes                | yes               | yes                 |         |
 | medium                       |                    |                   |                     |         |
-| What it leaves behind, in    | no                 | no                | n/a                 | F-285   |
-| its header                   |                    |                   |                     |         |
+| What it leaves behind, in    | yes (`mmc_core.h`, | no                | n/a                 |         |
+| its header                   | `imx_usdhc.h`)     |                   |                     |         |
 
 The virtio block driver has no user and is in no build (F-052); it isn't in the table.
 
@@ -465,7 +465,6 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | F-283               | The block size asked, not assumed; the rest of the conformance suite (2, 8)    |
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
-| F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |
 | F-200               | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                   |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

@@ -19,6 +19,16 @@ struct imx_usdhc_config {
     const struct mmc_device_config mmc_config; /*!< MMC layer configuration */
 };
 
+/*
+ * What the driver leaves behind (bio.md 5), as the code does it today. Its
+ * calls are synchronous, so it has no stop. The controller stays enabled as
+ * the last call left it: the card clock's dividers for the bus mode, the bus
+ * width and DDR_EN, the delay line's tap, ADMA2 selected and ADMA_SYS_ADDR
+ * at the driver's descriptor table, which the controller reads only when a
+ * command with data is written. Its interrupt signals are off. The card's
+ * side is in drivers/mmc/mmc_core.h.
+ */
+
 /**
  * Initialize the usdhc mmc controller
  *

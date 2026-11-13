@@ -413,6 +413,49 @@ struct mmc_device_config {
 /* A card, from mmc_init() */
 struct mmc_device;
 
+/*
+ * What the MMC drivers leave behind (bio.md 5), as the code does it today.
+ *
+ * Every call is synchronous: when it returns nothing is in flight, and there
+ * is no stop. At the jump the card and the controller are as the last call
+ * left them, and the next stage sets them up again.
+ *
+ * The card, until it is reset or powered off:
+ *  - Selected, in Transfer state.
+ *  - In the board's bus mode (mmc_device_config): jiffy's e.MMC in 8 bit
+ *    DDR52 (HS_TIMING 1, BUS_WIDTH 6), the 8M and 8X boards' in 8 bit HS200
+ *    (HS_TIMING 2, BUS_WIDTH 2) at the board's delay tap, or the tuned one
+ *    with CONFIG_MMC_CORE_HS200_TUNE; in high speed on 8 bit (HS_TIMING 1,
+ *    BUS_WIDTH 2) when the tuning found no tap. An SD card in high speed or
+ *    default speed on 4 or 1 bit, as the board and the card allow.
+ *  - On the e.MMC, PARTITION_ACCESS (PARTITION_CONFIG bits 2:0) on the
+ *    hardware partition accessed last: the user area, BOOT0, BOOT1 or RPMB.
+ *    The device clears it at power on.
+ *
+ * For good, on the e.MMC (non-volatile EXT_CSD fields):
+ *  - BOOT_BUS_CONDITIONS [177] is written with the board's boot_mode by every
+ *    mmc_init() that finds another value. MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS
+ *    keeps the device's own.
+ *  - BOOT_PARTITION_ENABLE (PARTITION_CONFIG bits 5:3): a write to the boot
+ *    partition that is enabled first enables the other one, so the ROM never
+ *    boots a half written partition; bio_write_done() on a boot partition
+ *    enables it. Nothing else changes it.
+ *  - Nothing else. RST_n_FUNCTION, the write protection, the partitioning
+ *    and POWER_OFF_NOTIFICATION are never written: mmc_extcsd_write() and
+ *    mmc_power_off() have no caller in pb, so the card isn't told before its
+ *    power is cut.
+ *
+ * The ROM after a warm reset finds the card in the bus mode above, selected,
+ * with PARTITION_ACCESS where it was. What brings it back to a state the ROM
+ * boots from is a reset of the device: its RST_n pin, which the board wires
+ * and which works only once RST_n_FUNCTION enables it (pb doesn't), or a
+ * reset that powers the card off. Unverified (F-078, F-079).
+ *
+ * After an mmc_init() that failed, the devices an earlier init registered
+ * fail with -PB_ERR_STATE until an init of that controller works
+ * (drivers.md 2.1).
+ */
+
 /**
  * Initialize a card
  *
@@ -501,6 +544,8 @@ int mmc_extcsd_write(struct mmc_device *dev, uint16_t field_id, uint8_t value);
  * Power off the card (e.MMC). This function must be called before it is safe
  * to turn off Vcc and Vccq. After the card has been powered down the
  * 'mmc_init' function can be called to re-initialize.
+ *
+ * Nothing in pb calls it today (see above).
  *
  * @return PB_OK on success
  */
