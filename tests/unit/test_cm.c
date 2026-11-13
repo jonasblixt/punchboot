@@ -1165,6 +1165,9 @@ static void test_error_codes(void **state)
         { -PB_ERR_PARAM, -PB_RESULT_INVALID_ARGUMENT },
         { -PB_ERR_NOT_SUPPORTED, -PB_RESULT_NOT_SUPPORTED },
         { -PB_ERR_BAD_HEADER, -PB_RESULT_ERROR },
+        /* An error like any other: the next one is answered (F-252) */
+        { -PB_ERR_ABORT, -PB_RESULT_ERROR },
+        { -PB_ERR_STATE, -PB_RESULT_ERROR },
     };
     struct pb_command_board req = { .command = BOARD_RETURN, .request_size = 4 };
     uint8_t arg[1024] = { 0 };
@@ -1199,6 +1202,29 @@ static void test_board_command_requests_reboot(void **state)
     expect_end();
     /* The device leaves the bus before the reset (command-mode.md 2.3) */
     assert_int_equal(t.disconnect_calls, 1);
+}
+
+/* command-mode.md 5.6, board.md 4.4 (F-252): a board's command that fails
+ * doesn't reset, whatever it returns. -PB_ERR_ABORT is its error, the host
+ * gets it and command mode goes on */
+static void test_board_command_that_returns_abort(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_RETURN, .request_size = 4 };
+    uint8_t arg[1024] = { 0 };
+    int32_t error = -PB_ERR_ABORT;
+    (void)state;
+
+    memcpy(arg, &error, sizeof(error));
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_send(arg, sizeof(arg));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
 }
 
 static void test_device_reset(void **state)
@@ -2877,6 +2903,75 @@ static void test_boot_bpak_refused_before_the_header(void **state)
 }
 
 /*
+ * board.md 5.4, command-mode.md 5.5 (F-252): a stop or a failure before the
+ * disconnect is the host's result, and command mode goes on with the session
+ * as it was. early_boot()'s stop is -PB_ERR_ABORT, which boot_load()
+ * returns: `boot part` answers it, `boot bpak` reads the header's transfer
+ * and answers it there (D-058). The session stays authenticated, and the
+ * device doesn't leave the bus.
+ */
+static void test_boot_stopped_before_the_disconnect(void **state)
+{
+    struct pb_command_boot_part part = { 0 };
+    struct pb_command_bpak_boot bpak = { 0 };
+    static uint8_t header[sizeof(struct bpak_header)];
+    (void)state;
+
+    /* A header that is a frame, were it read as one */
+    pb_wire_init_command((struct pb_command *)header, PB_CMD_DEVICE_IDENTIFIER_READ);
+    memcpy(part.uuid, UU_RW, 16);
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    fake_boot.load_rc = -PB_ERR_ABORT;
+
+    host_auth_token();
+    host_cmd(PB_CMD_BOOT_PART, &part, sizeof(part));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOT_BPAK, &bpak, sizeof(bpak));
+    host_send(header, sizeof(header));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    /* boot part: the stop, then the next command, still authenticated */
+    expect_result(-PB_RESULT_ERROR);
+    expect_result(PB_RESULT_OK);
+    /* boot bpak: the first result, the header's, then the next command */
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_boot.load_calls, 2);
+    assert_int_equal(fake_boot.jump_calls, 0);
+    assert_int_equal(t.disconnect_calls, 0);
+    /* The one start, and the one that ends the test */
+    assert_int_equal(t.init_calls, 2);
+}
+
+/* The same when the load answered the header itself and stopped later: the
+ * error it returns after its own result isn't a request to leave */
+static void test_boot_bpak_load_returns_abort(void **state)
+{
+    struct pb_command_bpak_boot bpak = { 0 };
+    static struct bpak_header header;
+    (void)state;
+
+    fake_boot.load_rc = -PB_ERR_ABORT;
+    fake_boot.reads_header = true;
+    host_cmd(PB_CMD_BOOT_BPAK, &bpak, sizeof(bpak));
+    host_send(&header, sizeof(header));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_boot.jump_calls, 0);
+    assert_int_equal(t.disconnect_calls, 0);
+}
+
+/*
  * command-mode.md 2.3, 5.5 and board.md 5.4 (F-252, F-190): after the last OK
  * the transport is disconnected and the session is over, whatever follows. A
  * boot that returns after it ends command mode's task, so that pb resets:
@@ -3929,6 +4024,7 @@ int main(void)
         CM_TEST(test_board_response_fits_the_hosts_buffer),
         CM_TEST(test_error_codes),
         CM_TEST(test_board_command_requests_reboot),
+        CM_TEST(test_board_command_that_returns_abort),
         CM_TEST(test_device_reset),
         CM_TEST(test_locked_device_requires_auth),
         CM_TEST(test_auth_token_key_kinds),
@@ -3971,6 +4067,8 @@ int main(void)
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
         CM_TEST(test_boot_bpak_refused_before_the_header),
+        CM_TEST(test_boot_stopped_before_the_disconnect),
+        CM_TEST(test_boot_bpak_load_returns_abort),
         CM_TEST(test_boot_fails_after_the_disconnect),
         CM_TEST(test_run_errors),
         CM_TEST(test_lost_at_the_start_of_a_read),

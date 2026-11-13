@@ -653,4 +653,4 @@ Like the wire (D-008, `compatibility.md`):
 | F-259        | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
 | F-248        | The boot's preconditions in the flow (2), pb's status in the handover (5.6)  |
 | F-180        | The A/B review's fixes, `pbstate`                                            |
-| F-252, F-076 | A stop in a boot command mode started; a part outside the hash refused (4.2) |
+| F-076        | A part outside the hash refused (4.2)                                        |

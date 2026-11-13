@@ -85,8 +85,11 @@ static const struct cm_config *cfg;
  * 4.6): the session is over, the command's other transfers fail at once and
  * the task restarts the transport */
 static bool transfer_lost;
-/* A command ended command mode (command-mode.md 2.3): the task leaves when
- * the command is done, whatever the command returned */
+/* A command ended command mode (command-mode.md 2.3): DEVICE_RESET, a
+ * board's command that asked for the reset and returned PB_OK (5.6), a boot
+ * that returned after the disconnect. The task leaves when the command is
+ * done. Nothing else leaves: an error a command returns, -PB_ERR_ABORT too,
+ * is the host's result, and command mode goes on (board.md 5.4) */
 static bool leave_requested;
 /* The device left the bus, until the transport is started again: it leaves
  * once, before a jump or before the reset */
@@ -1261,6 +1264,7 @@ static int pb_command_parse(void)
         LOG_INFO("Board reset");
         pb_wire_init_result(&result, PB_RESULT_OK);
         cm_write(&result, sizeof(result));
+        leave_requested = true;
         return -PB_ERR_ABORT;
     } break;
     case PB_CMD_PART_TBL_READ:
@@ -1452,6 +1456,7 @@ err_out:
     if (reboot_requested && (rc == 0)) {
         LOG_INFO("Requesting reboot...");
         reboot_requested = false;
+        leave_requested = true;
         rc = -PB_ERR_ABORT;
     }
 
@@ -1632,7 +1637,7 @@ int cm_main_task(void)
 
             rc = pb_command_parse();
 
-            if (leave_requested || rc == -PB_ERR_ABORT)
+            if (leave_requested)
                 return cm_leave(rc);
 
             if (transfer_lost) {

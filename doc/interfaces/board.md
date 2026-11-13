@@ -617,11 +617,6 @@ NULL: nothing.
 
 ### 5.4 A stop in a boot that command mode started
 
-**Not yet in the code (F-252)**: command mode reads `-PB_ERR_ABORT` as its own "leave and reset"
-(`device reset`), so a hook that stops a boot command mode started resets the board, also before
-the disconnect, where the host could get the error. Any other failure after the disconnect returns
-to command mode's loop, which reads the next command from the disconnected transport (unchecked).
-
 `boot part` answers the host after prepare. `boot bpak` (from RAM) answers after each step of the
 load, the last time after the payload's hash and before prepare (`boot.md` 6). Both then
 disconnect the transport and call `late_boot()`, `plat_lockdown()` and the jump. The host's last
