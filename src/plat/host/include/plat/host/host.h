@@ -15,6 +15,8 @@
  *  - The command mode transport is a unix domain socket (socket.c has the
  *    cm_transport_*() functions of pb/cm.h).
  *  - A reset terminates the process.
+ *  - The boot reason (plat_get_boot_reason()) is always a power on,
+ *    PB_BOOT_REASON_POR with a raw value of 0: a process has no reset status.
  */
 
 #ifndef PLAT_HOST_HOST_H

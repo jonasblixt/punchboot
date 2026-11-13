@@ -136,6 +136,15 @@ const char *plat_boot_reason_str(void)
     return "";
 }
 
+/* A process has no reset status: every start is a power on */
+int plat_get_boot_reason(struct pb_boot_reason *reason)
+{
+    reason->kind = PB_BOOT_REASON_POR;
+    reason->raw = 0;
+    reason->name = "POR";
+    return PB_OK;
+}
+
 int plat_get_unique_id(uint8_t *output, size_t *length)
 {
     if (sizeof(device_unique_id) > *length)

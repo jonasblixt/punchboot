@@ -33,6 +33,22 @@ struct pb_boot_source {
     uuid_t part_uu; /*!< STORAGE: the bio partition (boot slot) pb was loaded from */
 };
 
+/** Why the SoC was reset, in a form that is the same on every platform */
+enum pb_boot_reason_kind {
+    PB_BOOT_REASON_UNKNOWN = 0, /*!< No cause the platform knows, or one without a kind */
+    PB_BOOT_REASON_POR, /*!< Power on, brown-out */
+    PB_BOOT_REASON_WDOG, /*!< Any watchdog, also a system controller's or the ROM's */
+    PB_BOOT_REASON_SW, /*!< Software reset, e.g. the OS's reboot */
+    PB_BOOT_REASON_DEBUG, /*!< JTAG/SWD */
+    PB_BOOT_REASON_FAULT, /*!< Thermal, lockup, ECC, tamper, ... */
+};
+
+struct pb_boot_reason {
+    enum pb_boot_reason_kind kind; /*!< Portable: for the core and the boards */
+    uint32_t raw; /*!< The SoC's value, documented in the platform header */
+    const char *name; /*!< For the banner and the log, never NULL */
+};
+
 /**
  * The first platform setup, called once by main() after arch_init(), before
  * board.console_init(). Afterwards the tick counts and log_time_start() has
@@ -97,6 +113,21 @@ int plat_boot_reason(void);
  * @return Boot reason string or ""
  */
 const char *plat_boot_reason_str(void);
+
+/**
+ * Why the SoC was reset, as plat_early_init() read it: valid from there. The
+ * platform doesn't clear the SoC's status, the OS reads the same registers.
+ * Where the status is sticky the kind is the highest priority cause since it
+ * was last cleared, not the cause of this reset; the platform header has the
+ * raw values, the priority and which causes survive a reset
+ * (doc/interfaces/platform.md 3.4). The raw value is not on the wire.
+ *
+ * @param[out] reason The kind, the SoC's value and a name. Filled in also
+ *                    when the call fails: PB_BOOT_REASON_UNKNOWN and a name
+ *
+ * @return PB_OK, or a negative number when the platform could not read it
+ */
+int plat_get_boot_reason(struct pb_boot_reason *reason);
 
 /**
  * The UUID namespace of the platform, 16 bytes: a constant. device_uuid()
