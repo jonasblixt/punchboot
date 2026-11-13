@@ -515,6 +515,11 @@ pb_plat_test(test_plat_imx8x
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
 
+# The WDOG's driver alone, on the register file
+pb_plat_test(test_imx_wdog
+    SOURCES ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
+)
+
 # The i.MX6UL, with the RAM that jiffy has
 pb_plat_test(test_plat_imx6ul
     SOURCES

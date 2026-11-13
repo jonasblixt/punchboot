@@ -28,6 +28,7 @@
 #define WDOG_WCR_SRE   BIT(6) /* Software reset extension */
 #define WDOG_WCR_WDW   BIT(7) /* Suspended in wait mode */
 #define WDOG_WCR_WT(x) ((x) << 8) /* Timeout, 0.5 s + x * 0.5 s */
+#define WDOG_WT_MAX    0xff /* The largest WT, 128 s */
 
 /* The service sequence, written to WSR */
 #define WDOG_WSR_SEQ1  0x5555
