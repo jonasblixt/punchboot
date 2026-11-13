@@ -260,6 +260,9 @@ static void test_not_initialized(void **state)
 {
     (void)state;
     assert_int_equal(imx_caam_rng_init((uintptr_t)regs), -PB_ERR_STATE);
+    /* drivers.md 2.3: a stop before init is no error, and writes nothing */
+    assert_int_equal(imx_caam_stop(), PB_OK);
+    assert_int_equal(REG(IRBAR_LS), 0);
     assert_int_equal(imx_caam_init((uintptr_t)regs + JR0), PB_OK);
 }
 

@@ -1160,6 +1160,42 @@ static void test_pinned_verifications(void **state)
     caam_model_trace(NULL, 0);
 }
 
+/* drivers.md 2.3, crypto.md 6: stop waits for what is in flight, then the
+ * job ring names pb's memory no more, and calling it twice is no error. The
+ * driver had no stop (F-286 (8)). Last: the CAAM can't be set up again */
+static void test_stop(void **state)
+{
+    bool verified = true;
+    uint8_t buf[1] = { 0 };
+    (void)state;
+
+    /* A hash that was given up with its job in flight, which doesn't end */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update_async(chunk, sizeof(chunk)), PB_OK);
+    caam_model_hang(true);
+    assert_int_equal(imx_caam_stop(), -PB_ERR_TIMEOUT);
+    assert_int_not_equal(caam_model_read(CAAM_JR_BASE + 0x004), 0);
+
+    caam_model_hang(false);
+    assert_int_equal(imx_caam_stop(), PB_OK);
+    assert_true(caam_model_idle());
+    assert_int_equal(caam_model_read(CAAM_JR_BASE + 0x004), 0); /* IRBAR */
+    assert_int_equal(caam_model_read(CAAM_JR_BASE + 0x024), 0); /* ORBAR */
+    assert_int_equal(caam_model_read(CAAM_JR_BASE + 0x00c), 0); /* IRSR */
+    assert_int_equal(caam_model_read(CAAM_JR_BASE + 0x02c), 0); /* ORSR */
+    assert_bench_clean();
+
+    assert_int_equal(imx_caam_stop(), PB_OK);
+
+    /* Nothing starts after it */
+    assert_int_equal(hash_init(HASH_SHA256), -PB_ERR_STATE);
+    assert_int_equal(
+        dsa_verify(DSA_EC_SECP256r1, buf, 1, buf, 1, HASH_SHA256, digest, 32, &verified),
+        -PB_ERR_STATE);
+    assert_false(verified);
+    assert_true(caam_model_idle());
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -1185,6 +1221,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_4_completion_of_another_job, setup, teardown),
         cmocka_unit_test_setup_teardown(test_job_status_is_the_entrys, setup, teardown),
         cmocka_unit_test_setup_teardown(test_job_timeout, setup, teardown),
+        cmocka_unit_test_setup(test_stop, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

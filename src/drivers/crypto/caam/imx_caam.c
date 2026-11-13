@@ -843,6 +843,31 @@ err_out:
     return rc;
 }
 
+int imx_caam_stop(void)
+{
+    int rc;
+
+    /* Before init, or a second time: nothing to stop */
+    if (!caam.caam_initialized)
+        return PB_OK;
+
+    /* A job that was given up is waited for: the rings' base and size are
+     * only written with no job in them (SRM: JRINTR's error types) */
+    rc = caam_idle();
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* The rings name pb's memory no more (drivers.md 2.3, crypto.md 6) */
+    mmio_write_32(caam.base + CAAM_IRBAR_JR_LS, 0);
+    mmio_write_32(caam.base + CAAM_ORBAR_JR_LS, 0);
+    mmio_write_32(caam.base + CAAM_IRSR_JR, 0);
+    mmio_write_32(caam.base + CAAM_ORSR_JR, 0);
+
+    caam.caam_initialized = false;
+    return PB_OK;
+}
+
 int imx_caam_init(uintptr_t base)
 {
     int rc;

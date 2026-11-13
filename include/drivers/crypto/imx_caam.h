@@ -15,6 +15,19 @@
 int imx_caam_init(uintptr_t base);
 
 /**
+ * Stop the CAAM's job ring before the jump (drivers.md 2.3, crypto.md 6)
+ *
+ * A job that is in flight is waited for, then the job ring's base and size
+ * registers are cleared, so that the engine holds no address in pb's memory.
+ * After it the backend's calls are -PB_ERR_STATE. Whoever set the CAAM up
+ * stops it: today the board, in its late_boot() (board.md 5.3).
+ *
+ * @return PB_OK when stopped, also before imx_caam_init() and a second time,
+ *        -PB_ERR_TIMEOUT if a job doesn't end: the rings are left as they are
+ */
+int imx_caam_stop(void);
+
+/**
  * Instantiate the CAAM's RNG4 state handles, with prediction resistance, and
  * generate the secure keys (JDKEK, TDKEK, TDSK)
  *

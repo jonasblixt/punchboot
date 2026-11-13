@@ -310,7 +310,8 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | The key parsed inside its length     | yes (`test_der`)        | yes (the library)    |              |
 | The key's curve is `alg`             | no                      | no                   | F-286        |
 | Every wait bounded                   | yes (1 s)               | n/a                  |              |
-| Nothing left at the jump             | no                      | n/a                  | F-286        |
+| Nothing left at the jump             | partly: a `stop`, no    | n/a                  | F-286        |
+|                                      | board calls it          |                      |              |
 | The library's results checked        | n/a                     | yes                  |              |
 |                                      |                         | (`test_mbedtls`)     |              |
 | An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |
