@@ -75,6 +75,18 @@ def test_count_outside_32_bits_is_refused(device: Device, count: str) -> None:
     assert _copies(device) == copies
 
 
+@pytest.mark.parametrize("value", ["zzz", "", "x1"])
+def test_board_register_value_must_be_a_number(device: Device, value: str) -> None:
+    # It wrote 0
+    device.pbstate("-w", "0", "5")
+    copies = _copies(device)
+
+    result = device.pbstate_run("-w", "0", value)
+    assert result.returncode == errno.EINVAL
+    assert _copies(device) == copies
+    assert "0: 00000005" in device.pbstate("-i")
+
+
 def test_board_register_takes_32_bits(device: Device) -> None:
     # strtol() stopped at 0x7fffffff where a long is 32 bits
     device.pbstate("-w", "0", "0xffffffff")

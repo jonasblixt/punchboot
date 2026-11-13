@@ -188,7 +188,7 @@ int main(int argc, char *const argv[])
                 errno = 0;
                 tmp = strtoll(argv[optind], &end, 0);
 
-                if (optarg == end) {
+                if (argv[optind] == end) {
                     return EINVAL;
                 }
 
