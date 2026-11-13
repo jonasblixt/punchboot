@@ -3785,6 +3785,54 @@ static void test_setup_platform_first(void **state)
     assert_int_equal(board_init_calls, 1);
 }
 
+/* platform.md 3.8 (F-248): command mode shows what the platform recorded
+ * in its log, once, when it is set up: a host reads there why a boot was
+ * refused. Nothing of it is on the wire */
+static void test_setup_logs_the_platforms_status(void **state)
+{
+    (void)state;
+
+    fake_plat_status = (struct plat_status){
+        .tz_dram_filter = PLAT_TZ_DRAM_BYPASSED,
+        .wdog_armed = false,
+        .crypto_engine = true,
+        .rom_log = false,
+    };
+    fake_plat_status_calls = 0;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run_printed();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_plat_status_calls, 1);
+    assert_non_null(strstr(printed,
+                           "Platform: DRAM filter BYPASSED, watchdog not armed, "
+                           "crypto engine ok, ROM logs none"));
+
+    fake_plat_status = (struct plat_status)FAKE_PLAT_STATUS_DEFAULT;
+}
+
+/* The same for a platform where nothing failed, and for a state the build
+ * has no name for */
+static void test_setup_logs_a_good_platforms_status(void **state)
+{
+    (void)state;
+
+    fake_plat_status = (struct plat_status)FAKE_PLAT_STATUS_DEFAULT;
+    fake_plat_status.tz_dram_filter = PLAT_TZ_DRAM_ACTIVE;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run_printed();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_non_null(strstr(printed,
+                           "Platform: DRAM filter active, watchdog armed, "
+                           "crypto engine ok, ROM logs found"));
+
+    fake_plat_status = (struct plat_status)FAKE_PLAT_STATUS_DEFAULT;
+}
+
 /* A platform that can't set up the port: no command mode (platform.md 3.10).
  * Nothing after it is set up, and the error is what pb resets on */
 static void test_setup_platform_fails(void **state)
@@ -4781,6 +4829,8 @@ int main(void)
         CM_TEST(test_run_errors),
         CM_TEST(test_lost_at_the_start_of_a_read),
         CM_TEST(test_setup_platform_first),
+        CM_TEST(test_setup_logs_the_platforms_status),
+        CM_TEST(test_setup_logs_a_good_platforms_status),
         CM_TEST(test_setup_platform_fails),
         CM_TEST(test_setup_without_the_device_uuid_fails),
         CM_TEST(test_task_polls_once_per_call),

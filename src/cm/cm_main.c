@@ -1598,12 +1598,44 @@ _Static_assert(CONFIG_CM_TRANSPORT_READY_TIMEOUT >= 1 &&
                    CONFIG_CM_TRANSPORT_READY_TIMEOUT <= (UINT32_MAX - 1) / 1000000,
                "CONFIG_CM_TRANSPORT_READY_TIMEOUT: 1 to 4294 s");
 
+/*
+ * What the platform recorded (platform.md 3.8), in the log, where a host
+ * reads it without a UART: the state behind a boot that was refused, and
+ * what a boot would go on without. Nothing of it is on the wire.
+ */
+static void log_plat_status(void)
+{
+    static const char *const filters[] = {
+        [PLAT_TZ_DRAM_NONE] = "none",
+        [PLAT_TZ_DRAM_LATER_STAGE] = "a later stage's",
+        [PLAT_TZ_DRAM_ACTIVE] = "active",
+        [PLAT_TZ_DRAM_BYPASSED] = "BYPASSED",
+    };
+    struct plat_status status;
+    const char *filter = "unknown";
+
+    /* What the platform leaves unset counts as failed, as for the boot */
+    memset(&status, 0, sizeof(status));
+    status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    plat_get_status(&status);
+
+    if ((size_t)status.tz_dram_filter < ARRAY_SIZE(filters))
+        filter = filters[status.tz_dram_filter];
+
+    LOG_INFO("Platform: DRAM filter %s, watchdog %s, crypto engine %s, ROM logs %s",
+             filter,
+             status.wdog_armed ? "armed" : "not armed",
+             status.crypto_engine ? "ok" : "none",
+             status.rom_log ? "found" : "none");
+}
+
 /* The set up, on the task's first call (command-mode.md 2.1) */
 static int cm_setup(void)
 {
     int rc;
 
     LOG_INFO("Initializing command mode");
+    log_plat_status();
 
     /* The USB device port, first. Without it there is no command mode */
     rc = plat_cm_init();
