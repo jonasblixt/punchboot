@@ -145,6 +145,15 @@ all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 # Every object can use PB_VERSION
 $(OBJS): $(call value_file,PB_VERSION)
 
+# What the objects are compiled with and pb is linked with: a changed flag
+# (CONFIG_OPTIMIZE on the command line, an edited makefile.mk), compiler or
+# list of objects makes them again, and so does a changed link script (F-398)
+compile_cmd = $(CC) $(cflags-y)
+link_cmd = $(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS2) $(LIBS)
+LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(ldflags-y))))
+
+$(OBJS): $(call value_file,compile_cmd)
+
 $(BUILD_DIR)/keystore.o: $(call unquote,$(CONFIG_KEYSTORE)) $(call value_file,CONFIG_KEYSTORE)
 	@echo GEN $(BUILD_DIR)/keystore.c
 	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) --decorate > $(BUILD_DIR)/keystore.c
@@ -161,7 +170,7 @@ endif
 
 SRK_FUSE_FILE := $(patsubst "%",%,$(CONFIG_SRK_FUSE))
 
-$(BUILD_DIR)/srk_fuse.o: $(SRK_FUSE_FILE) $(call value_file,CONFIG_SRK_FUSE)
+$(BUILD_DIR)/srk_fuse.o: $(SRK_FUSE_FILE) $(call value_file,CONFIG_SRK_FUSE) scripts/gen-srk-fuse.py
 	@echo GEN $(BUILD_DIR)/srk_fuse.c
 	$(Q)$(PYTHON) scripts/gen-srk-fuse.py $(SRK_FUSE_FILE) > $(BUILD_DIR)/srk_fuse.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/srk_fuse.c -o $@
@@ -172,9 +181,9 @@ $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	$(Q)$(STRIP) --strip-all $<
 	$(Q)$(OBJCOPY) -O binary -R .comment $< $@
 
-$(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS)
+$(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS) $(LINK_SCRIPTS) $(call value_file,link_cmd)
 	@echo LD $@
-	$(Q)$(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS2) $(LIBS) -o $@
+	$(Q)$(link_cmd) -o $@
 
 $(BUILD_DIR)/%.bino: %.bin
 	@mkdir -p $(@D)

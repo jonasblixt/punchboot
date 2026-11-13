@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Check that the firmware build makes again what a changed input makes (F-183).
+"""Check that the firmware build makes again what a changed input makes.
 
-keystore.c is made from CONFIG_KEYSTORE, srk_fuse.c from CONFIG_SRK_FUSE, and
-every object can use PB_VERSION. A build directory that was built before must
-follow a change of one, in the configuration or on the command line, or pb
-keeps the old keys and the old SRK hash. This builds three of jiffy's objects
-in a build directory of its own and changes each input:
+keystore.c is made from CONFIG_KEYSTORE, srk_fuse.c from CONFIG_SRK_FUSE and
+scripts/gen-srk-fuse.py, and every object can use PB_VERSION (F-183). Every
+object is compiled with the compiler flags, and pb is linked with the linker
+flags and the link scripts (F-398). A build directory that was built before
+must follow a change of one, in the configuration or on the command line, or
+pb keeps the old keys, the old SRK hash or the old flags. This builds three of
+jiffy's objects, and then all of pb, in build directories of its own and
+changes each input:
 
   check_rebuild.py <source dir> <work dir>
 
@@ -55,9 +58,10 @@ class Build:
         }
         self.version = (root / "version.txt").read_text().strip()
 
-    def make(self, *args: str, question: bool = False) -> int:
+    def make(self, *args: str, question: bool = False, targets: list[str] | None = None) -> int:
         """Run make for the three objects with the default arguments and args."""
-        targets = [f"{self.build}/{t}" for t in ("keystore.o", "srk_fuse.o", "src/console.o")]
+        names = targets or ["keystore.o", "srk_fuse.o", "src/console.o"]
+        targets = [f"{self.build}/{t}" for t in names]
         cmd = [
             "make",
             *(["-q"] if question else []),
@@ -107,13 +111,78 @@ class Build:
             say(f"FAILED: {what}: {found}, expected {expected}")
             self.problems += 1
 
-    def check_up_to_date(self, what: str) -> None:
-        """Check that a build with the default arguments has nothing to make."""
-        if self.make(question=True) == 0:
+    def check_up_to_date(self, what: str, *args: str, targets: list[str] | None = None) -> None:
+        """Check that a build with the default arguments and args has nothing to make."""
+        if self.make(*args, question=True, targets=targets) == 0:
             say(f"ok: {what}")
         else:
             say(f"FAILED: {what}: make has something to make")
             self.problems += 1
+
+    def check_out_of_date(self, what: str, *args: str, targets: list[str] | None = None) -> None:
+        """Check that a build with the default arguments and args has something to make."""
+        if self.make(*args, question=True, targets=targets) == 1:
+            say(f"ok: {what}")
+        else:
+            say(f"FAILED: {what}: make has nothing to make")
+            self.problems += 1
+
+    def read(self, name: str) -> bytes:
+        """Return a file of the build directory."""
+        return (self.build / name).read_bytes()
+
+    def check_made(self, what: str, made: dict[str, bool], before: dict[str, bytes]) -> None:
+        """Check which files changed from before: made[name] says whether it should."""
+        found = {name: self.read(name) != before[name] for name in made}
+        if found == made:
+            say(f"ok: {what}")
+        else:
+            say(f"FAILED: {what}: changed {found}, expected {made}")
+            self.problems += 1
+
+
+def check_flags(root: pathlib.Path, work: pathlib.Path) -> int:
+    """Build all of pb, change the flags and the link's inputs (F-398)."""
+    b = Build(root, work)
+    pb = ["pb"]
+
+    b.make(targets=pb)
+    first = {name: b.read(name) for name in ("src/console.o", "pb")}
+    b.check_up_to_date("pb: a build without a change has nothing to make", targets=pb)
+
+    # A compiler flag: every object and the link
+    b.make("CONFIG_OPTIMIZE=0", targets=pb)
+    b.check_made("CONFIG_OPTIMIZE on the command line", {"src/console.o": True, "pb": True}, first)
+    b.check_up_to_date("and then nothing to make", "CONFIG_OPTIMIZE=0", targets=pb)
+
+    b.make(targets=pb)
+    b.check_made("back to the defconfig's", {"src/console.o": False, "pb": False}, first)
+
+    # A linker flag: the link only
+    b.make("CONFIG_STACK_SIZE_KiB=4", targets=pb)
+    b.check_made("a linker flag", {"src/console.o": False, "pb": True}, first)
+
+    b.make(targets=pb)
+    b.check_made("back to the defconfig's", {"src/console.o": False, "pb": False}, first)
+
+    # The link's inputs and the generator of srk_fuse.c (-W: as if changed)
+    for name in ("src/link.lds", "src/arch/armv7a/link.lds", "src/plat/imx6ul/link.lds"):
+        b.check_out_of_date(f"{name} changed: pb is linked again", "-W", name, targets=pb)
+        b.check_up_to_date(
+            f"{name} changed: no object is made again",
+            "-W",
+            name,
+            targets=["src/console.o", "srk_fuse.o"],
+        )
+    b.check_out_of_date(
+        "scripts/gen-srk-fuse.py changed: srk_fuse.o is made again",
+        "-W",
+        "scripts/gen-srk-fuse.py",
+        targets=["srk_fuse.o"],
+    )
+    b.check_up_to_date("and then nothing to make", targets=pb)
+
+    return b.problems
 
 
 def main() -> int:
@@ -181,7 +250,7 @@ def main() -> int:
     b.check("back to the defconfig")
     b.check_up_to_date("and then nothing to make")
 
-    return b.problems
+    return b.problems + check_flags(root, work / "flags")
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ add_test(
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_rebuild.py
             ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/rebuild
 )
-set_tests_properties(make.rebuild PROPERTIES LABELS make TIMEOUT 60 SKIP_RETURN_CODE 77)
+set_tests_properties(make.rebuild PROPERTIES LABELS make TIMEOUT 120 SKIP_RETURN_CODE 77)
 
 add_test(
     NAME make.config
