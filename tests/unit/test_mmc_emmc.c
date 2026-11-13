@@ -257,7 +257,7 @@ static void test_hs400_es_not_supported(void **state)
 /* HS400 without Enhanced Strobe: tuned in HS200 first, 6.6.2.3 */
 static void test_hs400(void **state)
 {
-    SKIP_OPEN("F-116");
+    static uint8_t buf[4096];
     (void)state;
 
     dev_cfg.mode = MMC_BUS_MODE_HS400;
@@ -265,7 +265,31 @@ static void test_hs400(void **state)
 
     assert_int_equal(init(), PB_OK);
     assert_bench_clean();
+    assert_true(emmc_model_cmd_count(MMC_CMD_SEND_TUNING_BLOCK_HS200) > 0);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 3);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 6);
+    assert_int_equal(hal_model_bus()->clk_hz, 200000000);
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(buf), buf), PB_OK);
+    assert_bench_clean();
+}
+
+/* HS400's tuning fails: high speed on the 8 bit bus with the board's tap,
+ * as HS200 does */
+static void test_hs400_tuning_fails(void **state)
+{
+    static uint8_t buf[4096];
+    (void)state;
+
+    dev_cfg.mode = MMC_BUS_MODE_HS400;
+    dev_cfg.width = MMC_BUS_WIDTH_8BIT_DDR;
+    hal_model_set_window(1, 0);
+
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 2);
+    assert_int_equal(hal_model_bus()->clk_hz, 52000000);
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(buf), buf), PB_OK);
+    assert_bench_clean();
 }
 
 /* The device has no HS200: the host must check DEVICE_TYPE, 6.6.2.2 */
@@ -781,6 +805,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400_enhanced_strobe, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400_es_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),

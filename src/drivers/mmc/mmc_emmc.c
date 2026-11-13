@@ -351,7 +351,8 @@ static int mmc_bio_write(bio_dev_t bdev, lba_t lba, size_t length, const void *b
 /* One CMD21 at a delay tap: does the tuning block arrive intact? */
 static bool tune_tap_ok(struct mmc_device *dev, unsigned int tap)
 {
-    bool bus8 = dev->cfg->width == MMC_BUS_WIDTH_8BIT;
+    /* HS400 is tuned on the 8 bit bus in HS200 */
+    bool bus8 = dev->cfg->width == MMC_BUS_WIDTH_8BIT || dev->cfg->width == MMC_BUS_WIDTH_8BIT_DDR;
     const uint8_t *pattern = bus8 ? tuning_blk_pattern_8bit : tuning_blk_pattern_4bit;
     size_t len = bus8 ? sizeof(tuning_blk_pattern_8bit) : sizeof(tuning_blk_pattern_4bit);
     struct mmc_cmd cmd = {
@@ -419,7 +420,67 @@ static int hs200_tune(struct mmc_device *dev)
 
     return dev->hal->set_delay_tap(dev->hal->priv, tap);
 }
+
+/*
+ * HS400 without Enhanced Strobe is selected from HS200 after tuning
+ * (JESD84-B51 6.6.2.3, steps 3 to 6): 8 bit SDR, HS_TIMING 2, 200 MHz and
+ * CMD21, then HS_TIMING 1 at 52 MHz, from where HS400 is selected.
+ * -PB_ERR_NOT_FOUND when no tap works: the device is left in high speed with
+ * the board's tap, as for HS200
+ */
+static int hs400_tune(struct mmc_device *dev)
+{
+    int tune_rc;
+    int rc;
+
+    rc = mmc_set_bus_width(dev, MMC_BUS_WIDTH_8BIT);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = mmc_set_ext_csd(dev, EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS200, 0);
+    if (rc != PB_OK) {
+        LOG_ERR("Could not switch to HS200 timing");
+        return rc;
+    }
+
+    rc = mmc_set_bus_clock(dev, MHz(200));
+    if (rc != PB_OK)
+        return rc;
+
+    tune_rc = hs200_tune(dev);
+    if (tune_rc == -PB_ERR_NOT_FOUND)
+        dev->hal->set_delay_tap(dev->hal->priv, dev->hal->delay_tap_default);
+    else if (tune_rc != PB_OK)
+        return tune_rc;
+
+    /* CMD6 in HS200, the clock down, then the status (JESD84-B51 6.6.2.3) */
+    rc = mmc_send_cmd(dev,
+                      MMC_CMD_SWITCH,
+                      EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_HS_TIMING) |
+                          EXTCSD_VALUE(EXT_CSD_TIMING_HS) | EXTCSD_CMD_SET_NORMAL,
+                      MMC_RSP_R1b,
+                      NULL);
+    if (rc == PB_OK)
+        rc = mmc_set_bus_clock(dev, MHz(52));
+    if (rc == PB_OK)
+        rc = mmc_wait_state(dev, MMC_STATE_TRAN, dev->generic_cmd6_time_ms);
+    if (rc != PB_OK)
+        return rc;
+
+    return tune_rc;
+}
 #endif // CONFIG_MMC_CORE_HS200_TUNE
+
+/* Whether HS200 tuning is built in and the host has delay taps */
+static bool can_tune(const struct mmc_device *dev)
+{
+#ifdef CONFIG_MMC_CORE_HS200_TUNE
+    return dev->hal->delay_taps > 0 && dev->hal->set_delay_tap != NULL;
+#else
+    (void)dev;
+    return false;
+#endif
+}
 
 /* The DEVICE_TYPE bits that allow a bus mode */
 static uint8_t mode_card_types(enum mmc_bus_mode mode)
@@ -510,16 +571,29 @@ static int mmc_select_bus_mode(struct mmc_device *dev)
 #endif
     } break;
     case MMC_BUS_MODE_HS400: {
-        /* TODO: This is not complete and not usable yet,
-         * Strobe DLL configuration is missing. It seems to work
-         * on the imx8qxpmek evk */
+        /* Only on a host that says it runs HS400 (mmc_emmc_setup()) */
         LOG_DBG("Switching to HS400");
-        /* Before we can switch the bus to 8-bit DDR the device must
-         * be in HS mode */
-        rc = mmc_set_ext_csd(dev, EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
-        if (rc != PB_OK) {
-            LOG_ERR("Could not switch to HS timing");
-            return rc;
+        if (cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE) {
+            /* Before we can switch the bus to 8-bit DDR the device must
+             * be in HS mode */
+            rc = mmc_set_ext_csd(dev, EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
+            if (rc != PB_OK) {
+                LOG_ERR("Could not switch to HS timing");
+                return rc;
+            }
+        } else {
+#ifdef CONFIG_MMC_CORE_HS200_TUNE
+            rc = hs400_tune(dev);
+            if (rc == -PB_ERR_NOT_FOUND) {
+                /* Boot slower rather than not at all, as HS200 does */
+                LOG_WARN("HS400 tuning failed, using high speed (52 MHz)");
+                break;
+            }
+            if (rc != PB_OK)
+                return rc;
+#else
+            return -PB_ERR_NOT_SUPPORTED; /* mmc_emmc_setup() refused it */
+#endif
         }
 
         rc = mmc_set_bus_width(dev, cfg->width);
@@ -606,6 +680,13 @@ int mmc_emmc_setup(struct mmc_device *dev)
         !(cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE ? dev->hal->hs400_es : dev->hal->hs400)) {
         LOG_ERR("The host has no HS400%s",
                 cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE ? " ES" : "");
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
+    /* HS400 without Enhanced Strobe is tuned in HS200 (JESD84-B51 6.6.2.3) */
+    if (cfg->mode == MMC_BUS_MODE_HS400 && cfg->width != MMC_BUS_WIDTH_8BIT_DDR_STROBE &&
+        !can_tune(dev)) {
+        LOG_ERR("HS400 needs CONFIG_MMC_CORE_HS200_TUNE and the host's delay taps");
         return -PB_ERR_NOT_SUPPORTED;
     }
 
