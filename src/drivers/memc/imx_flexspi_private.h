@@ -99,7 +99,7 @@
 #define FLEXSPI_MCR1_AHBBUSWAIT(x)       ((uint32_t)(x) << 0)
 
 /* MCR2 register bits */
-#define FLEXSPI_MCR2_RESUMEWAIT(n)       ((n) << 24)
+#define FLEXSPI_MCR2_RESUMEWAIT(n)       ((uint32_t)(n) << 24)
 #define FLEXSPI_MCR2_RESUMEWAIT_MASK     (FLEXSPI_MCR2_RESUMEWAIT(0xff))
 #define FLEXSPI_MCR2_SCKBDIFFOPT         BIT(19)
 #define FLEXSPI_MCR2_SAMEDEVICEEN        BIT(15)

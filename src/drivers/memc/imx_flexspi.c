@@ -325,7 +325,7 @@ static int imx_flexspi_write(bio_dev_t dev, lba_t lba, size_t length, const void
     uint32_t bytes_to_next_page_boundry =
         (uint32_t)cfg_nor->page_size - (address & (uint32_t)(cfg_nor->page_size - 1));
 
-    LOG_DBG("Write buffer to flash at address: 0x%x, size: 0x%x", address, length);
+    LOG_DBG("Write buffer to flash at address: 0x%x, size: 0x%zx", address, length);
 
     if ((bytes_to_next_page_boundry < cfg_nor->page_size) &&
         (length > bytes_to_next_page_boundry)) {
@@ -389,7 +389,7 @@ static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
         }
 
         addr = part_start_addr + bytes_erased;
-        LOG_DBG("Erasing addr=0x%08x, block_sz=%u, lut_id=%u", addr, erase_block_sz, lut_id);
+        LOG_DBG("Erasing addr=0x%08x, block_sz=%zu, lut_id=%u", addr, erase_block_sz, lut_id);
 
         /* Write enable */
         imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_enable, 0, FLEXSPI_COMMAND, NULL, 0);
