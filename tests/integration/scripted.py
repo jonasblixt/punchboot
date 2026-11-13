@@ -11,12 +11,20 @@ a transfer that fails.
 from __future__ import annotations
 
 import ctypes
+from typing import TYPE_CHECKING
 
+import punchboot
+from click.testing import CliRunner
+from punchboot import __main__ as main
 from punchboot import wire
 from punchboot.transport import Transport
 from punchboot.wire import Command
 
 from .pbtest import SYSTEM_A_UUID
+
+if TYPE_CHECKING:
+    import pytest
+    from click.testing import Result
 
 PART_SIZE = 512 * 1024
 CHUNK = 4096
@@ -110,3 +118,12 @@ class ScriptedDevice(Transport):
     def close(self) -> None:
         """Close the connection."""
         self.closed = True
+
+
+def run_cli(monkeypatch: pytest.MonkeyPatch, dev: ScriptedDevice, *args: str) -> Result:
+    """Run the punchboot CLI in this process, on 'dev'.
+
+    It runs with the socket transport, so that it doesn't look for USB devices.
+    """
+    monkeypatch.setattr(main, "_open_session", lambda **_: punchboot.Session(transport=dev))
+    return CliRunner().invoke(main.cli, ["-t", "socket", *args])

@@ -9,9 +9,13 @@ from __future__ import annotations
 import subprocess
 from typing import TYPE_CHECKING
 
+import punchboot
 import pytest
+from punchboot import wire
+from punchboot.wire import Command
 
 from .pbtest import SYSTEM_A_UUID
+from .scripted import ScriptedDevice, part_table, result, run_cli
 
 if TYPE_CHECKING:
     import pathlib
@@ -85,6 +89,79 @@ def test_not_found_messages(device: Device, tmp_path: pathlib.Path) -> None:
 
     assert result.returncode == 1
     assert result.stderr.strip() == "Error: Could not connect to device"
+
+
+def test_an_error_says_what_went_wrong(device: Device, tmp_path: pathlib.Path) -> None:
+    # The exception's message follows the fixed text (F-225)
+    data = tmp_path / "data"
+    data.write_bytes(bytes(8192))
+
+    result = punchboot_cli(device, "boot", "bpak", str(data))
+
+    assert result.returncode == 1
+    assert result.stderr.strip() == "Error: Generic error: Invalid BPAK header"
+
+
+def test_a_missing_file_is_an_error(device: Device, tmp_path: pathlib.Path) -> None:
+    result = punchboot_cli(device, "part", "write", str(tmp_path / "missing"), str(SYSTEM_A_UUID))
+
+    assert result.returncode == 1
+    assert result.stderr.startswith("Error: [Errno 2] No such file or directory"), result.stderr
+
+
+# What a newer device may send. The CLI runs in this process on a scripted
+# device: a traceback is an exception that isn't a SystemExit.
+
+
+def test_unknown_partition_flags_are_kept(monkeypatch: pytest.MonkeyPatch) -> None:
+    dev = ScriptedDevice()
+    # Bootable, writable and the two bits no release defines
+    dev.on(Command.PB_CMD_PART_TBL_READ, *part_table(flags=0x95))
+
+    run = run_cli(monkeypatch, dev, "part", "list")
+
+    assert run.exit_code == 0, run.output
+    assert "System A" in run.output
+    (part,) = punchboot.Session(transport=dev).part_get_partitions()
+    assert part.partition_flags.value == 0x95
+    assert part.bootable
+    assert part.writable
+    assert not part.readable
+
+
+def test_an_unknown_life_cycle_is_an_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    dev = ScriptedDevice()
+    keys = bytes(wire.pb_result_slc_key_status.sizeof())
+    dev.on(Command.PB_CMD_SLC_READ, result(response=wire.pb_result_slc(slc=5)), keys)
+
+    run = run_cli(monkeypatch, dev, "slc", "show")
+
+    assert run.exit_code == 1
+    assert isinstance(run.exception, SystemExit), run.exception
+    assert "Error: 5" in run.output
+
+
+def test_a_version_that_isnt_semantic_is_an_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    dev = ScriptedDevice()
+    dev.on(Command.PB_CMD_BOOTLOADER_VERSION_READ, result(response=b"2.8"))
+
+    run = run_cli(monkeypatch, dev, "dev", "show")
+
+    assert run.exit_code == 1
+    assert isinstance(run.exception, SystemExit), run.exception
+    assert "Error: 2.8" in run.output
+
+
+def test_a_binary_board_response_is_printed(monkeypatch: pytest.MonkeyPatch) -> None:
+    dev = ScriptedDevice()
+    response = b"\xff\xfeok"
+    size = wire.pb_result_board(size=len(response))
+    dev.on(Command.PB_CMD_BOARD_COMMAND, result(), result(response=size), response)
+
+    run = run_cli(monkeypatch, dev, "board", "command", "test-command")
+
+    assert run.exit_code == 0, run.output
+    assert "ok" in run.output
 
 
 def test_boot_enable_needs_a_partition(device: Device) -> None:

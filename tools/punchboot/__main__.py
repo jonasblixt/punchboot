@@ -152,9 +152,19 @@ def pb_session(f: TFunc) -> TFunc:
                 punchboot.NotSupportedError: "Not supported",
                 punchboot.KeyRevokedError: "Key is revoked",
                 punchboot.IOError: "I/O error",
+                punchboot.StreamNotInitializedError: "Stream not initialized",
             }
 
-            raise click.ClickException(error_descriptions.get(type(e), "Generic error")) from e
+            description = error_descriptions.get(type(e), "Generic error")
+            # The exception's message says more, e.g. what the USB stack
+            # answered when the device couldn't be opened (F-225)
+            message = f"{description}: {e}" if str(e) else description
+            raise click.ClickException(message) from e
+        except (OSError, ValueError) as e:
+            # A file that can't be read or written, and what this host can't
+            # represent: a version that isn't semantic, a life cycle a newer
+            # device reports (F-225)
+            raise click.ClickException(str(e) or type(e).__name__) from e
 
     return update_wrapper(new_func, f)
 
@@ -485,7 +495,8 @@ def board_command(
     if out_fmt == "binary":
         sys.stdout.buffer.write(result)
     else:
-        click.echo(result.decode().strip())
+        # A board's response may be binary (F-225)
+        click.echo(result.decode(errors="replace").strip())
 
 
 @board.command("status")
