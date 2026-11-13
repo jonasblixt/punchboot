@@ -760,19 +760,21 @@ static void test_commit_write_errors(void **state)
 /* NOR flash: the state partitions are erased before they are written */
 static struct ramdisk *erase_disk;
 static lba_t erased[4];
+static size_t erased_blocks[4];
 static unsigned int erase_calls;
 static int erase_rc;
 
 static int fake_nor_erase(bio_dev_t dev, lba_t first_lba, size_t count)
 {
     (void)dev;
-    assert_int_equal(count, 1);
-    if (erase_calls < 4)
+    if (erase_calls < 4) {
         erased[erase_calls] = first_lba;
+        erased_blocks[erase_calls] = count;
+    }
     erase_calls++;
     if (erase_rc != PB_OK)
         return erase_rc;
-    memset(ramdisk_block(erase_disk, first_lba), 0xff, RAMDISK_BLOCK_SIZE);
+    memset(ramdisk_block(erase_disk, first_lba), 0xff, count * erase_disk->block_size);
     return PB_OK;
 }
 
@@ -804,6 +806,8 @@ static void test_commit_erases_first(void **state)
     assert_int_equal(erase_calls, 2);
     assert_int_equal(erased[0], PRIMARY_LBA);
     assert_int_equal(erased[1], BACKUP_LBA);
+    assert_int_equal(erased_blocks[0], 1);
+    assert_int_equal(erased_blocks[1], 1);
     assert_true(state_valid(f, PRIMARY_LBA));
     assert_true(state_valid(f, BACKUP_LBA));
 
@@ -814,6 +818,60 @@ static void test_commit_erases_first(void **state)
     assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
     assert_int_equal(erase_calls, 1);
     assert_false(state_valid(f, PRIMARY_LBA));
+}
+
+/* bio.md 2.3 (F-283): the state asks the device's block size and assumes
+ * none. Its 512 bytes are two blocks of 256 and a part of one of 4 KiB:
+ * every block it is in is erased before it is written, the state is written
+ * and found again, and the rest of a larger block is zeros (bio.md 3.2) */
+static void test_state_in_blocks_of_another_size(void **state)
+{
+    static const size_t block_sizes[] = { 256, 4096 };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(block_sizes); i++) {
+        const size_t bs = block_sizes[i];
+        const size_t blocks = (sizeof(struct pb_boot_state) + bs - 1) / bs;
+        const lba_t primary = 30;
+        const lba_t backup = 34;
+        struct fixture nor = { .disk = ramdisk_new_block_size(64, bs) };
+
+        assert_non_null(nor.disk);
+
+        /* Boots twice: a blank device, then the one the first boot left */
+        for (int boot = 0; boot < 2; boot++) {
+            bio_reset();
+            bio_dev_t disk = ramdisk_attach(nor.disk, UU_DISK);
+            assert_true(disk >= 0);
+            assert_int_equal(bio_set_ios_erase(disk, fake_nor_erase), PB_OK);
+            assert_int_equal(bio_clear_set_flags(disk, 0, BIO_FLAG_ERASE_BEFORE_WRITE), PB_OK);
+            assert_true(bio_allocate_parent(disk, 10, 19, bs, UU_SYS_A, "System A") >= 0);
+            assert_true(bio_allocate_parent(disk, 20, 29, bs, UU_SYS_B, "System B") >= 0);
+            assert_true(bio_allocate_parent(disk, primary, primary + 3, bs, UU_PRIMARY, "P") >= 0);
+            assert_true(bio_allocate_parent(disk, backup, backup + 3, bs, UU_BACKUP, "B") >= 0);
+            erase_disk = nor.disk;
+            erase_calls = 0;
+            erase_rc = PB_OK;
+
+            assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+
+            /* The second boot finds both copies and writes nothing */
+            assert_int_equal(erase_calls, boot == 0 ? 2 : 0);
+            assert_true(state_valid(&nor, primary));
+            assert_true(state_valid(&nor, backup));
+        }
+
+        assert_int_equal(erased[0], primary);
+        assert_int_equal(erased[1], backup);
+        assert_int_equal(erased_blocks[0], blocks);
+        assert_int_equal(erased_blocks[1], blocks);
+
+        /* What follows the state in its last block was written as zeros */
+        for (size_t n = sizeof(struct pb_boot_state); n < blocks * bs; n++)
+            assert_int_equal(ramdisk_block(nor.disk, primary)[n], 0);
+
+        ramdisk_free(nor.disk);
+    }
 }
 
 static void test_verified_system_boots(void **state)
@@ -2417,6 +2475,7 @@ int main(void)
         AB_TEST(test_init_copies_that_differ_and_no_write),
         AB_TEST(test_commit_write_errors),
         AB_TEST(test_commit_erases_first),
+        AB_TEST(test_state_in_blocks_of_another_size),
         AB_TEST(test_verified_system_boots),
         AB_TEST(test_b_boot_attempts),
 #ifndef CONFIG_BOOT_AB_SPECULATIVE

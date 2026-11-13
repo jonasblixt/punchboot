@@ -73,11 +73,19 @@ static int pb_boot_state_defaults(struct pb_boot_state *state)
     return PB_OK;
 }
 
-/* NOR flash only clears bits when it is written: erase the block first */
+/* NOR flash only clears bits when it is written: erase the state's blocks
+ * first. How many they are is the device's to say (bio.md 2.3): the state is
+ * 512 bytes, a part of one block or several. bio_write() pads the last one */
 static int pb_boot_state_write(bio_dev_t part)
 {
     if (bio_get_flags(part) & BIO_FLAG_ERASE_BEFORE_WRITE) {
-        int rc = bio_erase(part, 0, 1);
+        ssize_t block_size = bio_block_size(part);
+        int rc;
+
+        if (block_size <= 0)
+            return -PB_ERR_PARAM;
+
+        rc = bio_erase(part, 0, div_round_up(sizeof(struct pb_boot_state), (size_t)block_size));
 
         if (rc != PB_OK)
             return rc;

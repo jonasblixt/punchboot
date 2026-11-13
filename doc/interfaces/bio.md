@@ -87,7 +87,7 @@ One per device, from the driver: 512 bytes on MMC and SD, the erase sector on a 
 the RT1060 EVK's).
 
 - **A user asks `bio_block_size()`** and never assumes 512. **Not yet in the code (F-283)**:
-  the GPT has 512 written out in four places, and the A/B state writes 512 bytes as one block.
+  the GPT has 512 written out in four places.
 - **The largest block is `CONFIG_BIO_MAX_BLOCK_SIZE`** (4 KiB), the size of the core's block
   buffer (3.1). A device with a larger one is refused at registration.
 - A format that puts something at a fixed byte position (bpak's header in a partition's last
