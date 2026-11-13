@@ -1294,8 +1294,9 @@ static int pb_command_parse(void)
         rc = cmd_boot_bpak();
         return rc; /* Should not return, we should not try to send a result */
         break;
-    case PB_CMD_PART_TBL_INSTALL: /* Deprecated */
-    {
+    case PB_CMD_PART_TBL_INSTALL: {
+        /* In use, not deprecated: how a device gets its table (board.md
+         * 2.1, 2.4, command-mode.md 5.3) */
         struct pb_command_install_part_table *install_cmd =
             (struct pb_command_install_part_table *)cmd.request;
         if (cm_part_hidden(install_cmd->uu))
@@ -1374,6 +1375,7 @@ static int pb_command_parse(void)
         rc = cmd_auth();
         break;
     case PB_CMD_AUTH_SET_PASSWORD: {
+        /* Reserved: never implemented (command-mode.md 5.8) */
         pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
     } break;
     case PB_CMD_BOARD_COMMAND:
@@ -1431,8 +1433,10 @@ static int pb_command_parse(void)
         pb_wire_init_result(&result, error_to_wire(rc));
         break;
     case PB_CMD_PART_RESIZE: {
-        /* Deprecated and no longer supported,
-         * Use partition table configration index instead. */
+        /* Retired before 1.0.0: the partition table's variants replaced
+         * it. A retired command keeps its case and answers NOT_SUPPORTED,
+         * behind the gate, and its number is never reused (command-mode.md
+         * 5.8, compatibility.md) */
         pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
     } break;
     case PB_CMD_BOOT_STATUS: {

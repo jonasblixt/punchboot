@@ -917,6 +917,10 @@ static void test_invalid_command(void **state)
     expect_end();
 }
 
+/* The retired command and the reserved one (command-mode.md 5.8, F-032):
+ * NOT_SUPPORTED, never INVALID_COMMAND, which would tell a host that the
+ * device is older than the command. Behind the gate:
+ * test_gate_refused_sessions */
 static void test_deprecated_commands(void **state)
 {
     (void)state;
