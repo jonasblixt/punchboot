@@ -402,8 +402,9 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | Every wait bounded           | partly             | no                | n/a                 | F-200,  |
 |                              |                    |                   |                     | F-198,  |
 |                              |                    |                   |                     | F-281   |
-| The codes of `drivers.md` 3  | no: a command      | no                | yes                 | F-199,  |
-|                              | timeout is IO      |                   |                     | F-284   |
+| The codes of `drivers.md` 3  | partly: CMD13      | no                | yes                 | F-281,  |
+|                              | that runs out is   |                   |                     | F-284   |
+|                              | IO                 |                   |                     |         |
 | Erase: exactly the blocks    | n/a (no erase)     | no                | n/a (no erase)      | F-198   |
 | `write_done`                 | yes (`test_mmc_`   | n/a               | n/a                 |         |
 |                              | `core`)            |                   |                     |         |
@@ -461,6 +462,6 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |
-| F-199, F-200, F-281 | Timeouts and their codes; sizes from the card; addresses above 4 GiB           |
+| F-200, F-281        | Timeouts and their codes; sizes from the card; addresses above 4 GiB           |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |

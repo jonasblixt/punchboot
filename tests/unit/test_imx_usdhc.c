@@ -398,6 +398,34 @@ static void test_imx8mpevk_sd(void **state)
     assert_bench_clean();
 }
 
+/* Physical layer 1.x: CMD8 gets no response (F-199). The controller's
+ * command timeout is how mmc_sd.c tells the card's version, so the driver
+ * returns it as -PB_ERR_TIMEOUT, not as an I/O error (drivers.md 3) */
+static void test_imx8mpevk_sd_v1(void **state)
+{
+    struct sd_model_config sd_cfg;
+    bio_dev_t d;
+    (void)state;
+
+    sd_model_default_config(&sd_cfg);
+    sd_cfg.sectors = 256 * 1024 * 2; /* 256 MiB */
+    sd_cfg.v1 = true;
+    assert_int_equal(init_sd(&sd_cfg, true), PB_OK);
+    assert_int_equal(sd_model_speed(), SD_DEFAULT_SPEED); /* SD_SPEC 1.0 has no CMD6 */
+    assert_true(usdhc_model_bus()->clk_hz <= 25000000);
+
+    d = bio_get_part_by_uu(UU_SD);
+    assert_true(d >= 0);
+    assert_int_equal(bio_get_last_block(d), sd_cfg.sectors - 1);
+    fill(out, sizeof(out), 9);
+    assert_int_equal(bio_write(d, 77, sizeof(out), out), PB_OK);
+    sd_model_read(77, check, sizeof(check) / 512);
+    assert_memory_equal(out, check, sizeof(out));
+    assert_int_equal(bio_read(d, 77, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+    assert_bench_clean();
+}
+
 /* CD_B says there is no card */
 static void test_imx8mpevk_no_sd(void **state)
 {
@@ -455,6 +483,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_imx8mpevk_sd_v1, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_no_sd, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };

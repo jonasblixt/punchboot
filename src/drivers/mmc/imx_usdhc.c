@@ -336,7 +336,12 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
     } while (!(state & (INT_CC | INT_CTOE)));
 
     if (err || (state & INT_CMD_ERRORS)) {
-        if (!err)
+        /* No response is a timeout (drivers.md 3): mmc_sd.c tells an SD 1.x
+         * card by it. CTOE with CCE is a conflict on the CMD line (RM,
+         * INT_STATUS) */
+        if (!err && (state & (INT_CTOE | INT_CCE)) == INT_CTOE)
+            err = -PB_ERR_TIMEOUT;
+        else if (!err)
             err = -PB_ERR_IO;
         if (cmd->quiet)
             LOG_DBG("imx_usdhc CMD%u state 0x%x errno=%d", cmd->idx, state, err);
