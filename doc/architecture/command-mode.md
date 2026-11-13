@@ -736,6 +736,5 @@ For a change to command mode, a new command or a new method:
 | F-087               | A result code for a payload whose hash differs (4.5)                                 |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
-| F-074               | No stream (5.4)                                                                      |
 | F-252               | A boot the host started that is refused or stopped (5.5)                             |
 | F-263               | EOL as the product's option (5.2)                                                    |

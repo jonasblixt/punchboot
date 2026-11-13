@@ -2510,6 +2510,56 @@ static void test_stream_errors(void **state)
     expect_end();
 }
 
+/* command-mode.md 5.4 (F-074): without a stream a write and a read answer
+ * STREAM_NOT_INITIALIZED, whatever else they ask for: in a new session,
+ * after a STREAM_INITIALIZE that found no partition, and after one that
+ * named a hidden one. The answer doesn't come from an error code read as a
+ * device's flags and block size. */
+static void test_no_stream(void **state)
+{
+    static const unsigned char *const failed[] = { NULL, UU_MISSING, UU_HIDDEN };
+    struct fixture *f = *state;
+    uint8_t before[DISK_BLOCKS * RAMDISK_BLOCK_SIZE];
+
+    assert_int_equal(
+        bio_set_flags(bio_get_part_by_uu(UU_HIDDEN), BIO_FLAG_READABLE | BIO_FLAG_WRITABLE), PB_OK);
+    memcpy(before, ramdisk_block(f->disk, 0), sizeof(before));
+
+    for (size_t i = 0; i < ARRAY_SIZE(failed); i++) {
+        t.init_calls = 0;
+
+        if (failed[i] != NULL) {
+            /* A stream that a failed STREAM_INITIALIZE ends */
+            stream_init(UU_RW);
+            stream_init(failed[i]);
+        }
+
+        stream_write(0, RAMDISK_BLOCK_SIZE, 0);
+        stream_read(0, RAMDISK_BLOCK_SIZE, 0);
+        /* A buffer and a size the device doesn't have, an offset inside a
+         * block */
+        stream_write(2, RAMDISK_BLOCK_SIZE, 0);
+        stream_read(2, RAMDISK_BLOCK_SIZE, 0);
+        stream_write(0, BUF_SIZE + 1, 0);
+        stream_read(0, BUF_SIZE + 1, 0);
+        stream_write(0, RAMDISK_BLOCK_SIZE, 1);
+        host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+        run();
+
+        if (failed[i] != NULL) {
+            expect_result(PB_RESULT_OK);
+            expect_result(-PB_RESULT_NOT_FOUND);
+        }
+
+        for (int n = 0; n < 7; n++)
+            expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+        expect_result(PB_RESULT_OK); /* finalize */
+        expect_end();
+    }
+
+    assert_memory_equal(ramdisk_block(f->disk, 0), before, sizeof(before));
+}
+
 /* An offset inside a block is refused, not rounded down to the block's start
  * (command-mode.md 5.4, F-273) */
 static void test_stream_offset_inside_a_block(void **state)
@@ -3776,6 +3826,7 @@ int main(void)
         CM_TEST(test_part_verify_keeps_the_stream),
         CM_TEST(test_part_verify_and_bpak_read_keep_the_buffers),
         CM_TEST(test_stream_errors),
+        CM_TEST(test_no_stream),
         CM_TEST(test_stream_offset_inside_a_block),
         CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),

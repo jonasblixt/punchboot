@@ -609,6 +609,22 @@ stream_check(uint8_t buffer_id, uint32_t size, uint64_t offset, uint8_t **bfr, l
     return PB_OK;
 }
 
+/*
+ * No stream (command-mode.md 5.4): before a STREAM_INITIALIZE that succeeded
+ * in this session, and after one that failed, 'block_dev' is an error code
+ * and no device. A read and a write answer that first: an error code read
+ * as flags has the bits set (F-074).
+ */
+static bool stream_missing(void)
+{
+    if (bio_valid(block_dev))
+        return false;
+
+    LOG_ERR("No stream");
+    pb_wire_init_result(&result, -PB_RESULT_STREAM_NOT_INITIALIZED);
+    return true;
+}
+
 static int cmd_stream_read(void)
 {
     int rc = -PB_ERR;
@@ -619,6 +635,9 @@ static int cmd_stream_read(void)
             stream_read->buffer_id,
             stream_read->offset,
             stream_read->size);
+
+    if (stream_missing())
+        return -PB_ERR_STATE;
 
     if (!(bio_get_flags(block_dev) & BIO_FLAG_READABLE)) {
         LOG_ERR("Partition may not be read");
@@ -665,6 +684,9 @@ static int cmd_stream_write(void)
             stream_write->buffer_id,
             stream_write->offset,
             stream_write->size);
+
+    if (stream_missing())
+        return -PB_ERR_STATE;
 
     if (!(bio_get_flags(block_dev) & BIO_FLAG_WRITABLE)) {
         LOG_ERR("Partition may not be written");
