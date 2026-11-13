@@ -145,6 +145,7 @@ static struct {
     /* The keystore's keys are key_ids[]. A bit per index: revoked, and a
      * status that can't be read */
     size_t no_of_keys;
+    int no_of_keys_rc; /* The RoT's error: it isn't set up */
     int no_of_keys_calls;
     uint32_t revoked_keys;
     uint32_t unreadable_keys;
@@ -359,10 +360,15 @@ slc_t slc_read_status(void)
     return fake.slc;
 }
 
-size_t rot_no_of_keys(void)
+int rot_no_of_keys(size_t *count)
 {
     fake.no_of_keys_calls++;
-    return fake.no_of_keys;
+
+    if (fake.no_of_keys_rc != PB_OK)
+        return fake.no_of_keys_rc;
+
+    *count = fake.no_of_keys;
+    return PB_OK;
 }
 
 int rot_read_key_status_by_idx(unsigned int index)
@@ -373,9 +379,13 @@ int rot_read_key_status_by_idx(unsigned int index)
     return (fake.revoked_keys & (1u << index)) ? -PB_ERR_KEY_REVOKED : PB_OK;
 }
 
-key_id_t rot_key_idx_to_id(unsigned int index)
+int rot_key_idx_to_id(unsigned int index, key_id_t *id)
 {
-    return key_ids[index];
+    if (!(index < ARRAY_SIZE(key_ids)))
+        return -PB_ERR_PARAM;
+
+    *id = key_ids[index];
+    return PB_OK;
 }
 
 static int fake_policy_init(const struct boot_policy *policy)
@@ -1370,13 +1380,20 @@ static void test_info_that_cannot_be_read_stops_the_boot(void **state)
     assert_int_equal(boot_load(NULL), -PB_ERR_IO);
     fake.device_uuid_rc = PB_OK;
 
-    /* A RoT that isn't set up answers its error as a number of keys */
-    fake.no_of_keys = (size_t)-PB_ERR_NOT_SUPPORTED;
+    /* A RoT that isn't set up: its error, which is no number of keys (F-346) */
+    fake.no_of_keys_rc = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(boot_load(NULL), -PB_ERR_NOT_SUPPORTED);
+    fake.no_of_keys_rc = -PB_ERR_IO;
+    assert_int_equal(boot_load(NULL), -PB_ERR_IO);
+    fake.no_of_keys_rc = PB_OK;
+
+    /* More keys than pb's information has room for */
+    fake.no_of_keys = BOOT_INFO_MAX_KEYS + 1;
     assert_int_equal(boot_load(NULL), -PB_ERR_NOT_SUPPORTED);
     fake.no_of_keys = ARRAY_SIZE(key_ids);
 
     /* early_boot() ran each time, and nothing after it */
-    assert_int_equal(fake.early_calls, 6);
+    assert_int_equal(fake.early_calls, 8);
     assert_int_equal(fake.next_calls, 0);
     assert_int_equal(fake.report_calls, 0);
     assert_int_equal(fake.auth_calls, 0);

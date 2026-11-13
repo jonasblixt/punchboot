@@ -454,6 +454,8 @@ static struct {
     int revoke_rc;
     key_id_t revoked_id;
     size_t no_of_keys; /* 0: two keys */
+    int no_of_keys_rc; /* The RoT's error: it isn't set up */
+    unsigned int key_reads; /* The key ids and statuses that were asked for */
 } sec;
 
 slc_t slc_read_status(void)
@@ -498,21 +500,29 @@ int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size
     return sec.get_key_rc;
 }
 
-size_t rot_no_of_keys(void)
+int rot_no_of_keys(size_t *count)
 {
-    return sec.no_of_keys ? sec.no_of_keys : 2;
+    if (sec.no_of_keys_rc != PB_OK)
+        return sec.no_of_keys_rc;
+
+    *count = sec.no_of_keys ? sec.no_of_keys : 2;
+    return PB_OK;
 }
 
 int rot_read_key_status_by_idx(unsigned int index)
 {
+    sec.key_reads++;
+
     if (sec.key_io_error & (1u << index))
         return -PB_ERR_IO;
     return (sec.revoked & (1u << index)) ? -PB_ERR_KEY_REVOKED : PB_OK;
 }
 
-key_id_t rot_key_idx_to_id(unsigned int index)
+int rot_key_idx_to_id(unsigned int index, key_id_t *id)
 {
-    return 0x1000 + index;
+    sec.key_reads++;
+    *id = 0x1000 + index;
+    return PB_OK;
 }
 
 int rot_revoke_key(key_id_t id)
@@ -1907,6 +1917,27 @@ static void test_slc_read_lists_16_keys_at_most(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
     expect_end();
+}
+
+/* F-346: without a RoT its error is the command's result, after the same
+ * transfers: the life cycle, then the two lists, empty. The error isn't
+ * taken for a number of keys, so no key is asked for; it was 16 of them. */
+static void test_slc_read_without_a_rot(void **state)
+{
+    static const struct pb_result_slc_key_status no_keys;
+    (void)state;
+
+    sec.no_of_keys_rc = -PB_ERR_NOT_SUPPORTED;
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    assert_memory_equal(expect_data(sizeof(no_keys)), &no_keys, sizeof(no_keys));
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(sec.key_reads, 0);
 }
 
 static void test_bpak_read(void **state)
@@ -4099,6 +4130,7 @@ int main(void)
         CM_TEST(test_unknown_slc_requires_auth),
         CM_TEST(test_slc_read_key_status),
         CM_TEST(test_slc_read_lists_16_keys_at_most),
+        CM_TEST(test_slc_read_without_a_rot),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
         CM_TEST(test_bpak_read_error_is_pbs),

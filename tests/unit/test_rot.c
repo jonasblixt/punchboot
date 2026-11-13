@@ -54,12 +54,18 @@ static void test_rot_not_initialized(void **state)
     dsa_t kind;
     const uint8_t *der;
     size_t der_length;
+    size_t count = 77;
+    key_id_t id = 0x77;
     (void)state;
 
     assert_int_equal(rot_read_key_status(KEY_P256), -PB_ERR_NOT_SUPPORTED);
-    assert_int_equal((int)rot_no_of_keys(), -PB_ERR_NOT_SUPPORTED);
+    /* An error is the result, and no count or id comes with it (F-346): the
+     * error was the count, 2^64 - 19 keys, and the id */
+    assert_int_equal(rot_no_of_keys(&count), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(count, 77);
     assert_int_equal(rot_read_key_status_by_idx(0), -PB_ERR_NOT_SUPPORTED);
-    assert_int_equal((int)rot_key_idx_to_id(0), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(rot_key_idx_to_id(0, &id), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(id, 0x77);
     assert_int_equal(rot_revoke_key(KEY_P256), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(rot_get_dsa_key(KEY_P256, &kind, &der, &der_length), -PB_ERR_NOT_SUPPORTED);
 }
@@ -78,11 +84,15 @@ static void test_rot_without_callbacks(void **state)
     dsa_t kind;
     const uint8_t *der;
     size_t der_length;
+    size_t count = 0;
+    key_id_t id = 0;
     (void)state;
 
     assert_int_equal(rot_init(&rot_cfg_no_callbacks), PB_OK);
-    assert_int_equal(rot_no_of_keys(), 3);
-    assert_int_equal(rot_key_idx_to_id(1), KEY_P384);
+    assert_int_equal(rot_no_of_keys(&count), PB_OK);
+    assert_int_equal(count, 3);
+    assert_int_equal(rot_key_idx_to_id(1, &id), PB_OK);
+    assert_int_equal(id, KEY_P384);
     assert_int_equal(rot_read_key_status(KEY_P256), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(rot_read_key_status_by_idx(0), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(rot_revoke_key(KEY_P256), -PB_ERR_NOT_SUPPORTED);
@@ -91,19 +101,25 @@ static void test_rot_without_callbacks(void **state)
 
 static void test_rot_key_status(void **state)
 {
+    size_t count = 0;
+    key_id_t id = 0;
     (void)state;
 
     revoked = 0;
     assert_int_equal(rot_init(&rot_cfg), PB_OK);
-    assert_int_equal(rot_no_of_keys(), 3);
+    assert_int_equal(rot_no_of_keys(&count), PB_OK);
+    assert_int_equal(count, 3);
 
     assert_int_equal(rot_read_key_status(KEY_P384), PB_OK);
     assert_int_equal(rot_read_key_status(0x12345678), -PB_ERR_KEY_NOT_FOUND);
 
     assert_int_equal(rot_read_key_status_by_idx(2), PB_OK);
     assert_int_equal(rot_read_key_status_by_idx(3), -PB_ERR_PARAM);
-    assert_int_equal(rot_key_idx_to_id(2), KEY_P521);
-    assert_int_equal((int)rot_key_idx_to_id(3), -PB_ERR_PARAM);
+    assert_int_equal(rot_key_idx_to_id(2, &id), PB_OK);
+    assert_int_equal(id, KEY_P521);
+    /* An index the keystore doesn't have: no id, the one before stays */
+    assert_int_equal(rot_key_idx_to_id(3, &id), -PB_ERR_PARAM);
+    assert_int_equal(id, KEY_P521);
 }
 
 static void test_rot_get_dsa_key(void **state)

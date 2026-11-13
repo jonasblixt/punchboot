@@ -368,18 +368,26 @@ static int collect_info(void)
 
     info.slc = (slc < 0) ? BOOT_INFO_NO_SLC : slc;
 
-    /* Without a RoT the number of keys is its error, as a size_t */
-    no_of_keys = rot_no_of_keys();
+    /* Without a RoT no image verifies (board.md 2.1): its error stops the
+     * boot here, before a candidate is asked for */
+    rc = rot_no_of_keys(&no_of_keys);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Could not read the keys (%i)", rc);
+        return rc;
+    }
 
     if (no_of_keys > BOOT_INFO_MAX_KEYS) {
-        LOG_ERR("Could not read the keys");
+        LOG_ERR("The keystore has more keys than the %i pb can tell of", BOOT_INFO_MAX_KEYS);
         return -PB_ERR_NOT_SUPPORTED;
     }
 
     /* A key whose status can't be read is unusable, like a revoked one */
     for (size_t i = 0; i < no_of_keys; i++) {
-        if (rot_read_key_status_by_idx(i) == PB_OK)
-            info.available_keys[info.no_of_available_keys++] = rot_key_idx_to_id(i);
+        key_id_t id;
+
+        if (rot_read_key_status_by_idx(i) == PB_OK && rot_key_idx_to_id(i, &id) == PB_OK)
+            info.available_keys[info.no_of_available_keys++] = id;
     }
 
     return PB_OK;
