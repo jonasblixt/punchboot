@@ -796,6 +796,18 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | Fixed: DEFINE_TASK() and the section pb_tasks in both link scripts; main() runs the tasks in turn | | |
 | | | while pb is stopped, a kick per round, and resets when one returns an error or there is none; | | |
 | | | cm_main_task() is command mode as a step; process is gone. | | |
+| F-221 | `tools/pbstate/src/main.c` | `-s` with anything but a/b switches to NONE and | Reported (probe) | fixed (`30c7cf54`, `a20d958f`, `06dfb5f3`, `c949d537`) |
+| | | exits 0. `counter` is `uint8_t`: `-c 256` is 0, which means verified. `-w 0 zzz` writes 0. `strtol` | | |
+| | | fails from 0x80000000 on 32-bit. Read-only calls end in `sync()`. | | |
+| | | Fixed: -s takes a, b or none by its first letter and refuses the rest (exit 22, nothing written); -c | | |
+| | | and -w take every 32-bit value; -w refuses a value that isn't a number; a read no longer ends in | | |
+| | | sync(). | | |
+| F-222 | `tools/pbstate/CMakeLists.txt`, `src/lib/crc.c` | `libpbstate.so` exports a | Reported (probe) | fixed (`97040888`) |
+| | | global `crc32` that isn't zlib's: with zlib loaded first every state fails the CRC check. Hide or rename | | |
+| | | it. | | |
+| | | Fixed: the library's crc.c is compiled with hidden visibility; libpbstate.so.0 exports the 13 | | |
+| | | functions of pbstate.h and no crc32. | | |
+| F-010 | `tools/pbstate/CMakeLists.txt` | `BACKUP_PART` is set from `PB_STATE_PRIMARY_PART` (copy-paste). The target is listed twice in `install`. | Reported | fixed (`24766ed3`) |
 
 ## Dependencies / vendored code
 

@@ -17,7 +17,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-004 | `src/board/imx8{qxmek,dxlevk}/board.c:~288` | `strncmp(expected, password, length)` with `length` taken from the host accepts any prefix ("i"). `LOG_DBG` prints a password that is not NUL-terminated. Example boards, but the pattern gets copied. | Verified | open |
 | F-006 | `src/drivers/partition/gpt.c:~411` | Loop over `p->first_lba` has no 128-entry limit. Primary and backup tables are never compared. | Reported | partly fixed (claude-work): entry loop bounded by `no_of_parts` (F-056); tables still not compared |
 | F-008 | `src/drivers/crypto/mbedtls/mbedtls_pb.c` | Return values of the `mbedtls_sha*` calls are ignored. | Reported | open |
-| F-010 | `tools/pbstate/CMakeLists.txt` | `BACKUP_PART` is set from `PB_STATE_PRIMARY_PART` (copy-paste). The target is listed twice in `install`. | Reported | open |
 | F-064 | `src/drivers/partition/gpt.c:152` | Header `last_lba` (last usable) is `last - 32`, which is the first backup-entry block; should be `last - 33`. pb's own allocation is unaffected; other tools could overlap the backup array. | Verified (code) | open |
 | F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | open; the `fdt_totalsize` <= part check is done (`39276b9c`) |
 | | | Checked 2026-11-12: `CHECK_OVERLAP` is gone, and placement keeps every part inside the board's | | |
@@ -88,6 +87,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
 | | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
 | | | the next boot rolls back. | | |
+| | | 2026-11-13 (`3164cb0c`): `pbstate_set_system_verified(X)` zeroes the attempts only when X is the | | |
+| | | enabled system, so confirming the fallback keeps the trial (`boot.md` 3.5). Left: what | | |
+| | | `pbstate_is_system_verified(NONE)` returns (0, -EINVAL, any slot verified, or the enabled one), for | | |
+| | | Jonas; it still returns `!!enable` | | |
 | F-181 | `imx_caam.c`, `cm_main.c`, `image_helpers.c` | High. An async hash job that is | Reported (probe) | open |
 | | | abandoned (a read error in `boot_image_load_and_hash()`, a failed `part verify`: no `hash_final`) stays | | |
 | | | in the CAAM's one-slot output ring. Every later `caam_wait_for_job()` returns the previous job's | | |
@@ -207,12 +210,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | fails mid-load on a second part. `mbedtls_pb.c:183` skips `mbedtls_pk_free()`. `slc_set_configuration()` | | |
 | | | goes on when the state read is NOT_SUPPORTED. D-068 (Jonas): no read at a byte offset in `bio` for | | |
 | | | now, so the 4 KiB case stays a limit (`bio.md` 3.1, `roadmap.md`) | | |
-| F-221 | `tools/pbstate/src/main.c` | `-s` with anything but a/b switches to NONE and | Reported (probe) | open |
-| | | exits 0. `counter` is `uint8_t`: `-c 256` is 0, which means verified. `-w 0 zzz` writes 0. `strtol` | | |
-| | | fails from 0x80000000 on 32-bit. Read-only calls end in `sync()`. | | |
-| F-222 | `tools/pbstate/CMakeLists.txt`, `src/lib/crc.c` | `libpbstate.so` exports a | Reported (probe) | open |
-| | | global `crc32` that isn't zlib's: with zlib loaded first every state fails the CRC check. Hide or rename | | |
-| | | it. | | |
 | F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
 | | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
 | | | command's. Several error paths leave transfers unread the same way. | | |
@@ -753,6 +750,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `CONFIG_CM` doesn't compile while `DRIVER_IMX_CI_UDC` is on, its default: the driver uses | | |
 | | | `CONFIG_CM_BUF_SIZE_KiB` (the 6UL, the RT, the DXL). On the host `pb_core` is a static library, so a | | |
 | | | task in a file nothing else references isn't linked into pb-host (read). From F-268 | | |
+| F-408 | `tools/pbstate`, `testbench/simple/src/pbstate.c` | Low, from F-180 and F-221. pbstate | Reported | open |
+| | | accepts trailing characters after a number (`-c 3x`, `-w 0 1zz`); `print_configuration()` ignores | | |
+| | | the getters' errors and prints both systems as disabled on a CRC failure before it fails; `-v` with | | |
+| | | anything but a or b exits 1, not EINVAL; `-c` without `-s` is ignored. The simple target's copy | | |
+| | | still zeroes the attempts whichever slot it confirms, where pbstate now keeps the trial when the | | |
+| | | other slot is confirmed, and so does the helper `pbstate_confirms()` in `test_ab_state.c` | | |
 
 ## Dependencies / vendored code
 
