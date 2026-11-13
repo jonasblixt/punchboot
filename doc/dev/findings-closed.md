@@ -1051,6 +1051,38 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | header, with what brings the card back for the ROM after a warm reset (F-078, F-079) | | |
 | | | What the MMC drivers leave behind and change on the card for good is in `mmc_core.h` and | | |
 | | | `imx_usdhc.h` | | |
+| F-196 | `src/drivers/fuse/imx_ocotp.c:73` | The fuse timing is hard-coded for a 66 MHz ipg_clk | Reported | fixed (`3e81bf4f`) |
+| | | (STROBE_PROG 0x299). The RT1060 uses the driver at 75-200 MHz (F-148): a 3-9 us program strobe instead | | |
+| | | of 10 us on an irreversible write. Checked against both RMs, not on hardware. Compute TIMING from the | | |
+| | | ipg rate. | | |
+| | | `imx_ocotp_init()` takes the ipg rate and TIMING is the reset value scaled to it, rounded up; at 66 | | |
+| | | MHz the register stays 0x01461299 (pinned). The 6UL passes 66 MHz. The 8M and the RT pass 0: fuses | | |
+| | | are read and a write is `-PB_ERR_NOT_SUPPORTED` (the RT needs one line after its clock set-up, the | | |
+| | | 8M's TIMING layout is unchecked; for Jonas). No manual on this machine: the RM sections are the | | |
+| | | row's | | |
+| F-197 | `imx_ocotp.c:69,91-104,121` | Against the 6UL RM: ERROR is cleared by a plain CTRL | Reported | fixed (`a36e1476`, `b4f32ce1`, `20dc8238`, `945d3a46`, `67f68a05`) |
+| | | write, not CTRL_CLR (35.5.1), so after one failed access everything is `-PB_ERR_IO` until reset; no 2 us | | |
+| | | postamble after a write (35.3.1.4); the index is masked with 0x7F, not checked; a read doesn't check | | |
+| | | ERROR (a locked word reads 0xBADABADA with OK). | | |
+| | | ERROR is cleared through CTRL_CLR, a write waits 2 us after BUSY, an index CTRL can't hold is | | |
+| | | refused, a read checks ERROR (a locked word is `-PB_ERR_IO`), and the waits for BUSY end after 10 | | |
+| | | ms. `test_imx_ocotp` runs against a model of the controller | | |
+| F-198 | `src/drivers/memc/imx_flexspi.c` | The erase starts with the largest block without | Reported | fixed (`aaa95721`, `152974cd`, `5ff643ba`, `84ca3e2a`) |
+| | | checking the address is aligned to it, rounds a short tail up to a full block, ignores write-enable and | | |
+| | | busy-wait results. Latent with the EVK's layout. IDATSZ is 16 bits: a read of 64 KiB or more is | | |
+| | | truncated and waited for forever. No loop has a timeout or a watchdog kick. | | |
+| | | Every wait is bounded, write enable and the busy polls are checked, an erase covers exactly the | | |
+| | | blocks asked for, a read goes in 32 KiB pieces. `test_imx_flexspi`: a NOR modelled behind the | | |
+| | | controller's registers. Not run on the RT1060 | | |
+| F-284 | `src/drivers/memc/imx_flexspi.c` | A write copies `size / 4 + 1` | Reported (read) | fixed (`aae460e1`, `8f40fb42`, `18a035d2`) |
+| | | words into the FIFO in its last round: 1 to 4 bytes past the caller's buffer (whether they | | |
+| | | reach the flash is unverified, the data size is the exact length). A read whose length isn't | | |
+| | | a multiple of 4 is refused with `-PB_ERR_INVALID_ARGUMENT`, after the command was triggered. | | |
+| | | The buffer is read and written as `uint32_t *` whatever its alignment. The busy wait's | | |
+| | | result is ignored after a read and after each erase. No host test (F-230). With F-198. | | |
+| | | `bio.md` 3. The write's tail is verified in the code, the rest is as reported | | |
+| | | A write reads no byte past the buffer, a read takes any length, the buffer may have any alignment, | | |
+| | | the codes are `drivers.md` 3's | | |
 
 ## Dependencies / vendored code
 

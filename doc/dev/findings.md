@@ -110,18 +110,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | gets a new slot; the stream ends and the policy's init runs again; no board hook runs again. For | | |
 | | | the code: `bio_get_part_by_uu()` and `cmd_part_tbl_read()` stop at the first slot that isn't | | |
 | | | valid; the pool needs room for both tables' partitions | | |
-| F-196 | `src/drivers/fuse/imx_ocotp.c:73` | The fuse timing is hard-coded for a 66 MHz ipg_clk | Reported | open |
-| | | (STROBE_PROG 0x299). The RT1060 uses the driver at 75-200 MHz (F-148): a 3-9 us program strobe instead | | |
-| | | of 10 us on an irreversible write. Checked against both RMs, not on hardware. Compute TIMING from the | | |
-| | | ipg rate. | | |
-| F-197 | `imx_ocotp.c:69,91-104,121` | Against the 6UL RM: ERROR is cleared by a plain CTRL | Reported | open |
-| | | write, not CTRL_CLR (35.5.1), so after one failed access everything is `-PB_ERR_IO` until reset; no 2 us | | |
-| | | postamble after a write (35.3.1.4); the index is masked with 0x7F, not checked; a read doesn't check | | |
-| | | ERROR (a locked word reads 0xBADABADA with OK). | | |
-| F-198 | `src/drivers/memc/imx_flexspi.c` | The erase starts with the largest block without | Reported | open |
-| | | checking the address is aligned to it, rounds a short tail up to a full block, ignores write-enable and | | |
-| | | busy-wait results. Latent with the EVK's layout. IDATSZ is 16 bits: a read of 64 KiB or more is | | |
-| | | truncated and waited for forever. No loop has a timeout or a watchdog kick. | | |
 | F-200 | storage, low | `imx_hab_fuses.c:159`: a partly programmed SRK word is refused as already | Reported | open |
 | | | fused. `mmc_core.c`: `mmc_wait_state()` and `mmc_bio_xfer()` (`max_chunk_bytes == 0`) can loop forever; | | |
 | | | a zero BOOT_MULT gives a 2^32 block bio. `imx_usdhc.c`: ADMA2 addresses truncated to 32 bits. | | |
@@ -135,6 +123,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | boot or RPMB partition of size 0 gets no device, a DMA address above 4 GiB is `-PB_ERR_PARAM`. Left: | | |
 | | | the SRK word (the fuse package), and an e.MMC user area with SEC_COUNT 0, which still gets 2^32 | | |
 | | | blocks (refusing it could stop a small byte addressed e.MMC that boots today; for Jonas) | | |
+| | | 2026-11-13 (`d8d98609`): a partly programmed SRK word is completed when its bits are a subset of the | | |
+| | | hash's word (`command-mode.md` 5.2); one with another bit is still refused | | |
 | F-201 | `src/drivers/usb/usbd.c:28` | `enumerated` is never cleared: on the 8MP EVK a replug or | Reported | open |
 | | | bus reset ends in a read on an unconfigured EP2, `cm_run` exits and the board resets. Clear it in | | |
 | | | `usbd_init()` and on bus reset. | | |
@@ -426,13 +416,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | fails half way, the FlexSPI) | | |
 | | | 2026-11-13 (`a95356ad`): one of the GPT's 512s went with the old repair path; `gpt_pmbr[512]` and | | |
 | | | three divisions (`gpt_init_tbl()` twice, `gpt_read_backup()`) are left | | |
-| F-284 | `src/drivers/memc/imx_flexspi.c` | A write copies `size / 4 + 1` | Reported (read) | open |
-| | | words into the FIFO in its last round: 1 to 4 bytes past the caller's buffer (whether they | | |
-| | | reach the flash is unverified, the data size is the exact length). A read whose length isn't | | |
-| | | a multiple of 4 is refused with `-PB_ERR_INVALID_ARGUMENT`, after the command was triggered. | | |
-| | | The buffer is read and written as `uint32_t *` whatever its alignment. The busy wait's | | |
-| | | result is ignored after a read and after each erase. No host test (F-230). With F-198. | | |
-| | | `bio.md` 3. The write's tail is verified in the code, the rest is as reported | | |
 | F-286 | `src/crypto.c`, `imx_caam.c`, `mbedtls_pb.c`, the users | Crypto against | Reported (read) | open |
 | | | `crypto.md`. (1) `hash_init()` keeps the backend selected when its `init` fails, and returns | | |
 | | | `-PB_ERR_NOT_SUPPORTED` where `crypto.h` says `-PB_ERR_PARAM`. (2) The CAAM's `init` neither | | |
@@ -761,6 +744,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | HS400 fallbacks send their CMD6 at 200 MHz on the tap tuning just failed with. `drivers.md` 3 | | |
 | | | still has "the uSDHC returns -PB_ERR_IO" for a timeout as its example. `mmc_core`'s | | |
 | | | `devices[]` carries slot state from one unit test to the next | | |
+| F-420 | `imx_flexspi.c`, `imx_ocotp.c` | From the fuse and FlexSPI package. The FlexSPI's | Reported | open |
+| | | INTR (write 1 to clear) is read, modified and written: a FIFO push or pop clears an error flag | | |
+| | | that is set. `TXWMRK`/`RXWMRK` don't shift into their field (right for 8 bytes only). Erase and | | |
+| | | write don't wait for the flash before their first command. OCOTP reads and writes before | | |
+| | | `imx_ocotp_init()` aren't `-PB_ERR_STATE`. `bio.md` 8 still says the FlexSPI has no model | | |
 
 ## Dependencies / vendored code
 
