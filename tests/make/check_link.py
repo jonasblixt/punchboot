@@ -45,6 +45,9 @@ IMX8M_FIRMWARE = {
 }
 
 BUFFERS_OVERLAP = "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb"
+BUFFERS_NOT_IN = "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) are not in "
+PB_SIZE_AFTER = "CONFIG_PB_SIZE ends pb's region after the memory the ROM loads pb to"
+IMX6UL_ENTRY = "CONFIG_PB_ENTRY is not where the i.MX6UL's ROM loads pb to"
 
 # (board, the values that are changed, what the build says)
 CASES = [
@@ -90,6 +93,113 @@ CASES = [
     ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x80010000"}, BUFFERS_OVERLAP),
     ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x80030000"}, BUFFERS_OVERLAP),
     ("imx8mpevk", {"CONFIG_PB_BUFFERS_BASE": "0x930000"}, BUFFERS_OVERLAP),
+    # The i.MX6UL's windows are the board's DRAM and the OCRAM from 0x908000:
+    # below the DRAM, at its end, and in the OCRAM's part that is the ROM's
+    ("jiffy", {"CONFIG_PB_ENTRY": "0x7ffff000"}, IMX6UL_ENTRY),
+    ("jiffy", {"CONFIG_PB_ENTRY": "0xc0000000"}, IMX6UL_ENTRY),
+    ("jiffy", {"CONFIG_PB_ENTRY": "0x00907000"}, IMX6UL_ENTRY),
+    # A region of pb's that ends after its window, or is empty
+    ("jiffy", {"CONFIG_PB_SIZE": "0x40000000"}, PB_SIZE_AFTER),
+    ("jiffy", {"CONFIG_PB_ENTRY": "0x00908000", "CONFIG_PB_SIZE": "0x19000"}, PB_SIZE_AFTER),
+    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x61000"}, PB_SIZE_AFTER),
+    ("imxrt1060evk", {"CONFIG_PB_SIZE": "0x78000"}, PB_SIZE_AFTER),
+    (
+        "imx8qxmek",
+        {"CONFIG_PB_SIZE": "0xc0001000"},
+        "pb (CONFIG_PB_ENTRY, CONFIG_PB_SIZE) is not in the board's DRAM",
+    ),
+    (
+        "imx8qxmek",
+        {"CONFIG_PB_SIZE": "0x20000"},
+        "pb (CONFIG_PB_ENTRY, CONFIG_PB_SIZE) is not in the board's DRAM",
+    ),
+    # Buffers that aren't in memory that works after plat_init(): over the
+    # DRAM's end, below it, in no memory, and over the on-chip RAM's end
+    (
+        "jiffy",
+        {"CONFIG_PB_BUFFERS_BASE": "0xbf001000"},
+        BUFFERS_NOT_IN + "the board's DRAM or the OCRAM",
+    ),
+    (
+        "jiffy",
+        {"CONFIG_PB_BUFFERS_BASE": "0x00910000"},
+        BUFFERS_NOT_IN + "the board's DRAM or the OCRAM",
+    ),
+    (
+        "imx8mpevk",
+        {"CONFIG_PB_BUFFERS_BASE": "0x3f800000"},
+        BUFFERS_NOT_IN + "the board's DRAM or the OCRAM",
+    ),
+    ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x70000000"}, BUFFERS_NOT_IN + "the board's DRAM"),
+    (
+        "imx8qxmek",
+        {"CONFIG_PB_BUFFERS_BASE": "0x13f001000"},
+        BUFFERS_NOT_IN + "the board's DRAM",
+    ),
+    (
+        "imxrt1060evk",
+        {"CONFIG_PB_BUFFERS_BASE": "0x2028a000"},
+        BUFFERS_NOT_IN + "the OCRAM, the DTCM or the board's DRAM",
+    ),
+    (
+        "imxrt1060evk",
+        {"CONFIG_PB_BUFFERS_BASE": "0x80000000"},
+        BUFFERS_NOT_IN + "the OCRAM, the DTCM or the board's DRAM",
+    ),
+]
+
+# The regions the boards' defconfigs give, (origin, length), as pb.map has
+# them. A length that ld can't work out is every address, without a message.
+REGIONS = {
+    "jiffy": {"ram": (0x80001000, 0x100000), "buffers": (0x81021000, 0x1000000)},
+    "imxrt1060evk": {"ram": (0x20249000, 0x40000), "buffers": (0x20289000, 0x37000)},
+    "imx8qxmek": {
+        "reset": (0x80000000, 0x20000),
+        "ram": (0x80020000, 0x1000000),
+        "buffers": (0x85000000, 0x1000000),
+    },
+    "imx8mpevk": {
+        "ram": (0x920000, 0x60000),
+        "umctl2": (0x40000000, 0x20000),
+        "buffers": (0x40060000, 0x1000000),
+    },
+}
+
+# (board, the values that are changed, the regions they give): other places
+# the checks allow. The link fails when pb or its buffers don't fit there,
+# with the linker's "region ... overflowed", but not with a message of the
+# checks
+ALLOWED = [
+    # The buffers in the on-chip RAM. On the RT pb then has its window to the end
+    (
+        "jiffy",
+        {"CONFIG_PB_BUFFERS_BASE": "0x00900000", "CONFIG_PB_BUFFERS_SIZE": "0x20000"},
+        {"ram": (0x80001000, 0x100000), "buffers": (0x00900000, 0x20000)},
+    ),
+    (
+        "imxrt1060evk",
+        {"CONFIG_PB_BUFFERS_BASE": "0x20000000", "CONFIG_PB_BUFFERS_SIZE": "0x20000"},
+        {"ram": (0x20249000, 0x77000), "buffers": (0x20000000, 0x20000)},
+    ),
+    # pb in the i.MX6UL's OCRAM, with the region platform.md 5.1 derives:
+    # to the window's end
+    (
+        "jiffy",
+        {"CONFIG_PB_ENTRY": "0x00908000", "CONFIG_PB_SIZE": "0x0"},
+        {"ram": (0x00908000, 0x18000)},
+    ),
+    # pb's region derived in the DRAM: to the buffers that follow it
+    ("jiffy", {"CONFIG_PB_SIZE": "0x0"}, {"ram": (0x80001000, 0x1020000)}),
+    ("imx8qxmek", {"CONFIG_PB_SIZE": "0x0"}, {"ram": (0x80020000, 0x4FE0000)}),
+    # and to the DRAM's end when they are below it
+    (
+        "jiffy",
+        {"CONFIG_PB_ENTRY": "0x83000000", "CONFIG_PB_SIZE": "0x0"},
+        {"ram": (0x83000000, 0x3D000000)},
+    ),
+    # A board that gives pb less
+    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x50000"}, {"ram": (0x920000, 0x50000)}),
+    ("imxrt1060evk", {"CONFIG_PB_SIZE": "0x30000"}, {"ram": (0x20249000, 0x30000)}),
 ]
 
 
@@ -136,15 +246,29 @@ class Links:
             cmd, cwd=self.root, env=self.env, capture_output=True, text=True, check=False
         )
 
+    def regions(self, board: str) -> dict[str, tuple[int, int]]:
+        """Return the regions of the board's last link, from its map."""
+        regions = {}
+        lines = (self.work / board / "pb.map").read_text().splitlines()
+        for line in lines[lines.index("Memory Configuration") + 3 :]:
+            fields = line.split()
+            if not fields or fields[0] == "*default*":
+                break
+            regions[fields[0]] = (int(fields[1], 16), int(fields[2], 16))
+        return regions
+
     def check_links(self, what: str) -> None:
-        """Check that every board links with its defconfig."""
+        """Check that every board links with its defconfig, with its regions."""
         for board in BOARDS:
             result = self.make(board, {})
-            if result.returncode == 0:
-                say(f"ok: {board}: {what}")
-            else:
+            if result.returncode != 0:
                 say(f"FAILED: {board}: {what}:\n{result.stdout}{result.stderr}")
                 self.problems += 1
+            elif self.regions(board) != REGIONS[board]:
+                say(f"FAILED: {board}: {what}: with the regions {self.regions(board)}")
+                self.problems += 1
+            else:
+                say(f"ok: {board}: {what}")
 
     def check_refused(self, board: str, values: dict[str, str], message: str) -> None:
         """Check that the board's link with the values fails with the message."""
@@ -158,6 +282,26 @@ class Links:
                 f"{result.stderr}"
             )
             self.problems += 1
+
+    def check_allowed(
+        self, board: str, values: dict[str, str], expected: dict[str, tuple[int, int]]
+    ) -> None:
+        """Check that no check refuses the board's link with the values, and its regions."""
+        (self.work / board / "pb.map").unlink()
+        result = self.make(board, values)
+        what = ", ".join(f"{name}={value}" for name, value in values.items())
+        refused = [line for line in result.stderr.splitlines() if "CONFIG_" in line]
+        regions = self.regions(board)
+        found = {name: regions.get(name) for name in expected}
+        if refused:
+            say(f"FAILED: {board}: {what}: refused:\n{result.stderr}")
+            self.problems += 1
+        elif found != expected:
+            say(f"FAILED: {board}: {what}: the regions {found}, expected {expected}")
+            self.problems += 1
+        else:
+            fits = "links" if result.returncode == 0 else "is allowed (pb doesn't fit there)"
+            say(f"ok: {board}: {what}: {fits}")
 
 
 def main() -> int:
@@ -175,6 +319,8 @@ def main() -> int:
     links.check_links("its defconfig links")
     for board, values, message in CASES:
         links.check_refused(board, values, message)
+    for board, values, regions in ALLOWED:
+        links.check_allowed(board, values, regions)
     links.check_links("and its defconfig links again")
 
     return links.problems

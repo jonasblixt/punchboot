@@ -133,6 +133,7 @@ include src/cm/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
 ldflags-y += --defsym=PB_ENTRY=$(CONFIG_PB_ENTRY)
+ldflags-y += --defsym=PB_SIZE=$(CONFIG_PB_SIZE)
 ldflags-y += --defsym=BOARD_DRAM_BASE=$(CONFIG_BOARD_DRAM_BASE)
 ldflags-y += --defsym=BOARD_DRAM_SIZE=$(CONFIG_BOARD_DRAM_SIZE)
 ldflags-y += --defsym=PB_BUFFERS_BASE=$(CONFIG_PB_BUFFERS_BASE)

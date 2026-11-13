@@ -82,6 +82,19 @@ config PB_ENTRY
         the image stages and C. There is no default: a board's defconfig
         sets it, and a build without it stops.
 
+config PB_SIZE
+    hex "pb's region: its size"
+    default 0x0
+    help
+        The room pb has from PB_ENTRY. 0: what platform.md 5.1 derives, to
+        the end of the ROM's load window PB_ENTRY is in, or to the buffers
+        when they follow pb there.
+
+        A board whose images use memory of that window after pb (pb in
+        DRAM with an image data region between it and its buffers, or
+        on-chip RAM that another stage is loaded to) sets it to where that
+        memory starts: the link then fails when pb grows into it.
+
 config BOARD_DRAM_BASE
     hex "The board's DRAM: its address"
     default 0x0
