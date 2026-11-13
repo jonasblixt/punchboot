@@ -25,6 +25,21 @@
 #include <libfdt.h>
 #endif
 
+/* The board reported a failure the boot goes on without (board.md 2.3).
+ * It holds until the reset: nothing takes it back */
+static bool degraded;
+
+void board_report_degraded(void)
+{
+    degraded = true;
+}
+
+/* The core asks after early_boot(), for pb's status (boot.md 5.6) */
+static bool board_is_degraded(void)
+{
+    return degraded;
+}
+
 static int setup_partitions(void)
 {
     bio_dev_t dev;
@@ -60,6 +75,7 @@ static int setup_boot_driver(void)
     memset(&driver, 0, sizeof(driver));
     driver.default_boot_source = BOOT_SOURCE_BIO;
     driver.early_boot_cb = board.early_boot;
+    driver.degraded_cb = board_is_degraded;
     driver.late_boot_cb = board.late_boot;
 
     driver.policy = &board.boot_policy;
@@ -115,6 +131,9 @@ static int board_data_failed(const char *member)
 int board_setup(void)
 {
     int rc;
+
+    /* Nothing is reported before the board's hooks ran */
+    degraded = false;
 
     /* Before any image is read, also by a boot command after a later step
      * failed. It logs which region and why; a list that fails is no list, so

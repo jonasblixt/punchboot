@@ -430,8 +430,13 @@ static int collect_info(void)
      * otherwise for a candidate of its own */
     memset(&info, 0, sizeof(info));
     info.version = PB_VERSION;
-    /* What the preconditions found and the boot goes on without */
+    /* What the preconditions found and the boot goes on without, and what
+     * the board reported: its init() and late_init() ran before the boot,
+     * its early_boot() just now (board.md 2.3) */
     info.status = precondition_status;
+
+    if (boot_cfg->degraded_cb && boot_cfg->degraded_cb())
+        info.status |= BOOT_INFO_STATUS_BOARD_DEGRADED;
 
     rc = device_uuid(info.device_uuid);
 

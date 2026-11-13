@@ -38,6 +38,8 @@ struct bpak_header;
 /** 'status': what pb couldn't do and booted anyway, a bit per condition
  * (boot.md 5.6). A bit keeps its meaning, new ones are appended */
 #define BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED (UINT32_C(1) << 0) /*!< The watchdog didn't arm */
+/** The board reported a failure the boot goes on without (board.md 2.3) */
+#define BOOT_INFO_STATUS_BOARD_DEGRADED     (UINT32_C(1) << 1)
 
 /** Room for every key a keystore can hold: its number of keys is a uint8_t.
  * A device tree's list has no limit, and no released build gets one here */
@@ -63,7 +65,8 @@ struct boot_info {
                                                       in the keystore's order */
     /** What pb booted without, BOOT_INFO_STATUS_* (boot.md 5.6): 'status' in
      * pb's structure. From the boot's preconditions, checked before
-     * early_boot(). A device tree gets no pb,status yet (F-248) */
+     * early_boot(), and from the board, asked after it. A device tree gets
+     * no pb,status yet (F-248) */
     uint32_t status;
 
     /* The candidate's, set before each prepare */

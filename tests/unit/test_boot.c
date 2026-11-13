@@ -135,6 +135,14 @@ static struct {
 
     int early_rc;
     int early_calls;
+    /* The board: what it reported (board_report_degraded()), which hooks
+     * report, and how often the core asked and when */
+    bool degraded;
+    bool early_reports_degraded;
+    bool late_reports_degraded;
+    int degraded_calls;
+    int early_calls_at_degraded;
+    int next_calls_at_degraded;
 
     /* pb's information: what the device answers, and when it was asked */
     int device_uuid_rc;
@@ -337,7 +345,19 @@ static int fake_early_boot(void)
 {
     see_header(AT_EARLY);
     fake.early_calls++;
+
+    if (fake.early_reports_degraded)
+        fake.degraded = true;
+
     return fake.early_rc;
+}
+
+static bool fake_degraded(void)
+{
+    fake.degraded_calls++;
+    fake.early_calls_at_degraded = fake.early_calls;
+    fake.next_calls_at_degraded = fake.next_calls;
+    return fake.degraded;
 }
 
 /* What pb's information is read from: the core asks, the handover doesn't
@@ -609,6 +629,10 @@ static int fake_late_boot(uuid_t boot_part_uu)
     fake.late_calls++;
     fake.late_flags = boot_get_flags();
     fake.kicks_at_late = fake_wdog_kicks;
+
+    if (fake.late_reports_degraded)
+        fake.degraded = true;
+
     return fake.late_rc;
 }
 
@@ -651,6 +675,7 @@ static const struct boot_delivery fake_delivery = { .ops = &fake_delivery_ops };
 static const struct boot_driver driver = {
     .default_boot_source = BOOT_SOURCE_BIO,
     .early_boot_cb = fake_early_boot,
+    .degraded_cb = fake_degraded,
     .policy = &fake_policy,
     .handover = &fake_handover,
     .late_boot_cb = fake_late_boot,
@@ -1712,6 +1737,101 @@ static void test_precondition_watchdog(void **state)
     assert_int_equal(fake.last_info.status, 0);
 }
 
+/* board.md 2.3, boot.md 5.6, D-050 (F-248): what the board reported and the
+ * boot goes on without is in pb's status, bit 1, next to the watchdog's.
+ * The core asks once, after early_boot() and before the first candidate,
+ * so a report from early_boot() is in this boot's handover */
+static void test_status_of_the_board(void **state)
+{
+    struct fixture *f = *state;
+
+    /* Nothing reported */
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.degraded_calls, 1);
+    assert_int_equal(fake.early_calls_at_degraded, 1);
+    assert_int_equal(fake.next_calls_at_degraded, 0);
+    assert_int_equal(fake.last_info.status, 0);
+
+    /* Reported before the boot: the board's init() or late_init() */
+    reset_fakes(f);
+    fake.degraded = true;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.status, BOOT_INFO_STATUS_BOARD_DEGRADED);
+
+    /* Reported in early_boot() */
+    reset_fakes(f);
+    fake.early_reports_degraded = true;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.status, BOOT_INFO_STATUS_BOARD_DEGRADED);
+
+    /* Every candidate's handover gets it */
+    reset_fakes(f);
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.prepare_fail_uu = UU_SYS_A;
+    fake.degraded = true;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 2);
+    assert_int_equal(fake.degraded_calls, 1);
+    assert_int_equal(fake.prepare_info[0].status, BOOT_INFO_STATUS_BOARD_DEGRADED);
+    assert_int_equal(fake.prepare_info[1].status, BOOT_INFO_STATUS_BOARD_DEGRADED);
+
+    /* With the watchdog's entry, in a build that has a watchdog */
+    reset_fakes(f);
+    fake.degraded = true;
+    fake_plat_status.wdog_armed = false;
+    assert_int_equal(boot_load(NULL), PB_OK);
+#ifdef CONFIG_ENABLE_WATCHDOG
+    assert_int_equal(fake.last_info.status,
+                     BOOT_INFO_STATUS_WATCHDOG_NOT_ARMED | BOOT_INFO_STATUS_BOARD_DEGRADED);
+#else
+    assert_int_equal(fake.last_info.status, BOOT_INFO_STATUS_BOARD_DEGRADED);
+#endif
+}
+
+/* board.md 2.3: a report from late_boot() comes too late for the boot it is
+ * called in, whose handover is prepared. A boot command mode starts after
+ * it carries it */
+static void test_status_of_the_board_from_late_boot(void **state)
+{
+    (void)state;
+
+    fake.late_reports_degraded = true;
+    fake.late_rc = -PB_ERR_ABORT;
+    assert_int_equal(boot(NULL), -PB_ERR_ABORT);
+    assert_int_equal(fake.prepare_calls, 1);
+    assert_int_equal(fake.last_info.status, 0);
+
+    fake.late_reports_degraded = false;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.status, BOOT_INFO_STATUS_BOARD_DEGRADED);
+}
+
+/* A boot driver without the board's answer has nothing of the board's to
+ * report */
+static void test_status_without_a_board_to_ask(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_init(&delivery_driver), PB_OK);
+    fake.degraded = true;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.degraded_calls, 0);
+    assert_int_equal(fake.last_info.status, 0);
+}
+
+/* A boot that a precondition refused doesn't ask the board */
+static void test_status_of_the_board_is_not_asked_for_a_refused_boot(void **state)
+{
+    (void)state;
+
+    fake.degraded = true;
+    fake_plat_status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    assert_refused_before_anything(boot(NULL));
+    assert_int_equal(fake.degraded_calls, 0);
+}
+
 /* platform.md 2.3: a crypto engine that failed refuses the boot, where the
  * platform is the one that sets it up (CONFIG_PLAT_CRYPTO_ENGINE): nothing
  * verifies the image. Without the option the platform reports none, the
@@ -2659,6 +2779,10 @@ int main(void)
         BOOT_TEST(test_precondition_in_a_boot_command_mode_started),
         BOOT_TEST(test_precondition_in_every_life_cycle_state),
         BOOT_TEST(test_precondition_watchdog),
+        BOOT_TEST(test_status_of_the_board),
+        BOOT_TEST(test_status_of_the_board_from_late_boot),
+        BOOT_TEST(test_status_without_a_board_to_ask),
+        BOOT_TEST(test_status_of_the_board_is_not_asked_for_a_refused_boot),
         BOOT_TEST(test_precondition_crypto_engine),
         BOOT_TEST(test_precondition_rom_log),
         BOOT_TEST(test_early_boot_abort),
