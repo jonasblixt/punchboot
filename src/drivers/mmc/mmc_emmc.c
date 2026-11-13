@@ -725,42 +725,52 @@ int mmc_emmc_setup(struct mmc_device *dev)
                   (uint32_t)dev->ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
                   (uint32_t)dev->ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
 
-    lba_t boot_part_last_lba = 0;
-    lba_t rpmb_part_last_lba = 0;
-
+    /*
+     * In blocks, from 128 KiB units. 0 is a partition the device doesn't
+     * have (BOOT_SIZE_MULT 0: no boot partition), which gets no device: its
+     * last block would be 2^32 - 1 (bio.md 2.1)
+     */
 #ifdef CONFIG_MMC_CORE_OVERRIDE_BOOT_PART_SZ
-    boot_part_last_lba = CONFIG_MMC_CORE_BOOT_PART_SZ_KiB * 2 - 1;
+    uint32_t boot_part_blocks = CONFIG_MMC_CORE_BOOT_PART_SZ_KiB * 2;
 #else
-    boot_part_last_lba = dev->ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1;
+    uint32_t boot_part_blocks = dev->ext_csd[EXT_CSD_BOOT_MULT] * 256;
 #endif
+    uint32_t rpmb_part_blocks = dev->ext_csd[EXT_CSD_RPMB_MULT] * 256;
 
-    rpmb_part_last_lba = dev->ext_csd[EXT_CSD_RPMB_MULT] * 256 - 1;
+    if (boot_part_blocks == 0)
+        LOG_INFO("No boot partitions");
+    if (rpmb_part_blocks == 0)
+        LOG_INFO("No RPMB partition");
 
-    rc = mmc_add_part(dev,
-                      boot_part_last_lba,
-                      cfg->boot0_uu,
-                      "eMMC BOOT0",
-                      MMC_BIO_FLAG_BOOT0,
-                      BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE,
-                      true);
-    if (rc < 0)
-        return rc;
+    if (boot_part_blocks > 0) {
+        rc = mmc_add_part(dev,
+                          boot_part_blocks - 1,
+                          cfg->boot0_uu,
+                          "eMMC BOOT0",
+                          MMC_BIO_FLAG_BOOT0,
+                          BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE,
+                          true);
+        if (rc < 0)
+            return rc;
 
-    rc = mmc_add_part(dev,
-                      boot_part_last_lba,
-                      cfg->boot1_uu,
-                      "eMMC BOOT1",
-                      MMC_BIO_FLAG_BOOT1,
-                      BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE,
-                      true);
-    if (rc < 0)
-        return rc;
+        rc = mmc_add_part(dev,
+                          boot_part_blocks - 1,
+                          cfg->boot1_uu,
+                          "eMMC BOOT1",
+                          MMC_BIO_FLAG_BOOT1,
+                          BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE,
+                          true);
+        if (rc < 0)
+            return rc;
+    }
 
     /* RPMB is currently R/O and only accessible from within punchboot */
-    rc = mmc_add_part(
-        dev, rpmb_part_last_lba, cfg->rpmb_uu, "eMMC RPMB", MMC_BIO_FLAG_RPMB, 0, false);
-    if (rc < 0)
-        return rc;
+    if (rpmb_part_blocks > 0) {
+        rc = mmc_add_part(
+            dev, rpmb_part_blocks - 1, cfg->rpmb_uu, "eMMC RPMB", MMC_BIO_FLAG_RPMB, 0, false);
+        if (rc < 0)
+            return rc;
+    }
 
     rc = mmc_add_part(dev,
                       dev->blocks - 1,

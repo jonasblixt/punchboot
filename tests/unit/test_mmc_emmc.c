@@ -566,6 +566,31 @@ static void test_wait_state_is_bounded(void **state)
     assert_int_equal(emmc_model_cmd_count(MMC_CMD_SEND_EXT_CSD), 0);
 }
 
+/* bio.md 2.1 (F-200): BOOT_SIZE_MULT 0 is a device without boot partitions,
+ * RPMB_SIZE_MULT 0 one without RPMB. Neither gets a device, where both got
+ * one of 2^32 blocks (0 * 256 - 1 as the last block) */
+static void test_no_boot_partitions(void **state)
+{
+    static uint8_t out[4096];
+    static uint8_t in[sizeof(out)];
+    (void)state;
+
+    card_cfg.boot_size_mult = 0;
+    card_cfg.rpmb_size_mult = 0;
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(devices(), 1);
+    assert_true(bio_get_part_by_uu(UU_BOOT0) < 0);
+    assert_true(bio_get_part_by_uu(UU_BOOT1) < 0);
+    assert_true(bio_get_part_by_uu(UU_RPMB) < 0);
+    assert_int_equal(bio_get_last_block(part(UU_USER)), card_cfg.user_sectors - 1);
+
+    fill(out, sizeof(out), 5);
+    assert_int_equal(bio_write(part(UU_USER), 64, sizeof(out), out), PB_OK);
+    assert_int_equal(bio_read(part(UU_USER), 64, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+    assert_bench_clean();
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -600,6 +625,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_ext_csd_at_tran_speed, setup, teardown),
         cmocka_unit_test_setup_teardown(test_tran_speed_20mhz, setup, teardown),
         cmocka_unit_test_setup_teardown(test_wait_state_is_bounded, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_no_boot_partitions, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

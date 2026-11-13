@@ -391,7 +391,12 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | ---------------------------- | ------------------ | ----------------- | ------------------- | ------- |
 | A second `init` adds no      | yes (`test_mmc_`   | yes: it fails,    | yes: it fails, the  |         |
 | devices                      | `emmc`, `_sd`)     | the UUID is taken | UUID is taken       |         |
-| The medium's size checked    | no                 | n/a (the board's) | n/a                 | F-200   |
+| The medium's size checked    | partly: a boot or  | n/a (the board's) | n/a                 | F-200   |
+|                              | RPMB size of 0 is  |                   |                     |         |
+|                              | no device; the     |                   |                     |         |
+|                              | user area's        |                   |                     |         |
+|                              | SEC_COUNT 0 isn't  |                   |                     |         |
+|                              | (`test_mmc_emmc`)  |                   |                     |         |
 | Exactly `length` bytes of    | yes                | no: a write reads | yes                 | F-284   |
 | the buffer                   |                    | 1 to 4 bytes more |                     |         |
 | A length of 0                | yes: the core's    | yes               | yes                 |         |
