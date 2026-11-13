@@ -446,6 +446,17 @@ def sgdisk_verify(disk: pathlib.Path) -> str:
     return result.stdout
 
 
+def sgdisk(disk: pathlib.Path, *args: str) -> str:
+    """Change a GPT disk image with sgdisk, returns what it printed."""
+    result = subprocess.run(  # noqa: S603
+        ["sgdisk", *args, str(disk)],  # noqa: S607
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout
+
+
 def make_bpak(
     path: pathlib.Path,
     data: bytes,

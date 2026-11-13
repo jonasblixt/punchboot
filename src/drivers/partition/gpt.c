@@ -437,10 +437,13 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
      * It's likely not worth the extra boot up time to compare the tables.
      */
 
-    for (struct gpt_part_hdr *p = primary.part;
-         p < &primary.part[primary.hdr.no_of_parts] && p->first_lba;
-         p++) {
+    for (struct gpt_part_hdr *p = primary.part; p < &primary.part[primary.hdr.no_of_parts]; p++) {
         int n = 0;
+
+        /* An empty entry is skipped, and the ones after it are made (bio.md 4) */
+        if (p->first_lba == 0)
+            continue;
+
         uuid_to_guid(p->uuid, uu);
 
         for (int i = 0; i < 36; i++) {

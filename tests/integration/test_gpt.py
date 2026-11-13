@@ -16,9 +16,20 @@ from typing import TYPE_CHECKING
 import punchboot
 import pytest
 
-from .pbtest import DISK_BLOCKS, DISK_UUID, SYSTEM_A_UUID, sgdisk_verify
+from .pbtest import (
+    DISK_BLOCKS,
+    DISK_UUID,
+    SYSTEM_A_UUID,
+    SYSTEM_B_LBA,
+    SYSTEM_B_UUID,
+    SYSTEM_SIZE,
+    sgdisk,
+    sgdisk_verify,
+)
 
 if TYPE_CHECKING:
+    import uuid
+
     from .pbtest import Device
 
 GPT_OK = "No problems found"
@@ -78,3 +89,25 @@ def test_install_table_variant(blank_device: Device, variant: int) -> None:
 def test_install_too_large_table_variant_fails(blank_device: Device) -> None:
     with blank_device.session() as s, pytest.raises(punchboot.Error):
         s.part_table_install(DISK_UUID, 3)
+
+
+def partitions(device: Device) -> dict[uuid.UUID, tuple[int, int]]:
+    """Return the partitions pb lists, with their first and last block."""
+    with device.session() as s:
+        return {p.uuid: (p.first_block, p.last_block) for p in s.part_get_partitions()}
+
+
+def test_empty_entry_is_skipped(device: Device) -> None:
+    """bio.md 4: the partitions after a deleted one are made (F-192)."""
+    device.stop()
+    sgdisk(device.disk, "-d", "1")
+    before = device.read_blocks(0, DISK_BLOCKS)
+
+    device.start()
+
+    parts = partitions(device)
+    assert SYSTEM_A_UUID not in parts
+    assert parts[SYSTEM_B_UUID] == (SYSTEM_B_LBA, SYSTEM_B_LBA + SYSTEM_SIZE // 512 - 1)
+    device.stop()
+    assert device.read_blocks(0, DISK_BLOCKS) == before
+    device.start()

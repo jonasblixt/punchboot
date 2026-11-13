@@ -209,10 +209,11 @@ static void test_both_tables_corrupt_fails(void **state)
 }
 
 /* Offsets in the on-disk GPT header */
-#define HDR_CRC           16
-#define HDR_NO_OF_PARTS   80
-#define HDR_PART_ENTRY_SZ 84
-#define HDR_SIZE          92
+#define HDR_CRC            16
+#define HDR_NO_OF_PARTS    80
+#define HDR_PART_ENTRY_SZ  84
+#define HDR_PART_ARRAY_CRC 88
+#define HDR_SIZE           92
 
 /* Change a header field and update the header CRC, so that only the field is wrong */
 static void set_hdr_field(uint8_t *hdr, size_t offset, uint32_t value)
@@ -266,6 +267,54 @@ static void test_unsupported_entry_size_recovers(void **state)
 
     assert_int_equal(boot(f), PB_OK);
     assert_int_equal(get_hdr_field(ramdisk_block(f->disk, 1), HDR_PART_ENTRY_SZ), 128);
+}
+
+/* Where pb, and every tool, puts the two copies on the test's disk */
+#define PRIMARY_HDR     1
+#define PRIMARY_ARRAY   2
+#define BACKUP_ARRAY    (DISK_BLOCKS - 33)
+#define BACKUP_HDR      (DISK_BLOCKS - 1)
+
+/* Offsets in an entry of the partition array, and its size */
+#define ENTRY_FIRST_LBA 32
+#define ENTRY_LAST_LBA  40
+#define ENTRY_SIZE      128
+
+static uint8_t *entry(struct fixture *f, lba_t array_lba, int n)
+{
+    return ramdisk_block(f->disk, array_lba) + n * ENTRY_SIZE;
+}
+
+/* A copy's array changed: update the array's CRC in its header, and the
+ * header's own */
+static void seal(struct fixture *f, lba_t hdr_lba, lba_t array_lba)
+{
+    uint8_t *hdr = ramdisk_block(f->disk, hdr_lba);
+    uint32_t length = get_hdr_field(hdr, HDR_NO_OF_PARTS) * ENTRY_SIZE;
+
+    set_hdr_field(
+        hdr, HDR_PART_ARRAY_CRC, crc32(~0L, ramdisk_block(f->disk, array_lba), length) ^ ~0UL);
+}
+
+/* bio.md 4: an empty entry is skipped, and the others are made (F-192).
+ * What 'sgdisk -d 1' leaves: the first entry is zeros in both copies. */
+static void test_empty_entry_is_skipped(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+    memset(entry(f, PRIMARY_ARRAY, 0), 0, ENTRY_SIZE);
+    memset(entry(f, BACKUP_ARRAY, 0), 0, ENTRY_SIZE);
+    seal(f, PRIMARY_HDR, PRIMARY_ARRAY);
+    seal(f, BACKUP_HDR, BACKUP_ARRAY);
+    f->disk->writes = 0;
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+    assert_part(UU_SYS_B, 1058, 2081, "System B");
+    assert_part(UU_STATE, 2082, 2082, "State");
+    /* The table is valid: nothing is repaired */
+    assert_int_equal(f->disk->writes, 0);
 }
 
 static void test_install_long_name_fails(void **state)
@@ -505,6 +554,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(
             test_backup_with_too_many_entries_is_not_used, setup, teardown),
         cmocka_unit_test_setup_teardown(test_unsupported_entry_size_recovers, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_empty_entry_is_skipped, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_long_name_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_init_invalid_device, setup, teardown),
         cmocka_unit_test_setup_teardown(test_primary_header_crc_error_recovers, setup, teardown),
