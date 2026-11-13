@@ -61,6 +61,8 @@ PART_TABLE_ENTRIES_WRITE = 256
 MAX_KEYS = 16
 # pb_command_verify_part.size is 32 bits
 VERIFY_SIZE_MAX = 0xFFFFFFFF
+# pb_command_erase_part.start_lba is 32 bits
+ERASE_LBA_MAX = 0xFFFFFFFF
 
 
 def _partuuid_to_uuid(uu: PartUUIDType) -> uuid.UUID:
@@ -664,6 +666,8 @@ class Session:
         NotFoundError         -- Partition was not found
         NotSupportedError     -- If not supported
         NotAuthenticatedError -- Authentication required
+        ArgumentError         -- A chunk would start past LBA 2^32 - 1, which the command
+                                 can't carry
         """
         uu: uuid.UUID = _partuuid_to_uuid(part_uu)
         try:
@@ -673,6 +677,15 @@ class Session:
 
         blocks_remaining: int = part.last_block - part.first_block + 1
         block_offset: int = part.first_block
+
+        # The first block of every chunk fits the command, or nothing is
+        # erased: masked, it erased blocks near the start of the device
+        if (
+            blocks_remaining > 0
+            and part.first_block + (blocks_remaining - 1) // 64 * 64 > ERASE_LBA_MAX
+        ):
+            raise ArgumentError
+
         # Note: 64 is not a magical number. On large NOR flashes the largest
         # erase block is typically 256kByte and sectors size is normally 4k.
         #
@@ -688,7 +701,7 @@ class Session:
                 progress_cb(part.last_block - part.first_block + 1, blocks_remaining)
             erase = wire.pb_command_erase_part(
                 uuid=_u8_array(uu.bytes),
-                start_lba=block_offset & 0xFFFFFFFF,
+                start_lba=block_offset,
                 block_count=count,
             )
             self._command(Command.PB_CMD_PART_ERASE, erase)
