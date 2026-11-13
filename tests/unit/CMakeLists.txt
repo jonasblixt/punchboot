@@ -589,6 +589,14 @@ pb_unit_test(test_usb_transport SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/usbd.c
 )
 
+# The same with a host on the bus: a fake controller that plays control
+# requests, bulk transfers, a bus reset and a replug (fakes/usb_host.h)
+pb_unit_test(test_usbd SOURCES
+    fakes/usb_host.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/pb_dev_cls.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/usbd.c
+)
+
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
