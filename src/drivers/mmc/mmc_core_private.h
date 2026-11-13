@@ -43,6 +43,9 @@
 struct mmc_device {
     uint8_t ext_csd[512] __aligned(64); /* e.MMC */
     bool used;
+    /* bio devices name this slot: it stays used after an init that failed */
+    bool registered;
+    bool ready; /* The last mmc_init() worked: the bio devices may be used */
     const struct mmc_hal *hal;
     const struct mmc_device_config *cfg;
     struct mmc_device_info info;
@@ -79,11 +82,19 @@ int mmc_wait_state(struct mmc_device *dev, int state, unsigned int timeout_ms);
 int mmc_set_bus_clock(struct mmc_device *dev, unsigned int clk_hz);
 /* Reads or writes the current partition in chunks the HAL can take */
 int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf, bool write);
-/* A device is registered once (bio.md 2.1): true when this controller's
- * device with that UUID is there already, from an mmc_init() before. A
- * controller that is set up again keeps the devices it has, with the flags
- * they have by now */
-bool mmc_bio_registered(const struct mmc_device *dev, const unsigned char *uu);
+/*
+ * Before a device is registered. A device is registered once (bio.md 2.1):
+ * 1 when this controller's device with that UUID is there already, from an
+ * mmc_init() before; a controller that is set up again keeps the devices it
+ * has, with the flags they have by now. 0 when the UUID is free.
+ * -PB_ERR_PARAM when another device has it: checked for every device before
+ * the first is registered, nothing is registered when init fails
+ * (drivers.md 2.1)
+ */
+int mmc_bio_check(struct mmc_device *dev, const unsigned char *uu);
+/* PB_OK when the card's last mmc_init() worked, -PB_ERR_STATE otherwise:
+ * every bio callback asks first */
+int mmc_bio_ready(const struct mmc_device *dev);
 
 int mmc_emmc_setup(struct mmc_device *dev);
 int mmc_sd_setup(struct mmc_device *dev);

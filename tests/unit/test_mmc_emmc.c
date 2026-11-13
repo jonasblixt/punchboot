@@ -639,6 +639,88 @@ static void test_not_ready_is_a_timeout(void **state)
     assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
 }
 
+#define UU_OTHER \
+    (const unsigned char *)"\x5c\x0e\x31\x7a\x60\x2b\x4f\x18\x9d\x43\xa1\x07\xee\x58\x12\x6b"
+
+/* drivers.md 2.1 (F-406): nothing is registered when init fails. Another
+ * device has the RPMB's UUID: the init fails before it registers BOOT0 and
+ * BOOT1, where it left them registered */
+static void test_a_failed_init_registers_nothing(void **state)
+{
+    (void)state;
+
+    assert_true(bio_allocate(0, 7, 512, UU_RPMB, "Other") >= 0);
+    assert_int_equal(init(), -PB_ERR_PARAM);
+    assert_int_equal(devices(), 1);
+    assert_true(bio_get_part_by_uu(UU_BOOT0) < 0);
+    assert_true(bio_get_part_by_uu(UU_BOOT1) < 0);
+    assert_true(bio_get_part_by_uu(UU_USER) < 0);
+}
+
+/* F-406: the pool is full after BOOT1. bio can't release a device, so the
+ * two that were registered stay, and fail with -PB_ERR_STATE: the card's
+ * slot isn't given to another card while they name it */
+static void test_a_full_pool_leaves_no_working_device(void **state)
+{
+    static uint8_t in[512];
+    (void)state;
+
+    for (unsigned int i = 0; i < CONFIG_BIO_MAX_DEVS - 2; i++) {
+        unsigned char uu[16] = { 0xaa, (unsigned char)i };
+
+        assert_true(bio_allocate(0, 7, 512, uu, "Other") >= 0);
+    }
+    assert_int_equal(init(), -PB_ERR_MEM);
+    assert_int_equal(bio_read(part(UU_BOOT0), 0, sizeof(in), in), -PB_ERR_STATE);
+    assert_int_equal(bio_write(part(UU_BOOT1), 0, sizeof(in), in), -PB_ERR_STATE);
+    assert_bench_clean();
+}
+
+/* drivers.md 2.1 (F-406): a second init of the card fails. Its devices,
+ * from the first one, keep their slot and fail with -PB_ERR_STATE, also
+ * when another controller's card is set up after it; where the slot was
+ * free and the next card's init took it, and the devices read that card.
+ * A third init that works brings them back */
+static void test_a_failed_second_init_keeps_the_slot(void **state)
+{
+    static struct mmc_hal hal_b;
+    static uint8_t out[512];
+    static uint8_t in[512];
+    struct mmc_device_config cfg_b = dev_cfg;
+    bio_dev_t user;
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    user = part(UU_USER);
+    fill(out, sizeof(out), 21);
+    assert_int_equal(bio_write(user, 3, sizeof(out), out), PB_OK);
+
+    emmc_model_fail_cmd(MMC_CMD_ALL_SEND_CID, EMMC_FAULT_NO_RESPONSE);
+    assert_int_not_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), PB_OK);
+    assert_int_equal(bio_read(user, 3, sizeof(in), in), -PB_ERR_STATE);
+
+    /* Another controller, with a card of its own UUIDs */
+    hal_b = *hal_model_init(card, CHUNK_BYTES);
+    hal_b.priv = &hal_b;
+    cfg_b.boot0_uu = NULL;
+    cfg_b.boot1_uu = NULL;
+    cfg_b.rpmb_uu = NULL;
+    cfg_b.user_uu = UU_OTHER;
+    card_cfg.boot_size_mult = 0;
+    card_cfg.rpmb_size_mult = 0;
+    card = emmc_model_init(&card_cfg);
+    assert_int_equal(mmc_init(&hal_b, &cfg_b, NULL), PB_OK);
+    assert_int_equal(bio_read(user, 3, sizeof(in), in), -PB_ERR_STATE);
+    assert_int_equal(bio_read(part(UU_OTHER), 3, sizeof(in), in), PB_OK);
+
+    /* The first controller's card again */
+    emmc_model_write(EMMC_PART_USER, 3, out, 1);
+    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), PB_OK);
+    assert_int_equal(part(UU_USER), user);
+    assert_int_equal(bio_read(user, 3, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -677,6 +759,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_state_after_a_transfer_is_bounded, setup, teardown),
         cmocka_unit_test_setup_teardown(test_switch_wait_is_bounded, setup, teardown),
         cmocka_unit_test_setup_teardown(test_not_ready_is_a_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_failed_init_registers_nothing, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_full_pool_leaves_no_working_device, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_failed_second_init_keeps_the_slot, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 

@@ -213,14 +213,20 @@ static int sd_select_speed(struct mmc_device *dev)
 static int sd_bio_read(bio_dev_t bdev, lba_t lba, size_t length, void *buf)
 {
     struct mmc_device *dev = (struct mmc_device *)bio_get_private(bdev);
+    int rc = mmc_bio_ready(dev);
 
+    if (rc != PB_OK)
+        return rc;
     return mmc_bio_xfer(dev, lba, length, (uintptr_t)buf, false);
 }
 
 static int sd_bio_write(bio_dev_t bdev, lba_t lba, size_t length, const void *buf)
 {
     struct mmc_device *dev = (struct mmc_device *)bio_get_private(bdev);
+    int rc = mmc_bio_ready(dev);
 
+    if (rc != PB_OK)
+        return rc;
     return mmc_bio_xfer(dev, lba, length, (uintptr_t)buf, true);
 }
 
@@ -229,13 +235,15 @@ static int sd_add_bio(struct mmc_device *dev)
     bio_dev_t d;
     int rc;
 
-    if (mmc_bio_registered(dev, dev->cfg->user_uu))
-        return PB_OK;
+    rc = mmc_bio_check(dev, dev->cfg->user_uu);
+    if (rc != 0)
+        return (rc > 0) ? PB_OK : rc;
 
     d = bio_allocate(0, dev->blocks - 1, MMC_BLOCK_SIZE, dev->cfg->user_uu, "SD");
 
     if (d < 0)
         return d;
+    dev->registered = true;
 
     rc = bio_set_flags(d, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
     if (rc < 0)

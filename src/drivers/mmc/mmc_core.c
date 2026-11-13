@@ -254,11 +254,28 @@ int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf
     return rc;
 }
 
-bool mmc_bio_registered(const struct mmc_device *dev, const unsigned char *uu)
+int mmc_bio_check(struct mmc_device *dev, const unsigned char *uu)
 {
     bio_dev_t d = bio_get_part_by_uu(uu);
 
-    return d >= 0 && bio_get_private(d) == (uintptr_t)dev;
+    if (d < 0)
+        return 0;
+    if (bio_get_private(d) != (uintptr_t)dev) {
+        LOG_ERR("The UUID of %s is another device's", bio_get_description(d));
+        return -PB_ERR_PARAM;
+    }
+
+    dev->registered = true;
+    return 1;
+}
+
+int mmc_bio_ready(const struct mmc_device *dev)
+{
+    if (!dev->ready) {
+        LOG_ERR("The card's init failed");
+        return -PB_ERR_STATE;
+    }
+    return PB_OK;
 }
 
 struct mmc_device_info *mmc_device_info(struct mmc_device *dev)
@@ -300,8 +317,12 @@ int mmc_init(const struct mmc_hal *hal,
     if (dev == NULL)
         return -PB_ERR_MEM;
 
+    /* A free slot has no devices */
+    bool registered = dev->used && dev->registered;
+
     memset(dev, 0, sizeof(*dev));
     dev->used = true;
+    dev->registered = registered;
     dev->hal = hal;
     dev->cfg = cfg;
 
@@ -317,10 +338,18 @@ int mmc_init(const struct mmc_hal *hal,
         break;
     }
 
+    /*
+     * Devices this card registered keep its slot, also when the init fails:
+     * bio can't release them, and with the slot free the next card's init
+     * would take it and they would reach that card. They fail with
+     * -PB_ERR_STATE until an init of this controller works (drivers.md 2.1)
+     */
     if (rc != PB_OK) {
-        dev->used = false;
+        dev->used = dev->registered;
         return rc;
     }
+
+    dev->ready = true;
 
     if (dev_out != NULL)
         *dev_out = dev;

@@ -289,7 +289,11 @@ static int set_boot_part(struct mmc_device *dev, enum mmc_part part)
  */
 static int mmc_bio_write_done(bio_dev_t bdev, int param)
 {
+    int rc = mmc_bio_ready(bio_mmc(bdev));
+
     (void)param;
+    if (rc != PB_OK)
+        return rc;
     return set_boot_part(bio_mmc(bdev), bio_part(bdev));
 }
 
@@ -297,6 +301,10 @@ static int mmc_bio_read(bio_dev_t bdev, lba_t lba, size_t length, void *buf)
 {
     struct mmc_device *dev = bio_mmc(bdev);
     int rc;
+
+    rc = mmc_bio_ready(dev);
+    if (rc != PB_OK)
+        return rc;
 
     rc = mmc_part_switch(dev, bio_part(bdev));
     if (rc != PB_OK)
@@ -309,6 +317,10 @@ static int mmc_bio_write(bio_dev_t bdev, lba_t lba, size_t length, const void *b
 {
     struct mmc_device *dev = bio_mmc(bdev);
     int rc;
+
+    rc = mmc_bio_ready(dev);
+    if (rc != PB_OK)
+        return rc;
 
     /*
      * Never write the boot partition the ROM boots from. If the write is
@@ -547,13 +559,15 @@ static int mmc_add_part(struct mmc_device *dev,
     bio_dev_t d;
     int rc;
 
-    if (mmc_bio_registered(dev, uu))
-        return PB_OK;
+    rc = mmc_bio_check(dev, uu);
+    if (rc != 0)
+        return (rc > 0) ? PB_OK : rc;
 
     d = bio_allocate(0, last_lba, MMC_BLOCK_SIZE, uu, name);
 
     if (d < 0)
         return d;
+    dev->registered = true;
 
     rc = bio_set_hal_flags(d, hal_flag);
     if (rc < 0)
@@ -749,6 +763,23 @@ int mmc_emmc_setup(struct mmc_device *dev)
         LOG_INFO("No boot partitions");
     if (rpmb_part_blocks == 0)
         LOG_INFO("No RPMB partition");
+
+    /* Every UUID before the first device: nothing is registered when the
+     * init fails (drivers.md 2.1) */
+    const unsigned char *uus[] = {
+        boot_part_blocks > 0 ? cfg->boot0_uu : NULL,
+        boot_part_blocks > 0 ? cfg->boot1_uu : NULL,
+        rpmb_part_blocks > 0 ? cfg->rpmb_uu : NULL,
+        cfg->user_uu,
+    };
+
+    for (size_t i = 0; i < ARRAY_SIZE(uus); i++) {
+        if (uus[i] == NULL)
+            continue;
+        rc = mmc_bio_check(dev, uus[i]);
+        if (rc < 0)
+            return rc;
+    }
 
     if (boot_part_blocks > 0) {
         rc = mmc_add_part(dev,
