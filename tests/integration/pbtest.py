@@ -93,6 +93,8 @@ class Device:
         self.binary = binary
         self.workdir = workdir
         self.disk = workdir / "disk.img"
+        # The fuses are a file of their own, as a SoC's aren't on its storage
+        self.fuses = workdir / "fuses.img"
         self.nor = workdir / "nor.img" if nor else None
         # Unix socket paths are limited to 107 bytes, which a deep working
         # directory easily exceeds (e.g. on CI), so the socket gets its own
@@ -126,6 +128,8 @@ class Device:
             str(self.binary),
             "--disk",
             str(self.disk),
+            "--fuses",
+            str(self.fuses),
             "--socket",
             str(self.socket),
             "--boot-status",

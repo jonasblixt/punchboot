@@ -8,6 +8,7 @@
  */
 
 #include <board_defs.h>
+#include <drivers/fuse/test_fuse_bio.h>
 #include <errno.h>
 #include <pb/console.h>
 #include <pb/plat.h>
@@ -19,6 +20,12 @@
 #include <time.h>
 
 static const uint8_t device_unique_id[8] = "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
+
+/* The fuses' device: one block, the test fuse driver's array */
+#define HOST_FUSES_SIZE 512
+static const unsigned char *host_fuses_uu = (const unsigned char *)"\xab\x46\x86\x44\xad\xc2\x40"
+                                                                   "\x47\xa1\xe3\x1f\x18\xaf\xd5"
+                                                                   "\x22\x6a";
 const char *platform_ns_uuid = "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
 
 /* The process's real stdout, the "UART" */
@@ -96,9 +103,35 @@ int plat_early_init(void)
     return PB_OK;
 }
 
+/*
+ * Fuses can be read from here on (platform.md 2.2), as a SoC's are: a file of
+ * their own, not on the disk, so that they don't depend on its partition
+ * table (F-217). Fuses that can't be read are a missing prerequisite of
+ * command mode, and main() resets: with a fuse array of zeros a locked
+ * device would read as open.
+ */
 int plat_init(void)
 {
-    return PB_OK;
+    int rc;
+    bio_dev_t fuses =
+        host_disk_init(host_opts.fuse_path, HOST_FUSES_SIZE, host_fuses_uu, "Host fuses");
+
+    if (fuses < 0) {
+        LOG_ERR("Could not set up the fuses (%i)", fuses);
+        return fuses;
+    }
+
+    /* Not a device for a host to see or write: the life cycle commands
+     * write the fuses */
+    rc = bio_set_flags(fuses, 0);
+
+    if (rc == PB_OK)
+        rc = test_fuse_init(fuses);
+
+    if (rc != PB_OK)
+        LOG_ERR("Could not read the fuses (%i)", rc);
+
+    return rc;
 }
 
 /* Command mode's transport is the socket (socket.c): there is no port to

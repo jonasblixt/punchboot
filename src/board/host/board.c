@@ -64,6 +64,8 @@ static const struct gpt_part_table gpt_tbl_default[] = {
         .size = 512,
     },
     {
+        /* Where the fuses were until F-217, kept so that the layout stays:
+         * they are a file of their own now (the host platform's) */
         .uu = UUID_44acdcbe_dcb0_4d89_b0ad_8f96967f8c95,
         .description = "Fuse array",
         .size = 512,
@@ -363,18 +365,6 @@ static int board_late_init(void)
 
     if (readable_part >= 0)
         (void)bio_clear_set_flags(readable_part, 0, BIO_FLAG_READABLE);
-
-    bio_dev_t fusebox_dev = bio_get_part_by_uu(PART_fusebox);
-
-    if (fusebox_dev < 0)
-        return fusebox_dev;
-
-    rc = test_fuse_init(fusebox_dev);
-
-    if (rc != PB_OK) {
-        LOG_ERR("Fusebox init failed");
-        return rc;
-    }
 
     // For 'test_board_regs'
     // If bit 0 in register 0 is set, we should set bit 0 in register 3

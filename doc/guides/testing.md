@@ -13,7 +13,7 @@ CI runs these tests (D-006).
 | `src/arch/host/`          | No-op cache/MMU. `arch_jump` exits.                                                    |
 | `src/plat/host/`          | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode |
 |                           | transport                                                                              |
-| `src/board/host/`         | Test board (partitions, keys, named commands, fuses on disk)                           |
+| `src/board/host/`         | Test board (partitions, keys, named commands, the fuses' layout)                       |
 | `tests/unit/`             | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`,            |
 |                           | `fakes/plat.c`)                                                                        |
 | `tests/integration/`      | pytest tests that drive `pb-host` through the `punchboot` Python package               |
@@ -61,7 +61,8 @@ A single integration test, inside `scripts/pbdev shell`:
 ## How the host platform works
 
 - **Entry point.** `main.c` in `src/` is compiled with `-Dmain=pb_main`, and `src/plat/host/main.c`
-  parses the options (`--disk --socket --boot-status --command-mode`) and calls `pb_main()`.
+  parses the options (`--disk --fuses --nor --socket --boot-status --command-mode`) and calls
+  `pb_main()`.
 - **RAM.** 512 MiB is `mmap`ed at `BOARD_RAM_BASE` (0x40000000), so `pb-load-addr` values work
   unchanged. It stays below 0x7fff8000, where ASan's shadow memory starts.
 - **pb's own memory regions.** These normally come from the linker script. On the host they are
@@ -75,8 +76,11 @@ A single integration test, inside `scripts/pbdev shell`:
   asks each for authentication.
   The socket is bound to `<path>.tmp` and renamed to `<path>` after `listen()`, so tests can treat
   the path appearing as "command mode is ready".
-- **Disk.** A file. The fuses live in a partition on it (test fuse driver), so device state
-  persists across reboots within a test.
+- **Disk.** A file.
+- **Fuses.** A file of their own (`--fuses PATH`, default `fuses.img`), not on the disk: the
+  test fuse driver reads it in `plat_init()`, so the life cycle and the revoked keys don't depend
+  on the partition table, as a SoC's fuses don't (F-217). Device state persists across reboots
+  within a test. The disk's "Fuse array" partition is left unused, so the layout stays.
 - **Flash.** With `--nor PATH`: a memory mapped flash for the in place source (`boot.md` 4.1),
   512 KiB at 0x70000000 (`BOARD_NOR_BASE`), a file that is erased (0xff) when new. pb has it
   mapped read only and writes it through its bio device, so a write through the map faults as

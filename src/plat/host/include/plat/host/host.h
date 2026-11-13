@@ -10,6 +10,9 @@
  *  - The board RAM is emulated by a fixed mapping at BOARD_RAM_BASE, so bpak
  *    load addresses work unmodified.
  *  - Block devices are backed by files.
+ *  - The fuses are a file of their own (--fuses), a block device that the
+ *    test fuse driver reads in plat_init(): readable whatever the disk and
+ *    its partition table are, as a SoC's fuses are (platform.md 2.2).
  *  - With --nor, a file is also mapped read only at BOARD_NOR_BASE: a memory
  *    mapped flash, for partitions that are booted in place.
  *  - The command mode transport is a unix domain socket (socket.c has the
@@ -38,6 +41,7 @@
 struct host_options {
     const char *disk_path; /* Backing file for the main disk */
     const char *nor_path; /* Backing file for the memory mapped flash, or NULL */
+    const char *fuse_path; /* Backing file for the fuses */
     const char *socket_path; /* Command mode socket */
     const char *boot_status_path; /* Written by the board on 'boot' */
     bool force_command_mode; /* Abort boot and enter command mode */
@@ -50,7 +54,9 @@ extern struct host_options host_opts;
 
 /**
  * Create a block device backed by a file. The file is created if it does
- * not exist, and is extended to 'size' bytes if it is smaller.
+ * not exist, and is extended to 'size' bytes if it is smaller. Two devices
+ * at most, each with its own UUID: a second init with a UUID replaces the
+ * first one's file, also when it fails.
  */
 bio_dev_t host_disk_init(const char *path, size_t size, const uuid_t uu, const char *description);
 
