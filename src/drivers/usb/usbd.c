@@ -239,13 +239,18 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
 
 int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
 {
-    hal_ops = ops;
+    hal_ops = NULL;
     hal_one_xfer = false;
 
-    if (!hal_ops->xfer_start || !hal_ops->xfer_complete || !hal_ops->init ||
-        !hal_ops->set_configuration || !hal_ops->set_address) {
+    /* Every operation is mandatory, and none is called that wasn't checked
+     * here (usb.md 4): a driver that leaves one out isn't registered */
+    if (ops == NULL || !ops->init || !ops->stop || !ops->xfer_start || !ops->xfer_complete ||
+        !ops->xfer_cancel || !ops->poll_setup_pkt || !ops->set_configuration || !ops->set_address ||
+        !ops->ep0_xfer_zlp) {
         return -PB_ERR_PARAM;
     }
+
+    hal_ops = ops;
 
     return PB_OK;
 }

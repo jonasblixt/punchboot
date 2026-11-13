@@ -140,6 +140,40 @@ static const char *reply_string(void)
     return str;
 }
 
+/* usb.md 4: every operation is mandatory. A driver that leaves one out
+ * isn't registered, and the stack calls nothing of it: the transport has no
+ * controller (F-287: three were called unchecked) */
+static void test_every_operation_is_mandatory(void **state)
+{
+    typedef void (*op_t)(void);
+
+    union {
+        struct usbd_hal_ops ops;
+        op_t op[sizeof(struct usbd_hal_ops) / sizeof(op_t)];
+    } u;
+
+    (void)state;
+
+    assert_int_equal(sizeof(u.ops), sizeof(u.op));
+
+    for (size_t i = 0; i < ARRAY_SIZE(u.op); i++) {
+        usb_host_reset(NULL);
+        u.ops = *usb_host_hal_ops();
+        u.op[i] = NULL;
+
+        assert_int_equal(usbd_init_hal_ops(&u.ops), -PB_ERR_PARAM);
+        assert_int_equal(cm_transport_init(), -PB_ERR_IO);
+        assert_int_equal(cm_transport_connect(), -PB_ERR_IO);
+        assert_int_equal(cm_transport_read(buf, PACKET), -PB_ERR_IO);
+        assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+        assert_int_equal(cm_transport_disconnect(), -PB_ERR_IO);
+        assert_int_equal(usb_host_state()->init_calls, 0);
+    }
+
+    assert_int_equal(usbd_init_hal_ops(NULL), -PB_ERR_PARAM);
+    assert_int_equal(cm_transport_init(), -PB_ERR_IO);
+}
+
 /* usb.md 2.2: connect is polled and answers "not yet" until the host has
  * configured the device. A bus reset on the way is no error: the host starts
  * over, and so does the device, with address 0 */
@@ -707,6 +741,7 @@ static void test_disconnect(void **state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_every_operation_is_mandatory),
         cmocka_unit_test(test_connect),
         cmocka_unit_test(test_descriptors),
         cmocka_unit_test(test_reply_lengths),
