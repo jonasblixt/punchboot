@@ -338,6 +338,164 @@ static void test_init_without_state_partitions_fails(void **state)
     assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
 }
 
+/* Every function of the module that could read or write, after an init
+ * that failed without the state partitions: an error or an empty answer,
+ * and the disk isn't touched */
+static void assert_safe_without_the_state_partitions(struct fixture *f, const uint8_t *disk_before)
+{
+    uuid_t uu;
+    uint32_t value = 0xffffffff;
+
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_SYS_A), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_SYS_B), -PB_ERR_STATE);
+    uuid_clear(uu);
+    assert_int_equal(boot_policy_ab_ops.activate(uu), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_OTHER), -PB_ERR_STATE);
+
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_STATE);
+    boot_policy_ab_ops.report((unsigned char *)UU_SYS_A, PB_OK);
+    boot_policy_ab_ops.report((unsigned char *)UU_SYS_A, -PB_ERR_BAD_PAYLOAD);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+
+    for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++) {
+        assert_int_equal(boot_ab_state_write_board_reg(i, 0xb0a4d000 + i), -PB_ERR_STATE);
+        /* Nor is the register changed in memory, for a later write */
+        assert_int_equal(boot_ab_state_read_board_reg(i, &value), PB_OK);
+        assert_int_equal(value, 0);
+    }
+
+    /* 'boot status': nothing is enabled, also not what an init before had */
+    memset(uu, 0xff, sizeof(uu));
+    boot_policy_ab_ops.status(uu);
+    assert_true(uuid_is_null(uu));
+
+    assert_int_equal(f->disk->reads, 0);
+    assert_int_equal(f->disk->writes, 0);
+    assert_memory_equal(f->disk->data, disk_before, DISK_BLOCKS * RAMDISK_BLOCK_SIZE);
+}
+
+/*
+ * A/B's functions after an init that failed at one of its early returns
+ * (F-393): no configuration, or a partition the configuration names isn't
+ * in the table. init returned with the module's configuration set and its
+ * two handles not: they were 0, the first block device, or those of an init
+ * before. 'boot activate' then answered OK and wrote the state over LBA 0 of
+ * the disk, and a board register's write did the same.
+ *
+ * Runs second, while the handles are still the zeroes of a module that
+ * never found its state partitions.
+ */
+static void test_failed_init_leaves_the_functions_safe(void **state)
+{
+    static const unsigned char *const missing[] = { UU_SYS_A, UU_SYS_B, UU_PRIMARY, UU_BACKUP };
+    struct fixture *f = *state;
+    size_t disk_size = DISK_BLOCKS * RAMDISK_BLOCK_SIZE;
+    uint8_t *disk_before = malloc(disk_size);
+
+    assert_non_null(disk_before);
+
+    /* A good state, and something in every other block: LBA 0 is where a
+     * disk has its partition table */
+    for (size_t i = 0; i < disk_size; i++)
+        f->disk->data[i] = (uint8_t)(i * 7 + (i >> 9));
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    memcpy(disk_before, f->disk->data, disk_size);
+
+    for (unsigned int i = 0; i < 4; i++) {
+        attach_without(f, missing[i]);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
+        assert_safe_without_the_state_partitions(f, disk_before);
+    }
+
+    /* The same after an init that worked, when the next one fails: no
+     * handle, state or register of the first is left to use */
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(f->disk->writes, 0);
+    f->disk->reads = 0;
+
+    for (unsigned int i = 0; i < 4; i++) {
+        attach_without(f, missing[i]);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
+        assert_safe_without_the_state_partitions(f, disk_before);
+    }
+
+    /* And without a configuration */
+    attach(f, true, true);
+    assert_int_equal(boot_ab_state_init(NULL), -PB_ERR_PARAM);
+    assert_safe_without_the_state_partitions(f, disk_before);
+    assert_int_equal(boot_policy_ab_ops.init(&no_config), -PB_ERR_PARAM);
+    assert_safe_without_the_state_partitions(f, disk_before);
+
+    free(disk_before);
+}
+
+/*
+ * The state partitions are there and the state couldn't be read (F-173):
+ * init failed, and the host repairs the state with 'boot activate'
+ * (board.md 2.1). Until it has, the state isn't known: no candidate is
+ * handed out from what memory holds, and nothing of it is written over the
+ * copies on the disk, which may be good (F-393).
+ */
+static void test_failed_state_read_is_repaired_by_activate(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+    uint32_t value = 0;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_ab_state_write_board_reg(1, 0xb0a4d001), PB_OK);
+    f->disk->writes = 0;
+
+    attach(f, true, true);
+    f->disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+
+    /* No boot, with and without speculative mode, which would enable A and
+     * write that; no register's write; a UUID that is no slot's is refused
+     * as ever */
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(boot_ab_state_write_board_reg(0, 0xb0a4d000), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_OTHER),
+                     -PB_ERR_PART_NOT_BOOTABLE);
+    boot_policy_ab_ops.status(uu);
+    assert_true(uuid_is_null(uu));
+    assert_int_equal(f->disk->writes, 0);
+
+    /* A repair that can't be written repairs nothing */
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_SYS_A), -PB_ERR_IO);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_STATE);
+    assert_int_equal(boot_ab_state_write_board_reg(0, 0xb0a4d000), -PB_ERR_STATE);
+    f->disk->fail_writes_after = -1;
+    assert_int_equal(f->disk->writes, 0);
+
+    /* 'boot activate A': a new state in both copies, A enabled and
+     * verified and the rest the defaults. From here it is the state */
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_SYS_A), PB_OK);
+    assert_int_equal(f->disk->writes, 2);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    boot_policy_ab_ops.status(uu);
+    assert_memory_equal(uu, UU_SYS_A, 16);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(boot_ab_state_write_board_reg(0, 0xb0a4d000), PB_OK);
+    assert_int_equal(boot_ab_state_read_board_reg(0, &value), PB_OK);
+    assert_int_equal(value, 0xb0a4d000);
+
+    /* The null UUID repairs it too: a state with nothing enabled */
+    attach(f, true, true);
+    f->disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    uuid_clear(uu);
+    assert_int_equal(boot_policy_ab_ops.activate(uu), PB_OK);
+    assert_disk_state(f, 0, 0, 0, 0);
+    assert_int_equal(boot_ab_state_write_board_reg(0, 1), PB_OK);
+}
+
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
 static void test_init_blank_installs_defaults(void **state)
 {
@@ -2244,8 +2402,10 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         AB_TEST(test_not_initialized),
+        AB_TEST(test_failed_init_leaves_the_functions_safe),
         AB_TEST(test_init_requires_system_partitions),
         AB_TEST(test_init_without_state_partitions_fails),
+        AB_TEST(test_failed_state_read_is_repaired_by_activate),
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
         AB_TEST(test_init_blank_installs_defaults),
 #endif

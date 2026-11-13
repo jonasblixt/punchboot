@@ -32,6 +32,13 @@ struct boot_ab_state_config {
 /**
  * Initialize the module
  *
+ * After an init that failed every function of the module is safe to call:
+ * without the state partitions nothing is read or written and the functions
+ * that need the state return -PB_ERR_STATE. When the state partitions are
+ * there and the state couldn't be read, boot_ab_state_set_boot_partition()
+ * ('boot activate') writes a new one, and until it has, no candidate is
+ * handed out and no board register is written (-PB_ERR_STATE).
+ *
  * @param[in] cfg Module configuration
  *
  * @return PB_OK on success

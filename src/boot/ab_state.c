@@ -24,6 +24,21 @@ static const struct boot_ab_state_config *cfg;
 static unsigned int handed_out;
 static const unsigned char *first_slot;
 static enum boot_policy_mode mode;
+/*
+ * How far init got (F-393): after one that failed, every function is safe to
+ * call.
+ *
+ * parts_found: the state partitions are in the table and the two handles
+ * are theirs. Without it nothing is read or written.
+ *
+ * state_known: the state in memory is the one that was read, or the
+ * defaults for a state that was read and is bad. When a copy couldn't be
+ * read and no good one was found it isn't: nothing boots from the state in
+ * memory and nothing of it is written over the copy on the disk, but by
+ * 'boot activate', which is the host's repair (board.md 2.1).
+ */
+static bool parts_found;
+static bool state_known;
 
 /* The CRC is over the state with its crc field zero. The state is left as
  * it was read */
@@ -75,7 +90,7 @@ static int pb_boot_state_commit(void)
 {
     int rc;
 
-    if (cfg == NULL)
+    if (cfg == NULL || !parts_found)
         return -PB_ERR_STATE;
 
     boot_state.crc = 0;
@@ -110,6 +125,12 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     handed_out = 0;
     first_slot = NULL;
     mode = BOOT_POLICY_MODE_NORMAL;
+
+    /* Until this init has them: no handle and no state of an init before
+     * it, or of none. In memory nothing is enabled */
+    parts_found = false;
+    state_known = false;
+    pb_boot_state_defaults(&boot_state);
 
     if (cfg == NULL)
         return -PB_ERR_PARAM;
@@ -147,6 +168,8 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     if (backup_part < 0)
         return backup_part;
 
+    parts_found = true;
+
     /* A copy that can't be read isn't a corrupt one, and nothing of a failed
      * read is used (bio.md 3.1) */
     rc = bio_read(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
@@ -174,11 +197,18 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
 
     if (!primary_state_ok && !backup_state_ok && read_rc != PB_OK) {
         /* The copy that wasn't read may be a good one: nothing is written
-         * over it. In memory nothing is enabled */
+         * over it. In memory nothing is enabled, and the state isn't known */
         LOG_ERR("No valid state found, and a copy can't be read");
         pb_boot_state_defaults(&boot_state);
-        rc = read_rc;
-    } else if (!primary_state_ok && !backup_state_ok) {
+        return read_rc;
+    }
+
+    /* From here the state in memory is a state that was read, or the
+     * defaults for one that was read and is bad, also when it can't be
+     * written */
+    state_known = true;
+
+    if (!primary_state_ok && !backup_state_ok) {
         LOG_ERR("No valid state found, installing default");
         pb_boot_state_defaults(&boot_state);
         rc = pb_boot_state_commit();
@@ -396,7 +426,9 @@ static int policy_ab_next(uuid_t part_uu)
     enum boot_policy_mode how = BOOT_POLICY_MODE_NORMAL;
     int rc;
 
-    if (cfg == NULL)
+    /* Not set up, or a state that couldn't be read: no candidate from what
+     * memory holds, and no write of it */
+    if (cfg == NULL || !state_known)
         return -PB_ERR_STATE;
 
     switch (handed_out) {
@@ -447,7 +479,10 @@ static enum boot_policy_mode policy_ab_mode(void)
 
 int boot_ab_state_set_boot_partition(uuid_t part_uu)
 {
-    if (cfg == NULL)
+    int rc;
+
+    /* Without the state partitions there is nothing to write to */
+    if (cfg == NULL || !parts_found)
         return -PB_ERR_STATE;
 
     if (uuid_compare(part_uu, cfg->sys_a_uu) == 0) {
@@ -467,7 +502,14 @@ int boot_ab_state_set_boot_partition(uuid_t part_uu)
         return -PB_ERR_PART_NOT_BOOTABLE;
     }
 
-    return pb_boot_state_commit();
+    rc = pb_boot_state_commit();
+
+    /* The host's repair of a state that couldn't be read (board.md 2.1):
+     * what was written is the state from here */
+    if (rc == PB_OK)
+        state_known = true;
+
+    return rc;
 }
 
 void boot_ab_state_get_boot_partition(uuid_t part_uu)
@@ -515,6 +557,10 @@ int boot_ab_state_write_board_reg(unsigned int index, uint32_t value)
 {
     if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
         return -PB_ERR_PARAM;
+    /* Not set up, or a state that couldn't be read: the register isn't
+     * written with the rest of what memory holds over the copy on the disk */
+    if (cfg == NULL || !state_known)
+        return -PB_ERR_STATE;
     boot_state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] = value;
     return pb_boot_state_commit();
 }
