@@ -14,6 +14,8 @@
 #include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/tzc/tzc380.h>
+#include <drivers/usb/dwc3_udc.h>
+#include <drivers/usb/imx8m_phy.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <inttypes.h>
 #include <pb/console.h>
@@ -327,12 +329,26 @@ int plat_init(void)
     return PB_OK;
 }
 
-#ifdef CONFIG_CM
-/* Command mode's USB (platform.md 3.10). The boards' cm_init hooks still set
- * it up (F-267) */
+#ifdef CONFIG_IMX8M_CM_USB1
+/* Command mode's USB (platform.md 3.10): USB1, a DWC3 with the SoC's PHY.
+ * Its clocks and power differ per SoC */
 int plat_cm_init(void)
 {
-    return PB_OK;
+    int rc;
+
+    rc = imx8m_soc_usb1_power_up();
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = imx8m_usb_phy_init(IMX8M_USB1_PHY_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("USB PHY init failed (%i)", rc);
+        return rc;
+    }
+
+    return imx_dwc3_udc_init(IMX8M_USB1_BASE);
 }
 #endif
 

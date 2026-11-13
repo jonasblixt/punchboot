@@ -13,8 +13,6 @@
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_uart.h>
-#include <drivers/usb/dwc3_udc.h>
-#include <drivers/usb/imx8m_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <pb/board.h>
 #include <pb/cm.h>
@@ -151,27 +149,6 @@ static int board_hw_init(void)
     return usdhc_emmc_setup();
 }
 
-static int board_cm_init(void)
-{
-    int rc;
-
-    /* Enable and ungate USB clocks */
-    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USB_BUS_CLK_ROOT), CLK_ROOT_ON);
-    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USB_CORE_REF_CLK_ROOT), CLK_ROOT_ON);
-    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USB_PHY_REF_CLK_ROOT), CLK_ROOT_ON);
-    mmio_write_32(CCM_CCGR_SET(CCGR_USB_CTRL1), CCGR_CLK_ON_MASK);
-    mmio_write_32(CCM_CCGR_SET(CCGR_USB_PHY1), CCGR_CLK_ON_MASK);
-
-    rc = imx8m_usb_phy_init(IMX8M_USB1_PHY_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("imx8m usb phy failed (%i)", rc);
-        return rc;
-    }
-
-    return imx_dwc3_udc_init(IMX8M_USB1_BASE);
-}
-
 /* No revocation and no SLC */
 static const struct rot_config rot = { 0 };
 static const struct slc_config slc = { 0 };
@@ -277,7 +254,6 @@ const struct board board = {
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .image_regions = image_regions,
-    .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,
     .command = board_command,
 };

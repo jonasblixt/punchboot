@@ -22,10 +22,13 @@ import sys
 
 USB_STACK = ["DRIVER_USB_DEVICE", "DRIVER_USB_PB_CLS"]
 CHIPIDEA = [*USB_STACK, "DRIVER_IMX_USB2_PHY", "DRIVER_IMX_CI_UDC"]
+DWC3 = [*USB_STACK, "DRIVER_IMX8M_PHY", "DRIVER_IMX_DWC3_UDC"]
 
 # The board, its port, and the drivers plat_cm_init() calls for that port
 BOARDS = [
     ("jiffy", "IMX6UL_CM_USB_OTG1", CHIPIDEA),
+    ("imx8mevk", "IMX8M_CM_USB1", DWC3),
+    ("imx8mpevk", "IMX8M_CM_USB1", DWC3),
 ]
 
 

@@ -75,11 +75,23 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   drivers its set up calls. What `plat_cm_init()` does for each, in this order, as the boards'
   `cm_init` hooks did before it:
 
-| Option               | Port     | Clocks and power         | PHY                      | Controller   |
-| -------------------- | -------- | ------------------------ | ------------------------ | ------------ |
-| `IMX6UL_CM_USB_OTG1` | USB OTG1 | PLL_USB1's `EN_USB_CLKS` | USBPHY1 (`imx_usb2_phy`) | `imx_ci_udc` |
+| Option               | Port     | Clocks and power                        | PHY              | Controller   |
+| -------------------- | -------- | --------------------------------------- | ---------------- | ------------ |
+| `IMX6UL_CM_USB_OTG1` | USB OTG1 | PLL_USB1's `EN_USB_CLKS`                | USBPHY1          | `imx_ci_udc` |
+|                      |          |                                         | (`imx_usb2_phy`) |              |
+| `IMX8M_CM_USB1`      | USB1     | 8MQ: the USB bus, core reference and    | USB1's           | `dwc3_udc`   |
+|                      |          | PHY reference clock roots, the gates of | (`imx8m_phy`)    |              |
+|                      |          | USB_CTRL1 and USB_PHY1                  |                  |              |
+|                      |          | 8MP: the HSIO AXI and the two USB       |                  |              |
+|                      |          | reference clock roots, the gates of     |                  |              |
+|                      |          | HSIO, USB and USB_PHY; HSIOMIX and the  |                  |              |
+|                      |          | USB1 PHY's power domain (GPC), the NoC  |                  |              |
+|                      |          | handshake, the BLK_CTRL's USB clock,    |                  |              |
+|                      |          | the PHY's 24 MHz reference (F-115)      |                  |              |
 
-An option exists for the port a board in the tree uses. The 6UL's USB OTG2 has none.
+The 8M's two SoCs differ in the clocks and the power only: `imx8m_soc_usb1_power_up()` in
+`plat_imx8mq.c` and `plat_imx8mp.c`. An option exists for the port a board in the tree uses.
+Without one: the 6UL's USB OTG2, the 8M's USB2.
 
 ## 4. Security
 
@@ -224,7 +236,7 @@ Where each port is (2026-11-11).
 | `plat_init()` errors only for        | yes          | yes               | yes        | partly    | F-235         |
 | command mode                         |              |                   |            |           |               |
 | `plat_get_status()`                  | no           | no                | no         | no        | F-248         |
-| `plat_cm_init()`                     | one port     | no                | no         | no        | F-267         |
+| `plat_cm_init()`                     | one port     | one port          | no         | no        | F-267         |
 | The board's regions in the map (5.2) | no           | no                | no         | n/a       | F-269, F-158  |
 | SoC memory for image data,           | n/a          | partly            | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |

@@ -10,6 +10,7 @@ CONFIG_SOC_FAMILY_IMX=y
 # CONFIG_PLAT_IMX8X is not set
 # CONFIG_PLAT_IMX8MQ is not set
 CONFIG_PLAT_IMX8MP=y
+CONFIG_IMX8M_CM_USB1=y
 
 #
 # imx8m configuration
