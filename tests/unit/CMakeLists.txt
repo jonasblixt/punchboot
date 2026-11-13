@@ -733,3 +733,9 @@ pb_unit_test(test_imx_hab_fuses SOURCES
 pb_unit_test(test_imx_ocotp SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_ocotp.c
 )
+
+# pb's own snprintf(), as pb_snprintf(): the host's C library has one (F-089)
+pb_unit_test(test_snprintf SOURCES
+    ${PROJECT_SOURCE_DIR}/src/lib/libc/snprintf.c
+)
+target_compile_definitions(test_snprintf PRIVATE snprintf=pb_snprintf)

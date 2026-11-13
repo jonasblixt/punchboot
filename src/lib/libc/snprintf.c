@@ -44,6 +44,7 @@ static void unsigned_dec_print(char **s, size_t n, size_t *chars_printed, unsign
 }
 
 static int unsigned_num_print(char **s,
+                              size_t n,
                               unsigned long long int unum,
                               size_t *chars_printed,
                               unsigned int radix,
@@ -67,8 +68,10 @@ static int unsigned_num_print(char **s,
 
     if (padn > 0) {
         while (i < padn) {
-            *(*s) = padc;
-            (*s)++;
+            if (*chars_printed < n) {
+                *(*s) = padc;
+                (*s)++;
+            }
             (*chars_printed)++;
             count++;
             padn--;
@@ -76,8 +79,10 @@ static int unsigned_num_print(char **s,
     }
 
     while (--i >= 0) {
-        *(*s) = num_buf[i];
-        (*s)++;
+        if (*chars_printed < n) {
+            *(*s) = num_buf[i];
+            (*s)++;
+        }
         (*chars_printed)++;
         count++;
     }
@@ -156,7 +161,7 @@ snprintf_loop:
                 break;
             case 'x':
                 unum = va_arg(args, unsigned int);
-                unsigned_num_print(&s, unum, &chars_printed, 16, padc, padn);
+                unsigned_num_print(&s, n, unum, &chars_printed, 16, padc, padn);
                 break;
             case '0':
                 padc = '0';
