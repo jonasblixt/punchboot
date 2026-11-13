@@ -147,7 +147,7 @@ command mode started, the transport is gone by then and pb resets (`board.md` 5.
 - **Every wait is bounded.** A loop that waits for the device has a timeout and returns
   `-PB_ERR_TIMEOUT`. The bound is the driver's constant, with its source next to it: the IP
   block's manual, the medium's standard, or a measurement. **Not yet in the code (F-102,
-  F-136, F-198, F-200, F-205, F-281)**: section 8 says where each driver stands.
+  F-136, F-200, F-205, F-281)**: section 8 says where each driver stands.
 - **No driver kicks the watchdog**, and neither do `pb_delay_*()` and `pb_timeout_*()`
   (`platform.md` 3.3): a driver that polls for ever must not keep the board alive. The core
   kicks between a driver's calls, once per chunk.
@@ -385,7 +385,7 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 | MMC, SD and the uSDHC   | yes (`test_mmc_emmc`) | partly: aligned, in     | n/a: synchronous    |               |
 |                         |                       | `.no_init`, next to the |                     |               |
 |                         |                       | driver's state          |                     |               |
-| FlexSPI                 | no                    | n/a: no DMA             | n/a: synchronous    | F-198         |
+| FlexSPI                 | yes                   | n/a: no DMA             | n/a: synchronous    |               |
 | CAAM                    | yes: 1 s              | no                      | none, and its rings | F-081, F-286  |
 |                         |                       |                         | name pb's memory    |               |
 | Mbed TLS                | n/a                   | n/a                     | n/a                 |               |

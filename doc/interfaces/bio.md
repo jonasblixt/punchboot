@@ -404,8 +404,8 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | Any length in one call       | yes (chunks)       | no: below 64 KiB  | yes                 | F-198   |
 | Addresses above 4 GiB        | yes (`test_imx_`   | n/a (no DMA)      | n/a                 |         |
 | refused                      | `usdhc`)           |                   |                     |         |
-| Every wait bounded           | yes (`test_mmc_`   | no                | n/a                 | F-198   |
-|                              | `emmc`)            |                   |                     |         |
+| Every wait bounded           | yes (`test_mmc_`   | yes (`test_imx_`  | n/a                 |         |
+|                              | `emmc`)            | `flexspi`)        |                     |         |
 | The codes of `drivers.md` 3  | yes (`test_mmc_`   | no                | yes                 | F-284   |
 |                              | `emmc`, `test_`    |                   |                     |         |
 |                              | `imx_usdhc`)       |                   |                     |         |

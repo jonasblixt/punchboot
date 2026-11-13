@@ -21,11 +21,53 @@
 
 static const struct flexspi_core_config *cfg;
 
+/*
+ * The bound on a wait for the controller (drivers.md 3): its reset, a
+ * sequence's end, a FIFO's watermark. Each is one sequence of at most 64 KiB
+ * or one watermark of 8 bytes, microseconds at the serial clocks a board
+ * sets; the controller's own sequence timeout (MCR1.SEQWAIT, the largest
+ * value) ends a sequence that hangs before this. A bound, not a measurement.
+ * The flash's own times are the board's (struct flexspi_nor_config).
+ */
+#define FLEXSPI_TIMEOUT_us (1000 * 1000)
+
 static inline bool imx_flexspi_getbusidle(void)
 {
     static const uint32_t mask = FLEXSPI_STS0_SEQIDLE | FLEXSPI_STS0_ARBIDLE;
     uint32_t val = mmio_read_32(cfg->base + FLEXSPI_STS0);
     return (val & mask) == mask;
+}
+
+static int imx_flexspi_wait_idle(void)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, FLEXSPI_TIMEOUT_us);
+
+    while (!imx_flexspi_getbusidle()) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Timeout, the controller is busy");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
+}
+
+static int imx_flexspi_wait_reset(void)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, FLEXSPI_TIMEOUT_us);
+
+    while (mmio_read_32(cfg->base + FLEXSPI_MCR0) & FLEXSPI_MCR0_SWRESET) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Timeout, reset");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
 }
 
 static int imx_flexspi_checkandclearerror(uint32_t status)
@@ -65,6 +107,7 @@ static int imx_flexspi_writeblocking(uint8_t *buffer, size_t size)
     uint32_t status;
     int rc = 0;
     uint32_t i = 0;
+    struct pb_timeout to;
 
     txWatermark = mmio_read_32(cfg->base + FLEXSPI_IPTXFCR);
     txWatermark &= FLEXSPI_IPTXFCR_TXWMRK_MASK;
@@ -74,9 +117,14 @@ static int imx_flexspi_writeblocking(uint8_t *buffer, size_t size)
     /* Send data buffer */
     while (size) {
         /* Wait until there is room in the fifo. This also checks for errors. */
-        do {
-            status = mmio_read_32(cfg->base + FLEXSPI_INTR);
-        } while (!(status & FLEXSPI_INT_IPTXWEEN));
+        pb_timeout_init_us(&to, FLEXSPI_TIMEOUT_us);
+
+        while (!((status = mmio_read_32(cfg->base + FLEXSPI_INTR)) & FLEXSPI_INT_IPTXWEEN)) {
+            if (pb_timeout_has_expired(&to)) {
+                LOG_ERR("Timeout, TX FIFO");
+                return -PB_ERR_TIMEOUT;
+            }
+        }
 
         rc = imx_flexspi_checkandclearerror(status);
 
@@ -114,6 +162,7 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
     uint32_t status;
     int rc = 0;
     uint32_t i = 0;
+    struct pb_timeout to;
 
     rxWatermark = mmio_read_32(cfg->base + FLEXSPI_IPRXFCR);
     rxWatermark &= FLEXSPI_IPRXFCR_RXWMRK_MASK;
@@ -122,6 +171,8 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
 
     /* Send data buffer */
     while (size) {
+        pb_timeout_init_us(&to, FLEXSPI_TIMEOUT_us);
+
         if (size >= 8 * rxWatermark) {
             /* Wait until there is room in the fifo. This also checks for errors. */
             while (!((status = mmio_read_32(cfg->base + FLEXSPI_INTR)) & FLEXSPI_INT_IPRXWAEN)) {
@@ -129,6 +180,11 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
 
                 if (rc != 0)
                     return rc;
+
+                if (pb_timeout_has_expired(&to)) {
+                    LOG_ERR("Timeout, RX FIFO");
+                    return -PB_ERR_TIMEOUT;
+                }
             }
         } else {
             /* Wait fill level. This also checks for errors. */
@@ -140,6 +196,11 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
 
                 if (rc != 0)
                     return rc;
+
+                if (pb_timeout_has_expired(&to)) {
+                    LOG_ERR("Timeout, RX FIFO");
+                    return -PB_ERR_TIMEOUT;
+                }
             }
         }
 
@@ -182,6 +243,7 @@ static int imx_flexspi_xfer(enum flexspi_port port,
     uintptr_t port_off = 0;
     uint32_t configValue = 0;
     int rc = 0;
+    int rc_idle;
 
     /* Clear sequence pointer before sending data to external devices. */
     switch (port) {
@@ -240,8 +302,13 @@ static int imx_flexspi_xfer(enum flexspi_port port,
     }
 
     /* Wait for bus idle. */
-    while (!imx_flexspi_getbusidle())
-        ;
+    rc_idle = imx_flexspi_wait_idle();
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (rc_idle != PB_OK)
+        return rc_idle;
 
     if (command_type == FLEXSPI_COMMAND) {
         rc = imx_flexspi_checkandclearerror(mmio_read_32(cfg->base + FLEXSPI_INTR));
@@ -250,11 +317,17 @@ static int imx_flexspi_xfer(enum flexspi_port port,
     return rc;
 }
 
-// TODO: Timeout?
-static int imx_flexspi_busy_wait(struct flexspi_nor_config *cfg_nor, int polling_time_us)
+/* Polls the flash's status until it isn't busy, for timeout_ms at most: the
+ * board's time for the operation (struct flexspi_nor_config) */
+static int imx_flexspi_busy_wait(struct flexspi_nor_config *cfg_nor,
+                                 int polling_time_us,
+                                 uint32_t timeout_ms)
 {
     int rc;
     uint8_t sts[4];
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, timeout_ms * 1000);
 
     do {
         rc = imx_flexspi_xfer(
@@ -262,8 +335,14 @@ static int imx_flexspi_busy_wait(struct flexspi_nor_config *cfg_nor, int polling
         if (rc != 0)
             return rc;
 
-        if (sts[0] & 1)
+        if (sts[0] & 1) {
+            if (pb_timeout_has_expired(&to)) {
+                LOG_ERR("Timeout, the flash is busy");
+                return -PB_ERR_TIMEOUT;
+            }
+
             pb_delay_us(polling_time_us);
+        }
 
     } while (sts[0] & 1);
 
@@ -301,7 +380,8 @@ imx_flexspi_pp(struct flexspi_nor_config *cfg_nor, uint32_t address, uint8_t *da
         return rc;
     }
 
-    return imx_flexspi_busy_wait(cfg_nor, cfg_nor->time_page_program_ms);
+    return imx_flexspi_busy_wait(
+        cfg_nor, cfg_nor->time_page_program_ms, cfg_nor->time_page_program_ms);
 }
 
 static int imx_flexspi_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
@@ -310,7 +390,8 @@ static int imx_flexspi_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     uint32_t address = lba * bio_block_size(dev);
     struct flexspi_nor_config *cfg_nor = (struct flexspi_nor_config *)bio_get_private(dev);
 
-    imx_flexspi_busy_wait(cfg_nor, 100);
+    /* Bounded by the longest operation, an erase of the largest block */
+    imx_flexspi_busy_wait(cfg_nor, 100, cfg_nor->erase_cmds[0].erase_time_ms);
 
     return imx_flexspi_xfer(
         cfg_nor->port, cfg_nor->lut_id_read, address, FLEXSPI_READ, buffer, length);
@@ -399,7 +480,7 @@ static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
         if (rc != 0)
             return rc;
 
-        imx_flexspi_busy_wait(cfg_nor, erase_time_ms);
+        imx_flexspi_busy_wait(cfg_nor, erase_time_ms, erase_time_ms);
 
         bytes_erased += erase_block_sz;
         bytes_to_erase -= (erase_block_sz > bytes_to_erase) ? bytes_to_erase : erase_block_sz;
@@ -408,11 +489,15 @@ static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
     return imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_disable, 0, FLEXSPI_COMMAND, NULL, 0);
 }
 
-static void imx_flexspi_config_lut(void)
+static int imx_flexspi_config_lut(void)
 {
+    int rc;
+
     /* Wait for bus idle before change flash configuration. */
-    while (!imx_flexspi_getbusidle())
-        ;
+    rc = imx_flexspi_wait_idle();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Unlock LUT for update. */
     mmio_write_32(cfg->base + FLEXSPI_LUTKEY, FLEXSPI_LUT_KEY_VAL);
@@ -425,13 +510,18 @@ static void imx_flexspi_config_lut(void)
     /* Lock LUT. */
     mmio_write_32(cfg->base + FLEXSPI_LUTKEY, FLEXSPI_LUT_KEY_VAL);
     mmio_write_32(cfg->base + FLEXSPI_LUTCR, FLEXSPI_LUTCR_LOCK);
+    return PB_OK;
 }
 
 static int imx_flexspi_mem_config(const struct flexspi_nor_config *nor_config)
 {
+    int rc;
+
     /* Wait for bus idle before change flash configuration. */
-    while (!imx_flexspi_getbusidle())
-        ;
+    rc = imx_flexspi_wait_idle();
+
+    if (rc != PB_OK)
+        return rc;
 
     mmio_write_32(cfg->base + FLEXSPI_FLSHCR0(nor_config->port), nor_config->capacity / 1024);
 
@@ -517,8 +607,10 @@ int imx_flexspi_init(const struct flexspi_core_config *config)
     mmio_setbits_32(cfg->base + FLEXSPI_MCR0, FLEXSPI_MCR0_SWRESET);
 
     /* Wait for reset */
-    while ((mmio_read_32(cfg->base + FLEXSPI_MCR0) & FLEXSPI_MCR0_SWRESET))
-        ;
+    rc = imx_flexspi_wait_reset();
+
+    if (rc != PB_OK)
+        return rc;
 
     /*
      * Configure flexspi block. There are a bunch of hard coded things here
@@ -584,14 +676,19 @@ int imx_flexspi_init(const struct flexspi_core_config *config)
         cfg->base + FLEXSPI_IPTXFCR, FLEXSPI_IPTXFCR_TXWMRK_MASK, FLEXSPI_IPTXFCR_TXWMRK(8));
 
     /* Update LUT */
-    imx_flexspi_config_lut();
+    rc = imx_flexspi_config_lut();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Reset again, a SW Reset does not reset any registers */
     mmio_setbits_32(cfg->base + FLEXSPI_MCR0, FLEXSPI_MCR0_SWRESET);
 
     /* Wait for reset */
-    while ((mmio_read_32(cfg->base + FLEXSPI_MCR0) & FLEXSPI_MCR0_SWRESET))
-        ;
+    rc = imx_flexspi_wait_reset();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Probe memories */
     for (unsigned int i = 0; i < cfg->mem_length; i++) {

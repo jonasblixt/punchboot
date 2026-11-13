@@ -726,6 +726,17 @@ target_compile_options(test_imx_usdhc PRIVATE -fno-pie)
 target_compile_definitions(test_imx_usdhc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 target_link_options(test_imx_usdhc PRIVATE -no-pie)
 
+# The FlexSPI NOR driver and bio against a NOR flash modelled behind the
+# controller's registers (see the test)
+pb_unit_test(test_imx_flexspi SOURCES
+    fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/memc/imx_flexspi.c
+)
+target_include_directories(test_imx_flexspi BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
 # The MMC drivers with no log level compiled in (LOGLEVEL 0, no RAM log): no
 # variable is left that only a log line uses (F-397), with -Werror
 foreach(src mmc_core mmc_emmc mmc_sd imx_usdhc)
