@@ -504,8 +504,8 @@ The boot path is where boot time goes: the hooks start what is slow and don't wa
 
 ### 5.1 The serial download stop (the core's)
 
-**Not yet in the code (F-251)**: only the 6UL's and the 8X's `plat_get_boot_source()` report a
-serial download, so the core's stop triggers there and nowhere else.
+**Not yet in the code (F-251)**: the 8M's `plat_get_boot_source()` reports no serial download,
+and the RT's only the one its boot mode pins select: the stop doesn't trigger for the others.
 
 With `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default y): when `plat_get_boot_source()` reports `USB` or
 `UART`, the ROM's serial downloader loaded pb, and command mode didn't start the boot, `boot()`

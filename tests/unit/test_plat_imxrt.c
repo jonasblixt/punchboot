@@ -450,6 +450,46 @@ static void test_plat_reset_before_early_init(void **state)
     assert_int_equal(fake_reg_log[0].value, WDOG_WCR_SRE | WDOG_WCR_WDE);
 }
 
+/* platform.md 3.9 (F-251): the ROM's serial downloader loaded pb when the
+ * boot mode says so, SRC_SBMR2's BMOD 0b01. An EVK set to internal boot
+ * reads 0b10 there, which is why "BMOD isn't 0" would have stopped every
+ * boot on the bench (F-264): it and a boot from the fuses are a boot from
+ * the flash, whose partition isn't named. Nothing is written, and the
+ * flash's window isn't read */
+static void test_boot_source(void **state)
+{
+    static const struct {
+        uint32_t sbmr2;
+        enum pb_boot_source_kind kind;
+    } modes[] = {
+        { 0x0u << 24, PB_BOOT_SOURCE_UNKNOWN }, /* The fuses */
+        { 0x1u << 24, PB_BOOT_SOURCE_USB }, /* The serial downloader */
+        { 0x2u << 24, PB_BOOT_SOURCE_UNKNOWN }, /* Internal boot */
+        { 0x3u << 24, PB_BOOT_SOURCE_UNKNOWN }, /* Reserved */
+        /* The register's other bits are not the mode */
+        { (0x2u << 24) | 0x00ffffff, PB_BOOT_SOURCE_UNKNOWN },
+        { (0x1u << 24) | 0xfc000019, PB_BOOT_SOURCE_USB },
+        { 0xfcffffff, PB_BOOT_SOURCE_UNKNOWN },
+    };
+    struct pb_boot_source src;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    for (size_t i = 0; i < ARRAY_SIZE(modes); i++) {
+        size_t writes = fake_reg_log_len;
+
+        memset(&src, 0xff, sizeof(src));
+        fake_regs_set(IMXRT_SRC_SBMR2, modes[i].sbmr2);
+        assert_int_equal(plat_get_boot_source(&src), PB_OK);
+        assert_int_equal(src.kind, modes[i].kind);
+        assert_int_equal(fake_reg_log_len, writes);
+    }
+
+    assert_int_equal(fake_regs_reads(IMXRT_FLEXSPI_NOR_IVT), 0);
+}
+
 /* platform.md 3.6, 3.7: the platform's UUID namespace is declared in
  * pb/plat.h, and it never changes: the device's UUID and its tokens are made
  * from it. 48f8c6cb-8d07-4066-b921-0c1d8fd05471 */
@@ -469,6 +509,7 @@ int main(void)
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_rom_log_missing, setup),
+        cmocka_unit_test_setup(test_boot_source, setup),
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),

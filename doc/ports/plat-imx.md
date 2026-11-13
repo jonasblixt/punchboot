@@ -96,7 +96,10 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   configuration. A serial download is USB when a host gave the ROM's USB device an address, which
   `plat_early_init()` saves, and else UART: the serial downloader listens on both. The 8X, from
   the SCFW's boot type (`sc_misc_get_boot_type()`), asked at the call: serial is reported as USB,
-  the other types as unknown.
+  the other types as unknown. The RT, from SRC_SBMR2's BMOD: 0b01, the serial downloader, is
+  reported as USB (its UART isn't told apart), the fuses (0b00) and internal boot (0b10, the EVK
+  on the bench) as unknown. Not read: a blank IVT at the NOR's start, the sign of a ROM that fell
+  back to the serial downloader by itself (F-251).
 - **Tick**: GPT1 on the 6UL, 8M and RT, GPT0 through the SCFW on the 8X. The 6UL's and the RT's
   run from the 24 MHz crystal (F-084, F-238).
 - **Command mode's USB** (`plat_cm_init()`, `platform.md` 3.10). The port is a Kconfig choice,
@@ -268,7 +271,7 @@ Where each port is (2026-11-11).
 | `plat_wdog_kick()` before arming     | yes          | yes               | yes        | yes       | F-234         |
 | `plat_get_boot_reason()`             | yes          | yes               | yes        | yes       | F-236         |
 | The unique id fails on a failed read | yes          | yes               | unchecked  | yes       | F-200         |
-| Serial download in                   | yes          | no                | yes        | no        | F-251         |
+| Serial download in                   | yes          | no                | yes        | pins only | F-251         |
 | `plat_get_boot_source()`             |              |                   |            |           |               |
 | `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
 | command mode                         |              |                   |            |           |               |

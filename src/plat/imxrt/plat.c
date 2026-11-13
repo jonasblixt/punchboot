@@ -270,10 +270,34 @@ uint32_t plat_get_us_tick(void)
     return imx_gpt_get_tick();
 }
 
+/* SRC_SBMR2's BMOD, the boot mode the ROM used: BOOT_MODE[1:0] as the pins
+ * or the fuses gave it. 0b01 is the serial downloader; an EVK set to
+ * internal boot reads 0b10, and 0b00 is a boot from the fuses */
+#define SBMR2_BMOD_SHIFT           24
+#define SBMR2_BMOD_SERIAL_DOWNLOAD 1
+
+/*
+ * Where pb was loaded from (platform.md 3.9). The boot mode says when the
+ * ROM was told to start its serial downloader, which listens on USB and on
+ * a UART: nothing here says which of them the image came over, so it is
+ * reported as USB. The core's stop treats the two alike (board.md 5.1).
+ *
+ * Not told: a ROM that fell back to the serial downloader by itself, with
+ * the boot mode on internal boot or the fuses and no image in the flash.
+ * The sign of that is a blank IVT at the flash's start
+ * (IMXRT_FLEXSPI_NOR_IVT), and reading it means an AHB read of the FlexSPI's
+ * window on every boot, which no board has run with pb's set up of the
+ * controller (F-251). Then, and for a boot from the flash, whose partition
+ * isn't named: unknown.
+ */
 int plat_get_boot_source(struct pb_boot_source *src)
 {
-    (void)src;
-    return -PB_ERR_NOT_SUPPORTED;
+    uint32_t bmod = (mmio_read_32(IMXRT_SRC_SBMR2) & IMXRT_SRC_SBMR2_BMOD_MASK) >> SBMR2_BMOD_SHIFT;
+
+    memset(src, 0, sizeof(*src));
+    src->kind = (bmod == SBMR2_BMOD_SERIAL_DOWNLOAD) ? PB_BOOT_SOURCE_USB : PB_BOOT_SOURCE_UNKNOWN;
+
+    return PB_OK;
 }
 
 int plat_lockdown(void)
