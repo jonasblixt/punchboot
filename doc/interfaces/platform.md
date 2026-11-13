@@ -348,8 +348,8 @@ device.
 Why mandatory: the core's serial download stop asks this function, and a board doesn't check
 for a serial download itself (`board.md` 5.1). With -PB_ERR_NOT_SUPPORTED the stop never
 triggers, and nothing shows it. What is mandatory is reporting USB and UART; naming the
-partition and the debugger stays optional (unknown). **Not yet in the code (F-251)**: the 8M
-reports none, and the RT only the one its boot mode pins select.
+partition and the debugger stays optional (unknown). **Not yet in the code (F-251)**: the RT
+reports only the serial download its boot mode pins select.
 
 ### 3.10 Function : plat_cm_init() [mandatory when CONFIG_CM]
 

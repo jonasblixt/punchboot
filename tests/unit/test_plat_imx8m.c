@@ -49,6 +49,8 @@ static struct {
     size_t log_time_started_at;
     /* The ROM's logs and the TZASC's driver: what each answers */
     bool no_rom_log;
+    /* The ids of the events in the ROM's log, 0 ends them */
+    uint32_t rom_events[8];
     int hab_log_rc;
     int tzc_init_rc;
     int tzc_region_rc;
@@ -75,6 +77,21 @@ int imx_rom_log_dump(char *out, size_t *out_len)
     (void)out;
     assert_int_equal(*out_len, 0);
     return f.no_rom_log ? -PB_ERR_NOT_FOUND : -PB_ERR_BUF_TOO_SMALL;
+}
+
+/* As the driver's: the event's id, which is bits 31:24 of its word in the
+ * i.MX 8M's logs, and no event without a log */
+bool imx_rom_log_has_event(uint32_t event)
+{
+    if (f.no_rom_log)
+        return false;
+
+    for (size_t i = 0; i < ARRAY_SIZE(f.rom_events) && f.rom_events[i] != 0; i++) {
+        if (f.rom_events[i] == event)
+            return true;
+    }
+
+    return false;
 }
 
 int imx_hab_log_init(const struct imx_hab_log_config *cfg)
@@ -321,6 +338,51 @@ static void test_status_rom_logs_missing(void **state)
     assert_false(status_now().rom_log);
 }
 
+/* What plat_get_boot_source() answers after a plat_early_init() */
+static enum pb_boot_source_kind boot_source_now(void)
+{
+    struct pb_boot_source src;
+
+    memset(&src, 0xff, sizeof(src));
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_get_boot_source(&src), PB_OK);
+    return src.kind;
+}
+
+/* platform.md 3.9 (F-251): the ROM's log has "Serial download", event 0xd0
+ * of AN12853's Table 9, when its serial downloader loaded pb, which is over
+ * USB on the i.MX 8M */
+static void test_boot_source_serial_download(void **state)
+{
+    static const uint32_t events[] = { 0xe0, 0x22, 0x31, 0x40, 0xd0, 0xa0, 0xc0 };
+    (void)state;
+
+    memcpy(f.rom_events, events, sizeof(events));
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_USB);
+}
+
+/* A boot from the boot device, with the events of the 8MP EVK's log of a
+ * boot from its eMMC (test_imx_rom_log.c): no serial download, and the
+ * partition isn't named. Unknown, which boots. The same without a log */
+static void test_boot_source_not_a_download(void **state)
+{
+    static const uint32_t events[] = { 0xe0, 0x22, 0x31, 0x40, 0x61, 0x82, 0x83, 0x80 };
+    (void)state;
+
+    memcpy(f.rom_events, events, sizeof(events));
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UNKNOWN);
+
+    static const uint32_t more[] = { 0x81, 0x50, 0x90, 0x91, 0xa0, 0xc0 };
+
+    memset(f.rom_events, 0, sizeof(f.rom_events));
+    memcpy(f.rom_events, more, sizeof(more));
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UNKNOWN);
+
+    f.no_rom_log = true;
+    f.rom_events[0] = 0xd0;
+    assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UNKNOWN);
+}
+
 /* platform.md 3.4: every cause of SRC_SRSR has a kind and a name, and raw is
  * the register (plat/imx8m/mm.h has the table). Bit 8 is the i.MX8M Plus's
  * WDOG2 */
@@ -473,6 +535,8 @@ int main(void)
         cmocka_unit_test_setup(test_status_tzasc_not_enabled, setup),
         cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
         cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
+        cmocka_unit_test_setup(test_boot_source_serial_download, setup),
+        cmocka_unit_test_setup(test_boot_source_not_a_download, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_priority, setup),
         cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),

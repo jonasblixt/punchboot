@@ -94,7 +94,10 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   on the 8X. 8 bytes each.
 - **Boot source**: the 6UL, from the ROM log (AN12853 Table 7) and the eMMC's boot partition
   configuration. A serial download is USB when a host gave the ROM's USB device an address, which
-  `plat_early_init()` saves, and else UART: the serial downloader listens on both. The 8X, from
+  `plat_early_init()` saves, and else UART: the serial downloader listens on both. The 8M, from
+  the ROM log too: its event 0xd0, "Serial download" (AN12853 Table 9), is reported as USB, and
+  a log without it as unknown. Table 9 is the source: the event hasn't been seen in a board's
+  log (the 8MP EVK's one log in the tests is of an eMMC boot). The 8X, from
   the SCFW's boot type (`sc_misc_get_boot_type()`), asked at the call: serial is reported as USB,
   the other types as unknown. The RT, from SRC_SBMR2's BMOD: 0b01, the serial downloader, is
   reported as USB (its UART isn't told apart), the fuses (0b00) and internal boot (0b10, the EVK
@@ -271,7 +274,7 @@ Where each port is (2026-11-11).
 | `plat_wdog_kick()` before arming     | yes          | yes               | yes        | yes       | F-234         |
 | `plat_get_boot_reason()`             | yes          | yes               | yes        | yes       | F-236         |
 | The unique id fails on a failed read | yes          | yes               | unchecked  | yes       | F-200         |
-| Serial download in                   | yes          | no                | yes        | pins only | F-251         |
+| Serial download in                   | yes          | yes               | yes        | pins only | F-251         |
 | `plat_get_boot_source()`             |              |                   |            |           |               |
 | `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
 | command mode                         |              |                   |            |           |               |

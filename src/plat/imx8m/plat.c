@@ -436,10 +436,26 @@ int plat_cm_init(void)
 }
 #endif
 
+/* The ROM's event when it starts its serial downloader, in the i.MX 8M's
+ * event definitions (AN12853 Table 9, "Serial download") */
+#define ROM_LOG_V2_SERIAL_DOWNLOAD 0xd0
+
+/*
+ * Where pb was loaded from (platform.md 3.9), from the ROM's event log,
+ * which plat_early_init() saved. The ROM logs when it starts its serial
+ * downloader, and what it loads then comes over USB: the i.MX 8M's serial
+ * downloader has no UART. Without that event, and without a log, it is a
+ * boot from the boot device, whose partition isn't named: unknown.
+ */
 int plat_get_boot_source(struct pb_boot_source *src)
 {
-    (void)src;
-    return -PB_ERR_NOT_SUPPORTED;
+    memset(src, 0, sizeof(*src));
+    src->kind = PB_BOOT_SOURCE_UNKNOWN;
+
+    if (imx_rom_log_has_event(ROM_LOG_V2_SERIAL_DOWNLOAD))
+        src->kind = PB_BOOT_SOURCE_USB;
+
+    return PB_OK;
 }
 
 int plat_lockdown(void)
