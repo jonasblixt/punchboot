@@ -579,6 +579,65 @@ static void test_read_busy_poll_fails(void **state)
     assert_int_equal(bio_read(dev, 0, BLOCK, in), PB_OK);
 }
 
+/* F-198: an erase uses an erase unit only where the range covers it whole,
+ * and the unit starts where the flash's does: exactly the blocks asked for,
+ * none around them (bio.md 3.3) */
+static void check_erase(lba_t first, size_t count)
+{
+    memset(nor.mem, 0xa5, sizeof(nor.mem));
+    assert_int_equal(bio_erase(dev, first, count), PB_OK);
+    assert_mem_is(0, 0xa5, first * BLOCK);
+    assert_mem_is(first * BLOCK, 0xff, count * BLOCK);
+    assert_mem_is((first + count) * BLOCK, 0xa5, CAPACITY - (first + count) * BLOCK);
+}
+
+static void test_erase_exactly_the_blocks(void **state)
+{
+    (void)state;
+
+    check_erase(0, 64);
+    assert_int_equal(nor.erases, 4);
+
+    /* 64 KiB at 4 KiB */
+    nor.erases = 0;
+    check_erase(1, 16);
+    assert_int_equal(nor.erases, 7 + 1 + 1); /* 4K * 7, 32K at block 8, 4K */
+
+    /* 32 KiB at 16 KiB */
+    check_erase(4, 8);
+    check_erase(15, 18);
+    check_erase(63, 1);
+    check_erase(16, 16);
+    check_erase(24, 17);
+}
+
+/* F-198: a range that the smallest erase unit doesn't cover whole is
+ * refused, not rounded up to it */
+static void test_erase_smaller_than_a_unit(void **state)
+{
+    (void)state;
+
+    reset_model();
+    nor_cfg.erase_cmds[2].block_size = 0;
+    nor_cfg.erase_cmds[2].lut_id = 0;
+    assert_int_equal(init(), PB_OK);
+
+    assert_int_equal(bio_erase(dev, 8, 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_erase(dev, 4, 8), -PB_ERR_PARAM);
+    assert_int_equal(nor.erases, 0);
+    assert_mem_is(0, 0xa5, CAPACITY);
+
+    check_erase(8, 8);
+    check_erase(16, 24);
+
+    /* No erase command at all */
+    reset_model();
+    memset(nor_cfg.erase_cmds, 0, sizeof(nor_cfg.erase_cmds));
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(bio_erase(dev, 0, 1), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(nor.erases, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -589,6 +648,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_erase_write_enable_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_erase_busy_poll_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_busy_poll_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_erase_exactly_the_blocks, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_erase_smaller_than_a_unit, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

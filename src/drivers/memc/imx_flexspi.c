@@ -440,41 +440,65 @@ static int imx_flexspi_write(bio_dev_t dev, lba_t lba, size_t length, const void
     return rc;
 }
 
+/*
+ * The board's erase commands are sorted largest first and end at a block
+ * size of 0. This is the largest erase unit that starts at addr and that
+ * the left bytes cover whole: a NOR erases the unit its address is in, so
+ * a unit is only used where it starts (bio.md 3.3: exactly the blocks asked
+ * for). NULL when none fits
+ */
+static const struct flexspi_nor_erase_cmds *
+imx_flexspi_erase_cmd(const struct flexspi_nor_config *cfg_nor, uint32_t addr, size_t left)
+{
+    for (unsigned int i = 0; i < ARRAY_SIZE(cfg_nor->erase_cmds); i++) {
+        const struct flexspi_nor_erase_cmds *cmd = &cfg_nor->erase_cmds[i];
+
+        if (cmd->block_size == 0)
+            break;
+
+        if (cmd->block_size <= left && (addr % cmd->block_size) == 0)
+            return cmd;
+    }
+
+    return NULL;
+}
+
 static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
 {
     int rc;
     struct flexspi_nor_config *cfg_nor = (struct flexspi_nor_config *)bio_get_private(dev);
-    uint32_t addr;
-    uint32_t part_start_addr = (uint32_t)first_lba * bio_block_size(dev);
+    const struct flexspi_nor_erase_cmds *cmd;
+    uint32_t addr = (uint32_t)first_lba * bio_block_size(dev);
     size_t bytes_to_erase = count * bio_block_size(dev);
-    size_t bytes_erased = 0;
-    /* We select the largest erase block to begin with */
-    uint8_t lut_id = cfg_nor->erase_cmds[0].lut_id;
-    size_t erase_block_sz = cfg_nor->erase_cmds[0].block_size;
-    unsigned int erase_time_ms = cfg_nor->erase_cmds[0].erase_time_ms;
+    size_t smallest = 0;
 
-    if (!erase_block_sz) {
-        return -PB_ERR_IO;
+    for (unsigned int i = 0; i < ARRAY_SIZE(cfg_nor->erase_cmds); i++) {
+        if (cfg_nor->erase_cmds[i].block_size == 0)
+            break;
+
+        smallest = cfg_nor->erase_cmds[i].block_size;
+    }
+
+    if (smallest == 0)
+        return -PB_ERR_NOT_SUPPORTED;
+
+    /* The smallest unit has to cover the range whole: a short tail isn't
+     * rounded up to it, nothing is erased */
+    if ((addr % smallest) != 0 || (bytes_to_erase % smallest) != 0) {
+        LOG_ERR(
+            "0x%08x, %zu bytes, isn't whole erase units of %zu", addr, bytes_to_erase, smallest);
+        return -PB_ERR_PARAM;
     }
 
     while (bytes_to_erase) {
-        /* The current erase block size is larger than the remaining bytes
-         * we want to erase, search for a smaller erase block
-         */
-        if (bytes_to_erase < erase_block_sz) {
-            LOG_DBG("Switching to smaller erase block");
-            for (unsigned int i = 0; cfg_nor->erase_cmds[i].lut_id; i++) {
-                if (bytes_to_erase >= cfg_nor->erase_cmds[i].block_size) {
-                    lut_id = cfg_nor->erase_cmds[i].lut_id;
-                    erase_block_sz = cfg_nor->erase_cmds[i].block_size;
-                    erase_time_ms = cfg_nor->erase_cmds[i].erase_time_ms;
-                    break;
-                }
-            }
+        cmd = imx_flexspi_erase_cmd(cfg_nor, addr, bytes_to_erase);
+
+        if (cmd == NULL) {
+            LOG_ERR("No erase unit at 0x%08x", addr);
+            return -PB_ERR_PARAM;
         }
 
-        addr = part_start_addr + bytes_erased;
-        LOG_DBG("Erasing addr=0x%08x, block_sz=%zu, lut_id=%u", addr, erase_block_sz, lut_id);
+        LOG_DBG("Erasing addr=0x%08x, block_sz=%zu, lut_id=%u", addr, cmd->block_size, cmd->lut_id);
 
         /* Write enable */
         rc =
@@ -483,18 +507,18 @@ static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
         if (rc != 0)
             return rc;
 
-        rc = imx_flexspi_xfer(cfg_nor->port, lut_id, addr, FLEXSPI_COMMAND, NULL, 0);
+        rc = imx_flexspi_xfer(cfg_nor->port, cmd->lut_id, addr, FLEXSPI_COMMAND, NULL, 0);
 
         if (rc != 0)
             return rc;
 
-        rc = imx_flexspi_busy_wait(cfg_nor, erase_time_ms, erase_time_ms);
+        rc = imx_flexspi_busy_wait(cfg_nor, cmd->erase_time_ms, cmd->erase_time_ms);
 
         if (rc != 0)
             return rc;
 
-        bytes_erased += erase_block_sz;
-        bytes_to_erase -= (erase_block_sz > bytes_to_erase) ? bytes_to_erase : erase_block_sz;
+        addr += cmd->block_size;
+        bytes_to_erase -= cmd->block_size;
     }
 
     return imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_disable, 0, FLEXSPI_COMMAND, NULL, 0);

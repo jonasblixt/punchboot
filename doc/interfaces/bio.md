@@ -229,9 +229,7 @@ them).
   refused. With blocks the request that has no meaning can't be made. The wire counts in
   blocks too (`PART_ERASE`, `compatibility.md`).
 - **Exactly those blocks**, whatever the medium's own erase units are. A driver that erases in
-  larger units uses one only where the range covers it whole. **Not yet in the code (F-198)**:
-  the FlexSPI's driver starts with its largest unit without checking the address, and rounds a
-  short tail up.
+  larger units uses one only where the range covers it whole.
 - **What an erased block reads as** isn't promised. A user that needs zeros writes them.
 - **A count of 0** is `PB_OK`, and the driver isn't called.
 - **Time**: the driver's header says how long a block's erase takes at most
@@ -409,7 +407,8 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | The codes of `drivers.md` 3  | yes (`test_mmc_`   | no                | yes                 | F-284   |
 |                              | `emmc`, `test_`    |                   |                     |         |
 |                              | `imx_usdhc`)       |                   |                     |         |
-| Erase: exactly the blocks    | n/a (no erase)     | no                | n/a (no erase)      | F-198   |
+| Erase: exactly the blocks    | n/a (no erase)     | yes (`test_imx_`  | n/a (no erase)      |         |
+|                              |                    | `flexspi`)        |                     |         |
 | `write_done`                 | yes (`test_mmc_`   | n/a               | n/a                 |         |
 |                              | `core`)            |                   |                     |         |
 | Flags no wider than the      | yes                | yes               | yes                 |         |
@@ -464,7 +463,7 @@ without a callback, a driver's errors and their codes, a write that fails half w
 | ------------------- | ------------------------------------------------------------------------------ |
 | F-283               | The block size asked, not assumed; the rest of the conformance suite (2, 8)    |
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
-| F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
+| F-198               | The FlexSPI's reads of 64 KiB and more (3.1)                                   |
 | F-200               | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                   |
 | F-194               | An installed table is in effect at once (4)                                    |
 | F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |
