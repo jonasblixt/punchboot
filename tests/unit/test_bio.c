@@ -384,6 +384,34 @@ static void test_properties(void **state)
     assert_int_equal(bio_get_flags(f->part), BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
 }
 
+/* bio.md 2.6 (F-283): LBAs are 32 bits, and a device of 2^31 blocks or more
+ * is a device: the block getters answer its blocks, not an error */
+static void test_block_getters_of_a_large_device(void **state)
+{
+    bio_dev_t half, most, all;
+    (void)state;
+
+    half = bio_allocate(0, 0x7fffffff, RAMDISK_BLOCK_SIZE, filler_uu(0), "2^31 blocks");
+    most = bio_allocate(0x80000000, 0xfffffffe, RAMDISK_BLOCK_SIZE, filler_uu(1), "Upper half");
+    all = bio_allocate(0, UINT32_MAX, RAMDISK_BLOCK_SIZE, filler_uu(2), "2^32 blocks");
+    assert_true(half >= 0 && most >= 0 && all >= 0);
+
+    assert_true(bio_get_first_block(half) == 0);
+    assert_true(bio_get_last_block(half) == INT64_C(0x7fffffff));
+    assert_true(bio_get_no_of_blocks(half) == INT64_C(0x80000000));
+
+    assert_true(bio_get_first_block(most) == INT64_C(0x80000000));
+    assert_true(bio_get_last_block(most) == INT64_C(0xfffffffe));
+    assert_true(bio_get_no_of_blocks(most) == INT64_C(0x7fffffff));
+
+    assert_true(bio_get_first_block(all) == 0);
+    assert_true(bio_get_last_block(all) == INT64_C(0xffffffff));
+    assert_true(bio_get_no_of_blocks(all) == INT64_C(0x100000000));
+    /* 2 TiB of 512 byte blocks (bio.md 2.1) */
+    assert_true(bio_size(all) == INT64_C(0x100000000) * RAMDISK_BLOCK_SIZE);
+    assert_true(bio_size(half) == INT64_C(0x80000000) * RAMDISK_BLOCK_SIZE);
+}
+
 static void test_flags(void **state)
 {
     struct fixture *f = *state;
@@ -522,6 +550,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_allocate_pool_full, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_partition_lies_inside_its_parent, setup, teardown),
         cmocka_unit_test_setup_teardown(test_properties, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_block_getters_of_a_large_device, setup, teardown),
         cmocka_unit_test_setup_teardown(test_flags, setup, teardown),
         cmocka_unit_test_setup_teardown(test_missing_ops, setup, teardown),
         cmocka_unit_test_setup_teardown(test_erase_calls_the_driver, setup, teardown),

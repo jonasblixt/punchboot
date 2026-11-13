@@ -136,8 +136,7 @@ them.
   `bio_size()` in bytes, `bio_get_no_of_blocks()`, and `bio_get_first_block()` and
   `bio_get_last_block()`, a partition's place on its parent, which the partition table's
   read reports (section 6). For a handle that isn't a device each answers `-PB_ERR_PARAM`, or
-  NULL. **Not yet in the code (F-283)**: the three block getters return `int`, so a device of
-  2^31 blocks or more reads as an error.
+  NULL.
 - **The flags**: `bio_get_flags()`, `bio_set_flags()`, `bio_clear_set_flags()` (2.4).
 - **A handle is good until the reset**, and a user may keep one. The one exception is a
   partition whose table is installed again (section 4).
@@ -459,8 +458,7 @@ without a callback, a driver's errors and their codes, a write that fails half w
 
 | Finding             | What                                                                           |
 | ------------------- | ------------------------------------------------------------------------------ |
-| F-283               | The block size asked, not assumed; the block getters' type; the rest of the    |
-|                     | conformance suite (2, 8)                                                       |
+| F-283               | The block size asked, not assumed; the rest of the conformance suite (2, 8)    |
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |

@@ -283,7 +283,7 @@ const unsigned char *bio_get_uu(bio_dev_t dev);
  * @return Last LBA, on success
  *         -PB_ERR_PARAM, on bad device handle
  */
-int bio_get_last_block(bio_dev_t dev);
+int64_t bio_get_last_block(bio_dev_t dev);
 
 /**
  * Get the first block particular device. This returns the physical block
@@ -294,17 +294,18 @@ int bio_get_last_block(bio_dev_t dev);
  * @return First LBA, on success
  *         -PB_ERR_PARAM, on bad device handle
  */
-int bio_get_first_block(bio_dev_t dev);
+int64_t bio_get_first_block(bio_dev_t dev);
 
 /**
  * Get the number of blocks of particular device.
  *
  * @param[in] dev Block device handle
  *
- * @return Number of blocks, on success
+ * @return Number of blocks, on success: up to 2^32, which is why the three
+ *         block getters return 64 bits
  *         -PB_ERR_PARAM, on bad device handle
  */
-int bio_get_no_of_blocks(bio_dev_t dev);
+int64_t bio_get_no_of_blocks(bio_dev_t dev);
 
 /**
  * Read data from block device

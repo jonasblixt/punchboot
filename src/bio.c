@@ -183,7 +183,7 @@ int64_t bio_size(bio_dev_t dev)
     if (rc != PB_OK)
         return rc;
 
-    return (bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1) * (int64_t)bio_pool[dev].block_sz;
+    return bio_get_no_of_blocks(dev) * (int64_t)bio_pool[dev].block_sz;
 }
 
 ssize_t bio_block_size(bio_dev_t dev)
@@ -385,25 +385,27 @@ const unsigned char *bio_get_uu(bio_dev_t dev)
     return bio_pool[dev].uu;
 }
 
-int bio_get_last_block(bio_dev_t dev)
+/* 64 bits: every lba_t, and a count of up to 2^32 blocks, beside the
+ * negative error (bio.md 2.6) */
+int64_t bio_get_last_block(bio_dev_t dev)
 {
     if (check_dev(dev) != PB_OK)
         return -PB_ERR_PARAM;
     return bio_pool[dev].last_lba;
 }
 
-int bio_get_first_block(bio_dev_t dev)
+int64_t bio_get_first_block(bio_dev_t dev)
 {
     if (check_dev(dev) != PB_OK)
         return -PB_ERR_PARAM;
     return bio_pool[dev].first_lba;
 }
 
-int bio_get_no_of_blocks(bio_dev_t dev)
+int64_t bio_get_no_of_blocks(bio_dev_t dev)
 {
     if (check_dev(dev) != PB_OK)
         return -PB_ERR_PARAM;
-    return bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1;
+    return (int64_t)bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1;
 }
 
 bio_dev_t bio_get_part_by_uu(const uuid_t uu)
