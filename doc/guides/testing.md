@@ -210,6 +210,9 @@ Unit tests, by module under test:
 |                                               | `policy_fixed.c`,            |                                  |
 |                                               | `policy_chain.c`             |                                  |
 | `test_simple.c`                               | `simple.c`                   | none                             |
+| `test_fh.c`                                   | `fh.c`, `dtb.c` (not in      | arch (the cache); a receiver of  |
+|                                               | pb-host), once per register  | the test's own reads the list in |
+|                                               | convention                   | a region the test maps           |
 | `test_tfa.c`                                  | `atf.c` (not in pb-host),    | arch (ARMv8-A's names, the ID    |
 |                                               | twice: the `bl_params` list  | register); pins what BL31 reads, |
 |                                               | in pb's data and in the      | field by field                   |

@@ -70,6 +70,45 @@ config BOOT_LINUX
         tree with pb's /chosen. A board delivers it directly, or through
         TF-A (BOOT_ATF).
 
+config BOOT_FH
+    bool "Handover: Firmware Handoff, generic"
+    select BOOT_DTB
+    help
+        The generic handover (boot/fh.h, BOOT_HANDOVER_FH()): Arm's
+        Firmware Handoff, for any next stage: an RTOS, an application, a
+        hypervisor, a stage that parses a device tree. The next stage gets
+        the specification's registers and a transfer list (boot/pb_fh.h).
+        The list holds the image's device tree, with pb's /chosen, when
+        the board names a device tree part, and pb's structure when it
+        names none. On ARMv7-M the registers are AArch32's. A board
+        delivers it directly, or through TF-A (BOOT_ATF).
+
+        The tag of pb's structure isn't allocated in the specification
+        yet: see PB_FH_TAG_HANDOVER in boot/pb_fh.h before a product
+        relies on it.
+
+config BOOT_FH_REGION_BASE
+    hex "Firmware Handoff: the transfer list's region, its address"
+    depends on BOOT_FH
+    default 0x0
+    help
+        The transfer list is in a region of the board's (boot.md 5.4):
+        memory that works after plat_init(), outside pb, its buffers and
+        the board's image data regions. Not 0, and 8-byte aligned. There
+        is no default: with 0 the build stops.
+
+        The images' memory maps keep the region free until the next stage
+        has read or moved the list: it is fixed once a product ships.
+
+config BOOT_FH_REGION_SIZE
+    hex "Firmware Handoff: the transfer list's region, its size"
+    depends on BOOT_FH
+    default 0x0
+    help
+        A multiple of 8. The least is 192 bytes, which hold pb's
+        structure. With a device tree part: the list's headers (32
+        bytes), the device tree and BOOT_DTB_HEADROOM.
+
 config BOOT_ATF
     bool "Delivery: TF-A"
     depends on ARCH_ARMV8

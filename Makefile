@@ -148,6 +148,15 @@ $(OBJS): $(call value_file,PB_VERSION)
 $(BUILD_DIR)/keystore.o: $(call unquote,$(CONFIG_KEYSTORE)) $(call value_file,CONFIG_KEYSTORE)
 	@echo GEN $(BUILD_DIR)/keystore.c
 	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) --decorate > $(BUILD_DIR)/keystore.c
+ifdef CONFIG_BOOT_FH
+# pb's structure has room for 16 keys (boot.md 5.4). The number of keys is
+# only in the generated keystore, where no static assert in C can read it
+	$(Q)n=$$(sed -n 's/^ *\.no_of_keys = \([0-9][0-9]*\),.*/\1/p' $(BUILD_DIR)/keystore.c); \
+	 if ! [ "$$n" -le 16 ] 2>/dev/null; then \
+	     echo "CONFIG_BOOT_FH: the keystore has '$$n' keys, pb's structure holds 16 (boot.md 5.4)" >&2; \
+	     exit 1; \
+	 fi
+endif
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
 SRK_FUSE_FILE := $(patsubst "%",%,$(CONFIG_SRK_FUSE))

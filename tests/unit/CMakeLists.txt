@@ -271,6 +271,90 @@ pb_unit_test(test_simple SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/simple.c
 )
 
+# The generic handover, Firmware Handoff (boot.md 5.4), isn't in pb-host. Its
+# test gets the option and a region, which the test maps where the build has
+# it. Built once per register convention: AArch64's as the host is
+# configured, AArch32's (ARMv7-A) and pb's extension of it to ARMv7-M
+function(pb_fh_test name)
+    add_executable(${name} test_fh.c
+        ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
+        ${PROJECT_SOURCE_DIR}/src/boot/fh.c
+    )
+    target_compile_definitions(${name} PRIVATE
+        CONFIG_BOOT_FH=1
+        CONFIG_BOOT_FH_REGION_BASE=0x52000000
+        CONFIG_BOOT_FH_REGION_SIZE=0x10000
+        ${ARGN}
+    )
+    target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(${name} PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+    add_test(NAME unit.${name} COMMAND ${name})
+    set_tests_properties(unit.${name} PROPERTIES LABELS unit TIMEOUT 60)
+endfunction()
+
+pb_fh_test(test_fh)
+pb_fh_test(test_fh_armv7 CONFIG_ARCH_ARMV7=1)
+pb_fh_test(test_fh_armv7m CONFIG_ARCH_ARMV7M=1)
+
+# A build whose region or version the transfer list can't have doesn't
+# compile (boot.md 5.4): fh.c with the values in question, which the compiler
+# refuses with the rule's message (without the source line, which has the
+# message whether its rule failed or not)
+function(pb_fh_refuses name message)
+    add_test(NAME unit.${name}
+        COMMAND ${CMAKE_C_COMPILER} -std=gnu99 -fsyntax-only -fno-diagnostics-show-caret
+                -include ${PROJECT_SOURCE_DIR}/src/plat/host/compat.h
+                -I${PROJECT_BINARY_DIR} -I${PROJECT_SOURCE_DIR}/src
+                -I${PROJECT_SOURCE_DIR}/include -I${PROJECT_SOURCE_DIR}/include/fdt
+                -I${PROJECT_SOURCE_DIR}/src/arch/host/include
+                -DLOGLEVEL=3 -DCONFIG_BOOT_FH=1 ${ARGN}
+                ${PROJECT_SOURCE_DIR}/src/boot/fh.c
+    )
+    set_tests_properties(unit.${name} PROPERTIES LABELS unit TIMEOUT 60
+        PASS_REGULAR_EXPRESSION "${message}")
+endfunction()
+
+set(PB_FH_VERSION -DPB_VERSION=\"${PB_VERSION}\")
+set(PB_FH_BASE -DCONFIG_BOOT_FH_REGION_BASE=0x52000000)
+set(PB_FH_SIZE -DCONFIG_BOOT_FH_REGION_SIZE=0x10000)
+
+pb_fh_refuses(fh_region_is_configured "CONFIG_BOOT_FH needs the transfer list's region"
+    ${PB_FH_VERSION} ${PB_FH_BASE})
+pb_fh_refuses(fh_region_base_is_not_zero "CONFIG_BOOT_FH_REGION_BASE is 0 or not 8-byte aligned"
+    ${PB_FH_VERSION} -DCONFIG_BOOT_FH_REGION_BASE=0x0 ${PB_FH_SIZE})
+pb_fh_refuses(fh_region_base_is_8_byte_aligned
+    "CONFIG_BOOT_FH_REGION_BASE is 0 or not 8-byte aligned"
+    ${PB_FH_VERSION} -DCONFIG_BOOT_FH_REGION_BASE=0x52000004 ${PB_FH_SIZE})
+pb_fh_refuses(fh_region_size_is_a_multiple_of_8
+    "CONFIG_BOOT_FH_REGION_SIZE is not a multiple of 8"
+    ${PB_FH_VERSION} ${PB_FH_BASE} -DCONFIG_BOOT_FH_REGION_SIZE=0x10004)
+# 192 bytes hold pb's structure, 184 don't
+pb_fh_refuses(fh_region_holds_pbs_structure
+    "CONFIG_BOOT_FH_REGION_SIZE has no room for struct pb_fh_handover"
+    ${PB_FH_VERSION} ${PB_FH_BASE} -DCONFIG_BOOT_FH_REGION_SIZE=0xb8)
+pb_fh_refuses(fh_region_does_not_wrap
+    "The Firmware Handoff region wraps or is above what the arch can address"
+    ${PB_FH_VERSION} -DCONFIG_BOOT_FH_REGION_BASE=0xfffffffffffffff8 ${PB_FH_SIZE})
+# 31 characters fit pb's structure with their NUL, 32 don't
+pb_fh_refuses(fh_version_fits_pbs_structure
+    "PB_VERSION has no room in struct pb_fh_handover"
+    -DPB_VERSION=\"3.0.0-01234567890123456789012345\" ${PB_FH_BASE} ${PB_FH_SIZE})
+
+# The same command with values the list can have compiles: the tests above
+# fail for their rule and for nothing else
+add_test(NAME unit.fh_compiles
+    COMMAND ${CMAKE_C_COMPILER} -std=gnu99 -fsyntax-only -Werror
+            -include ${PROJECT_SOURCE_DIR}/src/plat/host/compat.h
+            -I${PROJECT_BINARY_DIR} -I${PROJECT_SOURCE_DIR}/src
+            -I${PROJECT_SOURCE_DIR}/include -I${PROJECT_SOURCE_DIR}/include/fdt
+            -I${PROJECT_SOURCE_DIR}/src/arch/host/include
+            -DLOGLEVEL=3 -DCONFIG_BOOT_FH=1
+            -DPB_VERSION=\"3.0.0-0123456789012345678901234\" ${PB_FH_BASE}
+            -DCONFIG_BOOT_FH_REGION_SIZE=0xc0
+            ${PROJECT_SOURCE_DIR}/src/boot/fh.c
+)
+set_tests_properties(unit.fh_compiles PROPERTIES LABELS unit TIMEOUT 60)
+
 # The delivery through TF-A is ARMv8-A's and isn't in pb-host. Its test gets
 # that arch's names for the registers' fields, the one register it reads from
 # a fake, and TF-A's headers. Built twice: with the bl_params list in pb's own

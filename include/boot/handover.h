@@ -13,8 +13,8 @@
  *
  * A handover turns the verified image and pb's information into the next
  * stage's entry, its four arguments and what it reads in memory (a device
- * tree's /chosen): BOOT_HANDOVER_IMAGE() (boot/image.h),
- * BOOT_HANDOVER_SIMPLE() (boot/simple.h).
+ * tree's /chosen, a transfer list): BOOT_HANDOVER_IMAGE() (boot/image.h),
+ * BOOT_HANDOVER_FH() (boot/fh.h), BOOT_HANDOVER_SIMPLE() (boot/simple.h).
  *
  * A delivery brings them to the next stage. Without one the core does it
  * directly: arch_jump(entry, a0..a3), at the exception level pb runs at.
@@ -57,9 +57,9 @@ struct boot_info {
     size_t no_of_available_keys;
     uint32_t available_keys[BOOT_INFO_MAX_KEYS]; /*!< The ids of the keys not revoked,
                                                       in the keystore's order */
-    /** What pb booted without, bit flags (boot.md 5.6). Not yet: always 0,
-     * and no handover writes it, until the boot checks its preconditions
-     * (F-248) */
+    /** What pb booted without, bit flags (boot.md 5.6): 'status' in pb's
+     * structure. Not yet: always 0, until the boot checks its preconditions,
+     * and a device tree gets no pb,status (F-248) */
     uint32_t status;
 
     /* The candidate's, set before each prepare */

@@ -36,6 +36,13 @@ next entry starts at the next 8-byte boundary.
   document store the sum of the other bytes instead. 1.0 was withdrawn over a checksum that
   products computed differently, and U-Boot's list discussed a correction in late 2025. Follow
   the reference library, and test against a real receiver, before trusting either reading.
+- **What the reference library does** (TF-Shared's transfer-list-library, `main`, read
+  2026-11-12). The checksum: `transfer_list_update_checksum()` sets the byte so that the used
+  bytes sum to 0, the header table's reading, and `transfer_list_verify_checksum()` checks
+  that. `used_size`: `transfer_list_add()` ends it at the last entry's data, without the
+  padding that the header table counts in; `transfer_list_next()` reads a list of either kind.
+  pb writes the table's `used_size` (a multiple of 8, the padding zero and in the checksum)
+  and the library's checksum (`src/boot/fh.c`).
 - The list's base is non-zero and 8-byte aligned.
 - A receiver checks the signature and the version; the sizes and the checksum are optional
   checks. A version above its own may be read, not changed or moved; unknown tags are skipped.

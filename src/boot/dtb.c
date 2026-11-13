@@ -9,6 +9,10 @@
  * device tree doesn't need placeholders or free space for them (F-071), and
  * the properties: pb's information in a device tree (boot.md 5.5, 5.6). The
  * core collected it; nothing here reads the RoT, the SLC or the policy.
+ *
+ * The room is after the part, where the image handover leaves the tree
+ * (boot_dtb_grow()), or in memory the handover gives, where Firmware Handoff
+ * copies it to: its transfer list (boot_dtb_open_into(), boot.md 5.4).
  */
 
 #include <boot/dtb.h>
@@ -18,6 +22,7 @@
 #include <libfdt.h>
 #include <limits.h>
 #include <pb/pb.h>
+#include <string.h>
 
 /* [a, a + a_len) and [b, b + b_len) share a byte */
 static bool overlaps(uintptr_t a, size_t a_len, uintptr_t b, size_t b_len)
@@ -25,9 +30,9 @@ static bool overlaps(uintptr_t a, size_t a_len, uintptr_t b, size_t b_len)
     return a < b + b_len && b < a + a_len;
 }
 
-int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt)
+/* The device tree's part: its load address and what was hashed there */
+static int dtb_part(struct bpak_header *hdr, bpak_id_t dtb_id, uintptr_t *addr, size_t *part_size)
 {
-    int rc;
     struct bpak_part_header *ph;
     struct bpak_meta_header *mh;
 
@@ -41,18 +46,60 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
         return -PB_ERR_BAD_META;
     }
 
-    uintptr_t addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
-    size_t part_size = bpak_part_size(ph);
-    size_t room = part_size + headroom;
+    *addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+    *part_size = bpak_part_size(ph);
 
     /* The header is read at the load address: it is in bytes the payload's
      * hash covers. bpak_part_size() is what was hashed there, the padding
      * too; an empty part passes the hash with nothing there (security.md
      * 4.2, F-330) */
-    if (part_size < sizeof(struct fdt_header)) {
+    if (*part_size < sizeof(struct fdt_header)) {
         LOG_ERR("The device tree's part is smaller than an FDT header");
         return -PB_ERR_BAD_META;
     }
+
+    return PB_OK;
+}
+
+/* The size of the device tree in a part of 'part_size' bytes: a device tree
+ * that is inside its part */
+static int dtb_size(const void *fdt, size_t part_size, size_t *size)
+{
+    if (fdt_check_header(fdt) < 0) {
+        LOG_ERR("Invalid device tree");
+        return -PB_ERR;
+    }
+
+    *size = fdt_totalsize(fdt);
+
+    /* fdt_check_header() checks the magic and the version only */
+    if (*size < sizeof(struct fdt_header)) {
+        LOG_ERR("Device tree (%zu bytes) is smaller than its header", *size);
+        return -PB_ERR;
+    }
+
+    if (*size > part_size) {
+        LOG_ERR("Device tree (%zu bytes) is larger than its part (%zu)", *size, part_size);
+        return -PB_ERR;
+    }
+
+    return PB_OK;
+}
+
+int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt)
+{
+    int rc;
+    struct bpak_meta_header *mh;
+    uintptr_t addr;
+    size_t part_size;
+    size_t size;
+
+    rc = dtb_part(hdr, dtb_id, &addr, &part_size);
+
+    if (rc != PB_OK)
+        return rc;
+
+    size_t room = part_size + headroom;
 
     if (room < part_size || room > INT_MAX || addr + room < addr) {
         LOG_ERR("Device tree headroom too large");
@@ -82,25 +129,10 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
     }
 
     *fdt = (void *)addr;
-    rc = fdt_check_header(*fdt);
+    rc = dtb_size(*fdt, part_size, &size);
 
-    if (rc < 0) {
-        LOG_ERR("Invalid device tree");
-        return -PB_ERR;
-    }
-
-    size_t size = fdt_totalsize(*fdt);
-
-    /* fdt_check_header() checks the magic and the version only */
-    if (size < sizeof(struct fdt_header)) {
-        LOG_ERR("Device tree (%zu bytes) is smaller than its header", size);
-        return -PB_ERR;
-    }
-
-    if (size > part_size) {
-        LOG_ERR("Device tree (%zu bytes) is larger than its part (%zu)", size, part_size);
-        return -PB_ERR;
-    }
+    if (rc != PB_OK)
+        return rc;
 
     rc = fdt_open_into(*fdt, *fdt, (int)(size + headroom));
 
@@ -110,6 +142,59 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
     }
 
     LOG_DBG("Device tree at 0x%" PRIxPTR ", %zu -> %zu bytes", addr, size, size + headroom);
+    return PB_OK;
+}
+
+int boot_dtb_open_into(struct bpak_header *hdr,
+                       bpak_id_t dtb_id,
+                       size_t headroom,
+                       void *dest,
+                       size_t dest_size)
+{
+    int rc;
+    uintptr_t addr;
+    size_t part_size;
+    size_t size;
+
+    rc = dtb_part(hdr, dtb_id, &addr, &part_size);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* What is written is 'dest', never the part: one that lies in it would be
+     * changed after it was hashed, and read while it is written */
+    if (addr + part_size < addr || (uintptr_t)dest + dest_size < (uintptr_t)dest ||
+        overlaps(addr, part_size, (uintptr_t)dest, dest_size)) {
+        LOG_ERR("The device tree's part is where its copy goes");
+        return -PB_ERR_MEM;
+    }
+
+    rc = dtb_size((const void *)addr, part_size, &size);
+
+    if (rc != PB_OK)
+        return rc;
+
+    size_t room = size + headroom;
+
+    if (room < size || room > INT_MAX || room > dest_size) {
+        LOG_ERR("Device tree (%zu bytes) with headroom doesn't fit %zu bytes", size, dest_size);
+        return -PB_ERR_MEM;
+    }
+
+    /* The room is all the copy's, also what the tree doesn't fill of it */
+    memset(dest, 0, room);
+    rc = fdt_open_into((const void *)addr, dest, (int)room);
+
+    if (rc < 0) {
+        LOG_ERR("Could not open the device tree (%i)", rc);
+        return -PB_ERR;
+    }
+
+    LOG_DBG("Device tree at 0x%" PRIxPTR " to 0x%" PRIxPTR ", %zu -> %zu bytes",
+            addr,
+            (uintptr_t)dest,
+            size,
+            room);
     return PB_OK;
 }
 
