@@ -60,11 +60,23 @@ static int host_disk_write(bio_dev_t dev, lba_t lba, size_t length, const void *
     return PB_OK;
 }
 
+/* No descriptor is kept that no device reads: not after a failed init, and
+ * not the first file after a second init (F-406) */
+static void disk_close(void)
+{
+    if (disk_fd >= 0)
+        close(disk_fd);
+
+    disk_fd = -1;
+}
+
 bio_dev_t host_disk_init(const char *path, size_t size, const uuid_t uu, const char *description)
 {
     int rc;
     struct stat st;
 
+    /* A second init replaces the first one's file */
+    disk_close();
     disk_fd = open(path, O_RDWR | O_CREAT, 0644);
 
     if (disk_fd < 0) {
@@ -75,6 +87,7 @@ bio_dev_t host_disk_init(const char *path, size_t size, const uuid_t uu, const c
     if (fstat(disk_fd, &st) != 0 || (size_t)st.st_size < size) {
         if (ftruncate(disk_fd, (off_t)size) != 0) {
             LOG_ERR("Could not resize '%s' (%s)", path, strerror(errno));
+            disk_close();
             return -PB_ERR_IO;
         }
     }
@@ -82,18 +95,24 @@ bio_dev_t host_disk_init(const char *path, size_t size, const uuid_t uu, const c
     bio_dev_t dev =
         bio_allocate(0, size / HOST_DISK_BLOCK_SIZE - 1, HOST_DISK_BLOCK_SIZE, uu, description);
 
-    if (dev < 0)
+    if (dev < 0) {
+        disk_close();
         return dev;
+    }
 
     rc = bio_set_ios(dev, host_disk_read, host_disk_write);
 
-    if (rc < 0)
+    if (rc < 0) {
+        disk_close();
         return rc;
+    }
 
     rc = bio_set_flags(dev, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
 
-    if (rc < 0)
+    if (rc < 0) {
+        disk_close();
         return rc;
+    }
 
     return dev;
 }

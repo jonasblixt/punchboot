@@ -21,6 +21,7 @@
 
 #include <cmocka.h>
 
+#include <dirent.h>
 #include <pb/bio.h>
 #include <pb/pb.h>
 #include <plat/host/host.h>
@@ -124,6 +125,47 @@ static int teardown_host_disk(void **state)
     return 0;
 }
 
+/* The process's open descriptors */
+static int open_fds(void)
+{
+    DIR *dir = opendir("/proc/self/fd");
+    int n = 0;
+
+    assert_non_null(dir);
+
+    while (readdir(dir) != NULL)
+        n++;
+
+    closedir(dir);
+    return n;
+}
+
+/* A second init of the host's disk replaces the first: one file stays open,
+ * and a failed init keeps none (F-406) */
+static void test_host_disk_init_twice_keeps_one_file(void **state)
+{
+    (void)state;
+    int once;
+
+    assert_int_equal(temp_file(disk_path, sizeof(disk_path)), 0);
+
+    /* The tests before this one had a disk too */
+    bio_reset();
+    assert_true(host_disk_init(disk_path, DISK_BYTES, UU_DISK, "Host disk") >= 0);
+    once = open_fds();
+
+    bio_reset();
+    assert_true(host_disk_init(disk_path, DISK_BYTES, UU_DISK, "Host disk") >= 0);
+    assert_int_equal(open_fds(), once);
+
+    /* A file that can't be opened: the first one's is closed all the same */
+    bio_reset();
+    assert_true(host_disk_init("/nonexistent/pb-disk", DISK_BYTES, UU_DISK, "Host disk") < 0);
+    assert_int_equal(open_fds(), once - 1);
+
+    unlink(disk_path);
+}
+
 /* The flash is mapped once, as pb-host does it in plat_early_init() */
 static int group_setup_host_nor(void **state)
 {
@@ -168,12 +210,16 @@ int main(void)
     const struct CMUnitTest host_nor[] = {
         BIO_CONFORMANCE_TESTS(setup_host_nor, NULL),
     };
+    const struct CMUnitTest host_disk_twice[] = {
+        cmocka_unit_test(test_host_disk_init_twice_keeps_one_file),
+    };
     int failed = 0;
 
     failed += cmocka_run_group_tests_name("RAM disk, 512 byte blocks", ramdisk_512, NULL, NULL);
     failed += cmocka_run_group_tests_name("RAM disk, 4 KiB blocks", ramdisk_4k, NULL, NULL);
     failed += cmocka_run_group_tests_name("RAM disk, a partition", ramdisk_partition, NULL, NULL);
     failed += cmocka_run_group_tests_name("Host disk", host_disk, NULL, NULL);
+    failed += cmocka_run_group_tests_name("Host disk init", host_disk_twice, NULL, NULL);
     failed += cmocka_run_group_tests_name(
         "Host NOR", host_nor, group_setup_host_nor, group_teardown_host_nor);
 
