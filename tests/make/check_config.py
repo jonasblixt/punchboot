@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Check that the firmware build stops without its configuration (F-229).
+"""Check the firmware build's configuration (F-229, F-147).
 
 A KCONFIG_CONFIG that doesn't exist would build the Kconfig defaults, and a
 failed scripts/genconfig.py the configuration of the build before. Both stop
-the build. The goals that need no configuration (clean, menuconfig) run
-without one. jiffy is built as an out-of-tree board, a copy in the work
-directory, so its Kconfig can be broken:
+the build. The goals that need no configuration (clean, menuconfig,
+olddefconfig) run without one, and olddefconfig updates a configuration.
+jiffy is built as an out-of-tree board, a copy in the work directory, so its
+Kconfig can be broken:
 
   check_config.py <source dir> <work dir>
 
@@ -76,9 +77,20 @@ def main() -> int:
         ok=result.returncode != 0 and not (build / ".config").exists(),
         detail=f": exit {result.returncode}, {build}/.config written",
     )
-    for goal in ("clean", "menuconfig"):
+    for goal in ("clean", "menuconfig", "olddefconfig"):
         result = make(str(work / "none_defconfig"), "-n", goal)
         check(f"{goal} runs without one", ok=result.returncode == 0, detail=result.stderr)
+
+    # olddefconfig gives a symbol that the configuration lacks its default (F-147)
+    old = work / "old_defconfig"
+    lines = (root / "configs/jiffy_defconfig").read_text().splitlines()
+    old.write_text("".join(f"{x}\n" for x in lines if not x.startswith("CONFIG_STACK_SIZE_KiB=")))
+    result = make(str(old), "olddefconfig")
+    check(
+        "olddefconfig fills in a missing symbol",
+        ok=result.returncode == 0 and "CONFIG_STACK_SIZE_KiB=" in old.read_text(),
+        detail=f": exit {result.returncode}{result.stdout}{result.stderr}",
+    )
 
     # A build, then genconfig.py fails: the build doesn't go on with its .config
     result = make("configs/jiffy_defconfig", f"{build}/keystore.o")

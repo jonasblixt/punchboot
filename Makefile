@@ -28,8 +28,9 @@ KCONFIG_CONFIG ?= .config
 BUILD_CONFIG ?= $(BUILD_DIR)/.config
 
 # A build needs its configuration: a name that is mistyped would build the
-# Kconfig defaults (F-229). menuconfig makes one, clean needs none.
-ifneq ($(filter-out menuconfig oldconfig clean,$(or $(MAKECMDGOALS),all)),)
+# Kconfig defaults (F-229). menuconfig and olddefconfig make one, clean needs
+# none.
+ifneq ($(filter-out menuconfig olddefconfig clean,$(or $(MAKECMDGOALS),all)),)
 ifeq ($(wildcard $(KCONFIG_CONFIG)),)
 $(error KCONFIG_CONFIG=$(KCONFIG_CONFIG) doesn't exist: give a defconfig, or make one with menuconfig)
 endif
@@ -132,9 +133,9 @@ DEPS      = $(OBJS:.o=.d)
 
 FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).bin
 
-.PHONY: keystore menuconfig olddefconfig
+.PHONY: menuconfig olddefconfig
 
-menuconfig oldconfig:
+menuconfig olddefconfig:
 	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/$@.py src/Kconfig
 
 all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)

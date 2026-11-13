@@ -253,10 +253,10 @@ Board name:         pico8ml
 ```
 
 Creating the authentication token using the 'createtoken.sh' script located
-in the tools folder. In this example the private key is stored on a yubikey 5 HSM.
+in the scripts folder. In this example the private key is stored on a yubikey 5 HSM.
 
 ```
-$ ./createtoken.sh 0B177094-6B62-3572-902E-C1DE339ECB01 pkcs11 -sha256 "pkcs11:id=%02;type=private"
+$ ./createtoken.sh 0B177094-6B62-3572-902E-C1DE339ECB01 pkcs11 sha256 "pkcs11:id=%02;type=private"
 engine "pkcs11" set.
 Enter PKCS#11 token PIN for PIV Card Holder pin (PIV_II):
 Enter PKCS#11 key PIN for SIGN key:

@@ -71,7 +71,6 @@ jobs:
         with:
           name: coverage
           path: coverage/
-          fail_ci_if_error: false
 
   firmware:
     name: Firmware (${{ matrix.board }})
