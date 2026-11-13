@@ -80,6 +80,7 @@
 #define BOARD_RETURN        2
 #define BOARD_REBOOT        3
 #define BOARD_FILL          4
+#define BOARD_REBOOT_FAILS  5
 #define BOARD_FILL_SIZE     64
 #define BOARD_PREFIX        "echo: "
 /* The response_buffer_size every released front end sends: the 1.x CLI, the
@@ -356,6 +357,10 @@ board_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_
         *rsp_size = 0;
         cm_board_cmd_request_reboot_on_success();
         return PB_OK;
+    case BOARD_REBOOT_FAILS: /* Asks for the reset, and then fails */
+        *rsp_size = 0;
+        cm_board_cmd_request_reboot_on_success();
+        return -PB_ERR_IO;
     default:
         *rsp_size = 0;
         return -PB_ERR;
@@ -1202,6 +1207,58 @@ static void test_board_command_requests_reboot(void **state)
     expect_end();
     /* The device leaves the bus before the reset (command-mode.md 2.3) */
     assert_int_equal(t.disconnect_calls, 1);
+}
+
+/* command-mode.md 5.6, board.md 4.4: a board's command that asked for a
+ * reset and then failed doesn't reset, and neither does what comes after it.
+ * The request is that command's: it doesn't wait for the next command that
+ * succeeds, a frame the gate refuses among them */
+static void test_failed_board_command_drops_its_reboot_request(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_REBOOT_FAILS };
+    (void)state;
+
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    req.command = BOARD_ECHO;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(PB_RESULT_OK);
+    /* A board command that succeeds, with no room for a response */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
+
+    /* The next host, on a device that locked meanwhile: its first frame is
+     * refused by the gate, which is no success of the board's command */
+    memset(&t, 0, sizeof(t));
+    t.max_inits = 1;
+    t.fail_reads_after = -1;
+    t.fail_writes_after = -1;
+    t.connect_ok_after = -1;
+    req.command = BOARD_REBOOT_FAILS;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    run();
+    memset(&t, 0, sizeof(t));
+    t.max_inits = 1;
+    t.fail_reads_after = -1;
+    t.fail_writes_after = -1;
+    t.connect_ok_after = -1;
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
 }
 
 /* command-mode.md 5.6, board.md 4.4 (F-252): a board's command that fails
@@ -4024,6 +4081,7 @@ int main(void)
         CM_TEST(test_board_response_fits_the_hosts_buffer),
         CM_TEST(test_error_codes),
         CM_TEST(test_board_command_requests_reboot),
+        CM_TEST(test_failed_board_command_drops_its_reboot_request),
         CM_TEST(test_board_command_that_returns_abort),
         CM_TEST(test_device_reset),
         CM_TEST(test_locked_device_requires_auth),

@@ -1453,11 +1453,17 @@ static int pb_command_parse(void)
 err_out:
     cm_write(&result, sizeof(result));
 
-    if (reboot_requested && (rc == 0)) {
-        LOG_INFO("Requesting reboot...");
+    /* A board's command asked for the reset (command-mode.md 5.6): only when
+     * that command returned PB_OK. The request is dropped with a command that
+     * failed, and doesn't wait for the next one that succeeds */
+    if (reboot_requested) {
         reboot_requested = false;
-        leave_requested = true;
-        rc = -PB_ERR_ABORT;
+
+        if (rc == PB_OK) {
+            LOG_INFO("Requesting reboot...");
+            leave_requested = true;
+            rc = -PB_ERR_ABORT;
+        }
     }
 
     return rc;
