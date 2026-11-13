@@ -733,7 +733,6 @@ For a change to command mode, a new command or a new method:
 | F-375               | The caps' erase timeout (4.6)                                                        |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-004               | The password is compared whole, in constant time, and not logged (3.3)               |
-| F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |
 | F-087               | A result code for a payload whose hash differs (4.5)                                 |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
 | F-194               | A new partition table is in effect at once (5.3)                                     |

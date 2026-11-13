@@ -52,6 +52,16 @@ static uint8_t buffer[2][CM_BUF_SIZE] __section(".no_init") __aligned(4096);
 static uint8_t part_buffer_0[CM_PART_BUF_SIZE] __section(".no_init") __aligned(4096);
 static uint8_t part_buffer_1[CM_PART_BUF_SIZE] __section(".no_init") __aligned(4096);
 static uint8_t *const part_buffer[2] = { part_buffer_0, part_buffer_1 };
+
+/* What the handlers put in the buffers without a check at run time fits a
+ * build's buffers: the 1024 bytes of AUTHENTICATE and of a board's request
+ * in one, a partition table entry per block device in the two, whose count
+ * is a byte on the wire */
+_Static_assert(CM_BUF_SIZE >= CM_DATA_XFER_SIZE, "CONFIG_CM_BUF_SIZE_KiB: below a data transfer");
+_Static_assert(CONFIG_BIO_MAX_DEVS <= UINT8_MAX,
+               "CONFIG_BIO_MAX_DEVS: the table's count is a byte");
+_Static_assert(CONFIG_BIO_MAX_DEVS * sizeof(struct pb_result_part_table_entry) <= sizeof(buffer),
+               "CONFIG_CM_BUF_SIZE_KiB: no room for CONFIG_BIO_MAX_DEVS table entries");
 static slc_t slc;
 
 /* The part table response sends the low byte of the bio flags and the SLC
