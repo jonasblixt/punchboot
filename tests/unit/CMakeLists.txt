@@ -352,6 +352,20 @@ add_test(NAME unit.fh_compiles
 )
 set_tests_properties(unit.fh_compiles PROPERTIES LABELS unit TIMEOUT 60)
 
+# boot/pb_fh.h is shared with the next stage, which may be C++: the header
+# alone, with nothing else of pb's, as C++ and as C
+find_program(PB_CXX_COMPILER NAMES g++ c++ REQUIRED)
+add_test(NAME unit.pb_fh_is_cxx
+    COMMAND ${PB_CXX_COMPILER} -std=c++11 -fsyntax-only -Wall -Wextra -Werror
+            -x c++ ${PROJECT_SOURCE_DIR}/include/boot/pb_fh.h
+)
+set_tests_properties(unit.pb_fh_is_cxx PROPERTIES LABELS unit TIMEOUT 60)
+add_test(NAME unit.pb_fh_is_c
+    COMMAND ${CMAKE_C_COMPILER} -std=c11 -ffreestanding -fsyntax-only -Wall -Wextra -Werror
+            -x c ${PROJECT_SOURCE_DIR}/include/boot/pb_fh.h
+)
+set_tests_properties(unit.pb_fh_is_c PROPERTIES LABELS unit TIMEOUT 60)
+
 # The delivery through TF-A is ARMv8-A's and isn't in pb-host. Its test gets
 # that arch's names for the registers' fields, the one register it reads from
 # a fake, and TF-A's headers. Built twice: with the bl_params list in pb's own
