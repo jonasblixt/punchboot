@@ -28,6 +28,7 @@
 #include <pb/pb.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <stdio.h>
 #include <string.h>
 
 /*
@@ -67,6 +68,10 @@ static const struct cm_config *cm_cfg;
 static uint16_t disk_flags;
 static unsigned int lookups, flags_set;
 static uint32_t boot_flags;
+/* The board's status(): its text, its result and how often it was called */
+static const char *status_text;
+static int status_rc;
+static unsigned int status_calls;
 
 int rot_init(const struct rot_config *cfg)
 {
@@ -304,6 +309,9 @@ static int setup(void **state)
     lookups = 0;
     flags_set = 0;
     boot_flags = 0;
+    status_text = "";
+    status_rc = PB_OK;
+    status_calls = 0;
 
     board = (struct board_decl){
         .name = "test",
@@ -985,11 +993,31 @@ static void test_patch_bootargs(void **state)
     assert_null(fdt_getprop(fdt, offset, "bootargs", NULL));
 }
 
+/* A status() as the boards write it: snprintf() into the buffer, and the
+ * length it returns, which is the whole text's also when it didn't fit */
 static int board_status(uint8_t *buf, size_t *length)
 {
-    (void)buf;
-    *length = 0;
-    return PB_OK;
+    status_calls++;
+    *length = snprintf((char *)buf, *length, "%s", status_text);
+    return status_rc;
+}
+
+#define STATUS_GUARD 0xa5
+
+/* Calls command mode's status with 'size' bytes of a larger buffer, and
+ * checks that nothing after them was written */
+static int cm_status(uint8_t *buf, size_t buf_size, size_t size, size_t *length)
+{
+    int result;
+
+    memset(buf, STATUS_GUARD, buf_size);
+    *length = size;
+    result = cm_cfg->status(buf, length);
+
+    for (size_t i = size; i < buf_size; i++)
+        assert_int_equal(buf[i], STATUS_GUARD);
+
+    return result;
 }
 
 static void test_cm(void **state)
@@ -1016,11 +1044,16 @@ static void test_cm(void **state)
     assert_int_equal(cm_cfg->command(0x1234, buf, 0, buf, &length), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(length, 0);
 
-    /* The board's */
+    /* The board's: its text, and the core's NUL */
     setup(NULL);
+    status_text = "Fine\n";
     board.status = board_status;
     assert_int_equal(cm_board_init(), PB_OK);
-    assert_ptr_equal(cm_cfg->status, board_status);
+    length = sizeof(buf);
+    assert_int_equal(cm_cfg->status(buf, &length), PB_OK);
+    assert_int_equal(status_calls, 1);
+    assert_string_equal((char *)buf, "Fine\n");
+    assert_int_equal(length, strlen("Fine\n") + 1);
 
     /* A failed hook stops it */
     setup(NULL);
@@ -1033,6 +1066,59 @@ static void test_cm(void **state)
     board.cm_init = NULL;
     assert_int_equal(cm_board_init(), PB_OK);
     assert_string_equal(calls, "cm ");
+}
+
+/* board.md 4.3 (F-250): the board writes at most *length - 1 bytes of text,
+ * the core clamps the length and appends the NUL. A text that didn't fit is
+ * cut, and nothing is written past the buffer. */
+static void test_cm_status_is_clamped(void **state)
+{
+    static const char text[] = "Board status OK!\n";
+    uint8_t buf[64];
+    size_t length;
+
+    (void)state;
+
+    /* The default, in a buffer too small for its text */
+    assert_int_equal(cm_board_init(), PB_OK);
+    assert_int_equal(cm_status(buf, sizeof(buf), 8, &length), PB_OK);
+    assert_int_equal(length, 8);
+    assert_memory_equal(buf, "Board s", 8);
+
+    /* A buffer the text and its NUL fill, and one that is a byte short */
+    assert_int_equal(cm_status(buf, sizeof(buf), sizeof(text), &length), PB_OK);
+    assert_int_equal(length, sizeof(text));
+    assert_memory_equal(buf, text, sizeof(text));
+
+    assert_int_equal(cm_status(buf, sizeof(buf), sizeof(text) - 1, &length), PB_OK);
+    assert_int_equal(length, sizeof(text) - 1);
+    assert_memory_equal(buf, "Board status OK!", sizeof(text) - 1);
+
+    /* A board's status() that reports more than the buffer holds */
+    setup(NULL);
+    status_text = "0123456789";
+    board.status = board_status;
+    assert_int_equal(cm_board_init(), PB_OK);
+    assert_int_equal(cm_status(buf, sizeof(buf), 8, &length), PB_OK);
+    assert_int_equal(length, 8);
+    assert_memory_equal(buf, "0123456", 8);
+
+    /* One byte holds the NUL alone */
+    assert_int_equal(cm_status(buf, sizeof(buf), 1, &length), PB_OK);
+    assert_int_equal(length, 1);
+    assert_int_equal(buf[0], 0);
+
+    /* None has no room for it: refused, and the board isn't asked */
+    status_calls = 0;
+    assert_int_equal(cm_status(buf, sizeof(buf), 0, &length), -PB_ERR_PARAM);
+    assert_int_equal(status_calls, 0);
+
+    /* A status() that fails is passed on, without a NUL of the core's */
+    status_text = "";
+    status_rc = -PB_ERR_IO;
+    assert_int_equal(cm_status(buf, sizeof(buf), 8, &length), -PB_ERR_IO);
+    assert_int_equal(status_calls, 1);
+    assert_int_equal(buf[1], STATUS_GUARD);
 }
 
 /* A failed check in cm_board_init() means no command mode: -PB_ERR_PARAM,
@@ -1160,6 +1246,7 @@ int main(void)
         cmocka_unit_test_setup(test_delivery_failures, setup),
         cmocka_unit_test_setup(test_patch_bootargs, setup),
         cmocka_unit_test_setup(test_cm, setup),
+        cmocka_unit_test_setup(test_cm_status_is_clamped, setup),
         cmocka_unit_test_setup(test_cm_name, setup),
         cmocka_unit_test_setup(test_cm_name_is_read_bounded, setup),
         cmocka_unit_test_setup(test_cm_no_transport, setup),

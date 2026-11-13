@@ -165,8 +165,6 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
                                 celsius,
                                 tenths);
 
-    response[(*response_size)++] = 0;
-
     return PB_OK;
 }
 

@@ -445,9 +445,8 @@ Answers `board status`, which needs authentication on a locked device (`security
 `*length` is the size of `buf`. Out: text in `buf`, `*length` bytes. It shows what `init()` logged
 and didn't fail on (2.3), and never a secret (4.5).
 
-**Not yet in the code (F-250)**: each board, and the default, appends the NUL itself and sets
-`*length` from `snprintf()`, which writes past `buf` when the text was truncated. The rule: the
-board writes at most `*length - 1` bytes of text; the core clamps the length and appends the NUL.
+The board writes at most `*length - 1` bytes of text; the core clamps the length and appends the
+NUL.
 
 NULL: "Board status OK!".
 
@@ -788,17 +787,17 @@ For a new board, and for a change to one:
 Where each board is (2026-11-12). The host board is the tests' (`testing.md`) and follows the
 contract too, so that the order of section 2 is tested end to end (F-217).
 
-| Requirement                    | jiffy | 8MP EVK | MEK | DXL EVK | RT1060 EVK | imx8mevk | host    | Finding      |
-| ------------------------------ | ----- | ------- | --- | ------- | ---------- | -------- | ------- | ------------ |
-| Data (3)                       | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300        |
-| A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300        |
-| Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270        |
-| No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-301        |
-| No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251        |
-| `status()` (4.3)               | no    | default | no  | no      | default    | default  | default | F-250        |
-| `password_auth()` (4.5)        | n/a   | n/a     | no  | no      | n/a        | n/a      | n/a     | F-004        |
-| The order of section 2         | yes   | yes     | yes | yes     | yes        | yes      | no      | F-217        |
-| Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-033        |
+| Requirement                    | jiffy | 8MP EVK | MEK | DXL EVK | RT1060 EVK | imx8mevk | host    | Finding |
+| ------------------------------ | ----- | ------- | --- | ------- | ---------- | -------- | ------- | ------- |
+| Data (3)                       | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300   |
+| A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-300   |
+| Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270   |
+| No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-301   |
+| No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251   |
+| `status()` (4.3)               | yes   | default | yes | yes     | default    | default  | default |         |
+| `password_auth()` (4.5)        | n/a   | n/a     | no  | no      | n/a        | n/a      | n/a     | F-004   |
+| The order of section 2         | yes   | yes     | yes | yes     | yes        | yes      | no      | F-217   |
+| Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-033   |
 
 Data: imx8mevk has neither a policy nor a handover (F-300), so the policy's check fails its
 `board_setup()` with `-PB_ERR_PARAM`. The RoT, the SLC, `init()` and the table are set up before

@@ -157,7 +157,6 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
                                 boot_bus_width_str(sbmr1),
                                 (sbmr1 & IMX6UL_BOOT_CFG_MMC_HIGH_SPEED) ? "high" : "normal",
                                 (sbmr1 & IMX6UL_BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
-    response[(*response_size)++] = 0;
 
     return PB_OK;
 }

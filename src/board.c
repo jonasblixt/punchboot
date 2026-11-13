@@ -225,7 +225,33 @@ static int default_status(uint8_t *buf, size_t *length)
     size_t size = *length;
 
     *length = snprintf((char *)buf, size, "Board status OK!\n");
-    buf[(*length)++] = 0;
+    return PB_OK;
+}
+
+/*
+ * Command mode's 'board status' (board.md 4.3). The board's status(), or the
+ * default, writes text, at most size - 1 bytes of it. The length it reports
+ * is clamped to that: snprintf() returns the length of the whole text, also
+ * when it didn't fit. The NUL is appended here, and counted.
+ */
+static int cm_board_status(uint8_t *buf, size_t *length)
+{
+    size_t size = *length;
+    int rc;
+
+    /* No room for the NUL */
+    if (size == 0)
+        return -PB_ERR_PARAM;
+
+    rc = board.status ? board.status(buf, length) : default_status(buf, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (*length > size - 1)
+        *length = size - 1;
+
+    buf[(*length)++] = '\0';
     return PB_OK;
 }
 
@@ -298,7 +324,7 @@ int cm_board_init(void)
     }
 
     cfg.name = board.name;
-    cfg.status = board.status ? board.status : default_status;
+    cfg.status = cm_board_status;
     cfg.command = board.command ? board.command : default_command;
     cfg.password_auth = board.password_auth;
     cfg.tops = *board.cm_transport;
