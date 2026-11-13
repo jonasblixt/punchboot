@@ -69,6 +69,7 @@ static struct {
 
     size_t n_calls;
     uint8_t reset_reason;
+    uint8_t reset_reason_err; /* The SCFW's error for the question, 0: none */
 } scfw;
 
 /* A reset leaves the code under test through here */
@@ -107,6 +108,7 @@ static void scfw_call(void)
     uint8_t svc = (scfw.words[0] >> 16) & 0xff;
     uint8_t func = (scfw.words[0] >> 24) & 0xff;
     uint32_t data = 0;
+    uint32_t err = SC_ERR_NONE;
 
     assert_true(scfw.n_calls < MAX_CALLS);
     scfw.calls[scfw.n_calls].svc = svc;
@@ -121,10 +123,12 @@ static void scfw_call(void)
 
     if (svc == SC_RPC_SVC_PM && func == PM_FUNC_SET_CLOCK_RATE)
         data = scfw.words[1]; /* The rate asked for */
-    else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_RESET_REASON)
+    else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_RESET_REASON) {
         data = scfw.reset_reason;
+        err = scfw.reset_reason_err;
+    }
 
-    fake_regs_set(MU_ARR(0), (SC_RPC_SVC_RETURN << 16) | (4 << 8) | SC_RPC_VERSION);
+    fake_regs_set(MU_ARR(0), (err << 24) | (SC_RPC_SVC_RETURN << 16) | (4 << 8) | SC_RPC_VERSION);
     fake_regs_set(MU_ARR(1), data);
     fake_regs_set(MU_ARR(2), 0);
     fake_regs_set(MU_ARR(3), 0);
@@ -217,6 +221,79 @@ static void test_plat_reset(void **state)
     assert_int_equal(fake_regs_writes(MU_ACR), acr_writes);
 }
 
+/* platform.md 3.4: before plat_early_init() nothing was asked, and the
+ * reason is no power on by default. Runs before any plat_early_init() */
+static void test_boot_reason_before_early_init(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    memset(&reason, 0xff, sizeof(reason));
+    assert_int_equal(plat_get_boot_reason(&reason), -PB_ERR_IO);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_UNKNOWN);
+    assert_string_equal(reason.name, "Unknown");
+    assert_int_equal(scfw.n_calls, 0);
+}
+
+/* platform.md 3.4: every reason the SCFW has gets a kind and a name, and raw
+ * is the SCFW's value (plat/imx8x/imx8x.h has the table) */
+static void test_boot_reason_kinds(void **state)
+{
+    static const struct {
+        enum pb_boot_reason_kind kind;
+        const char *name;
+    } reasons[] = {
+        [SC_PM_RESET_REASON_POR] = { PB_BOOT_REASON_POR, "POR" },
+        [SC_PM_RESET_REASON_JTAG] = { PB_BOOT_REASON_DEBUG, "JTAG" },
+        [SC_PM_RESET_REASON_SW] = { PB_BOOT_REASON_SW, "SW" },
+        [SC_PM_RESET_REASON_WDOG] = { PB_BOOT_REASON_WDOG, "WDOG" },
+        [SC_PM_RESET_REASON_LOCKUP] = { PB_BOOT_REASON_FAULT, "LOCKUP" },
+        [SC_PM_RESET_REASON_SNVS] = { PB_BOOT_REASON_FAULT, "SNVS" },
+        [SC_PM_RESET_REASON_TEMP] = { PB_BOOT_REASON_FAULT, "TEMP" },
+        [SC_PM_RESET_REASON_MSI] = { PB_BOOT_REASON_UNKNOWN, "MSI" },
+        [SC_PM_RESET_REASON_UECC] = { PB_BOOT_REASON_FAULT, "UECC" },
+        [SC_PM_RESET_REASON_SCFW_WDOG] = { PB_BOOT_REASON_WDOG, "SCFW WDOG" },
+        [SC_PM_RESET_REASON_ROM_WDOG] = { PB_BOOT_REASON_WDOG, "ROM WDOG" },
+        [SC_PM_RESET_REASON_SECO] = { PB_BOOT_REASON_FAULT, "SECO" },
+        [SC_PM_RESET_REASON_SCFW_FAULT] = { PB_BOOT_REASON_FAULT, "SCFW Fault" },
+        [SC_PM_RESET_REASON_V2X_DEBUG] = { PB_BOOT_REASON_UNKNOWN, "V2X DEBUG" },
+        [SC_PM_RESET_REASON_BOOT_STAGE] = { PB_BOOT_REASON_UNKNOWN, "BOOT STAGE" },
+        /* One the SCFW adds later */
+        [15] = { PB_BOOT_REASON_UNKNOWN, "Unknown" },
+    };
+    struct pb_boot_reason reason;
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(reasons); i++) {
+        memset(&reason, 0xff, sizeof(reason));
+        scfw.reset_reason = (uint8_t)i;
+        scfw.n_calls = 0;
+        assert_int_equal(plat_early_init(), PB_OK);
+        assert_int_equal(plat_get_boot_reason(&reason), PB_OK);
+        assert_int_equal(reason.kind, reasons[i].kind);
+        assert_int_equal(reason.raw, i);
+        assert_string_equal(reason.name, reasons[i].name);
+    }
+}
+
+/* platform.md 3.4: the SCFW refused the question. An error, and a reason
+ * that is filled in all the same: the banner prints it */
+static void test_boot_reason_scfw_error(void **state)
+{
+    struct pb_boot_reason reason;
+    (void)state;
+
+    memset(&reason, 0xff, sizeof(reason));
+    scfw.reset_reason = SC_PM_RESET_REASON_WDOG;
+    scfw.reset_reason_err = SC_ERR_NOACCESS;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_get_boot_reason(&reason), -PB_ERR_IO);
+    assert_int_equal(reason.kind, PB_BOOT_REASON_UNKNOWN);
+    assert_int_equal(reason.raw, 0);
+    assert_string_equal(reason.name, "Unknown");
+}
+
 /* The SCFW's reset reasons all have a name: 13 and 14, which the SCFW's API
  * has had since the tree's copy of it, were "Unknown" (F-412) */
 static void test_boot_reason_names(void **state)
@@ -258,8 +335,11 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_wdog_kick_before_early_init, setup),
         cmocka_unit_test_setup(test_plat_reset_before_early_init, setup),
+        cmocka_unit_test_setup(test_boot_reason_before_early_init, setup),
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_boot_reason_names, setup),
+        cmocka_unit_test_setup(test_boot_reason_kinds, setup),
+        cmocka_unit_test_setup(test_boot_reason_scfw_error, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
     };
 

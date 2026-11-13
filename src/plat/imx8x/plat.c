@@ -65,7 +65,9 @@ int imx8x_pads_setup(const struct imx8x_pad *pads, size_t length)
     return PB_OK;
 }
 
-static int boot_reason;
+/* The SCFW's reset reason as plat_early_init() got it, negative before that
+ * and when the SCFW didn't give one */
+static int boot_reason = -1;
 
 static const mmap_region_t imx_mmap[] = {
     /* Map all of the normal I/O space */
@@ -338,6 +340,47 @@ int plat_cm_init(void)
     return imx_ci_udc_init(IMX8DXL_USB_OTG2_BASE);
 }
 #endif
+
+/* By the SCFW's reason (plat/imx8x/imx8x.h) */
+static const struct {
+    enum pb_boot_reason_kind kind;
+    const char *name;
+} boot_reasons[] = {
+    [SC_PM_RESET_REASON_POR] = { PB_BOOT_REASON_POR, "POR" },
+    [SC_PM_RESET_REASON_JTAG] = { PB_BOOT_REASON_DEBUG, "JTAG" },
+    [SC_PM_RESET_REASON_SW] = { PB_BOOT_REASON_SW, "SW" },
+    [SC_PM_RESET_REASON_WDOG] = { PB_BOOT_REASON_WDOG, "WDOG" },
+    [SC_PM_RESET_REASON_LOCKUP] = { PB_BOOT_REASON_FAULT, "LOCKUP" },
+    [SC_PM_RESET_REASON_SNVS] = { PB_BOOT_REASON_FAULT, "SNVS" },
+    [SC_PM_RESET_REASON_TEMP] = { PB_BOOT_REASON_FAULT, "TEMP" },
+    [SC_PM_RESET_REASON_MSI] = { PB_BOOT_REASON_UNKNOWN, "MSI" },
+    [SC_PM_RESET_REASON_UECC] = { PB_BOOT_REASON_FAULT, "UECC" },
+    [SC_PM_RESET_REASON_SCFW_WDOG] = { PB_BOOT_REASON_WDOG, "SCFW WDOG" },
+    [SC_PM_RESET_REASON_ROM_WDOG] = { PB_BOOT_REASON_WDOG, "ROM WDOG" },
+    [SC_PM_RESET_REASON_SECO] = { PB_BOOT_REASON_FAULT, "SECO" },
+    [SC_PM_RESET_REASON_SCFW_FAULT] = { PB_BOOT_REASON_FAULT, "SCFW Fault" },
+    [SC_PM_RESET_REASON_V2X_DEBUG] = { PB_BOOT_REASON_UNKNOWN, "V2X DEBUG" },
+    [SC_PM_RESET_REASON_BOOT_STAGE] = { PB_BOOT_REASON_UNKNOWN, "BOOT STAGE" },
+};
+
+int plat_get_boot_reason(struct pb_boot_reason *reason)
+{
+    reason->kind = PB_BOOT_REASON_UNKNOWN;
+    reason->raw = 0;
+    reason->name = "Unknown";
+
+    if (boot_reason < 0)
+        return -PB_ERR_IO;
+
+    reason->raw = (uint32_t)boot_reason;
+
+    if ((size_t)boot_reason < ARRAY_SIZE(boot_reasons)) {
+        reason->kind = boot_reasons[boot_reason].kind;
+        reason->name = boot_reasons[boot_reason].name;
+    }
+
+    return PB_OK;
+}
 
 int plat_boot_reason(void)
 {

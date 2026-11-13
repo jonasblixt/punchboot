@@ -61,6 +61,24 @@
      (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) |                                           \
      (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
+/*
+ * The boot reason (plat_get_boot_reason(), platform.md 3.4): raw is the
+ * SCFW's reset reason, SC_PM_RESET_REASON_* (sci/svc/pm/api.h), as
+ * plat_early_init() got it from sc_pm_reset_reason(). The SCFW gives one
+ * reason, so there is no priority, and pb has nothing to clear. The kind of
+ * each, with the SCFW's name for it as the name:
+ *
+ *   POR      POR (0)
+ *   DEBUG    JTAG (1)
+ *   SW       SW (2)
+ *   WDOG     WDOG (3, a partition's), SCFW_WDOG (9), ROM_WDOG (10)
+ *   FAULT    LOCKUP (4), SNVS (5), TEMP (6), UECC (8), SECO (11), SCFW_FAULT (12)
+ *   UNKNOWN  MSI (7), V2X_DEBUG (13), BOOT_STAGE (14): no kind fits. Also a
+ *            reason the SCFW adds later, named "Unknown"
+ *
+ * When the SCFW gives no reason the call returns -PB_ERR_IO, with UNKNOWN and
+ * a raw value of 0.
+ */
 struct imx8x_platform {
     sc_ipc_t ipc;
     uint32_t soc_id;
