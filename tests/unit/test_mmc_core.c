@@ -19,6 +19,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -481,6 +482,41 @@ static void test_boot_part_config_values(void **state)
     assert_int_equal(first_boot_part_config(3, uu), -PB_ERR_STATE); /* Reserved */
 }
 
+/* CONFIG_MMC_CORE_DEBUG_IOS (Kconfig): every read and write is logged, and
+ * nothing without it. test_mmc_core_debug_ios is this file with the option. */
+static void test_debug_ios(void **state)
+{
+    char out[1024] = { 0 };
+    uint8_t buf[512];
+    FILE *f = tmpfile();
+    int saved;
+    (void)state;
+
+    power_on();
+    pb_boot();
+
+    assert_non_null(f);
+    fflush(stdout);
+    saved = dup(STDOUT_FILENO);
+    assert_true(saved >= 0);
+    assert_true(dup2(fileno(f), STDOUT_FILENO) >= 0);
+    int rc = bio_read(part(UU_USER), 1, sizeof(buf), buf);
+    fflush(stdout);
+    dup2(saved, STDOUT_FILENO);
+    close(saved);
+    rewind(f);
+    size_t n = fread(out, 1, sizeof(out) - 1, f);
+    fclose(f);
+
+    assert_int_equal(rc, PB_OK);
+    out[n] = 0;
+#ifdef CONFIG_MMC_CORE_DEBUG_IOS
+    assert_non_null(strstr(out, " D mmc_rw: read "));
+#else
+    assert_null(strstr(out, "mmc_rw"));
+#endif
+}
+
 int main(void)
 {
     for (size_t n = 0; n < IMAGE_SIZE; n++) {
@@ -500,6 +536,7 @@ int main(void)
         cmocka_unit_test_setup(test_write_done_user, setup),
         cmocka_unit_test_setup(test_boot_part_config, setup),
         cmocka_unit_test_setup(test_boot_bus_conditions, setup),
+        cmocka_unit_test_setup(test_debug_ios, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

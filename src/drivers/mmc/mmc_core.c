@@ -168,7 +168,7 @@ static int mmc_rw(struct mmc_device *dev, unsigned int lba, size_t length, uintp
     };
     int ret;
 
-#ifdef MMC_CORE_DEBUG_IOS
+#ifdef CONFIG_MMC_CORE_DEBUG_IOS
     LOG_DBG("%s %u, %zu, %p", write ? "write" : "read", lba, length, (void *)buf);
 #endif
 

@@ -313,6 +313,20 @@ pb_unit_test(test_mmc_core SOURCES
 )
 target_compile_definitions(test_mmc_core PRIVATE CONFIG_MMC_CORE_MAX_DEVICES=1)
 
+# The same with CONFIG_MMC_CORE_DEBUG_IOS: test_debug_ios checks its log
+add_executable(test_mmc_core_debug_ios test_mmc_core.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
+)
+target_compile_definitions(test_mmc_core_debug_ios PRIVATE
+    CONFIG_MMC_CORE_MAX_DEVICES=1 CONFIG_MMC_CORE_DEBUG_IOS=1)
+target_include_directories(test_mmc_core_debug_ios PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_mmc_core_debug_ios PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_mmc_core_debug_ios COMMAND test_mmc_core_debug_ios)
+set_tests_properties(unit.test_mmc_core_debug_ios PROPERTIES LABELS unit TIMEOUT 60)
+
 # The i.MX8M LPDDR4 init with the imx8mevk timing, against a device model
 # behind a fake pb/mmio.h (see the test)
 pb_unit_test(test_imx8m_ddr SOURCES
