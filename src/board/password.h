@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * The comparison a board's password_auth() makes (board.md 4.5). A board
+ * The comparison a board's password_auth() makes (board.md 4.4). A board
  * that uses it adds src/board/password.c to its src-y.
  */
 

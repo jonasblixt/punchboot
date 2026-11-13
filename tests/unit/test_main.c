@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * main() (src/main.c) and its loop over the tasks (board.md 4.6, system.md
+ * main() (src/main.c) and its loop over the tasks (board.md 4.5, system.md
  * 2): when the boot failed or was stopped, every task that DEFINE_TASK()
  * defines is called in turn, again and again, until one returns an error,
  * and then pb resets. The platform, the board's set up and the boot are
@@ -227,7 +227,7 @@ static void test_platform_is_set_up_before_the_board(void **state)
 }
 
 #ifndef TEST_NO_TASKS
-/* board.md 4.6: the core calls every task in the list, one after the other,
+/* board.md 4.5: the core calls every task in the list, one after the other,
  * again and again. An error ends the loop, also for the tasks that would
  * have followed in that round, and pb resets (system.md 2) */
 static void test_tasks_run_in_turn_until_one_ends_the_loop(void **state)
@@ -254,7 +254,7 @@ static void test_tasks_run_in_turn_until_one_ends_the_loop(void **state)
     assert_true(f.n_order <= 3 * N_TASKS);
 }
 
-/* board.md 4.6: PB_OK is "call me again", any error ends the loop */
+/* board.md 4.5: PB_OK is "call me again", any error ends the loop */
 static void test_any_error_ends_the_loop(void **state)
 {
     static const int errors[] = { -PB_ERR, -PB_ERR_ABORT, -PB_ERR_TIMEOUT, -PB_ERR_IO };
@@ -275,7 +275,7 @@ static void test_any_error_ends_the_loop(void **state)
     }
 }
 
-/* board.md 4.6, platform.md 3.3: a task doesn't kick the watchdog, the core
+/* board.md 4.5, platform.md 3.3: a task doesn't kick the watchdog, the core
  * does, once per round */
 static void test_watchdog_is_kicked_once_per_round(void **state)
 {
@@ -293,7 +293,7 @@ static void test_watchdog_is_kicked_once_per_round(void **state)
         assert_int_equal(f.kicks_at[i] - kicks, i / N_TASKS + 1);
 }
 
-/* board.md 4.6: never on the boot path (D-023). No task runs before the
+/* board.md 4.5: never on the boot path (D-023). No task runs before the
  * boot, and none when the boot jumps */
 static void test_tasks_run_only_when_stopped(void **state)
 {
@@ -322,7 +322,7 @@ static void test_stopped_after_a_failed_board_setup(void **state)
     assert_int_equal(f.resets, 1);
 }
 #else
-/* board.md 4.6, system.md 2: no task in the build, as one without command
+/* board.md 4.5, system.md 2: no task in the build, as one without command
  * mode may have: pb resets at once */
 static void test_no_task_resets_at_once(void **state)
 {

@@ -168,7 +168,7 @@ static int board_password_auth(const char *password, size_t length)
      * For example RPMB if there is an eMMC present.
      *
      * The whole password is compared, in constant time, and not logged
-     * (board.md 4.5).
+     * (board.md 4.4).
      */
     static const char expected[] = "imx8qxpmek";
 

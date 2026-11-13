@@ -17,7 +17,7 @@ import logging
 import os
 import pathlib
 import uuid
-from typing import IO, TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, NamedTuple
 
 import semver  # type: ignore[import-not-found]
 
@@ -43,6 +43,18 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("pb")
 
+
+class NamedCommand(NamedTuple):
+    """A device's named command (command-mode.md 5.6): run it by its name."""
+
+    name: str
+    help: str
+
+    @property
+    def id(self) -> int:
+        """The id the device knows it by, pb_id() of the name."""
+        return pb_id(self.name)
+
 PartUUIDType = uuid.UUID | str
 
 # Bytes asked for per log read. Devices send at most their command buffer.
@@ -57,6 +69,9 @@ BOARD_RESPONSE_SIZE = 4096
 BOARD_STATUS_SIZE = 1024
 VERSION_SIZE = 64
 PART_TABLE_ENTRIES = 128
+# The most named commands read from a device. Its list fits its command
+# buffer, 4 KiB on the smallest build: 32 entries
+COMMAND_LIST_ENTRIES = 1024
 PART_TABLE_ENTRIES_WRITE = 256
 MAX_KEYS = 16
 # pb_command_verify_part.size is 32 bits
@@ -405,6 +420,25 @@ class Session:
             code, _ = self._result()
         check(code)
         return data
+
+    def _command_list(self) -> list[NamedCommand]:
+        response = self._command(Command.PB_CMD_COMMAND_LIST)
+        count = wire.pb_result_command_list.unpack(response).count
+        if count > COMMAND_LIST_ENTRIES:
+            # The entries and the last result are left unread
+            self._end_session()
+            raise NoMemoryError
+        entry_size = wire.pb_result_command_list_entry.sizeof()
+        data = self._read(count * entry_size) if count else b""
+        code, _ = self._result()
+        check(code)
+        entries = [
+            wire.pb_result_command_list_entry.unpack(data[i * entry_size :]) for i in range(count)
+        ]
+        return [
+            NamedCommand(wire.c_string(bytes(e.name)), wire.c_string(bytes(e.help)))
+            for e in entries
+        ]
 
     def _board_status(self) -> str:
         self._send(Command.PB_CMD_BOARD_STATUS_READ)
@@ -845,6 +879,34 @@ class Session:
         """
         cmd_id: int = pb_id(cmd) if isinstance(cmd, str) else cmd
         return self._board_command(cmd_id, args or b"")
+
+    def command_list(self) -> list[NamedCommand]:
+        """List the device's named commands (command-mode.md 5.6).
+
+        Returns each command's name and help line, in the device's order.
+
+        Exceptions:
+        CommandError          -- A device older than the list (before 3.0.0),
+                                 which still runs a command by its name
+        NotAuthenticatedError -- Authentication required
+        """
+        return self._command_list()
+
+    def command_run(self, name: str, request: bytes = b"") -> bytes:
+        """Run a named command of the device (command-mode.md 5.6).
+
+        Keyword arguments:
+        name    -- The command's name
+        request -- At most 1024 bytes for the command
+
+        Returns the command's response
+
+        Exceptions:
+        NotAuthenticatedError -- Authentication required
+        NotSupportedError     -- The device has no command of that name
+        NoMemoryError         -- The request is larger than 1024 bytes
+        """
+        return self._board_command(pb_id(name), request)
 
     def board_read_status(self) -> str:
         """Read board status."""

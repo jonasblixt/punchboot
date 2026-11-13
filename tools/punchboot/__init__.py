@@ -23,7 +23,7 @@ from .errors import (  # noqa: F401
 )
 from .helpers import library_version, list_usb_devices, pb_id, wait_for_device
 from .partition import Partition, PartitionFlags
-from .session import Session
+from .session import NamedCommand, Session
 from .slc import SLC
 
 _pb_exceptions = [
@@ -50,6 +50,7 @@ _pb_exceptions = [
 
 __all__ = [
     "SLC",
+    "NamedCommand",
     "Partition",
     "PartitionFlags",
     "Session",

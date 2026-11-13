@@ -98,7 +98,8 @@ struct board {
     const char *bootargs_verbose;
 
     int (*status)(uint8_t *buf, size_t *length); /*!< NULL: "Board status OK!" */
-    int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
+    /* The board's commands are named commands, not a member (pb/command.h,
+     * D-076) */
     /* Required with CONFIG_CM_AUTH_PASSWORD */
     int (*password_auth)(const char *password, size_t length);
 };
