@@ -138,8 +138,6 @@ next chunk while the engine hashes this one. Without it the core calls `update`.
 
 - **`buf` stays valid and unchanged until the next `hash_*()` call returns**, any of them,
   `hash_final()` and the next `hash_init()` included. Each of them waits for the job first.
-  **Not yet in the code (F-220)**: the backend's block buffer is refilled while a job may
-  read it.
 - **An error of the job is returned by the call that waits for it**, and the context is then
   failed: every later update and the final return an error, never a digest.
 - The image's memory is the usual buffer: a chunk is hashed where it was loaded, and the next
@@ -303,9 +301,8 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | `hash_init()` starts clean           | yes                     | yes                  |              |
 |                                      | (`test_caam_crypto`)    |                      |              |
 | Any length and split                 | yes (read; no test)     | yes (`test_mbedtls`) | F-230        |
-| The asynchronous update is waited    | partly: not for the     | n/a (none)           | F-220        |
-| for                                  | block buffer's job      |                      |              |
-|                                      | (`test_caam_crypto`)    |                      |              |
+| The asynchronous update is waited    | yes                     | n/a (none)           |              |
+| for                                  | (`test_caam_crypto`)    |                      |              |
 | `final` respects `length`            | no                      | yes (`test_mbedtls`) | F-286        |
 | The digest is copied to the user     | no                      | yes (no DMA)         | F-081        |
 | `*verified` false first              | yes                     | yes                  |              |
@@ -350,7 +347,6 @@ simple target (D-025): F-181 was found in such a model, not on hardware.
 | Finding      | What                                                                            |
 | ------------ | ------------------------------------------------------------------------------- |
 | F-286        | The core and the backends against sections 3, 4 and 6; the conformance suite    |
-| F-220        | The block buffer isn't refilled while a job reads it (3.3)                      |
 | F-081        | The digest is copied, not written by the engine into the user's memory (3.5)    |
 | F-247        | The platform sets the backend up (2)                                            |
 | F-230        | The backends' tests (9)                                                         |

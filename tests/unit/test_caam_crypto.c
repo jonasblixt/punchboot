@@ -321,6 +321,23 @@ static void test_3_3_every_call_waits(void **state)
     assert_memory_equal(digest, expected, 32);
 }
 
+/* 3.3, drivers.md 4.2: the driver's block buffer isn't filled again while
+ * the engine reads it. The second update fills the buffer up to a block,
+ * which is hashed, and has bytes left for it (F-220) */
+static void test_3_3_block_buffer(void **state)
+{
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(hashes); i++) {
+        assert_int_equal(hash_init(hashes[i].alg), PB_OK);
+        assert_int_equal(hash_update_async(pattern, 100), PB_OK);
+        assert_int_equal(hash_update_async(&pattern[100], 40), PB_OK);
+        assert_int_equal(hash_update_async(&pattern[140], 860), PB_OK);
+        assert_int_equal(hash_final(digest, hashes[i].length), PB_OK);
+        assert_memory_equal(digest, hashes[i].pattern, hashes[i].length);
+    }
+}
+
 /* 3.3: an error of the job is returned by the call that waits for it, and
  * the context is then failed: every later update and the final return an
  * error, never a digest */
@@ -571,6 +588,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_3_known_answers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_update_async, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_every_call_waits, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_3_3_block_buffer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_job_error_fails_the_context, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_verdict, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_starts_clean, setup, teardown),

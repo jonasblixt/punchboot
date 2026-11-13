@@ -501,6 +501,14 @@ static int caam_hash_input(const void *buf, size_t length)
             if (rc != 0)
                 return rc;
 
+            /* The buffer is filled again below, and the engine reads it
+             * until its job is done (drivers.md 4.2): one block, not worth
+             * the overlap */
+            rc = caam_hash_join();
+
+            if (rc != PB_OK)
+                return rc;
+
             caam.hash_align_buf_len = 0;
         }
 
