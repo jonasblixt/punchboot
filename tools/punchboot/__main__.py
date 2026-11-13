@@ -110,6 +110,22 @@ def _command_completion(
     return [i for i in items if i.value.startswith(incomplete)]
 
 
+def _log_completion(
+    _ctx: click.Context, _param: click.Parameter, incomplete: str
+) -> list[CompletionItem]:
+    """Completion handler for logs: the device's, from its list of logs.
+
+    A device that can't be asked (none there, before 3.0.0, or locked and
+    not authenticated in this USB session) completes 'pb' only, the log
+    every device has.
+    """
+    items = [CompletionItem("pb", help="pb's console output")]
+    with contextlib.suppress(Exception):  # Intentionally suppress all exceptions
+        s: Session = _completion_helper_init_session()
+        items = [CompletionItem(name, help=description) for name, description in s.log_list()]
+    return [i for i in items if i.value.startswith(incomplete)]
+
+
 RT = TypeVar("RT")
 TFunc = Callable[..., RT]
 
@@ -772,7 +788,7 @@ def slc_revoke_key(_ctx: click.Context, s: Session, key_id: str, force: bool) ->
 
 
 @cli.command("log")
-@click.argument("name", default="pb")
+@click.argument("name", default="pb", shell_complete=_log_completion)
 @click.option(
     "output",
     "-o",
