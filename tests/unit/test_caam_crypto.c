@@ -46,6 +46,12 @@ static uint8_t chunk[4096];
 static uint8_t digest[CRYPTO_MD_MAX_SZ];
 static uint8_t signature[160];
 
+/* The output ring of the stage before pb, and how imx_caam_init() found and
+ * left the job ring */
+static uint32_t earlier_ring[2];
+static unsigned int init_violations;
+static bool init_idle;
+
 static const struct {
     hash_t alg;
     size_t length;
@@ -138,7 +144,14 @@ static int group_setup(void **state)
 
     bench_reset();
     caam_model_init(&cfg);
-    return (imx_caam_init(CAAM_JR_BASE) == PB_OK) ? 0 : -1;
+    caam_model_earlier_stage(earlier_ring, 0);
+
+    if (imx_caam_init(CAAM_JR_BASE) != PB_OK)
+        return -1;
+
+    init_violations = bench_violations();
+    init_idle = caam_model_idle();
+    return 0;
 }
 
 static int setup(void **state)
@@ -225,6 +238,16 @@ static void assert_verdicts(void)
         assert_int_equal(verify_token(&tokens[i], true, &verified), PB_OK);
         assert_true(verified);
     }
+}
+
+/* drivers.md 2.1: init starts from a known state. A completion that the
+ * stage before left in the job ring is taken out before the ring is set up
+ * again, which the engine allows only with no job in it (F-181) */
+static void test_2_1_init_empties_the_ring(void **state)
+{
+    (void)state;
+    assert_int_equal(init_violations, 0);
+    assert_true(init_idle);
 }
 
 /* 3: the digest is that of the bytes, however they are split */
@@ -532,16 +555,37 @@ static void test_job_error(void **state)
     assert_verdicts();
 }
 
-/* A completion that names another descriptor is an error, and it is taken
- * out of the ring: the next job's completion is its own (F-127) */
-static void test_job_wrong_descriptor(void **state)
+/* 4, drivers.md 5: the completion a call takes is its own job's. One of
+ * another descriptor, which an earlier user of the job ring left, is taken
+ * out of the ring and the job is waited for: it is still in flight. Taking
+ * it for the job's end left every later wait with the completion of the job
+ * before its own, and a signature that doesn't verify was accepted (F-181) */
+static void test_4_completion_of_another_job(void **state)
 {
+    static uint8_t expected[32];
     (void)state;
 
     assert_int_equal(hash_init(HASH_SHA256), PB_OK);
-    caam_model_wrong_address_next();
-    assert_int_not_equal(hash_update(chunk, sizeof(chunk)), PB_OK);
+    assert_int_equal(hash_update(chunk, sizeof(chunk)), PB_OK);
+    assert_int_equal(hash_final(expected, sizeof(expected)), PB_OK);
+
+    /* In the ring before the job is added */
+    caam_model_foreign_completion(0);
+    assert_false(caam_model_idle());
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update(chunk, sizeof(chunk)), PB_OK);
     assert_true(caam_model_idle());
+    assert_int_equal(hash_final(digest, 32), PB_OK);
+    assert_memory_equal(digest, expected, 32);
+
+    /* With a status that isn't the job's, before a verification */
+    caam_model_foreign_completion(CAAM_STATUS_DECO_WDOG);
+    assert_verdicts();
+
+    /* Before the job of an asynchronous update that is given up */
+    caam_model_foreign_completion(0);
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update_async(chunk, sizeof(chunk)), PB_OK);
     assert_verdicts();
 }
 
@@ -585,6 +629,7 @@ static void test_job_timeout(void **state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_2_1_init_empties_the_ring, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_known_answers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_update_async, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_every_call_waits, setup, teardown),
@@ -595,7 +640,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_3_1_hash_init_new_context, setup, teardown),
         cmocka_unit_test_setup_teardown(test_4_verdict_is_this_calls, setup, teardown),
         cmocka_unit_test_setup_teardown(test_job_error, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_job_wrong_descriptor, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_4_completion_of_another_job, setup, teardown),
         cmocka_unit_test_setup_teardown(test_job_timeout, setup, teardown),
     };
 

@@ -190,36 +190,47 @@ static void caam_shedule_job_async(void)
 static int caam_wait_for_job(void)
 {
     struct pb_timeout to;
+    uint32_t desc;
+    uint32_t status;
 
     pb_timeout_init_us(&to, CAAM_JOB_TIMEOUT_ms * 1000);
 
-    /* On a HAB booted device the CAAM stops fetching jobs when the security
-     * state machine leaves 'Trusted', e.g. when JTAG is connected. */
-    while ((mmio_read_32(caam.base + CAAM_ORSFR_JR) & CAAM_ORSFR_ORSF_MASK) == 0) {
-        if (pb_timeout_has_expired(&to)) {
-            LOG_ERR("Job timeout, IRSAR = %" PRIu32 ", JRSTAR = %08" PRIx32,
-                    mmio_read_32(caam.base + CAAM_IRSAR_JR),
-                    mmio_read_32(caam.base + CAAM_JRSTAR_JR));
-            return -PB_ERR_TIMEOUT;
+    do {
+        /* On a HAB booted device the CAAM stops fetching jobs when the
+         * security state machine leaves 'Trusted', e.g. when JTAG is
+         * connected. */
+        while ((mmio_read_32(caam.base + CAAM_ORSFR_JR) & CAAM_ORSFR_ORSF_MASK) == 0) {
+            if (pb_timeout_has_expired(&to)) {
+                LOG_ERR("Job timeout, IRSAR = %" PRIu32 ", JRSTAR = %08" PRIx32,
+                        mmio_read_32(caam.base + CAAM_IRSAR_JR),
+                        mmio_read_32(caam.base + CAAM_JRSTAR_JR));
+                return -PB_ERR_TIMEOUT;
+            }
         }
-    }
 
-    arch_invalidate_cache_range((uintptr_t)&caam.output, sizeof(caam.output));
+        arch_invalidate_cache_range((uintptr_t)&caam.output, sizeof(caam.output));
 
-    /* The entry is the job's: its descriptor and its status. JRSTAR has the
-     * status of whichever job completed last. The entry is taken out of the
-     * ring whatever it says, or it would answer the next wait */
-    uint32_t desc = caam.output.desc;
-    uint32_t status = caam.output.status;
+        /* The entry says whose it is, by its descriptor, and has the job's
+         * status. JRSTAR has the status of whichever job completed last. The
+         * entry is taken out of the ring whatever it says, or it would
+         * answer the next wait */
+        desc = caam.output.desc;
+        status = caam.output.status;
 
-    mmio_write_32(caam.base + CAAM_ORJRR_JR, 1);
-    caam.job_pending = false;
+        mmio_write_32(caam.base + CAAM_ORJRR_JR, 1);
 
-    if (desc != (uint32_t)(uintptr_t)&caam.desc[0]) {
-        LOG_ERR(
-            "Completion of another descriptor, %08" PRIx32 ", status = %08" PRIx32, desc, status);
-        return -PB_ERR;
-    }
+        /* An entry of another descriptor isn't this job's completion: an
+         * earlier user of the job ring left it. The job is still in flight,
+         * and its own entry is waited for within the same time. Written
+         * after the invalidate, which has job_pending's line */
+        caam.job_pending = (desc != (uint32_t)(uintptr_t)&caam.desc[0]);
+
+        if (caam.job_pending) {
+            LOG_ERR("Completion of another descriptor, %08" PRIx32 ", status = %08" PRIx32,
+                    desc,
+                    status);
+        }
+    } while (caam.job_pending);
 
     if (status) {
         LOG_ERR("Job status = %08" PRIx32, status);
@@ -762,6 +773,19 @@ int imx_caam_init(uintptr_t base)
 
     arch_clean_cache_range((uintptr_t)&caam.input, sizeof(caam.input));
     arch_clean_cache_range((uintptr_t)&caam.output, sizeof(caam.output));
+
+    /* What an earlier user of the job ring left in its output ring (the ROM,
+     * a stage before pb) is taken out first: a ring's base and size are only
+     * written with no job in the ring (SRM: ORSFR_JRa, ORJRR_JRa, and the
+     * error types of JRINTR_JRa). A job of that user's that is still in the
+     * engine completes into the ring below, and caam_wait_for_job() tells it
+     * by its descriptor */
+    uint32_t left = mmio_read_32(caam.base + CAAM_ORSFR_JR) & CAAM_ORSFR_ORSF_MASK;
+
+    if (left != 0) {
+        LOG_INFO("%" PRIu32 " completion(s) left in the output ring", left);
+        mmio_write_32(caam.base + CAAM_ORJRR_JR, left);
+    }
 
     /* Initialize job rings, one entry each */
     mmio_write_32(caam.base + CAAM_IRBAR_JR_LS, (uint32_t)(uintptr_t)&caam.input);

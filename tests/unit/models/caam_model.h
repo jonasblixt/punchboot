@@ -97,8 +97,14 @@ void caam_model_hang(bool hang);
 /* The next job that is run does nothing and ends with this status */
 void caam_model_fail_next_job(uint32_t status);
 
-/* The next completion names another descriptor than its job's */
-void caam_model_wrong_address_next(void);
+/* A completion that isn't of a job the driver added: one of an earlier user
+ * of the job ring, whose job ends now. It goes into the output ring behind
+ * the completions of the jobs that are in the engine, when there is room */
+void caam_model_foreign_completion(uint32_t status);
+
+/* An earlier stage used the job ring, with an output ring of one entry at
+ * 'ring' (two words), and left a completion in it. Before the driver's init */
+void caam_model_earlier_stage(uint32_t *ring, uint32_t status);
 
 /* Jobs that are done, since caam_model_init() */
 unsigned int caam_model_jobs_done(void);

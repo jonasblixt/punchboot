@@ -208,7 +208,6 @@ static struct {
     bool hang;
     bool fail_next;
     uint32_t fail_status;
-    bool wrong_address;
     unsigned int jobs_done;
 } m;
 
@@ -730,9 +729,8 @@ static void advance(void)
         if (m.n_jobs > 0 && m.jobs[0].done && m.orsfr < m.orsr) {
             uint32_t *entry = ptr(m.orbar + 8 * m.windex);
 
-            entry[0] = m.jobs[0].addr ^ (m.wrong_address ? 0x40 : 0);
+            entry[0] = m.jobs[0].addr;
             entry[1] = m.jobs[0].status;
-            m.wrong_address = false;
             m.jrstar = m.jobs[0].status;
             m.windex = (m.windex + 1) % m.orsr;
             m.orsfr++;
@@ -887,9 +885,30 @@ void caam_model_fail_next_job(uint32_t status)
     m.fail_status = status;
 }
 
-void caam_model_wrong_address_next(void)
+void caam_model_foreign_completion(uint32_t status)
 {
-    m.wrong_address = true;
+    /* Its descriptor is nobody's now */
+    static uint32_t descriptor[2];
+    struct job *job;
+
+    assert_true(m.n_jobs < JOBS_MAX);
+    job = &m.jobs[m.n_jobs++];
+    memset(job, 0, sizeof(*job));
+    job->addr = (uint32_t)(uintptr_t)descriptor;
+    job->status = status;
+    job->started = true;
+    job->done = true;
+    advance();
+}
+
+void caam_model_earlier_stage(uint32_t *ring, uint32_t status)
+{
+    m.irsr = 1;
+    m.irsar = 1;
+    m.orbar = (uint32_t)(uintptr_t)ring;
+    m.orsr = 1;
+    m.windex = 0;
+    caam_model_foreign_completion(status);
 }
 
 unsigned int caam_model_jobs_done(void)
