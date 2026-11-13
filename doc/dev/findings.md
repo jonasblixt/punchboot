@@ -764,16 +764,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | anything but a or b exits 1, not EINVAL; `-c` without `-s` is ignored. The simple target's copy | | |
 | | | still zeroes the attempts whichever slot it confirms, where pbstate now keeps the trial when the | | |
 | | | other slot is confirmed, and so does the helper `pbstate_confirms()` in `test_ab_state.c` | | |
-| F-409 | imx8mpevk, the ROM, `pb.imx` | The 8MP EVK doesn't boot pb | Seen on the board (2026-11-13) | open |
-| | | `a793102b` from eMMC: after `part write` of `pb.imx` (221696 bytes) to BOOT0, verified, and a reset, | | |
-| | | the ROM is in serial download within a second, and again after every reset; nothing reaches the | | |
-| | | console. The same file loaded over serial download (`uuu SDPS: boot -f`) runs, verifies and boots | | |
-| | | Linux, though the kernel's console output is garbage until the login prompt. BOOT0 verifies against | | |
-| | | the file with that pb too, and BOOT_PARTITION_ENABLE reads BOOT0. BOOT1 holds the pb of the morning | | |
-| | | (`2d9437b9`, which booted from eMMC) and is not enabled. Not understood. What differs from the | | |
-| | | morning: the crypto package, the image's size (its boot data ends at 0x9561c0, the day before at | | |
-| | | 0x9551c0), and that the write was the first of a boot partition by a pb with the new block device | | |
-| | | core (F-182). The MEK and jiffy were not flashed with it | | |
 | F-410 | `src/drivers/crypto/caam/imx_caam.c` | From F-181's package and its review. Every buffer | Reported | open |
 | | | address is cut to 32 bits (`drivers.md` 4.2: refuse). `imx_caam_init()` empties the output ring and | | |
 | | | doesn't reset the job ring (`drivers.md` 2.1; a reset can't be tried from here). The key parser | | |

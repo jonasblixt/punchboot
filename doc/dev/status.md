@@ -21,8 +21,9 @@ bump is for the porting API. Each item's history is in `log/`.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a compile check
   of all six boards, Coverity (master only, unverified until merged).
 - **Boards:** jiffy (i.MX6UL), imx8qxmek and imxrt1060evk run `2d9437b9` from their boot
-  media (flashed 2026-11-13, the log has what they showed). imx8mpevk runs `a793102b` from
-  RAM only (F-409). imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on
+  media (flashed 2026-11-13, the log has what they showed). imx8mpevk boots `a793102b` from
+  BOOT0 (F-409 was its boot switches, not a defect). imx8dxlevk and imx8mevk only build
+  (F-033, F-300). Never write fuses on
   the 8MP EVK, never run SLC or fuse commands on the MEK. Untested on any board: fuse
   writes, the 8X closed state.
 - **Test benches:** Linux (`testbench/`, D-022): jiffy, the 8MP EVK and the MEK boot to the
@@ -37,9 +38,8 @@ bump is for the porting API. Each item's history is in `log/`.
    package of findings per agent: `board_setup()`, the build, the host tools, the A/B state,
    the block device core (F-182), command mode's USB and the tasks (F-267, F-268), pbstate,
    crypto (F-181). First, in this order:
-   - **F-409: the 8MP EVK doesn't boot pb `a793102b` from eMMC**; it runs from RAM over
-     serial download. Find it before any other board is flashed: the MEK and jiffy run
-     `2d9437b9`, the RT1060 too.
+   - F-409 (the 8MP EVK went to serial download) was the board's boot switches, not a
+     defect (Jonas); closed.
    - **F-259 is on the branch `land-p10`**, reviewed and verified, not landed: it changes
      `configs/imx8mpevk_defconfig`, which has an uncommitted change of Jonas's. Then the
      RT1060 has to show it.

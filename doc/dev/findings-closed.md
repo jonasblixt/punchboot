@@ -825,6 +825,18 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | Fixed with F-181: the status is the output ring entry's, with a test in which JRSTAR differs from | | |
 | | | it. | | |
 | F-008 | `src/drivers/crypto/mbedtls/mbedtls_pb.c` | Return values of the `mbedtls_sha*` calls are ignored. | Reported | fixed (`c362451d`) |
+| F-409 | imx8mpevk, the ROM, `pb.imx` | The 8MP EVK doesn't boot pb | Seen on the board (2026-11-13) | closed: not a defect |
+| | | `a793102b` from eMMC: after `part write` of `pb.imx` (221696 bytes) to BOOT0, verified, and a reset, | | |
+| | | the ROM is in serial download within a second, and again after every reset; nothing reaches the | | |
+| | | console. The same file loaded over serial download (`uuu SDPS: boot -f`) runs, verifies and boots | | |
+| | | Linux, though the kernel's console output is garbage until the login prompt. BOOT0 verifies against | | |
+| | | the file with that pb too, and BOOT_PARTITION_ENABLE reads BOOT0. BOOT1 holds the pb of the morning | | |
+| | | (`2d9437b9`, which booted from eMMC) and is not enabled. Not understood. What differs from the | | |
+| | | morning: the crypto package, the image's size (its boot data ends at 0x9561c0, the day before at | | |
+| | | 0x9551c0), and that the write was the first of a boot partition by a pb with the new block device | | |
+| | | core (F-182). The MEK and jiffy were not flashed with it. | | |
+| | | Not a defect: the board's boot switches had been changed, so the ROM went to serial download after | | |
+| | | every reset (Jonas, 2026-11-13). | | |
 
 ## Dependencies / vendored code
 
