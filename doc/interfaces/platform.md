@@ -522,7 +522,10 @@ Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
   the SoC's regions (a DRAM controller's save area, a reset stub). It `ASSERT`s that `pb` is in a
   load window, that `buffers` is in memory that works after `plat_init()` (the board's DRAM or the
   SoC's on-chip RAM), and that they don't overlap. The Firmware Handoff region is checked the
-  same way, and against both.
+  same way, and against both. **Not yet in the code (F-239)**: the region is only checked for
+  not overlapping `pb` and `buffers` (`src/boot/fh.lds`). That it is in memory that works after
+  `plat_init()` isn't checked: a region in the ROM's data, in a flash or in no memory at all
+  builds.
 - `src/link.lds` places pb's sections: code, data, rodata, stack, bss and the RAM log in `pb`,
   `.no_init` and the translation tables in `buffers`. It provides `_pb_start/_end` and
   `_buffers_start/_end`.
