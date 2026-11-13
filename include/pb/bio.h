@@ -80,7 +80,8 @@ typedef int (*bio_call_t)(bio_dev_t dev, int param);
  *
  * @return A new block device handle on success,
  *         -PB_ERR_MEM, When the block device pool is full,
- *         -PB_ERR_PARAM, On invalid lba's or block_size
+ *         -PB_ERR_PARAM, On invalid lba's or block_size, or a UUID that
+ *                        another device has
  */
 bio_dev_t bio_allocate(lba_t first_lba,
                        lba_t last_lba,
@@ -111,8 +112,9 @@ void bio_reset(void);
  * @return A new block device handle on success,
  *         -PB_ERR_IO, On invalid parent device,
  *         -PB_ERR_MEM, When the block device pool is full,
- *         -PB_ERR_PARAM, On invalid lba's or block_size, or a range that
- *                        isn't inside the parent's
+ *         -PB_ERR_PARAM, On invalid lba's or block_size, a range that
+ *                        isn't inside the parent's, or a UUID that another
+ *                        device has
  */
 bio_dev_t bio_allocate_parent(bio_dev_t parent,
                               lba_t first_lba,

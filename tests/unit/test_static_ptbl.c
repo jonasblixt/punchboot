@@ -493,6 +493,17 @@ static void test_failed_check_keeps_the_map(void **state)
     assert_in_place(sys_a, base + 16 * BLOCK, 16 * BLOCK);
 }
 
+/* A UUID of its own for each device a test adds (bio.md 2.6) */
+static const unsigned char *filler_uu(int i)
+{
+    static uuid_t uu;
+
+    memset(uu, 0xf1, sizeof(uu));
+    uu[0] = (unsigned char)i;
+    uu[1] = (unsigned char)(i >> 8);
+    return uu;
+}
+
 /*
  * The table is mapped before its partitions exist, so that one that is
  * there is in place also when a later one can't be allocated. Without the
@@ -506,7 +517,7 @@ static void test_allocation_fails_midway(void **state)
 
     /* Room for BL, the state and System A */
     for (int i = 0; i < free_devs - 3; i++)
-        assert_true(bio_allocate(60, 61, BLOCK, UU_DISK2, "Filler") >= 0);
+        assert_true(bio_allocate(60, 61, BLOCK, filler_uu(i), "Filler") >= 0);
 
     assert_int_equal(static_ptbl_init_mapped(f->dev, base, table), -PB_ERR_MEM);
 
@@ -531,7 +542,7 @@ static void test_allocation_fails_midway_unmapped(void **state)
     int free_devs = CONFIG_BIO_MAX_DEVS - (f->dev + 1);
 
     for (int i = 0; i < free_devs - 3; i++)
-        assert_true(bio_allocate(60, 61, BLOCK, UU_DISK2, "Filler") >= 0);
+        assert_true(bio_allocate(60, 61, BLOCK, filler_uu(i), "Filler") >= 0);
 
     assert_int_equal(static_ptbl_init(f->dev, plain_table), -PB_ERR_MEM);
     assert_part(UU_SYS_A, 16, 31);

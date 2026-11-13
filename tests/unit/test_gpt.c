@@ -351,6 +351,17 @@ static void test_recovery_write_errors(void **state)
     assert_int_equal(boot(f), -PB_ERR);
 }
 
+/* A UUID of its own for each device a test adds (bio.md 2.6) */
+static const unsigned char *filler_uu(int i)
+{
+    static uuid_t uu;
+
+    memset(uu, 0xf1, sizeof(uu));
+    uu[0] = (unsigned char)i;
+    uu[1] = (unsigned char)(i >> 8);
+    return uu;
+}
+
 static void test_too_many_block_devices(void **state)
 {
     struct fixture *f = *state;
@@ -362,7 +373,7 @@ static void test_too_many_block_devices(void **state)
     f->dev = ramdisk_attach(f->disk, UU_DISK);
     assert_true(f->dev >= 0);
     for (int i = 0; i < CONFIG_BIO_MAX_DEVS - 3; i++)
-        assert_true(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_SYS_B, "Filler") >= 0);
+        assert_true(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, filler_uu(i), "Filler") >= 0);
 
     assert_int_equal(gpt_ptbl_init(f->dev, tables, ARRAY_SIZE(tables)), -PB_ERR_MEM);
 }

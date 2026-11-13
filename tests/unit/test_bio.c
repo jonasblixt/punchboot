@@ -247,8 +247,43 @@ static void test_allocate_rejects(void **state)
 {
     (void)state;
 
-    assert_int_equal(bio_allocate(0, 1, 0, UU_PART, "x"), -PB_ERR_PARAM);
-    assert_int_equal(bio_allocate(2, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"), -PB_ERR_PARAM);
+    assert_int_equal(bio_allocate(0, 1, 0, UU_OTHER, "x"), -PB_ERR_PARAM);
+    assert_int_equal(bio_allocate(2, 1, RAMDISK_BLOCK_SIZE, UU_OTHER, "x"), -PB_ERR_PARAM);
+}
+
+/* A UUID of its own for each device a test adds (bio.md 2.6) */
+static const unsigned char *filler_uu(int i)
+{
+    static uuid_t uu;
+
+    memset(uu, 0xf1, sizeof(uu));
+    uu[0] = (unsigned char)i;
+    uu[1] = (unsigned char)(i >> 8);
+    return uu;
+}
+
+/* bio.md 2.6 (F-283): a UUID names at most one device. A second device with
+ * a UUID that is taken is refused, a partition's too */
+static void test_a_uuid_that_is_taken_is_refused(void **state)
+{
+    struct fixture *f = *state;
+    bio_dev_t dev;
+
+    assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_DISK, "x"), -PB_ERR_PARAM);
+    assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"), -PB_ERR_PARAM);
+    dev = bio_allocate_parent(0, PART_LAST + 1, PART_LAST + 2, RAMDISK_BLOCK_SIZE, UU_PART, "x");
+    assert_int_equal(dev, -PB_ERR_PARAM);
+    dev = bio_allocate_parent(0, PART_LAST + 1, PART_LAST + 2, RAMDISK_BLOCK_SIZE, UU_DISK, "x");
+    assert_int_equal(dev, -PB_ERR_PARAM);
+
+    /* Nothing was registered, and the UUIDs name what they named */
+    assert_false(bio_valid(f->part + 1));
+    assert_int_equal(bio_get_part_by_uu(UU_DISK), 0);
+    assert_int_equal(bio_get_part_by_uu(UU_PART), f->part);
+    assert_int_equal(bio_get_first_block(f->part), PART_FIRST);
+
+    assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_OTHER, "x"), f->part + 1);
+    assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_OTHER, "x"), -PB_ERR_PARAM);
 }
 
 /* bio.md 2.3: the largest block is CONFIG_BIO_MAX_BLOCK_SIZE, and a device
@@ -280,11 +315,11 @@ static void test_allocate_pool_full(void **state)
 
     /* The fixture uses two devices */
     for (int i = 2; i < CONFIG_BIO_MAX_DEVS; i++)
-        assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"), i);
+        assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, filler_uu(i), "x"), i);
 
-    assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"), -PB_ERR_MEM);
+    assert_int_equal(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_OTHER, "x"), -PB_ERR_MEM);
     dev =
-        bio_allocate_parent(f->part, PART_FIRST, PART_FIRST + 1, RAMDISK_BLOCK_SIZE, UU_PART, "x");
+        bio_allocate_parent(f->part, PART_FIRST, PART_FIRST + 1, RAMDISK_BLOCK_SIZE, UU_OTHER, "x");
     assert_int_equal(dev, -PB_ERR_MEM);
 }
 
@@ -327,7 +362,7 @@ static void test_a_partition_lies_inside_its_parent(void **state)
     dev = bio_allocate_parent(f->part, PART_FIRST, PART_LAST, RAMDISK_BLOCK_SIZE, UU_OTHER, "All");
     assert_int_equal(dev, f->part + 1);
     dev = bio_allocate_parent(
-        0, DISK_BLOCKS - 1, DISK_BLOCKS - 1, RAMDISK_BLOCK_SIZE, UU_OTHER, "Last");
+        0, DISK_BLOCKS - 1, DISK_BLOCKS - 1, RAMDISK_BLOCK_SIZE, filler_uu(0), "Last");
     assert_int_equal(dev, f->part + 2);
 }
 
@@ -371,7 +406,7 @@ static void test_flags(void **state)
 static void test_missing_ops(void **state)
 {
     struct fixture *f = *state;
-    bio_dev_t dev = bio_allocate(0, 10, RAMDISK_BLOCK_SIZE, UU_PART, "No ops");
+    bio_dev_t dev = bio_allocate(0, 10, RAMDISK_BLOCK_SIZE, UU_OTHER, "No ops");
 
     assert_true(dev >= 0);
     assert_int_equal(bio_read(dev, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_NOT_SUPPORTED);
@@ -483,6 +518,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_allocate_rejects, setup, teardown),
         cmocka_unit_test_setup_teardown(
             test_a_block_larger_than_the_largest_is_refused, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_uuid_that_is_taken_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_pool_full, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_partition_lies_inside_its_parent, setup, teardown),
         cmocka_unit_test_setup_teardown(test_properties, setup, teardown),

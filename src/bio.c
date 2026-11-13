@@ -67,6 +67,9 @@ bio_dev_t bio_allocate(lba_t first_lba,
         return -PB_ERR_PARAM;
     if (first_lba > last_lba)
         return -PB_ERR_PARAM;
+    /* A UUID names at most one device (bio.md 2.6) */
+    if (bio_get_part_by_uu(uu) >= 0)
+        return -PB_ERR_PARAM;
 
     memset(&bio_pool[n_bios], 0, sizeof(struct bio_device));
     bio_pool[n_bios].first_lba = first_lba;

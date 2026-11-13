@@ -126,9 +126,7 @@ them.
 ### 2.6 Finding a device
 
 - **By its UUID**: `bio_get_part_by_uu()`, or `bio_get_part_by_uu_str()` for the UUID as
-  text. `-PB_ERR_NOT_FOUND` when no device has it. A UUID names at most one device. **Not yet
-  in the code (F-283)**: nothing refuses a second device with a UUID that is taken, and the
-  first one is found.
+  text. `-PB_ERR_NOT_FOUND` when no device has it. A UUID names at most one device.
 - **All of them**: a handle is a number from 0 to `CONFIG_BIO_MAX_DEVS` less one, and
   `bio_valid()` says whether it is a device. A user that lists the devices tries every
   number and skips the ones that aren't: a handle that is dead (section 4) can lie between
@@ -393,8 +391,8 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 
 | Requirement                  | MMC, SD (uSDHC)    | FlexSPI NOR       | Host disk, RAM disk | Finding |
 | ---------------------------- | ------------------ | ----------------- | ------------------- | ------- |
-| A second `init` adds no      | yes (`test_mmc_`   | no                | no                  | F-283   |
-| devices                      | `emmc`, `_sd`)     |                   |                     |         |
+| A second `init` adds no      | yes (`test_mmc_`   | yes: it fails,    | yes: it fails, the  |         |
+| devices                      | `emmc`, `_sd`)     | the UUID is taken | UUID is taken       |         |
 | The medium's size checked    | no                 | n/a (the board's) | n/a                 | F-200   |
 | Exactly `length` bytes of    | yes                | no: a write reads | yes                 | F-284   |
 | the buffer                   |                    | 1 to 4 bytes more |                     |         |
@@ -426,6 +424,7 @@ The core:
 | A length of 0 doesn't reach the driver              | yes (`test_bio`)             |         |
 | A buffer that doesn't start on a line is refused    | no                           | F-282   |
 | A block larger than the block buffer is refused     | yes (`test_bio`)             |         |
+| A UUID that is taken is refused                     | yes (`test_bio`)             |         |
 | A partition lies inside its parent                  | yes (`test_bio`)             |         |
 
 The partition tables:
@@ -460,7 +459,7 @@ without a callback, a driver's errors and their codes, a write that fails half w
 
 | Finding             | What                                                                           |
 | ------------------- | ------------------------------------------------------------------------------ |
-| F-283               | The block size asked, not assumed; devices registered once; the rest of the    |
+| F-283               | The block size asked, not assumed; the block getters' type; the rest of the    |
 |                     | conformance suite (2, 8)                                                       |
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
