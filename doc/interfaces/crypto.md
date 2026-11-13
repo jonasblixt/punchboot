@@ -107,8 +107,7 @@ Opens a context for one algorithm.
   a later verification (F-181). A user that gives a hash up on an error calls nothing; the
   next `hash_init()` is the cleanup. Until then the context counts as open, and a
   verification is refused (section 4), which is a no; every verification hashes first, so it
-  starts with a `hash_init()`. **Not yet in the code (F-181, F-286)**: the engine's backend
-  leaves the old job in its ring.
+  starts with a `hash_init()`.
 - **When it fails there is no context**: the next update is `-PB_ERR_STATE`. **Not yet in the
   code (F-286)**: the backend stays selected after a failed `init`.
 - `-PB_ERR_NOT_SUPPORTED`: no backend has the algorithm. `-PB_ERR_PARAM`: `alg` isn't one
@@ -202,8 +201,7 @@ Verifies an ECDSA signature over a digest with a public key.
   parse.
 - **The verdict is this call's.** A backend whose engine reports completions never takes a
   completion that another job left behind as this job's: it starts from an idle engine and
-  matches the completion to what it submitted (`drivers.md` 5). **Not yet in the code (F-181,
-  F-127)**: a hash job that was given up answers the verification's wait, with its own status.
+  matches the completion to what it submitted (`drivers.md` 5).
 
 The arguments:
 
@@ -304,8 +302,8 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | ------------------------------------ | ----------------------- | -------------------- | ------------ |
 | Set up by the platform               | no (the boards)         | yes on the RT; the   | F-247        |
 |                                      |                         | host's board         |              |
-| `hash_init()` starts clean           | no: the ring isn't      | yes                  | F-181        |
-|                                      | drained                 |                      |              |
+| `hash_init()` starts clean           | yes                     | yes                  |              |
+|                                      | (`test_caam_crypto`)    |                      |              |
 | Any length and split                 | yes (read; no test)     | yes (`test_mbedtls`) | F-230        |
 | The asynchronous update is waited    | partly                  | n/a (none)           | F-286, F-220 |
 | for                                  |                         |                      |              |
@@ -314,7 +312,8 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | `*verified` false first              | yes                     | yes                  |              |
 | A bad signature is                   | no: `-PB_ERR`           | yes, also for a bad  | F-286        |
 | `-PB_ERR_SIGNATURE`                  |                         | key                  |              |
-| The verdict is this call's           | no                      | yes                  | F-181, F-127 |
+| The verdict is this call's           | yes                     | yes                  |              |
+|                                      | (`test_caam_crypto`)    |                      |              |
 | The signature's lengths checked      | partly: the outer       | yes (the library)    | F-286        |
 |                                      | length is ignored       |                      |              |
 | The key parsed inside its length     | no                      | yes (the library)    | F-066        |
@@ -324,7 +323,9 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | The library's results checked        | n/a                     | no: the SHA calls'   | F-008        |
 | An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |
 | isn't registered                     |                         |                      |              |
-| Known answer tests                   | no                      | partly: "abc", P-256 | F-230        |
+| Known answer tests                   | partly: "abc", 1000     | partly: "abc", P-256 | F-230        |
+|                                      | bytes, the three curves |                      |              |
+|                                      | (`test_caam_crypto`)    |                      |              |
 
 The core:
 
@@ -348,8 +349,6 @@ simple target (D-025): F-181 was found in such a model, not on hardware.
 
 | Finding      | What                                                                            |
 | ------------ | ------------------------------------------------------------------------------- |
-| F-181, F-127 | `hash_init()` and `dsa_verify()` start from an idle engine; the verdict is the  |
-|              | job's own (3.1, 4)                                                              |
 | F-286        | The core and the backends against sections 3, 4 and 6; the conformance suite    |
 | F-220        | The block buffer isn't refilled while a job reads it (3.3)                      |
 | F-081        | The digest is copied, not written by the engine into the user's memory (3.5)    |

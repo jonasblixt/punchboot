@@ -172,6 +172,7 @@ struct caam {
     bool init; /* Hash init state variable */
     bool caam_initialized;
     bool async_hashing;
+    bool job_pending; /* A job is in the ring: added, its completion not taken out */
 };
 
 static struct caam caam;
@@ -182,6 +183,7 @@ static void caam_shedule_job_async(void)
     arch_clean_cache_range((uintptr_t)&caam.input, sizeof(caam.input));
     arch_clean_cache_range((uintptr_t)caam.desc, sizeof(caam.desc[0]) * ARRAY_SIZE(caam.desc));
     mmio_write_32(caam.base + CAAM_IRJAR_JR, 1);
+    caam.job_pending = true;
 }
 
 static int caam_wait_for_job(void)
@@ -203,19 +205,41 @@ static int caam_wait_for_job(void)
 
     arch_invalidate_cache_range((uintptr_t)&caam.output, sizeof(caam.output));
 
-    if (caam.output.desc != (uint32_t)(uintptr_t)&caam.desc[0]) {
-        LOG_ERR("Job failed, status = 0x%x", caam.output.status);
-        return -PB_ERR;
-    }
+    /* The entry is the job's: its descriptor and its status. JRSTAR has the
+     * status of whichever job completed last. The entry is taken out of the
+     * ring whatever it says, or it would answer the next wait */
+    uint32_t desc = caam.output.desc;
+    uint32_t status = caam.output.status;
 
     mmio_write_32(caam.base + CAAM_ORJRR_JR, 1);
+    caam.job_pending = false;
 
-    uint32_t caam_status = mmio_read_32(caam.base + CAAM_JRSTAR_JR);
-
-    if (caam_status) {
-        LOG_ERR("JR status = %08x", caam_status);
+    if (desc != (uint32_t)(uintptr_t)&caam.desc[0]) {
+        LOG_ERR(
+            "Completion of another descriptor, %08" PRIx32 ", status = %08" PRIx32, desc, status);
         return -PB_ERR;
     }
+
+    if (status) {
+        LOG_ERR("Job status = %08" PRIx32, status);
+        return -PB_ERR;
+    }
+
+    return PB_OK;
+}
+
+/* Ends a job that was given up: it is waited for, and its completion is
+ * taken out of the ring whatever it says. When this returns PB_OK the engine
+ * is idle, and the completion of the next job is the only one in the ring
+ * (crypto.md 3.1 and 4). A job that doesn't end is -PB_ERR_TIMEOUT: nothing
+ * can start. */
+static int caam_idle(void)
+{
+    if (!caam.job_pending)
+        return PB_OK;
+
+    if (caam_wait_for_job() == -PB_ERR_TIMEOUT)
+        return -PB_ERR_TIMEOUT;
 
     return PB_OK;
 }
@@ -245,6 +269,12 @@ static int caam_ecda_verify(const uint8_t *der_signature,
 
     if (!caam.caam_initialized)
         return -PB_ERR_STATE;
+
+    /* The verdict is this job's: nothing else is in the ring */
+    rc = caam_idle();
+
+    if (rc != PB_OK)
+        return rc;
 
     rc = der_ec_public_key_data(der_key, caam.ecdsa_key, sizeof(caam.ecdsa_key), &key_kind);
 
@@ -308,10 +338,20 @@ static int caam_ecda_verify(const uint8_t *der_signature,
 
 static int caam_hash_init(hash_t pb_alg)
 {
+    int rc;
+
     if (!caam.caam_initialized)
         return -PB_ERR_STATE;
 
+    /* Whatever hash was open is ended, also one that was given up with its
+     * job in flight */
+    rc = caam_idle();
+
+    if (rc != PB_OK)
+        return rc;
+
     caam.init = true;
+    caam.async_hashing = false;
     caam.hash_align_buf_len = 0;
 
     switch (pb_alg) {

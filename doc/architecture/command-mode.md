@@ -218,7 +218,7 @@ transfer of 1024 bytes (4.4). Methods are added, never changed (`security.md` 4.
   signature doesn't (ML-DSA's is 2420 bytes or more) gets a new method next to this one, with
   the key kind that needs it (`roadmap.md`). The transfer of this one doesn't grow.
 - **The verdict is the verification's own.** A result left over from an earlier job of the
-  crypto engine is never read as this one's. **Not yet in the code (F-181).**
+  crypto engine is never read as this one's.
 - **Success** authenticates the session (3.4).
 - **Failure**, data that arrived and didn't verify, leaves the session not authenticated, also
   one that was. It answers
@@ -737,7 +737,6 @@ For a change to command mode, a new command or a new method:
 | ------------------- | ------------------------------------------------------------------------------------ |
 | F-201, F-363        | The session ends with the transport: authentication and the stream are cleared (3.1) |
 | F-375               | The caps' erase timeout (4.6)                                                        |
-| F-181               | The verdict of a token is the verification's own (3.3)                               |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-004               | The password is compared whole, in constant time, and not logged (3.3)               |
 | F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |

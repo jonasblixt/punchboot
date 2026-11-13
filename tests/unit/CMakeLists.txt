@@ -484,6 +484,30 @@ target_include_directories(test_imx_caam BEFORE PRIVATE
 target_compile_options(test_imx_caam PRIVATE -fno-pie)
 target_link_options(test_imx_caam PRIVATE -no-pie)
 
+# A model of the CAAM's job ring, hashing and signature verification (see
+# models/caam_model.h). It computes with Mbed TLS
+add_library(pb_caam_model STATIC
+    models/bench.c
+    models/caam_model.c
+)
+target_include_directories(pb_caam_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(pb_caam_model PUBLIC pb_lib pb_mbedtls PkgConfig::CMOCKA)
+
+# The CAAM driver's hash and verification through the crypto API, against
+# crypto.md and the model. The rings and the descriptors hold 32 bit addresses
+pb_unit_test(test_caam_crypto
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/crypto.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
+    LIBS pb_caam_model pb_keystore
+)
+target_include_directories(test_caam_crypto BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_caam_crypto PRIVATE -fno-pie)
+target_link_options(test_caam_crypto PRIVATE -no-pie)
+
 pb_unit_test(test_imx_usdhc
     SOURCES
         ${PB_BIO_CONFORMANCE}
