@@ -5,8 +5,9 @@
  *
  * Marks the booted system verified in pb's boot state, what pbstate's
  * pbstate_set_system_verified() does on Linux: the primary copy, or the
- * backup when the primary is bad, gets the verified bit and no remaining
- * boot attempts, then both copies are written.
+ * backup when the primary is bad, gets the verified bit, and no remaining
+ * boot attempts when the system is the enabled one, then both copies are
+ * written.
  */
 
 #include <boot/pb_state_blob.h>
@@ -62,7 +63,11 @@ int pbstate_set_verified(char system)
         return -2;
 
     state.verified |= (system == 'A') ? PB_STATE_A_VERIFIED : PB_STATE_B_VERIFIED;
-    state.remaining_boot_attempts = 0;
+
+    /* The attempts are the enabled slot's trial: confirming it ends the
+     * trial, confirming the other slot leaves it going (boot.md 3.5) */
+    if (state.enable & ((system == 'A') ? PB_STATE_A_ENABLED : PB_STATE_B_ENABLED))
+        state.remaining_boot_attempts = 0;
     state.crc = 0;
     state.crc = crc32(0, (const uint8_t *)&state, sizeof(state));
 
