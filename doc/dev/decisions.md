@@ -98,6 +98,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-078 | The kernel command line is the handover's        | In force                                           |
 | D-079 | The board's memory is its `makefile.mk`'s        | In force; a DRAM size read at run time waits for a |
 |       |                                                  | use                                                |
+| D-080 | Kconfig by subject; drivers by what the SoC has  | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1904,3 +1905,23 @@ options with a default of 0. The board's other memory facts (the DRAM's timing, 
 regions) were already in its directory. The images and the wire don't change (the six boards'
 `pb.bin` are byte for byte the same); the porting API does, before the 3.0.0 tag: no release
 had the Kconfig names.
+
+## D-080: Kconfig by subject; a driver is offered where the SoC has it (2026-11-14)
+
+Jonas: the Boot menu needs a clear separation of the policy, the handover and the delivery,
+then "fix all" of my review of the rest.
+
+- **Headers in a menu** are `comment`s (`*** Handover ***`), not submenus, where a group has a
+  few options; a switch with its own values is a `menuconfig` (ramoops).
+- **The top level by subject**: Architecture, Platform support, the board's, Boot, Command
+  mode, Keys and life cycle, Logging, Core (watchdog, limits), Drivers, Library, Build.
+  Command mode's USB port is the platform's `Kconfig.cm`, shown in Command mode.
+- **Prompts name the thing**, without "Enable"; the context is the menu's or the header's.
+- **Symbol names stay** (out-of-tree defconfigs use them); only prompts, help and the menus
+  change, and every in-tree defconfig gives the same values.
+- **What the SoC has**: a platform selects a hidden `HAVE_<driver>` per SoC block, and the
+  driver depends on it (`platform.md` 6.1). The MMU library has no switch: the platforms on an
+  arch with an MMU don't build without it.
+
+Why: menuconfig offered options that a board can't use (the DWC3 on a 6UL) or can't turn off
+(the translation tables), and "Generic options" mixed keys, logging, the watchdog and limits.
