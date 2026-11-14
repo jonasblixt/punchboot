@@ -9,12 +9,21 @@
 
 #include <arch/arch.h>
 #include <pb/arch.h>
+#include <pb/assert.h>
 #include <pb/pb.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 void arch_init(void)
 {
+}
+
+/* What pb/assert.h calls. The firmware's (src/lib/libc/assert.c) prints and
+ * stops; here the process ends, and the test that ran it fails */
+void __assert(const char *file, unsigned int line)
+{
+    fprintf(stderr, "ASSERT: %s:%u\n", file, line);
+    abort();
 }
 
 void arch_disable_mmu(void)

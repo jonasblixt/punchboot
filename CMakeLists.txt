@@ -143,6 +143,7 @@ set(PB_CORE_SOURCES
     src/log_source.c
     src/crypto.c
     src/delay.c
+    src/dma.c
     src/device_uuid.c
     src/ramlog.c
     src/rot.c
