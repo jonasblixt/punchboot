@@ -159,9 +159,8 @@ on the way (3.2) is bounded.
   transport reports each as an error of the transfer that was running. One is always running
   while a session waits for a command. What happens while none runs, inside a command, is
   kept and is the error of the next transfer, so nothing is missed. **Not yet in the code
-  (F-287, F-363)**: no controller reports an unplug; one reports a bus reset, one only a bus
-  reset during a bulk transfer and one nothing, where the stack sees it when the host sets an
-  address again; and command mode keeps polling after `-PB_ERR_TIMEOUT`.
+  (F-287, F-363)**: the ChipIdea reports a bus reset and no unplug; and command mode keeps
+  polling after `-PB_ERR_TIMEOUT`.
 - It is also where the stack answers endpoint 0 (3.2).
 
 ### 2.5 Function : cm_transport_disconnect() [mandatory]
@@ -222,8 +221,8 @@ The stack answers these requests and no others:
   stalled; `SET_CONFIGURATION` takes the one configuration there is, or 0,
   which deconfigures and is "lost".
 - **Any other request is stalled.** The host then goes on at once. **Not yet in the
-  code (F-138)**: nothing is answered, the host waits out its timeout, and the transfer that
-  was running fails. pb's device answers what enumeration needs and no more: the other
+  code (F-138)**: nothing is answered and the host waits out its timeout; the transfer that
+  was running goes on. pb's device answers what enumeration needs and no more: the other
   standard requests (`GET_CONFIGURATION`, `CLEAR_FEATURE` and the rest) are stalled too.
 - **Three that the code answers today are stalled** (Jonas, D-073): the debug descriptor,
   which gets the interface descriptor; `SET_IDLE`, a request of another class; and a string
@@ -397,11 +396,10 @@ what the code doesn't settle without the hardware.
 | Requirement                      | ChipIdea           | DWC3                | Cadence USB3    | Finding |
 | -------------------------------- | ------------------ | ------------------- | --------------- | ------- |
 | `init` on a running controller   | yes                | yes                 | unverified      | F-204   |
-| Every wait bounded               | no                 | yes                 | no              | F-136,  |
-|                                  |                    |                     |                 | F-205   |
+| Every wait bounded               | no                 | yes                 | yes             | F-136   |
 | High speed, or not ready         | no                 | asks, doesn't act   | no              | F-287   |
-| A bus reset and an unplug are    | a reset, no unplug | a reset during a    | no              | F-287,  |
-| reported                         |                    | bulk transfer only  |                 | F-363   |
+| A bus reset and an unplug are    | a reset, no unplug | yes, kept           | yes, at high    | F-287,  |
+| reported                         |                    |                     | speed, kept     | F-363   |
 | OUT: nothing past `length`       | yes; an overflow   | no: rounded up to a | unverified      | F-205,  |
 |                                  | isn't seen         | packet              |                 | F-137   |
 | OUT: a short packet is an error  | no                 | no                  | no              | F-137,  |
@@ -411,8 +409,8 @@ what the code doesn't settle without the hardware.
 | IN: no empty packet after whole  | yes                | yes                 | yes             |         |
 | packets                          |                    |                     |                 |         |
 | A transfer of 0 bytes            | yes                | IN yes              | no (unverified) | F-287   |
-| A length it can't queue is       | yes                | no: masked to 24    | partly          | F-287,  |
-| refused                          |                    | bits                |                 | F-205   |
+| A length it can't queue is       | yes                | no: masked to 24    | yes             | F-287   |
+| refused                          |                    | bits                |                 |         |
 | `xfer_complete` reads the        | no                 | no                  | partly          | F-137,  |
 | controller's result              |                    |                     |                 | F-287   |
 | Endpoint 0 independent of a bulk | no: one transfer   | yes                 | yes             | F-203   |

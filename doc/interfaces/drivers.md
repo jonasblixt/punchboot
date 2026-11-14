@@ -386,7 +386,7 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 | Cadence USB3            | yes                   | yes (`test_cdns3_udc`)  | empty            | F-204        |
 | The DRAM controller and | no                    | n/a                     | n/a              | F-102        |
 | PHY                     |                       |                         |                  |              |
-| virtio (in no build)    | no                    | partly                  | none             | F-052, F-281 |
+| virtio (in no build)    | yes: 1 s              | partly                  | none             | F-052        |
 
 Every driver with DMA goes through `pb/dma.h` and includes no arch header, but virtio, which is
 in no build (F-052). The other single drivers (the fuse controller, GPIO, the pin controller, the

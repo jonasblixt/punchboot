@@ -130,6 +130,11 @@ Without a session the task polls the transport. When the transport isn't ready w
 The time runs whenever there is no session: from the set up, and again from the moment a
 session ends (3.1). A host that unplugs leaves a device that resets 10 s later.
 
+Each start of the transport gives it the time again, so a transport that says it is ready and
+is lost at once would be started for ever. After 16 starts without a command between them,
+command mode ends and pb resets, as when the transport doesn't start (2.1). A command starts
+the count again (F-413).
+
 ### 2.3 Leaving
 
 | How                                                | What happens                                                 |
