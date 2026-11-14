@@ -8,7 +8,6 @@
  */
 
 #include <boot/ab_state.h>
-#include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
@@ -132,22 +131,6 @@ static int usdhc_emmc_setup(void)
 
 static int board_hw_init(void)
 {
-    int rc;
-
-    rc = imx_caam_init(IMX8M_CAAM_JR0_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("CAAM init failed (%i)", rc);
-        return rc;
-    }
-
-    /* Linux can't instantiate the RNG when it runs in the normal world. Without
-     * it Linux has no hardware RNG, which is no reason not to boot. */
-    rc = imx_caam_rng_init(IMX8M_CAAM_BASE);
-
-    if (rc != PB_OK)
-        LOG_ERR("CAAM RNG init failed (%i)", rc);
-
     return usdhc_emmc_setup();
 }
 

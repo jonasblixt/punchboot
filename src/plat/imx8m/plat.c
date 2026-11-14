@@ -9,6 +9,8 @@
 
 #include <arch/arch_helpers.h>
 #include <boot/atf.h>
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
@@ -332,6 +334,47 @@ const struct rot_config plat_rot = {
 
 const struct slc_ops plat_slc = { 0 };
 
+/*
+ * The build's crypto backends (platform.md 2.2, crypto.md 2), each behind
+ * its driver's option: the CAAM on job ring 0 with its RNG, and Mbed TLS. A
+ * board that needs the software implementation turns the CAAM's option off
+ * and Mbed TLS's on in its defconfig. The ROM leaves the CAAM's clock on.
+ *
+ * Command mode can start without a backend, so a failure isn't plat_init()'s
+ * error: main() would reset. A backend that failed isn't registered, no
+ * image verifies and the boot stops with that. To be recorded in
+ * plat_get_status() (F-248)
+ */
+static void crypto_init(void)
+{
+    int rc = PB_OK;
+
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    rc = imx_caam_init(IMX8M_CAAM_JR0_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+    } else {
+        /* Linux can't instantiate the RNG when it runs in the normal world
+         * (platform.md 4.5). Without it Linux has no hardware RNG, which is
+         * no reason not to boot */
+        rc = imx_caam_rng_init(IMX8M_CAAM_BASE);
+
+        if (rc != PB_OK)
+            LOG_ERR("CAAM RNG init failed (%i)", rc);
+    }
+#endif
+
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    rc = mbedtls_pb_init();
+
+    if (rc != PB_OK)
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+#endif
+
+    (void)rc;
+}
+
 int plat_early_init(void)
 {
     /* The reset reason. Read only: the OS reads the same register. The SRC
@@ -434,6 +477,9 @@ int plat_init(void)
 
     imx_wdog_kick(IMX8M_WDOG1_BASE);
     plat_mmu_init();
+
+    /* Last: until F-247 the board's init() did it, as its first step */
+    crypto_init();
 
     LOG_DBG("Plat init done");
     return PB_OK;
