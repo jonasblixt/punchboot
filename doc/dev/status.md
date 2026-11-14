@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-14 (D-079, the board's memory is its `makefile.mk`'s)_
+_Last updated: 2026-11-14 (D-083, the board's keys are its `makefile.mk`'s)_
 
 ## Current focus
 
@@ -49,6 +49,7 @@ bump is for the porting API. Each item's history is in `log/`.
      D-079 (`5c55b9ff`): the board's memory left Kconfig for its `makefile.mk`, the six
      `pb.bin` unchanged. D-080: the Kconfig menus by subject, drivers by what the SoC has.
      D-081: `BOOT_AB_DRIVER` gone. D-082: the RAM log always at debug, no sync mode.
+     D-083: the keys are the board's `VERIFY_KEY<n>`, no bpak keystore; `pki/` tidied.
    - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
