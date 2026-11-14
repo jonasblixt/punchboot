@@ -179,6 +179,18 @@ CASES = [
     ("imx8qxmek", {"CONFIG_PB_SIZE": "0x50000"}, "region `ram' overflowed"),
     ("imx8mpevk", {"CONFIG_PB_SIZE": "0x3f000"}, "region `ram' overflowed"),
     ("imx8mpevk", {"CONFIG_PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
+    # The stack right above .ro_data, which is read only with the MMU on: a
+    # link script that has something between the two (F-209)
+    (
+        "jiffy",
+        {"CONFIG_LINK_FILE": "{work}/link_gap.lds"},
+        "The stack doesn't start where .ro_data ends",
+    ),
+    (
+        "imx8qxmek",
+        {"CONFIG_LINK_FILE": "{work}/link_gap.lds"},
+        "The stack doesn't start where .ro_data ends",
+    ),
     # A Firmware Handoff region that isn't in such memory: in the ROM's data,
     # in the flash, in no memory, over the DRAM's end and below it, over the
     # OCRAM's end
@@ -286,6 +298,8 @@ ALLOWED = [
         {"CONFIG_PB_BUFFERS_BASE": "0x40020000"},
         {"buffers": (0x40000000, 0x1020000)},
     ),
+    # The ARMv7-M has no MMU: the stack may be anywhere
+    ("imxrt1060evk", {"CONFIG_LINK_FILE": "{work}/link_gap.lds"}, {}),
     # The Firmware Handoff region in the on-chip RAM
     ("jiffy-fh", {"CONFIG_BOOT_FH_REGION_BASE": "0x00900000"}, {}),
     ("imx8mpevk-fh", {"CONFIG_BOOT_FH_REGION_BASE": "0x00980000"}, {}),
@@ -318,6 +332,11 @@ class Links:
         for name, file in IMX8M_FIRMWARE.items():
             (work / file).write_bytes(bytes(1024))
             self.firmware[name] = str(work / file)
+        # src/link.lds with a page between .ro_data and the stack
+        script = (root / "src/link.lds").read_text()
+        stack = "     .stack (NOLOAD):\n"
+        gap = "    .gap (NOLOAD) : { . = . + 4096; } > ram\n\n"
+        (work / "link_gap.lds").write_text(script.replace(stack, gap + stack))
         # The boards' defconfigs with a Firmware Handoff region
         for board, base in FH_REGION.items():
             lines = (root / f"configs/{board}_defconfig").read_text().splitlines()
@@ -344,7 +363,7 @@ class Links:
             f"KCONFIG_CONFIG={config}",
             f"CROSS_COMPILE={BOARDS[board]}",
             f"BUILD_DIR={self.work / build}",
-            *(f"{name}={value}" for name, value in values.items()),
+            *(f"{name}={value.format(work=self.work)}" for name, value in values.items()),
             f"{self.work / build}/pb",
         ]
         return subprocess.run(  # noqa: S603
