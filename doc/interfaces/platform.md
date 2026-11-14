@@ -416,7 +416,7 @@ used; `revoke_key` returns -PB_ERR_NOT_SUPPORTED.
 revoked: `revoke_key` returns -PB_ERR_NOT_SUPPORTED, `read_key_status` its state as it reads,
 and command mode reports it (`command-mode.md` 5.2, D-085). The build warns for a board key
 (`board.md` 7) in such a slot. Zero: every slot has a bit (a SoC whose revocation pb doesn't
-support yet revokes none anyway). **Not yet in the code (F-436).**
+support yet revokes none anyway). **Not yet in the code (F-437).**
 
 ### 4.2 Data : plat_slc [mandatory]
 
@@ -774,7 +774,7 @@ The platform header documents:
 
   `<p>_plat()` and its structure stay through 3.x where they exist (`imx6ul_plat()`,
   `imx8x_plat()`), deprecated: boards out of the tree may read them. **Not yet in the code
-  (F-437)**: jiffy reads uSDHC1's rate from `imx6ul_plat()`.
+  (F-438)**: jiffy reads uSDHC1's rate from `imx6ul_plat()`.
 - Helpers for boards (pad setup through a system controller), and which of a system
   controller's services the header gives a board.
 - The SoC memory a board may list as an image data region, and `bl_params`' region (5.3).

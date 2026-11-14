@@ -616,7 +616,7 @@ A boot command mode started keeps today's values (`compatibility.md`):
 OP-TEE is its own secure monitor. pb loads and verifies OP-TEE and the normal world's image as
 any parts (4.2), and enters OP-TEE in place of the next stage. OP-TEE sets itself up and enters
 the normal world at the handover's entry. The board gives: BL32's part, OP-TEE's raw image
-(`tee-raw.bin`), whose load address is its entry. **Not yet in the code (F-438).**
+(`tee-raw.bin`), whose load address is its entry. **Not yet in the code (F-439).**
 
 Only with the image handover (5.2). OP-TEE takes a transfer list on AArch32, but not the normal
 world's entry with it (OP-TEE 4.9.0, `boot_save_args()`): Firmware Handoff (5.4) through OP-TEE
@@ -699,4 +699,4 @@ Like the wire (D-008, `compatibility.md`):
 | ------- | ---------------------------------------------------------------------------- |
 | F-259   | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
 | F-180   | The A/B review's fixes, `pbstate`                                            |
-| F-438   | The delivery through OP-TEE on ARMv7-A (5.7), new in D-085                   |
+| F-439   | The delivery through OP-TEE on ARMv7-A (5.7), new in D-085                   |

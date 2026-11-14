@@ -327,7 +327,7 @@ Where each port is (2026-11-14).
 | `plat_reset()` before early init     | yes          | yes               | yes        | yes       | F-262         |
 | `plat_wdog_kick()` before arming     | yes          | yes               | yes        | yes       | F-234         |
 | `plat_get_boot_reason()`             | yes          | yes               | yes        | yes       | F-236         |
-| The unique id fails on a failed read | yes          | yes               | can't fail | yes       | F-416         |
+| The unique id fails on a failed read | yes          | yes               | yes        | yes       | F-416         |
 | Serial download in                   | yes          | yes               | yes        | pins only | F-251         |
 | `plat_get_boot_source()`             |              |                   |            |           |               |
 | `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
@@ -352,7 +352,7 @@ Where each port is (2026-11-14).
 | MMU from `pb_mmu_init()`             | yes          | yes               | yes        | n/a       | F-158, F-269  |
 | Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
 | Image stages                         | yes          | yes               | yes        | yes       | F-240         |
-| Functions for boards, not a          | no           | n/a               | yes        | n/a       | F-437         |
+| Functions for boards, not a          | no           | n/a               | yes        | n/a       | F-438         |
 | structure (7)                        |              |                   |            |           |               |
 | `plat_get_info()`                    | yes (jiffy)  | 8MP EVK; 8MQ not  | yes (MEK)  | yes       | F-432, F-433  |
 | The header: the tick's accuracy, the | no           | no                | no         | no        |               |
