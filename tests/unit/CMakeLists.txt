@@ -762,6 +762,9 @@ pb_plat_test(test_plat_imx8m
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/fakes/armv8a
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
+# pb's .bss in the DRAM (__dram_bss, the 8M's link.lds): empty here, the test
+# defines its start
+target_link_options(test_plat_imx8m PRIVATE "LINKER:--defsym=_dram_bss_end=_dram_bss_start")
 
 # The memory map (platform.md 5.2): pb_mmu_init() over the fake xlat_tables,
 # with room for 16 regions and the fake board's mmap (board.md 2.8). Built

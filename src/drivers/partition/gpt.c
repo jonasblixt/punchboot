@@ -74,8 +74,8 @@ struct gpt_backup_tbl {
 static const uint64_t gpt_header_signature = 0x5452415020494645ULL;
 static uint32_t prng_state;
 
-static struct gpt_primary_tbl primary __aligned(64);
-static struct gpt_backup_tbl backup __aligned(64);
+static struct gpt_primary_tbl primary __aligned(64) __dram_bss;
+static struct gpt_backup_tbl backup __aligned(64) __dram_bss;
 /* Read by a device: it owns its cache lines (bio.md 3.1) */
 static uint8_t gpt_pmbr[512] __aligned(PB_DMA_ALIGN);
 static bio_dev_t gpt_dev;

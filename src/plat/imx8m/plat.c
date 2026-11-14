@@ -29,12 +29,17 @@
 #include <pb/slc.h>
 #include <plat/imx8m/imx8m.h>
 #include <stdio.h>
+#include <string.h>
 #include <uuid.h>
 #include <xlat_tables.h>
 
 #include <plat/imx8m/dram.h>
 
 #include "plat.h"
+
+/* pb's .bss in the DRAM, __dram_bss (link.lds) */
+extern char _dram_bss_start[];
+extern char _dram_bss_end[];
 
 /* System counter control frame */
 #define SCTR_CNTCR      0x00
@@ -461,6 +466,10 @@ int plat_init(void)
         LOG_ERR("MMU setup failed (%i)", rc);
         return rc;
     }
+
+    /* pb's .bss in the DRAM (__dram_bss, link.lds): zeroed with the MMU on,
+     * the DRAM as normal memory */
+    memset(_dram_bss_start, 0, (size_t)(_dram_bss_end - _dram_bss_start));
 
     /* Last: until F-247 the board's init() did it, as its first step */
     status.crypto_engine = crypto_init();

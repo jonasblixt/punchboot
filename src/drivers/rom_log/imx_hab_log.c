@@ -200,7 +200,7 @@ int imx_hab_log_decode(imx_hab_report_status_t *report_status,
 }
 
 static const struct imx_hab_log_config *hab_cfg;
-static char hab_text[TEXT_SIZE];
+static char hab_text[TEXT_SIZE] __dram_bss; /* Decoded at the first read */
 static size_t hab_text_len;
 static bool hab_decoded;
 

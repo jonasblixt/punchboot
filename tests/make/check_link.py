@@ -187,7 +187,14 @@ CASES = [
     ("jiffy", {"PB_SIZE": "0x30000"}, "region `ram' overflowed"),
     ("jiffy", {"PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
     ("imx8qxmek", {"PB_SIZE": "0x50000"}, "region `ram' overflowed"),
-    ("imx8mpevk", {"PB_SIZE": "0x3f000"}, "region `ram' overflowed"),
+    ("imx8mpevk", {"PB_SIZE": "0x20000"}, "region `ram' overflowed"),
+    # pb's .bss in the DRAM (__dram_bss) is after the DDR controller's state:
+    # buffers there overlap it
+    (
+        "imx8mpevk",
+        {"PB_BUFFERS_BASE": "0x40020000"},
+        "pb's .bss in the DRAM (__dram_bss) overlaps pb's buffers (PB_BUFFERS_BASE)",
+    ),
     ("imx8mpevk", {"PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
     # The stack right above .ro_data, which is read only with the MMU on: a
     # link script that has something between the two (F-209)
@@ -306,11 +313,12 @@ ALLOWED = [
     # A board that gives pb less
     ("imx8mpevk", {"PB_SIZE": "0x58000"}, {"ram": (0x920000, 0x58000)}),
     ("imxrt1060evk", {"PB_SIZE": "0x30000"}, {"ram": (0x20249000, 0x30000)}),
-    # The i.MX8M's buffers right after the DDR controller's state
+    # The i.MX8M's buffers right after the DDR controller's state and pb's
+    # .bss in the DRAM
     (
         "imx8mpevk",
-        {"PB_BUFFERS_BASE": "0x40020000"},
-        {"buffers": (0x40000000, 0x1020000)},
+        {"PB_BUFFERS_BASE": "0x40030000"},
+        {"buffers": (0x40000000, 0x1030000)},
     ),
     # The ARMv7-M has no MMU: the stack may be anywhere
     ("imxrt1060evk", {"CONFIG_LINK_FILE": "{work}/link_gap.lds"}, {}),

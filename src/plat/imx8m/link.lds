@@ -78,7 +78,23 @@ SECTIONS
         . = ALIGN(8);
         PROVIDE(_umctl2_end = .);
     } > buffers
+
+    /* __dram_bss (pb/utils_def.h): .bss that nothing uses before plat_init()
+     * returns, in the DRAM after the controller's state, which plat_init()
+     * zeroes after the MMU. The TCM of the i.MX8MQ doesn't hold it with the
+     * LPDDR4 training firmware */
+    .dram_bss (NOLOAD):
+    {
+        . = ALIGN(64);
+        PROVIDE(_dram_bss_start = .);
+        *(.bss.pb_dram)
+        . = ALIGN(64);
+        PROVIDE(_dram_bss_end = .);
+    } > buffers
 }
+
+ASSERT(_dram_bss_end <= PB_BUFFERS_BASE,
+       "pb's .bss in the DRAM (__dram_bss) overlaps pb's buffers (PB_BUFFERS_BASE)")
 
 /* TF-A's bl_params are where BL31 takes them from (plat.c, makefile.mk) */
 _plat_bl_params_end = DEFINED(plat_bl_params) ? plat_bl_params + PLAT_BL_PARAMS_SIZE : 0;

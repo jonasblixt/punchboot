@@ -215,6 +215,10 @@ static uint32_t fake_digprog = 0x00824310;
 static const unsigned int fake_mts[] = { 4000 };
 struct dram_rates dram_rates = { .mts = fake_mts, .num = 1 };
 
+/* pb's .bss in the DRAM (__dram_bss), which plat_init() zeroes: empty, its
+ * end is its start (CMakeLists.txt) */
+char _dram_bss_start[1];
+
 const char *imx8m_soc_name(void)
 {
     return "i.MX8MP";
