@@ -433,7 +433,8 @@ used; `revoke_key` returns -PB_ERR_NOT_SUPPORTED.
 revoked: `revoke_key` returns -PB_ERR_NOT_SUPPORTED, `read_key_status` its state as it reads,
 and command mode reports it (`command-mode.md` 5.2, D-085). The build warns for a board key
 (`board.md` 7) in such a slot. Zero: every slot has a bit (a SoC whose revocation pb doesn't
-support yet revokes none anyway). **Not yet in the code (F-439).**
+support yet revokes none anyway). A platform's `makefile.mk` gives the same count as
+`PLAT_REVOKE_SLOTS`, for the warning; its `plat.c` asserts that the two agree.
 
 ### 4.2 Data : plat_slc [mandatory]
 

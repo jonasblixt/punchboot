@@ -261,11 +261,22 @@ static int read_key_status(const struct rot_key *key)
 }
 #endif
 
+/* HABv4's SRK_REVOKE[2:0] (platform.md 4.1) */
+#define IMX8M_REVOCABLE_SRKS (3)
+
+/* The build's warning for a board key in a slot without a bit reads the
+ * makefile.mk's count (platform.md 4.1) */
+#ifdef PLAT_REVOKE_SLOTS
+_Static_assert(PLAT_REVOKE_SLOTS == IMX8M_REVOCABLE_SRKS,
+               "makefile.mk's PLAT_REVOKE_SLOTS is HAB's");
+#endif
+
 const struct rot_config plat_rot = {
     .revoke_key = NULL,
 #ifdef CONFIG_PLAT_IMX8MP
     .read_key_status = read_key_status,
 #endif
+    .revoke_slots = IMX8M_REVOCABLE_SRKS,
 };
 
 const struct slc_ops plat_slc = { 0 };

@@ -346,6 +346,7 @@ Where each port is (2026-11-14).
 | `plat_rot`, `plat_slc`               | yes          | yes (no HAB; the  | yes        | yes       |               |
 |                                      |              | 8MQ can't read a  |            |           |               |
 |                                      |              | key's status)     |            |           |               |
+| `plat_rot.revoke_slots` (4.1)        | yes (3)      | yes (3)           | yes (4)    | yes (3)   | F-439         |
 | EOL as the SoC's own state           | no           | no                | no         | no        | F-263, D-084  |
 | Crypto engine and RNG in             | yes          | yes               | yes (no    | yes (Mbed |               |
 | `plat_init()`                        |              |                   | RNG)       | TLS)      |               |

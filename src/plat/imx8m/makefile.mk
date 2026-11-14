@@ -8,6 +8,11 @@
 #
 ifdef CONFIG_PLAT_IMX8M_COMMON
 
+# The key slots the SoC has a revoke bit for (platform.md 4.1): HABv4, SRK_REVOKE[2:0].
+# plat_rot.revoke_slots, and the build warns for a board key above them
+PLAT_REVOKE_SLOTS = 3
+cflags-y += -DPLAT_REVOKE_SLOTS=$(PLAT_REVOKE_SLOTS)
+
 # pb's buffers (platform.md 5.1), in the DRAM, after the DDR controller's state: the board's makefile.mk,
 # read before this one, may put them elsewhere
 PB_BUFFERS_BASE ?= 0x40060000

@@ -69,6 +69,16 @@ Boot:
 - When a board's hook stops a boot that the host started before the device has left the bus,
   the host gets an error and the device stays in command mode. It reset (F-252, 2026-11-13).
 
+The keys (D-085, F-439, 2026-11-14):
+
+- `SLC_READ`'s result says which active keys the device can't revoke: those in a slot the
+  SoC has no revoke bit for (HABv4's slots from 3, the i.MX8X's from 4). `punchboot slc show`
+  marks them "(cannot be revoked)", and the Python API has `slc_get_unrevocable_keys()`. A
+  device before 3.0.0 reports none, which says nothing about its keys.
+- `SLC_REVOKE_KEY` on such a key answers `NOT_SUPPORTED` on every platform. The i.MX8X
+  answered `INVALID_ARGUMENT`.
+- The build warns for a board key in such a slot.
+
 Named commands (D-076, 2026-11-13):
 
 - One new command, `COMMAND_LIST`, and `punchboot cmd list` and `punchboot cmd <name>` in

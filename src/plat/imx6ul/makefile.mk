@@ -14,6 +14,11 @@ PB_BUFFERS_BASE ?= 0x81021000
 PB_BUFFERS_SIZE ?= 0x1000000
 
 cflags-y += -mtune=cortex-a7
+
+# The key slots the SoC has a revoke bit for (platform.md 4.1): HABv4, SRK_REVOKE[2:0].
+# plat_rot.revoke_slots, and the build warns for a board key above them
+PLAT_REVOKE_SLOTS = 3
+cflags-y += -DPLAT_REVOKE_SLOTS=$(PLAT_REVOKE_SLOTS)
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000
 

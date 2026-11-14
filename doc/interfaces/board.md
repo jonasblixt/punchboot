@@ -670,6 +670,9 @@ VERIFY_KEY2_ID   = 0x1b5ac0de
 - A board that names no key gets pb's development keys, `pki/dev-keys.mk`, and the build says so.
   Their private keys are in the tree: they are never a product's. It is all or nothing: a board
   that names one key gets only its own.
+- The build warns for a key in a slot the SoC has no revoke bit for (`platform.md` 4.1): from
+  slot 3 up on HABv4, from 4 on the i.MX8X. Such a key can't be revoked, and command mode says
+  so (D-085).
 - The build stops on a key named in part (a path without an id or the other way round), a slot
   above 15, or `CONFIG_KEYSTORE` or `CONFIG_KEYSTORE_SLOTS`, the options before 3.0.0.
 - A build may set them on the make command line, for a development build of a product's board.

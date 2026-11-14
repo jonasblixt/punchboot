@@ -251,6 +251,7 @@ static int host_slc_set_eol(void)
 const struct rot_config plat_rot = {
     .revoke_key = host_revoke_key,
     .read_key_status = host_read_key_status,
+    .revoke_slots = 0, /* A bit for every slot */
 };
 
 const struct slc_ops plat_slc = {

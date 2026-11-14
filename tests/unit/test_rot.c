@@ -49,6 +49,13 @@ static const struct rot_config rot_cfg = {
 
 static const struct rot_config rot_cfg_no_callbacks = { 0 };
 
+/* A SoC with revoke bits for slots 0 and 1 only, as HABv4 has three */
+static const struct rot_config rot_cfg_two_slots = {
+    .revoke_key = fake_revoke_key,
+    .read_key_status = fake_read_key_status,
+    .revoke_slots = 2,
+};
+
 static void test_rot_not_initialized(void **state)
 {
     dsa_t kind;
@@ -173,6 +180,43 @@ static void test_rot_revoke(void **state)
     assert_int_equal(rot_get_dsa_key(KEY_P384, &kind, &der, &der_length), -PB_ERR_KEY_REVOKED);
     /* The others are still good */
     assert_int_equal(rot_read_key_status(KEY_P256), PB_OK);
+}
+
+/* A key in a slot the SoC has no revoke bit for (platform.md 4.1, D-085):
+ * reported as such, and revoking it is NOT_SUPPORTED, before the platform
+ * is asked. Its status reads as the platform reads it */
+static void test_rot_unrevocable(void **state)
+{
+    (void)state;
+
+    revoked = 0;
+    revoke_calls = 0;
+
+    /* revoke_slots 0: every slot has a bit */
+    assert_int_equal(rot_init(&rot_cfg), PB_OK);
+    for (unsigned int i = 0; i < 4; i++)
+        assert_false(rot_key_unrevocable_by_idx(i));
+
+    assert_int_equal(rot_init(&rot_cfg_two_slots), PB_OK);
+    assert_false(rot_key_unrevocable_by_idx(0));
+    assert_false(rot_key_unrevocable_by_idx(1));
+    assert_true(rot_key_unrevocable_by_idx(2)); /* KEY_P521, slot 2 */
+    assert_false(rot_key_unrevocable_by_idx(3)); /* No such key */
+
+    assert_int_equal(rot_revoke_key(KEY_P521), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(revoke_calls, 0);
+    assert_int_equal(rot_read_key_status(KEY_P521), PB_OK);
+
+    /* A revoke bit the fuses have reads as revoked, also above the slots
+     * this build revokes (F-165) */
+    revoked = 1u << 2;
+    assert_int_equal(rot_read_key_status(KEY_P521), -PB_ERR_KEY_REVOKED);
+
+    revoked = 0;
+    assert_int_equal(rot_revoke_key(KEY_P384), PB_OK);
+    assert_int_equal(revoke_calls, 1);
+
+    assert_int_equal(rot_init(&rot_cfg), PB_OK);
 }
 
 static slc_t slc_state;
@@ -505,6 +549,7 @@ int main(void)
         cmocka_unit_test(test_rot_key_status),
         cmocka_unit_test(test_rot_get_dsa_key),
         cmocka_unit_test(test_rot_revoke),
+        cmocka_unit_test(test_rot_unrevocable),
         cmocka_unit_test(test_slc_not_initialized),
         cmocka_unit_test(test_slc_without_callbacks),
         cmocka_unit_test(test_slc_without_eol),

@@ -163,6 +163,11 @@ $(foreach n,$(KEY_SLOTS),$(if $(and $(strip $(VERIFY_KEY$(n)_PATH)),$(strip $(VE
     $(if $(strip $(VERIFY_KEY$(n)_PATH)$(VERIFY_KEY$(n)_ID)),\
         $(error VERIFY_KEY$(n): a key has both VERIFY_KEY$(n)_PATH and VERIFY_KEY$(n)_ID (board.md 7)))))
 $(if $(strip $(KEYSTORE_ARGS)),,$(error VERIFY_KEY<n>_PATH: the board names no key (board.md 7)))
+# A key in a slot the SoC has no revoke bit for can't be revoked (platform.md
+# 4.1, D-085): the slots from PLAT_REVOKE_SLOTS, the platform's, up
+UNREVOCABLE_SLOTS = $(if $(PLAT_REVOKE_SLOTS),$(wordlist $(words x $(wordlist 1,$(PLAT_REVOKE_SLOTS),$(KEY_SLOTS))),16,$(KEY_SLOTS)))
+$(foreach n,$(UNREVOCABLE_SLOTS),$(if $(strip $(VERIFY_KEY$(n)_PATH)),\
+    $(warning VERIFY_KEY$(n): the SoC has a revoke bit for slots 0 to $(words $(wordlist 2,$(PLAT_REVOKE_SLOTS),$(KEY_SLOTS))) only: this key can't be revoked (platform.md 4.1))))
 # Before 3.0.0 the keys were a bpak keystore in the configuration. A 2.x
 # defconfig would otherwise build with the development keys.
 ifneq ($(or $(filter-out undefined,$(origin CONFIG_KEYSTORE) $(origin CONFIG_KEYSTORE_SLOTS)),\
