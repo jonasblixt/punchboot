@@ -119,6 +119,7 @@ src-y  += src/wire.c
 src-y  += src/console.c
 src-y  += src/log.c
 src-y  += src/log_source.c
+src-y  += src/plat_info.c
 src-$(CONFIG_RAMLOG) += src/ramlog.c
 src-y  += src/rot.c
 src-y  += src/slc.c

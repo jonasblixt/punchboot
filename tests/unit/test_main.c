@@ -48,6 +48,8 @@ static struct {
     int early_init_calls;
     int console_init_calls;
     int init_calls;
+    int info_calls;
+    int setup_calls_at_info; /* board_setup() calls before plat_info_log() */
     int setup_rc;
     int boot_rc;
     bool boot_jumps;
@@ -81,6 +83,12 @@ int plat_init(void)
 {
     f.init_calls++;
     return f.init_rc;
+}
+
+void plat_info_log(void)
+{
+    f.info_calls++;
+    f.setup_calls_at_info = f.setup_calls;
 }
 
 void plat_reset(void)
@@ -209,6 +217,7 @@ static void test_plat_init_fails_resets(void **state)
     assert_int_equal(f.early_init_calls, 1);
     assert_int_equal(f.console_init_calls, 1);
     assert_int_equal(f.init_calls, 1);
+    assert_int_equal(f.info_calls, 0);
     assert_reset_only();
 }
 
@@ -222,6 +231,9 @@ static void test_platform_is_set_up_before_the_board(void **state)
     assert_int_equal(f.early_init_calls, 1);
     assert_int_equal(f.console_init_calls, 1);
     assert_int_equal(f.init_calls, 1);
+    /* platform.md 3.11: the SoC is logged after plat_init(), before the board */
+    assert_int_equal(f.info_calls, 1);
+    assert_int_equal(f.setup_calls_at_info, 0);
     assert_int_equal(f.setup_calls, 1);
     assert_int_equal(f.boot_calls, 1);
 }

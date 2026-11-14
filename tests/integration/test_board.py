@@ -46,16 +46,24 @@ PB_RESULT_INVALID_ARGUMENT = 5
 
 def test_command_list(device: Device) -> None:
     # command-mode.md 5.6: the host board's named commands, with the ids it
-    # answered before 3.0.0
+    # answered before 3.0.0, and the core's 'info' (D-077)
     with device.session() as s:
         commands = s.command_list()
 
-    assert {c.name for c in commands} == {"test-command", "test-command2", "test-boot-stop"}
+    assert {c.name for c in commands} == {"info", "test-command", "test-command2", "test-boot-stop"}
     ids = {c.name: c.id for c in commands}
     assert ids["test-command"] == TEST_COMMAND
     assert ids["test-command2"] == 0xDFA7C4AD
     assert ids["test-boot-stop"] == 0x70C3E5F7
     assert all(c.help for c in commands)
+
+
+def test_info(device: Device) -> None:
+    # platform.md 3.11: the host platform's line, with its NUL
+    with device.session() as s:
+        info = s.command_run("info")
+
+    assert info == b"SoC host rev unknown, CPU unknown, memory none set up\n\0"
 
 
 def test_command_run(device: Device) -> None:

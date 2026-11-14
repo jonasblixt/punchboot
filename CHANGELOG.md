@@ -79,8 +79,10 @@ Named commands (D-076, 2026-11-13):
   the DXL EVK answered OK to any id (F-218).
 - jiffy's board command `dump-rom-log` is gone: `punchboot log rom` reads the ROM's log
   (`4bb4c2f6`).
-- The MEK's and the DXL EVK's `board status` answers "Board status OK!". What it printed is
-  the platform's command `info` (2026-11-14).
+- Every device has the named command `info`: the SoC, its revision, its clocks and its
+  firmware, the lines pb logs at boot after the banner (D-077, 2026-11-14).
+- The MEK's, the DXL EVK's and jiffy's `board status` answers "Board status OK!". What they
+  printed is in `info` (D-077, 2026-11-14).
 
 Logs: `punchboot log` reads pb's own log, `punchboot log <name>` another of the device's, and
 `punchboot log --list` names them. A device without the command answers `INVALID_COMMAND`

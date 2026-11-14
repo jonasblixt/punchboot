@@ -186,6 +186,7 @@ def test_command_names_complete(device: Device) -> None:
 
     assert set(_complete(device, socket, "cmd ")) == {
         "list",
+        "info",
         "test-command",
         "test-command2",
         "test-boot-stop",
