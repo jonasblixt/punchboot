@@ -214,9 +214,7 @@ def test_boot_activate_after_a_failed_policy_init_writes_no_state(
     assert no_policy_device.read_blocks(0, DISK_BLOCKS) == before
 
 
-def test_boot_from_ram_after_a_failed_init(
-    no_disk_device: Device, tmp_path: pathlib.Path
-) -> None:
+def test_boot_from_ram_after_a_failed_init(no_disk_device: Device, tmp_path: pathlib.Path) -> None:
     """board.md 2.1 and 2.3 (F-394): a failed init() leaves what a RAM boot needs.
 
     The board's disk can't be opened, so its init() fails and pb stops in

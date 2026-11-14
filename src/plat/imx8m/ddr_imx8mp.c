@@ -71,7 +71,8 @@ void imx8m_ddr_soc_reset(void)
     mmio_write_32(CCM_CCGR_SET(CCGR_DRAM1), CCGR_CLK_ON_MASK);
 
     /* All resets and src_system_rst_b, then src_system_rst_b released */
-    mmio_write_32(SRC_DDRC_RCR_ADDR, RCR_DOMAINS | SRC_DDRC_RCR_SYSTEM_RST | SRC_DDRC_RCR_ALL_RESETS);
+    mmio_write_32(SRC_DDRC_RCR_ADDR,
+                  RCR_DOMAINS | SRC_DDRC_RCR_SYSTEM_RST | SRC_DDRC_RCR_ALL_RESETS);
     mmio_write_32(SRC_DDRC_RCR_ADDR, RCR_DOMAINS | SRC_DDRC_RCR_ALL_RESETS);
     mmio_write_32(SRC_DDRC2_RCR_ADDR, RCR_DOMAINS);
 }

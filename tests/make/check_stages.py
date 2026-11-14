@@ -107,7 +107,6 @@ oot_image: $(BUILD_DIR)/pb.bin
 """
 
 
-
 def budget(tasks: int) -> tuple[int, int]:
     """Return the workers and each one's make jobs for this many tasks.
 
@@ -118,6 +117,7 @@ def budget(tasks: int) -> tuple[int, int]:
     jobs = int(os.environ.get("PB_JOBS") or len(os.sched_getaffinity(0)))
     workers = max(1, min(jobs, tasks))
     return workers, max(1, jobs // workers)
+
 
 def say(text: str) -> None:
     """Print a line of the report."""

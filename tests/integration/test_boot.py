@@ -58,9 +58,7 @@ def test_boot_from_ram(device: Device, tmp_path: pathlib.Path) -> None:
 @pytest.mark.parametrize(
     ("part", "name"), [(SYSTEM_A_UUID, "A"), (SYSTEM_B_UUID, "B")], ids=["A", "B"]
 )
-def test_boot_partition(
-    device: Device, tmp_path: pathlib.Path, part: uuid.UUID, name: str
-) -> None:
+def test_boot_partition(device: Device, tmp_path: pathlib.Path, part: uuid.UUID, name: str) -> None:
     img = make_bpak(tmp_path / "img.bpak", os.urandom(128 * 1024))
 
     with device.session() as s:
