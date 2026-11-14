@@ -28,6 +28,7 @@
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <pb/crypto.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/rot.h>
 #include <stdlib.h>
@@ -728,8 +729,13 @@ static void test_verify_parts_in_place_errors(void **state)
 
 /* Fake storage: the image payload, read through read_f */
 static uint8_t payload[3 * 1024];
-static uint8_t load_area[3 * 1024];
+/* On a line: its parts are read straight to their load addresses */
+static uint8_t load_area[3 * 1024] __aligned(PB_DMA_ALIGN);
 static int reads;
+/* The buffers read_f was given that don't start on a cache line, and the
+ * last buffer it was given */
+static int reads_off_line;
+static void *last_read_buf;
 static int read_rc;
 static int fail_read_at;
 static int results;
@@ -742,6 +748,9 @@ static int read_f(int64_t offset, size_t length, void *buf)
     if ((size_t)reads < ARRAY_SIZE(kicks_at_read))
         kicks_at_read[reads] = fake_wdog_kicks;
     reads++;
+    if (!dma_owns_lines(buf, 0))
+        reads_off_line++;
+    last_read_buf = buf;
     if (reads == fail_read_at)
         return read_rc;
     memcpy(buf, &payload[offset], length);
@@ -777,6 +786,8 @@ static void load_setup(void)
         payload[i] = (uint8_t)(i * 7);
     memset(load_area, 0, sizeof(load_area));
     reads = 0;
+    reads_off_line = 0;
+    last_read_buf = NULL;
     read_rc = PB_OK;
     fail_read_at = 0;
     results = 0;
@@ -806,8 +817,11 @@ static void test_load_and_hash(void **state)
     assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_f, digest, sizeof(digest)),
                      PB_OK);
 
-    /* Read in chunks of 1 KiB: two for the kernel, one for the dtb */
+    /* Read in chunks of 1 KiB: two for the kernel, one for the dtb, each
+     * straight to its load address */
     assert_int_equal(reads, 3);
+    assert_int_equal(reads_off_line, 0);
+    assert_ptr_equal(last_read_buf, load_area + 2048);
     assert_memory_equal(load_area, payload, sizeof(payload));
     assert_int_equal(fake.hashed_bytes, sizeof(payload));
     /* One result per part */
@@ -816,6 +830,60 @@ static void test_load_and_hash(void **state)
 
     fake_digest(expected, sizeof(expected), expected_sum(payload, sizeof(payload)));
     assert_memory_equal(digest, expected, sizeof(expected));
+}
+
+/*
+ * A part whose load address doesn't start on a cache line (drivers.md 4.3,
+ * D-066): no image is refused for it. It is read into the boot's own buffer,
+ * in the same pieces as a part on a line, and copied to its address, from a
+ * partition and from the host's stream alike. What is hashed is what is at
+ * the load address, and nothing next to the parts changes.
+ */
+static void test_load_and_hash_bounces_a_load_address_off_a_line(void **state)
+{
+    static uint8_t area[4 * 1024] __aligned(PB_DMA_ALIGN);
+    static const size_t shifts[] = { 1, 8, PB_DMA_ALIGN - 1 };
+    static const boot_result_cb_t sources[] = { NULL, result_sent_f };
+    uint8_t digest[64];
+    uint8_t expected[32];
+    (void)state;
+
+    for (size_t s = 0; s < ARRAY_SIZE(sources); s++) {
+        for (size_t i = 0; i < ARRAY_SIZE(shifts); i++) {
+            uint8_t *kernel = area + shifts[i];
+
+            load_setup();
+            memset(area, 0xa5, sizeof(area));
+            make_header(BPAK_HASH_SHA256, (uintptr_t)kernel, 2048, (uintptr_t)kernel + 2048, 1024);
+
+            assert_int_equal(
+                boot_image_load_and_hash(hdr, 1024, read_f, sources[s], digest, sizeof(digest)),
+                PB_OK);
+
+            /* The pieces of a part on a line, none of them read off a line */
+            assert_int_equal(reads, 3);
+            assert_int_equal(reads_off_line, 0);
+            assert_memory_equal(kernel, payload, sizeof(payload));
+
+            for (size_t b = 0; b < shifts[i]; b++)
+                assert_int_equal(area[b], 0xa5);
+            for (size_t b = shifts[i] + sizeof(payload); b < sizeof(area); b++)
+                assert_int_equal(area[b], 0xa5);
+
+            assert_int_equal(fake.hashed_bytes, sizeof(payload));
+            fake_digest(expected, sizeof(expected), expected_sum(payload, sizeof(payload)));
+            assert_memory_equal(digest, expected, sizeof(expected));
+        }
+    }
+
+    /* A read that fails is the part's error, as on a line */
+    load_setup();
+    make_header(BPAK_HASH_SHA256, (uintptr_t)area + 8, 2048, (uintptr_t)area + 8 + 2048, 1024);
+    fail_read_at = 2;
+    read_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, sizeof(digest)),
+                     -PB_ERR_IO);
+    assert_int_equal(reads, 2);
 }
 
 /*
@@ -1505,6 +1573,7 @@ int main(void)
         IMG_TEST(test_verify_parts_in_place_outside),
         IMG_TEST(test_verify_parts_in_place_errors),
         IMG_TEST(test_load_and_hash),
+        IMG_TEST(test_load_and_hash_bounces_a_load_address_off_a_line),
         IMG_TEST(test_load_and_hash_in_memory),
         IMG_TEST(test_load_and_hash_digest_sizes),
         IMG_TEST(test_load_and_hash_errors),

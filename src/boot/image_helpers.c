@@ -13,6 +13,7 @@
 #include <bpak/keystore.h>
 #include <inttypes.h>
 #include <pb/crypto.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/rot.h>
@@ -29,6 +30,17 @@ IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
 static const struct boot_image_region *image_regions;
 
 static uint8_t signature[512];
+
+/*
+ * A part whose load address doesn't start on a cache line is read here, a
+ * chunk at a time, and copied to its address (drivers.md 4.3, D-066): what a
+ * device writes owns its lines, and the load address is the one buffer the
+ * image chooses, so no image is refused for it (D-008). A chunk of the
+ * build's size, so that the reads are the ones of a part read straight to its
+ * address.
+ */
+#define LOAD_BOUNCE_SIZE ((size_t)CONFIG_BOOT_LOAD_CHUNK_kB * 1024)
+PB_DMA_ARRAY(uint8_t, load_bounce, LOAD_BOUNCE_SIZE);
 
 int boot_image_auth_header(struct bpak_header *hdr)
 {
@@ -412,10 +424,18 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
         uint32_t hash_us = 0;
         uint32_t t;
 
-        while (bytes_to_read) {
-            chunk_size = (bytes_to_read > load_chunk_size) ? load_chunk_size : bytes_to_read;
+        if (read_f != NULL && !dma_owns_lines((const void *)load_addr, 0))
+            LOG_DBG("Part %x isn't on a cache line: read through a buffer and copied", p->id);
 
+        while (bytes_to_read) {
             uintptr_t addr = load_addr + offset;
+            /* A chunk that doesn't start on a line is read into the bounce
+             * buffer. With a chunk of whole lines, as the build's is, either
+             * every chunk of a part is or none */
+            bool bounce = (read_f != NULL) && !dma_owns_lines((const void *)addr, 0);
+            size_t max_chunk = bounce ? MIN(load_chunk_size, LOAD_BOUNCE_SIZE) : load_chunk_size;
+
+            chunk_size = (bytes_to_read > max_chunk) ? max_chunk : bytes_to_read;
 
             if (read_f) {
                 /* The block size is up to read_f, it used to be 512 here (F-062) */
@@ -423,7 +443,11 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
                     (int64_t)(offset + bpak_part_offset(hdr, p) - sizeof(struct bpak_header));
 
                 t = plat_get_us_tick();
-                rc = read_f(read_offset, chunk_size, (void *)addr);
+                rc = read_f(read_offset, chunk_size, bounce ? load_bounce : (void *)addr);
+
+                /* What is hashed, and booted, is what is at the load address */
+                if (rc == PB_OK && bounce)
+                    memcpy((void *)addr, load_bounce, chunk_size);
                 read_us += plat_get_us_tick() - t;
 
                 if (rc != PB_OK)

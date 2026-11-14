@@ -190,6 +190,39 @@ def test_image_at_the_ends_of_the_image_region_boots(
     assert boot_partition(device, SYSTEM_A_UUID) == "A"
 
 
+@pytest.mark.parametrize(
+    "load_addr",
+    [
+        pytest.param(0x49000001, id="byte-1"),
+        pytest.param(0x49000008, id="byte-8"),
+        pytest.param(0x4900003F, id="byte-63"),
+    ],
+)
+def test_image_whose_load_address_is_off_a_cache_line_boots(
+    device: Device, tmp_path: pathlib.Path, load_addr: int
+) -> None:
+    """A part that doesn't start on a cache line boots, never refused (D-066, D-008).
+
+    The boot's load loop reads it into a buffer of its own and copies it to its
+    address (drivers.md 4.3), from a partition and from the host's stream; the
+    block device and the transport see only buffers that own their lines.
+    """
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(200 * 1024 + 100), load_addr=load_addr)
+
+    # The boot from the partition, as at power on
+    with device.session() as s:
+        s.part_write(img, SYSTEM_A_UUID)
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+    device.reset()
+    device.start(command_mode=False)
+    assert device.wait_exit() == 0
+    assert device.boot_status == "A"
+
+    # The host's stream
+    device.start()
+    assert boot_ram(device, img) == "?"
+
+
 def test_image_with_empty_kernel_is_rejected(device: Device, tmp_path: pathlib.Path) -> None:
     """A signed image whose kernel part is empty isn't booted (F-292).
 
