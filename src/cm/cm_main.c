@@ -37,6 +37,31 @@ static struct pb_command cmd __section(".no_init") __aligned(64);
 static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
 static uint8_t buffer[2][CM_BUF_SIZE] __section(".no_init") __aligned(4096);
+
+/*
+ * PART_VERIFY and PART_BPAK_READ read the partition into two buffers of
+ * their own: the stream's two keep what the host put there (command-mode.md
+ * 5.3). Two, since the hash of one chunk runs while the next is read. Each
+ * is a quarter of a stream buffer, and at least a bpak header and a block
+ * of any device.
+ */
+#define CM_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define CM_PART_BUF_SIZE \
+    CM_MAX(CM_BUF_SIZE / 4, CM_MAX(sizeof(struct bpak_header), CONFIG_BIO_MAX_BLOCK_SIZE))
+
+static uint8_t part_buffer_0[CM_PART_BUF_SIZE] __section(".no_init") __aligned(4096);
+static uint8_t part_buffer_1[CM_PART_BUF_SIZE] __section(".no_init") __aligned(4096);
+static uint8_t *const part_buffer[2] = { part_buffer_0, part_buffer_1 };
+
+/* What the handlers put in the buffers without a check at run time fits a
+ * build's buffers: the 1024 bytes of AUTHENTICATE and of a board's request
+ * in one, a partition table entry per block device in the two, whose count
+ * is a byte on the wire */
+_Static_assert(CM_BUF_SIZE >= CM_DATA_XFER_SIZE, "CONFIG_CM_BUF_SIZE_KiB: below a data transfer");
+_Static_assert(CONFIG_BIO_MAX_DEVS <= UINT8_MAX,
+               "CONFIG_BIO_MAX_DEVS: the table's count is a byte");
+_Static_assert(CONFIG_BIO_MAX_DEVS * sizeof(struct pb_result_part_table_entry) <= sizeof(buffer),
+               "CONFIG_CM_BUF_SIZE_KiB: no room for CONFIG_BIO_MAX_DEVS table entries");
 static slc_t slc;
 
 /* The part table response sends the low byte of the bio flags and the SLC
@@ -60,6 +85,15 @@ static const struct cm_config *cfg;
  * 4.6): the session is over, the command's other transfers fail at once and
  * the task restarts the transport */
 static bool transfer_lost;
+/* A command ended command mode (command-mode.md 2.3): DEVICE_RESET, a
+ * board's command that asked for the reset and returned PB_OK (5.6), a boot
+ * that returned after the disconnect. The task leaves when the command is
+ * done. Nothing else leaves: an error a command returns, -PB_ERR_ABORT too,
+ * is the host's result, and command mode goes on (board.md 5.4) */
+static bool leave_requested;
+/* The device left the bus, until the transport is started again: it leaves
+ * once, before a jump or before the reset */
+static bool disconnected;
 
 #ifdef CONFIG_BOOT_LINUX_RAMOOPS
 static const struct linux_ramoops_config ramoops = {
@@ -358,10 +392,21 @@ static int cmd_board(void)
 
     uint8_t *bfr_response = buffer[1];
 
-    size_t response_size = CM_BUF_SIZE;
+    /* The response is at most what the host said it can take and at most a
+     * buffer (command-mode.md 5.6): a host leaves a larger one on the link.
+     * The board is told, and what it reports beyond that isn't sent. */
+    size_t response_max = board_cmd->response_buffer_size;
+
+    if (response_max > CM_BUF_SIZE)
+        response_max = CM_BUF_SIZE;
+
+    size_t response_size = response_max;
 
     rc = cfg->command(
         board_cmd->command, bfr, board_cmd->request_size, bfr_response, &response_size);
+
+    if (response_size > response_max)
+        response_size = response_max;
 
     board_result.size = response_size;
     pb_wire_init_result2(&result, error_to_wire(rc), &board_result, sizeof(board_result));
@@ -404,25 +449,26 @@ static int cmd_bpak_read(void)
 
     LOG_DBG("Reading bpak header at lba %i", header_lba);
 
-    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), &buffer);
+    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), part_buffer[0]);
 
     if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
-    rc = bpak_valid_header((struct bpak_header *)buffer);
+    rc = bpak_valid_header((struct bpak_header *)part_buffer[0]);
 
+    /* bpak's code is logged here, as bpak's: the command's error is pb's */
     if (rc != BPAK_OK) {
-        LOG_ERR("Invalid bpak header");
+        LOG_ERR("Invalid bpak header (bpak: %i)", rc);
         pb_wire_init_result(&result, -PB_RESULT_NOT_FOUND);
-        return rc;
+        return -PB_ERR_NOT_FOUND;
     }
 
     pb_wire_init_result(&result, error_to_wire(rc));
     cm_write(&result, sizeof(result));
 
-    rc = cm_write(buffer, sizeof(struct bpak_header));
+    rc = cm_write(part_buffer[0], sizeof(struct bpak_header));
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
@@ -573,6 +619,22 @@ stream_check(uint8_t buffer_id, uint32_t size, uint64_t offset, uint8_t **bfr, l
     return PB_OK;
 }
 
+/*
+ * No stream (command-mode.md 5.4): before a STREAM_INITIALIZE that succeeded
+ * in this session, and after one that failed, 'block_dev' is an error code
+ * and no device. A read and a write answer that first: an error code read
+ * as flags has the bits set (F-074).
+ */
+static bool stream_missing(void)
+{
+    if (bio_valid(block_dev))
+        return false;
+
+    LOG_ERR("No stream");
+    pb_wire_init_result(&result, -PB_RESULT_STREAM_NOT_INITIALIZED);
+    return true;
+}
+
 static int cmd_stream_read(void)
 {
     int rc = -PB_ERR;
@@ -583,6 +645,9 @@ static int cmd_stream_read(void)
             stream_read->buffer_id,
             stream_read->offset,
             stream_read->size);
+
+    if (stream_missing())
+        return -PB_ERR_STATE;
 
     if (!(bio_get_flags(block_dev) & BIO_FLAG_READABLE)) {
         LOG_ERR("Partition may not be read");
@@ -630,6 +695,9 @@ static int cmd_stream_write(void)
             stream_write->offset,
             stream_write->size);
 
+    if (stream_missing())
+        return -PB_ERR_STATE;
+
     if (!(bio_get_flags(block_dev) & BIO_FLAG_WRITABLE)) {
         LOG_ERR("Partition may not be written");
         rc = -PB_ERR_IO;
@@ -659,6 +727,7 @@ static int cmd_part_verify(void)
     int rc;
     int buffer_id = 0;
     size_t chunk_len;
+    size_t chunk_max;
     struct pb_command_verify_part *verify_cmd = (struct pb_command_verify_part *)cmd.request;
     size_t bytes_to_verify = verify_cmd->size;
     int lba_offset = 0;
@@ -682,6 +751,13 @@ static int cmd_part_verify(void)
         return -PB_ERR_PARAM;
     }
 
+    /* The header is part of the size: less than one would wrap below */
+    if (verify_cmd->bpak && verify_cmd->size < sizeof(struct bpak_header)) {
+        LOG_ERR("Size %" PRIu32 " is less than a bpak header", verify_cmd->size);
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);
+        return -PB_ERR_PARAM;
+    }
+
     rc = hash_init(HASH_SHA256);
 
     if (rc != PB_OK) {
@@ -695,14 +771,14 @@ static int cmd_part_verify(void)
         lba_t header_lba =
             bio_get_no_of_blocks(dev) - (sizeof(struct bpak_header) / bio_block_size(dev));
 
-        rc = bio_read(dev, header_lba, sizeof(struct bpak_header), buffer[buffer_id]);
+        rc = bio_read(dev, header_lba, sizeof(struct bpak_header), part_buffer[buffer_id]);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
 
-        rc = hash_update_async(buffer[buffer_id], sizeof(struct bpak_header));
+        rc = hash_update_async(part_buffer[buffer_id], sizeof(struct bpak_header));
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
@@ -716,12 +792,17 @@ static int cmd_part_verify(void)
 
     LOG_DBG("Reading %zu bytes", bytes_to_verify);
 
+    /* A chunk is whole blocks of the device, so that the next one starts on
+     * a block. At least one: no device has a block above
+     * CONFIG_BIO_MAX_BLOCK_SIZE (bio.md 2.3) */
+    chunk_max = CM_PART_BUF_SIZE - (CM_PART_BUF_SIZE % (size_t)bio_block_size(dev));
+
     while (bytes_to_verify) {
-        chunk_len = bytes_to_verify > CM_BUF_SIZE ? CM_BUF_SIZE : bytes_to_verify;
+        chunk_len = bytes_to_verify > chunk_max ? chunk_max : bytes_to_verify;
 
         buffer_id = !buffer_id;
 
-        rc = bio_read(dev, lba_offset, chunk_len, buffer[buffer_id]);
+        rc = bio_read(dev, lba_offset, chunk_len, part_buffer[buffer_id]);
 
         if (rc != PB_OK) {
             LOG_ERR("read error");
@@ -729,7 +810,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = hash_update_async(buffer[buffer_id], chunk_len);
+        rc = hash_update_async(part_buffer[buffer_id], chunk_len);
 
         if (rc != PB_OK) {
             LOG_ERR("Hash update error");
@@ -824,6 +905,9 @@ static int cmd_part_tbl_read(void)
         if (!(bio_get_flags(dev) & BIO_FLAG_VISIBLE))
             continue;
 
+        /* The reserved bytes and the end of the description are zero, not
+         * what the buffer held (command-mode.md 4.3) */
+        memset(&result_tbl[entries], 0, sizeof(result_tbl[entries]));
         uuid_copy(result_tbl[entries].uuid, bio_get_uu(dev));
         strncpy(result_tbl[entries].description,
                 bio_get_description(dev),
@@ -848,6 +932,35 @@ static int cmd_part_tbl_read(void)
 
     pb_wire_init_result(&result, PB_RESULT_OK);
     return PB_RESULT_OK;
+}
+
+static void cm_disconnect(void)
+{
+    if (!disconnected)
+        cm_transport_disconnect();
+
+    disconnected = true;
+}
+
+/*
+ * The end of both boot commands, after the host's last OK (command-mode.md
+ * 5.5, board.md 5.4): the transport is disconnected, then late_boot(),
+ * plat_lockdown() and the jump. The session is over whatever follows, so a
+ * boot that returns here, stopped or failed, leaves command mode and pb
+ * resets (2.3): nothing is read from the transport that is gone.
+ */
+static int cm_boot_jump(void)
+{
+    int rc;
+
+    cm_disconnect();
+
+    rc = boot_jump();
+
+    LOG_ERR("The boot returned after the disconnect (%i), resetting", rc);
+    leave_requested = true;
+
+    return (rc != PB_OK) ? rc : -PB_ERR;
 }
 
 /* Set when the boot has read from the host: the header comes first */
@@ -896,9 +1009,7 @@ static int cmd_boot_bpak(void)
         return rc;
     }
 
-    cm_transport_disconnect();
-
-    return boot_jump();
+    return cm_boot_jump();
 }
 
 static int cmd_slc_read(void)
@@ -921,7 +1032,17 @@ static int cmd_slc_read(void)
     if (rc < 0)
         return rc;
 
-    for (size_t i = 0; i < rot_no_of_keys(); i++) {
+    /* The wire has 16 slots for each list (command-mode.md 5.2): a keystore
+     * with more keys doesn't write past them */
+    size_t no_of_keys = rot_no_of_keys();
+
+    if (no_of_keys > ARRAY_SIZE(key_status.active)) {
+        LOG_ERR("The keystore has more keys than the %zu that are listed",
+                ARRAY_SIZE(key_status.active));
+        no_of_keys = ARRAY_SIZE(key_status.active);
+    }
+
+    for (size_t i = 0; i < no_of_keys; i++) {
         int key_rc = rot_read_key_status_by_idx(i);
         key_id_t key_id = rot_key_idx_to_id(i);
 
@@ -1143,6 +1264,7 @@ static int pb_command_parse(void)
         LOG_INFO("Board reset");
         pb_wire_init_result(&result, PB_RESULT_OK);
         cm_write(&result, sizeof(result));
+        leave_requested = true;
         return -PB_ERR_ABORT;
     } break;
     case PB_CMD_PART_TBL_READ:
@@ -1215,23 +1337,21 @@ static int pb_command_parse(void)
         pb_wire_init_result(&result, error_to_wire(rc));
         cm_write(&result, sizeof(result));
 
-        if (rc == PB_OK) {
-            /* Only disconnect when booting, the task reads the next command
-             * from the transport after an error */
-            cm_transport_disconnect();
+        /* Only disconnect when booting, the task reads the next command
+         * from the transport after an error */
+        if (rc == PB_OK)
+            rc = cm_boot_jump();
 
-            rc = boot_jump();
-            /* Should not return */
-        }
         return rc;
     } break;
     case PB_CMD_DEVICE_IDENTIFIER_READ: {
         LOG_INFO("Read identifier");
-        struct pb_result_device_identifier *ident = (struct pb_result_device_identifier *)buffer;
-        memset(ident->board_id, 0, sizeof(ident->board_id));
-        memcpy(ident->board_id, cfg->name, strlen(cfg->name));
-        memcpy(ident->device_uuid, device_uu, 16);
-        pb_wire_init_result2(&result, error_to_wire(rc), ident, sizeof(*ident));
+        /* Its own, zeroed: the reserved bytes are zero, and nothing of the
+         * buffers is sent before authentication (command-mode.md 4.3) */
+        struct pb_result_device_identifier ident = { 0 };
+        memcpy(ident.board_id, cfg->name, strlen(cfg->name));
+        memcpy(ident.device_uuid, device_uu, 16);
+        pb_wire_init_result2(&result, error_to_wire(rc), &ident, sizeof(ident));
     } break;
     case PB_CMD_PART_ACTIVATE: {
         struct pb_command_activate_part *activate_cmd =
@@ -1333,10 +1453,17 @@ static int pb_command_parse(void)
 err_out:
     cm_write(&result, sizeof(result));
 
-    if (reboot_requested && (rc == 0)) {
-        LOG_INFO("Requesting reboot...");
+    /* A board's command asked for the reset (command-mode.md 5.6): only when
+     * that command returned PB_OK. The request is dropped with a command that
+     * failed, and doesn't wait for the next one that succeeds */
+    if (reboot_requested) {
         reboot_requested = false;
-        rc = -PB_ERR_ABORT;
+
+        if (rc == PB_OK) {
+            LOG_INFO("Requesting reboot...");
+            leave_requested = true;
+            rc = -PB_ERR_ABORT;
+        }
     }
 
     return rc;
@@ -1360,6 +1487,26 @@ enum cm_state {
 static enum cm_state state = CM_SETUP;
 /* The time the transport has to become ready, from when it was started */
 static struct pb_timeout ready_timeout;
+
+/*
+ * The starts of the transport since the last command came (F-413). Each
+ * start gives the transport CONFIG_CM_TRANSPORT_READY_TIMEOUT again (2.2),
+ * so one that says it is ready and is then lost at once, a read that can
+ * never be started or a complete() that fails at once, was restarted every
+ * round for ever, with the watchdog kicked. After this many starts without a
+ * command it is a transport that doesn't start, a failure of the set up's
+ * step 5 (2.1): no command mode, and pb resets. A host that unplugs is one
+ * start; the next host's first command starts the count again.
+ */
+#define CM_STARTS_WITHOUT_A_COMMAND_MAX 16
+static unsigned int starts_without_a_command;
+
+/* Microseconds in 32 bits, and neither 0 nor UINT32_MAX, which
+ * pb_timeout_init_us() refuses: Kconfig's range, for a build that has its
+ * configuration from elsewhere */
+_Static_assert(CONFIG_CM_TRANSPORT_READY_TIMEOUT >= 1 &&
+                   CONFIG_CM_TRANSPORT_READY_TIMEOUT <= (UINT32_MAX - 1) / 1000000,
+               "CONFIG_CM_TRANSPORT_READY_TIMEOUT: 1 to 4294 s");
 
 /* The set up, on the task's first call (command-mode.md 2.1) */
 static int cm_setup(void)
@@ -1392,7 +1539,18 @@ static int cm_setup(void)
     }
 
     slc = slc_read_status();
-    device_uuid(device_uu);
+
+    /* The device's identity: what DEVICE_IDENTIFIER_READ answers, and what a
+     * token is a signature over (command-mode.md 3.3, platform.md 3.7). When
+     * it can't be read there is no command mode, as for the set up's other
+     * failures: a null UUID is no identity, and a token over it would be
+     * every such device's */
+    rc = device_uuid(device_uu);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Device UUID failed (%i)", rc);
+        return rc;
+    }
 
     return PB_OK;
 }
@@ -1407,6 +1565,7 @@ static int cm_start(void)
      * that is (re)started here (command-mode.md 3.1) */
     cm_session_end();
     transfer_lost = false;
+    disconnected = false;
 
     rc = cm_transport_init();
 
@@ -1416,7 +1575,7 @@ static int cm_start(void)
     }
 
     LOG_INFO("Waiting for transport to become ready...");
-    pb_timeout_init_us(&ready_timeout, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
+    pb_timeout_init_us(&ready_timeout, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000UL);
 
     return PB_OK;
 }
@@ -1426,7 +1585,8 @@ static int cm_start(void)
  * runs the task again all the same finds it at its first call */
 static int cm_leave(int rc)
 {
-    cm_transport_disconnect();
+    cm_disconnect();
+    leave_requested = false;
     state = CM_SETUP;
     return rc;
 }
@@ -1439,7 +1599,9 @@ static int cm_leave(int rc)
  * the core kicks the watchdog meanwhile. A command that has come runs to its
  * end inside the call, with its own kicks and its transfers' timeout (4.6).
  * An error ends the loop of the tasks: the set up failed, no host came in
- * time, or a command asked for the reset.
+ * time, the transport was lost again and again before a command came, a
+ * command asked for the reset, or a boot the host started returned after the
+ * transport's disconnect.
  */
 int cm_main_task(void)
 {
@@ -1453,9 +1615,16 @@ int cm_main_task(void)
             if (rc != PB_OK)
                 return rc;
 
+            starts_without_a_command = 0;
             state = CM_START;
             break;
         case CM_START:
+            if (starts_without_a_command >= CM_STARTS_WITHOUT_A_COMMAND_MAX) {
+                LOG_ERR("Transport lost %u times without a command", starts_without_a_command);
+                return cm_leave(-PB_ERR_IO);
+            }
+
+            starts_without_a_command++;
             rc = cm_start();
 
             if (rc != PB_OK) {
@@ -1485,28 +1654,39 @@ int cm_main_task(void)
         case CM_READ:
             rc = cm_transport_read(&cmd, sizeof(cmd));
 
-            /* A transport that is lost here ends command mode (F-364) */
-            if (rc != PB_OK)
-                return cm_leave(rc);
+            /* Lost while no transfer ran is the error of the next one that
+             * is started (usb.md 4.3): the session is over, the transport
+             * is restarted and the device waits for a host (command-mode.md
+             * 2.2, 3.1). In the next round, so that the tasks run and the
+             * watchdog is kicked also when the start fails again */
+            if (rc != PB_OK) {
+                LOG_ERR("Read error %i", rc);
+                state = CM_START;
+                return PB_OK;
+            }
 
             state = CM_COMMAND;
             return PB_OK;
         case CM_COMMAND:
             rc = cm_transport_complete();
 
-            /* No command yet. A timeout is polled on (F-287) */
-            if (rc == -PB_ERR_AGAIN || rc == -PB_ERR_TIMEOUT)
+            /* No command yet */
+            if (rc == -PB_ERR_AGAIN)
                 return PB_OK;
 
+            /* Every other error is lost, a timeout too (usb.md 2.4): the
+             * transport is restarted and the device waits for a host */
             if (rc != PB_OK) {
                 LOG_ERR("Read error %i", rc);
                 state = CM_START;
                 break;
             }
 
+            /* A command came: the transport works */
+            starts_without_a_command = 0;
             rc = pb_command_parse();
 
-            if (rc == -PB_ERR_ABORT)
+            if (leave_requested)
                 return cm_leave(rc);
 
             if (transfer_lost) {

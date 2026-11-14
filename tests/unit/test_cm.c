@@ -45,8 +45,10 @@
 #include <pb/ramlog.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "fakes/plat.h"
 #include "fakes/ramdisk.h"
@@ -77,7 +79,13 @@
 #define BOARD_ECHO          1
 #define BOARD_RETURN        2
 #define BOARD_REBOOT        3
+#define BOARD_FILL          4
+#define BOARD_REBOOT_FAILS  5
+#define BOARD_FILL_SIZE     64
 #define BOARD_PREFIX        "echo: "
+/* The response_buffer_size every released front end sends: the 1.x CLI, the
+ * 2.x Python wrapper and the Python host */
+#define HOST_RESPONSE_SIZE  4096
 /* fake_us_tick_step: 1 ms per plat_get_us_tick() */
 #define TICK_STEP_US        1000
 /* A failed authentication's result is sent 1 s after the data (3.3), and the
@@ -103,12 +111,14 @@ static struct {
 
     int complete_rcs[8]; /* Returned by complete() before it does anything */
     int n_complete_rcs;
-    size_t lost_at[4]; /* A read that starts at this input position is lost, */
-    int lost_rc[4]; /* complete() returns this for it, once */
+    size_t lost_at[32]; /* A read that starts at this input position is lost, */
+    int lost_rc[32]; /* complete() returns this for it, once */
     int n_lost;
     int lose_write; /* The write with this number (from 1) is lost */
     int write_calls;
     bool write_lost;
+    int lose_read_start; /* The read with this number (from 1) can't be started, once */
+    int read_calls;
     int fail_reads_after; /* -1: never, n: read() fails after n calls */
     int fail_writes_after;
     /* The host stops: a read that starts at input position stop_at, or the
@@ -127,6 +137,8 @@ static struct {
     int connect_ok_after;
     int connect_calls;
     int disconnect_calls;
+    bool disconnected; /* Until the transport is started again */
+    int after_disconnect; /* Calls of a transport that is disconnected */
     int complete_calls;
     int rounds; /* Rounds of the tasks: calls of the other task */
 
@@ -149,11 +161,13 @@ int cm_transport_init(void)
         t.stopped_polls = 0;
     }
     t.init_calls++;
+    t.disconnected = false;
     return (t.init_calls > t.max_inits) ? -PB_ERR_IO : PB_OK;
 }
 
 int cm_transport_connect(void)
 {
+    t.after_disconnect += t.disconnected;
     t.connect_calls++;
     if (t.connect_ok_after >= 0 && t.connect_calls > t.connect_ok_after)
         return PB_OK;
@@ -163,11 +177,15 @@ int cm_transport_connect(void)
 int cm_transport_disconnect(void)
 {
     t.disconnect_calls++;
+    t.disconnected = true;
     return PB_OK;
 }
 
 int cm_transport_read(void *buf, size_t length)
 {
+    t.after_disconnect += t.disconnected;
+    if (++t.read_calls == t.lose_read_start)
+        return -PB_ERR_IO; /* Lost while no transfer ran (usb.md 4.3) */
     if (t.fail_reads_after == 0)
         return -PB_ERR_IO;
     if (t.fail_reads_after > 0)
@@ -180,6 +198,7 @@ int cm_transport_read(void *buf, size_t length)
 
 int cm_transport_write(const void *buf, size_t length)
 {
+    t.after_disconnect += t.disconnected;
     if (t.fail_writes_after == 0)
         return -PB_ERR_IO;
     if (t.fail_writes_after > 0)
@@ -203,6 +222,7 @@ int cm_transport_write(const void *buf, size_t length)
 
 int cm_transport_complete(void)
 {
+    t.after_disconnect += t.disconnected;
     t.complete_calls++;
 
     if (t.n_complete_rcs > 0) {
@@ -311,10 +331,22 @@ static int board_status(uint8_t *buf, size_t *length)
     return board_status_rc;
 }
 
+/* The room for a response that the board was given, per call */
+static size_t board_rsp_room[8];
+static unsigned int board_command_calls;
+
 static int
 board_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size)
 {
+    if (board_command_calls < ARRAY_SIZE(board_rsp_room))
+        board_rsp_room[board_command_calls] = *rsp_size;
+    board_command_calls++;
+
     switch (cmd) {
+    case BOARD_FILL: /* A board that doesn't look at the room it was given */
+        memset(rsp, 0x42, BOARD_FILL_SIZE);
+        *rsp_size = BOARD_FILL_SIZE;
+        return PB_OK;
     case BOARD_ECHO:
         *rsp_size = snprintf((char *)rsp, *rsp_size, BOARD_PREFIX "%.*s", (int)bfr_length, bfr);
         return PB_OK;
@@ -325,6 +357,10 @@ board_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_
         *rsp_size = 0;
         cm_board_cmd_request_reboot_on_success();
         return PB_OK;
+    case BOARD_REBOOT_FAILS: /* Asks for the reset, and then fails */
+        *rsp_size = 0;
+        cm_board_cmd_request_reboot_on_success();
+        return -PB_ERR_IO;
     default:
         *rsp_size = 0;
         return -PB_ERR;
@@ -343,6 +379,8 @@ static struct {
     int load_calls;
     uuid_t load_uu;
     int jump_calls;
+    int jump_rc; /* What boot_jump() returns. 0: -PB_ERR, the jump returned */
+    bool jump_ok; /* boot_jump() returns PB_OK, which the real one never does */
     int set_part_rc;
     uuid_t set_part_uu;
     uint32_t flags;
@@ -389,7 +427,9 @@ int boot_load(uuid_t boot_part_override_uu)
 int boot_jump(void)
 {
     fake_boot.jump_calls++;
-    return -PB_ERR; /* The jump returned */
+    if (fake_boot.jump_ok)
+        return PB_OK;
+    return (fake_boot.jump_rc != PB_OK) ? fake_boot.jump_rc : -PB_ERR;
 }
 
 int boot_set_boot_partition(uuid_t part_uu)
@@ -413,6 +453,7 @@ static struct {
     uint32_t key_io_error; /* Bit per key index */
     int revoke_rc;
     key_id_t revoked_id;
+    size_t no_of_keys; /* 0: two keys */
 } sec;
 
 slc_t slc_read_status(void)
@@ -459,7 +500,7 @@ int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size
 
 size_t rot_no_of_keys(void)
 {
-    return 2;
+    return sec.no_of_keys ? sec.no_of_keys : 2;
 }
 
 int rot_read_key_status_by_idx(unsigned int index)
@@ -480,8 +521,16 @@ int rot_revoke_key(key_id_t id)
     return sec.revoke_rc;
 }
 
+/* What device_uuid() returns: a unique id that can't be read (platform.md
+ * 3.5). Nothing is written to 'uu' then */
+static int device_uuid_rc;
+static int device_uuid_calls;
+
 int device_uuid(uuid_t uu)
 {
+    device_uuid_calls++;
+    if (device_uuid_rc != PB_OK)
+        return device_uuid_rc;
     return uuid_parse(DEVICE_UUID, uu);
 }
 
@@ -730,6 +779,9 @@ static int setup(void **state)
     board_cfg = &cfg_default;
     board_init_rc = PB_OK;
     board_init_calls = 0;
+    board_command_calls = 0;
+    device_uuid_rc = PB_OK;
+    device_uuid_calls = 0;
     memset(&plat_cm, 0, sizeof(plat_cm));
     board_status_rc = PB_OK;
     /* The clock runs: a failed authentication waits on it (F-276) */
@@ -803,6 +855,36 @@ static void test_board_id_fills_the_field(void **state)
     uuid_t uu;
     uuid_parse(DEVICE_UUID, uu);
     assert_memory_equal(id->device_uuid, uu, 16);
+    expect_end();
+}
+
+/* command-mode.md 4.3 (F-190): a result's reserved bytes and every byte the
+ * command didn't produce are zero. The identifier is answered before
+ * authentication, and the buffer then holds what the last host sent: here a
+ * token that didn't verify. */
+static void test_identifier_sends_only_the_identifier(void **state)
+{
+    static const uint8_t zeros[PB_RESULT_RESPONSE_MAX_SIZE];
+    uint8_t token[1024];
+    (void)state;
+
+    memset(token, 0xa5, sizeof(token));
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_auth(PB_AUTH_ASYM_TOKEN, token, sizeof(token), KEY_ID);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_AUTHENTICATION_FAILED);
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_device_identifier *id = (const void *)r->response;
+    uuid_t uu;
+    uuid_parse(DEVICE_UUID, uu);
+    assert_memory_equal(id->device_uuid, uu, 16);
+    assert_memory_equal(id->board_id, "unit test\0\0\0\0\0\0\0", sizeof(id->board_id));
+    assert_memory_equal(id->rz, zeros, sizeof(id->rz));
+    assert_memory_equal(r->rz, zeros, sizeof(r->rz));
+    assert_memory_equal(r->response + sizeof(*id), zeros, sizeof(r->response) - sizeof(*id));
     expect_end();
 }
 
@@ -945,7 +1027,9 @@ static void test_board_status_fails(void **state)
 
 static void test_board_command(void **state)
 {
-    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
+    struct pb_command_board req = { .command = BOARD_ECHO,
+                                    .request_size = 5,
+                                    .response_buffer_size = HOST_RESPONSE_SIZE };
     uint8_t arg[1024] = "hello";
     (void)state;
 
@@ -976,7 +1060,9 @@ static void test_board_command(void **state)
 static void test_board_command_request_size(void **state)
 {
     static const uint32_t bad_sizes[] = { 1025, 0xffffffff };
-    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 1024 };
+    struct pb_command_board req = { .command = BOARD_ECHO,
+                                    .request_size = 1024,
+                                    .response_buffer_size = HOST_RESPONSE_SIZE };
     uint8_t arg[1024];
     (void)state;
 
@@ -1007,6 +1093,68 @@ static void test_board_command_request_size(void **state)
     expect_end();
 }
 
+/* command-mode.md 5.6 (F-095): the response is at most what the host said it
+ * can take (response_buffer_size) and at most a buffer. The board is given
+ * that as its room, and a board that reports more is cut there: a host
+ * leaves a larger response on the link. A host that can take nothing gets
+ * no response transfer, and the exchange stays in step. */
+static void test_board_response_fits_the_hosts_buffer(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_ECHO,
+                                    .request_size = 5,
+                                    .response_buffer_size = 8 };
+    uint8_t arg[1024] = "hello";
+    uint8_t fill[BOARD_FILL_SIZE];
+    (void)state;
+
+    memset(fill, 0x42, sizeof(fill));
+
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_send(arg, sizeof(arg));
+    req.command = BOARD_FILL;
+    req.request_size = 0;
+    req.response_buffer_size = 16;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    req.response_buffer_size = 0;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    /* More than a buffer: the board has a buffer */
+    req.response_buffer_size = 0xffffffff;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    /* snprintf() wrote 7 characters and the NUL, and returned 11 */
+    expect_result(PB_RESULT_OK);
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, 8);
+    assert_memory_equal(expect_data(8), "echo: h", 8);
+    expect_result(PB_RESULT_OK);
+    assert_int_equal(board_rsp_room[0], 8);
+
+    expect_result(PB_RESULT_OK);
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, 16);
+    assert_memory_equal(expect_data(16), fill, 16);
+    expect_result(PB_RESULT_OK);
+    assert_int_equal(board_rsp_room[1], 16);
+
+    /* No response: the second result is the last */
+    expect_result(PB_RESULT_OK);
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, 0);
+    assert_int_equal(board_rsp_room[2], 0);
+
+    expect_result(PB_RESULT_OK);
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_board *)r->response)->size, BOARD_FILL_SIZE);
+    assert_memory_equal(expect_data(BOARD_FILL_SIZE), fill, BOARD_FILL_SIZE);
+    expect_result(PB_RESULT_OK);
+    assert_int_equal(board_rsp_room[3], BUF_SIZE);
+
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 /* Every pb error code maps to a wire result */
 static void test_error_codes(void **state)
 {
@@ -1032,6 +1180,9 @@ static void test_error_codes(void **state)
         { -PB_ERR_PARAM, -PB_RESULT_INVALID_ARGUMENT },
         { -PB_ERR_NOT_SUPPORTED, -PB_RESULT_NOT_SUPPORTED },
         { -PB_ERR_BAD_HEADER, -PB_RESULT_ERROR },
+        /* An error like any other: the next one is answered (F-252) */
+        { -PB_ERR_ABORT, -PB_RESULT_ERROR },
+        { -PB_ERR_STATE, -PB_RESULT_ERROR },
     };
     struct pb_command_board req = { .command = BOARD_RETURN, .request_size = 4 };
     uint8_t arg[1024] = { 0 };
@@ -1064,6 +1215,83 @@ static void test_board_command_requests_reboot(void **state)
     expect_result(PB_RESULT_OK);
     /* The next command is never read */
     expect_end();
+    /* The device leaves the bus before the reset (command-mode.md 2.3) */
+    assert_int_equal(t.disconnect_calls, 1);
+}
+
+/* command-mode.md 5.6, board.md 4.4: a board's command that asked for a
+ * reset and then failed doesn't reset, and neither does what comes after it.
+ * The request is that command's: it doesn't wait for the next command that
+ * succeeds, a frame the gate refuses among them */
+static void test_failed_board_command_drops_its_reboot_request(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_REBOOT_FAILS };
+    (void)state;
+
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    req.command = BOARD_ECHO;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(PB_RESULT_OK);
+    /* A board command that succeeds, with no room for a response */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
+
+    /* The next host, on a device that locked meanwhile: its first frame is
+     * refused by the gate, which is no success of the board's command */
+    memset(&t, 0, sizeof(t));
+    t.max_inits = 1;
+    t.fail_reads_after = -1;
+    t.fail_writes_after = -1;
+    t.connect_ok_after = -1;
+    req.command = BOARD_REBOOT_FAILS;
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    run();
+    memset(&t, 0, sizeof(t));
+    t.max_inits = 1;
+    t.fail_reads_after = -1;
+    t.fail_writes_after = -1;
+    t.connect_ok_after = -1;
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
+}
+
+/* command-mode.md 5.6, board.md 4.4 (F-252): a board's command that fails
+ * doesn't reset, whatever it returns. -PB_ERR_ABORT is its error, the host
+ * gets it and command mode goes on */
+static void test_board_command_that_returns_abort(void **state)
+{
+    struct pb_command_board req = { .command = BOARD_RETURN, .request_size = 4 };
+    uint8_t arg[1024] = { 0 };
+    int32_t error = -PB_ERR_ABORT;
+    (void)state;
+
+    memcpy(arg, &error, sizeof(error));
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_send(arg, sizeof(arg));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
 }
 
 static void test_device_reset(void **state)
@@ -1074,6 +1302,9 @@ static void test_device_reset(void **state)
     assert_int_equal(cm_run(), -PB_ERR_ABORT);
     expect_result(PB_RESULT_OK);
     expect_end();
+    /* The result is sent, then the transport is disconnected, then pb
+     * resets (command-mode.md 2.3) */
+    assert_int_equal(t.disconnect_calls, 1);
 }
 
 static void test_locked_device_requires_auth(void **state)
@@ -1663,6 +1894,31 @@ static void test_slc_read_key_status(void **state)
     expect_end();
 }
 
+/* command-mode.md 5.2 (F-190): SLC_READ lists 16 keys at most, the slots
+ * the wire has. A keystore with more keys fills them and nothing after
+ * them: the 17th id was written where the revoked list starts, and the
+ * revoked ones past the end of the lists. */
+static void test_slc_read_lists_16_keys_at_most(void **state)
+{
+    (void)state;
+
+    sec.no_of_keys = 20;
+    sec.revoked = (1u << 1) | (1u << 17);
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    const struct pb_result_slc_key_status *keys = (const void *)expect_data(sizeof(*keys));
+    for (unsigned int i = 0; i < 16; i++) {
+        assert_int_equal(keys->active[i], (i == 1) ? 0 : 0x1000 + i);
+        assert_int_equal(keys->revoked[i], (i == 1) ? 0x1001 : 0);
+    }
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 static void test_bpak_read(void **state)
 {
     struct fixture *f = *state;
@@ -1704,6 +1960,61 @@ static void test_bpak_read_errors(void **state)
     host_cmd(PB_CMD_PART_BPAK_READ, &req, sizeof(req));
     run();
     expect_result(-PB_RESULT_IO_ERROR);
+}
+
+/* What pb printed during the last run_printed() */
+static char printed[32 * 1024];
+
+/* run(), with what pb prints kept: the log is the only place a command's
+ * error code shows, the host gets the result */
+static void run_printed(void)
+{
+    FILE *capture = tmpfile();
+    int saved;
+    int rc;
+    size_t length;
+
+    assert_non_null(capture);
+    fflush(stdout);
+    saved = dup(STDOUT_FILENO);
+    assert_true(saved >= 0);
+    assert_true(dup2(fileno(capture), STDOUT_FILENO) >= 0);
+
+    rc = cm_run();
+
+    fflush(stdout);
+    assert_true(dup2(saved, STDOUT_FILENO) >= 0);
+    close(saved);
+    rewind(capture);
+    length = fread(printed, 1, sizeof(printed) - 1, capture);
+    printed[length] = '\0';
+    fclose(capture);
+    fputs(printed, stdout);
+    assert_int_equal(rc, -PB_ERR_IO);
+}
+
+/* F-160: PART_BPAK_READ of a partition without a valid header is a command
+ * that failed with pb's NOT_FOUND, which is what the host gets. bpak's own
+ * code for the header (-BPAK_BAD_MAGIC, -15) was returned to the task, which
+ * logged it as a pb error. */
+static void test_bpak_read_error_is_pbs(void **state)
+{
+    struct pb_command_read_bpak req = { 0 };
+    char expected[64];
+    char bpaks[64];
+    (void)state;
+
+    snprintf(expected, sizeof(expected), "Command error %i", -PB_ERR_NOT_FOUND);
+    snprintf(bpaks, sizeof(bpaks), "Command error %i", -BPAK_BAD_MAGIC);
+
+    memcpy(req.uuid, UU_RW, 16);
+    host_cmd(PB_CMD_PART_BPAK_READ, &req, sizeof(req));
+    run_printed();
+
+    expect_result(-PB_RESULT_NOT_FOUND);
+    expect_end();
+    assert_non_null(strstr(printed, expected));
+    assert_null(strstr(printed, bpaks));
 }
 
 /* A partition below 4 KiB has no room for a bpak header (command-mode.md
@@ -1910,6 +2221,40 @@ static void test_part_verify_small_partition(void **state)
     expect_end();
 }
 
+/* With bpak the size is at least 4 KiB (command-mode.md 5.3, F-190): the
+ * header is part of it. A smaller size is refused before anything is read or
+ * hashed; it used to wrap, and the partition was read to its end. A header
+ * alone is a size. */
+static void test_part_verify_bpak_size_below_a_header(void **state)
+{
+    static const uint32_t bad_sizes[] = { 0, 1, 1024, sizeof(struct bpak_header) - 1 };
+    struct fixture *f = *state;
+    uint8_t *header = ramdisk_block(f->disk, RW_FIRST_LBA + RW_BLOCKS - 8);
+    struct pb_command_verify_part req;
+
+    memset(header, 0x3c, sizeof(struct bpak_header));
+
+    for (size_t i = 0; i < ARRAY_SIZE(bad_sizes); i++) {
+        req = verify_req(bad_sizes[i], true, header);
+        host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    }
+    run();
+
+    for (size_t i = 0; i < ARRAY_SIZE(bad_sizes); i++)
+        expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_end();
+    assert_int_equal(crypto.alg, 0);
+    assert_int_equal(crypto.updates, 0);
+
+    t.init_calls = 0;
+    req = verify_req(sizeof(struct bpak_header), true, header);
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(crypto.updates, 1);
+}
+
 /* Hosts send the partition's first block from the partition table (10 for
  * UU_RW) plus the blocks already erased (F-055) */
 static void test_part_erase(void **state)
@@ -2006,6 +2351,37 @@ static void stream_read(uint8_t id, uint32_t size, uint64_t offset)
     host_cmd(PB_CMD_STREAM_READ_BUFFER, &req, sizeof(req));
 }
 
+/* command-mode.md 4.3 (F-190): every byte the command didn't produce is
+ * zero. An entry's reserved bytes and what follows its description are not
+ * what a host left in the buffers. */
+static void test_part_table_sends_only_the_table(void **state)
+{
+    static const uint8_t zeros[sizeof(struct pb_result_part_table_entry)];
+    static uint8_t filled[BUF_SIZE];
+    (void)state;
+
+    memset(filled, 0xa5, sizeof(filled));
+    stream_prepare(0, sizeof(filled), filled);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    const struct pb_result_part_table_entry *e = (const void *)expect_data(2 * sizeof(*e));
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    for (int i = 0; i < 2; i++) {
+        size_t len = strlen(i == 0 ? "Read write" : "Visible");
+
+        assert_memory_equal(e[i].uuid, i == 0 ? UU_RW : UU_RO, 16);
+        assert_memory_equal(e[i].description, i == 0 ? "Read write" : "Visible", len);
+        assert_memory_equal(e[i].description + len, zeros, sizeof(e[i].description) - len);
+        assert_memory_equal(e[i].rz, zeros, sizeof(e[i].rz));
+    }
+}
+
 /* A hidden partition is internal to pb (command-mode.md 5.3, D-058, F-272):
  * every command that names it answers NOT_FOUND, whatever its other flags
  * allow. BOOT_BPAK's UUID is a label and reaches no partition. */
@@ -2041,7 +2417,8 @@ static void test_hidden_partition(void **state)
     host_cmd(PB_CMD_PART_TBL_INSTALL, &install, sizeof(install));
     memcpy(bpak_boot.uuid, UU_HIDDEN, 16);
     host_cmd(PB_CMD_BOOT_BPAK, &bpak_boot, sizeof(bpak_boot));
-    run();
+    /* The last one boots: the fake's jump returns and the task leaves */
+    assert_int_equal(cm_run(), -PB_ERR);
 
     for (int i = 0; i < 7; i++)
         expect_result(-PB_RESULT_NOT_FOUND);
@@ -2118,6 +2495,60 @@ static void test_part_verify_keeps_the_stream(void **state)
     assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 1), data, sizeof(data));
 }
 
+/* PART_VERIFY and PART_BPAK_READ leave the stream's buffers alone
+ * (command-mode.md 5.3, F-365): what a host prepared is what a write after
+ * them puts on the partition, and not the bytes they read. Both buffers,
+ * since a verify of more than a chunk reads into two. */
+static void test_part_verify_and_bpak_read_keep_the_buffers(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, RW_FIRST_LBA);
+    const size_t part_size = RW_BLOCKS * RAMDISK_BLOCK_SIZE;
+    struct bpak_header *hdr = (struct bpak_header *)ramdisk_block(f->disk, RW_FIRST_LBA + 12);
+    static uint8_t first[BUF_SIZE];
+    static uint8_t second[BUF_SIZE];
+    static uint8_t image[sizeof(struct bpak_header) + 1024];
+    struct pb_command_read_bpak bpak_read = { 0 };
+
+    for (size_t i = 0; i < part_size; i++)
+        part[i] = (uint8_t)(i * 13 + 1);
+    bpak_init_header(hdr);
+    memset(first, 0xa5, sizeof(first));
+    memset(second, 0x5a, sizeof(second));
+    memcpy(image, hdr, sizeof(*hdr));
+    memcpy(image + sizeof(*hdr), part, 1024);
+    memcpy(bpak_read.uuid, UU_RW, 16);
+
+    struct pb_command_verify_part verify = verify_req(BUF_SIZE + 1024, false, part);
+    struct pb_command_verify_part verify_bpak = verify_req(sizeof(image), true, image);
+
+    stream_init(UU_RW);
+    stream_prepare(0, sizeof(first), first);
+    stream_prepare(1, sizeof(second), second);
+    host_cmd(PB_CMD_PART_VERIFY, &verify, sizeof(verify));
+    host_cmd(PB_CMD_PART_VERIFY, &verify_bpak, sizeof(verify_bpak));
+    host_cmd(PB_CMD_PART_BPAK_READ, &bpak_read, sizeof(bpak_read));
+    stream_write(0, sizeof(first), 0);
+    stream_write(1, sizeof(second), sizeof(first));
+    run();
+
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* verify */
+    expect_result(PB_RESULT_OK); /* verify, bpak */
+    expect_result(PB_RESULT_OK); /* bpak read */
+    expect_data(sizeof(struct bpak_header));
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* write */
+    expect_end();
+    assert_memory_equal(part, first, sizeof(first));
+    assert_memory_equal(part + sizeof(first), second, sizeof(second));
+}
+
 static void test_stream_errors(void **state)
 {
     struct fixture *f = *state;
@@ -2161,6 +2592,56 @@ static void test_stream_errors(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
+}
+
+/* command-mode.md 5.4 (F-074): without a stream a write and a read answer
+ * STREAM_NOT_INITIALIZED, whatever else they ask for: in a new session,
+ * after a STREAM_INITIALIZE that found no partition, and after one that
+ * named a hidden one. The answer doesn't come from an error code read as a
+ * device's flags and block size. */
+static void test_no_stream(void **state)
+{
+    static const unsigned char *const failed[] = { NULL, UU_MISSING, UU_HIDDEN };
+    struct fixture *f = *state;
+    uint8_t before[DISK_BLOCKS * RAMDISK_BLOCK_SIZE];
+
+    assert_int_equal(
+        bio_set_flags(bio_get_part_by_uu(UU_HIDDEN), BIO_FLAG_READABLE | BIO_FLAG_WRITABLE), PB_OK);
+    memcpy(before, ramdisk_block(f->disk, 0), sizeof(before));
+
+    for (size_t i = 0; i < ARRAY_SIZE(failed); i++) {
+        t.init_calls = 0;
+
+        if (failed[i] != NULL) {
+            /* A stream that a failed STREAM_INITIALIZE ends */
+            stream_init(UU_RW);
+            stream_init(failed[i]);
+        }
+
+        stream_write(0, RAMDISK_BLOCK_SIZE, 0);
+        stream_read(0, RAMDISK_BLOCK_SIZE, 0);
+        /* A buffer and a size the device doesn't have, an offset inside a
+         * block */
+        stream_write(2, RAMDISK_BLOCK_SIZE, 0);
+        stream_read(2, RAMDISK_BLOCK_SIZE, 0);
+        stream_write(0, BUF_SIZE + 1, 0);
+        stream_read(0, BUF_SIZE + 1, 0);
+        stream_write(0, RAMDISK_BLOCK_SIZE, 1);
+        host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+        run();
+
+        if (failed[i] != NULL) {
+            expect_result(PB_RESULT_OK);
+            expect_result(-PB_RESULT_NOT_FOUND);
+        }
+
+        for (int n = 0; n < 7; n++)
+            expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+        expect_result(PB_RESULT_OK); /* finalize */
+        expect_end();
+    }
+
+    assert_memory_equal(ramdisk_block(f->disk, 0), before, sizeof(before));
 }
 
 /* An offset inside a block is refused, not rounded down to the block's start
@@ -2333,14 +2814,15 @@ static void test_boot_part(void **state)
     expect_end();
     assert_int_equal(t.disconnect_calls, 0);
 
-    /* The fake jump returns, which is a command error */
+    /* The fake jump returns, after the disconnect: the task ends the loop
+     * (command-mode.md 2.3) */
     t.init_calls = 0;
     fake_boot.load_rc = PB_OK;
     host_cmd(PB_CMD_BOOT_PART, &req, sizeof(req));
-    run();
+    assert_int_equal(cm_run(), -PB_ERR);
     expect_result(PB_RESULT_OK);
     assert_int_equal(fake_boot.jump_calls, 1);
-    assert_true(t.disconnect_calls >= 1);
+    assert_int_equal(t.disconnect_calls, 1);
 }
 
 static void test_boot_bpak(void **state)
@@ -2371,9 +2853,9 @@ static void test_boot_bpak(void **state)
     board_cfg = &cfg_all_callbacks;
     t.connect_ok_after = 0;
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
-    run();
+    assert_int_equal(cm_run(), -PB_ERR);
     assert_int_equal(fake_boot.jump_calls, 1);
-    assert_true(t.disconnect_calls >= 1);
+    assert_int_equal(t.disconnect_calls, 1);
 
     /* The first result can't be sent */
     t.init_calls = 0;
@@ -2408,6 +2890,142 @@ static void test_boot_bpak_refused_before_the_header(void **state)
     assert_int_equal(fake_boot.jump_calls, 0);
 }
 
+/*
+ * board.md 5.4, command-mode.md 5.5 (F-252): a stop or a failure before the
+ * disconnect is the host's result, and command mode goes on with the session
+ * as it was. early_boot()'s stop is -PB_ERR_ABORT, which boot_load()
+ * returns: `boot part` answers it, `boot bpak` reads the header's transfer
+ * and answers it there (D-058). The session stays authenticated, and the
+ * device doesn't leave the bus.
+ */
+static void test_boot_stopped_before_the_disconnect(void **state)
+{
+    struct pb_command_boot_part part = { 0 };
+    struct pb_command_bpak_boot bpak = { 0 };
+    static uint8_t header[sizeof(struct bpak_header)];
+    (void)state;
+
+    /* A header that is a frame, were it read as one */
+    pb_wire_init_command((struct pb_command *)header, PB_CMD_DEVICE_IDENTIFIER_READ);
+    memcpy(part.uuid, UU_RW, 16);
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    fake_boot.load_rc = -PB_ERR_ABORT;
+
+    host_auth_token();
+    host_cmd(PB_CMD_BOOT_PART, &part, sizeof(part));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOT_BPAK, &bpak, sizeof(bpak));
+    host_send(header, sizeof(header));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    /* boot part: the stop, then the next command, still authenticated */
+    expect_result(-PB_RESULT_ERROR);
+    expect_result(PB_RESULT_OK);
+    /* boot bpak: the first result, the header's, then the next command */
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_boot.load_calls, 2);
+    assert_int_equal(fake_boot.jump_calls, 0);
+    assert_int_equal(t.disconnect_calls, 0);
+    /* The one start, and the one that ends the test */
+    assert_int_equal(t.init_calls, 2);
+}
+
+/* The same when the load answered the header itself and stopped later: the
+ * error it returns after its own result isn't a request to leave */
+static void test_boot_bpak_load_returns_abort(void **state)
+{
+    struct pb_command_bpak_boot bpak = { 0 };
+    static struct bpak_header header;
+    (void)state;
+
+    fake_boot.load_rc = -PB_ERR_ABORT;
+    fake_boot.reads_header = true;
+    host_cmd(PB_CMD_BOOT_BPAK, &bpak, sizeof(bpak));
+    host_send(&header, sizeof(header));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_boot.jump_calls, 0);
+    assert_int_equal(t.disconnect_calls, 0);
+}
+
+/*
+ * command-mode.md 2.3, 5.5 and board.md 5.4 (F-252, F-190): after the last OK
+ * the transport is disconnected and the session is over, whatever follows. A
+ * boot that returns after it ends command mode's task, so that pb resets:
+ * late_boot()'s stop or failure, a failed plat_lockdown(), a jump that came
+ * back. Nothing is read from the transport that is gone, it is disconnected
+ * once and it isn't started again.
+ */
+static void test_boot_fails_after_the_disconnect(void **state)
+{
+    static const struct {
+        int jump_rc;
+        bool jump_ok;
+        int task_rc;
+    } cases[] = {
+        { .jump_rc = -PB_ERR_ABORT, .task_rc = -PB_ERR_ABORT }, /* late_boot()'s stop */
+        { .jump_rc = -PB_ERR_IO, .task_rc = -PB_ERR_IO }, /* It, or the lockdown, failed */
+        { .jump_rc = -PB_ERR, .task_rc = -PB_ERR }, /* The jump returned */
+        { .jump_ok = true, .task_rc = -PB_ERR }, /* No error is one all the same */
+    };
+    struct pb_command_boot_part part = { 0 };
+    struct pb_command_bpak_boot bpak = { 0 };
+    static struct bpak_header header;
+    (void)state;
+
+    memcpy(part.uuid, UU_RW, 16);
+
+    for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+        for (int from_ram = 0; from_ram < 2; from_ram++) {
+            size_t sent;
+
+            memset(&t, 0, sizeof(t));
+            t.max_inits = 2; /* A restart would succeed */
+            t.fail_reads_after = -1;
+            t.fail_writes_after = -1;
+            t.connect_ok_after = -1;
+            memset(&fake_boot, 0, sizeof(fake_boot));
+            fake_boot.jump_rc = cases[i].jump_rc;
+            fake_boot.jump_ok = cases[i].jump_ok;
+
+            if (from_ram) {
+                fake_boot.reads_header = true;
+                host_cmd(PB_CMD_BOOT_BPAK, &bpak, sizeof(bpak));
+                host_send(&header, sizeof(header));
+            } else {
+                host_cmd(PB_CMD_BOOT_PART, &part, sizeof(part));
+            }
+            sent = t.in_len;
+            /* The host goes on, as one that didn't see the device leave */
+            host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+
+            assert_int_equal(cm_run(), cases[i].task_rc);
+
+            /* The first result, and for 'boot bpak' the header's */
+            expect_result(PB_RESULT_OK);
+            if (from_ram)
+                expect_result(PB_RESULT_OK);
+            expect_end();
+            assert_int_equal(fake_boot.jump_calls, 1);
+            assert_int_equal(t.disconnect_calls, 1);
+            assert_int_equal(t.after_disconnect, 0);
+            assert_int_equal(t.in_pos, sent);
+            assert_int_equal(t.init_calls, 1);
+        }
+    }
+}
+
 static void test_run_errors(void **state)
 {
     (void)state;
@@ -2421,31 +3039,156 @@ static void test_run_errors(void **state)
     assert_int_equal(cm_run(), -PB_ERR_IO);
     assert_int_equal(t.init_calls, 1);
 
-    /* The transport can't read */
+    /* The transport can't start a read: it is restarted (F-364), which the
+     * fake refuses the second time */
     t.max_inits = 1;
     t.init_calls = 0;
     t.fail_reads_after = 0;
     board_cfg = &cfg_all_callbacks;
     t.connect_ok_after = 0;
     assert_int_equal(cm_run(), -PB_ERR_IO);
+    assert_int_equal(t.init_calls, 2);
+    assert_int_equal(t.disconnect_calls, 0);
+}
+
+/*
+ * usb.md 2.4, 4.3 and command-mode.md 2.2, 3.1 (F-364): an unplug or a bus
+ * reset while no transfer runs is kept, and is the error of the next transfer
+ * that is started. When that is the read of the next command, the session
+ * ends and the transport is restarted, as for a lost that a running read
+ * reports: the device waits for a host and doesn't reset. The next host
+ * isn't authenticated. The restart is the next round's, so the other tasks
+ * run in between.
+ */
+static void test_lost_at_the_start_of_a_read(void **state)
+{
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    t.max_inits = 2;
+    host_auth_token();
+    /* The third read: the token's command and data are the first two */
+    t.lose_read_start = 3;
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    /* The next host */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.connect_calls, 2);
+    assert_int_equal(t.disconnect_calls, 0);
+    /* The failed start ended its round: the restart was the next one's */
+    assert_int_equal(t.rounds, 5);
+}
+
+/* src/cm/cm_main.c: the starts of the transport without a command between
+ * them, at most */
+#define STARTS_WITHOUT_A_COMMAND_MAX 16
+
+/*
+ * command-mode.md 2.1, 2.2 (F-413): a transport that says it is ready and is
+ * lost before a command can come, every time, is a transport that doesn't
+ * start. It was restarted every round for ever, each start with the time of
+ * 2.2 again and the watchdog kicked. After STARTS_WITHOUT_A_COMMAND_MAX
+ * starts command mode ends as for a failed start: the device leaves the bus
+ * and pb resets. Both ways: the read of a command can never be started, and
+ * it is started and then lost at once.
+ */
+static void test_transport_lost_before_every_command(void **state)
+{
+    (void)state;
+
+    /* The read can't be started */
+    t.max_inits = 1000;
+    t.fail_reads_after = 0;
+    assert_int_equal(cm_run(), -PB_ERR_IO);
+    assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.connect_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.read_calls, STARTS_WITHOUT_A_COMMAND_MAX);
     assert_int_equal(t.disconnect_calls, 1);
+    expect_end();
+
+    /* A caller that runs the task again finds it at its set up */
+    teardown(state);
+    setup(state);
+    t.max_inits = 1000;
+    assert_int_equal(cm_run(), -PB_ERR_IO);
+    /* Started, then lost at once: no host sends anything */
+    assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.read_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(t.after_disconnect, 0);
+    expect_end();
+}
+
+/* The count is of starts without a command: one less than the most is still
+ * a host, and a command starts the count again, so that hosts that come and
+ * go, each with a command, are served for as long as they come */
+static void test_transport_lost_count_ends_with_a_command(void **state)
+{
+    /* STARTS_WITHOUT_A_COMMAND_MAX - 1 losses, and the last start's command */
+    for (int i = 0; i < STARTS_WITHOUT_A_COMMAND_MAX - 1; i++)
+        host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
+
+    /* One more: the command never comes */
+    teardown(state);
+    setup(state);
+    for (int i = 0; i < STARTS_WITHOUT_A_COMMAND_MAX; i++)
+        host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    t.max_inits = 1000;
+    assert_int_equal(cm_run(), -PB_ERR_IO);
+    expect_end();
+    assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.disconnect_calls, 1);
+
+    /* Twice as many losses as the most, each after a command */
+    teardown(state);
+    setup(state);
+    for (int i = 0; i < 2 * STARTS_WITHOUT_A_COMMAND_MAX; i++) {
+        host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+        host_lost(-PB_ERR_IO);
+    }
+    run();
+    for (int i = 0; i < 2 * STARTS_WITHOUT_A_COMMAND_MAX; i++)
+        expect_result(PB_RESULT_OK);
+    expect_end();
+    /* The first start, one per loss, and the one the fake refuses */
+    assert_int_equal(t.init_calls, 2 * STARTS_WITHOUT_A_COMMAND_MAX + 2);
+    assert_int_equal(t.disconnect_calls, 0);
 }
 
 /* The set up starts with the platform's (command-mode.md 2.1, platform.md
  * 3.10): plat_cm_init(), before the board's data is checked and before the
- * transport is started, and once: not again when the transport is restarted */
+ * transport is started, and once: not again when the transport is restarted,
+ * neither after a host that was lost while pb waited for a command nor after
+ * a transfer that was lost inside one */
 static void test_setup_platform_first(void **state)
 {
+    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
     (void)state;
 
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    /* Lost while waiting for a command */
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    /* Lost inside a command: the board command's request */
     host_lost(-PB_ERR_IO);
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
     run();
     expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* The board command's first, no second */
     expect_result(PB_RESULT_OK);
     expect_end();
-    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.init_calls, 4);
     assert_int_equal(plat_cm.calls, 1);
     assert_int_equal(plat_cm.board_inits_before, 0);
     assert_int_equal(plat_cm.transport_inits_before, 0);
@@ -2465,6 +3208,42 @@ static void test_setup_platform_fails(void **state)
     assert_int_equal(board_init_calls, 0);
     assert_int_equal(t.init_calls, 0);
     expect_end();
+}
+
+/* The device's identity can't be read (F-416): no command mode, as for the
+ * set up's other failures (command-mode.md 2.1). The transport isn't
+ * started, so no host gets a null UUID as the identity or as what a token
+ * signs, and the error is what pb resets on. The set up was ignoring the
+ * error and went on with the UUID it had: zeros. */
+static void test_setup_without_the_device_uuid_fails(void **state)
+{
+    uuid_t uu;
+    (void)state;
+
+    device_uuid_rc = -PB_ERR_TIMEOUT;
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    host_auth_token();
+    assert_int_equal(cm_run(), -PB_ERR_TIMEOUT);
+    assert_int_equal(device_uuid_calls, 1);
+    assert_int_equal(plat_cm.calls, 1);
+    assert_int_equal(board_init_calls, 1);
+    assert_int_equal(t.init_calls, 0);
+    assert_int_equal(t.in_pos, 0);
+    expect_end();
+
+    /* The task is at its first call again: a read that works sets it up,
+     * with the identity that was read */
+    device_uuid_rc = PB_OK;
+    run();
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_device_identifier *id = (const void *)r->response;
+    uuid_parse(DEVICE_UUID, uu);
+    assert_memory_equal(id->device_uuid, uu, 16);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(device_uuid_calls, 2);
 }
 
 /*
@@ -2560,20 +3339,31 @@ static void test_run_connect(void **state)
     assert_true(t.connect_calls >= CONFIG_CM_TRANSPORT_READY_TIMEOUT - 1);
 }
 
-static void test_run_retries(void **state)
+/*
+ * usb.md 2.4: every error from complete() but -PB_ERR_AGAIN is lost, a
+ * timeout too. While pb waits for a command, -PB_ERR_TIMEOUT ends the
+ * session and the transport is restarted; it was polled on like
+ * -PB_ERR_AGAIN, and the stack's next poll was -PB_ERR_STATE (F-287). The
+ * command is the next host's, and the restart's
+ */
+static void test_timeout_while_waiting_is_lost(void **state)
 {
     (void)state;
 
-    /* The command read completes after a timeout and a retry */
-    t.complete_rcs[0] = -PB_ERR_TIMEOUT;
-    t.complete_rcs[1] = -PB_ERR_AGAIN;
+    t.max_inits = 2;
+    t.complete_rcs[0] = -PB_ERR_AGAIN;
+    t.complete_rcs[1] = -PB_ERR_TIMEOUT;
     t.n_complete_rcs = 2;
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
-    /* The host reconnects */
-    t.max_inits = 2;
     run();
     expect_result(PB_RESULT_OK);
+    expect_end();
+    /* The start, the restart on the timeout, and the one the fake refuses
+     * when the host was gone after its command */
     assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.connect_calls, 2);
+    /* A restart is no disconnect yet (usb.md 2.1, F-287) */
+    assert_int_equal(t.disconnect_calls, 0);
 }
 
 static void test_transport_errors_in_commands(void **state)
@@ -2615,8 +3405,7 @@ static void expect_part_table(void)
  * command-mode.md 3.1: the session ends with the transport. A host that
  * comes after an unplug or a bus reset (usb.md 2.4), or after a client
  * closed the socket (2.6), finds a locked device not authenticated. Every
- * error from complete() other than AGAIN is lost; TIMEOUT is still polled
- * (F-287).
+ * error from complete() other than AGAIN is lost, TIMEOUT too (F-287).
  */
 static void test_session_ends_with_the_transport(void **state)
 {
@@ -2634,6 +3423,10 @@ static void test_session_ends_with_the_transport(void **state)
     host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
     host_lost(-PB_ERR);
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_auth_token();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_lost(-PB_ERR_TIMEOUT);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
     run();
 
     expect_result(PB_RESULT_OK);
@@ -2646,10 +3439,15 @@ static void test_session_ends_with_the_transport(void **state)
     expect_part_table();
     /* And the one after it */
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_part_table();
+    /* And the one after a timeout */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_end();
     /* The transport was started for each host, and waited for each */
-    assert_int_equal(t.init_calls, 4);
-    assert_int_equal(t.connect_calls, 3);
+    assert_int_equal(t.init_calls, 5);
+    assert_int_equal(t.connect_calls, 4);
 }
 
 /* command-mode.md 3.1, 4.4: a transfer inside a command that fails ends the
@@ -3332,9 +4130,11 @@ int main(void)
     const struct CMUnitTest tests[] = {
         CM_TEST(test_basic_commands),
         CM_TEST(test_board_id_fills_the_field),
+        CM_TEST(test_identifier_sends_only_the_identifier),
         CM_TEST(test_invalid_command),
         CM_TEST(test_deprecated_commands),
         CM_TEST(test_part_table_read),
+        CM_TEST(test_part_table_sends_only_the_table),
         CM_TEST(test_part_table_install),
         CM_TEST(test_part_activate),
         CM_TEST(test_boot_status),
@@ -3342,8 +4142,11 @@ int main(void)
         CM_TEST(test_board_status_fails),
         CM_TEST(test_board_command),
         CM_TEST(test_board_command_request_size),
+        CM_TEST(test_board_response_fits_the_hosts_buffer),
         CM_TEST(test_error_codes),
         CM_TEST(test_board_command_requests_reboot),
+        CM_TEST(test_failed_board_command_drops_its_reboot_request),
+        CM_TEST(test_board_command_that_returns_abort),
         CM_TEST(test_device_reset),
         CM_TEST(test_locked_device_requires_auth),
         CM_TEST(test_auth_token_key_kinds),
@@ -3359,31 +4162,43 @@ int main(void)
         CM_TEST(test_slc_errors),
         CM_TEST(test_unknown_slc_requires_auth),
         CM_TEST(test_slc_read_key_status),
+        CM_TEST(test_slc_read_lists_16_keys_at_most),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
+        CM_TEST(test_bpak_read_error_is_pbs),
         CM_TEST(test_bpak_read_small_partition),
         CM_TEST(test_part_verify),
         CM_TEST(test_part_verify_bpak),
         CM_TEST(test_part_verify_kicks_per_chunk),
         CM_TEST(test_part_verify_errors),
         CM_TEST(test_part_verify_small_partition),
+        CM_TEST(test_part_verify_bpak_size_below_a_header),
         CM_TEST(test_part_erase),
         CM_TEST(test_part_erase_needs_writable),
         CM_TEST(test_hidden_partition),
         CM_TEST(test_stream),
         CM_TEST(test_part_verify_keeps_the_stream),
+        CM_TEST(test_part_verify_and_bpak_read_keep_the_buffers),
         CM_TEST(test_stream_errors),
+        CM_TEST(test_no_stream),
         CM_TEST(test_stream_offset_inside_a_block),
         CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
         CM_TEST(test_boot_bpak_refused_before_the_header),
+        CM_TEST(test_boot_stopped_before_the_disconnect),
+        CM_TEST(test_boot_bpak_load_returns_abort),
+        CM_TEST(test_boot_fails_after_the_disconnect),
         CM_TEST(test_run_errors),
+        CM_TEST(test_lost_at_the_start_of_a_read),
+        CM_TEST(test_transport_lost_before_every_command),
+        CM_TEST(test_transport_lost_count_ends_with_a_command),
         CM_TEST(test_setup_platform_first),
         CM_TEST(test_setup_platform_fails),
+        CM_TEST(test_setup_without_the_device_uuid_fails),
         CM_TEST(test_task_polls_once_per_call),
         CM_TEST(test_run_connect),
-        CM_TEST(test_run_retries),
+        CM_TEST(test_timeout_while_waiting_is_lost),
         CM_TEST(test_transport_errors_in_commands),
         CM_TEST(test_session_ends_with_the_transport),
         CM_TEST(test_session_ends_with_a_lost_transfer),
