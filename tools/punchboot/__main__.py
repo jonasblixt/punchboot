@@ -490,10 +490,14 @@ def part_verify(_ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pat
     s.part_verify(file, part_uuid)
 
 
-@cli.group()
+# Deprecated since 3.0.0: 'board command' is 'cmd <name>', and what 'board
+# status' answered is in 'cmd info' (D-077). The group stays, hidden from the
+# help and from tab completion, so that the scripts of earlier releases keep
+# working (D-008). Don't add to it.
+@cli.group(hidden=True)
 @click.pass_context
 def board(_ctx: click.Context) -> None:
-    """Board specific commands."""
+    """Board specific commands (deprecated, see 'cmd')."""
 
 
 @board.command("command")
@@ -523,7 +527,9 @@ def board_command(
     out_fmt: str,
     args_from_file: pathlib.Path | None,
 ) -> None:
-    """Execute a board specific command."""
+    """Execute a board specific command (deprecated, see 'cmd')."""
+    # Deprecated with the 'board' group: a 2.x board command by its id or
+    # name. 'cmd' runs a named command; this one stays as released.
     board_command: int | str = 0
     board_args: bytes = b""
 
@@ -635,7 +641,9 @@ def named_command(
 @pb_session
 @click.pass_context
 def board_status(_ctx: click.Context, s: Session) -> None:
-    """Read board status."""
+    """Read board status (deprecated, see 'cmd info')."""
+    # Deprecated with the 'board' group: 'cmd info' has what the boards'
+    # status printed (D-077). It stays as released.
     click.echo(s.board_read_status())
 
 

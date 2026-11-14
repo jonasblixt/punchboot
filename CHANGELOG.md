@@ -75,6 +75,9 @@ Named commands (D-076, 2026-11-13):
   the host tool: a device says which commands it has, with a help line each. A device older
   than the command answers `INVALID_COMMAND`, and a command is still run by its name.
 - A board's command keeps its id, and `punchboot board command` works as released.
+- `punchboot board` is deprecated: `board command` is `cmd <name>`, what `board status`
+  printed is in `cmd info`. Both still work as released, but the help and tab completion no
+  longer show them.
 - An id the device doesn't have answers `NOT_SUPPORTED`. The RT1060 EVK, imx8mevk, the MEK and
   the DXL EVK answered OK to any id (F-218).
 - jiffy's board command `dump-rom-log` is gone: `punchboot log rom` reads the ROM's log

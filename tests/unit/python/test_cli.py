@@ -162,6 +162,27 @@ def test_slc_lock_asks_first() -> None:
     assert FakeSession.calls == [("slc_set_configuration_lock", ())]
 
 
+def test_board_is_hidden() -> None:
+    # Deprecated (cmd and cmd info): not in the help or in tab completion,
+    # and still there for the scripts of earlier releases
+    result = run("--help")
+    assert result.exit_code == 0, result.output
+    assert "cmd" in result.output
+    assert "board" not in result.output
+
+    ctx = cli_main.cli.make_context("punchboot", [], resilient_parsing=True)
+    names = [c.value for c in cli_main.cli.shell_complete(ctx, "")]
+    assert "cmd" in names
+    assert "board" not in names
+    assert [c.value for c in cli_main.cli.shell_complete(ctx, "bo")] == ["boot"]
+
+    FakeSession.result = "Board status OK!"
+    result = run(*SOCKET, "board", "status")
+    assert result.exit_code == 0, result.output
+    assert result.output == "Board status OK!\n"
+    assert FakeSession.calls == [("board_read_status", ())]
+
+
 @pytest.mark.parametrize(
     ("argument", "sent"), [("0xc72b6e9e", 0xC72B6E9E), ("test-command", "test-command")]
 )
