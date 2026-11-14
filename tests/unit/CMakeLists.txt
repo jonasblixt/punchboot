@@ -742,6 +742,28 @@ pb_plat_test(test_plat_imx8m
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
 
+# The memory map (platform.md 5.2): pb_mmu_init() over the fake xlat_tables,
+# with room for 16 regions. Built for ARMv7-A and for ARMv8-A, whose
+# enables differ
+foreach(arch ARMV7 ARMV8)
+    if(arch STREQUAL ARMV7)
+        set(name test_mmu)
+    else()
+        set(name test_mmu_armv8)
+    endif()
+    pb_plat_test(${name}
+        TEST test_mmu.c
+        SOURCES
+            fakes/xlat.c
+            ${PROJECT_SOURCE_DIR}/src/mmu.c
+        DEFINITIONS
+            CONFIG_LIB_XLAT_TBLS_${arch}=1 MAX_MMAP_REGIONS=16
+            PLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
+            BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+        OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
+    )
+endforeach()
+
 # The transport that pb-host links (usb.md 2.6): the unix socket, with a
 # client of the test's own
 pb_unit_test(test_host_socket SOURCES

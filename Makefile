@@ -109,6 +109,8 @@ src-$(CONFIG_RAMLOG) += src/ramlog.c
 src-y  += src/rot.c
 src-y  += src/slc.c
 src-y  += src/board.c
+# The memory map (platform.md 5.2), where the arch has an MMU
+src-$(CONFIG_LIB_XLAT_TBLS) += src/mmu.c
 
 include src/drivers/*/makefile.mk
 include src/boot/makefile.mk

@@ -292,6 +292,10 @@ Unit tests, by module under test:
 |                                               | tasks and with none; the     |                                  |
 |                                               | reset after a platform       |                                  |
 |                                               | failure                      |                                  |
+| `test_mmu.c`, `test_mmu_armv8`                | `mmu.c`: the memory map's    | `fakes/xlat.c`, which notes the  |
+|                                               | layers (`platform.md` 5.2),  | regions                          |
+|                                               | the room for them; for       |                                  |
+|                                               | ARMv7-A and ARMv8-A          |                                  |
 | `test_plat_imxrt.c`,                          | `plat/imxrt/plat.c`,         | the SoC's registers in a         |
 | `test_plat_imxrt_no_mbedtls`                  | `imx_gpt.c`, `imx_wdog.c`:   | register file; the fuses, the    |
 |                                               | the port against             | HAB, Mbed TLS                    |
