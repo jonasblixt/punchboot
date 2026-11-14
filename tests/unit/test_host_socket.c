@@ -155,8 +155,8 @@ static void test_init_and_connect_dont_wait(void **state)
 
 /*
  * usb.md 2.3, 2.4, 2.6: a session's transfers both ways, a client that
- * closes is lost, and a restart ('init' again) waits for the next client
- * without blocking: the next one is accepted by 'connect'.
+ * closes is lost, and a restart (a disconnect, then 'init') waits for the
+ * next client without blocking: the next one is accepted by 'connect'.
  */
 static void test_a_session_and_the_next_client(void **state)
 {
@@ -242,12 +242,61 @@ static void test_a_client_gone_before_the_accept(void **state)
     close(fd);
 }
 
+/*
+ * usb.md 2.1, 2.5, 2.6 (F-287): the disconnect is the device leaving, so
+ * that the host sees it go: the client's connection is closed, after what
+ * was sent (a last result before a reset or a jump arrives), and a transfer
+ * that ran is given up. Twice is no error. The restart is the disconnect,
+ * then 'init', and the next client is accepted
+ */
+static void test_disconnect_closes_the_client(void **state)
+{
+    uint8_t host[16];
+    int fd;
+    (void)state;
+
+    alarm(5);
+
+    assert_int_equal(cm_transport_init(), PB_OK);
+    fd = client_connect();
+    connect_ok();
+
+    /* The last result, then the disconnect, with a read started */
+    memset(buf, 0x3c, sizeof(host));
+    assert_int_equal(cm_transport_write(buf, sizeof(host)), PB_OK);
+    assert_int_equal(complete(), PB_OK);
+    assert_int_equal(cm_transport_read(buf, sizeof(host)), PB_OK);
+    assert_int_equal(cm_transport_disconnect(), PB_OK);
+    assert_int_equal(cm_transport_disconnect(), PB_OK);
+
+    /* The host reads what was sent, and then sees the device gone */
+    assert_int_equal(recv(fd, host, sizeof(host), MSG_WAITALL), (ssize_t)sizeof(host));
+    assert_memory_equal(host, buf, sizeof(host));
+    assert_int_equal(recv(fd, host, sizeof(host), 0), 0);
+    close(fd);
+
+    /* The restart: no client yet, then the next one */
+    assert_int_equal(cm_transport_init(), PB_OK);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    fd = client_connect();
+    connect_ok();
+    host[0] = 0xc3;
+    assert_int_equal(cm_transport_read(buf, 1), PB_OK);
+    assert_int_equal(send(fd, host, 1, 0), 1);
+    assert_int_equal(complete(), PB_OK);
+    assert_int_equal(buf[0], 0xc3);
+
+    alarm(0);
+    close(fd);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_init_and_connect_dont_wait),
         cmocka_unit_test(test_a_session_and_the_next_client),
         cmocka_unit_test(test_a_client_gone_before_the_accept),
+        cmocka_unit_test(test_disconnect_closes_the_client),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);

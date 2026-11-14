@@ -720,7 +720,8 @@ SoC, a socket on the host platform. Its functions and what a USB device controll
   transfers as it takes, and a transfer may fill several reads.
 - **Start and poll.** A transfer is started and then polled, so that the tasks run and the
   watchdog is kicked while command mode waits for a command.
-- **Disconnect** before a jump and before a reset, so that the host sees the device leave.
+- **Disconnect** before a jump, before a reset and before a restart, so that the host sees the
+  device leave (`usb.md` 2.1, 2.5).
 - **Nothing before the gate but the identity.** What the transport itself tells a host before
   authentication is the device's identity and nothing else: on USB the descriptors, with the
   device's UUID as the serial number. Its own parser (USB's control requests) checks every

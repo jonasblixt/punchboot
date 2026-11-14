@@ -72,8 +72,7 @@ bus. Called when command mode is set up, after `plat_cm_init()` (`command-mode.m
 again each time the transport is restarted.
 
 - **A restart is `cm_transport_disconnect()`, then this.** The device leaves the bus and comes
-  back, so the host sees a new device and starts over. **Not yet in the code (F-287)**:
-  command mode restarts with `init` alone.
+  back, so the host sees a new device and starts over.
 - It doesn't wait for a host.
 - Failure: no command mode; its task ends the loop and pb resets (`command-mode.md` 2.1).
 
@@ -429,7 +428,7 @@ The stack and the transport:
 | Lost ends the session                       | yes, when the controller reports it or   | F-363   |
 |                                             | the host sets an address or configures   |         |
 |                                             | the device again                         |         |
-| A restart disconnects first                 | no                                       | F-287   |
+| A restart disconnects first                 | yes (`test_cm`, `test_host_socket`)      |         |
 | Unknown requests stalled, control transfers | no                                       | F-138   |
 | bounded                                     |                                          |         |
 | A request leaves a bulk transfer alone      | yes                                      |         |
@@ -449,7 +448,6 @@ checklist's last item.
 
 | Finding      | What                                                                        |
 | ------------ | --------------------------------------------------------------------------- |
-| F-287        | A restart disconnects first (2.4)                                           |
 | F-137, F-205 | An OUT transfer ends at `length`, writes nothing past it, and its result is |
 |              | the controller's (2.3, 4.3)                                                 |
 | F-280        | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)       |

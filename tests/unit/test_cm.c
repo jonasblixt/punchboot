@@ -17,9 +17,10 @@
  * A test queues the host's side of the conversation (commands and data) with
  * host_*(), runs cm_run() until the queue is empty, and then checks what the
  * device sent back with expect_*(). When the queue runs dry the transport
- * reports a disconnect, the task re-initializes the transport, and the fake
- * fails that, which ends cm_run() with -PB_ERR_IO. host_lost() and
- * t.lose_write lose a transfer on the way, as a host that went away.
+ * reports a disconnect, the task restarts the transport (a disconnect, then
+ * init), and the fake fails the init, which ends cm_run() with -PB_ERR_IO.
+ * host_lost() and t.lose_write lose a transfer on the way, as a host that
+ * went away.
  * host_stops() and t.stop_write leave one pending, as a host that stopped.
  */
 
@@ -142,6 +143,9 @@ static struct {
 
     int max_inits;
     int init_calls;
+    bool started; /* The last init worked */
+    int restarts; /* Inits after one that worked, each after a disconnect */
+    int bare_restarts; /* Inits after one that worked, without a disconnect */
     int connect_rc; /* Returned by connect() until connect_ok_after calls */
     int connect_ok_after;
     int connect_calls;
@@ -169,9 +173,19 @@ int cm_transport_init(void)
         t.write_stopped = false;
         t.stopped_polls = 0;
     }
+    /* A restart is a disconnect, then init (usb.md 2.1). After an init
+     * that failed command mode is at its set up again, and its next start
+     * is a first one */
+    if (t.started) {
+        if (t.disconnected)
+            t.restarts++;
+        else
+            t.bare_restarts++;
+    }
     t.init_calls++;
     t.disconnected = false;
-    return (t.init_calls > t.max_inits) ? -PB_ERR_IO : PB_OK;
+    t.started = (t.init_calls <= t.max_inits);
+    return t.started ? PB_OK : -PB_ERR_IO;
 }
 
 int cm_transport_connect(void)
@@ -778,7 +792,16 @@ static int cm_run(void)
             rc = cm_main_task();
     } while (rc == PB_OK);
 
+    /* Every restart disconnected first (usb.md 2.1, F-287) */
+    assert_int_equal(t.bare_restarts, 0);
     return rc;
+}
+
+/* The disconnects that weren't a restart's: the device left the bus before
+ * a jump or the reset (command-mode.md 2.3) */
+static int leaves(void)
+{
+    return t.disconnect_calls - t.restarts;
 }
 
 /* Runs command mode until the host is done */
@@ -1439,7 +1462,7 @@ static void test_board_command_requests_reboot(void **state)
     /* The next command is never read */
     expect_end();
     /* The device leaves the bus before the reset (command-mode.md 2.3) */
-    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(leaves(), 1);
 }
 
 /* command-mode.md 5.6: a named command that asked for a
@@ -1466,7 +1489,7 @@ static void test_failed_board_command_drops_its_reboot_request(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
     expect_end();
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 
     /* The next host, on a device that locked meanwhile: its first frame is
      * refused by the gate, which is no success of the board's command */
@@ -1491,7 +1514,7 @@ static void test_failed_board_command_drops_its_reboot_request(void **state)
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_result(PB_RESULT_OK);
     expect_end();
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 }
 
 /* command-mode.md 5.6 (F-252): a named command that fails
@@ -1514,7 +1537,7 @@ static void test_board_command_that_returns_abort(void **state)
     expect_result(-PB_RESULT_ERROR);
     expect_result(PB_RESULT_OK);
     expect_end();
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 }
 
 static void test_device_reset(void **state)
@@ -1527,7 +1550,7 @@ static void test_device_reset(void **state)
     expect_end();
     /* The result is sent, then the transport is disconnected, then pb
      * resets (command-mode.md 2.3) */
-    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(leaves(), 1);
 }
 
 static void test_locked_device_requires_auth(void **state)
@@ -3447,7 +3470,7 @@ static void test_boot_part(void **state)
     expect_result(-PB_RESULT_SIGNATURE_ERROR);
     expect_result(PB_RESULT_OK);
     expect_end();
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 
     /* The fake jump returns, after the disconnect: the task ends the loop
      * (command-mode.md 2.3) */
@@ -3457,7 +3480,7 @@ static void test_boot_part(void **state)
     assert_int_equal(cm_run(), -PB_ERR);
     expect_result(PB_RESULT_OK);
     assert_int_equal(fake_boot.jump_calls, 1);
-    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(leaves(), 1);
 }
 
 static void test_boot_bpak(void **state)
@@ -3490,7 +3513,7 @@ static void test_boot_bpak(void **state)
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
     assert_int_equal(cm_run(), -PB_ERR);
     assert_int_equal(fake_boot.jump_calls, 1);
-    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(leaves(), 1);
 
     /* The first result can't be sent */
     t.init_calls = 0;
@@ -3535,7 +3558,7 @@ static void test_boot_bad_payload(void **state)
     expect_result(PB_RESULT_OK); /* Command mode goes on */
     expect_end();
     assert_int_equal(fake_boot.jump_calls, 0);
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 }
 
 /* A boot refused before the header is read (command-mode.md 5.5, D-058,
@@ -3603,7 +3626,7 @@ static void test_boot_stopped_before_the_disconnect(void **state)
     expect_end();
     assert_int_equal(fake_boot.load_calls, 2);
     assert_int_equal(fake_boot.jump_calls, 0);
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
     /* The one start, and the one that ends the test */
     assert_int_equal(t.init_calls, 2);
 }
@@ -3628,7 +3651,7 @@ static void test_boot_bpak_load_returns_abort(void **state)
     expect_result(PB_RESULT_OK);
     expect_end();
     assert_int_equal(fake_boot.jump_calls, 0);
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 }
 
 /*
@@ -3690,7 +3713,7 @@ static void test_boot_fails_after_the_disconnect(void **state)
                 expect_result(PB_RESULT_OK);
             expect_end();
             assert_int_equal(fake_boot.jump_calls, 1);
-            assert_int_equal(t.disconnect_calls, 1);
+            assert_int_equal(leaves(), 1);
             assert_int_equal(t.after_disconnect, 0);
             assert_int_equal(t.in_pos, sent);
             assert_int_equal(t.init_calls, 1);
@@ -3720,7 +3743,7 @@ static void test_run_errors(void **state)
     t.connect_ok_after = 0;
     assert_int_equal(cm_run(), -PB_ERR_IO);
     assert_int_equal(t.init_calls, 2);
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 }
 
 /*
@@ -3751,9 +3774,70 @@ static void test_lost_at_the_start_of_a_read(void **state)
     expect_end();
     assert_int_equal(t.init_calls, 3);
     assert_int_equal(t.connect_calls, 2);
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
+    /* Each restart left the bus first (usb.md 2.1) */
+    assert_int_equal(t.restarts, 2);
+    assert_int_equal(t.disconnect_calls, 2);
     /* The failed start ended its round: the restart was the next one's */
     assert_int_equal(t.rounds, 5);
+}
+
+/*
+ * usb.md 2.1, 2.5 and command-mode.md 2.3, 3.1 (F-287): a restart is a
+ * disconnect, then init, so that the host sees the device leave and come
+ * back: after a session lost while pb waits for a command, after a transfer
+ * lost inside a command and after one the host stopped. The first start,
+ * after the set up, is init alone. Nothing of the transport is called
+ * between the disconnect and the init.
+ */
+static void test_a_restart_disconnects_first(void **state)
+{
+    (void)state;
+
+    /* Lost while waiting for a command */
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    /* The first start, the restart, and the one the fake refuses */
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.restarts, 2);
+    assert_int_equal(t.disconnect_calls, 2);
+    assert_int_equal(t.after_disconnect, 0);
+
+    /* A result lost inside a command: the version's */
+    teardown(state);
+    setup(state);
+    t.max_inits = 2;
+    t.lose_write = 1;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.restarts, 2);
+    assert_int_equal(t.disconnect_calls, 2);
+    assert_int_equal(t.after_disconnect, 0);
+
+    /* A host that stopped in the middle of an exchange: the restart after
+     * the timeout */
+    teardown(state);
+    setup(state);
+    t.stop_write = 1;
+    t.max_inits = 2;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.restarts, 2);
+    assert_int_equal(t.disconnect_calls, 2);
+    assert_int_equal(t.after_disconnect, 0);
 }
 
 /* src/cm/cm_main.c: the starts of the transport without a command between
@@ -3780,7 +3864,12 @@ static void test_transport_lost_before_every_command(void **state)
     assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
     assert_int_equal(t.connect_calls, STARTS_WITHOUT_A_COMMAND_MAX);
     assert_int_equal(t.read_calls, STARTS_WITHOUT_A_COMMAND_MAX);
-    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(leaves(), 1);
+    /* Every start but the first after a disconnect, and the last one
+     * leaves: the device is off the bus when pb resets */
+    assert_int_equal(t.restarts, STARTS_WITHOUT_A_COMMAND_MAX - 1);
+    assert_int_equal(t.disconnect_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_true(t.disconnected);
     expect_end();
 
     /* A caller that runs the task again finds it at its set up */
@@ -3791,7 +3880,7 @@ static void test_transport_lost_before_every_command(void **state)
     /* Started, then lost at once: no host sends anything */
     assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
     assert_int_equal(t.read_calls, STARTS_WITHOUT_A_COMMAND_MAX);
-    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(leaves(), 1);
     assert_int_equal(t.after_disconnect, 0);
     expect_end();
 }
@@ -3808,7 +3897,7 @@ static void test_transport_lost_count_ends_with_a_command(void **state)
     run();
     expect_result(PB_RESULT_OK);
     expect_end();
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 
     /* One more: the command never comes */
     teardown(state);
@@ -3820,7 +3909,7 @@ static void test_transport_lost_count_ends_with_a_command(void **state)
     assert_int_equal(cm_run(), -PB_ERR_IO);
     expect_end();
     assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
-    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(leaves(), 1);
 
     /* Twice as many losses as the most, each after a command */
     teardown(state);
@@ -3835,7 +3924,8 @@ static void test_transport_lost_count_ends_with_a_command(void **state)
     expect_end();
     /* The first start, one per loss, and the one the fake refuses */
     assert_int_equal(t.init_calls, 2 * STARTS_WITHOUT_A_COMMAND_MAX + 2);
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(t.restarts, 2 * STARTS_WITHOUT_A_COMMAND_MAX + 1);
+    assert_int_equal(leaves(), 0);
 }
 
 /* The set up starts with the platform's (command-mode.md 2.1, platform.md
@@ -4083,7 +4173,7 @@ static void test_timeout_while_waiting_is_lost(void **state)
     assert_int_equal(t.init_calls, 3);
     assert_int_equal(t.connect_calls, 2);
     /* A restart is no disconnect yet (usb.md 2.1, F-287) */
-    assert_int_equal(t.disconnect_calls, 0);
+    assert_int_equal(leaves(), 0);
 }
 
 static void test_transport_errors_in_commands(void **state)
@@ -4925,6 +5015,7 @@ int main(void)
         CM_TEST(test_boot_fails_after_the_disconnect),
         CM_TEST(test_run_errors),
         CM_TEST(test_lost_at_the_start_of_a_read),
+        CM_TEST(test_a_restart_disconnects_first),
         CM_TEST(test_transport_lost_before_every_command),
         CM_TEST(test_transport_lost_count_ends_with_a_command),
         CM_TEST(test_setup_platform_first),
