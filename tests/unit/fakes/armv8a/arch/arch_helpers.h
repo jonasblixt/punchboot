@@ -18,4 +18,7 @@
 /* ID_AA64PFR0_EL1: which exception levels the CPU has */
 uint64_t read_id_aa64pfr0_el1(void);
 
+/* CNTFRQ_EL0: the system counter's frequency */
+void write_cntfrq_el0(uint64_t value);
+
 #endif // TESTS_UNIT_FAKES_ARMV8A_ARCH_HELPERS_H

@@ -3,8 +3,10 @@
 
 #define IMX8M_ROM_BASE             (0x00000000) /* IMX8M_ROM_SIZE: makefile.mk */
 #define IMX8M_OCRAM_BASE           (0x00900000) /* IMX8M_OCRAM_SIZE: makefile.mk */
-#define IMX8M_AIPS_BASE            (0x30000000) /* The peripherals, AIPS1..4 */
+#define IMX8M_AIPS_BASE            (0x30000000) /* AIPS1..3, and the 8MP's AIPS5 */
 #define IMX8M_AIPS_SIZE            (0x01000000)
+#define IMX8M_AIPS4_BASE           (0x32C00000) /* AIPS4: the TZASC, the 8MP's HSIO */
+#define IMX8M_AIPS4_SIZE           (0x00400000)
 #define IMX8M_GPV_BASE             (0x32000000) /* The NoC's global programmer's view */
 #define IMX8M_GPV_SIZE             (0x00020000)
 #define IMX8MP_HSIO_BLK_CTRL_BASE  (0x32F10000)
@@ -19,6 +21,8 @@
 #define IMX8M_GPT1_BASE            (0x302D0000)
 #define IMX8M_SCTR_BASE            (0x306C0000)
 #define IMX8M_WDOG1_BASE           (0x30280000)
+#define IMX8M_WDOG2_BASE           (0x30290000)
+#define IMX8M_WDOG3_BASE           (0x302A0000)
 #define IMX8M_UART1_BASE           (0x30860000)
 #define IMX8M_UART2_BASE           (0x30890000)
 #define IMX8M_UART3_BASE           (0x30880000)
@@ -65,6 +69,20 @@
 #define DDRC_DDR_SS_GPR0            0x3d000000
 #define DDRC_DDR_SS_GPR0_LPDDR4     0x01 /* DDR subsystem in LPDDR4 mode */
 #define DDR_CSD1_BASE_ADDR          0x40000000
+
+/* The DDR window from DDR_CSD1_BASE_ADDR, where the TZASC's addresses start
+ * (8MP RM 4.9.2.1). The RMs' memory maps: 8MQ 0x4000_0000..0x1_3FFF_FFFF,
+ * 8MP 0x4000_0000..0x2_3FFF_FFFF */
+#define IMX8MQ_DDR_WINDOW_SIZE      (UINT64_C(4) << 30)
+#define IMX8MP_DDR_WINDOW_SIZE      (UINT64_C(8) << 30)
+
+/* The TZASC's enable and its ID swap bypass, and their locks (8MP RM 8.2.3.11) */
+#define IMX8M_IOMUXC_GPR10          0x30340028
+#define GPR10_TZASC_EN              BIT_32(0)
+#define GPR10_TZASC_ID_SWAP_BYPASS  BIT_32(1)
+#define GPR10_LOCK_TZASC_EN         BIT_32(16)
+#define GPR10_LOCK_TZASC_ID_SWAP    BIT_32(17)
+#define IMX8M_TZASC_BASE            0x32F80000
 
 #define CCM_ANALOG_DIGPROG          0x3036006C
 

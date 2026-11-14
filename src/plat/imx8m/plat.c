@@ -13,9 +13,11 @@
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
+#include <drivers/tzc/tzc380.h>
 #include <drivers/usb/dwc3_udc.h>
 #include <drivers/usb/imx8m_phy.h>
 #include <drivers/wdog/imx_wdog.h>
+#include <inttypes.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -36,8 +38,11 @@ IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
 IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
 IMPORT_SYM(uintptr_t, _stack_start, stack_start);
 IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
-IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
+/* The rest of pb, .bss and the RAM log, and the buffers (platform.md 5.1) */
+IMPORT_SYM(uintptr_t, _zero_region_start, pb_rw_start);
+IMPORT_SYM(uintptr_t, _pb_end, pb_rw_end);
+IMPORT_SYM(uintptr_t, _buffers_start, buffers_start);
+IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
 
 /* System counter control frame */
 #define SCTR_CNTCR      0x00
@@ -76,8 +81,11 @@ static const mmap_region_t imx_mmap[] = {
     MAP_REGION_FLAT(IMX8M_GPV_BASE, IMX8M_GPV_SIZE, MT_DEVICE | MT_RW),
     /* USB */
     MAP_REGION_FLAT(IMX8M_USB1_BASE, IMX8M_USB_SIZE, MT_DEVICE | MT_RW),
-    /* HSIO BLK_CTRL (i.MX8M Plus) */
-    MAP_REGION_FLAT(IMX8MP_HSIO_BLK_CTRL_BASE, IMX8MP_HSIO_BLK_CTRL_SIZE, MT_DEVICE | MT_RW),
+    /* AIPS4, whole (platform.md 5.2, layer 2): the TZASC and the 8MP's HSIO
+     * block control, which was its only part mapped. The span F-158 split
+     * covered the rest as Normal memory (Linux's imx8mq.dtsi and
+     * imx8mp.dtsi, bus@32c00000) */
+    MAP_REGION_FLAT(IMX8M_AIPS4_BASE, IMX8M_AIPS4_SIZE, MT_DEVICE | MT_RW),
     { 0 }
 };
 
@@ -98,13 +106,24 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
         uint8_t uid_bytes[8];
     } plat_unique;
 
+    int rc;
+
     if (*length < sizeof(plat_unique.uid_bytes))
         return -PB_ERR_BUF_TOO_SMALL;
-    *length = sizeof(plat_unique.uid_bytes);
 
-    imx_ocotp_read(IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE1_WORD, &plat_unique.uid[0]);
-    imx_ocotp_read(IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE2_WORD, &plat_unique.uid[1]);
+    /* A read that fails writes nothing: the device's UUID is made of this */
+    rc = imx_ocotp_read(IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE1_WORD, &plat_unique.uid[0]);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = imx_ocotp_read(IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE2_WORD, &plat_unique.uid[1]);
+
+    if (rc != PB_OK)
+        return rc;
+
     memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
+    *length = sizeof(plat_unique.uid_bytes);
     return PB_OK;
 }
 
@@ -141,14 +160,23 @@ static int plat_mmu_init(void)
     mmap_add_region(
         stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(rw_nox_start,
-                    rw_nox_start,
-                    rw_nox_end - rw_nox_start,
+    /* The rest of pb and the buffers, each a region of its own: one span
+     * from pb to the buffers mapped what is between them as memory, on the
+     * i.MX8M Plus 1 GiB of the address space and its devices (F-158) */
+    mmap_add_region(
+        pb_rw_start, pb_rw_start, pb_rw_end - pb_rw_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(buffers_start,
+                    buffers_start,
+                    buffers_end - buffers_start,
                     MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    /* Add the rest of the RAM */
-    mmap_add_region(
-        rw_nox_end, rw_nox_end, BOARD_RAM_END - rw_nox_end, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    /* The board's DRAM, where the images are loaded. What of pb is in it
+     * is a region inside it, and the innermost region wins */
+    mmap_add_region(BOARD_RAM_BASE,
+                    BOARD_RAM_BASE,
+                    BOARD_RAM_END - BOARD_RAM_BASE,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add(imx_mmap);
 
@@ -179,10 +207,77 @@ static const struct imx_hab_log_config hab_log_cfg = {
     .entry_size = 8,
 };
 
+#ifdef CONFIG_PLAT_IMX8MQ
+#define DDR_WINDOW_SIZE IMX8MQ_DDR_WINDOW_SIZE
+#else
+#define DDR_WINDOW_SIZE IMX8MP_DDR_WINDOW_SIZE
+#endif
+
+/*
+ * The TZASC checks no DRAM access until GPR10's TZASC_EN is set, and TF-A's
+ * BL31 only programs it when it is. Set before DRAM is used, with
+ * ID_SWAP_BYPASS, which the RM asks for (8MP RM 4.9.1.2), and lock both:
+ * the normal world reaches the GPRs. OP-TEE checks all three.
+ */
+static void tzasc_enable(void)
+{
+    const uint32_t bits = GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS;
+    const uint32_t locks = GPR10_LOCK_TZASC_EN | GPR10_LOCK_TZASC_ID_SWAP;
+    uint32_t gpr10;
+
+    mmio_clrsetbits_32(IMX8M_IOMUXC_GPR10, 0, bits);
+    mmio_clrsetbits_32(IMX8M_IOMUXC_GPR10, 0, locks);
+    gpr10 = mmio_read_32(IMX8M_IOMUXC_GPR10);
+
+    if ((gpr10 & (bits | locks)) != (bits | locks))
+        LOG_ERR("TZASC not enabled, GPR10 %08" PRIx32, gpr10);
+}
+
+/*
+ * Out of bypass, region 0 lets only secure accesses through, and some
+ * masters are non-secure: the DWC3, command mode's USB, among them. Open the
+ * DDR window to both worlds in region 1 and leave region 0 secure, so that
+ * aliases of DRAM stay protected; OP-TEE replaces region 1 with its own. The
+ * TZASC counts from the DDR window's start.
+ */
+static int tzasc_open_dram(void)
+{
+    uint64_t size;
+    int rc;
+
+    rc = tzc380_init(IMX8M_TZASC_BASE);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* The enable is locked: without region 1 command mode's USB stops. So
+     * if the TZASC addresses less than the window, open what it addresses */
+    for (size = DDR_WINDOW_SIZE; size >= SZ_GiB(1); size >>= 1) {
+        rc = tzc380_configure_region(1, 0, size, TZC380_SP_ALL);
+
+        if (rc != -PB_ERR_PARAM)
+            break;
+    }
+
+    if (rc == PB_OK && size != DDR_WINDOW_SIZE)
+        LOG_ERR("TZASC: only %" PRIu64 " MiB of DRAM opened", size >> 20);
+
+    return rc;
+}
+
 int plat_early_init(void)
 {
     imx_rom_log_save(&rom_log_cfg);
     (void)imx_hab_log_init(&hab_log_cfg);
+
+    /* The WDOGs' power-down counters, whether the watchdog is used or not */
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
+    mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
+    mmio_write_32(CCM_CCGR_SET(CCGR_WDOG2), CCGR_CLK_ON_MASK);
+    mmio_write_32(CCM_CCGR_SET(CCGR_WDOG3), CCGR_CLK_ON_MASK);
+    imx_wdog_disable_powerdown(IMX8M_WDOG1_BASE);
+    imx_wdog_disable_powerdown(IMX8M_WDOG2_BASE);
+    imx_wdog_disable_powerdown(IMX8M_WDOG3_BASE);
 
 #if CONFIG_ENABLE_WATCHDOG
     /* Enable and ungate WDOG1 clock */
@@ -190,6 +285,12 @@ int plat_early_init(void)
     mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
     imx_wdog_init(IMX8M_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
+
+    /* Configure systick. GPT1_CLK_ROOT is on out of reset, on the 24 MHz
+     * reference (CCM_TARGET_ROOT107 resets to 0x10000000, RM 5.1.7.10) */
+    mmio_write_32(CCM_CCGR_SET(CCGR_GPT1), CCGR_CLK_ON_MASK);
+    imx_gpt_init(IMX8M_GPT1_BASE, MHz(24));
+    log_time_start();
     return PB_OK;
 }
 
@@ -197,13 +298,9 @@ int plat_init(void)
 {
     int rc;
 
-    /* Init fusebox */
+    /* Init fusebox (reading only), its clock gate may be closed */
+    mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);
     imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK);
-
-    /* Configure systick */
-    mmio_write_32(CCM_CCGR_SET(CCGR_GPT1), CCGR_CLK_ON_MASK);
-    imx_gpt_init(IMX8M_GPT1_BASE, MHz(24));
-    log_time_start();
 
     /*
      * The system counter, which the Arm generic timer counts: TF-A's delays
@@ -236,6 +333,8 @@ int plat_init(void)
     /* The rest of the gates and the PLLs */
     imx8m_soc_clock_init();
 
+    tzasc_enable();
+
     rc = imx8m_ddr_init();
     if (rc != PB_OK) {
         LOG_ERR("LPDDR4 init failed (%i)", rc);
@@ -243,6 +342,12 @@ int plat_init(void)
     }
 
     LOG_DBG("LPDDR4 training complete");
+
+    /* Not fatal: without board_setup() command mode can't be used to recover */
+    rc = tzasc_open_dram();
+
+    if (rc != PB_OK)
+        LOG_ERR("TZASC setup failed (%i)", rc);
 
     imx_wdog_kick(IMX8M_WDOG1_BASE);
     plat_mmu_init();
