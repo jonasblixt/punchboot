@@ -9,7 +9,7 @@
 # are built by the 'all' target, which needs mkimage and NXP cst (both in the
 # container) and, for most boards, vendor blobs that are not.
 #
-# imx8mevk and imx8mpevk need NXP's LPDDR4 training firmware, which is not
+# imx8mevk, pico8ml and imx8mpevk need NXP's LPDDR4 training firmware, which is not
 # in the repository. Without IMX8M_FW_DIR (a directory with the four
 # lpddr4_pmu_train_*.bin files, *_202006.bin for imx8mpevk) they are built
 # with zero filled placeholders: a compile check only, that pb.bin cannot
@@ -43,7 +43,7 @@ case "$board" in
     imx8qxmek)
         cross=aarch64-linux-gnu-
         ;;
-    imx8mevk)
+    imx8mevk | pico8ml)
         cross=aarch64-linux-gnu-
         fw_dir="${IMX8M_FW_DIR:-}"
         if [ -z "$fw_dir" ]; then

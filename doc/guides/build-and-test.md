@@ -5,7 +5,7 @@ Tests are covered in `testing.md`.
 ## Firmware build
 
 ```sh
-scripts/pbdev firmware jiffy          # or imx8dxlevk, imx8mevk, imx8mpevk, imxrt1060evk (F-051)
+scripts/pbdev firmware jiffy          # or imx8dxlevk, imx8mevk, imx8mpevk, imxrt1060evk, pico8ml (F-051)
 ```
 
 By hand (in `scripts/pbdev shell`):

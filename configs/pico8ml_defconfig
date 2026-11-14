@@ -1,43 +1,25 @@
+
+#
+# Architecture
+#
 CONFIG_ARCH_ARMV8=y
 # CONFIG_ARCH_ARMV7 is not set
+# CONFIG_ARCH_ARMV7M is not set
+# CONFIG_ARCH_HOST is not set
+CONFIG_ARMV8_EL3=y
+# CONFIG_ARMV8_RESET_ON_EXCEPTION is not set
+# end of Architecture
+
+#
+# Platform support
+#
+CONFIG_SOC_FAMILY_IMX=y
+CONFIG_PLAT_CRYPTO_ENGINE=y
+CONFIG_PLAT_IMX8M_COMMON=y
 # CONFIG_PLAT_IMX8X is not set
+# CONFIG_PLAT_IMX8XL is not set
 CONFIG_PLAT_IMX8MQ=y
-CONFIG_IMX_WATCHDOG_BASE=0x30280000
-CONFIG_IMX_UART_BASE=0x30860000
-CONFIG_IMX_UART_BAUDRATE=115200
-CONFIG_IMX_OCOTP_BASE=0x30350000
-CONFIG_IMX_OCOTP_WORDS_PER_BANK=4
-# CONFIG_IMX_OCOTP_DEBUG is not set
-
-#
-# imx8m configuration
-#
-
-#
-# Console configuration
-#
-
-#
-# USB Transport
-#
-CONFIG_DWC3_BASE=0x38100000
-
-#
-# Watchdog
-#
-
-#
-# Debug serial port
-#
-
-#
-# Fusebox
-#
-CONFIG_IMX8M_UMCTL_TRAIN_1D_D="lpddr4_pmu_train_1d_dmem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_1D_I="lpddr4_pmu_train_1d_imem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_2D_D="lpddr4_pmu_train_2d_dmem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_2D_I="lpddr4_pmu_train_2d_imem.bin"
-# end of imx8m configuration
+# CONFIG_PLAT_IMX8MP is not set
 
 #
 # Output image
@@ -49,42 +31,205 @@ CONFIG_IMX8M_KEY_INDEX=0
 CONFIG_IMX8M_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
 CONFIG_IMX8M_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
 # end of Output image
+# end of Platform support
 
 #
-# Generic options
+# Boot
 #
-CONFIG_LOGLEVEL=1
+
+#
+# Boot source policy: the board's data names the one it uses
+#
+# CONFIG_BOOT_POLICY_FIXED is not set
+# CONFIG_BOOT_POLICY_CHAIN is not set
+CONFIG_BOOT_POLICY_AB=y
+# CONFIG_BOOT_AB_SPECULATIVE is not set
+
+#
+# Handover: what the next stage gets
+#
+CONFIG_BOOT_DTB=y
+CONFIG_BOOT_LINUX=y
+# CONFIG_BOOT_FH is not set
+CONFIG_BOOT_DTB_HEADROOM=4096
+
+#
+# Delivery: how pb starts the next stage
+#
+# CONFIG_BOOT_ATF is not set
+
+#
+# Loading
+#
+CONFIG_BOOT_LOAD_CHUNK_kB=4096
+# end of Boot
+
+#
+# Command mode
+#
+CONFIG_CM=y
+CONFIG_CM_ON_SERIAL_DOWNLOAD=y
+CONFIG_CM_BUF_SIZE_KiB=4096
+CONFIG_CM_TRANSPORT_READY_TIMEOUT=10
+CONFIG_CM_TRANSFER_TIMEOUT=10
+CONFIG_CM_AUTH=y
+CONFIG_CM_AUTH_TOKEN=y
+# CONFIG_CM_AUTH_PASSWORD is not set
+CONFIG_IMX8M_CM_USB1=y
+# end of Command mode
+
+#
+# Keys and life cycle
+#
+CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
+# CONFIG_SLC_EOL is not set
+# end of Keys and life cycle
+
+#
+# Logging
+#
+CONFIG_LOGLEVEL=3
+CONFIG_PRINT_BOOT_BANNER=y
+# CONFIG_RAMLOG is not set
+# CONFIG_BOOT_LINUX_RAMOOPS is not set
+# end of Logging
+
+#
+# Core
+#
+
+#
+# Watchdog
+#
 CONFIG_ENABLE_WATCHDOG=y
-CONFIG_WATCHDOG_TIMEOUT=10
-CONFIG_DUMP_TIMING_ANALYSIS=y
-# CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION is not set
-# CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK is not set
-# end of Generic options
+CONFIG_WATCHDOG_TIMEOUT=5
 
 #
-# Build configuration
+# Limits
+#
+CONFIG_CRYPTO_MAX_HASH_OPS=8
+CONFIG_CRYPTO_MAX_DSA_OPS=8
+CONFIG_BIO_MAX_DEVS=64
+CONFIG_BIO_MAX_BLOCK_SIZE=4096
+# end of Core
+
+#
+# Drivers
+#
+CONFIG_HAVE_IMX_CAAM=y
+
+#
+# Crypto
+#
+CONFIG_DRIVERS_IMX_CAAM=y
+# CONFIG_DRIVERS_CRYPTO_MBEDTLS is not set
+# end of Crypto
+
+CONFIG_DRIVERS_DDR_UMCTL2=y
+CONFIG_DRIVERS_DDR_DWC_PHY=y
+CONFIG_HAVE_IMX_OCOTP=y
+
+#
+# Fuses
+#
+# CONFIG_DRIVERS_FUSE_TEST is not set
+CONFIG_DRIVERS_FUSE_IMX_OCOTP=y
+# CONFIG_IMX_OCOTP_DEBUG is not set
+# end of Fuses
+
+#
+# GPIO
+#
+CONFIG_DRIVERS_IMX_GPIO=y
+# end of GPIO
+
+#
+# Memory controllers
+#
+# CONFIG_IMX_FLEXSPI is not set
+# end of Memory controllers
+
+#
+# MMC and SD
+#
+CONFIG_MMC_CORE=y
+CONFIG_MMC_CORE_MAX_DEVICES=1
+# CONFIG_MMC_CORE_DEBUG_CMDS is not set
+# CONFIG_MMC_CORE_DEBUG_IOS is not set
+# CONFIG_MMC_CORE_HS200_TUNE is not set
+# CONFIG_MMC_CORE_OVERRIDE_BOOT_PART_SZ is not set
+CONFIG_IMX_USDHC=y
+CONFIG_IMX_USDHC_MAX_INSTANCES=1
+# end of MMC and SD
+
+#
+# Partition tables
+#
+CONFIG_PARTITION_GPT=y
+# CONFIG_PARTITION_STATIC is not set
+# end of Partition tables
+
+CONFIG_DRIVERS_IMX_ROM_LOG=y
+CONFIG_DRIVERS_IMX_HAB_LOG=y
+
+#
+# Timers
+#
+CONFIG_DRIVERS_IMX_GPT=y
+# end of Timers
+
+CONFIG_DRIVERS_TZC380=y
+CONFIG_HAVE_IMX_UART=y
+
+#
+# UART
+#
+CONFIG_DRIVERS_IMX_UART=y
+# end of UART
+
+CONFIG_HAVE_IMX_DWC3_UDC=y
+
+#
+# USB
+#
+CONFIG_DRIVER_USB_DEVICE=y
+CONFIG_DRIVER_USB_PB_CLS=y
+CONFIG_DRIVER_IMX_DWC3_UDC=y
+CONFIG_DRIVER_IMX8M_PHY=y
+# end of USB
+
+#
+# Virtio
+#
+# CONFIG_DRIVER_VIRTIO_BLOCK is not set
+# CONFIG_DRIVER_VIRTIO_SERIAL is not set
+# end of Virtio
+
+CONFIG_HAVE_IMX_WDOG=y
+
+#
+# Watchdog
+#
+CONFIG_DRIVERS_IMX_WDOG=y
+# CONFIG_DRIVERS_IMX_WDOG_DEBUG is not set
+# CONFIG_DRIVERS_IMX_WDOG_WAIT is not set
+# end of Watchdog
+# end of Drivers
+
+#
+# Library
+#
+CONFIG_LIB_DER_HELPERS=y
+CONFIG_LIB_FDT=y
+CONFIG_LIB_XLAT_TBLS=y
+CONFIG_LIB_XLAT_TBLS_ARMV8=y
+# end of Library
+
+#
+# Build
 #
 CONFIG_OPTIMIZE="2"
 # CONFIG_DEBUG_SYMBOLS is not set
-CONFIG_STACK_SIZE_KB=4
-# end of Build configuration
-
-#
-# Authentication
-#
-CONFIG_AUTH=y
-CONFIG_AUTH_METHOD_TOKEN=y
-# CONFIG_AUTH_METHOD_PASSWORD is not set
-# end of Authentication
-
-#
-# Command mode transport configuration
-#
-CONFIG_CMD_BUF_SIZE_KB=4096
-CONFIG_TRANSPORT_MAX_CHUNK_KB=4096
-CONFIG_LOAD_FS_MAX_CHUNK_KB=4096
-CONFIG_TRANSPORT_READY_TIMEOUT=10
-# CONFIG_TRANSPORT_ENTER_BOARD_CB is not set
-# end of Command mode transport configuration
-
-# CONFIG_BEARSSL is not set
+CONFIG_STACK_SIZE_KiB=8
+CONFIG_LINK_FILE="src/link.lds"
+# end of Build
