@@ -2,16 +2,19 @@ menu "Output image"
     depends on PLAT_IMX6UL
 
 config IMX6UL_CREATE_IMX_IMAGE
-    bool "Create imx-image"
-    default n
+    bool "Create pb.imx"
+    help
+        pb.imx, the image the boot ROM loads (plat-imx.md 6).
 
 config IMX6UL_SIGN_IMAGE
-    bool "Sign image"
-    default n
+    bool "Sign it (HABv4)"
     depends on IMX6UL_CREATE_IMX_IMAGE
+    help
+        pb_signed.imx, and pb_signed_uuu.imx for the serial downloader,
+        signed for HABv4 with NXP's cst (plat-imx.md 6).
 
 config IMX6UL_SRK_TABLE
-    string "SRK Table binary"
+    string "SRK table"
     default "pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
     depends on IMX6UL_SIGN_IMAGE
 
@@ -21,12 +24,12 @@ config IMX6UL_KEY_INDEX
     depends on IMX6UL_SIGN_IMAGE
 
 config IMX6UL_SIGN_CERT
-    string "Signing certificate"
+    string "CSF signing certificate"
     default "pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
     depends on IMX6UL_SIGN_IMAGE
 
 config IMX6UL_IMAGE_SIGN_CERT
-    string "Signing certificate"
+    string "Image signing certificate"
     default "pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
     depends on IMX6UL_SIGN_IMAGE
 endmenu

@@ -1,14 +1,15 @@
 menu "Crypto"
 
-
 config DRIVERS_IMX_CAAM
-    bool "i.MX CAAM driver"
+    bool "i.MX CAAM"
     depends on SOC_FAMILY_IMX
     default y
+    help
+        The i.MX crypto engine: hashes, signature verification and the
+        RNG, set up in plat_init() (crypto.md).
 
 menuconfig DRIVERS_CRYPTO_MBEDTLS
-    bool "mbedtls"
-    default n
+    bool "Mbed TLS (software)"
 
 if DRIVERS_CRYPTO_MBEDTLS
 source "src/drivers/crypto/mbedtls/Kconfig"

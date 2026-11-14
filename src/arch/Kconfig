@@ -2,18 +2,20 @@
 choice ARCH
     bool "Architecture"
 config ARCH_ARMV8
-	bool "ARMv8"
+    bool "ARMv8-A (AArch64)"
 config ARCH_ARMV7
-	bool "ARMv7"
+    bool "ARMv7-A"
 config ARCH_ARMV7M
-	bool "ARMv7m"
+    bool "ARMv7-M"
 config ARCH_HOST
-	bool "Host (native build, for testing)"
+    bool "Host (native build, for testing)"
 endchoice
 
 choice ARMV8_EL
-    bool "Run in EL"
+    bool "Exception level pb runs in"
     depends on ARCH_ARMV8
+    help
+        EL3, the one level pb supports on ARMv8-A.
 config ARMV8_EL3
     bool "EL3"
 endchoice

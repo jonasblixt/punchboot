@@ -1,8 +1,7 @@
 menu "Platform support"
 
 config SOC_FAMILY_IMX
-	bool "NXP i.MX SoC's"
-    default n
+    bool "NXP i.MX SoCs"
 
 # The platform sets the build's crypto backends up in plat_init(), what the
 # boot verifies with (platform.md 2.2). A boot is refused when one failed: the
@@ -11,17 +10,14 @@ config SOC_FAMILY_IMX
 # (F-247); one that doesn't reports no engine, and the core doesn't ask.
 config PLAT_CRYPTO_ENGINE
     bool
-    default n
 
 config PLAT_IMX8X_COMMON
     bool
-    default n
     select PLAT_CRYPTO_ENGINE
 
 # Shared by the i.MX8M SoCs: platform code in src/plat/imx8m, DDR drivers
 config PLAT_IMX8M_COMMON
     bool
-    default n
     select PLAT_CRYPTO_ENGINE
     select DRIVERS_DDR_UMCTL2
     select DRIVERS_DDR_DWC_PHY
@@ -32,12 +28,12 @@ config PLAT_IMX8M_COMMON
 choice PLAT
     bool "Platform"
 config PLAT_IMX8X
-    bool "NXP IMX8X"
+    bool "NXP i.MX8QXP (i.MX8X)"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
     select PLAT_IMX8X_COMMON
 config PLAT_IMX8XL
-    bool "NXP IMX8X Light"
+    bool "NXP i.MX8DXL (i.MX8X)"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
     select PLAT_IMX8X_COMMON
@@ -52,7 +48,7 @@ config PLAT_IMX8MP
     depends on ARCH_ARMV8
     select PLAT_IMX8M_COMMON
 config PLAT_IMX6UL
-    bool "NXP IMX6UL"
+    bool "NXP i.MX6UL"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7
     select PLAT_CRYPTO_ENGINE
@@ -60,7 +56,7 @@ config PLAT_IMX6UL
     select DRIVERS_IMX_ROM_LOG
     select DRIVERS_IMX_HAB_LOG
 config PLAT_IMXRT
-    bool "NXP IMXRT"
+    bool "NXP i.MX RT"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7M
     select DRIVERS_IMX_HAB_LOG

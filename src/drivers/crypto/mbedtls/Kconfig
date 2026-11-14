@@ -26,6 +26,5 @@ config MBEDTLS_ECDSA
     depends on DRIVERS_CRYPTO_MBEDTLS
 
 config MBEDTLS_STRERROR
-    bool "Include mbedtls error strings"
-    default n
+    bool "Error strings"
     depends on DRIVERS_CRYPTO_MBEDTLS

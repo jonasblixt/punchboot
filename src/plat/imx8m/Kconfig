@@ -1,34 +1,21 @@
-menu "imx8m configuration"
-    depends on PLAT_IMX8M_COMMON
-    comment "Console configuration"
-
-comment "Fusebox"
-
-config IMX_OCOTP_DEBUG
-    bool "Enable OCOTP debug printouts"
-    default n
-
-endmenu
-
 menu "Output image"
     depends on PLAT_IMX8M_COMMON
 
 config IMX8M_CREATE_IMX_IMAGE
-    bool "Create imx-image"
+    bool "Create pb.imx"
     default y
     help
         pb.imx, the image the boot ROM loads (plat-imx.md 6).
 
 config IMX8M_SIGN_IMAGE
-    bool "Sign image"
-    default n
+    bool "Sign it (HABv4, i.MX8MQ)"
     depends on IMX8M_CREATE_IMX_IMAGE && PLAT_IMX8MQ
     help
         pb_signed.imx, signed for HABv4 with NXP's cst. The i.MX8M Quad
         only: where the image header sits is the 8MQ's (plat-imx.md 6).
 
 config IMX8M_SRK_TABLE
-    string "SRK Table binary"
+    string "SRK table"
     default "pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
     depends on IMX8M_SIGN_IMAGE
 

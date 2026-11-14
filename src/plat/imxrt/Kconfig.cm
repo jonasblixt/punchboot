@@ -1,7 +1,7 @@
 # Command mode's USB port (platform.md 3.10), in the Command mode menu
 
 choice IMXRT_CM_USB
-    bool "Command mode's USB port"
+    bool "USB port"
     depends on PLAT_IMXRT && CM
     help
         The USB device port command mode uses. plat_cm_init() sets up its

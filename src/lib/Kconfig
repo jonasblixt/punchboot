@@ -1,12 +1,15 @@
 menu "Library"
 
 config LIB_DER_HELPERS
-    bool "(ASN.1) DER Helpers"
+    bool "ASN.1 DER helpers"
     default y
 
 config LIB_FDT
-    bool "Device tree support"
+    bool "Device tree library (libfdt)"
     default y
+    help
+        Selected by the handovers that pass a device tree on; a board may
+        use it too.
 
 config LIB_XLAT_TBLS
     bool "Enable MMU support library"

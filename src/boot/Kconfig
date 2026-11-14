@@ -7,8 +7,8 @@ comment "Boot source policy: the board's data names the one it uses"
 config BOOT_POLICY_FIXED
     bool "Fixed: one partition"
     help
-        The board gives one partition (BOOT_POLICY_FIXED(), boot/policy_fixed.h).
-        No state, nothing to activate.
+        The board gives one partition (BOOT_POLICY_FIXED(),
+        boot/policy_fixed.h). No state, nothing to activate.
 
 config BOOT_POLICY_CHAIN
     bool "Staggered chain: a list of partitions"

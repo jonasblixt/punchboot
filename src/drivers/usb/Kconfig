@@ -1,16 +1,21 @@
 menu "USB"
 
 config DRIVER_USB_DEVICE
-    bool "Enable core USB device support"
+    bool "USB device stack"
     default y
 
+config DRIVER_USB_PB_CLS
+    bool "Punchboot device class"
+    default y
+    depends on DRIVER_USB_DEVICE
+
 config DRIVER_IMX_USB2_PHY
-    bool "i.MX USB PHY"
+    bool "i.MX USB2 PHY"
     depends on SOC_FAMILY_IMX
     default y
 
 config DRIVER_IMX_CI_UDC
-    bool "i.MX ChipIdea UDC controller"
+    bool "i.MX ChipIdea device controller"
     depends on SOC_FAMILY_IMX
     depends on DRIVER_USB_DEVICE
     # Command mode's transport: its descriptors are sized by CM_BUF_SIZE_KiB
@@ -21,26 +26,17 @@ config DRIVER_IMX_USBDCD
     bool "i.MX USB charger detection"
     depends on SOC_FAMILY_IMX
     depends on DRIVER_USB_DEVICE
-    default n
 
 config DRIVER_IMX_CDNS3_UDC
-    bool "i.MX CDNS3 UDC Driver"
+    bool "i.MX Cadence USB3 device controller"
     depends on SOC_FAMILY_IMX
-    default n
 
 config DRIVER_IMX_DWC3_UDC
-    bool "i.MX DWC3 UDC Driver"
+    bool "i.MX DWC3 device controller"
     depends on SOC_FAMILY_IMX
-    default n
 
 config DRIVER_IMX8M_PHY
     bool "i.MX8M USB PHY"
     depends on SOC_FAMILY_IMX
-    default n
-
-config DRIVER_USB_PB_CLS
-    bool "Punchboot device class"
-    default y
-    depends on DRIVER_USB_DEVICE
 
 endmenu

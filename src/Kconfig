@@ -23,12 +23,15 @@ endmenu
 menu "Keys and life cycle"
 
 config KEYSTORE
-	string "Key-store source"
-	default "pki/internal_keystore.bpak"
+    string "Keystore (bpak file)"
+    default "pki/internal_keystore.bpak"
+    help
+        The keys pb verifies images and command mode's tokens with, built
+        into pb (bpak generate keystore).
 
 config KEYSTORE_SLOTS
-	string "Key revoke slots"
-	default ""
+    string "Revoke slots of the keys"
+    default ""
     help
         The keystore's key ids (hex, space separated) in the order of their
         revoke slots: the n-th is slot n, on HABv4 SRK n's revoke fuse. A key
@@ -38,8 +41,8 @@ config KEYSTORE_SLOTS
         the keystore or moved, also not after it is revoked (F-165).
 
 config SRK_FUSE
-	string "SRK hash fuse words"
-	default ""
+    string "SRK hash fuse words"
+    default ""
     help
         srktool's fuse file (e.g. SRK_1_2_3_4_fuse.bin) of the keys pb is
         signed with, for a board that fuses the SRK hash in
@@ -47,7 +50,6 @@ config SRK_FUSE
 
 config SLC_EOL
     bool "End of life (EOL) as a life cycle state the device can enter"
-    default n
     depends on CM
     help
         The product's choice (system.md 4). On: SLC_SET_EOL moves the device
@@ -65,7 +67,7 @@ endmenu
 menu "Logging"
 
 config LOGLEVEL
-	int "loglevel"
+    int "Console log level"
     default 0
     help
         What the console (UART) prints: 0 nothing, 1 errors, 2 also
@@ -73,18 +75,19 @@ config LOGLEVEL
         the levels up to CONFIG_RAMLOG_LOGLEVEL (include/pb/log_def.h).
 
 config PRINT_BOOT_BANNER
-    bool "Print boot banner"
+    bool "Boot banner"
     default y
+    help
+        pb's version and the boot reason on the console when it is set up.
 
 config RAMLOG
-    bool "Keep a copy of the console output in RAM"
-    default n
+    bool "A copy of the console output in RAM"
     help
         Everything written to the console is also kept in a ring buffer in
         RAM, the symbol 'ramlog' in the .ramlog section (not zeroed, in the
         RAM pb runs from). It can be read without a UART: over JTAG,
-        through a boot ROM USB loader (FEL) or from a RAM dump. The layout is struct pb_ramlog_hdr in
-        include/pb/ramlog.h.
+        through a boot ROM USB loader (FEL) or from a RAM dump. The layout
+        is struct pb_ramlog_hdr in include/pb/ramlog.h.
 
         Output from before console_init() (early debug prints) goes only
         to the RAM log, and is written to the UART when console_init()
@@ -114,7 +117,6 @@ config RAMLOG_LOGLEVEL
 
 config RAMLOG_SYNC
     bool "Synchronized RAM log (for debugging)"
-    default n
     depends on RAMLOG
     help
         Clean the data cache after every character, so that the log in RAM
@@ -129,30 +131,38 @@ menu "Core"
 comment "Watchdog"
 
 config ENABLE_WATCHDOG
-	bool "Enable watchdog"
+    bool "Watchdog"
     default y
+    help
+        The platform arms the SoC's watchdog in plat_early_init(), and pb
+        kicks it while it works. Speculative mode needs it.
 
 config WATCHDOG_TIMEOUT
-    int "Watchdog timeout (s)"
+    int "Timeout (s)"
     default 5
     depends on ENABLE_WATCHDOG
 
 comment "Limits"
 
 config CRYPTO_MAX_HASH_OPS
-    int "Maximum number of hash drivers"
+    int "Hash backends, at most"
     default 1
+    help
+        How many hash implementations can be registered (pb/crypto.h).
 
 config CRYPTO_MAX_DSA_OPS
-    int "Maximum number of dsa drivers"
+    int "Signature (DSA) backends, at most"
     default 1
+    help
+        How many signature verification implementations can be
+        registered (pb/crypto.h).
 
 config BIO_MAX_DEVS
-    int "Maxmum number of block devices"
+    int "Block devices, at most"
     default 32
 
 config BIO_MAX_BLOCK_SIZE
-    int "Largest block size of a block device, in bytes"
+    int "Largest block size (bytes)"
     default 4096
     help
         A block device with larger blocks is refused when it is registered
@@ -169,26 +179,31 @@ source "src/lib/Kconfig"
 menu "Build"
 
 choice EXECUTE
-    bool "Execute from"
+    bool "pb runs from"
 config EXECUTE_IN_RAM
     bool "RAM"
 config EXECUTE_IN_FLASH
-    bool "FLASH (XIP)"
+    bool "Flash (XIP)"
 endchoice
 
 config OPTIMIZE
-    string "Optimize level"
+    string "Optimization level"
+    help
+        What follows -O: 0, 1, 2, 3, s, z or g.
 
 config DEBUG_SYMBOLS
-    bool "Enable debug symbols"
+    bool "Debug symbols (-g)"
 
 config STACK_SIZE_KiB
-    int "Stack size in KiB"
+    int "Stack size (KiB)"
     default 2
 
 config LINK_FILE
-    string "Main linker file"
+    string "Link script"
     default "src/link.lds" if EXECUTE_IN_RAM
     default "src/link_flash.lds" if EXECUTE_IN_FLASH
+    help
+        pb's sections. The platform's link script, with the memory, comes
+        before it (platform.md 5.1).
 
 endmenu

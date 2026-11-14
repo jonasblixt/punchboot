@@ -2,14 +2,14 @@ menu "Output image"
     depends on PLAT_IMXRT
 
 config IMXRT_CREATE_IMX_IMAGE
-    bool "Create imx-image"
+    bool "Create pb.imx"
     default y
     help
         pb.imx, pb.bin with the image header the boot ROM reads
         (plat-imx.md 6).
 
 config IMXRT_CREATE_FLASH_IMAGE
-    bool "Create flash image"
+    bool "Create pb_flash.bin"
     default y
     depends on IMXRT_CREATE_IMX_IMAGE
     help

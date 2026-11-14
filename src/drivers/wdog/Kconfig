@@ -2,17 +2,20 @@ menu "Watchdog"
 
 config DRIVERS_IMX_WDOG
     bool "i.MX WDOG"
-    default n
     depends on SOC_FAMILY_IMX
 
 config DRIVERS_IMX_WDOG_DEBUG
-    bool "Disable watchdog in debug"
-    default n
+    bool "Paused while the core is halted (debug)"
     depends on DRIVERS_IMX_WDOG
+    help
+        WDOG_WCR's WDBG: the watchdog doesn't count while a debugger
+        halts the core.
 
 config DRIVERS_IMX_WDOG_WAIT
-    bool "Disable watchdog in wait mode"
-    default n
+    bool "Paused in wait mode"
     depends on DRIVERS_IMX_WDOG
+    help
+        WDOG_WCR's WDW: the watchdog doesn't count in the low power wait
+        mode.
 
 endmenu

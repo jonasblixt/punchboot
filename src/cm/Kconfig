@@ -1,6 +1,9 @@
 config CM
-    bool "Command mode support"
+    bool "Command mode"
     default y
+    help
+        pb's USB interface to a host: the punchboot tool's commands
+        (command-mode.md). Off: pb only boots.
 
 config CM_ON_SERIAL_DOWNLOAD
     bool "Stop in command mode after a serial download"
@@ -17,12 +20,17 @@ config CM_ON_SERIAL_DOWNLOAD
         is.
 
 config CM_BUF_SIZE_KiB
-    int "Command buffer size in KiB"
+    int "Command buffer size (KiB)"
     default 4096
     depends on CM
+    help
+        The buffer the data of a command goes through, a partition write
+        or an image to boot, in pb's buffers (PB_BUFFERS_SIZE holds it).
+        The host reads its size from the caps and sends its data in chunks
+        of it; the USB controller's transfer descriptors are sized by it.
 
 config CM_TRANSPORT_READY_TIMEOUT
-    int "Timeout in seconds before transport must become ready"
+    int "Wait for a host (s)"
     default 10
     range 1 4294
     depends on CM
@@ -33,7 +41,7 @@ config CM_TRANSPORT_READY_TIMEOUT
         range isn't used: the build takes the default.
 
 config CM_TRANSFER_TIMEOUT
-    int "Timeout in seconds for a transfer inside a command"
+    int "Transfer timeout (s)"
     default 10
     range 1 65
     depends on CM
@@ -44,7 +52,7 @@ config CM_TRANSFER_TIMEOUT
         carry it in milliseconds, in 16 bits, hence at most 65 s.
 
 config CM_AUTH
-    bool "Enable command mode authentication"
+    bool "Authentication (the gate)"
     default y
     depends on CM
     help
@@ -58,13 +66,15 @@ config CM_AUTH
         That is the product's choice, made in its defconfig (D-059).
 
 config CM_AUTH_TOKEN
-    bool "Token based authentication"
+    bool "Token"
     depends on CM_AUTH
     help
-        Authenticate using the signature of the hash, of the device UUID
+        The host sends a signature over the device's UUID, made with a key
+        of the keystore (command-mode.md 3.3).
 
 config CM_AUTH_PASSWORD
-    bool "Password based authentication"
+    bool "Password"
     depends on CM_AUTH
     help
-        Authenticate using a password. This requires a board level implementation.
+        The host sends a password, which the board checks (its
+        password_auth(), board.md 4.4).

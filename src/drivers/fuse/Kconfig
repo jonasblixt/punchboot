@@ -1,12 +1,16 @@
-menu "Fusebox"
+menu "Fuses"
 
 config DRIVERS_FUSE_TEST
-    bool "Enable block device backed test fusebox"
-    default n
+    bool "Test fuse box on a block device"
+    help
+        A fuse box kept in a block device, for the host build's tests.
 
 config DRIVERS_FUSE_IMX_OCOTP
     bool "i.MX OCOTP"
     depends on SOC_FAMILY_IMX
-    default n
+
+config IMX_OCOTP_DEBUG
+    bool "Debug output"
+    depends on DRIVERS_FUSE_IMX_OCOTP
 
 endmenu
