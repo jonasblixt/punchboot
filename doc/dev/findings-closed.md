@@ -1197,6 +1197,19 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `Session.command_list()`, `punchboot command list` and `punchboot command <name>` with | | |
 | | | `board command`'s options and the request from stdin | | |
 | | | In: `command_list()`, `command_run()`, the CLI with stdin, the transcript `commands` | | |
+| F-248 | `src/boot/boot.c`, `src/plat/*/plat.c` | A failed security precondition only logs | Verified (code) | fixed (`63df9992`..`c1f1c247`) |
+| | | and the boot goes on: a bypassed 6UL TZASC (`tzasc_init()`), an 8X watchdog that didn't arm. Nothing | | |
+| | | records them for the boot or command mode. `platform.md` 2.3: `plat_get_status()`, checked by `boot()`, no | | |
+| | | silent boot; the policy is `security.md` 4.5 (D-036). What pb booted without goes into the | | |
+| | | handover (`system.md` 3, `boot.md` 5.6: `pb,status` and a `status` field; the encoding is open) | | |
+| | | D-050: a second entry, `board-degraded` (bit 1), set by a board with `board_report_degraded()` | | |
+| | | (`board.md` 2.3) | | |
+| | | Every port answers `plat_get_status()`, and `boot()` checks it before `early_boot()` in every boot | | |
+| | | and life cycle state: a bypassed DRAM filter and a failed platform crypto engine refuse the boot | | |
+| | | (`-PB_ERR_STATE`), a watchdog that didn't arm is bit 0 of pb's status and the boot goes on, | | |
+| | | `board_report_degraded()` is bit 1 (D-050). The status is `pb,status` in `/chosen` (a string list, | | |
+| | | left out with a warning when the tree has no room) and the handover's `status`; command mode logs | | |
+| | | one line at its set-up. Not run on a board | | |
 
 ## Dependencies / vendored code
 

@@ -223,6 +223,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | no lock bit (RM p. 1277), so the secure OS's CSU policy decides whether the normal world can bypass it; the | | |
 | | | TZASC_ENABLE fuse (RM p. 209) makes the ROM enable it. GPR1 TZASC1_BOOT_LOCK unread (TZC-380 TRM, DDI0431, | | |
 | | | not on the share) | | |
+| | | 2026-11-14 (`cf79ee28`): a `tzasc_init()` that fails is recorded as bypassed and refuses the boot | | |
+| | | (F-248). Left, each needing a board or OP-TEE: region 1 gets the physical DDR base, GPR9 has no | | |
+| | | lock, TZASC1_BOOT_LOCK is unread | | |
 | F-320 | `doc/interfaces/platform.md` 3.3, `src/boot/boot.c` | Stretches without a kick on the boot | Verified (code) | open |
 | | | path that aren't in 3.3's list of what `CONFIG_WATCHDOG_TIMEOUT` must be longer than. Since F-243 the | | |
 | | | kicks are: after each chunk, and before the jump. (1) 3.3 doesn't say whether a chunk's kick comes before | | |
@@ -264,13 +267,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
 | | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |
 | | | crypto engine in `plat_init()` behind a Kconfig option (`platform.md` 2.2, 4.1, 4.2) | | |
-| F-248 | `src/boot/boot.c`, `src/plat/*/plat.c` | A failed security precondition only logs | Verified (code) | open |
-| | | and the boot goes on: a bypassed 6UL TZASC (`tzasc_init()`), an 8X watchdog that didn't arm. Nothing | | |
-| | | records them for the boot or command mode. `platform.md` 2.3: `plat_get_status()`, checked by `boot()`, no | | |
-| | | silent boot; the policy is `security.md` 4.5 (D-036). What pb booted without goes into the | | |
-| | | handover (`system.md` 3, `boot.md` 5.6: `pb,status` and a `status` field; the encoding is open) | | |
-| | | D-050: a second entry, `board-degraded` (bit 1), set by a board with `board_report_degraded()` | | |
-| | | (`board.md` 2.3) | | |
 | F-251 | `src/board/{imxrt1060evk,imx8qxmek,imx8dxlevk}` | The serial download | Verified (code) | open |
 | | | check is in the boards: the 8X reads the SCU's boot type in `early_boot`. The RT had two in a | | |
 | | | `late_boot` that was never called, removed with F-264 and to come back in its | | |
@@ -282,6 +278,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default y) in `boot()` before `early_boot()`, the platforms report | | |
 | | | it, the boards drop theirs. jiffy and the 8MP EVK then stop in command mode after a `uuu` load | | |
 | | | instead of booting from storage | | |
+| | | 2026-11-14 (`50c2da13`..`eb743825`): the stop is the core's, `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default | | |
+| | | y), before the preconditions and never in a boot command mode started. The 6UL reports a UART | | |
+| | | download as UART, the 8X the SCFW's boot type (the MEK and the DXL dropped their own check), the 8M | | |
+| | | the ROM log's event 0xd0 as USB (from AN12853, never seen in a board's log), the RT SBMR2's BMOD | | |
+| | | 0b01. Left: the RT's blank IVT at the NOR's start, which needs an AHB read of the FlexSPI window in | | |
+| | | every boot and a bench first. Not run on a board | | |
 | F-390 | `src/plat/imx8m/link.lds`, `src/plat/imx8x/link.lds` | Not everything pb links is in | Verified (code) | open |
 | | | `pb` or `buffers`, which `platform.md` 5.3 rests the check of a board's image data regions on | | |
 | | | (F-254): the i.MX8M's DDR controller state (`.umctl2`, 128 KiB at the start of the DRAM, 0x40000000) | | |
@@ -766,6 +768,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | install leaves in the pool. Command mode's cached life cycle isn't read again after an install: | | |
 | | | on the host board the fuse partition's handle can die with variant 2. `test_part.py` still says | | |
 | | | the new table is used after the next boot. 4.5's table has no row for `PB_RESULT_BAD_PAYLOAD` | | |
+| F-427 | `board/jiffy`, `plat.h`, `imx_wdog.c`, `imx_rom_log.c` | Low, from F-248's package. | Reported (read) | open |
+| | | jiffy's `init()` logs its RNG's failure and doesn't call `board_report_degraded()` (`board.md` | | |
+| | | 2.3). `struct plat_status.crypto_engine` can't tell "failed" from "the platform sets none up" | | |
+| | | (`platform.md` 3.8 against 2.3; the hidden symbol `PLAT_CRYPTO_ENGINE` tells the core for now). | | |
+| | | `imx_wdog_init()` always returns `PB_OK`, so `wdog_armed` can only be false on the 8X. | | |
+| | | `imx_rom_log` has no "was a log found" call. The 8M's serial download event, 0xd0, is from | | |
+| | | AN12853 Table 9 and the EVK's one known log already differs from that table in two places | | |
 
 ## Dependencies / vendored code
 
