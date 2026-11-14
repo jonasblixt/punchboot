@@ -30,14 +30,15 @@ def pb_id(cmd: str) -> int:
 
     The id is a CRC32 of the name without the initial and final inversion,
     as pb's and bpak's C code compute it: zlib's crc32 with both undone.
+    It is over the name's UTF-8 bytes, the bytes of the C string the device
+    and the bpak CLI have for it.
 
     Keyword Arguments:
     cmd -- String input
 
     Returns a checksum result as an integer.
     """
-    data = bytes(ord(ch) & 0xFF for ch in cmd)
-    return zlib.crc32(data, 0xFFFFFFFF) ^ 0xFFFFFFFF
+    return zlib.crc32(cmd.encode(), 0xFFFFFFFF) ^ 0xFFFFFFFF
 
 
 def wait_for_device(timeout: int = -1) -> None:
