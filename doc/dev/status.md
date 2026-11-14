@@ -22,9 +22,9 @@ bump is for the porting API. Each item's history is in `log/`.
   of all six boards, Coverity (master only, unverified until merged).
 - **Boards (2026-11-13, evening, log "The bench of all four boards"):** the RT1060 runs
   `bc640ba1` from its NOR; jiffy (BOOT0), the 8MP EVK and the MEK (BOOT1) run `bc640ba1`
-  with the F-424 fix (`b6a3df47`). Since 2026-11-14 all four run D-077's pb, built before
-  the pull to `e7a3a9b8` (none of F-248's preconditions): jiffy, the 8MP EVK and the MEK
-  from BOOT0, the RT from its BL. All four in command mode, nothing enabled.
+  with the F-424 fix (`b6a3df47`). Since 2026-11-14 all four run `246bd897` (log, "The
+  tip on all four"): jiffy, the 8MP EVK and the MEK from BOOT0 (BOOT1 keeps an older pb),
+  the RT from its BL. All four in command mode, nothing enabled.
   imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on the 8MP EVK,
   never run SLC or fuse commands on the MEK. Untested on any board: fuse writes, the 8X
   closed state.
@@ -40,12 +40,12 @@ bump is for the porting API. Each item's history is in `log/`.
    branches".** The unattended round and its parked branches are in, verified at `1b212d0e`.
    Nothing of it ran on a board. First:
    - The bench, in this order: the DMA rule (F-282) and USB on all four, the preconditions
-     (the TrustZone filter), F-247 and the CAAM's stop, the 8MP EVK through TF-A.
+     (the TrustZone filter), F-247 and the CAAM's stop, the 8MP EVK through TF-A. All four
+     run `246bd897` and reach command mode with the preconditions met; nothing else is run.
    - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
-   - `plat_get_info()` and the core's `info` (D-077, log 2026-11-14): run on all four boards,
-     built before the pull to `e7a3a9b8`. jiffy, the 8MP EVK and the MEK run it from BOOT0
-     (BOOT1 keeps the older pb), the RT from its BL. Left: F-432, F-433.
+   - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
+     F-433.
 1. What 3.0.0 waits for besides the code is `roadmap.md`'s first section: the Firmware
    Handoff tag (Jonas, upstream), the bench run, the review of the guides and the notes.
 2. Jonas's review of the board work's code (D-026, D-027, D-046). Clocks stay code (2026-11-09).
