@@ -1316,6 +1316,16 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | images with stubs for NXP's `mkimage_imx8*`), but imx8mevk's signed image (F-431). `make.stages` | | |
 | | | builds an out-of-tree board at each level of `platform.md` 6.2. Renamed stages: `imx8xl_*` is | | |
 | | | `imx8x_*`, `imx8mp_image` is `imx8m_image` | | |
+| F-435 | `pb/board.h`, `src/board.c`, the handovers | The kernel | Verified (code) | fixed (D-078) |
+| | | command line, `bootargs` and `bootargs_verbose`, is in `struct board`, and reaches the DT only | | |
+| | | when the board names the core's `board_patch_bootargs()` as its handover's DT hook, which reads | | |
+| | | them back from the global `board`. It is the handover's input (the DT's `/chosen`), and a | | |
+| | | board whose handover has no DT, or a hook of its own, has members that mean nothing. D-078: | | |
+| | | the two move to the handovers' configurations, `boot_dtb_set_chosen()` writes them before the | | |
+| | | hook, `board_patch_bootargs()` goes. A porting API change, so 3.0.0 or 4.0.0 (D-031) | | |
+| | | 2026-11-14, fixed: the handovers write the command line, the boards carry it in their | | |
+| | | handover's configuration, and a command line without the DT's part is refused at set up. | | |
+| | | Host tests in `test_image.c`, `test_fh.c` and `test_tfa_image.c`. Not run on a board | | |
 
 ## Dependencies / vendored code
 

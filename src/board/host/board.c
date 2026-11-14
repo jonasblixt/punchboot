@@ -188,16 +188,14 @@ static const struct static_part_table nor_table[] = {
 #define HOST_DT_ID 0x56f91b86 /* bpak_id("dt") */
 
 /*
- * The board's device tree hook (boot.md 5.5): 'bootargs' is the board's. It
- * also writes a pb,version of its own, so that the tests see pb's value win:
- * pb writes its properties after the hook.
+ * The board's device tree hook (boot.md 5.5). The kernel command line is the
+ * handover's data, set in init() with the device tree part. The hook writes
+ * a pb,version of its own, so that the tests see pb's value win: pb writes
+ * its properties after the hook.
  */
 static int dt_patch(void *fdt, int offset)
 {
-    int rc = fdt_setprop_string(fdt, offset, "bootargs", "console=pb-host");
-
-    if (rc == 0)
-        rc = fdt_setprop_string(fdt, offset, "pb,version", "the board's");
+    int rc = fdt_setprop_string(fdt, offset, "pb,version", "the board's");
 
     return (rc == 0) ? PB_OK : -PB_ERR;
 }
@@ -375,8 +373,10 @@ static int board_hw_init(void)
 {
     /* Before anything that can fail: the handover is set up also after a
      * failed init() (board.md 2.1) */
-    if (host_opts.dt_path != NULL)
+    if (host_opts.dt_path != NULL) {
         boot_image.dtb_bpak_id = HOST_DT_ID;
+        boot_image.bootargs = "console=pb-host";
+    }
 
     bio_dev_t disk = host_disk_init(host_opts.disk_path, SZ_MiB(32), PART_disk, "Host disk");
 

@@ -35,6 +35,12 @@ int boot_handover_image_init(const struct boot_handover_image_config *cfg_in)
     if (cfg == NULL || cfg->image_bpak_id == 0)
         return -PB_ERR_PARAM;
 
+    /* A command line goes into a device tree: without one it is lost */
+    if (cfg->dtb_bpak_id == 0 && (cfg->bootargs || cfg->bootargs_verbose)) {
+        LOG_ERR("A kernel command line without a device tree part");
+        return -PB_ERR_PARAM;
+    }
+
     return PB_OK;
 }
 
@@ -119,12 +125,15 @@ int boot_handover_image_prepare(struct bpak_header *hdr,
         size_t dtb_length = fdt_totalsize(fdt);
 
         struct boot_dtb_chosen chosen = {
+            .bootargs = cfg->bootargs,
+            .bootargs_verbose = cfg->bootargs_verbose,
             .patch_cb = cfg->dtb_patch_cb,
             .ramdisk_id = cfg->ramdisk_bpak_id,
             .ramdisk_addr = ramdisk_addr,
         };
 
-        /* The board's hook, then pb's information (boot.md 5.5) */
+        /* The command line, the board's hook, then pb's information
+         * (boot.md 5.5) */
         rc = boot_dtb_set_chosen(fdt, hdr, info, &chosen);
 
         if (rc != PB_OK)

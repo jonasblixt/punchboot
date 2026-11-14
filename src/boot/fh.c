@@ -81,6 +81,12 @@ int boot_handover_fh_init(const struct boot_handover_fh_config *cfg_in)
     if (cfg_in == NULL || cfg_in->entry_bpak_id == 0)
         return -PB_ERR_PARAM;
 
+    /* A command line goes into a device tree: pb's structure has none */
+    if (cfg_in->dtb_bpak_id == 0 && (cfg_in->bootargs || cfg_in->bootargs_verbose)) {
+        LOG_ERR("A kernel command line without a device tree part");
+        return -PB_ERR_PARAM;
+    }
+
     cfg = cfg_in;
     return PB_OK;
 }
@@ -263,11 +269,15 @@ static int dt_hook(void *fdt, int offset)
 
 /*
  * The image's device tree: opened into the entry's data with its headroom,
- * then the board's hook and pb's /chosen on that copy (boot.md 5.5).
+ * then the kernel command line, the board's hook and pb's /chosen on that
+ * copy (boot.md 5.5). The command line is written inside the room the copy
+ * was opened with, which fits the region.
  */
 static int add_dt(struct bpak_header *hdr, const struct boot_info *info, void *data, size_t *size)
 {
     const struct boot_dtb_chosen chosen = {
+        .bootargs = cfg->bootargs,
+        .bootargs_verbose = cfg->bootargs_verbose,
         .patch_cb = dt_hook,
     };
     int rc;

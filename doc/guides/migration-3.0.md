@@ -80,8 +80,6 @@ const struct board board = {
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
     .image_regions = image_regions,
-    .bootargs = "console=ttymxc1,115200 quiet ",
-    .bootargs_verbose = "console=ttymxc1,115200 earlyprintk ",
     .status = board_status,
 };
 ```
@@ -93,10 +91,8 @@ const struct board board = {
   `board_init()` left command mode without a boot driver.
 - `console_init()` runs before `plat_init()`: it uses nothing `plat_init()` sets up
   (`board.md` 2.2).
-- The kernel command line is data: `bootargs` and `bootargs_verbose`, which the core's
-  `board_patch_bootargs()` sets when the board names it as its DT hook. jiffy's own
-  `board_patch_bootargs()` with `fdt_setprop_string()` is gone. A board may still give a hook of
-  its own.
+- The kernel command line is data in the handover's configuration, not `struct board`'s
+  (section 2, D-078).
 
 Rests on: D-026, D-031, `board.md` 1, 2 and 3.
 
@@ -152,7 +148,8 @@ static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
-    .dtb_patch_cb = board_patch_bootargs,
+    .bootargs = "console=ttymxc1,115200 quiet ",
+    .bootargs_verbose = "console=ttymxc1,115200 earlyprintk ",
     .set_dtb_boot_arg = true,
 };
 ...
@@ -183,6 +180,8 @@ static const struct boot_ab_state_config boot_state_cfg = {
 |                                            | switch for speculative mode (D-040, `boot.md` 3.6)  |
 | `resolve_part_name`                        | Gone: the system's name is the policy's             |
 |                                            | (`board.md` 2.7)                                    |
+| A DT hook that sets `bootargs`             | `.bootargs`, `.bootargs_verbose` in the handover's  |
+| (`fdt_setprop_string()`)                   | configuration (`board.md` 2.7, D-078)               |
 
 - The board doesn't take `WRITABLE` from the device its table is on: the core does
   (`board.md` 2.4). It doesn't set `BIO_FLAG_BOOTABLE` either: the policy marks its candidates
@@ -192,8 +191,13 @@ static const struct boot_ab_state_config boot_state_cfg = {
 - The module must be in the build (section 15): a board that names one that isn't doesn't link.
 - Two policies are new: `BOOT_POLICY_FIXED(part)` and `BOOT_POLICY_CHAIN(parts)`
   (`boot.md` 3.5).
+- The kernel command line is the handover's (D-078): it is written into `/chosen/bootargs`
+  before the board's hook, `bootargs_verbose` in a boot the host started with `--verbose`. A
+  hook that only set `bootargs` goes. One that does more stays, and finds the command line
+  written. A command line without the DT's part is refused. Without one the image's DT keeps its
+  own `bootargs`.
 
-Rests on: D-046, `board.md` 1, 2.4, 2.5 and 2.7.
+Rests on: D-046, D-078, `board.md` 1, 2.4, 2.5 and 2.7.
 
 ## 3. TF-A is a delivery
 
@@ -226,7 +230,9 @@ static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
-    .dtb_patch_cb = board_patch_bootargs,
+    .bootargs = "console=ttyLP0,115200 quiet ",
+    .bootargs_verbose = "console=ttyLP0,115200  "
+                        "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ",
     .set_dtb_boot_arg = true,
 };
 

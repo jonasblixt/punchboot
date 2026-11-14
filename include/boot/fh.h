@@ -37,8 +37,9 @@
  * both:
  *
  * - With 'dtb_bpak_id': the image's device tree, copied into the list with
- *   CONFIG_BOOT_DTB_HEADROOM bytes of room. The board's hook 'dtb_patch_cb'
- *   and then pb's /chosen (boot.md 5.5) work on that copy, and the device
+ *   CONFIG_BOOT_DTB_HEADROOM bytes of room. The kernel command line
+ *   'bootargs', the board's hook 'dtb_patch_cb' and then pb's /chosen
+ *   (boot.md 5.5) work on that copy, and the device
  *   tree register points to it. The part needs no room after it. An image
  *   without the part fails to boot, and so does a device tree that doesn't
  *   fit the region with its headroom.
@@ -53,8 +54,14 @@
 struct boot_handover_fh_config {
     bpak_id_t entry_bpak_id; /*!< The part that starts with the entry */
     bpak_id_t dtb_bpak_id; /*!< Optional: the device tree's part */
+    /** Optional, with a device tree part: the kernel command line,
+     * /chosen/bootargs. NULL: the image's own stays */
+    const char *bootargs;
+    /** Optional: the one with BOOT_FLAG_VERBOSE. NULL: 'bootargs' */
+    const char *bootargs_verbose;
     /** Optional, with a device tree part: the board's device tree hook. It
-     * runs before pb writes its own properties (boot.md 5.5) */
+     * runs after the command line is written and before pb writes its own
+     * properties (boot.md 5.5) */
     boot_patch_dtb_cb_t dtb_patch_cb;
 };
 

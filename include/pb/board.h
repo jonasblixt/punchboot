@@ -93,10 +93,8 @@ struct board {
      * (boot/image_helpers.h) */
     int (*late_boot)(uuid_t boot_part_uu);
 
-    /* The kernel command line board_patch_bootargs() sets, and the one
-     * with BOOT_FLAG_VERBOSE */
-    const char *bootargs;
-    const char *bootargs_verbose;
+    /* The kernel command line is the handover's: 'bootargs' in its
+     * configuration (boot/image.h, boot/fh.h) */
 
     int (*status)(uint8_t *buf, size_t *length); /*!< NULL: "Board status OK!" */
     /* The board's commands are named commands, not a member (pb/command.h,
@@ -127,11 +125,5 @@ int board_setup(void);
  * for the boot it is called in. It holds until the reset.
  */
 void board_report_degraded(void);
-
-/**
- * A boot driver DTB patch callback (dtb_patch_cb): sets /chosen/bootargs to
- * board.bootargs, or board.bootargs_verbose with BOOT_FLAG_VERBOSE
- */
-int board_patch_bootargs(void *fdt, int offset);
 
 #endif // INCLUDE_PB_BOARD_H

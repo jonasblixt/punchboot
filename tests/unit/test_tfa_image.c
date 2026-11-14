@@ -128,10 +128,11 @@ void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
     longjmp(jump_env, 1);
 }
 
-/* The boards' hook sets the kernel command line (board_patch_bootargs()) */
-static int patch_bootargs(void *fdt, int offset)
+/* The boot's flags (boot.c): a normal boot, the command line without
+ * BOOT_FLAG_VERBOSE */
+uint32_t boot_get_flags(void)
 {
-    return fdt_setprop_string(fdt, offset, "bootargs", "console=ttymxc1,115200");
+    return 0;
 }
 
 /* src/board/imx8mpevk/board.c and src/board/imx8qxmek/board.c: the same */
@@ -139,7 +140,8 @@ static const struct boot_handover_image_config board_image = {
     .image_bpak_id = ID_KERNEL,
     .dtb_bpak_id = ID_DTB,
     .ramdisk_bpak_id = ID_RAMDISK,
-    .dtb_patch_cb = patch_bootargs,
+    .bootargs = "console=ttymxc1,115200",
+    .bootargs_verbose = "console=ttymxc1,115200 earlycon",
     .set_dtb_boot_arg = true,
 };
 
@@ -361,8 +363,8 @@ static void boards_boot(const struct layout *at)
     /* x0 = the device tree, x1 to x3 = 0: the Linux boot protocol */
     assert_args(bl33->ep_info, (uintptr_t)dtb, 0, 0, 0);
 
-    /* The device tree BL33 gets is the image's, with the board's hook's and
-     * pb's properties, and it was cleaned to memory before the cache went
+    /* The device tree BL33 gets is the image's, with the board's command
+     * line and pb's properties, and it was cleaned to memory before the cache went
      * off */
     assert_string_equal(chosen_prop("bootargs", NULL), "console=ttymxc1,115200");
     assert_string_equal(chosen_prop("pb,device-uuid", NULL), DEVICE_UUID);

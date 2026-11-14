@@ -131,8 +131,9 @@ config BOOT_DTB_HEADROOM
     help
         The image handover adds /chosen and pb's properties to the
         device tree: pb,device-uuid, pb,slc, pb,slc-active-key,
-        pb,slc-available-keys, pb,active-system, the initrd, what the
-        board's callback sets (bootargs) and, new in 3.0.0, pb,boot-mode,
+        pb,slc-available-keys, pb,active-system, the initrd, the kernel
+        command line (bootargs), what the board's hook sets and, new in
+        3.0.0, pb,boot-mode,
         pb,boot-partition and pb,version. First they grow the device tree in
         place by this many bytes, into the RAM after its part. Leave that RAM
         free in the boot image: another part or pb there fails the boot.

@@ -197,7 +197,9 @@ static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
-    .dtb_patch_cb = board_patch_bootargs,
+    .bootargs = "console=ttymxc1,115200 quiet ",
+    /* arm64 has no earlyprintk: earlycon, on stdout-path */
+    .bootargs_verbose = "console=ttymxc1,115200 earlycon ",
     .set_dtb_boot_arg = true,
 };
 
@@ -324,7 +326,4 @@ const struct board board = {
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
     .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
     .image_regions = image_regions,
-    .bootargs = "console=ttymxc1,115200 quiet ",
-    /* arm64 has no earlyprintk: earlycon, on stdout-path */
-    .bootargs_verbose = "console=ttymxc1,115200 earlycon ",
 };

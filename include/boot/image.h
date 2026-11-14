@@ -20,8 +20,8 @@
 /**
  * The image handover (boot.md 5.2): the Linux boot protocol, which Xen
  * follows too. The entry is the load address of the part 'image_bpak_id'.
- * The device tree, when the board names its part, gets pb's /chosen and,
- * with a ramdisk, linux,initrd-start and -end.
+ * The device tree, when the board names its part, gets the kernel command
+ * line, pb's /chosen and, with a ramdisk, linux,initrd-start and -end.
  *
  * The registers, with 'set_dtb_boot_arg' (without it all four are 0):
  *
@@ -34,8 +34,13 @@ struct boot_handover_image_config {
     bpak_id_t image_bpak_id; /*!< BPAK id of bootable part */
     bpak_id_t dtb_bpak_id; /*!< Optional BPAK id of a device tree part */
     bpak_id_t ramdisk_bpak_id; /*!< Optional BPAK id of a ramdisk part */
-    /** Optional: the board's device tree hook. It runs before pb writes its
-     * own properties (boot.md 5.5) */
+    /** Optional, with a device tree part: the kernel command line,
+     * /chosen/bootargs. NULL: the image's own stays */
+    const char *bootargs;
+    /** Optional: the one with BOOT_FLAG_VERBOSE. NULL: 'bootargs' */
+    const char *bootargs_verbose;
+    /** Optional: the board's device tree hook. It runs after the command
+     * line is written and before pb writes its own properties (boot.md 5.5) */
     boot_patch_dtb_cb_t dtb_patch_cb;
     bool set_dtb_boot_arg; /*!< Pass dtb address as first argument */
 };

@@ -199,7 +199,9 @@ static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
-    .dtb_patch_cb = board_patch_bootargs,
+    .bootargs = "console=ttyLP0,115200 quiet ",
+    .bootargs_verbose = "console=ttyLP0,115200  "
+                        "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ",
     .set_dtb_boot_arg = true,
 };
 
@@ -331,8 +333,5 @@ const struct board board = {
     .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
     .image_regions = image_regions,
     .early_boot = early_boot,
-    .bootargs = "console=ttyLP0,115200 quiet ",
-    .bootargs_verbose = "console=ttyLP0,115200  "
-                        "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ",
     .password_auth = board_password_auth,
 };

@@ -32,6 +32,7 @@
 #include <pb/arch.h>
 #include <pb/pb.h>
 #include <pb/slc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -51,7 +52,7 @@
 #define BOOT_PART_UUID "2af755d8-8de5-45d5-a862-014cfa735ce0"
 #define VERSION        "3.0.0"
 
-/* What the hook does to the tree, besides bootargs */
+/* What the hook does to the tree, besides its own bootargs */
 enum hook_action {
     HOOK_BOOTARGS,
     /* It writes every property of pb's, with values that aren't pb's */
@@ -68,11 +69,20 @@ static enum hook_action hook_action;
 /* pb's properties that /chosen had when the hook ran */
 static int hook_saw_pbs_properties;
 static uintptr_t cleaned_start;
+/* The boot's flags (boot.c): BOOT_FLAG_VERBOSE picks the verbose command line */
+static uint32_t boot_flags;
+/* The command line the hook found, when it records it */
+static char hook_saw_bootargs[64];
 static size_t cleaned_len;
 /* What prepare gives the delivery */
 static struct boot_handover_entry next;
 /* pb's information, as the core hands it to prepare */
 static struct boot_info info;
+
+uint32_t boot_get_flags(void)
+{
+    return boot_flags;
+}
 
 void arch_clean_cache_range(uintptr_t start, size_t len)
 {
@@ -227,6 +237,8 @@ static int setup(void **state)
     patch_calls = 0;
     hook_action = HOOK_BOOTARGS;
     hook_saw_pbs_properties = 0;
+    boot_flags = 0;
+    hook_saw_bootargs[0] = 0;
     cleaned_start = 0;
     cleaned_len = 0;
     /* All there is: the parts are where the test binary has them */
@@ -334,6 +346,24 @@ static void test_init_requires_image_id(void **state)
 
     assert_int_equal(boot_handover_image_init(&no_image), -PB_ERR_PARAM);
     assert_int_equal(boot_handover_image_init(&cfg_kernel_only), PB_OK);
+}
+
+/* A command line goes into a device tree: one without a device tree part is
+ * refused, and so is a verbose one alone */
+static void test_init_bootargs_need_a_dtb(void **state)
+{
+    static const struct boot_handover_image_config bootargs_only = {
+        .image_bpak_id = ID_KERNEL,
+        .bootargs = "quiet",
+    };
+    static const struct boot_handover_image_config verbose_only = {
+        .image_bpak_id = ID_KERNEL,
+        .bootargs_verbose = "verbose",
+    };
+    (void)state;
+
+    assert_int_equal(boot_handover_image_init(&bootargs_only), -PB_ERR_PARAM);
+    assert_int_equal(boot_handover_image_init(&verbose_only), -PB_ERR_PARAM);
 }
 
 static void test_kernel_only(void **state)
@@ -916,6 +946,119 @@ static void test_chosen_without_a_system_name(void **state)
     assert_int_equal(prepare(), PB_OK);
     assert_chosen_has_no("pb,active-system");
     assert_string_equal(chosen_string("pb,boot-partition"), BOOT_PART_UUID);
+}
+
+/* The hook that records the command line it found, and does nothing else */
+static int record_bootargs(void *fdt, int offset)
+{
+    const char *val = fdt_getprop(fdt, offset, "bootargs", NULL);
+
+    patch_calls++;
+    snprintf(hook_saw_bootargs, sizeof(hook_saw_bootargs), "%s", val ? val : "");
+    return PB_OK;
+}
+
+/* The kernel command line is the handover's data (boot.md 5.5): written into
+ * /chosen, the verbose one with BOOT_FLAG_VERBOSE */
+static void test_bootargs(void **state)
+{
+    static const struct boot_handover_image_config cfg = {
+        .image_bpak_id = ID_KERNEL,
+        .dtb_bpak_id = ID_DTB,
+        .bootargs = "console=ttymxc1,115200 quiet",
+        .bootargs_verbose = "console=ttymxc1,115200 earlyprintk",
+    };
+    (void)state;
+
+    assert_int_equal(boot_handover_image_init(&cfg), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_string_equal(chosen_string("bootargs"), "console=ttymxc1,115200 quiet");
+
+    make_dtb("chosen");
+    boot_flags = BOOT_FLAG_CMD | BOOT_FLAG_VERBOSE;
+    assert_int_equal(prepare(), PB_OK);
+    assert_string_equal(chosen_string("bootargs"), "console=ttymxc1,115200 earlyprintk");
+}
+
+/* Without a verbose one, the verbose boot gets the normal command line */
+static void test_bootargs_without_verbose(void **state)
+{
+    static const struct boot_handover_image_config cfg = {
+        .image_bpak_id = ID_KERNEL,
+        .dtb_bpak_id = ID_DTB,
+        .bootargs = "quiet",
+    };
+    (void)state;
+
+    boot_flags = BOOT_FLAG_VERBOSE;
+    assert_int_equal(boot_handover_image_init(&cfg), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_string_equal(chosen_string("bootargs"), "quiet");
+}
+
+/* Without a command line the image's own stays, also in a verbose boot: pb
+ * writes none */
+static void test_bootargs_none_keeps_the_images(void **state)
+{
+    (void)state;
+
+    assert_int_equal(fdt_setprop_string(dtb, chosen(), "bootargs", "the image's"), 0);
+    boot_flags = BOOT_FLAG_VERBOSE;
+    assert_int_equal(boot_handover_image_init(&cfg_dtb_minimal), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_string_equal(chosen_string("bootargs"), "the image's");
+
+    make_dtb("chosen");
+    assert_int_equal(prepare(), PB_OK);
+    assert_chosen_has_no("bootargs");
+}
+
+/* The command line is written before the board's hook, which finds it and
+ * may change it (boot.md 5.5) */
+static void test_bootargs_before_the_hook(void **state)
+{
+    static const struct boot_handover_image_config with_hook = {
+        .image_bpak_id = ID_KERNEL,
+        .dtb_bpak_id = ID_DTB,
+        .bootargs = "quiet",
+        .dtb_patch_cb = record_bootargs,
+    };
+    static const struct boot_handover_image_config changes_it = {
+        .image_bpak_id = ID_KERNEL,
+        .dtb_bpak_id = ID_DTB,
+        .bootargs = "quiet",
+        .dtb_patch_cb = patch_dtb,
+    };
+    (void)state;
+
+    assert_int_equal(boot_handover_image_init(&with_hook), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_int_equal(patch_calls, 1);
+    assert_string_equal(hook_saw_bootargs, "quiet");
+    assert_string_equal(chosen_string("bootargs"), "quiet");
+
+    /* patch_dtb() writes its own: the hook's wins */
+    make_dtb("chosen");
+    assert_int_equal(boot_handover_image_init(&changes_it), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_string_equal(chosen_string("bootargs"), "console=ttyS0");
+}
+
+/* A command line that doesn't fit the tree fails the boot, as it did when
+ * the board's hook set it */
+static void test_bootargs_without_room(void **state)
+{
+    static char longest[2 * CONFIG_BOOT_DTB_HEADROOM + DTB_SIZE];
+    static struct boot_handover_image_config cfg = {
+        .image_bpak_id = ID_KERNEL,
+        .dtb_bpak_id = ID_DTB,
+    };
+    (void)state;
+
+    memset(longest, 'x', sizeof(longest) - 1);
+    cfg.bootargs = longest;
+    assert_int_equal(boot_handover_image_init(&cfg), PB_OK);
+    assert_int_equal(prepare(), -PB_ERR);
 }
 
 /* boot.md 5.5: the board's hook runs first, on a tree that has none of pb's
@@ -1580,6 +1723,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         IMAGE_TEST(test_init_requires_image_id),
+        IMAGE_TEST(test_init_bootargs_need_a_dtb),
         IMAGE_TEST(test_kernel_only),
         IMAGE_TEST(test_kernel_needs_load_addr),
         IMAGE_TEST(test_entry_is_the_metas_own_bytes),
@@ -1601,6 +1745,11 @@ int main(void)
         IMAGE_TEST(test_chosen_new_bytes),
         IMAGE_TEST(test_chosen_without_a_partition),
         IMAGE_TEST(test_chosen_without_a_system_name),
+        IMAGE_TEST(test_bootargs),
+        IMAGE_TEST(test_bootargs_without_verbose),
+        IMAGE_TEST(test_bootargs_none_keeps_the_images),
+        IMAGE_TEST(test_bootargs_before_the_hook),
+        IMAGE_TEST(test_bootargs_without_room),
         IMAGE_TEST(test_hook_runs_before_pbs_properties),
         IMAGE_TEST(test_pbs_values_win_over_the_hook),
         IMAGE_TEST(test_released_property_without_a_value_keeps_the_hooks),

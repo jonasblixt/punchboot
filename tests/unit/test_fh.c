@@ -31,6 +31,7 @@
 #include <cmocka.h>
 
 #include <arch/arch.h>
+#include <boot/boot.h>
 #include <boot/fh.h>
 #include <boot/pb_fh.h>
 #include <bpak/bpak.h>
@@ -110,7 +111,7 @@
 #define DTB_PART_SIZE      4096
 #define DTB_BUF_SIZE       (128 * 1024)
 
-/* What the hook does to the tree it is given, besides bootargs */
+/* What the hook does to the tree it is given, besides its own bootargs */
 enum hook_action {
     HOOK_BOOTARGS,
     HOOK_SETS_PBS_PROPERTIES,
@@ -133,12 +134,19 @@ static enum hook_action hook_action;
 static int hook_saw_pbs_properties;
 static uintptr_t cleaned_start;
 static size_t cleaned_len;
+/* The boot's flags (boot.c): BOOT_FLAG_VERBOSE picks the verbose command line */
+static uint32_t boot_flags;
 
 static struct boot_handover_entry next;
 static struct boot_info info;
 static struct bpak_header *hdr;
 static uint8_t *dtb;
 static size_t dtb_part_size;
+
+uint32_t boot_get_flags(void)
+{
+    return boot_flags;
+}
 
 void arch_clean_cache_range(uintptr_t start, size_t len)
 {
@@ -452,6 +460,7 @@ static int setup(void **state)
     patch_fdt = NULL;
     hook_action = HOOK_BOOTARGS;
     hook_saw_pbs_properties = 0;
+    boot_flags = 0;
     cleaned_start = 0;
     cleaned_len = 0;
 
@@ -1230,6 +1239,59 @@ static void test_device_tree_without_a_hook(void **state)
     assert_string_equal(chosen_string(fdt, "pb,device-uuid"), DEVICE_UUID);
 }
 
+/* The kernel command line is the handover's data (boot.md 5.5), written into
+ * the copy before the hook: the hook's own wins */
+static void test_bootargs_in_the_copy(void **state)
+{
+    static const struct boot_handover_fh_config cfg = {
+        .entry_bpak_id = ID_APP,
+        .dtb_bpak_id = ID_DTB,
+        .bootargs = "quiet",
+        .bootargs_verbose = "verbose",
+    };
+    static const struct boot_handover_fh_config with_hook = {
+        .entry_bpak_id = ID_APP,
+        .dtb_bpak_id = ID_DTB,
+        .bootargs = "quiet",
+        .dtb_patch_cb = patch_dtb,
+    };
+    (void)state;
+
+    add_app();
+    add_dtb(DTB_PART_SIZE, DTB_PART_SIZE);
+
+    assert_int_equal(boot_handover_fh_init(&cfg), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_string_equal(chosen_string(the_device_tree(NULL), "bootargs"), "quiet");
+
+    boot_flags = BOOT_FLAG_VERBOSE;
+    assert_int_equal(prepare(), PB_OK);
+    assert_string_equal(chosen_string(the_device_tree(NULL), "bootargs"), "verbose");
+
+    assert_int_equal(boot_handover_fh_init(&with_hook), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+    assert_int_equal(patch_calls, 1);
+    assert_string_equal(chosen_string(the_device_tree(NULL), "bootargs"), "console=ttyS0");
+}
+
+/* pb's structure has no command line: one without a device tree part is
+ * refused */
+static void test_bootargs_need_a_device_tree(void **state)
+{
+    static const struct boot_handover_fh_config bootargs_only = {
+        .entry_bpak_id = ID_APP,
+        .bootargs = "quiet",
+    };
+    static const struct boot_handover_fh_config verbose_only = {
+        .entry_bpak_id = ID_APP,
+        .bootargs_verbose = "verbose",
+    };
+    (void)state;
+
+    assert_int_equal(boot_handover_fh_init(&bootargs_only), -PB_ERR_PARAM);
+    assert_int_equal(boot_handover_fh_init(&verbose_only), -PB_ERR_PARAM);
+}
+
 /* A failure in the hook is the candidate's (boot.md 2) */
 static void test_hook_fails(void **state)
 {
@@ -1492,6 +1554,8 @@ int main(void)
         cmocka_unit_test_setup(test_list_holds_the_device_tree, setup),
         cmocka_unit_test_setup(test_hook_runs_on_the_copy_before_pbs_properties, setup),
         cmocka_unit_test_setup(test_device_tree_without_a_hook, setup),
+        cmocka_unit_test_setup(test_bootargs_in_the_copy, setup),
+        cmocka_unit_test_setup(test_bootargs_need_a_device_tree, setup),
         cmocka_unit_test_setup(test_hook_fails, setup),
         cmocka_unit_test_setup(test_hook_changes_the_trees_size, setup),
         cmocka_unit_test_setup(test_hook_fills_the_tree_past_the_room, setup),

@@ -267,23 +267,26 @@ and never by the image.
 | Member          | Object                         | What the board gives                                    |
 | --------------- | ------------------------------ | ------------------------------------------------------- |
 | `boot_handover` | `BOOT_HANDOVER_IMAGE(&config)` | The image handover (`boot.md` 5.2): the kernel's part,  |
-|                 |                                | the DT's and the ramdisk's, the DT hook,                |
-|                 |                                | `set_dtb_boot_arg`                                      |
+|                 |                                | the DT's and the ramdisk's, the kernel command line,    |
+|                 |                                | the DT hook, `set_dtb_boot_arg`                         |
 |                 | `BOOT_HANDOVER_FH(&config)`    | Firmware Handoff (`boot.md` 5.4): the entry's part, the |
-|                 |                                | DT's, the DT hook                                       |
+|                 |                                | DT's, the kernel command line, the DT hook              |
 | `boot_delivery` | `BOOT_DELIVERY_TFA(&config)`   | Through TF-A (`boot.md` 5.3): BL31's part and BL32's.   |
 |                 |                                | BL33 is the handover's entry. Absent: directly          |
 
 - `BOOT_HANDOVER_FH()` replaces `boot_simple` (`boot.md` 5.4, D-039). Its region is an address
   the build needs, so it is Kconfig's (`BOOT_FH_REGION_BASE` and `_SIZE`), like the board's DRAM.
-- **The DT hook** (`dtb_patch_cb` in a handover's configuration) is the only way a board changes
-  the next stage's input. It runs in prepare, on a verified image, with the whole tree, before pb
-  writes its own properties: pb's values win (`boot.md` 5.5). Prepare is part of a candidate's
-  attempt (`boot.md` 2), so the hook may run once per candidate in a boot: it changes only the
-  tree it is given. It can read the verified header (5.3).
-- `bootargs` and `bootargs_verbose` are the kernel command line that `board_patch_bootargs()`
-  sets, when the board passes it as the DT hook; `bootargs_verbose` is used with
-  `BOOT_FLAG_VERBOSE`.
+- **The kernel command line** (`bootargs` and `bootargs_verbose` in a handover's configuration,
+  D-078) is data, with the DT's part: a command line without one is refused when the handover is
+  set up (`-PB_ERR_PARAM`, 3). The handover writes it into `/chosen/bootargs` before the hook,
+  `bootargs_verbose` with `BOOT_FLAG_VERBOSE` (the host's `boot --verbose`) where the board gives
+  one, else `bootargs`. Neither: the image's DT keeps its own (`boot.md` 5.5).
+- **The DT hook** (`dtb_patch_cb` in a handover's configuration) is, with the command line, the
+  only way a board changes the next stage's input. It runs in prepare, on a verified image, with
+  the whole tree, before pb writes its own properties: pb's values win (`boot.md` 5.5). Prepare is
+  part of a candidate's attempt (`boot.md` 2), so the hook may run once per candidate in a boot:
+  it changes only the tree it is given. It can read the verified header (5.3). It finds the
+  command line written, and may change it.
 - `resolve_part_name` goes: the booted system's name is the policy's (`boot.md` 5.6).
 - The next stage's state is the arch's (D-028), what pb passes it is the handover's.
 - The parts are named by the image format's ids (`boot.md` 4.4): for bpak `bpak_id()` of the
@@ -384,8 +387,8 @@ on the host:
 `mmap` isn't in the table: `pb_mmu_init()` checks it earlier, in `plat_init()` (2.8).
 
 What an object's own configuration must hold (a chain with at least one partition, a handover's
-entry part) is checked by its module when it is set up. That an object's module is compiled in
-needs no check: the board doesn't link without it.
+entry part, a kernel command line only with a DT's part) is checked by its module when it is set
+up. That an object's module is compiled in needs no check: the board doesn't link without it.
 
 A failed check in `board_setup()` is a failed step (2.1), with `-PB_ERR_PARAM`; the handover is
 set up when its own data passed. One in `cm_board_init()` means no command mode: its task ends

@@ -26,7 +26,6 @@
 
 #include <board/password.h>
 #include <boot/boot.h>
-#include <libfdt.h>
 #include <pb/bio.h>
 #include <pb/cm.h>
 #include <pb/pb.h>
@@ -86,7 +85,6 @@ static const struct boot_driver *driver;
 static const struct cm_config *cm_cfg;
 static uint16_t disk_flags;
 static unsigned int lookups, flags_set;
-static uint32_t boot_flags;
 /* The board's status(): its text, its result and how often it was called */
 static const char *status_text;
 static int status_rc;
@@ -212,11 +210,6 @@ int boot_init(const struct boot_driver *driver_)
     return PB_OK;
 }
 
-uint32_t boot_get_flags(void)
-{
-    return boot_flags;
-}
-
 int cm_init(const struct cm_config *cfg)
 {
     call("cm");
@@ -334,7 +327,6 @@ static int setup(void **state)
     disk_flags = 0;
     lookups = 0;
     flags_set = 0;
-    boot_flags = 0;
     status_text = "";
     status_rc = PB_OK;
     status_calls = 0;
@@ -351,8 +343,6 @@ static int setup(void **state)
         .image_regions = test_regions,
         .early_boot = early_boot,
         .late_boot = late_boot,
-        .bootargs = "quiet",
-        .bootargs_verbose = "verbose",
 #ifdef CONFIG_CM_AUTH_PASSWORD
         .password_auth = password_auth,
 #endif
@@ -1018,47 +1008,6 @@ static void test_delivery_failures(void **state)
     assert_null(driver);
 }
 
-static void test_patch_bootargs(void **state)
-{
-    uint8_t fdt[512];
-    const char *bootargs;
-    int offset;
-    (void)state;
-
-    /* A DTB with /chosen */
-    assert_int_equal(fdt_create(fdt, sizeof(fdt)), 0);
-    assert_int_equal(fdt_finish_reservemap(fdt), 0);
-    assert_int_equal(fdt_begin_node(fdt, ""), 0);
-    assert_int_equal(fdt_begin_node(fdt, "chosen"), 0);
-    assert_int_equal(fdt_end_node(fdt), 0);
-    assert_int_equal(fdt_end_node(fdt), 0);
-    assert_int_equal(fdt_finish(fdt), 0);
-    assert_int_equal(fdt_open_into(fdt, fdt, sizeof(fdt)), 0);
-    offset = fdt_path_offset(fdt, "/chosen");
-    assert_true(offset >= 0);
-
-    assert_int_equal(board_patch_bootargs(fdt, offset), 0);
-    bootargs = fdt_getprop(fdt, offset, "bootargs", NULL);
-    assert_string_equal(bootargs, "quiet");
-
-    boot_flags = BOOT_FLAG_VERBOSE;
-    assert_int_equal(board_patch_bootargs(fdt, offset), 0);
-    bootargs = fdt_getprop(fdt, offset, "bootargs", NULL);
-    assert_string_equal(bootargs, "verbose");
-
-    /* No verbose command line: the normal one */
-    board.bootargs_verbose = NULL;
-    assert_int_equal(board_patch_bootargs(fdt, offset), 0);
-    bootargs = fdt_getprop(fdt, offset, "bootargs", NULL);
-    assert_string_equal(bootargs, "quiet");
-
-    /* None: the DTB's own */
-    board.bootargs = NULL;
-    assert_int_equal(fdt_delprop(fdt, offset, "bootargs"), 0);
-    assert_int_equal(board_patch_bootargs(fdt, offset), PB_OK);
-    assert_null(fdt_getprop(fdt, offset, "bootargs", NULL));
-}
-
 /* A status() as the boards write it: snprintf() into the buffer, and the
  * length it returns, which is the whole text's also when it didn't fit */
 static int board_status(uint8_t *buf, size_t *length)
@@ -1335,7 +1284,6 @@ int main(void)
         cmocka_unit_test_setup(test_setup_ignores_the_name, setup),
         cmocka_unit_test_setup(test_delivery, setup),
         cmocka_unit_test_setup(test_delivery_failures, setup),
-        cmocka_unit_test_setup(test_patch_bootargs, setup),
         cmocka_unit_test_setup(test_cm, setup),
         cmocka_unit_test_setup(test_cm_status_is_clamped, setup),
         cmocka_unit_test_setup(test_cm_name, setup),

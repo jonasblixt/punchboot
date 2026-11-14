@@ -15,6 +15,7 @@
  * copies it to: its transfer list (boot_dtb_open_into(), boot.md 5.4).
  */
 
+#include <boot/boot.h>
 #include <boot/dtb.h>
 #include <boot/image_helpers.h>
 #include <boot/image_regions.h>
@@ -416,7 +417,18 @@ int boot_dtb_set_chosen(void *fdt,
     if (offset < 0)
         return -PB_ERR;
 
-    /* The board's hook first, with the whole tree (boot.md 5.5) */
+    /* The board's kernel command line, then its hook, with the whole tree
+     * (boot.md 5.5) */
+    const char *bootargs = chosen->bootargs;
+
+    if ((boot_get_flags() & BOOT_FLAG_VERBOSE) && chosen->bootargs_verbose)
+        bootargs = chosen->bootargs_verbose;
+
+    rc = set_string(fdt, offset, "bootargs", bootargs);
+
+    if (rc != PB_OK)
+        return rc;
+
     if (chosen->patch_cb) {
         rc = chosen->patch_cb(fdt, offset);
 

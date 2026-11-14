@@ -108,12 +108,12 @@ A single integration test, inside `scripts/pbdev shell`:
 - **Reset and boot.** `plat_reset()` calls `exit(0)`, which also writes gcov data. On boot, the
   board's `late_boot` writes the partition name to `--boot-status` and then resets: `A` or `B`,
   `X` for "NOR In place" and `N` for "NOR Loaded".
-- **The handover's device tree.** With `--dt PATH` the board's image handover names a device
-  tree part (`dt`), which every image it boots then needs, and `late_boot` first writes the tree
-  the handover prepared to PATH: what the next stage would read, `/chosen` with pb's
-  information (`boot.md` 5.5, 5.6). The board's DT hook writes `bootargs`, and a `pb,version`
-  of its own that pb's replaces. Without the option the handover names no tree, as for the in
-  place tests (an image in place can't have one, F-291).
+- **The handover's device tree.** With `--dt PATH` the board's image handover names a device tree
+  part (`dt`), which every image it boots then needs, and `late_boot` first writes the tree the
+  handover prepared to PATH: what the next stage would read, `/chosen` with pb's information
+  (`boot.md` 5.5, 5.6). The handover's configuration has the board's `bootargs`, and the board's
+  DT hook writes a `pb,version` of its own that pb's replaces. Without the option the handover
+  names no tree, as for the in place tests (an image in place can't have one, F-291).
 - **System libc.** Host builds use glibc instead of the firmware libc. `src/plat/host/compat.h` is
   force-included and provides the BSD attribute macros (`__section`, `__aligned`, ...).
 

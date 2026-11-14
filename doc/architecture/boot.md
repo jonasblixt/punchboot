@@ -430,9 +430,9 @@ The Linux boot protocol, which Xen follows too (`boot/image.h`).
 | ARMv8-A | x0 = the DT, x1 to x3 = 0                                                   |
 
 The board gives: the kernel's part (its load address is the entry), the DT's and the ramdisk's
-(both optional), its DT hook (optional, 5.5) and `set_dtb_boot_arg`. Without `set_dtb_boot_arg`
-all four registers are 0. The DT gets pb's `/chosen` (5.5) and,
-with a ramdisk, `linux,initrd-start` and `-end`.
+(both optional), the kernel command line and its DT hook (both optional, 5.5) and
+`set_dtb_boot_arg`. Without `set_dtb_boot_arg` all four registers are 0. The DT gets the command
+line, pb's `/chosen` (5.5) and, with a ramdisk, `linux,initrd-start` and `-end`.
 
 The encoding of the two: 32 bits each when both addresses fit, the bytes every release wrote, and
 64 bits each only when one doesn't, which never worked: an address at 4 GiB or above was truncated
@@ -472,7 +472,8 @@ working. It replaces `simple`, it doesn't stand next to it.
 
 For any next stage: an RTOS, an application, a hypervisor, a stage that parses a DT. The board
 gives: the entry's part (on ARMv7-M its vector table, D-028; in place, its mapped address), the
-DT's part (optional) and its DT hook (optional, 5.5). The region is Kconfig's, below.
+DT's part (optional), and with it the kernel command line and the DT hook (both optional, 5.5).
+The region is Kconfig's, below.
 
 | Arch    | Registers                                                                                |
 | ------- | ---------------------------------------------------------------------------------------- |
@@ -534,10 +535,14 @@ for it.
 - `dtb.c` stays: it finds and grows the DT (`boot_dtb_grow()`, the headroom checked as in 4.3; for
   Firmware Handoff inside the list, 5.4) and writes `/chosen`, from the information the core
   collected (5.6).
-- Order: the board's hook first (`board.md` 2.7), with the whole tree; then pb's properties, so
-  pb's values always win.
-- pb writes only `/chosen`: its own properties, and for the image handover `linux,initrd-*`
-  (`bootargs` is the board's, through its hook). Nothing else, nothing for Xen or OP-TEE.
+- Order: the kernel command line from the handover's configuration first, then the board's hook
+  (`board.md` 2.7), with the whole tree; then pb's properties, so pb's values always win.
+- The command line is the board's, as it always was, and not pb's: `bootargs`, or
+  `bootargs_verbose` with `BOOT_FLAG_VERBOSE` where there is one (D-078). Without either the
+  image's DT keeps its own `bootargs`; the hook may change what was written. No room for it fails
+  the boot, as it did when the hook wrote it.
+- pb writes only `/chosen`: the command line, its own properties, and for the image handover
+  `linux,initrd-*`. Nothing else, nothing for Xen or OP-TEE.
 - `CONFIG_BOOT_DTB_HEADROOM` (4 KiB) is the room for both.
 
 ### 5.6 pb's information

@@ -94,6 +94,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-075 | The decisions have an index                      | In force                                           |
 | D-076 | Named commands, declared anywhere and listed     | In force                                           |
 | D-077 | The platform describes the SoC, the core shows it | In force                                          |
+| D-078 | The kernel command line is the handover's        | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1849,3 +1850,28 @@ command `info`, which every platform has, shows the same.
 
 Why: one place to see what a device is and runs at, the same on every SoC, in the boot log and
 over USB.
+
+## D-078: The kernel command line is the handover's (2026-11-14)
+
+Jonas: `bootargs` and `bootargs_verbose` don't belong in `struct board`; they are tied to the
+image handover. F-435.
+
+- **In the handover's configuration**: `struct boot_handover_image_config` and
+  `struct boot_handover_fh_config` get `bootargs` and `bootargs_verbose`, next to the DT's part
+  and the DT hook. `struct board` loses both, and `board_patch_bootargs()` goes.
+- **Written by the core**: `boot_dtb_set_chosen()` writes `/chosen/bootargs` first, then calls
+  the board's hook, then writes pb's properties (`boot.md` 5.5). The hook finds the command line
+  and may change it; pb's own values still win. One place for both handovers.
+- **`bootargs_verbose` with `BOOT_FLAG_VERBOSE`**, else `bootargs`, as `board_patch_bootargs()`
+  chose. Neither: pb writes none, and the image's DT keeps its own, as before.
+- **Only with a DT's part**: a command line in a configuration without one is refused when the
+  handover is set up (`-PB_ERR_PARAM`, `board.md` 3). Firmware Handoff without a DT has pb's
+  structure, which has no command line.
+- No room in the DT for it fails the boot, as it did when the hook wrote it.
+
+Why: the command line is the next stage's input, which is the handover's (`board.md` 2.7, the
+same reason the parts' ids are in its configuration); in `struct board` it reached the DT only
+through a hook that read the global back, and meant nothing on a board whose handover has no DT
+or a hook of its own. The wire and bpak don't change, and the next stage gets the same bytes.
+The porting API does: before the 3.0.0 tag this costs the migration guide's example, after it
+the change would wait for 4.0.0 (D-031).

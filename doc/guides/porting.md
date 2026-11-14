@@ -157,7 +157,8 @@ The A/B state is shared with the OS, which confirms an update with `pbstate`
 | An RTOS, an application, anything else | `BOOT_HANDOVER_FH()`                  | `boot.md` 5.4 |
 
 jiffy: the image handover, with the parts `kernel`, `dt` and `ramdisk`, the device tree's
-address in r2, and the kernel command line as `bootargs` and `bootargs_verbose`.
+address in r2, and the kernel command line as the handover's `bootargs` and `bootargs_verbose`
+(`board.md` 2.7).
 
 - The state the next stage starts in is the arch's, the same on every arch (D-028).
 - What pb writes into the device tree and what the board's hook may change: `boot.md` 5.5.

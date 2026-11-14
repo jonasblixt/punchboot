@@ -156,7 +156,8 @@ image's device tree:
 | `pb,version`                             | the version of the pb that booted the system           |
 | `pb,status`                              | what pb booted without, a list of strings; often empty |
 | `linux,initrd-start`, `linux,initrd-end` | the ramdisk, if the image has one                      |
-| `bootargs` and others                    | whatever the board's callback sets                     |
+| `bootargs`                               | the board's kernel command line, if it gives one       |
+| others                                   | whatever the board's device tree hook sets             |
 
 `pb,boot-partition`, `pb,boot-mode`, `pb,version` and `pb,status` are new in
 3.0.0: look for the property, an older pb doesn't write it. `pb,status` lists
