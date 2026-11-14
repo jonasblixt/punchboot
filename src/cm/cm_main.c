@@ -194,6 +194,13 @@ int cm_read(void *buf, size_t length)
     if (transfer_lost)
         return -PB_ERR_IO;
 
+    /* Nothing to read is done: no transfer (usb.md 2.3, a read of 0 bytes
+     * isn't used). A STREAM_PREPARE_BUFFER of size 0 asks for one, accepted
+     * or refused; no released front end sends it, but v2.7.1's C API passes
+     * any size, and the DWC3 and the cdns3 refuse a read of 0 (F-287) */
+    if (length == 0)
+        return PB_OK;
+
     rc = cm_transport_read(buf, length);
 
     if (rc == PB_OK)

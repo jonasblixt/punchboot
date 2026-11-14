@@ -129,6 +129,7 @@ static struct {
     bool write_lost;
     int lose_read_start; /* The read with this number (from 1) can't be started, once */
     int read_calls;
+    int zero_reads; /* Reads of 0 bytes the transport was asked for */
     int fail_reads_after; /* -1: never, n: read() fails after n calls */
     int fail_writes_after;
     /* The host stops: a read that starts at input position stop_at, or the
@@ -208,6 +209,7 @@ int cm_transport_disconnect(void)
 int cm_transport_read(void *buf, size_t length)
 {
     t.after_disconnect += t.disconnected;
+    t.zero_reads += (length == 0);
     if (++t.read_calls == t.lose_read_start)
         return -PB_ERR_IO; /* Lost while no transfer ran (usb.md 4.3) */
     if (t.fail_reads_after == 0)
@@ -2942,6 +2944,30 @@ static void test_part_verify_and_bpak_read_keep_the_buffers(void **state)
     assert_memory_equal(part + sizeof(first), second, sizeof(second));
 }
 
+/* F-287: a STREAM_PREPARE_BUFFER of size 0, accepted or refused, asks the
+ * transport for no read of 0 bytes (usb.md 2.3), which the DWC3 and the
+ * cdns3 refuse; the session goes on */
+static void test_stream_prepare_of_nothing(void **state)
+{
+    static const uint8_t data[16] = { 1, 2, 3 };
+    (void)state;
+
+    stream_prepare(0, 0, NULL);
+    stream_prepare(2, 0, NULL);
+    stream_prepare(0, sizeof(data), data);
+    run();
+
+    /* Each answers twice, before and after its data (command-mode.md 4.4) */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_NO_MEMORY);
+    expect_result(-PB_RESULT_NO_MEMORY);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.zero_reads, 0);
+}
+
 static void test_stream_errors(void **state)
 {
     struct fixture *f = *state;
@@ -5124,6 +5150,7 @@ int main(void)
         CM_TEST(test_part_verify_size_that_isnt_whole_blocks_last_byte),
         CM_TEST(test_part_verify_keeps_the_stream),
         CM_TEST(test_part_verify_and_bpak_read_keep_the_buffers),
+        CM_TEST(test_stream_prepare_of_nothing),
         CM_TEST(test_stream_errors),
         CM_TEST(test_no_stream),
         CM_TEST(test_stream_offset_inside_a_block),
