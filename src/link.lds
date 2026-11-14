@@ -24,6 +24,14 @@ SECTIONS
         PROVIDE (_code_end = .);
     } > ram
 
+    /* The ARMv7-M's entry and exception handlers (arch/armv7m/entry.c), which
+     * the vectors point to. A section of the script's, between _pb_start and
+     * _pb_end: as an orphan it was where ld chose to put it */
+    .vector_handlers :
+    {
+        *(.vector_handlers .vector_handlers.*)
+    } > ram
+
     .data :
     {
         . = ALIGN(PB_SECTION_ALIGNMENT);
@@ -101,3 +109,11 @@ SECTIONS
 
     PROVIDE(end = .);
 }
+
+/* The stack grows down, towards .ro_data and the keystore at its end. Where
+ * the arch has an MMU (its sections are page aligned) the platforms map
+ * .ro_data read only, so once the MMU is on an overflow faults there and
+ * rewrites nothing. That holds while the stack starts where .ro_data ends.
+ * The ARMv7-M has no MMU and no such guard (F-209). */
+ASSERT(PB_SECTION_ALIGNMENT < 4096 || ADDR(.stack) == ADDR(.ro_data) + SIZEOF(.ro_data),
+       "The stack doesn't start where .ro_data ends: its overflow would not fault on read only memory")
