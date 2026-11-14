@@ -305,8 +305,7 @@ header:
   runs before it (the console's UART) does no DMA.
 - **The arch gives** clean, invalidate, and clean and invalidate, by range, with the start
   rounded down to a line and the end up, each ending with the barrier the architecture
-  requires; and a D-cache with nothing valid in it when it is enabled. **Not yet in the code
-  (F-207)**: the D-cache is enabled without being invalidated first.
+  requires; and a D-cache with nothing valid in it when it is enabled.
 - On the host the arch's three do nothing, so no host test sees a missing clean or
   invalidate. The functions above can still check what doesn't need a cache: that a range a
   device writes owns its lines, and that every `dma_in_begin()` has its `dma_in_end()`. The

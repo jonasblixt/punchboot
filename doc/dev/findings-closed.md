@@ -1411,6 +1411,88 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | command; `bio.md` 8 names the FlexSPI's model. Left: the conformance suite on the FlexSPI model (in | |
 | | | work) | |
 | | | 2026-11-14 (`b3f58c2a`): the conformance suite runs on the FlexSPI model. Done | |
+| F-416 | `cm_main.c`, `pb_dev_cls.c`, `plat/imx8x`, Kconfig | From F-236's package. `cm_setup()` | Reported (read) | fixed (`81139cb4`, `c8a3e20c`, `e92d7f06`) |
+| | | and `pb_dev_cls.c:129` ignore `device_uuid()`'s error: after a failed fuse read command mode keeps a | | |
+| | | null UUID and the USB serial string comes from an uninitialised local. The 8X's | | |
+| | | `plat_get_unique_id()` can't fail (`sc_misc_unique_id()` returns no error). | | |
+| | | `CONFIG_WATCHDOG_TIMEOUT` has no Kconfig range, the i.MX driver clamps silently (0 is 0.5 s). The | | |
+| | | 6UL and the RT rely on GPT1's clock gates being open from reset. `testing.md` has no rows for | | |
+| | | `test_plat_imx6ul`, `test_plat_imx8m` and `test_imx_wdog` | | |
+| | | 2026-11-13 (`caf92c7b`): the USB serial number of a device without an identity is the nil UUID. | | |
+| | | Left: `cm_setup()` (command mode's second package), the rest | | |
+| | | 2026-11-13 (`f1876f9e`): command mode's set-up fails when the device's UUID can't be read, as its | | |
+| | | other set-up errors do, and pb resets: a token over a null UUID would be every such device's. Left: | | |
+| | | the 8X's unique id that can't fail, `CONFIG_WATCHDOG_TIMEOUT`'s range, the GPT1 gates, | | |
+| | | `testing.md`'s rows | | |
+| | | 2026-11-14 (`81139cb4`, `628f3426`): `CONFIG_WATCHDOG_TIMEOUT` has the range 1 to 127 s, checked | |
+| | | against every defconfig (`unit.watchdog_kconfig`); the 8X's unique id is read by pb's own SCFW | |
+| | | message and fails on an answer without the id's words (the id's bytes unchanged); `testing.md` names | |
+| | | every unit program. A zero or all-ones id is still taken (refusing it takes command mode from such a | |
+| | | device: for Jonas). Left: the GPT1 gates | |
+| | | 2026-11-14 (`c8a3e20c`, `e92d7f06`): the 6UL's and the RT's `plat_early_init()` open GPT1's CCGR1 | |
+| | | gates (CG10, CG11) before the timer: a no-op by the RT RM (14.7.22, Table 9-6) and on jiffy; the 6UL | |
+| | | RM's reset value not checked (Linux 6.12's `clk-imx6ul.c` for the bits). Done; the 8X's zero unique | |
+| | | id stays a question for Jonas (above) | |
+| F-207 | `src/arch/*/entry*` | The D-cache is enabled without invalidating it first (v7a, v7m, | Reported | fixed (`8029f3fb`, `9216ef13`, `61abe415`) |
+| | | v8a). The 6UL and RT ROMs use the caches and only disable them (RMs 8.4.4, 9.5.4); a stale valid line | | |
+| | | would serve old data. Plausible, jiffy works. Invalidate by set/way before enabling. | | |
+| | | 2026-11-14 (`8029f3fb`, `9216ef13`, `61abe415`): each arch invalidates the data and unified caches | |
+| | | by set/way before they come into use (v7m before CCR.DC, cleaning instead if it finds the cache on; | |
+| | | v7a before SCTLR.C; v8a at the entry before the first store). Every board's `pb.bin` changes. | |
+| | | Reviewed (the placement before pb's first store, the loops, the registers); not run on a board. The | |
+| | | I-cache isn't invalidated before it is turned on (low, the ROMs run only their own code) | |
+| F-203 | `usbd.c:340-349` | An EP0 request during a bulk transfer cancels it and restarts it from | Reported | fixed (`647584c9`) |
+| | | offset 0: a `punchboot list` or `lsusb -v` during a `part write` corrupts the chunk and swallows the | | |
+| | | next command. | | |
+| | | 2026-11-13 (`eecb37d4`): the stack answers a request on endpoint 0 and leaves the bulk transfer | | |
+| | | alone on the DWC3 and the cdns3. The ChipIdea has one transfer for all endpoints: one packet or less | | |
+| | | is restarted as before, a longer one fails with `-PB_ERR_IO` and the session ends, where the chunk | | |
+| | | was corrupted. Left: a descriptor and a bounce buffer of its own for the ChipIdea's endpoint 0 | | |
+| | | 2026-11-14 (`647584c9`): the ChipIdea's endpoint 0 has its own dTD, 512 byte bounce buffer and | |
+| | | transfer; a request leaves the bulk transfer alone on all three controllers, the stack's one- | |
+| | | transfer mode is gone. Reviewed; not run on a board (`lsusb -v` in a loop during a long `part write` | |
+| | | on jiffy and the RT1060) | |
+| F-422 | `src/drivers/usb/usbd.c`, `imx_ci_udc.c`, `usb.md` | From the USB package, read not | Reported (read) | fixed (`21875660`, `db7dde71`, `5d517494`, `8b658bf5`, `47cd8b0f`, `647584c9`) |
+| | | fixed. `usb.md` 2.3 and 2.4 have `-PB_ERR_STATE` for a start while a transfer runs and for a | | |
+| | | complete with none started; `usbd.c` does neither, and no marker says so. `usbd_xfer_complete()` | | |
+| | | ignores an error of `poll_setup_pkt` (4.4: lost). `SET_IDLE` asks for an OUT status stage a | | |
+| | | no-data request doesn't have, and `imx_ci_udc_xfer_zlp()` waits without a bound (F-138). An | | |
+| | | unknown request before the device is configured returns an error from `usbd_connect()`, and | | |
+| | | command mode leaves. The ChipIdea's cancel and restart loses a command that arrives between the | | |
+| | | stack's check and the flush. `transport.py` `_usb_uuid()` has F-287 (9)'s stale sentence. | | |
+| | | `testing.md` has no rows for `test_usbd`, `test_imx_ci_udc` and `test_cdns3_udc` | | |
+| | | 2026-11-14 (`21875660`, `db7dde71`, `5d517494`, `8b658bf5`, `47cd8b0f`, `628f3426`): the stack | |
+| | | refuses a start while a transfer runs and a complete with none (`-PB_ERR_STATE`); an error of | |
+| | | `poll_setup_pkt` in a session is lost; `SET_IDLE` has one status stage, IN, and no error; | |
+| | | `imx_ci_udc_xfer_zlp()` waits 500 ms at most and flushes; an unknown request, and before | |
+| | | configuration a control transfer the host left, are no error. `transport.py` was already right | |
+| | | (`d17b1505`); `testing.md` has the rows. Left: the ChipIdea's cancel and restart | |
+| | | 2026-11-14 (`647584c9`): the ChipIdea's cancel and restart is gone with F-203. Done | |
+| F-363 | `src/drivers/usb/` | Since F-185 command mode ends the session on every lost | Verified (code) | fixed (`2effc365`, `3a5ace63`, `f606a765`) |
+| | | the transport reports, but on USB a replug or a bus reset during a session isn't reported | | |
+| | | (`usb.md` 2.4, 4.3), so on jiffy, the RT1060 and the MEK the next host on a locked device is still | | |
+| | | authenticated and has the stream. What would have to report it as an error of the running transfer, | | |
+| | | or keep it for the next `xfer_start`/`xfer_complete`: the ChipIdea's `imx_ci_udc_xfer_complete()` | | |
+| | | (`imx_ci_udc_irq_process()` flushes on `USBSTS_URI` and returns PB_OK); the cdns3's | | |
+| | | `cdns3_udc_core_xfer_complete()` (`cdns_process_irq()` re-arms endpoint 0 on `ISTS_CFGRESI`, | | |
+| | | `ISTS_U2RESI` isn't looked at); the DWC3's `dwc3_udc_xfer_complete()` reports a reset only for an | | |
+| | | endpoint with a transfer running, and `dwc3_udc_xfer_start()` clears it, so one between two transfers | | |
+| | | of a command is lost; `DEVT_DISCONNECT` is logged only; the stack's `usbd_xfer_complete()` answers a | | |
+| | | SETUP during a session (a new `SET_ADDRESS`, `SET_CONFIGURATION`) and restarts the bulk transfer | | |
+| | | without an error. With F-201 (`enumerated`) and F-287 (1) | | |
+| | | 2026-11-13 (`be1e1841`, `2cea826c`): a `SET_ADDRESS` or `SET_CONFIGURATION` inside a session is | | |
+| | | lost, in the stack; the ChipIdea reports a bus reset of a configured device for the running and the | | |
+| | | next bulk transfer. Released hosts send neither request on open (checked in `tools/punchboot` now | | |
+| | | and at v2.7.1). Left: the cdns3, the DWC3 between two transfers, an unplug on all three | | |
+| | | 2026-11-14 (`2effc365`, `3a5ace63`): the cdns3 reports a bus reset (`U2RESI`) or an unplug (`DIS2I`) | |
+| | | of a configured device as `-PB_ERR_IO` of the running and every next bulk transfer (high speed only: | |
+| | | not `CFGRESI` or the SuperSpeed bits); the DWC3 keeps a reset or a `DEVT_DISCONNECT` of a configured | |
+| | | device the same way, until configured again, `init` or `stop`. Before configuration a reset is no | |
+| | | error, endpoint 0 goes on. Left: an unplug on the ChipIdea. Not run on a board | |
+| | | 2026-11-14 (`f606a765`): the ChipIdea reports an unplug of a configured device (VBUS gone, | |
+| | | `OTGSC.BSV`, as Linux's chipidea `ci_handle_vbus_change()`) as it reports a bus reset; where VBUS | |
+| | | doesn't reach the controller nothing is reported, as before. One sample, no debounce: on the bench, | |
+| | | BSV during a 4 MiB write on a bus powered jiffy, and on the RT1060 and the DXL. Done | |
 
 ## Dependencies / vendored code
 
@@ -1435,6 +1517,7 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | behind the gate (`command-mode.md` 5.8), the comments say so now; nothing calls | |
 | | `pb_wire_command_string()` and `pb_wire_slc_string()`, which have returned "" since 1.0.0 and are | |
 | | left | |
+| F-145 | De-duplication left from the 2026-10-29 slimming review (D-020): board boilerplate (default GPT table and `partitions.h` byte-identical in 5 boards, the same `board_init` sequence and 3 dev keys in all, cm `.tops` in 6), ~900 lines; the write/read/check/print block 42 times in `tools/punchboot/api_*.c` and the validate/call/exception pattern 28 times in `python_wrapper.c`, ~550; `plat_mmu_init` and `plat_get_unique_id` near-identical in imx6ul/imx8m/imx8x; the bpak hash-kind switch 4 times in `image_helpers.c`; one-provider crypto ops tables; `test_mmc_core.c`'s own fake card vs the card models. Porting API: `arch_init()` empty everywhere, single-member `console_ops`, `board_init(struct imx*_platform *)` (imx8m struct empty), cm `command`/`status` stubs in 4 boards. | fixed (`ad8fc10d`, `f2b40630`) |
 
 ## Build / CI / docs
 

@@ -48,6 +48,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-113 | `src/drivers/mmc/imx_usdhc.c`, `src/board/imx8mpevk/board.c` (i.MX8M Plus uSDHC3) | eMMC in DDR52 (8-bit DDR) fails at the first data read after the switch (CMD8, INT status 0x208003: DCE, a data CRC error); HS200 works. 2026-10-28, after the DDR_EN fix (F-123): with the board's fixed DLL override tap 35 the CMD8 still fails the same way; with tap 0 init gets through DDR52 (EXT_CSD reads work), but the first CMD18 (GPT read) fails: the auto CMD12 response in CMD_RSP3 is 0x00d00f00 (CC_ERROR, COM_CRC_ERROR, ILLEGAL_COMMAND, state prg), which doesn't fit a read. HS200 with tap 0 fails the same way (2026-10-29) and works with tap 35: a sampling error, the DLL override is in the read path in SDR too. The right tap depends on board and silicon (tuning). | Verified (board) | open: imx8mpevk uses HS200. Next: what CMD_RSP3 holds after auto CMD12 in DDR, and a DLL setting for DDR instead of the fixed override |
 | F-135 | `src/arch/armv7a`, `src/plat/imx6ul/plat.c` `plat_mmu_init` | Nothing sets ACTLR.SMP before the MMU and caches are enabled; as I recall it, the Cortex-A7 MPCore TRM asks for that. What it changes on jiffy is unknown: the 2026-10-29 breadcrumbs show write-back caching of `.no_init` works without it, so it doesn't simply leave Shareable memory uncached (first guess in the USB review, withdrawn). | Reported (TRM from memory, not in `~/work/manuals`) | open: read ACTLR on jiffy (`mrc p15, 0, r0, c1, c0, 1`), get the TRM |
 | F-136 | `src/drivers/usb/imx_ci_udc.c` (prime, flush, bus reset) | Against 6UL RM 54.4.6: the prime loop waits for ENDPTPRIME to clear but never checks that ENDPTSTAT got set (PRIME 0 and STAT 0 is a failed prime, 54.4.6.4.2.2; the dTD then stays Active for ever, F-130's symptom). `imx_ci_udc_flush_ep` doesn't check ENDPTSTAT and repeat a refused flush (54.4.6.6.5). The EP0 flush in `poll_setup_pkt` doesn't wait before EP0 is primed again. The bus reset handler waits `while (FLUSH == 0x00FF00FF)`, which ends when the first bit clears, and flushes without waiting for ENDPTPRIME to clear (54.4.6.2.1). None of the loops has a timeout. | Verified (code, RM) | open |
+| | | 2026-11-14, from the ChipIdea review: `USBSTS` is cleared by writing all ones, not the value read, | |
+| | | so a bus reset between the read and the write is lost (seen only at the next enumeration); the flush | |
+| | | wait (`while (ENDPTFLUSH == ENDPT_ALL)`) ends at the first bit that clears and now also runs on an | |
+| | | unplug | |
 | F-137 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_complete` | Only the Active bit of the last dTD is checked. Halted, Data Buffer Error and Transaction Error are ignored (an RX overflow halts the endpoint and returns `PB_OK`), and the bytes left in Total Bytes are not reported (54.4.6.6.4). A short packet in an earlier dTD of a multi-dTD read retires that dTD and leaves the last one Active. pb's exact-size protocol avoids the last today. | Verified (code, RM 54.4.6.6.4) | open |
 | F-138 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_poll_setup_pkt`, `src/drivers/usb/usbd.c` | Control transfers against 6UL RM 54.4.6.4.2: the setup packet is copied under the tripwire and then acked in ENDPTSETUPSTAT; the RM acks first, so a second SETUP arriving between the two is acked unread. After priming an EP0 data or status stage nothing checks ENDPTSETUPSTAT, so a SETUP that aborts the control transfer leaves `wait_for_completion`/`imx_ci_udc_xfer_zlp` spinning until the watchdog. Unsupported requests are never STALLed (54.4.6.3.2): the host waits out its control timeout (e.g. `lsusb -v` asking for the BOS descriptor) and `usbd_xfer_complete` fails the transfer in progress. `USB_SET_IDLE` primes an OUT status stage a no-data request doesn't have. EP0 IN has ZLT disabled, so a reply that is a multiple of 64 bytes and shorter than wLength would need a ZLP it never gets (no current descriptor is). | Verified (code, RM) | open |
 | | | 2026-11-14 (`5d517494`, `8b658bf5`, `47cd8b0f`, `0037c958`): `SET_IDLE` primes no OUT status stage; | |
@@ -124,13 +128,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | blocks (refusing it could stop a small byte addressed e.MMC that boots today; for Jonas) | | |
 | | | 2026-11-13 (`d8d98609`): a partly programmed SRK word is completed when its bits are a subset of the | | |
 | | | hash's word (`command-mode.md` 5.2); one with another bit is still refused | | |
-| F-203 | `usbd.c:340-349` | An EP0 request during a bulk transfer cancels it and restarts it from | Reported | open |
-| | | offset 0: a `punchboot list` or `lsusb -v` during a `part write` corrupts the chunk and swallows the | | |
-| | | next command. | | |
-| | | 2026-11-13 (`eecb37d4`): the stack answers a request on endpoint 0 and leaves the bulk transfer | | |
-| | | alone on the DWC3 and the cdns3. The ChipIdea has one transfer for all endpoints: one packet or less | | |
-| | | is restarted as before, a longer one fails with `-PB_ERR_IO` and the session ends, where the chunk | | |
-| | | was corrupted. Left: a descriptor and a bounce buffer of its own for the ChipIdea's endpoint 0 | | |
 | F-204 | `cdns3_udc_core.c:507` | `cdns3_udc_core_stop()` is a stub: after `disconnect()` the MEK | Reported | open |
 | | | stays enumerated with EP0 armed at pb's `setup_pkt`, a SETUP after the handover writes 8 bytes into the | | |
 | | | OS's memory. | | |
@@ -160,9 +157,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | still `delay_s * 2`, half a second more than configured. `bec794b7` on the branch `pkg-plat` makes | | |
 | | | it exact and wasn't landed: it shortens every 6UL, 8M and RT board's watchdog by 0.5 s (5.0 s where | | |
 | | | an OS in the field has had 5.5 s to take over) | | |
-| F-207 | `src/arch/*/entry*` | The D-cache is enabled without invalidating it first (v7a, v7m, | Reported | open |
-| | | v8a). The 6UL and RT ROMs use the caches and only disable them (RMs 8.4.4, 9.5.4); a stale valid line | | |
-| | | would serve old data. Plausible, jiffy works. Invalidate by set/way before enabling. | | |
 | F-209 | `src/link.lds:60-67` | The stack is directly above `.keystore_key`; on the RT1060 (no | Reported | open |
 | | | MPU region, 4 KiB stack, software ECDSA) an overflow rewrites a root-of-trust key silently. | | |
 | | | `.vector_handlers` is an orphan section placed after `_code_end`, outside the overlap check (F-157). | | |
@@ -178,6 +172,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `imx_uart.h`: `UFCR_RFDIV_1` is divide by 2. | | |
 | | | D-053: pb doesn't clear the reset reason (SRSR), the OS reads the same register; that item | | |
 | | | is closed | | |
+| | | 2026-11-14 (`0df35aa3`, `2ff24732`, `66d018db`, `978f4fe6`, `b9f341a6`): `UFCR_RFDIV_2` names the | |
+| | | divide by 2 (`pb.bin` unchanged); the v7a stack is cleaned and invalidated in one DCCIMVAC by range; | |
+| | | v7m sets VTOR to pb's table at the entry (it was the ROM's, 0x00200000: pb's faults went to the | |
+| | | ROM's handlers) and clears CACR.FORCEWT at the handover (`pb/arch.h` names it). The 8X's | |
+| | | `BOARD_RAM_END`: done by `2599f9d8`, `ffc45fbb`. Reviewed; not run on a board. Left: the exception | |
+| | | policy (v8 handlers on the faulting stack, hang by default; v7m hangs; v7a resets), the 6UL's PLL1 | |
+| | | and ARM_PODF | |
 | F-213 | `configs/*`, board `makefile.mk` | The SRK hash that is fused (`CONFIG_SRK_FUSE`) and | Reported | open |
 | | | the SRK table pb is signed with are independent settings: a product that changes one fuses a hash that | | |
 | | | closes the device to its own images. D-027 and `srk_fuse.h` claim they match. Derive or check at build | | |
@@ -519,6 +520,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | waiting for a command as lost, the dead branch is gone. Left: a restart without a disconnect, the | |
 | | | disconnect's ignored result, the DWC3's read of 0 bytes, (2), (4), the ChipIdea's (7) (in work). Not | |
 | | | run on a board | |
+| | | 2026-11-14 (`647584c9`, `94e64f3f`, `59f5bda7`): of (7), the ChipIdea's `xfer_complete` looks at its | |
+| | | endpoint and gives a result once; its queue heads were all cleaned since `b785140a`. Of (3), the | |
+| | | ChipIdea's longest transfer is its own, 4 MiB (205 dTDs), a longer one `-PB_ERR_PARAM`; the | |
+| | | ChipIdea, the DWC3 and the cdns3 check `CONFIG_CM_BUF_SIZE_KiB` and `CONFIG_BOOT_LOAD_CHUNK_kB` | |
+| | | against theirs at build time (the migration guide names the limits). Left: a restart without a | |
+| | | disconnect, the disconnect's ignored result, the DWC3's read of 0 bytes, (2), (4) | |
 | F-310 | `doc/interfaces/bio.md`, `include/pb/bio.h` | `bio.md` describes five | Verified (code) | open |
 | | | functions of `bio.h` and doesn't name them: `bio_set_ios()` and `bio_set_ios_erase()` ("then | | |
 | | | the callbacks", 2.1), `bio_get_hal_flags()` (2.5 names the setter), | | |
@@ -665,27 +672,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | mask and has no command line option; pb clears them only in `boot activate`, a rollback keeps the | | |
 | | | other one. Write into 3.5 (or 3.7, for the OS's side) when a bit is cleared and by whom, before the | | |
 | | | shared core (F-173) fixes it in code | | |
-| F-363 | `src/drivers/usb/` | Since F-185 command mode ends the session on every lost | Verified (code) | open |
-| | | the transport reports, but on USB a replug or a bus reset during a session isn't reported | | |
-| | | (`usb.md` 2.4, 4.3), so on jiffy, the RT1060 and the MEK the next host on a locked device is still | | |
-| | | authenticated and has the stream. What would have to report it as an error of the running transfer, | | |
-| | | or keep it for the next `xfer_start`/`xfer_complete`: the ChipIdea's `imx_ci_udc_xfer_complete()` | | |
-| | | (`imx_ci_udc_irq_process()` flushes on `USBSTS_URI` and returns PB_OK); the cdns3's | | |
-| | | `cdns3_udc_core_xfer_complete()` (`cdns_process_irq()` re-arms endpoint 0 on `ISTS_CFGRESI`, | | |
-| | | `ISTS_U2RESI` isn't looked at); the DWC3's `dwc3_udc_xfer_complete()` reports a reset only for an | | |
-| | | endpoint with a transfer running, and `dwc3_udc_xfer_start()` clears it, so one between two transfers | | |
-| | | of a command is lost; `DEVT_DISCONNECT` is logged only; the stack's `usbd_xfer_complete()` answers a | | |
-| | | SETUP during a session (a new `SET_ADDRESS`, `SET_CONFIGURATION`) and restarts the bulk transfer | | |
-| | | without an error. With F-201 (`enumerated`) and F-287 (1) | | |
-| | | 2026-11-13 (`be1e1841`, `2cea826c`): a `SET_ADDRESS` or `SET_CONFIGURATION` inside a session is | | |
-| | | lost, in the stack; the ChipIdea reports a bus reset of a configured device for the running and the | | |
-| | | next bulk transfer. Released hosts send neither request on open (checked in `tools/punchboot` now | | |
-| | | and at v2.7.1). Left: the cdns3, the DWC3 between two transfers, an unplug on all three | | |
-| | | 2026-11-14 (`2effc365`, `3a5ace63`): the cdns3 reports a bus reset (`U2RESI`) or an unplug (`DIS2I`) | |
-| | | of a configured device as `-PB_ERR_IO` of the running and every next bulk transfer (high speed only: | |
-| | | not `CFGRESI` or the SuperSpeed bits); the DWC3 keeps a reset or a `DEVT_DISCONNECT` of a configured | |
-| | | device the same way, until configured again, `init` or `stop`. Before configuration a reset is no | |
-| | | error, endpoint 0 goes on. Left: an unplug on the ChipIdea. Not run on a board | |
 | F-375 | `src/cm/cm_main.c` `PB_CMD_DEVICE_READ_CAPS`, `command-mode.md` 4.6 | Low. The caps' | Verified (code) | open |
 | | | `part_erase_timeout_ms` stays zero: 4.6 says a device fills it, but pb sets no bound on an erase. | | |
 | | | Its time is the driver's per block (`bio.md` 3, from the driver's header) times the blocks a host | | |
@@ -757,39 +743,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 8MP EVK's console set-up before its clock gate, and `command-mode.md` 2.1 naming F-235 | | |
 | | | 2026-11-14 (`374ad97f`): `command-mode.md` 2.1 cites `platform.md` 2 alone. Left: the 8MP EVK's | |
 | | | console set-up before its clock gate | |
-| F-416 | `cm_main.c`, `pb_dev_cls.c`, `plat/imx8x`, Kconfig | From F-236's package. `cm_setup()` | Reported (read) | open |
-| | | and `pb_dev_cls.c:129` ignore `device_uuid()`'s error: after a failed fuse read command mode keeps a | | |
-| | | null UUID and the USB serial string comes from an uninitialised local. The 8X's | | |
-| | | `plat_get_unique_id()` can't fail (`sc_misc_unique_id()` returns no error). | | |
-| | | `CONFIG_WATCHDOG_TIMEOUT` has no Kconfig range, the i.MX driver clamps silently (0 is 0.5 s). The | | |
-| | | 6UL and the RT rely on GPT1's clock gates being open from reset. `testing.md` has no rows for | | |
-| | | `test_plat_imx6ul`, `test_plat_imx8m` and `test_imx_wdog` | | |
-| | | 2026-11-13 (`caf92c7b`): the USB serial number of a device without an identity is the nil UUID. | | |
-| | | Left: `cm_setup()` (command mode's second package), the rest | | |
-| | | 2026-11-13 (`f1876f9e`): command mode's set-up fails when the device's UUID can't be read, as its | | |
-| | | other set-up errors do, and pb resets: a token over a null UUID would be every such device's. Left: | | |
-| | | the 8X's unique id that can't fail, `CONFIG_WATCHDOG_TIMEOUT`'s range, the GPT1 gates, | | |
-| | | `testing.md`'s rows | | |
-| | | 2026-11-14 (`81139cb4`, `628f3426`): `CONFIG_WATCHDOG_TIMEOUT` has the range 1 to 127 s, checked | |
-| | | against every defconfig (`unit.watchdog_kconfig`); the 8X's unique id is read by pb's own SCFW | |
-| | | message and fails on an answer without the id's words (the id's bytes unchanged); `testing.md` names | |
-| | | every unit program. A zero or all-ones id is still taken (refusing it takes command mode from such a | |
-| | | device: for Jonas). Left: the GPT1 gates | |
-| F-422 | `src/drivers/usb/usbd.c`, `imx_ci_udc.c`, `usb.md` | From the USB package, read not | Reported (read) | open |
-| | | fixed. `usb.md` 2.3 and 2.4 have `-PB_ERR_STATE` for a start while a transfer runs and for a | | |
-| | | complete with none started; `usbd.c` does neither, and no marker says so. `usbd_xfer_complete()` | | |
-| | | ignores an error of `poll_setup_pkt` (4.4: lost). `SET_IDLE` asks for an OUT status stage a | | |
-| | | no-data request doesn't have, and `imx_ci_udc_xfer_zlp()` waits without a bound (F-138). An | | |
-| | | unknown request before the device is configured returns an error from `usbd_connect()`, and | | |
-| | | command mode leaves. The ChipIdea's cancel and restart loses a command that arrives between the | | |
-| | | stack's check and the flush. `transport.py` `_usb_uuid()` has F-287 (9)'s stale sentence. | | |
-| | | `testing.md` has no rows for `test_usbd`, `test_imx_ci_udc` and `test_cdns3_udc` | | |
-| | | 2026-11-14 (`21875660`, `db7dde71`, `5d517494`, `8b658bf5`, `47cd8b0f`, `628f3426`): the stack | |
-| | | refuses a start while a transfer runs and a complete with none (`-PB_ERR_STATE`); an error of | |
-| | | `poll_setup_pkt` in a session is lost; `SET_IDLE` has one status stage, IN, and no error; | |
-| | | `imx_ci_udc_xfer_zlp()` waits 500 ms at most and flushes; an unknown request, and before | |
-| | | configuration a control transfer the host left, are no error. `transport.py` was already right | |
-| | | (`d17b1505`); `testing.md` has the rows. Left: the ChipIdea's cancel and restart | |
 | F-423 | `error.h`, `bio.md` 4, `cm_main.c`, `command-mode.md` 4.5 | Low, from command mode's | Reported (read) | open |
 | | | second package. `include/pb-tools/error.h` declares `pb_error_string()`, which nothing defines. | | |
 | | | `bio.md` 4 doesn't say which flags a new partition of an installed table starts with (the code: | | |
@@ -935,7 +888,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | (`test_pb_id.py`): the table in `helpers.py` can go. Left: that change in `tools/` | |
 | | 2026-11-14 (`575c4cde`): `pb_id()` is `zlib.crc32` without its inversions; the table is gone. Left: | |
 | | nothing known | |
-| F-145 | De-duplication left from the 2026-10-29 slimming review (D-020): board boilerplate (default GPT table and `partitions.h` byte-identical in 5 boards, the same `board_init` sequence and 3 dev keys in all, cm `.tops` in 6), ~900 lines; the write/read/check/print block 42 times in `tools/punchboot/api_*.c` and the validate/call/exception pattern 28 times in `python_wrapper.c`, ~550; `plat_mmu_init` and `plat_get_unique_id` near-identical in imx6ul/imx8m/imx8x; the bpak hash-kind switch 4 times in `image_helpers.c`; one-provider crypto ops tables; `test_mmc_core.c`'s own fake card vs the card models. Porting API: `arch_init()` empty everywhere, single-member `console_ops`, `board_init(struct imx*_platform *)` (imx8m struct empty), cm `command`/`status` stubs in 4 boards. | open; the host tools part is gone with the C library (D-021) |
+| | 2026-11-14 (`ad8fc10d`, `f2b40630`): the 6UL's, the 8M's and the RT's unique id is |
+| | `imx_ocotp_read_unique_id()` (the 8X's stays the SCFW's; the bytes, their order and the errors |
+| | unchanged), the bpak hash kind maps in one `image_hash_kind()`. `console_ops` stays: a one-member |
+| | struct can grow without breaking boards, a function argument can't (principles 6 over 8). Done |
 | | Checked 2026-11-12: gone with D-026 are the boards' `board_init` sequence and signature and | |
 | | their cm `.tops`; a shared default layout was tried and moved back (Jonas, D-026). One ops | |
 | | table per crypto backend is the contract's (D-071). The MMU set up is F-158 and F-269. Left: | |

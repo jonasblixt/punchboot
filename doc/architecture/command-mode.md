@@ -157,10 +157,7 @@ transfer the host didn't complete (4.6). There is one session at a time and one 
 
 A session's state is: whether it is authenticated; the stream (5.4).
 Both are cleared when a session starts. The next host on a device that stayed powered is not
-authenticated and has no stream. **Not yet in the code (F-363)**: on USB `authenticated` and
-the stream survive what a controller doesn't report as lost (`usb.md` 2.4): an unplug with no
-host after it, a bus reset on the cdns3, one between two transfers on the DWC3. A host that
-enumerates again ends the session on all three.
+authenticated and has no stream.
 
 What isn't the session's: the life cycle (the device's), the buffers' content (4.3).
 
@@ -797,7 +794,6 @@ For a change to command mode, a new command or a new method:
 
 | Finding | What                                                                                 |
 | ------- | ------------------------------------------------------------------------------------ |
-| F-363   | The session ends with the transport: authentication and the stream are cleared (3.1) |
 | F-375   | The caps' erase timeout (4.6)                                                        |
 | F-280   | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-226   | The host uses the caps' timeouts (4.6)                                               |

@@ -450,7 +450,7 @@ checklist's last item.
 
 | Finding      | What                                                                        |
 | ------------ | --------------------------------------------------------------------------- |
-| F-287, F-363 | Lost is reported and ends the session; a restart disconnects first (2.4)    |
+| F-287        | A restart disconnects first (2.4)                                           |
 | F-137, F-205 | An OUT transfer ends at `length`, writes nothing past it, and its result is |
 |              | the controller's (2.3, 4.3)                                                 |
 | F-280        | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)       |
