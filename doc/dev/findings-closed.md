@@ -1551,6 +1551,14 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-137 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_complete` | Only the Active bit of the last dTD is checked. Halted, Data Buffer Error and Transaction Error are ignored (an RX overflow halts the endpoint and returns `PB_OK`), and the bytes left in Total Bytes are not reported (54.4.6.6.4). A short packet in an earlier dTD of a multi-dTD read retires that dTD and leaves the last one Active. pb's exact-size protocol avoids the last today. | Verified (code, RM 54.4.6.6.4) | fixed (`985af65e`) |
 | | | 2026-11-14 (`985af65e`, `pkg-b3-ci2` landed): the result is the descriptors' status and bytes; | |
 | | | the bench of F-136 | |
+| F-439 | `src/rot.c`, `src/cm/cm_slc.c`, `src/plat/*/rot_helpers.c`, `wire.h`, the host | A key | Verified | fixed (`3b65ac38`) |
+| | | in a slot the SoC can't revoke reads as active and nothing says it can't be revoked: the 8X | | |
+| | | has 4 revoke bits, HABv4 3, a board 16 keys (D-083). D-085: `plat_rot.revoke_slots`, the SLC | | |
+| | | result's `unrevocable` from `rz`, `slc show` prints it, `SLC_REVOKE_KEY` NOT_SUPPORTED, the | | |
+| | | build warns (`platform.md` 4.1, `command-mode.md` 5.2). From F-429 | | |
+| | | 2026-11-14 (`3b65ac38`): `revoke_slots` 3 on the 6UL, the 8M and the RT, 4 on the 8X; `unrevocable` | | |
+| | | at offset 1 of the SLC result; NOT_SUPPORTED from `rot_revoke_key()`; the build warns. Host tests only: | | |
+| | | no board in the tree has a key above its slots, and the MEK runs no SLC command | | |
 
 ## Dependencies / vendored code
 

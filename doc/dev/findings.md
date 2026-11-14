@@ -848,11 +848,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `boot.bpak` 5 of 5 and random 15 MB files 10 of 10, each verified; System A holds | | |
 | | | `boot.bpak` again and boots Linux to the login. The old pb failed a 500 KB write once on the | | |
 | | | way. Left: whether it is F-172's cause too, which a longer run will tell | | |
-| F-439 | `src/rot.c`, `src/cm/cm_slc.c`, `src/plat/*/rot_helpers.c`, `wire.h`, the host | A key | Verified | open |
-| | | in a slot the SoC can't revoke reads as active and nothing says it can't be revoked: the 8X | | |
-| | | has 4 revoke bits, HABv4 3, a board 16 keys (D-083). D-085: `plat_rot.revoke_slots`, the SLC | | |
-| | | result's `unrevocable` from `rz`, `slc show` prints it, `SLC_REVOKE_KEY` NOT_SUPPORTED, the | | |
-| | | build warns (`platform.md` 4.1, `command-mode.md` 5.2). From F-429 | | |
 | F-440 | `include/plat/*/`, `src/board/jiffy/board.c` | `platform.md` 7 (D-085): functions, | Verified | open |
 | | | not `<p>_plat()`. Left: `imx6ul_clk_rate()` and jiffy on it, `imx6ul_plat()` and | | |
 | | | `imx8x_plat()` deprecated, the 8M and the RT get `<p>_clk_rate()` when a board needs a clock, | | |
