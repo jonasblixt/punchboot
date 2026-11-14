@@ -1,7 +1,9 @@
 """Finding USB devices whose serial number can't be read (F-159).
 
-pb's cdns3 driver (the i.MX8QXP MEK) can't send its serial number string, so
-the host asks such a device for its UUID with PB_CMD_DEVICE_IDENTIFIER_READ.
+pb 2.0.0's cdns3 driver (the i.MX8QXP MEK) couldn't send its serial number
+string. Every controller's driver sends it since (usb.md 3.1), but such a
+device is still in the field, so the host asks one whose serial number it
+can't read for its UUID with PB_CMD_DEVICE_IDENTIFIER_READ.
 These tests use fake USB devices and a scripted transport, no hardware.
 """
 

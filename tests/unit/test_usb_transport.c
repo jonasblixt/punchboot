@@ -229,13 +229,15 @@ static void test_read_and_write_start_a_transfer(void **state)
     assert_ptr_equal(hal.start_buf, buf);
     assert_int_equal(hal.start_length, 512);
     assert_int_equal(hal.complete_calls, 0);
+    assert_int_equal(cm_transport_complete(), PB_OK);
 
     assert_int_equal(cm_transport_write(buf, sizeof(buf)), PB_OK);
     assert_int_equal(hal.start_calls, 2);
     assert_int_equal(hal.start_ep, USB_EP1_IN);
     assert_ptr_equal(hal.start_buf, buf);
     assert_int_equal(hal.start_length, sizeof(buf));
-    assert_int_equal(hal.complete_calls, 0);
+    assert_int_equal(hal.complete_calls, 1);
+    assert_int_equal(cm_transport_complete(), PB_OK);
 
     hal.start_rc = -PB_ERR_IO;
     assert_int_equal(cm_transport_read(buf, 512), -PB_ERR_IO);
@@ -260,10 +262,63 @@ static void test_a_read_into_a_buffer_off_a_line_is_refused(void **state)
     assert_int_equal(cm_transport_read(buf + PB_DMA_ALIGN, 512), PB_OK);
     assert_int_equal(hal.start_calls, 1);
     assert_ptr_equal(hal.start_buf, buf + PB_DMA_ALIGN);
+    assert_int_equal(cm_transport_complete(), PB_OK);
 
     assert_int_equal(cm_transport_write(buf + 1, 512), PB_OK);
     assert_int_equal(hal.start_calls, 2);
     assert_ptr_equal(hal.start_buf, buf + 1);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+}
+
+/* usb.md 2.3, 2.4: one transfer at a time. A start while one runs is
+ * -PB_ERR_STATE and the controller isn't asked; complete gives a result once,
+ * and with no transfer started it is -PB_ERR_STATE (F-422: the stack passed
+ * both to the controller) */
+static void test_one_transfer_at_a_time(void **state)
+{
+    static uint8_t buf[512] __aligned(PB_DMA_ALIGN);
+    (void)state;
+
+    assert_int_equal(cm_transport_complete(), -PB_ERR_STATE);
+    assert_int_equal(hal.complete_calls, 0);
+
+    assert_int_equal(cm_transport_read(buf, sizeof(buf)), PB_OK);
+    assert_int_equal(cm_transport_read(buf, sizeof(buf)), -PB_ERR_STATE);
+    assert_int_equal(cm_transport_write(buf, sizeof(buf)), -PB_ERR_STATE);
+    assert_int_equal(hal.start_calls, 1);
+
+    /* Polled until done, the result once */
+    hal.complete_rc = -PB_ERR_AGAIN;
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    assert_int_equal(cm_transport_write(buf, sizeof(buf)), -PB_ERR_STATE);
+    hal.complete_rc = PB_OK;
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_STATE);
+    assert_int_equal(hal.complete_calls, 2);
+
+    /* Lost is a result too: the transfer is over */
+    assert_int_equal(cm_transport_write(buf, sizeof(buf)), PB_OK);
+    hal.complete_rc = -PB_ERR_IO;
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_STATE);
+    assert_int_equal(hal.complete_calls, 3);
+
+    /* A start the controller refused started nothing */
+    hal.start_rc = -PB_ERR_PARAM;
+    assert_int_equal(cm_transport_read(buf, sizeof(buf)), -PB_ERR_PARAM);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_STATE);
+    hal.start_rc = PB_OK;
+
+    /* A transfer that runs is given up by a disconnect and by a restart */
+    assert_int_equal(cm_transport_read(buf, sizeof(buf)), PB_OK);
+    assert_int_equal(cm_transport_disconnect(), PB_OK);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_STATE);
+    assert_int_equal(cm_transport_init(), PB_OK);
+    assert_int_equal(cm_transport_read(buf, sizeof(buf)), PB_OK);
+    assert_int_equal(cm_transport_init(), PB_OK);
+    assert_int_equal(cm_transport_read(buf, sizeof(buf)), PB_OK);
+    hal.complete_rc = PB_OK;
+    assert_int_equal(cm_transport_complete(), PB_OK);
 }
 
 /* usb.md 2.4: complete polls the transfer that was started, on its
@@ -307,6 +362,7 @@ int main(void)
         cmocka_unit_test_setup(test_read_and_write_start_a_transfer, setup),
         cmocka_unit_test_setup(test_a_read_into_a_buffer_off_a_line_is_refused, setup),
         cmocka_unit_test_setup(test_complete_polls_the_transfer, setup),
+        cmocka_unit_test_setup(test_one_transfer_at_a_time, setup),
         cmocka_unit_test_setup(test_disconnect_stops_the_controller, setup),
     };
 
