@@ -861,6 +861,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`boot.md` 5.7, D-085) doesn't exist: OP-TEE is booted as the kernel's part, with a fixed | | |
 | | | `CFG_NS_ENTRY_ADDR`. Left, after the review: the delivery, its host test, jiffy's board, a | | |
 | | | test bench add-on with OP-TEE (13.1 of 2026-11-14), and F-241's check from Linux on it | | |
+| F-442 | `src/plat/*/plat.c`, `src/main.c`, `src/boot/boot.c` | Every platform sets up Mbed TLS | Verified | open |
+| | | in its `plat_init()`, and `plat_status.crypto_engine` says whether the build's backends all | | |
+| | | came up, Mbed TLS among them. D-086: the core sets the software backend up, the field is | | |
+| | | the engine's alone (none, ok, failed), the boot's check the core's (`crypto.md` 2, | | |
+| | | `platform.md` 2.2, 2.3, 3.8). Left, after the review: the code and its host tests | | |
 
 ## Dependencies / vendored code
 

@@ -105,6 +105,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-083 | The board's keys are its `makefile.mk`'s         | In force                                           |
 | D-084 | The platform's open questions, answered          | In force                                           |
 | D-085 | Unrevocable keys, board functions, OP-TEE        | In force; Jonas reviewed it                        |
+| D-086 | The software crypto backend is the core's        | In force; the documents wait for Jonas's review    |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2058,3 +2059,22 @@ Jonas's answers to the follow ups of D-084 (log 2026-11-14, "The platform's ques
   part is jumped to directly, so a released OP-TEE-as-kernel image keeps booting (D-008). Not
   TF-A's SP_MIN, which wants `bl_params`: it can be added the same way.
 - **No UART transport for command mode for now** (D-084's ports are USB's).
+
+## D-086: The software crypto backend is set up by the core, not the platform (2026-11-14)
+
+Jonas: "I saw that we have #ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS in at least imx8m/plat.c. I think
+this should be done one level up and not in any platform code. The init of a software crypto lib
+can be done by the core." Each `plat.c` (6UL, 8M, 8X, RT, host) had the same block, and each new
+port would copy it. And `plat_status.crypto_engine` said whether the build's backends all came
+up, so on the RT, which has no engine, "the crypto engine works" was Mbed TLS's.
+
+- The core sets up the software backend in `main()` right after `plat_init()`, behind
+  `CONFIG_DRIVERS_CRYPTO_MBEDTLS`, and records whether it came up (`crypto.md` 2).
+- `plat_status.crypto_engine` is the SoC's engine alone, `enum plat_crypto_engine`: none, ok,
+  failed (`platform.md` 3.8). A type that changes, so an out-of-tree platform that sets it
+  doesn't compile until it says which; the porting API has no release yet.
+- The boot's check is the core's: no boot when the engine failed, when the software backend
+  failed, or when the build has no backend (`platform.md` 2.3). The same outcome as before on
+  every board in the tree. Nothing changes on the wire or in the images.
+- Open, for Jonas: `CONFIG_PLAT_CRYPTO_ENGINE` stays through 3.x, unused, and goes in 4.0
+  (`platform.md`, Open (1)).

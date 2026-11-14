@@ -21,7 +21,13 @@ Each entry says what it does, from when it may be called ("valid from") and what
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker here and updates the port's conformance table (`plat-imx.md`).
 
-**No open items.** What the review decided and added, as written into the text:
+**Open (1), for Jonas's review (D-086):** `CONFIG_PLAT_CRYPTO_ENGINE`, which a platform
+selects to have the boot check `crypto_engine` (`src/plat/Kconfig`, F-247), says nothing once
+the field has `PLAT_CRYPTO_ENGINE_NONE`: the core checks every platform. Proposed: it stays
+through 3.x, selected and unused, so that an out-of-tree platform's `select` still resolves,
+and goes in 4.0.
+
+What the review decided and added, as written into the text:
 
 | Item                             | Rule                                                            | By           |
 | -------------------------------- | --------------------------------------------------------------- | ------------ |
@@ -132,7 +138,8 @@ Called once by `main()`, after `board.console_init()`. When it returns PB_OK:
 - The MMU is on, where the arch has one, with the memory map of 5.2, after DRAM works.
 - The SoC's crypto engine and hardware RNG are set up when their Kconfig option is on. A board
   that needs the software implementation turns the option off in its defconfig. How they are
-  handed to the next stage is 4.5.
+  handed to the next stage is 4.5. A software backend is not the platform's: the core sets it
+  up after `plat_init()` (`crypto.md` 2, D-086). **Not yet in the code (F-442).**
 - `plat_rot` and `plat_slc` can be used.
 - The state of everything 2.3 checks is known (`plat_get_status()`).
 
@@ -158,8 +165,8 @@ The conditions are sorted by what rests on them (`security.md` 4.5):
 | Condition                       | Rests on it                  | When it failed                                  |
 | ------------------------------- | ---------------------------- | ----------------------------------------------- |
 | The DRAM filter is bypassed     | The secure world's isolation | No boot                                         |
-| The crypto engine failed        | What runs next: the image's  | No boot. A fallback that verifies the same      |
-|                                 | verification                 | would boot; no build has one today              |
+| A crypto backend failed, or the | What runs next: the image's  | No boot. A fallback that verifies the same      |
+| build has none (`crypto.md` 2)  | verification                 | would boot; no build has one today              |
 | The watchdog didn't arm         | Availability                 | Boots, and reports `watchdog-not-armed` in pb's |
 | (with `CONFIG_ENABLE_WATCHDOG`) |                              | status (`boot.md` 5.6)                          |
 | The ROM's logs are missing      | Nothing of the boot's        | Logged only                                     |
@@ -316,13 +323,23 @@ enum plat_tz_dram_filter {
     PLAT_TZ_DRAM_BYPASSED,    /* the SoC has one, and it doesn't check DRAM accesses */
 };
 
+enum plat_crypto_engine {
+    PLAT_CRYPTO_ENGINE_NONE,   /* no engine, or its option is off */
+    PLAT_CRYPTO_ENGINE_OK,     /* set up, its operations registered (2.2) */
+    PLAT_CRYPTO_ENGINE_FAILED, /* its option is on and it didn't come up */
+};
+
 struct plat_status {
     enum plat_tz_dram_filter tz_dram_filter;
     bool wdog_armed;          /* false also without CONFIG_ENABLE_WATCHDOG */
-    bool crypto_engine;       /* the engine of 2.2 works; false when turned off */
+    enum plat_crypto_engine crypto_engine; /* the SoC's engine only, not a software backend */
     bool rom_log;             /* the ROM's logs were found */
 };
 ```
+
+`crypto_engine` is the SoC's engine alone (D-086): whether the build has a software backend, and
+whether it came up, is the core's (`crypto.md` 2). It was a `bool` that said whether the build's
+backends, Mbed TLS among them, all came up. **Not yet in the code (F-442).**
 
 What `plat_init()` recorded (2.2), for the boot's preconditions (2.3) and for command mode, which
 shows it in its log. Valid from `plat_init()`. A platform without a field's feature reports it as

@@ -1,6 +1,7 @@
 # The crypto backend contract
 
-**State: reviewed (Jonas, 2026-11-12), D-064, D-071, D-073.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064, D-071, D-073; section 2 changed by D-086, for
+Jonas's review.** Level 3 (`process.md`).
 
 What pb's hashing and signature verification (`include/pb/crypto.h`, `src/crypto.c`) give their
 users, and what a backend that implements them provides: a SoC's crypto engine or a software
@@ -64,12 +65,17 @@ pb verifies and never signs: a backend holds no secret, and nothing here needs c
 A backend registers its operations when it is set up: `hash_add_ops()`, `dsa_add_ops()`, each
 with the algorithms it has (`alg_bits`).
 
-- **Set up by the platform**, in `plat_init()`, each behind its Kconfig option
-  (`platform.md` 2.2). The board's defconfig says which backends the build has.
+- **The engine is the platform's, the software the core's** (Jonas, D-086). A SoC's crypto
+  engine is set up in `plat_init()`, behind its Kconfig option (`platform.md` 2.2). A software
+  backend is no part of a SoC: the core sets it up in `main()` right after `plat_init()`,
+  behind its driver's option (`CONFIG_DRIVERS_CRYPTO_MBEDTLS`), the same on every platform, and
+  records whether it came up. The board's defconfig says which backends the build has. **Not
+  yet in the code (F-442).**
 - **A backend that failed isn't registered.** An algorithm no backend has is
   `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check that can't be made
-  is a no (`security.md` 4.4). A failed verification engine refuses the boot before the load
-  (`platform.md` 2.3, `security.md` 4.5).
+  is a no (`security.md` 4.4). A backend that failed, the engine or the software, and a build
+  with no backend at all, refuse the boot before the load (`platform.md` 2.3, `security.md`
+  4.5).
 - **A build may have several backends, and each algorithm comes from one of them** (Jonas,
   D-071). The hashes and the signatures are registered apart, so an engine can give the
   accelerated hashes while a software backend verifies the signatures, or the other way

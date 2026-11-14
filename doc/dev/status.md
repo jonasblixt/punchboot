@@ -61,6 +61,8 @@ bump is for the porting API. Each item's history is in `log/`.
      jiffy). Left: the bench for F-241 and F-294.
    - D-085, reviewed by Jonas: the code of F-439, F-440, F-441 (`boot.md` 5.7, `platform.md`
      4.1 and 7, `command-mode.md` 5.2, `board.md` 2.2, 2.3, 2.7).
+   - D-086 for Jonas's review: Mbed TLS set up by the core (`crypto.md` 2, `platform.md` 2.2,
+     2.3, 3.8, Open (1)). Then F-442's code.
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
      F-433.
