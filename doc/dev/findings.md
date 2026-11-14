@@ -866,8 +866,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the engine's alone (none, ok, failed), the boot's check the core's (`crypto.md` 2, | | |
 | | | `platform.md` 2.2, 2.3, 3.8). Left, after the review: the code and its host tests | | |
 | F-443 | `src/boot/optee.c`, OP-TEE | Xen through the OP-TEE delivery | Verified (source) | open |
-| | | (Jonas: "op-tee+xen+linux"). pb's side has it: Xen follows the image handover (`boot.md` 5.2), dom0's kernel and ramdisk | | |
-| | | are module nodes in the image's DT. OP-TEE 4.9.0 enters the normal world in SVC, always | | |
+| | | (Jonas: "op-tee+xen+linux"). pb's side has it: Xen follows the image handover | | |
+| | | (`boot.md` 5.2), dom0's kernel and ramdisk are module nodes in the image's DT. OP-TEE | | |
+| | | 4.9.0 enters the normal world in SVC, always | | |
 | | | (`core/arch/arm/kernel/boot.c:152`: `mon_spsr` is `CPSR_MODE_SVC` and `CPSR_I`); Xen | | |
 | | | on AArch32 is entered in Hyp. Needs OP-TEE to return to Non-secure Hyp (the A7 has the virtualization | | |
 | | | extensions), then a Xen build for the 6UL and OP-TEE's virtualization for its guests | | |
