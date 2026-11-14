@@ -482,6 +482,30 @@ static void test_status(void **state)
     assert_true(status.rom_log);
 }
 
+/* platform.md 4.5 (F-246): plat_init() opens both AIPS-TZ bridges as U-Boot
+ * does, every master trusted and no peripheral protected. The reset values
+ * (MPR 0x77000000, OPACR 0x44444444) left the SDMA without peripherals */
+static void test_aipstz_opened(void **state)
+{
+    static const uintptr_t aipstz[] = { IMX6UL_AIPSTZ1_BASE, IMX6UL_AIPSTZ2_BASE };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(aipstz); i++) {
+        fake_regs_set(aipstz[i] + AIPSTZ_MPR, 0x77000000);
+        for (unsigned int n = 0; n < AIPSTZ_OPACRS; n++)
+            fake_regs_set(aipstz[i] + AIPSTZ_OPACR(n), 0x44444444);
+    }
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    for (size_t i = 0; i < ARRAY_SIZE(aipstz); i++) {
+        assert_int_equal(fake_regs_get(aipstz[i] + AIPSTZ_MPR), 0x77777777);
+        for (unsigned int n = 0; n < AIPSTZ_OPACRS; n++)
+            assert_int_equal(fake_regs_get(aipstz[i] + AIPSTZ_OPACR(n)), 0);
+    }
+}
+
 /* platform.md 2.2, 4.3 (F-241, F-248): a TZASC that the board's DCD left in
  * bypass isn't plat_init()'s error, command mode runs without it. It is
  * recorded, and no region is programmed */
@@ -914,6 +938,7 @@ int main(void)
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
         cmocka_unit_test_setup(test_status, setup),
+        cmocka_unit_test_setup(test_aipstz_opened, setup),
         cmocka_unit_test_setup(test_status_tzasc_bypassed, setup),
         cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
         cmocka_unit_test_setup(test_status_rom_logs_missing, setup),

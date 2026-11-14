@@ -276,6 +276,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | read doesn't. Seen on jiffy: `devmem 0x021BC050` from Linux's user mode is a bus error ("external abort on | | |
 | | | non-linefetch"). Check what else Linux misses (DMA masters), then set them in `plat_init()` (`platform.md` | | |
 | | | 4.5) | | |
+| | | 2026-11-14, D-084 (Jonas: yes): `plat_init()` writes MPR 0x77777777 and every OPACR 0 on | | |
+| | | AIPS-1 and AIPS-2, as `init_aips()`. Built, unit tested, not run on jiffy. A 6ULL's AIPS-3 | | |
+| | | isn't set (no board; reserved space on the 6UL) | | |
 | F-247 | `src/board/*/board.c` | The boards wire the SoC's RoT and SLC functions | Verified (code) | open |
 | | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
 | | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |

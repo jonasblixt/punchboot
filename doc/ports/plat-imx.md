@@ -235,8 +235,8 @@ keys, and CAAM's MID for OP-TEE.
 | Bus access control       | AIPS-TZ: "should be programmed     | BL31: CSU, AIPS-TZ, RDC,    | BL31,     | -         |
 |                          | before use" (RM 14.6; reset MPR    | the OCRAM's secure range    | through   |           |
 |                          | 0x77000000, OPACR 0x44444444);     | (GPR11)                     | the SCFW  |           |
-|                          | U-Boot opens them (`init_aips()`), |                             |           |           |
-|                          | pb doesn't (F-246). CSU: OP-TEE    |                             |           |           |
+|                          | pb opens them as U-Boot's          |                             |           |           |
+|                          | `init_aips()` (F-246). CSU: OP-TEE |                             |           |           |
 |                          | sets it and locks it; without it   |                             |           |           |
 |                          | the reset defaults (SRM, CSU_SA)   |                             |           |           |
 | Hardware RNG             | pb instantiates the CAAM's RNG4    | pb (`plat_init()`)          | unchecked | - (no     |
@@ -342,7 +342,7 @@ Where each port is (2026-11-14).
 | TrustZone filter                     | partly       | partly            | n/a (BL31) | n/a       | F-241, F-261  |
 | `plat_lockdown()`                    | yes          | no (HAB first,    | unchecked  | unchecked | F-244, D-084  |
 |                                      |              | D-084)            |            |           |               |
-| Bus access control                   | no (AIPS-TZ) | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
+| Bus access control                   | yes (unrun)  | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
 | `plat_rot`, `plat_slc`               | yes          | yes (no HAB; the  | yes        | yes       |               |
 |                                      |              | 8MQ can't read a  |            |           |               |
 |                                      |              | key's status)     |            |           |               |

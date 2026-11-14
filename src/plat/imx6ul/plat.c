@@ -259,6 +259,27 @@ const struct slc_ops plat_slc = {
  * Returns whether the build's backends all came up. A build without one has
  * none that works.
  */
+/* The AIPS-TZ bridges (6UL RM 14.4, 14.7), a duty of the stage in BL2's
+ * place (platform.md 4.5, F-246). Out of reset MPR is 0x77000000: master 0
+ * (every master but the core, the CAAM and the SDMA) and master 1 (the A7)
+ * are trusted, the CAAM and the SDMA are untrusted and forced to user mode.
+ * Every OPACR is 0x44444444: each peripheral wants supervisor accesses. So
+ * the SDMA reaches no peripheral and user mode reaches no register, which
+ * Linux doesn't expect. As U-Boot's init_aips(): every master trusted and
+ * not forced to user mode, no peripheral protected. A secure OS restricts
+ * what it wants through the CSU, which an access must pass as well (14.4) */
+static void aipstz_init(void)
+{
+    static const uintptr_t aipstz[] = { IMX6UL_AIPSTZ1_BASE, IMX6UL_AIPSTZ2_BASE };
+
+    for (size_t i = 0; i < ARRAY_SIZE(aipstz); i++) {
+        mmio_write_32(aipstz[i] + AIPSTZ_MPR, 0x77777777);
+
+        for (unsigned int n = 0; n < AIPSTZ_OPACRS; n++)
+            mmio_write_32(aipstz[i] + AIPSTZ_OPACR(n), 0);
+    }
+}
+
 static bool crypto_init(void)
 {
     unsigned int backends = 0;
@@ -457,6 +478,8 @@ int plat_init(void)
         LOG_ERR("TZASC setup failed (%i)", rc);
 
     status.tz_dram_filter = (rc == PB_OK) ? PLAT_TZ_DRAM_ACTIVE : PLAT_TZ_DRAM_BYPASSED;
+
+    aipstz_init();
 
     /* Last: until F-247 the board's init() did it, as its first step */
     status.crypto_engine = crypto_init();
