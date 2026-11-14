@@ -134,11 +134,14 @@ static struct imx_ci_udc_xfer bulk_xfer = {
 };
 
 static uintptr_t imx_ci_udc_base;
-/* The host configured the device, and reset the bus after that: every bulk
- * transfer fails until the device is configured or started again
- * (usb.md 2.4, 4.3) */
+/* The host configured the device, and reset the bus or was unplugged after
+ * that: every bulk transfer fails until the device is configured or started
+ * again (usb.md 2.4, 4.3) */
 static bool configured;
-static bool bus_reset_seen;
+static bool lost;
+/* The controller had VBUS when the host configured the device: its loss is
+ * an unplug */
+static bool vbus_seen;
 
 /* The bit of an endpoint in ENDPTPRIME, ENDPTFLUSH, ENDPTSTAT and ENDPTCOMPLETE */
 static uint32_t ep_bit(usb_ep_t ep)
@@ -260,7 +263,8 @@ static void imx_ci_udc_reset_queues(void)
     ep0_xfer.head = NULL;
     bulk_xfer.head = NULL;
     configured = false;
-    bus_reset_seen = false;
+    lost = false;
+    vbus_seen = false;
 }
 
 static void imx_ci_udc_reset(void)
@@ -288,6 +292,19 @@ static void imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
     qh_give(qh);
 }
 
+/* Every endpoint is flushed: a transfer's buffer is the caller's again
+ * (usb.md 4.3) */
+static void imx_ci_udc_flush_all(void)
+{
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_ALL);
+
+    while (mmio_read_32(imx_ci_udc_base + CI_ENDPTFLUSH) == ENDPT_ALL) {
+    };
+
+    xfer_dma_end(&ep0_xfer, true);
+    xfer_dma_end(&bulk_xfer, true);
+}
+
 static int imx_ci_udc_irq_process(void)
 {
     uint32_t tmp;
@@ -299,15 +316,7 @@ static int imx_ci_udc_irq_process(void)
 
     /* Check for USB reset */
     if (sts & USBSTS_URI) {
-        mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_ALL);
-
-        while (mmio_read_32(imx_ci_udc_base + CI_ENDPTFLUSH) == ENDPT_ALL) {
-        };
-
-        /* Every endpoint is flushed: a transfer's buffer is the caller's
-         * again (usb.md 4.3) */
-        xfer_dma_end(&ep0_xfer, true);
-        xfer_dma_end(&bulk_xfer, true);
+        imx_ci_udc_flush_all();
 
         tmp = mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT);
         mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, tmp);
@@ -322,7 +331,26 @@ static int imx_ci_udc_irq_process(void)
         /* Before the device is configured a reset is the host's
          * enumeration and no error (usb.md 2.2) */
         if (configured)
-            bus_reset_seen = true;
+            lost = true;
+    }
+
+    /*
+     * An unplug of the configured device: VBUS, which the controller had
+     * when the host configured it, is gone (usb.md 2.4, 4.3). What the
+     * controller has for it in device mode is the OTG status's B session
+     * valid, a comparator of the PHY's; Linux's chipidea driver reads the
+     * same bit for it (drivers/usb/chipidea/otg.c, ci_handle_vbus_change()).
+     * Linux's device side doesn't use PORTSC's connect status for it, and
+     * the suspend that follows an unplug is a host's suspend too. Read only
+     * while it can change something. A board whose VBUS doesn't reach the
+     * controller never has the bit, and nothing is reported, as before: an
+     * unplug there shows as the next host's bus reset.
+     */
+    if (vbus_seen && !(mmio_read_32(imx_ci_udc_base + CI_OTGSC) & OTGSC_BSV)) {
+        imx_ci_udc_flush_all();
+        LOG_DBG("Unplugged");
+        vbus_seen = false;
+        lost = true;
     }
 
     if (sts & USBSTS_UEI) {
@@ -356,9 +384,9 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     qh = &dqhs[ep];
     dtd = x->dtds;
 
-    /* A bus reset while no transfer ran is the error of the next one.
-     * Endpoint 0 goes on: the host enumerates */
-    if (bus_reset_seen && ep >= USB_EP1_OUT)
+    /* A bus reset or an unplug while no transfer ran is the error of the
+     * next one. Endpoint 0 goes on: the host enumerates */
+    if (lost && ep >= USB_EP1_OUT)
         return -PB_ERR_IO;
 
     /* Longer than the transfer's descriptors or endpoint 0's bounce buffer
@@ -494,8 +522,8 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     if (rc != PB_OK)
         return rc;
 
-    /* A bus reset ends a bulk transfer: lost */
-    if (bus_reset_seen && ep >= USB_EP1_OUT)
+    /* A bus reset or an unplug ends a bulk transfer: lost */
+    if (lost && ep >= USB_EP1_OUT)
         return -PB_ERR_IO;
 
     x = xfer_of(ep);
@@ -630,7 +658,8 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
     }
 
     configured = true;
-    bus_reset_seen = false;
+    lost = false;
+    vbus_seen = (mmio_read_32(imx_ci_udc_base + CI_OTGSC) & OTGSC_BSV) != 0;
 
     return PB_OK;
 }

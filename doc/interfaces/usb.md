@@ -157,8 +157,7 @@ on the way (3.2) is bounded.
   unplug, a bus reset, a transfer that failed, a host that deconfigured the device. The
   transport reports each as an error of the transfer that was running. One is always running
   while a session waits for a command. What happens while none runs, inside a command, is
-  kept and is the error of the next transfer, so nothing is missed. **Not yet in the code
-  (F-287, F-363)**: the ChipIdea reports a bus reset and no unplug.
+  kept and is the error of the next transfer, so nothing is missed.
 - It is also where the stack answers endpoint 0 (3.2).
 
 ### 2.5 Function : cm_transport_disconnect() [mandatory]
@@ -394,8 +393,9 @@ what the code doesn't settle without the hardware.
 | `init` on a running controller   | yes                | yes                 | unverified      | F-204   |
 | Every wait bounded               | no                 | yes                 | yes             | F-136   |
 | High speed, or not ready         | no                 | asks, doesn't act   | no              | F-287   |
-| A bus reset and an unplug are    | a reset, no unplug | yes, kept           | yes, at high    | F-287,  |
-| reported                         |                    |                     | speed, kept     | F-363   |
+| A bus reset and an unplug are    | yes, kept; an      | yes, kept           | yes, at high    | F-287,  |
+| reported                         | unplug where VBUS  |                     | speed, kept     | F-363   |
+|                                  | reaches it         |                     |                 |         |
 | OUT: nothing past `length`       | yes; an overflow   | no: rounded up to a | unverified      | F-205,  |
 |                                  | isn't seen         | packet              |                 | F-137   |
 | OUT: a short packet is an error  | no                 | no                  | no              | F-137,  |

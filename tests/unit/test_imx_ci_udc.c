@@ -496,6 +496,20 @@ static void test_setup_packet(void **state)
     assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
 }
 
+/* pb's two bulk endpoints (usb.md 6) */
+static const struct usb_endpoint_descriptor bulk_eps[] = {
+    { .bLength = 7,
+      .bDescriptorType = USB_DESC_TYPE_ENDPOINT,
+      .bEndpointAddress = USB_EP_ADDR_IN | 1,
+      .bmAttributes = USB_EP_ATTR_BULK,
+      .wMaxPacketSize = 512 },
+    { .bLength = 7,
+      .bDescriptorType = USB_DESC_TYPE_ENDPOINT,
+      .bEndpointAddress = 2,
+      .bmAttributes = USB_EP_ATTR_BULK,
+      .wMaxPacketSize = 512 },
+};
+
 /* The host resets the bus: USBSTS's reset bit, which the driver reads and
  * clears at its next poll */
 static void bus_reset(void)
@@ -510,18 +524,6 @@ static void bus_reset(void)
  * (F-363: the driver flushed, went on and reported nothing) */
 static void test_bus_reset_is_reported(void **state)
 {
-    static const struct usb_endpoint_descriptor eps[] = {
-        { .bLength = 7,
-          .bDescriptorType = USB_DESC_TYPE_ENDPOINT,
-          .bEndpointAddress = USB_EP_ADDR_IN | 1,
-          .bmAttributes = USB_EP_ATTR_BULK,
-          .wMaxPacketSize = 512 },
-        { .bLength = 7,
-          .bDescriptorType = USB_DESC_TYPE_ENDPOINT,
-          .bEndpointAddress = 2,
-          .bmAttributes = USB_EP_ATTR_BULK,
-          .wMaxPacketSize = 512 },
-    };
     struct usb_setup_packet pkt;
     (void)state;
 
@@ -529,7 +531,7 @@ static void test_bus_reset_is_reported(void **state)
     bus_reset();
     assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
     assert_int_equal(fake_regs_get(BASE + CI_USBSTS), 0);
-    assert_int_equal(ops->set_configuration(eps, ARRAY_SIZE(eps)), PB_OK);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
     assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
     assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
 
@@ -545,7 +547,7 @@ static void test_bus_reset_is_reported(void **state)
     assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
 
     /* Configured again, it is a new session */
-    assert_int_equal(ops->set_configuration(eps, ARRAY_SIZE(eps)), PB_OK);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
     transfer_out(0x200, 512);
 
     /* With no transfer running, seen while endpoint 0 is polled: kept */
@@ -559,7 +561,7 @@ static void test_bus_reset_is_reported(void **state)
     assert_int_equal(ops->init(), PB_OK);
     bus_reset();
     assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
-    assert_int_equal(ops->set_configuration(eps, ARRAY_SIZE(eps)), PB_OK);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
     transfer_out(0x200, 512);
 
     /* And after a stop */
@@ -784,6 +786,71 @@ static void test_ep0_length(void **state)
     assert_memory_equal(host, arena + 0x40, 512);
 }
 
+/* The host's supply, as the controller sees it: OTGSC's B session valid */
+static void vbus(bool on)
+{
+    fake_regs_set(BASE + CI_OTGSC, on ? OTGSC_BSV : 0);
+}
+
+/* usb.md 2.2, 2.4, 4.3: an unplug of a device that was configured ends the
+ * bulk transfer that runs with -PB_ERR_IO, every endpoint is flushed, and
+ * with none running it is kept for the next transfer. Before the device is
+ * configured it is no error. A board whose VBUS doesn't reach the
+ * controller never sees it, and nothing changes there (F-363: an unplug
+ * wasn't reported, the transfer waited for a host that was gone) */
+static void test_unplug_is_reported(void **state)
+{
+    struct usb_setup_packet pkt;
+    (void)state;
+
+    /* Before the device is configured: no error */
+    vbus(true);
+    vbus(false);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    vbus(true);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    transfer_out(0x200, 512);
+
+    /* During a bulk transfer */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 3 * PAGE), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+    vbus(false);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(primed, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), -PB_ERR_IO);
+
+    /* Plugged in again: the host enumerates, and configures a new session */
+    vbus(true);
+    bus_reset();
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), -PB_ERR_IO);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    transfer_out(0x200, 512);
+
+    /* With no transfer running, seen while endpoint 0 is polled: kept */
+    vbus(false);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_IO);
+
+    /* The transport is restarted: nothing is kept (usb.md 4.1) */
+    assert_int_equal(ops->init(), PB_OK);
+    vbus(true);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    transfer_out(0x200, 512);
+
+    /* VBUS doesn't reach the controller: nothing is reported, as before */
+    assert_int_equal(ops->init(), PB_OK);
+    vbus(false);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 512), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+    assert_int_equal(controller_run(USB_EP2_OUT, host, 512), 512);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -802,6 +869,7 @@ int main(void)
         cmocka_unit_test_setup(test_request_before_the_result, setup),
         cmocka_unit_test_setup(test_result_once, setup),
         cmocka_unit_test_setup(test_ep0_length, setup),
+        cmocka_unit_test_setup(test_unplug_is_reported, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

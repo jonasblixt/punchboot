@@ -44,6 +44,11 @@
 /* Endpoint list address: the dQH array, 2 KiB aligned */
 #define CI_ENDPTLISTADDR             0x158
 
+/* OTG status and control: B session valid is VBUS above the session
+ * threshold, the host's supply (USB OTG 2.0 5.3) */
+#define CI_OTGSC                     0x1a4
+#define OTGSC_BSV                    BIT_32(11)
+
 /* Port status and control */
 #define CI_PORTSC1                   0x184
 #define PORTSC1_PR                   BIT_32(8) /* Port reset */
