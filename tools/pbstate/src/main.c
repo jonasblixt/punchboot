@@ -262,6 +262,13 @@ int main(int argc, char *const argv[])
         return EINVAL;
     }
 
+    /* One command per call: of two, one was done and the other ignored
+     * without a word (F-421) */
+    if ((flag_show + flag_switch + flag_verify + flag_write_board_reg) > 1) {
+        fprintf(stderr, "Error: one command at a time: -s, -v, -w or -i\n");
+        return EINVAL;
+    }
+
 #if !defined(PRIMARY_PART) || !defined(BACKUP_PART)
     if ((primary_device_path == NULL) || (backup_device_path == NULL)) {
         fprintf(stderr, "Error: Missing required -p and -b parameters\n");

@@ -109,6 +109,33 @@ def test_count_without_switch_is_refused(device: Device, args: tuple[str, ...]) 
     assert _copies(device) == copies
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("-i", "-s", "b"),
+        ("-s", "b", "-i"),
+        ("-i", "-v", "a"),
+        ("-i", "-w", "0", "7"),
+        ("-s", "b", "-v", "a"),
+        ("-v", "a", "-s", "b"),
+        ("-s", "b", "-c", "3", "-v", "a"),
+        ("-s", "b", "-w", "0", "7"),
+        ("-v", "a", "-w", "0", "7"),
+        ("--info", "--switch", "none"),
+    ],
+)
+def test_two_commands_are_refused(device: Device, args: tuple[str, ...]) -> None:
+    # F-421: -i was done and the others ignored, -s beat -v and -w, -v beat -w
+    device.pbstate("-s", "a", "-c", "5")
+    copies = _copies(device)
+
+    result = device.pbstate_run(*args)
+    assert result.returncode == errno.EINVAL
+    assert "one command at a time" in result.stderr
+    assert result.stdout == ""
+    assert _copies(device) == copies
+
+
 @pytest.mark.parametrize("count", ["-1", "4294967296", "x"])
 def test_count_outside_32_bits_is_refused(device: Device, count: str) -> None:
     copies = _copies(device)
