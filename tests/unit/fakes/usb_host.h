@@ -90,6 +90,10 @@ void usb_host_fail_next_start(int rc);
 /* The result of the next poll_setup_pkt, the controller's as usual after it */
 void usb_host_fail_next_poll(int rc);
 
+/* The result of the next ep0_xfer_zlp, as when the host doesn't take the
+ * status stage (-PB_ERR_TIMEOUT); PB_OK again after it */
+void usb_host_fail_next_status(int rc);
+
 /* The host sends a SETUP. The one before it, if the stack didn't take it, is
  * replaced (usb.md 4.4) */
 void usb_host_request(uint8_t request_type,

@@ -126,6 +126,24 @@ static int wait_for_completion(usb_ep_t ep)
     return rc;
 }
 
+/*
+ * A request the stack doesn't know is to be stalled, and the host then goes
+ * on at once (usb.md 3.2). No controller can stall yet (F-138): it is left
+ * unanswered, no data and no status stage, and the host waits out its
+ * timeout. It is no error: the device goes on enumerating, or with the
+ * transfer that runs.
+ */
+static int ep0_unknown(const struct usb_setup_packet *setup)
+{
+    LOG_ERR("EP0 unhandled request %x %x, value 0x%x, index 0x%x, %ub",
+            setup->bRequestType,
+            setup->bRequest,
+            setup->wValue,
+            setup->wIndex,
+            setup->wLength);
+    return PB_OK;
+}
+
 static int ep0_tx(const void *bfr, size_t length)
 {
     int rc;
@@ -185,8 +203,7 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
                 rc = ep0_tx(str_desc, length);
             }
         } else {
-            LOG_ERR("Unhandled descriptor 0x%x", setup->wValue);
-            rc = -PB_ERR_IO;
+            rc = ep0_unknown(setup);
         }
     } break;
     case USB_SET_ADDRESS: {
@@ -246,16 +263,12 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         if (setup->wIndex == USB_MS_EXT_COMPAT_ID) {
             length = MIN(setup->wLength, (uint16_t)sizeof(msft_comp_id_feature));
             rc = ep0_tx(&msft_comp_id_feature, length);
+        } else {
+            rc = ep0_unknown(setup);
         }
     } break;
     default: {
-        LOG_ERR("EP0 Unhandled request %x", request);
-        LOG_ERR(" bRequestType = 0x%x", setup->bRequestType);
-        LOG_ERR(" bRequest = 0x%x", setup->bRequest);
-        LOG_ERR(" wValue = 0x%x", setup->wValue);
-        LOG_ERR(" wIndex = 0x%x", setup->wIndex);
-        LOG_ERR(" wLength = 0x%x", setup->wLength);
-        rc = -PB_ERR;
+        rc = ep0_unknown(setup);
     }
     }
 
@@ -331,6 +344,15 @@ int usbd_connect(void)
         return rc;
 
     rc = usbd_enumerate(&pkt);
+
+    /* A host that left a control transfer (it reset the bus, was unplugged
+     * or gave up) starts over: before the device is configured there is no
+     * session to lose, and the stack goes on enumerating (usb.md 2.2). Any
+     * other error is the controller's */
+    if (rc == -PB_ERR_TIMEOUT) {
+        LOG_ERR("EP0 request %x %x given up", pkt.bRequestType, pkt.bRequest);
+        return -PB_ERR_AGAIN;
+    }
 
     if (rc != PB_OK)
         return rc;

@@ -34,6 +34,7 @@ static bool setup_pending;
 static bool in_control; /* A SETUP was taken and its status stage isn't done */
 static int next_start_rc;
 static int next_poll_rc;
+static int next_status_rc;
 
 /* What the host sent on bulk OUT and no transfer took yet */
 static uint8_t out_fifo[64 * 1024];
@@ -235,7 +236,16 @@ static int hal_set_address(uint16_t addr)
 
 static int hal_ep0_xfer_zlp(usb_ep_t ep)
 {
+    int rc = next_status_rc;
+
     ep0_takes_the_transfer();
+    next_status_rc = PB_OK;
+
+    if (rc != PB_OK) {
+        /* The host didn't take it: the control transfer is over, unanswered */
+        in_control = false;
+        return rc;
+    }
 
     if (in_control) {
         reply.status = true;
@@ -269,6 +279,7 @@ void usb_host_reset(const struct usb_host_config *cfg)
     memset(&reply, 0, sizeof(reply));
     next_start_rc = PB_OK;
     next_poll_rc = PB_OK;
+    next_status_rc = PB_OK;
     controller_reset();
 
     if (cfg != NULL)
@@ -293,6 +304,11 @@ void usb_host_fail_next_start(int rc)
 void usb_host_fail_next_poll(int rc)
 {
     next_poll_rc = rc;
+}
+
+void usb_host_fail_next_status(int rc)
+{
+    next_status_rc = rc;
 }
 
 void usb_host_request(uint8_t request_type,

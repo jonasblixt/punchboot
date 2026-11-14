@@ -840,6 +840,91 @@ static void test_disconnect(void **state)
     assert_false(usb_host_state()->attached);
 }
 
+/* An unknown request before the device is configured, of each kind the
+ * stack didn't know: a standard one, a descriptor, a vendor request with
+ * another index */
+static void unknown_requests(void)
+{
+    /* GET_CONFIGURATION */
+    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_CONFIGURATION, 0, 0, 1);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_true(usb_host_reply()->taken);
+    assert_false(usb_host_reply()->status);
+
+    /* The BOS descriptor */
+    host_get_descriptor(0x0f, 0, 5);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_true(usb_host_reply()->taken);
+    assert_false(usb_host_reply()->status);
+
+    usb_host_request(USB_HOST_REQ_IN | USB_HOST_REQ_VENDOR, 1, 0, 5, 40);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_true(usb_host_reply()->taken);
+    assert_false(usb_host_reply()->status);
+}
+
+/* usb.md 3.2, 2.2: a request the stack doesn't know is to be stalled, and
+ * the host goes on; no controller can stall yet (F-138), so it is left
+ * unanswered. Before the device is configured the device goes on
+ * enumerating, and in a session the transfer goes on (F-422: connect
+ * failed and command mode left; in a session the transfer was lost) */
+static void test_unknown_request(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    unknown_requests();
+    assert_int_equal(usb_host_state()->unanswered, 2);
+    enumerate();
+    assert_int_equal(usb_host_state()->unanswered, 3);
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_CONFIGURATION, 0, 0, 1);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    assert_false(usb_host_reply()->status);
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(buf, data, PACKET);
+
+    /* One transfer for the controller: the read is started again */
+    start(&one_xfer);
+    enumerate();
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    host_get_descriptor(0x0f, 0, 5);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(buf, data, PACKET);
+}
+
+/* usb.md 2.2, 3.2: a host that leaves a control transfer before the device
+ * is configured (its status stage given up, -PB_ERR_TIMEOUT) starts over,
+ * and so does the device: no error. In a session it is lost (2.4) */
+static void test_control_transfer_given_up(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    usb_host_fail_next_status(-PB_ERR_TIMEOUT);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_false(usb_host_reply()->status);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    usb_host_fail_next_status(-PB_ERR_TIMEOUT);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_TIMEOUT);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_STATE);
+
+    /* Another error of the controller's before configuration is its
+     * failure, as it was */
+    start(NULL);
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    usb_host_fail_next_status(-PB_ERR_IO);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_IO);
+}
+
 /* SET_IDLE, a request of another class without a data stage: answered as
  * it was (D-073 has it stalled, which no controller can yet), with one
  * status stage, IN. F-422: the stack asked for an OUT status stage after
@@ -920,6 +1005,8 @@ int main(void)
         cmocka_unit_test(test_setup_poll_error_is_lost),
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
+        cmocka_unit_test(test_unknown_request),
+        cmocka_unit_test(test_control_transfer_given_up),
         cmocka_unit_test(test_set_idle),
         cmocka_unit_test(test_unknown_string),
     };
