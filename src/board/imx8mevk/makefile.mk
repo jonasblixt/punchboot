@@ -56,3 +56,6 @@ imx8m_sign_image: imx8m_image
 
 image-y += imx8m_image
 image-y += imx8m_sign_image
+
+# What `all` names as the build's output, set here and not by a recipe
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET)_signed.imx

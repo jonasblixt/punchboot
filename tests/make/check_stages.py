@@ -15,6 +15,8 @@ The cases, each in a build directory of its own:
   the board's own stage from pb.bin in image-y, with its FINAL_OUTPUT.
 - A board that still fills plat-y, the list's name before 3.0.0, is refused:
   it would build without its image.
+- Each board in the tree names the last file of its stages as the final
+  output (make -n).
 
 It needs the firmware's tools (arm-none-eabi-gcc and the bpak CLI, both in the
 dev container) and is skipped without them.
@@ -173,7 +175,52 @@ def check_old_list(root: pathlib.Path, work: pathlib.Path) -> str:
     return case.line("a board that fills plat-y is refused", problems)
 
 
-CHECKS = (check_own_tooling, check_old_list)
+# The boards in the tree and the last file their defconfig's stages make
+IN_TREE = {
+    "jiffy": "pb_signed.imx",
+    "imxrt1060evk": "pb_flash.bin",
+    "imx8qxmek": "pb_signed.imx",
+    "imx8dxlevk": "pb.imx",
+    "imx8mevk": "pb_signed.imx",
+    "imx8mpevk": "pb.imx",
+}
+
+
+def check_in_tree(root: pathlib.Path, work: pathlib.Path) -> str:
+    """Check what `all` names as the final output of each board in the tree.
+
+    make -n: nothing is built, so neither the vendors' tools and firmware nor
+    the aarch64 compiler are needed. The DDR firmware is left out (blobs-y),
+    and the DXL EVK's keystore, which isn't in the tree, is the test one.
+    """
+    env = {k: v for k, v in os.environ.items() if k not in ("MAKEFLAGS", "MFLAGS", "MAKELEVEL")}
+    problems = []
+    for board, name in IN_TREE.items():
+        build = work / "in-tree" / board
+        cmd = [
+            "make",
+            "-n",
+            f"BOARD=src/board/{board}",
+            f"KCONFIG_CONFIG=configs/{board}_defconfig",
+            f"BUILD_DIR={build}",
+            "CONFIG_KEYSTORE=pki/internal_keystore.bpak",
+            "blobs-y=",
+            "all",
+        ]
+        result = subprocess.run(  # noqa: S603
+            cmd, cwd=root, env=env, capture_output=True, text=True, check=False
+        )
+        said = f"Success, final output: {build / name}"
+        if result.returncode != 0:
+            problems.append(f"{board}: make -n: exit {result.returncode}: {result.stderr[-500:]}")
+        elif said not in result.stdout:
+            problems.append(f"{board}: all didn't say '{said}'")
+    if problems:
+        return f"FAILED: in-tree: the boards' final output: {'; '.join(problems)}"
+    return "ok: in-tree: every board's final output is the last file of its stages"
+
+
+CHECKS = (check_own_tooling, check_old_list, check_in_tree)
 
 
 def main() -> int:

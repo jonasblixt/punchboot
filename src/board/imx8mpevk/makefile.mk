@@ -35,3 +35,6 @@ imx8mp_image: $(BUILD_DIR)/pb.bin
 	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(CONFIG_PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
 
 image-y += imx8mp_image
+
+# What `all` names as the build's output, set here and not by a recipe
+FINAL_OUTPUT = $(BUILD_DIR)/pb.imx
