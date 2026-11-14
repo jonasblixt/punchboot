@@ -28,8 +28,8 @@ board overrides the platform's stages (platform.md 6.2):
   works out is the shell's, and FINAL_OUTPUT is set when the makefiles are
   read.
 
-It needs the firmware's tools (arm-none-eabi-gcc, the bpak CLI, U-Boot's
-mkimage and NXP's cst, all in the dev container) and is skipped without them.
+It needs the firmware's tools (arm-none-eabi-gcc, U-Boot's mkimage and NXP's
+cst, all in the dev container) and is skipped without them.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ import sys
 
 SKIP = 77
 CROSS_COMPILE = "arm-none-eabi-"
-TOOLS = ("make", f"{CROSS_COMPILE}gcc", "bpak", "mkimage", "cst")
+TOOLS = ("make", f"{CROSS_COMPILE}gcc", "mkimage", "cst")
 # The board in the tree whose sources and defconfig the board is made from
 FROM = "jiffy"
 # The board's data: its sources, and nothing of the in-tree board's makefile.mk
@@ -337,8 +337,7 @@ def check_in_tree(root: pathlib.Path, work: pathlib.Path) -> str:
     """Check what `all` names as the final output of each board in the tree.
 
     make -n: nothing is built, so neither the vendors' tools and firmware nor
-    the aarch64 compiler are needed. The DDR firmware is left out (blobs-y),
-    and the DXL EVK's keystore, which isn't in the tree, is the test one.
+    the aarch64 compiler are needed. The DDR firmware is left out (blobs-y).
     """
     env = {k: v for k, v in os.environ.items() if k not in ("MAKEFLAGS", "MFLAGS", "MAKELEVEL")}
     problems = []
@@ -350,7 +349,6 @@ def check_in_tree(root: pathlib.Path, work: pathlib.Path) -> str:
             f"BOARD=src/board/{board}",
             f"KCONFIG_CONFIG=configs/{board}_defconfig",
             f"BUILD_DIR={build}",
-            "CONFIG_KEYSTORE=pki/internal_keystore.bpak",
             "blobs-y=",
             "all",
         ]

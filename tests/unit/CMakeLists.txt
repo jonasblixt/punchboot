@@ -175,8 +175,8 @@ target_include_directories(test_imx_iomuxc BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
 )
 
-# Includes src/rot.c, to set the slot list per test
-pb_unit_test(test_rot_slots LIBS pb_keystore)
+# With a keystore of its own, with an empty slot
+pb_unit_test(test_rot_slots SOURCES ${PROJECT_SOURCE_DIR}/src/rot.c)
 
 pb_unit_test(test_device_uuid
     SOURCES

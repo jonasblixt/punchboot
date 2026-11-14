@@ -693,15 +693,30 @@ static const struct slc_config slc = {
 };
 ```
 
+```make
+# The board's makefile.mk
+VERIFY_KEY0_PATH = $(BOARD)/keys/field1.der
+VERIFY_KEY0_ID   = field1
+VERIFY_KEY1_PATH = $(BOARD)/keys/field2.der
+VERIFY_KEY1_ID   = field2
 ```
-CONFIG_KEYSTORE_SLOTS="a90f9680 25c6dd36 52c1eda0"
+
+```
 CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
 ```
 
-- **The key map is gone.** The keys are the keystore's. `CONFIG_KEYSTORE_SLOTS` lists the key
-  ids in the order of their revoke slots: write the ids of the 2.x map there in the order of
-  their `param1`. Empty means the keystore's order. A key that is dropped from the keystore
-  keeps its place in the list.
+- **The keys are the board's `makefile.mk`'s, not a bpak keystore** (`board.md` 7, D-083).
+  `CONFIG_KEYSTORE` and the bpak CLI's round trip are gone, and a configuration that still sets
+  `CONFIG_KEYSTORE` stops the build. Each key of the 2.x keystore becomes `VERIFY_KEY<n>_PATH`,
+  its public key in DER or PEM, and `VERIFY_KEY<n>_ID`, the keystore's part name (or the id in
+  hex), so its id stays what images and tokens name. `bpak extract keystore.bpak --part <name>
+  -o <name>.der` gets a key out of a 2.x keystore. Only P-256, P-384 and P-521 keys: an RSA key
+  stops the build.
+- **The key map is gone, and n is the key's revoke slot**: write each key at its 2.x map's
+  `param1`. A key that is dropped leaves its slot empty, so the keys after it keep their fuse
+  bits.
+- **A board that names no key gets the development keys** (`pki/dev-keys.mk`), whose private
+  keys are in the tree, and the build says so. A board that names one key gets only its own.
 - **The SRK hash comes from the build**: `CONFIG_SRK_FUSE` names srktool's fuse file. No words
   are copied into the board. A wrong hash closes the device to every image.
 - **The configuration fuses are data**, `slc.fuses`, by the platform's fuse index macro. The
@@ -810,7 +825,9 @@ its default (`platform.md` 6.2). Compare the defconfig with the closest one in `
 | `BOOT_ATF`, as the whole driver        | `BOOT_ATF` and the handover's option (section 3)  |
 | None                                   | The platform's port for command mode, such as     |
 |                                        | `IMX6UL_CM_USB_OTG1` (section 8)                  |
-| None                                   | `KEYSTORE_SLOTS`, `SRK_FUSE` (section 13)         |
+| `KEYSTORE`                             | `VERIFY_KEY<n>_PATH` and `_ID` in the board's     |
+|                                        | `makefile.mk` (section 13)                        |
+| None                                   | `SRK_FUSE` (section 13)                           |
 | None                                   | `CM_ON_SERIAL_DOWNLOAD`, default y (section 12)   |
 | None                                   | `SLC_EOL`, default n (section 13)                 |
 | None                                   | `CM_TRANSFER_TIMEOUT`, 10 s: a transfer the host  |
@@ -1202,7 +1219,8 @@ The port is done when the board passes `board.md` 9. A product in the field also
 `board.md` 8 fixes. What the sections above can change by mistake:
 
 - The board's `name`, the partitions' UUIDs, the GPT's layouts.
-- The revoke slot of each key: `CONFIG_KEYSTORE_SLOTS` against the 2.x key map (section 13).
+- Each key's revoke slot and id: `VERIFY_KEY<n>` against the 2.x key map and keystore (section
+  13).
 - The configuration fuses' words and bits, and `CONFIG_SRK_FUSE` against the SRK words of 2.x.
 - The entry and the arguments the product's images get: the handover, its parts,
   `set_dtb_boot_arg`, and whether BL31 is started directly or through the delivery (section 3).

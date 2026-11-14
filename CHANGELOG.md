@@ -180,8 +180,8 @@ can change by mistake that a device in the field relies on. Then check:
 - **The images in the field against the table above**: every part inside the board's image
   data regions, the entry's part there and not empty, no `dont-hash` part. The boards in the
   tree leave out the DRAM next to pb and its buffers, which 2.x loaded into (F-392).
-- **The revoke slot of each key.** The board's key map is gone, and `CONFIG_KEYSTORE_SLOTS`
-  gives the slots: a key must keep the fuse bit it had (D-027).
+- **The revoke slot of each key.** The board's key map is gone, and key n of the board's
+  `VERIFY_KEY<n>` is in slot n: a key must keep the fuse bit it had (D-027, D-083).
 - **Whatever loads pb with the ROM's serial downloader** and expects it to boot from storage:
   the factory's flow, a recovery script. It sends a boot command now, or the build turns
   `CONFIG_CM_ON_SERIAL_DOWNLOAD` off (D-031).

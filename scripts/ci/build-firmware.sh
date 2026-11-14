@@ -7,8 +7,7 @@
 #
 # Only the firmware binary (build-<board>/pb.bin) is built. Signed boot images
 # are built by the 'all' target, which needs mkimage and NXP cst (both in the
-# container) and, for most boards, vendor blobs that are not. Boards that use
-# an external keystore are built against the internal test keystore.
+# container) and, for most boards, vendor blobs that are not.
 #
 # imx8mevk and imx8mpevk need NXP's LPDDR4 training firmware, which is not
 # in the repository. Without IMX8M_FW_DIR (a directory with the four
@@ -30,8 +29,6 @@ case "$board" in
         ;;
     imx8dxlevk)
         cross=aarch64-linux-gnu-
-        # The defconfig points to a keystore that is not in the repository
-        set -- CONFIG_KEYSTORE=pki/internal_keystore.bpak "$@"
         ;;
     imx8qxmek)
         cross=aarch64-linux-gnu-

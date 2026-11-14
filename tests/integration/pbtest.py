@@ -60,7 +60,7 @@ NOR_LOADED_SIZE = 128 * 1024
 NOR_NOT_BOOTABLE_UUID = uuid.UUID("5e808588-1c7a-4755-8729-5f4256610cdb")
 BPAK_HEADER_SIZE = 4096
 
-# Keys in pki/internal_keystore.bpak, and the auth token for the host
+# Keys of pki/dev-keys.mk, and the auth token for the host
 # board's device UUID
 DEV_KEY_ID = 0xA90F9680  # pb-development
 AUTH_TOKEN = REPO_ROOT / "tests" / "02e49231-756e-35ee-a982-378e5ba866a9.token"

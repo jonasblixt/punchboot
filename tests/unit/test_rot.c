@@ -22,7 +22,7 @@
 #include <pb/slc.h>
 #include <string.h>
 
-/* The keys in pki/internal_keystore.bpak */
+/* The keys of pki/dev-keys.mk */
 #define KEY_P256 0xa90f9680
 #define KEY_P384 0x25c6dd36
 #define KEY_P521 0x52c1eda0

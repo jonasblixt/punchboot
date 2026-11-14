@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Check that the firmware build makes again what a changed input makes.
 
-keystore.c is made from CONFIG_KEYSTORE, srk_fuse.c from CONFIG_SRK_FUSE and
+keystore.c is made from the board's keys (VERIFY_KEY<n>) and
+scripts/gen-keystore.py, srk_fuse.c from CONFIG_SRK_FUSE and
 scripts/gen-srk-fuse.py, and every object can use PB_VERSION (F-183). Every
 object is compiled with the compiler flags, and pb is linked with the linker
 flags and the link scripts (F-398). A build directory that was built before
@@ -12,8 +13,8 @@ changes each input:
 
   check_rebuild.py <source dir> <work dir>
 
-It needs the firmware's tools (arm-none-eabi-gcc and the bpak CLI, both in the
-dev container) and is skipped without them.
+It needs the firmware's toolchain (arm-none-eabi-gcc, in the dev container) and
+is skipped without it.
 """
 
 from __future__ import annotations
@@ -29,8 +30,6 @@ CROSS_COMPILE = "arm-none-eabi-"
 BOARD = "src/board/jiffy"
 DEFCONFIG = "configs/jiffy_defconfig"
 SRK_FUSE = "pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
-# The keystore's last key, which the second keystore doesn't have
-LAST_KEY = "0x52c1eda0"
 # An mtime before any build: a copied input is older than what was made from
 # the original, so only the variable that names it changed
 OLD = 1_000_000_000
@@ -198,22 +197,24 @@ def main() -> int:
     root = pathlib.Path(sys.argv[1]).resolve()
     work = pathlib.Path(sys.argv[2]).resolve()
 
-    missing = [t for t in ("make", f"{CROSS_COMPILE}gcc", "bpak") if shutil.which(t) is None]
+    missing = [t for t in ("make", f"{CROSS_COMPILE}gcc") if shutil.which(t) is None]
     if missing:
         say(f"skipped: no {', '.join(missing)}")
         return SKIP
 
     b = Build(root, work)
 
-    # A second keystore, without the last key, and a second SRK fuse file
-    keystore2 = work / "keystore2.bpak"
-    shutil.copy(root / "pki/internal_keystore.bpak", keystore2)
-    subprocess.run(  # noqa: S603
-        ["bpak", "delete", str(keystore2), "--part", LAST_KEY],  # noqa: S607
-        check=True,
-        capture_output=True,
+    # Two of the development keys on the command line, the first a copy, and
+    # a second SRK fuse file
+    key0 = work / "key0.der"
+    shutil.copy(root / "pki/secp256r1-pub-key.der", key0)
+    os.utime(key0, (OLD, OLD))
+    two_keys = (
+        f"VERIFY_KEY0_PATH={key0}",
+        "VERIFY_KEY0_ID=pb-development",
+        "VERIFY_KEY1_PATH=pki/secp384r1-pub-key.der",
+        "VERIFY_KEY1_ID=pb-development2",
     )
-    os.utime(keystore2, (OLD, OLD))
     srk2 = work / "srk2.bin"
     shutil.copy(root / "pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin", srk2)
     os.utime(srk2, (OLD, OLD))
@@ -230,18 +231,24 @@ def main() -> int:
     b.make()
     b.check("back to version.txt")
 
-    b.make(f"CONFIG_KEYSTORE={keystore2}")
-    b.check("CONFIG_KEYSTORE on the command line", keys=2)
+    b.make(*two_keys)
+    b.check("two keys on the command line", keys=2)
+    b.check_up_to_date("and then nothing to make", *two_keys)
+
+    # A key file that changes, at the same path
+    key0.write_bytes((root / "pki/secp521r1-pub-key.der").read_bytes())
+    b.check_out_of_date("a key's file changed: keystore.o is made again", *two_keys)
+    b.make(*two_keys)
+    b.check_up_to_date("and then nothing to make", *two_keys)
 
     b.make()
-    b.check("back to the defconfig's keystore")
-
-    config = b.defconfig("keystore2_defconfig", CONFIG_KEYSTORE=str(keystore2))
-    b.make(f"KCONFIG_CONFIG={config}")
-    b.check("CONFIG_KEYSTORE in the configuration", keys=2)
-
-    b.make()
-    b.check("back to the defconfig")
+    b.check("back to the development keys")
+    b.check_out_of_date(
+        "scripts/gen-keystore.py changed: keystore.o is made again",
+        "-W",
+        "scripts/gen-keystore.py",
+        targets=["keystore.o"],
+    )
 
     config = b.defconfig("srk2_defconfig", CONFIG_SRK_FUSE=str(srk2))
     b.make(f"KCONFIG_CONFIG={config}")

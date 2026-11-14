@@ -81,8 +81,8 @@ needs them: without a life cycle that can be read the device counts as closed, a
 root of trust no token opens it (`board.md` 2.1). What the states allow: `system.md` 4. Which
 functions a SoC has: `plat-imx.md` 4.1.
 
-1. The keystore (`CONFIG_KEYSTORE`) holds the public keys images are verified with, and
-   `CONFIG_KEYSTORE_SLOTS` each key's revoke slot.
+1. The keys images are verified with, `VERIFY_KEY<n>_PATH` and `_ID` in the board's
+   `makefile.mk`, n the key's revoke slot (`board.md` 7).
 2. `rot` and `slc` name the platform's functions. jiffy: the HABv4 driver's (`imx_hab_*`).
    They move to the platform (F-247).
 3. The configuration fuses are data, `slc.fuses`: the boot device and what else the product

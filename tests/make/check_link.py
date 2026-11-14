@@ -18,8 +18,8 @@ the board's without its static asserts, with the same makefile.mk; the board
 itself links with its values.
 The Firmware Handoff region is checked too: only the RT1060 EVK has one, so
 the other boards are also built with a defconfig that has it ("<board>-fh").
-It needs the firmware's tools (arm-none-eabi-gcc, aarch64-linux-gnu-gcc and
-the bpak CLI, all in the dev container) and is skipped without them.
+It needs the firmware's tools (arm-none-eabi-gcc and aarch64-linux-gnu-gcc,
+both in the dev container) and is skipped without them.
 """
 
 from __future__ import annotations
@@ -491,7 +491,7 @@ def main() -> int:
     root = pathlib.Path(sys.argv[1]).resolve()
     work = pathlib.Path(sys.argv[2]).resolve()
 
-    tools = ("make", f"{ARM}gcc", f"{AARCH64}gcc", "bpak")
+    tools = ("make", f"{ARM}gcc", f"{AARCH64}gcc")
     missing = [t for t in tools if shutil.which(t) is None]
     if missing:
         say(f"skipped: no {', '.join(missing)}")

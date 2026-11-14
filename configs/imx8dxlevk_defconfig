@@ -35,7 +35,6 @@ CONFIG_IMX8X_CREATE_IMX_IMAGE=y
 #
 # Generic options
 #
-CONFIG_KEYSTORE="keystore.bpak"
 CONFIG_SRK_FUSE="pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin"
 CONFIG_LOGLEVEL=3
 CONFIG_ENABLE_WATCHDOG=y

@@ -9,9 +9,8 @@
 #   mkimage <app.bin> <load address> <out.bpak>
 #
 # One part, "app", that pb loads to <load address> and starts there
-# (src/boot/fh.c). Signed with the punchboot test key, which
-# pb's test keystore (pki/internal_keystore.bpak) trusts; set SIGN_KEY for
-# another one.
+# (src/boot/fh.c). Signed with the punchboot test key, one of pb's
+# development keys (pki/dev-keys.mk); set SIGN_KEY for another one.
 
 set -euo pipefail
 

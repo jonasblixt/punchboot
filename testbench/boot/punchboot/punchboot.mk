@@ -18,8 +18,8 @@ PUNCHBOOT_BOARD = $(call qstrip,$(BR2_TARGET_PUNCHBOOT_BOARD))
 PUNCHBOOT_CONFIG_FILE = $(or $(call qstrip,$(BR2_TARGET_PUNCHBOOT_CONFIG_FILE)),configs/$(PUNCHBOOT_BOARD)_defconfig)
 PUNCHBOOT_BUILD_DIR = build-$(PUNCHBOOT_BOARD)
 
-# The keystore and the HAB keys come from the punchboot configuration,
-# by default the test keys in pki/ of the punchboot sources.
+# The keys come from the board's makefile.mk and the HAB keys from the
+# punchboot configuration, by default the test keys in pki/ of the sources.
 PUNCHBOOT_MAKE_OPTS = \
 	BOARD=src/board/$(PUNCHBOOT_BOARD) \
 	KCONFIG_CONFIG=$(PUNCHBOOT_CONFIG_FILE) \

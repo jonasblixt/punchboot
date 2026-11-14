@@ -58,7 +58,7 @@ sign() {
 }
 
 # One image per hash and signature kind, with the keys in
-# pki/internal_keystore.bpak
+# pki/dev-keys.mk
 image sha256-secp256r1.bpak sha256 prime256v1
 part kernel 65536 0x49000000
 sign pb-development pki/secp256r1-key-pair.pem pki/secp256r1-pub-key.pem

@@ -21,8 +21,8 @@ struct rot_key {
 };
 
 /**
- * The platform's key revocation. The keys are the keystore's (keystore_pb),
- * their slots CONFIG_KEYSTORE_SLOTS (src/Kconfig).
+ * The platform's key revocation. The keys and their slots are the board's,
+ * VERIFY_KEY<n> in its makefile.mk (board.md 7).
  */
 struct rot_config {
     int (*revoke_key)(const struct rot_key *key); /*!< Optional */

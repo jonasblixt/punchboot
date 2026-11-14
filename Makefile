@@ -139,6 +139,33 @@ endif
 
 cflags-y  += $(foreach v,$(BOARD_MEMORY),-D$(v)=$($(v)))
 
+# The keys (board.md 7, D-083): VERIFY_KEY<n>_PATH and VERIFY_KEY<n>_ID in the
+# board's makefile.mk or on the command line, n the key's revoke slot. A board
+# that names no key gets pb's development keys, all of them: one that names a
+# key gets only its own, never a test key in a slot it left empty.
+KEY_VARIABLES = $(filter VERIFY_KEY%_PATH VERIFY_KEY%_ID,$(.VARIABLES))
+ifeq ($(KEY_VARIABLES),)
+include pki/dev-keys.mk
+DEV_KEYS = 1
+endif
+KEY_SLOTS = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+KEY_PATHS = $(foreach n,$(KEY_SLOTS),$(VERIFY_KEY$(n)_PATH))
+KEYSTORE_ARGS = $(foreach n,$(KEY_SLOTS),$(if $(VERIFY_KEY$(n)_PATH),$(n) $(VERIFY_KEY$(n)_ID) $(VERIFY_KEY$(n)_PATH)))
+ifneq ($(filter-out menuconfig olddefconfig clean,$(or $(MAKECMDGOALS),all)),)
+$(foreach v,$(filter-out $(foreach n,$(KEY_SLOTS),VERIFY_KEY$(n)_PATH VERIFY_KEY$(n)_ID),$(KEY_VARIABLES)),\
+    $(error $(v): not a key, the slots are 0 to 15 (board.md 7)))
+$(foreach n,$(KEY_SLOTS),$(if $(and $(strip $(VERIFY_KEY$(n)_PATH)),$(strip $(VERIFY_KEY$(n)_ID))),,\
+    $(if $(strip $(VERIFY_KEY$(n)_PATH)$(VERIFY_KEY$(n)_ID)),\
+        $(error VERIFY_KEY$(n): a key has both VERIFY_KEY$(n)_PATH and VERIFY_KEY$(n)_ID (board.md 7)))))
+$(if $(strip $(KEYSTORE_ARGS)),,$(error VERIFY_KEY<n>_PATH: the board names no key (board.md 7)))
+# Before 3.0.0 the keys were a bpak keystore in the configuration. A 2.x
+# defconfig would otherwise build with the development keys.
+ifneq ($(or $(filter-out undefined,$(origin CONFIG_KEYSTORE) $(origin CONFIG_KEYSTORE_SLOTS)),\
+            $(shell grep -E '^CONFIG_KEYSTORE(_SLOTS)?=' $(KCONFIG_CONFIG))),)
+$(error CONFIG_KEYSTORE and CONFIG_KEYSTORE_SLOTS are the board's VERIFY_KEY<n>_PATH and VERIFY_KEY<n>_ID since 3.0.0 (board.md 7, migration-3.0.md 13))
+endif
+endif
+
 # BOARD_RAM_BASE and BOARD_RAM_END are the DRAM's names in the platforms'
 # memory maps; the end is made here, where it doesn't wrap in 32 bits.
 BOARD_DRAM_END := $(shell printf '0x%x' $$(( $(BOARD_DRAM_BASE) + $(BOARD_DRAM_SIZE) )))
@@ -180,6 +207,7 @@ menuconfig olddefconfig:
 
 all: $(BUILD_DIR)/$(TARGET).bin $(image-y)
 	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
+	$(if $(DEV_KEYS),@echo "Keys: the development keys (pki/dev-keys.mk) are never a product's")
 	@echo "Success, final output: $(FINAL_OUTPUT)"
 
 # Every object can use PB_VERSION
@@ -194,18 +222,10 @@ LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(ldflags-y))))
 
 $(OBJS): $(call value_file,compile_cmd)
 
-$(BUILD_DIR)/keystore.o: $(call unquote,$(CONFIG_KEYSTORE)) $(call value_file,CONFIG_KEYSTORE)
-	@echo GEN $(BUILD_DIR)/keystore.c
-	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) --decorate > $(BUILD_DIR)/keystore.c
-ifdef CONFIG_BOOT_FH
-# pb's structure has room for 16 keys (boot.md 5.4). The number of keys is
-# only in the generated keystore, where no static assert in C can read it
-	$(Q)n=$$(sed -n 's/^ *\.no_of_keys = \([0-9][0-9]*\),.*/\1/p' $(BUILD_DIR)/keystore.c); \
-	 if ! [ "$$n" -le 16 ] 2>/dev/null; then \
-	     echo "CONFIG_BOOT_FH: the keystore has '$$n' keys, pb's structure holds 16 (boot.md 5.4)" >&2; \
-	     exit 1; \
-	 fi
-endif
+$(BUILD_DIR)/keystore.o: $(KEY_PATHS) $(call value_file,KEYSTORE_ARGS) scripts/gen-keystore.py
+	@echo "GEN $(BUILD_DIR)/keystore.c$(if $(DEV_KEYS), with the development keys (pki/dev-keys.mk))"
+	$(Q)$(PYTHON) scripts/gen-keystore.py $(KEYSTORE_ARGS) > $(BUILD_DIR)/keystore.c.tmp
+	$(Q)mv $(BUILD_DIR)/keystore.c.tmp $(BUILD_DIR)/keystore.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
 SRK_FUSE_FILE := $(patsubst "%",%,$(CONFIG_SRK_FUSE))

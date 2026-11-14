@@ -25,8 +25,9 @@ CI runs these tests (D-006).
 |                           | `bpak/`, wire transcripts in `transcripts/`. See `compatibility.md`                    |
 | `tests/doc/`              | The document lint (`process.md` 7): `check_docs.py`, the test `doc.lint`               |
 | `tests/make/`             | The firmware build: `check_rebuild.py` (`make.rebuild`) runs `make` for jiffy and      |
-|                           | checks that a changed keystore, SRK fuse file or version is made again (F-183);        |
-|                           | `check_config.py` (`make.config`), its configuration (F-229, F-147);                   |
+|                           | checks that a changed key, SRK fuse file or version is made again (F-183);             |
+|                           | `check_config.py` (`make.config`), its configuration and keys (F-229, F-147, D-083);   |
+|                           | `check_gen_keystore.py` (`make.gen_keystore`), the keystore's generator;               |
 |                           | `check_include_dirs.py` (`make.include_dirs`), that each `-I` exists (F-031)           |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest                                    |
 
@@ -306,7 +307,7 @@ Unit tests, by module under test:
 | `test_imx_rom_log.c`, `test_imx_hab_log.c`    | `imx_rom_log.c`,             | the ROM's log; the HAB API in a  |
 |                                               | `imx_hab_log.c`              | fake RVT                         |
 | `test_imx8x_seco_log.c`                       | `plat/imx8x`'s SECO log      | the SCFW's two calls             |
-| `test_rot_slots.c`, `test_slc_no_eol.c`       | `rot.c`'s revoke slots;      | keystore, board callbacks        |
+| `test_rot_slots.c`, `test_slc_no_eol.c`       | `rot.c`'s revoke slots;      | a keystore, board callbacks      |
 |                                               | `slc.c` without              |                                  |
 |                                               | `CONFIG_SLC_EOL`             |                                  |
 | `test_snprintf.c`                             | pb's `snprintf()`,           | none                             |

@@ -16,8 +16,8 @@
 #
 # post-image.sh <images dir> <board>
 #
-# Both are signed with the punchboot test key, which punchboot's test
-# keystore (pki/internal_keystore.bpak) and kickstart's test keystore trust.
+# Both are signed with the punchboot test key, which punchboot's
+# development keys (pki/dev-keys.mk) and kickstart's test keystore have.
 # Set BOOT_SIGN_KEY and ROOT_SIGN_KEY to sign with other keys.
 
 set -euo pipefail
