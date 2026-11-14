@@ -81,7 +81,7 @@ esac
 make BOARD="src/board/$board" \
      KCONFIG_CONFIG="configs/${board}_defconfig" \
      CROSS_COMPILE="$cross" \
-     -j"$(nproc)" \
+     -j"${PB_JOBS:-$(nproc)}" \
      "$@" \
      "build-$board/pb.bin"
 

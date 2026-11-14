@@ -107,6 +107,18 @@ oot_image: $(BUILD_DIR)/pb.bin
 """
 
 
+
+def budget(tasks: int) -> tuple[int, int]:
+    """Return the workers and each one's make jobs for this many tasks.
+
+    Together they stay within PB_JOBS (scripts/ci/host-test.sh), or the CPUs
+    this process may run on: a pool of a dozen makes of -j<cores> each loaded
+    an 8 core machine to 100.
+    """
+    jobs = int(os.environ.get("PB_JOBS") or len(os.sched_getaffinity(0)))
+    workers = max(1, min(jobs, tasks))
+    return workers, max(1, jobs // workers)
+
 def say(text: str) -> None:
     """Print a line of the report."""
     sys.stdout.write(text + "\n")
@@ -147,7 +159,7 @@ class Case:
         (self.board / "makefile.mk").write_text(makefile)
         cmd = [
             "make",
-            f"-j{os.cpu_count() or 1}",
+            f"-j{budget(len(CHECKS))[1]}",
             f"BOARD={self.board}",
             f"KCONFIG_CONFIG={self.config}",
             f"CROSS_COMPILE={CROSS_COMPILE}",
@@ -402,7 +414,7 @@ def main() -> int:
     work.mkdir(parents=True)
 
     # The cases at once, each with a board and a build directory of its own
-    with concurrent.futures.ThreadPoolExecutor() as pool:
+    with concurrent.futures.ThreadPoolExecutor(budget(len(CHECKS))[0]) as pool:
         lines = list(pool.map(lambda check: check(root, work), CHECKS))
 
     for line in lines:

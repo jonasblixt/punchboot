@@ -10,12 +10,16 @@
 # Environment:
 #   BUILD_DIR   Build directory (default: build-host)
 #   CTEST_ARGS  Extra arguments for ctest, e.g. "-L unit"
+#   PB_JOBS     Compile jobs at most, the firmware builds of the make tests
+#               included (default: the CPUs this process may run on)
 
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
 BUILD_DIR="${BUILD_DIR:-build-host}"
+PB_JOBS="${PB_JOBS:-$(nproc)}"
+export PB_JOBS
 mkdir -p "$HOME"
 
 echo "=== Installing punchboot host tools"
@@ -34,12 +38,12 @@ echo "=== Building pbstate"
 # sanitizers too. Those pbstate doesn't have are left unused
 cmake -S tools/pbstate -B "$BUILD_DIR/pbstate" -DCMAKE_INSTALL_PREFIX=/opt/pb \
     --no-warn-unused-cli "$@" > /dev/null
-cmake --build "$BUILD_DIR/pbstate" -j"$(nproc)" > /dev/null
+cmake --build "$BUILD_DIR/pbstate" -j"$PB_JOBS" > /dev/null
 cmake --install "$BUILD_DIR/pbstate" > /dev/null
 
 echo "=== Building"
 cmake -S . -B "$BUILD_DIR" "$@" > /dev/null
-cmake --build "$BUILD_DIR" -j"$(nproc)"
+cmake --build "$BUILD_DIR" -j"$PB_JOBS"
 
 echo "=== Running tests"
 # shellcheck disable=SC2086

@@ -45,6 +45,10 @@ CTEST_ARGS="-L make" scripts/pbdev test      # only the firmware build's checks
 python3 tests/doc/check_docs.py              # the same, without the container
 ```
 
+`PB_JOBS` caps the compile jobs of a run, the firmware builds of the `make` tests included
+(default: the CPUs the container may use): `PB_JOBS=6 scripts/pbdev test` keeps an 8 core
+machine's load under 8. Two runs at once each take their own `PB_JOBS`.
+
 Coverage (2026-11-14, at `63249d59` with F-230's tests, all 98 ctest tests), measured as CI does
 it (`.github/workflows/build.yml`): the coverage build above, then
 
