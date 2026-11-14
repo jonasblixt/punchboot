@@ -484,6 +484,12 @@ pb_tfa_test(test_tfa_image)
 
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_auth.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_board.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_boot.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_device.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_part.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_slc.c
     ${PROJECT_SOURCE_DIR}/src/cm/commands.c
     ${PROJECT_SOURCE_DIR}/src/log_source.c
     ${PROJECT_SOURCE_DIR}/src/ramlog.c
@@ -499,6 +505,12 @@ target_compile_definitions(test_cm PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
 # NOT_SUPPORTED (command-mode.md 4.5, 5.2)
 pb_no_slc_eol_test(test_cm_no_eol test_cm.c
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_auth.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_board.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_boot.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_device.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_part.c
+    ${PROJECT_SOURCE_DIR}/src/cm/cm_slc.c
     ${PROJECT_SOURCE_DIR}/src/cm/commands.c
     ${PROJECT_SOURCE_DIR}/src/log_source.c
     ${PROJECT_SOURCE_DIR}/src/ramlog.c

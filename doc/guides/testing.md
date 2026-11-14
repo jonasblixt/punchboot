@@ -269,7 +269,7 @@ Unit tests, by module under test:
 |                                               |                              | regions via `--defsym`)          |
 | `test_image.c`                                | `image.c`                    | arch, SLC, root of trust, device |
 |                                               |                              | UUID; builds DTBs with libfdt    |
-| `test_cm.c`                                   | `cm_main.c`                  | transport, boot, root of trust,  |
+| `test_cm.c`                                   | `src/cm/`                    | transport, boot, root of trust,  |
 |                                               |                              | SLC, crypto providers            |
 | `test_usb_transport.c`                        | `pb_dev_cls.c`, `usbd.c`:    | the USB device controller        |
 |                                               | the transport on USB         |                                  |

@@ -79,7 +79,7 @@ device read, so it needs no capability bit:
 - **What the payload hash covers**: part data in header order, each part `bpak_part_size()`
   bytes (`transport_size` for transport parts).
 - punchboot's on-disk layout: the payload from LBA 0 of the partition, the header in the last
-  4 KiB (`pb_api_partition_write`, `boot.c`, `cm_main.c`). File layout: header first.
+  4 KiB (`pb_api_partition_write`, `boot.c`, `cm_part.c`). File layout: header first.
 - The keystore layout (`key.h`/`keystore.h`), which `scripts/gen-keystore.py` writes (D-083).
   pb's key ids are the ID function's, also in a build without bpak.
 
