@@ -25,6 +25,7 @@
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/usbd.h>
 #include <inttypes.h>
+#include <pb/delay.h>
 #include <pb/dma.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -37,6 +38,12 @@
 #define IMX_CI_UDC_NO_OF_EPS         8
 #define IMX_CI_UDC_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KiB / 20))
 #define IMX_CI_UDC_SZ_64B            0x40
+
+/* A status stage the host hasn't taken in this time it has left: USB 2.0
+ * 9.2.6.4 gives the device 500 ms for each packet of a data stage and 50 ms
+ * for the status stage after it, and the host polls for that stage at once.
+ * The DWC3's driver waits as long (DWC3_EP0_TIMEOUT_us) */
+#define IMX_CI_UDC_EP0_TIMEOUT_us    500000
 
 #define EP_IS_IN(ep)                 ((ep) & 1)
 #define EP_USB_NUMBER(ep)            ((ep) >> 1)
@@ -625,8 +632,10 @@ static int imx_ci_udc_stop(void)
     return PB_OK;
 }
 
+/* The status stage of a control transfer, bounded (usb.md 4.4, drivers.md 3) */
 static int imx_ci_udc_xfer_zlp(usb_ep_t ep)
 {
+    struct pb_timeout to;
     int rc;
 
     rc = imx_ci_udc_xfer_start(ep, 0, 0);
@@ -634,11 +643,21 @@ static int imx_ci_udc_xfer_zlp(usb_ep_t ep)
     if (rc != PB_OK)
         return rc;
 
-    do {
-        rc = imx_ci_udc_xfer_complete(ep);
-    } while (rc == -PB_ERR_AGAIN);
+    pb_timeout_init_us(&to, IMX_CI_UDC_EP0_TIMEOUT_us);
 
-    return rc;
+    for (;;) {
+        rc = imx_ci_udc_xfer_complete(ep);
+
+        if (rc != -PB_ERR_AGAIN)
+            return rc;
+
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("EP0 status stage timeout");
+            /* Given up: nothing of it completes later (drivers.md 3) */
+            imx_ci_udc_flush_ep(ep);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 }
 
 int imx_ci_udc_init(uintptr_t base)

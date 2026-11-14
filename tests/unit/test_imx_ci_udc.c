@@ -38,6 +38,7 @@
 #include <string.h>
 
 #include "fakes/dcache.h"
+#include "fakes/plat.h"
 #include "fakes/regs.h"
 #include "imx_ci_udc_private.h"
 
@@ -570,6 +571,48 @@ static void test_bus_reset_is_reported(void **state)
     assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
 }
 
+/* The host takes endpoint 0's status stage when the driver polls the
+ * controller next */
+static uint64_t host_takes_the_status_stage(uintptr_t addr, uint64_t value)
+{
+    if (addr == BASE + CI_USBSTS && (primed & ep_bit(USB_EP0_IN)))
+        assert_int_equal(controller_run(USB_EP0_IN, host, 0), 0);
+
+    return value;
+}
+
+/* usb.md 4.4, drivers.md 3: the status stage is waited for with a bound. A
+ * host that doesn't take it (it left the control transfer, or was
+ * unplugged) gets the stage given up after the bound, -PB_ERR_TIMEOUT, and
+ * the next transfer works (F-422, F-138: the driver waited for it until the
+ * watchdog) */
+static void test_status_stage_is_bounded(void **state)
+{
+    (void)state;
+
+    /* A fiftieth of the bound per poll: the register log holds the polls */
+    fake_us_tick_step = 10000;
+
+    /* Taken */
+    fake_regs_on_read = host_takes_the_status_stage;
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_IN), PB_OK);
+    assert_int_equal(primed, 0);
+    fake_regs_on_read = NULL;
+
+    /* Not taken: given up after the bound, and not before */
+    unsigned int start = fake_us_tick;
+    size_t flushes = fake_regs_writes(BASE + CI_ENDPTFLUSH);
+
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_OUT), -PB_ERR_TIMEOUT);
+    assert_true(fake_us_tick - start >= 500000);
+    assert_true(fake_us_tick - start < 600000);
+    assert_int_equal(fake_regs_writes(BASE + CI_ENDPTFLUSH), flushes + 1);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+
+    fake_us_tick_step = 0;
+    transfer_out(0x200, 512);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -583,6 +626,7 @@ int main(void)
         cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
         cmocka_unit_test_setup(test_setup_packet, setup),
         cmocka_unit_test_setup(test_bus_reset_is_reported, setup),
+        cmocka_unit_test_setup(test_status_stage_is_bounded, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

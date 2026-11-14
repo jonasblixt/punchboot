@@ -799,6 +799,7 @@ target_link_options(test_dwc3_udc PRIVATE -no-pie)
 pb_unit_test(test_imx_ci_udc SOURCES
     ${PB_DMA_MODEL}
     fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/imx_ci_udc.c
 )
 target_include_directories(test_imx_ci_udc BEFORE PRIVATE
