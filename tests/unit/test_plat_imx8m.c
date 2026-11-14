@@ -217,11 +217,14 @@ int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs)
     return crypto.lock_rc;
 }
 
+/* The ipg_clk rate plat_init() gave the OCOTP, for its fuse timing */
+static unsigned int ocotp_ipg_hz;
+
 int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz)
 {
     (void)base;
     (void)words_per_bank;
-    (void)ipg_rate_hz;
+    ocotp_ipg_hz = ipg_rate_hz;
     return PB_OK;
 }
 
@@ -785,6 +788,31 @@ static void test_plat_rot_and_slc(void **state)
     assert_int_equal(fake_reg_log_len, 0);
 }
 
+/* The OCOTP's fuse timing is for the ipg_clk the ROM left (CCM roots 32,
+ * AHB, and 33, IPG): the pico8ml's ROM, SYSTEM_PLL1_DIV6 and IPG at AHB / 2.
+ * A source that isn't a fixed rate: no rate, no fuse write (pb's own fuse
+ * writes failed without one, on every 8M) */
+static void test_ocotp_ipg_rate(void **state)
+{
+    (void)state;
+
+    fake_regs_set(0x30388000 + 0x80 * 32, 0x11000000);
+    fake_regs_set(0x30388000 + 0x80 * 33, 0x00000001);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(ocotp_ipg_hz, 66666666);
+
+    setup(NULL);
+    fake_regs_set(0x30388000 + 0x80 * 32, 0x14000000); /* SYSTEM_PLL2_DIV8 */
+    fake_regs_set(0x30388000 + 0x80 * 33, 0x00000000);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(ocotp_ipg_hz, 125000000);
+
+    setup(NULL);
+    fake_regs_set(0x30388000 + 0x80 * 32, 0x15000000); /* SYSTEM_PLL3: not fixed */
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(ocotp_ipg_hz, 0);
+}
+
 /* Closing a device whose image HAB doesn't accept leaves one that doesn't
  * boot: the lock is refused on a HAB failure, and nothing is fused */
 static void test_lock_waits_for_hab(void **state)
@@ -907,6 +935,7 @@ int main(void)
         cmocka_unit_test_setup(test_unique_id_read_fails, setup),
         cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
         cmocka_unit_test_setup(test_lock_waits_for_hab, setup),
+        cmocka_unit_test_setup(test_ocotp_ipg_rate, setup),
         cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status_crypto_engine, setup),

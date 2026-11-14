@@ -441,14 +441,55 @@ int plat_early_init(void)
     return PB_OK;
 }
 
+/* A clock root's target register, root n of the CCM (8MQ RM 5.1) */
+#define IPG_ROOT_POST_DIV_MASK 0x3u /* IPG_CLK_ROOT divides AHB_CLK_ROOT */
+#define CCM_ROOT_TARGET(n)     (0x30388000UL + 0x80UL * (n))
+
+/* The 24 or 25 MHz reference, AHB_CLK_ROOT's source 0 */
+#ifdef CONFIG_PLAT_IMX8MQ
+#define IMX8M_OSC_HZ 25000000u
+#else
+#define IMX8M_OSC_HZ 24000000u
+#endif
+
+/*
+ * The OCOTP's ipg_clk, which its fuse timing is made for (imx_ocotp_init()):
+ * IPG_CLK_ROOT, AHB_CLK_ROOT divided by its POST_PODF[1:0] + 1 (NXP's
+ * U-Boot, clock_imx8mq.c), as the ROM left both; pb doesn't change them.
+ * AHB_CLK_ROOT's sources 0 to 4 are fixed (8MQ RM, the clock root table:
+ * the reference, SYSTEM_PLL1_DIV6, SYSTEM_PLL1, SYSTEM_PLL1_DIV2,
+ * SYSTEM_PLL2_DIV8; the 8M Plus's the same). Another source: 0, and pb
+ * writes no fuse. The pico8ml's ROM leaves source 1 and IPG at AHB / 2,
+ * 66.7 MHz
+ */
+static unsigned int ipg_rate_hz(void)
+{
+    static const uint32_t ahb_src_hz[] = {
+        IMX8M_OSC_HZ, 133333333u, 800000000u, 400000000u, 125000000u,
+    };
+    uint32_t ahb = mmio_read_32(CCM_ROOT_TARGET(AHB_CLK_ROOT));
+    uint32_t ipg = mmio_read_32(CCM_ROOT_TARGET(IPG_CLK_ROOT));
+    unsigned int src = (ahb & CLK_ROOT_SRC_MUX_MASK) >> CLK_ROOT_SRC_MUX_SHIFT;
+    unsigned int pre = ((ahb & CLK_ROOT_PRE_DIV_MASK) >> 16) + 1;
+    unsigned int post = ((ahb & CLK_ROOT_POST_DIV_MASK) >> CLK_ROOT_POST_DIV_SHIFT) + 1;
+
+    if (src >= ARRAY_SIZE(ahb_src_hz)) {
+        LOG_ERR("AHB_CLK_ROOT from source %u: no fuse timing, no fuse is written", src);
+        return 0;
+    }
+
+    return ahb_src_hz[src] / pre / post / ((ipg & IPG_ROOT_POST_DIV_MASK) + 1);
+}
+
 int plat_init(void)
 {
     int tzasc_rc;
     int rc;
 
-    /* Init fusebox (reading only), its clock gate may be closed */
+    /* Init fusebox, its clock gate may be closed. Its fuse timing is for
+     * the ipg_clk the ROM left: fuse writes (the life cycle, plat_slc) */
     mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);
-    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK, 0);
+    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK, ipg_rate_hz());
     imx_hab_fuses_init(&hab_fuses);
 
     /*
@@ -612,4 +653,3 @@ int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size)
 
     return PB_OK;
 }
-
