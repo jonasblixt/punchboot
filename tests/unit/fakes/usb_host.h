@@ -53,6 +53,7 @@ struct usb_host_config {
 struct usb_host_reply {
     bool taken; /* poll_setup_pkt gave the SETUP to the stack */
     bool status; /* The status stage was done: the request is answered */
+    usb_ep_t status_ep; /* The status stage's direction */
     size_t length; /* The data stage's bytes */
     uint8_t data[512];
 };
@@ -67,6 +68,7 @@ struct usb_host_state {
     int set_configuration_calls;
     int unanswered; /* Requests the stack took and didn't answer */
     int clobbered; /* Bulk transfers that endpoint 0 took the place of */
+    int stray_status; /* Status stages with no control transfer to end */
     bool attached; /* On the bus: between init and stop */
     bool configured; /* The bulk endpoints are set up */
     uint16_t address;

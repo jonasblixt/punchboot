@@ -230,9 +230,12 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         enumerated = true;
     } break;
     case USB_SET_IDLE: {
+        /* A request without a data stage: one status stage, IN (USB 2.0
+         * 8.5.3). Answered as it was; D-073 has it stalled, which no
+         * controller can yet (F-287) */
         LOG_DBG("Set idle");
         hal_ops->ep0_xfer_zlp(USB_EP0_IN);
-        hal_ops->ep0_xfer_zlp(USB_EP0_OUT);
+        rc = PB_OK;
     } break;
     case USB_GET_STATUS: {
         LOG_DBG("Get status");

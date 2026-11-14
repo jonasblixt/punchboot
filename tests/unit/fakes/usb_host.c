@@ -235,13 +235,16 @@ static int hal_set_address(uint16_t addr)
 
 static int hal_ep0_xfer_zlp(usb_ep_t ep)
 {
-    (void)ep;
-
     ep0_takes_the_transfer();
 
     if (in_control) {
         reply.status = true;
+        reply.status_ep = ep;
         in_control = false;
+    } else {
+        /* A controller primes it all the same, and the host never takes
+         * it: the ChipIdea's waits for it */
+        state.stray_status++;
     }
 
     return PB_OK;

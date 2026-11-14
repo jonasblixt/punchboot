@@ -840,6 +840,40 @@ static void test_disconnect(void **state)
     assert_false(usb_host_state()->attached);
 }
 
+/* SET_IDLE, a request of another class without a data stage: answered as
+ * it was (D-073 has it stalled, which no controller can yet), with one
+ * status stage, IN. F-422: the stack asked for an OUT status stage after
+ * it, which the host never sends (the ChipIdea waited for it), and then
+ * returned an error: connect failed and command mode left, and in a
+ * session the transfer was lost */
+static void test_set_idle(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    usb_host_request(USB_HOST_REQ_CLASS | USB_HOST_REQ_INTERFACE, 0x0a, 0, 0, 0);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_answered(0);
+    assert_int_equal(usb_host_reply()->status_ep, USB_EP0_IN);
+    assert_int_equal(usb_host_state()->stray_status, 0);
+
+    /* For contrast: a request with a data stage IN has its status OUT */
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 18);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_int_equal(usb_host_reply()->status_ep, USB_EP0_OUT);
+
+    /* In a session it leaves the transfer alone */
+    enumerate();
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_request(USB_HOST_REQ_CLASS | USB_HOST_REQ_INTERFACE, 0x0a, 0, 0, 0);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    assert_answered(0);
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_int_equal(usb_host_state()->stray_status, 0);
+    assert_int_equal(usb_host_state()->unanswered, 0);
+}
+
 /* D-073: a string index the class doesn't have is answered with an empty
  * string, where usb.md 3.2 would stall it: no controller can stall. This
  * pins today's answer */
@@ -886,6 +920,7 @@ int main(void)
         cmocka_unit_test(test_setup_poll_error_is_lost),
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
+        cmocka_unit_test(test_set_idle),
         cmocka_unit_test(test_unknown_string),
     };
 
