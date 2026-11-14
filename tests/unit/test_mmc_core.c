@@ -29,6 +29,7 @@
 #include <drivers/mmc/mmc_core.h>
 #include <pb/bio.h>
 #include <pb/delay.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <string.h>
 
@@ -255,7 +256,7 @@ static bio_dev_t part(const unsigned char *uu)
 /* What pb does on every boot: init the card, read the GPT from the user area */
 static void pb_boot(void)
 {
-    uint8_t gpt_header[512];
+    uint8_t gpt_header[512] __aligned(PB_DMA_ALIGN);
 
     bio_reset();
     assert_int_equal(mmc_init(&hal, &cfg, NULL), PB_OK);
@@ -344,7 +345,7 @@ static void test_update_other_part(void **state)
 /* Only a write changes the boot partition, a read or an RPMB access doesn't */
 static void test_access_keeps_boot_part(void **state)
 {
-    uint8_t buf[512];
+    uint8_t buf[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     card.ext_csd[EXT_CSD_PART_CONFIG] |= BIT(6); /* BOOT_ACK */
@@ -487,7 +488,7 @@ static void test_boot_part_config_values(void **state)
 static void test_debug_ios(void **state)
 {
     char out[1024] = { 0 };
-    uint8_t buf[512];
+    uint8_t buf[512] __aligned(PB_DMA_ALIGN);
     FILE *f = tmpfile();
     int saved;
     (void)state;

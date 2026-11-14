@@ -20,6 +20,7 @@
 
 #include <drivers/mmc/mmc_core.h>
 #include <pb/bio.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <string.h>
 
@@ -36,8 +37,8 @@
 static struct sd_model_config card_cfg;
 static struct mmc_device_config dev_cfg;
 static uint8_t out[64 * 1024];
-static uint8_t in[sizeof(out)];
-static uint8_t check[sizeof(out)];
+static uint8_t in[sizeof(out)] __aligned(PB_DMA_ALIGN);
+static uint8_t check[sizeof(out)] __aligned(PB_DMA_ALIGN);
 
 static int setup(void **state)
 {
@@ -205,7 +206,7 @@ static void test_a_second_init_adds_no_devices(void **state)
  * kept the first card's range; it fails until an init works */
 static void test_a_card_of_another_size_is_refused(void **state)
 {
-    static uint8_t buf[512];
+    static uint8_t buf[512] __aligned(PB_DMA_ALIGN);
     bio_dev_t dev;
     (void)state;
 

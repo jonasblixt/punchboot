@@ -11,13 +11,15 @@
  */
 
 #include <drivers/fuse/test_fuse_bio.h>
+#include <pb/dma.h>
 #include <pb/errors.h>
 #include <pb/pb.h>
 
 #define TEST_FUSE_ADDR_MAX 128
 
-/* Use one 512 byte sector */
-static uint32_t fuse_box[TEST_FUSE_ADDR_MAX];
+/* Use one 512 byte sector. Read by a device: it owns its cache lines
+ * (bio.md 3.1) */
+static uint32_t fuse_box[TEST_FUSE_ADDR_MAX] __aligned(PB_DMA_ALIGN);
 static bio_dev_t dev;
 
 int test_fuse_init(bio_dev_t dev_)

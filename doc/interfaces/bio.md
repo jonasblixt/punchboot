@@ -418,7 +418,7 @@ The core:
 | --------------------------------------------------- | ---------------------------- | ------- |
 | A length that isn't whole blocks is the core's      | yes (the suite, below)       |         |
 | A length of 0 doesn't reach the driver              | yes (`test_bio`)             |         |
-| A buffer that doesn't start on a line is refused    | no                           | F-282   |
+| A buffer that doesn't start on a line is refused    | yes (`test_bio`)             |         |
 | A block larger than the block buffer is refused     | yes (`test_bio`)             |         |
 | A UUID that is taken is refused                     | yes (`test_bio`)             |         |
 | A partition lies inside its parent                  | yes (`test_bio`)             |         |

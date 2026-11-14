@@ -15,6 +15,7 @@
 #include <cmocka.h>
 
 #include <pb/bio.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,13 +36,17 @@
 struct fixture {
     struct ramdisk *disk;
     bio_dev_t part;
-    uint8_t buf[4 * RAMDISK_BLOCK_SIZE];
+    /* A buffer a device may write: it owns its cache lines (bio.md 3.1) */
+    uint8_t buf[4 * RAMDISK_BLOCK_SIZE] __aligned(PB_DMA_ALIGN);
 };
 
 static int setup(void **state)
 {
-    struct fixture *f = calloc(1, sizeof(*f));
-    assert_non_null(f);
+    /* Static: an object from calloc() starts on 16 bytes, not on a line */
+    static struct fixture fixture;
+    struct fixture *f = &fixture;
+
+    memset(f, 0, sizeof(*f));
     f->disk = ramdisk_new(DISK_BLOCKS);
     assert_non_null(f->disk);
 
@@ -60,7 +65,6 @@ static int teardown(void **state)
 {
     struct fixture *f = *state;
     ramdisk_free(f->disk);
-    free(f);
     return 0;
 }
 
@@ -205,6 +209,42 @@ static void test_a_length_of_0_doesnt_reach_the_driver(void **state)
     assert_int_equal(bio_write(f->part, 0, 0, f->buf), PB_OK);
     assert_int_equal(f->disk->writes, 0);
     assert_int_equal(*ramdisk_block(f->disk, PART_FIRST), 0x3c);
+}
+
+/* bio.md 3.1, drivers.md 4.3: what a device writes owns its cache lines. A
+ * buffer that doesn't start on one is refused before the driver is called,
+ * also for a read that isn't whole blocks; a write reads the buffer only,
+ * and takes any (drivers.md 4.3, out) */
+static void test_a_read_into_a_buffer_off_a_line_is_refused(void **state)
+{
+    struct fixture *f = *state;
+    static const size_t shifts[] = { 1, 4, 8, 32, PB_DMA_ALIGN - 1 };
+    static const size_t lengths[] = { 1, RAMDISK_BLOCK_SIZE, RAMDISK_BLOCK_SIZE + 100 };
+    uint8_t before[sizeof(f->buf)];
+
+    memcpy(before, f->buf, sizeof(before));
+
+    for (size_t i = 0; i < ARRAY_SIZE(shifts); i++) {
+        for (size_t j = 0; j < ARRAY_SIZE(lengths); j++) {
+            assert_int_equal(bio_read(f->part, 1, lengths[j], f->buf + shifts[i]), -PB_ERR_ALIGN);
+        }
+    }
+
+    assert_int_equal(f->disk->reads, 0);
+    assert_memory_equal(f->buf, before, sizeof(before));
+
+    /* The arguments first, and a length of 0 reads nothing, as before */
+    assert_int_equal(bio_read(f->part, PART_LAST, RAMDISK_BLOCK_SIZE, f->buf + 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_read(f->part, 1, 0, f->buf + 1), PB_OK);
+
+    /* On a line it is read: the whole block, then the tail through the block
+     * buffer */
+    assert_int_equal(bio_read(f->part, 1, RAMDISK_BLOCK_SIZE + 100, f->buf + PB_DMA_ALIGN), PB_OK);
+    assert_int_equal(f->disk->reads, 2);
+
+    /* A write takes a buffer anywhere */
+    assert_int_equal(bio_write(f->part, 1, RAMDISK_BLOCK_SIZE, f->buf + 1), PB_OK);
+    assert_memory_equal(ramdisk_block(f->disk, PART_FIRST + 1), f->buf + 1, RAMDISK_BLOCK_SIZE);
 }
 
 static void test_invalid_handles(void **state)
@@ -1030,6 +1070,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(
             test_a_read_that_isnt_whole_blocks_is_trimmed, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_length_of_0_doesnt_reach_the_driver, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_a_read_into_a_buffer_off_a_line_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_invalid_handles, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_rejects, setup, teardown),
         cmocka_unit_test_setup_teardown(

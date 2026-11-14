@@ -1,4 +1,5 @@
 #include <pb/bio.h>
+#include <pb/dma.h>
 #include <pb/errors.h>
 #include <pb/pb.h>
 #include <stdbool.h>
@@ -325,6 +326,15 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     /* Nothing to read: the driver isn't called (bio.md 3.1) */
     if (length == 0)
         return PB_OK;
+
+    /* What a device writes owns its cache lines (bio.md 3.1, drivers.md
+     * 4.3): a buffer that doesn't start on one is refused, before the driver
+     * is called. Whole blocks are whole lines, so the start is all there is
+     * to check; a tail that isn't goes through the block buffer */
+    if (!dma_owns_lines(buf, 0)) {
+        LOG_ERR("Buffer %p isn't on a cache line", buf);
+        return -PB_ERR_ALIGN;
+    }
 
     /* A driver sees whole blocks only (bio.md 3.1). The range check counted
      * the last, partial block, so that it is inside the device */

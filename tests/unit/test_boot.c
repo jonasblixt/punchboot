@@ -26,6 +26,7 @@
 #include <pb/arch.h>
 #include <pb/bio.h>
 #include <pb/device_uuid.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
@@ -1029,7 +1030,7 @@ static void test_bio_boot(void **state)
     assert_int_equal(boot_get_flags(), BOOT_FLAG_VERBOSE);
 
     /* The payload is read at byte offsets, in the device's blocks (F-062) */
-    uint8_t buf[RAMDISK_BLOCK_SIZE];
+    uint8_t buf[RAMDISK_BLOCK_SIZE] __aligned(PB_DMA_ALIGN);
     memset(ramdisk_block(f->disk, 12), 0xa5, RAMDISK_BLOCK_SIZE);
     assert_int_equal(fake.load_read_f(2 * RAMDISK_BLOCK_SIZE, sizeof(buf), buf), PB_OK);
     assert_int_equal(buf[0], 0xa5);
