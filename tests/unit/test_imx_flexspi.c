@@ -818,6 +818,35 @@ static void test_error_while_moving_data(void **state)
     assert_mem(BLOCK, out, BLOCK);
 }
 
+/* F-420, F-431: an error that the controller flags during the last push of
+ * a write or the last pop of a read comes after the driver's last look at
+ * the FIFO. It was lost: the next command's start cleared it. It is the
+ * transfer's error now, and the driver works after it */
+static void test_error_in_the_last_push_or_pop(void **state)
+{
+    (void)state;
+
+    assert_int_equal(bio_erase(dev, 1, 1), PB_OK);
+    fill(out, BLOCK, 6);
+
+    /* The first page's last word: 32 pushes of two words */
+    nor.err_at_tfdr = nor.tfdr_writes + PAGE / 4;
+    assert_int_equal(bio_write(dev, 1, BLOCK, out), -PB_ERR_IO);
+    assert_int_equal(nor.programs, 1); /* The write stops at that page */
+
+    /* The data's last word, after the status read's one */
+    fill(nor.mem, BLOCK, 7);
+    nor.err_at_rfdr = nor.rfdr_reads + 1 + BLOCK / 4;
+    assert_int_equal(bio_read(dev, 0, BLOCK, in), -PB_ERR_IO);
+
+    memset(in, 0, BLOCK);
+    assert_int_equal(bio_read(dev, 0, BLOCK, in), PB_OK);
+    assert_mem(0, in, BLOCK);
+    assert_int_equal(bio_erase(dev, 1, 1), PB_OK);
+    assert_int_equal(bio_write(dev, 1, BLOCK, out), PB_OK);
+    assert_mem(BLOCK, out, BLOCK);
+}
+
 /* F-420: the watermarks, in 64 bit entries less one, go into IPRXFCR and
  * IPTXFCR bits 5:2. The macros didn't shift: right for 8 bytes only, the
  * size the driver sets, whose field is 0 */
@@ -904,6 +933,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_any_length, setup, teardown),
         cmocka_unit_test_setup_teardown(test_port_out_of_range, setup, teardown),
         cmocka_unit_test_setup_teardown(test_error_while_moving_data, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_error_in_the_last_push_or_pop, setup, teardown),
         cmocka_unit_test_setup_teardown(test_watermark_fields, setup, teardown),
         cmocka_unit_test_setup_teardown(test_waits_for_the_flash_first, setup, teardown),
     };

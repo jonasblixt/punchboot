@@ -331,11 +331,10 @@ static int imx_flexspi_xfer(enum flexspi_port port,
     if (rc_idle != PB_OK)
         return rc_idle;
 
-    if (command_type == FLEXSPI_COMMAND) {
-        rc = imx_flexspi_checkandclearerror(mmio_read_32(cfg->base + FLEXSPI_INTR));
-    }
-
-    return rc;
+    /* After every command: an error during a read's or a write's last pop
+     * or push comes after the FIFO's last check, and the next command's
+     * start would clear it unseen */
+    return imx_flexspi_checkandclearerror(mmio_read_32(cfg->base + FLEXSPI_INTR));
 }
 
 /* Polls the flash's status until it isn't busy, for timeout_ms at most: the
