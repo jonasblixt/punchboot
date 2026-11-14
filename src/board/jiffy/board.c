@@ -246,21 +246,20 @@ static const struct boot_ab_state_config boot_state_cfg = {
  * with 1 MiB to grow in, and its buffers from 0x81021000 to 0x82000000,
  * where the kernel of the images in use is.
  *
- * The regions and the link have one source, the defconfig (platform.md
- * 5.1): a region starts where pb's region (CONFIG_PB_ENTRY, CONFIG_PB_SIZE)
- * or its buffers' (CONFIG_PB_BUFFERS_BASE, _SIZE) ends, so the link fails
+ * The regions and the link have one source, the board's makefile.mk (platform.md
+ * 5.1): a region starts where pb's region (PB_ENTRY, PB_SIZE)
+ * or its buffers' (PB_BUFFERS_BASE, _SIZE) ends, so the link fails
  * when pb or its buffers grow into one. board_setup() checks the list
  * against what is linked.
  */
-#define BOARD_PB_END      ((uint64_t)CONFIG_PB_ENTRY + CONFIG_PB_SIZE)
-#define BOARD_BUFFERS_END ((uint64_t)CONFIG_PB_BUFFERS_BASE + CONFIG_PB_BUFFERS_SIZE)
+#define BOARD_PB_END      ((uint64_t)PB_ENTRY + PB_SIZE)
+#define BOARD_BUFFERS_END ((uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE)
 
-_Static_assert(CONFIG_PB_SIZE != 0,
-               "CONFIG_PB_SIZE is where the image data region after pb starts");
+_Static_assert(PB_SIZE != 0, "PB_SIZE is where the image data region after pb starts");
 
 static const struct boot_image_region image_regions[] = {
     /* Between pb and its buffers */
-    BOOT_IMAGE_REGION(BOARD_PB_END, CONFIG_PB_BUFFERS_BASE - BOARD_PB_END),
+    BOOT_IMAGE_REGION(BOARD_PB_END, PB_BUFFERS_BASE - BOARD_PB_END),
     BOOT_IMAGE_REGION(BOARD_BUFFERS_END, BOARD_RAM_END - BOARD_BUFFERS_END),
     BOOT_IMAGE_REGION_END,
 };

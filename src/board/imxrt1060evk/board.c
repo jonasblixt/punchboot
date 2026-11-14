@@ -385,14 +385,13 @@ static const struct boot_ab_state_config boot_state_cfg = {
  * board_setup() checks the list against what is linked and against the
  * transfer list's region.
  *
- * The transfer list's region and pb's entry have one source, the defconfig
- * (platform.md 5.1): the OCRAM2 region starts where the first ends, and ends
- * at CONFIG_PB_ENTRY. A defconfig that has the transfer list's region
- * somewhere else than after the ROM's data, or leaves nothing below pb,
- * doesn't build.
+ * The transfer list's region (the defconfig) and pb's entry (makefile.mk)
+ * are the link's too (platform.md 5.1): the OCRAM2 region starts where the
+ * first ends, and ends at PB_ENTRY. A transfer list's region somewhere else
+ * than after the ROM's data, or nothing left below pb, doesn't build.
  */
 #define BOARD_OCRAM2_IMAGE_BASE (CONFIG_BOOT_FH_REGION_BASE + CONFIG_BOOT_FH_REGION_SIZE)
-#define BOARD_OCRAM2_IMAGE_END  CONFIG_PB_ENTRY
+#define BOARD_OCRAM2_IMAGE_END  PB_ENTRY
 
 _Static_assert(CONFIG_BOOT_FH_REGION_BASE == IMXRT_OCRAM2_BASE + IMXRT_OCRAM2_ROM_SIZE,
                "CONFIG_BOOT_FH_REGION_BASE is not the end of the ROM data in OCRAM2");

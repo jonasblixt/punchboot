@@ -8,6 +8,11 @@
 #
 ifdef CONFIG_PLAT_IMX6UL
 
+# pb's buffers (platform.md 5.1), in the DRAM: the board's makefile.mk,
+# read before this one, may put them elsewhere
+PB_BUFFERS_BASE ?= 0x81021000
+PB_BUFFERS_SIZE ?= 0x1000000
+
 cflags-y += -mtune=cortex-a7
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000
@@ -43,7 +48,7 @@ IMX6UL_UUU_CSF_TEMPLATE = src/plat/imx6ul/pb_uuu.csf.template
 # pb.imx: the IVT, the boot data and the DCD, and pb.bin. The ROM reads the
 # IVT at PB_ENTRY - 0xC00.
 imx6ul_image: $(BUILD_DIR)/pb.bin
-	@$(MKIMAGE) -n $(IMX6UL_IMAGE_CFG) -T imximage -e $(CONFIG_PB_ENTRY) \
+	@$(MKIMAGE) -n $(IMX6UL_IMAGE_CFG) -T imximage -e $(PB_ENTRY) \
 				-d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx
 
 # pb.csf and pb_uuu.csf, HABv4 descriptions of pb.imx. pb.csf signs it from
@@ -52,7 +57,7 @@ imx6ul_image: $(BUILD_DIR)/pb.bin
 # as its header says (big endian, at byte 45).
 imx6ul_sign_desc: imx6ul_image
 	$(Q)imx=$(BUILD_DIR)/pb.imx; \
-	 blocks="Blocks = $$(printf '0x%X 0x000 0x%X' $$(( $(CONFIG_PB_ENTRY) - 0xC00 )) $$(stat -c%s $$imx)) \"$$imx\""; \
+	 blocks="Blocks = $$(printf '0x%X 0x000 0x%X' $$(( $(PB_ENTRY) - 0xC00 )) $$(stat -c%s $$imx)) \"$$imx\""; \
 	 uuu="Blocks = 0x00910000 0x02c 0x$$(dd if=$$imx bs=1 skip=45 count=2 2>/dev/null | xxd -p) \"$$imx\""; \
 	 keys="s#__KEY_INDEX__#$(IMX6UL_KEY_INDEX)#g; s#__SRK_TBL__#$(IMX6UL_SRK_TABLE)#g; s#__CSFK_PEM__#$(IMX6UL_SIGN_CERT)#g; s#__IMG_PEM__#$(IMX6UL_IMAGE_SIGN_CERT)#g"; \
 	 sed -e "s#__BLOCKS__#$$blocks#g" -e "$$keys" $(IMX6UL_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf && \

@@ -2,15 +2,20 @@
 """Check that the link refuses a board's addresses that can't work.
 
 Where pb is linked, where its buffers are and the board's DRAM come from the
-board's defconfig, and the platform's link script checks them against what
+board's makefile.mk, and the platform's link script checks them against what
 the SoC allows (platform.md 5.1, F-239). A check that doesn't fail when its
 condition is broken checks nothing, so this links a board of each platform
-with its defconfig, and then with each value broken, and reads the linker's
+with its values, and then with each value broken, and reads the linker's
 message:
 
   check_link.py <source dir> <work dir>
 
 A value is changed on make's command line, so only the link is made again.
+The C sees the same values as the link, and a board's own checks of them
+(board.c's static asserts) refuse some of the cases before the link. The
+cases are the platform's, so they link a copy of the board whose board.c is
+the board's without its static asserts, with the same makefile.mk; the board
+itself links with its values.
 The Firmware Handoff region is checked too: only the RT1060 EVK has one, so
 the other boards are also built with a defconfig that has it ("<board>-fh").
 It needs the firmware's tools (arm-none-eabi-gcc, aarch64-linux-gnu-gcc and
@@ -54,131 +59,136 @@ FH_REGION = {
     "imx8mpevk": "0x42000000",
 }
 
+# What a board's C is with the cases: the board's, without its static asserts
+UNCHECKED_BOARD_C = """#define _Static_assert(condition, message)
+#include "{path}"
+"""
+
 FH_NOT_IN = "The Firmware Handoff region (CONFIG_BOOT_FH_REGION_BASE, _SIZE) is not in "
-BUFFERS_OVERLAP = "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb"
-BUFFERS_NOT_IN = "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) are not in "
-PB_SIZE_AFTER = "CONFIG_PB_SIZE ends pb's region after the memory the ROM loads pb to"
-IMX6UL_ENTRY = "CONFIG_PB_ENTRY is not where the i.MX6UL's ROM loads pb to"
+BUFFERS_OVERLAP = "pb's buffers (PB_BUFFERS_BASE, _SIZE) overlap pb"
+BUFFERS_NOT_IN = "pb's buffers (PB_BUFFERS_BASE, _SIZE) are not in "
+PB_SIZE_AFTER = "PB_SIZE ends pb's region after the memory the ROM loads pb to"
+IMX6UL_ENTRY = "PB_ENTRY is not where the i.MX6UL's ROM loads pb to"
 
 # (board, the values that are changed, what the build says)
 CASES = [
-    ("jiffy", {"CONFIG_PB_ENTRY": ""}, "CONFIG_PB_ENTRY is not set"),
+    ("jiffy", {"PB_ENTRY": ""}, "PB_ENTRY is not set"),
     (
         "imx8qxmek",
-        {"CONFIG_PB_ENTRY": "0x80020000"},
-        "CONFIG_PB_ENTRY is not 0x80000000, where the i.MX8X starts pb",
+        {"PB_ENTRY": "0x80020000"},
+        "PB_ENTRY is not 0x80000000, where the i.MX8X starts pb",
     ),
     # pb outside the ROM's load window: in the ROM's own part of the RAM,
     # and one byte after the window
     (
         "imx8mpevk",
-        {"CONFIG_PB_ENTRY": "0x91f000"},
-        "CONFIG_PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to",
+        {"PB_ENTRY": "0x91f000"},
+        "PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to",
     ),
     (
         "imx8mpevk",
-        {"CONFIG_PB_ENTRY": "0x980000"},
-        "CONFIG_PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to",
+        {"PB_ENTRY": "0x980000"},
+        "PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to",
     ),
     (
         "imxrt1060evk",
-        {"CONFIG_PB_ENTRY": "0x20207000"},
-        "CONFIG_PB_ENTRY is not in the on-chip RAM the i.MX RT's ROM loads pb to",
+        {"PB_ENTRY": "0x20207000"},
+        "PB_ENTRY is not in the on-chip RAM the i.MX RT's ROM loads pb to",
     ),
     (
         "imxrt1060evk",
-        {"CONFIG_PB_ENTRY": "0x202c0000"},
-        "CONFIG_PB_ENTRY is not in the on-chip RAM the i.MX RT's ROM loads pb to",
+        {"PB_ENTRY": "0x202c0000"},
+        "PB_ENTRY is not in the on-chip RAM the i.MX RT's ROM loads pb to",
     ),
     # The buffers where pb is: at its start, over its end, and around it
-    ("jiffy", {"CONFIG_PB_BUFFERS_BASE": "0x80001000"}, BUFFERS_OVERLAP),
-    ("jiffy", {"CONFIG_PB_BUFFERS_BASE": "0x80100000"}, BUFFERS_OVERLAP),
+    ("jiffy", {"PB_BUFFERS_BASE": "0x80001000"}, BUFFERS_OVERLAP),
+    ("jiffy", {"PB_BUFFERS_BASE": "0x80100000"}, BUFFERS_OVERLAP),
     (
         "jiffy",
-        {"CONFIG_PB_BUFFERS_BASE": "0x80000000", "CONFIG_PB_BUFFERS_SIZE": "0x2000000"},
+        {"PB_BUFFERS_BASE": "0x80000000", "PB_BUFFERS_SIZE": "0x2000000"},
         BUFFERS_OVERLAP,
     ),
-    ("imxrt1060evk", {"CONFIG_PB_BUFFERS_BASE": "0x20249000"}, BUFFERS_OVERLAP),
-    ("imxrt1060evk", {"CONFIG_PB_BUFFERS_BASE": "0x20240000"}, BUFFERS_OVERLAP),
+    ("imxrt1060evk", {"PB_BUFFERS_BASE": "0x20249000"}, BUFFERS_OVERLAP),
+    ("imxrt1060evk", {"PB_BUFFERS_BASE": "0x20240000"}, BUFFERS_OVERLAP),
     # The i.MX8X: in the reset stub's region, and in pb's after it
-    ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x80010000"}, BUFFERS_OVERLAP),
-    ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x80030000"}, BUFFERS_OVERLAP),
+    ("imx8qxmek", {"PB_BUFFERS_BASE": "0x80010000"}, BUFFERS_OVERLAP),
+    ("imx8qxmek", {"PB_BUFFERS_BASE": "0x80030000"}, BUFFERS_OVERLAP),
     # The i.MX8M's are in the DRAM, after the DDR controller's state there
     (
         "imx8mpevk",
-        {"CONFIG_PB_BUFFERS_BASE": "0x930000", "CONFIG_PB_BUFFERS_SIZE": "0x10000"},
+        {"PB_BUFFERS_BASE": "0x930000", "PB_BUFFERS_SIZE": "0x10000"},
         BUFFERS_NOT_IN + "the board's DRAM, after the DDR controller's state",
     ),
     (
         "imx8mpevk",
-        {"CONFIG_PB_BUFFERS_BASE": "0x4001f000"},
+        {"PB_BUFFERS_BASE": "0x4001f000"},
         BUFFERS_NOT_IN + "the board's DRAM, after the DDR controller's state",
     ),
     # The i.MX6UL's windows are the board's DRAM and the OCRAM from 0x908000:
     # below the DRAM, at its end, and in the OCRAM's part that is the ROM's
-    ("jiffy", {"CONFIG_PB_ENTRY": "0x7ffff000"}, IMX6UL_ENTRY),
-    ("jiffy", {"CONFIG_PB_ENTRY": "0xc0000000"}, IMX6UL_ENTRY),
-    ("jiffy", {"CONFIG_PB_ENTRY": "0x00907000"}, IMX6UL_ENTRY),
+    ("jiffy", {"PB_ENTRY": "0x7ffff000"}, IMX6UL_ENTRY),
+    ("jiffy", {"PB_ENTRY": "0xc0000000"}, IMX6UL_ENTRY),
+    ("jiffy", {"PB_ENTRY": "0x00907000"}, IMX6UL_ENTRY),
     # A region of pb's that ends after its window, or is empty
-    ("jiffy", {"CONFIG_PB_SIZE": "0x40000000"}, PB_SIZE_AFTER),
-    ("jiffy", {"CONFIG_PB_ENTRY": "0x00908000", "CONFIG_PB_SIZE": "0x19000"}, PB_SIZE_AFTER),
-    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x61000"}, PB_SIZE_AFTER),
-    ("imxrt1060evk", {"CONFIG_PB_SIZE": "0x78000"}, PB_SIZE_AFTER),
+    ("jiffy", {"PB_SIZE": "0x40000000"}, PB_SIZE_AFTER),
+    ("jiffy", {"PB_ENTRY": "0x00908000", "PB_SIZE": "0x19000"}, PB_SIZE_AFTER),
+    ("imx8mpevk", {"PB_SIZE": "0x61000"}, PB_SIZE_AFTER),
+    ("imxrt1060evk", {"PB_SIZE": "0x78000"}, PB_SIZE_AFTER),
     (
         "imx8qxmek",
-        {"CONFIG_PB_SIZE": "0xc0001000"},
-        "pb (CONFIG_PB_ENTRY, CONFIG_PB_SIZE) is not in the board's DRAM",
+        {"PB_SIZE": "0xc0001000"},
+        "pb (PB_ENTRY, PB_SIZE) is not in the board's DRAM",
     ),
     (
         "imx8qxmek",
-        {"CONFIG_PB_SIZE": "0x20000"},
-        "pb (CONFIG_PB_ENTRY, CONFIG_PB_SIZE) is not in the board's DRAM",
+        {"PB_SIZE": "0x20000"},
+        "pb (PB_ENTRY, PB_SIZE) is not in the board's DRAM",
     ),
     # Buffers that aren't in memory that works after plat_init(): over the
     # DRAM's end, below it, in no memory, and over the on-chip RAM's end
     (
         "jiffy",
-        {"CONFIG_PB_BUFFERS_BASE": "0xbf022000"},
+        {"PB_BUFFERS_BASE": "0xbf022000"},
         BUFFERS_NOT_IN + "the board's DRAM or the OCRAM",
     ),
     (
         "jiffy",
-        {"CONFIG_PB_BUFFERS_BASE": "0x00910000"},
+        {"PB_BUFFERS_BASE": "0x00910000"},
         BUFFERS_NOT_IN + "the board's DRAM or the OCRAM",
     ),
     (
         "imx8mpevk",
-        {"CONFIG_PB_BUFFERS_BASE": "0x3f800000"},
+        {"PB_BUFFERS_BASE": "0x3f800000"},
         BUFFERS_NOT_IN + "the board's DRAM, after the DDR controller's state",
     ),
     (
         "imx8mpevk",
-        {"CONFIG_PB_BUFFERS_BASE": "0xbf800000"},
+        {"PB_BUFFERS_BASE": "0xbf800000"},
         BUFFERS_NOT_IN + "the board's DRAM, after the DDR controller's state",
     ),
-    ("imx8qxmek", {"CONFIG_PB_BUFFERS_BASE": "0x70000000"}, BUFFERS_NOT_IN + "the board's DRAM"),
+    ("imx8qxmek", {"PB_BUFFERS_BASE": "0x70000000"}, BUFFERS_NOT_IN + "the board's DRAM"),
     (
         "imx8qxmek",
-        {"CONFIG_PB_BUFFERS_BASE": "0x13f001000"},
+        {"PB_BUFFERS_BASE": "0x13f001000"},
         BUFFERS_NOT_IN + "the board's DRAM",
     ),
     (
         "imxrt1060evk",
-        {"CONFIG_PB_BUFFERS_BASE": "0x2028a000"},
+        {"PB_BUFFERS_BASE": "0x2028a000"},
         BUFFERS_NOT_IN + "the OCRAM, the DTCM or the board's DRAM",
     ),
     (
         "imxrt1060evk",
-        {"CONFIG_PB_BUFFERS_BASE": "0x80000000"},
+        {"PB_BUFFERS_BASE": "0x80000000"},
         BUFFERS_NOT_IN + "the OCRAM, the DTCM or the board's DRAM",
     ),
     # The linker holds the regions' ends, where a board's image data region
     # starts (F-391): a pb or buffers that need more than the board gives them
-    ("jiffy", {"CONFIG_PB_SIZE": "0x30000"}, "region `ram' overflowed"),
-    ("jiffy", {"CONFIG_PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
-    ("imx8qxmek", {"CONFIG_PB_SIZE": "0x50000"}, "region `ram' overflowed"),
-    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x3f000"}, "region `ram' overflowed"),
-    ("imx8mpevk", {"CONFIG_PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
+    ("jiffy", {"PB_SIZE": "0x30000"}, "region `ram' overflowed"),
+    ("jiffy", {"PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
+    ("imx8qxmek", {"PB_SIZE": "0x50000"}, "region `ram' overflowed"),
+    ("imx8mpevk", {"PB_SIZE": "0x3f000"}, "region `ram' overflowed"),
+    ("imx8mpevk", {"PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
     # The stack right above .ro_data, which is read only with the MMU on: a
     # link script that has something between the two (F-209)
     (
@@ -231,7 +241,11 @@ CASES = [
     ),
 ]
 
-# The regions the boards' defconfigs give, (origin, length), as pb.map has
+# What the checks say, and not the linker: the cases that the linker refuses
+# say "region"
+REFUSALS = {message for _, _, message in CASES if "region `" not in message}
+
+# The regions the boards' makefile.mk give, (origin, length), as pb.map has
 # them. A length that ld can't work out is every address, without a message.
 # pb's region and the buffers' end where the board's next image data region
 # starts (F-391): jiffy's at 0x80101000 and 0x82000000, the MEK's at
@@ -263,39 +277,39 @@ ALLOWED = [
     # The buffers in the on-chip RAM. On the RT pb then has its window to the end
     (
         "jiffy",
-        {"CONFIG_PB_BUFFERS_BASE": "0x00900000", "CONFIG_PB_BUFFERS_SIZE": "0x20000"},
+        {"PB_BUFFERS_BASE": "0x00900000", "PB_BUFFERS_SIZE": "0x20000"},
         {"ram": (0x80001000, 0x100000), "buffers": (0x00900000, 0x20000)},
     ),
     (
         "imxrt1060evk",
-        {"CONFIG_PB_BUFFERS_BASE": "0x20000000", "CONFIG_PB_BUFFERS_SIZE": "0x20000"},
+        {"PB_BUFFERS_BASE": "0x20000000", "PB_BUFFERS_SIZE": "0x20000"},
         {"ram": (0x20249000, 0x77000), "buffers": (0x20000000, 0x20000)},
     ),
     # pb in the i.MX6UL's OCRAM, with the region platform.md 5.1 derives:
     # to the window's end
     (
         "jiffy",
-        {"CONFIG_PB_ENTRY": "0x00908000", "CONFIG_PB_SIZE": "0x0"},
+        {"PB_ENTRY": "0x00908000", "PB_SIZE": "0x0"},
         {"ram": (0x00908000, 0x18000)},
     ),
     # pb's region derived in the DRAM: to the buffers that follow it
-    ("jiffy", {"CONFIG_PB_SIZE": "0x0"}, {"ram": (0x80001000, 0x1020000)}),
-    ("imx8qxmek", {"CONFIG_PB_SIZE": "0x0"}, {"ram": (0x80020000, 0x4FE0000)}),
+    ("jiffy", {"PB_SIZE": "0x0"}, {"ram": (0x80001000, 0x1020000)}),
+    ("imx8qxmek", {"PB_SIZE": "0x0"}, {"ram": (0x80020000, 0x4FE0000)}),
     # and in the i.MX8M's on-chip RAM: to the window's end
-    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x0"}, {"ram": (0x920000, 0x60000)}),
+    ("imx8mpevk", {"PB_SIZE": "0x0"}, {"ram": (0x920000, 0x60000)}),
     # and to the DRAM's end when they are below it
     (
         "jiffy",
-        {"CONFIG_PB_ENTRY": "0x83000000", "CONFIG_PB_SIZE": "0x0"},
+        {"PB_ENTRY": "0x83000000", "PB_SIZE": "0x0"},
         {"ram": (0x83000000, 0x3D000000)},
     ),
     # A board that gives pb less
-    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x58000"}, {"ram": (0x920000, 0x58000)}),
-    ("imxrt1060evk", {"CONFIG_PB_SIZE": "0x30000"}, {"ram": (0x20249000, 0x30000)}),
+    ("imx8mpevk", {"PB_SIZE": "0x58000"}, {"ram": (0x920000, 0x58000)}),
+    ("imxrt1060evk", {"PB_SIZE": "0x30000"}, {"ram": (0x20249000, 0x30000)}),
     # The i.MX8M's buffers right after the DDR controller's state
     (
         "imx8mpevk",
-        {"CONFIG_PB_BUFFERS_BASE": "0x40020000"},
+        {"PB_BUFFERS_BASE": "0x40020000"},
         {"buffers": (0x40000000, 0x1020000)},
     ),
     # The ARMv7-M has no MMU: the stack may be anywhere
@@ -337,6 +351,13 @@ class Links:
         stack = "     .stack (NOLOAD):\n"
         gap = "    .gap (NOLOAD) : { . = . + 4096; } > ram\n\n"
         (work / "link_gap.lds").write_text(script.replace(stack, gap + stack))
+        # The unchecked boards: the board's directory, its board.c without
+        # the static asserts
+        for board in BOARDS:
+            unchecked = work / "boards" / board
+            shutil.copytree(root / f"src/board/{board}", unchecked)
+            path = root / f"src/board/{board}/board.c"
+            (unchecked / "board.c").write_text(UNCHECKED_BOARD_C.format(path=path))
         # The boards' defconfigs with a Firmware Handoff region
         for board, base in FH_REGION.items():
             lines = (root / f"configs/{board}_defconfig").read_text().splitlines()
@@ -348,32 +369,47 @@ class Links:
             ]
             (work / f"{board}_fh_defconfig").write_text("\n".join(lines) + "\n")
 
-    def make(self, build: str, values: dict[str, str]) -> subprocess.CompletedProcess[str]:
-        """Link pb with the values: a board's, or "<board>-fh" with the region."""
+    @staticmethod
+    def build_dir(build: str, *, unchecked: bool) -> str:
+        """Return the name of the build's directory: the unchecked board's has its own."""
+        return f"{build}-unchecked" if unchecked else build
+
+    def make(
+        self, build: str, values: dict[str, str], *, unchecked: bool = False
+    ) -> subprocess.CompletedProcess[str]:
+        """Link pb with the values: a board's, or "<board>-fh" with the region.
+
+        unchecked: the board's copy without its static asserts.
+        """
         board = build.removesuffix("-fh")
         config = f"configs/{board}_defconfig"
         if build != board:
             config = str(self.work / f"{board}_fh_defconfig")
         if board == "imx8mpevk":
             values = {**self.firmware, **values}
+        path = self.work / "boards" / board if unchecked else f"src/board/{board}"
+        out = self.work / self.build_dir(build, unchecked=unchecked)
         cmd = [
             "make",
             f"-j{os.cpu_count() or 1}",
-            f"BOARD=src/board/{board}",
+            f"BOARD={path}",
             f"KCONFIG_CONFIG={config}",
             f"CROSS_COMPILE={BOARDS[board]}",
-            f"BUILD_DIR={self.work / build}",
+            f"BUILD_DIR={out}",
             *(f"{name}={value.format(work=self.work)}" for name, value in values.items()),
-            f"{self.work / build}/pb",
+            f"{out}/pb",
         ]
         return subprocess.run(  # noqa: S603
             cmd, cwd=self.root, env=self.env, capture_output=True, text=True, check=False
         )
 
-    def regions(self, build: str) -> dict[str, tuple[int, int]]:
-        """Return the regions of the build's last link, from its map."""
+    def regions(self, build: str, *, unchecked: bool = False) -> dict[str, tuple[int, int]] | None:
+        """Return the regions of the build's last link, from its map, None without one."""
         regions = {}
-        lines = (self.work / build / "pb.map").read_text().splitlines()
+        path = self.work / self.build_dir(build, unchecked=unchecked) / "pb.map"
+        if not path.exists():
+            return None
+        lines = path.read_text().splitlines()
         for line in lines[lines.index("Memory Configuration") + 3 :]:
             fields = line.split()
             if not fields or fields[0] == "*default*":
@@ -396,7 +432,7 @@ class Links:
         )
 
     def check_links(self, build: str, what: str) -> str:
-        """Check that the build links with its defconfig, with the board's regions."""
+        """Check that the build links with the board's values, with its regions."""
         result = self.make(build, {})
         if result.returncode != 0:
             return f"FAILED: {build}: {what}:\n{result.stdout}{result.stderr}"
@@ -406,7 +442,7 @@ class Links:
 
     def check_refused(self, build: str, values: dict[str, str], message: str) -> str:
         """Check that the build's link with the values fails with the message."""
-        result = self.make(build, values)
+        result = self.make(build, values, unchecked=True)
         what = ", ".join(f"{name}={value}" for name, value in values.items())
         if result.returncode != 0 and message in result.stderr:
             return f"ok: {build}: {what}: {message}"
@@ -419,14 +455,19 @@ class Links:
         self, build: str, values: dict[str, str], expected: dict[str, tuple[int, int]]
     ) -> str:
         """Check that no check refuses the build's link with the values, and its regions."""
-        (self.work / build / "pb.map").unlink()
-        result = self.make(build, values)
+        (self.work / self.build_dir(build, unchecked=True) / "pb.map").unlink(missing_ok=True)
+        result = self.make(build, values, unchecked=True)
         what = ", ".join(f"{name}={value}" for name, value in values.items())
-        refused = [line for line in result.stderr.splitlines() if "CONFIG_" in line]
-        regions = self.regions(build)
-        found = {name: regions.get(name) for name in expected}
-        if refused:
+        refused = [message for message in REFUSALS if message in result.stderr]
+        regions = self.regions(build, unchecked=True)
+        if refused or regions is None:
             return f"FAILED: {build}: {what}: refused:\n{result.stderr}"
+        # A link that fails may fail only where pb or its buffers don't fit
+        if result.returncode != 0 and not any(
+            message in result.stderr for message in ("overflowed", "is not within region")
+        ):
+            return f"FAILED: {build}: {what}: exit {result.returncode}:\n{result.stderr}"
+        found = {name: regions.get(name) for name in expected}
         if found != expected:
             return f"FAILED: {build}: {what}: the regions {found}, expected {expected}"
         fits = "links" if result.returncode == 0 else "is allowed (pb doesn't fit there)"
@@ -436,12 +477,12 @@ class Links:
         """Run the board's cases, and those of its build with the region."""
         report = []
         for build in (board, f"{board}-fh") if board in FH_REGION else (board,):
-            report.append(self.check_links(build, "its defconfig links"))
+            report.append(self.check_links(build, "its values link"))
             if board == "imxrt1060evk":
                 report.append(self.check_section(build, SCRIPT_SECTION))
             report += [self.check_refused(*case) for case in CASES if case[0] == build]
             report += [self.check_allowed(*case) for case in ALLOWED if case[0] == build]
-            report.append(self.check_links(build, "and its defconfig links again"))
+            report.append(self.check_links(build, "and its values link again"))
         return report
 
 

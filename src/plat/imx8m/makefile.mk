@@ -8,6 +8,11 @@
 #
 ifdef CONFIG_PLAT_IMX8M_COMMON
 
+# pb's buffers (platform.md 5.1), in the DRAM, after the DDR controller's state: the board's makefile.mk,
+# read before this one, may put them elsewhere
+PB_BUFFERS_BASE ?= 0x40060000
+PB_BUFFERS_SIZE ?= 0x1000000
+
 src-y  += src/plat/imx8m/plat.c
 src-y  += src/plat/imx8m/ddr.c
 src-$(CONFIG_PLAT_IMX8MQ) += src/plat/imx8m/plat_imx8mq.c
@@ -92,14 +97,14 @@ ifdef CONFIG_PLAT_IMX8MQ
 imx8m_image: $(BUILD_DIR)/pb.bin
 	@echo Generating $(BUILD_DIR)/pb.imx
 	@dd if=$(BUILD_DIR)/pb.bin of=$(BUILD_DIR)/pb_pad.bin bs=512 conv=sync,noerror
-	@$(MKIMAGE) -loader $(BUILD_DIR)/pb_pad.bin $(CONFIG_PB_ENTRY) -out $(BUILD_DIR)/pb.imx
+	@$(MKIMAGE) -loader $(BUILD_DIR)/pb_pad.bin $(PB_ENTRY) -out $(BUILD_DIR)/pb.imx
 	@dd if=$(BUILD_DIR)/pb.imx of=$(BUILD_DIR)/pb_pad.imx bs=4 conv=sync,noerror
 	@echo "$(BUILD_DIR)/pb_pad.imx ready"
 
 # pb.csf, the HABv4 description of pb_pad.imx: its first 0x200 bytes more
 # than pb_pad.bin, from the IVT at PB_ENTRY - 0x40
 imx8m_sign_desc: imx8m_image
-	$(Q)blocks=$$(printf 'Blocks = 0x%X 0x0 0x%X' $$(( $(CONFIG_PB_ENTRY) - 0x40 )) \
+	$(Q)blocks=$$(printf 'Blocks = 0x%X 0x0 0x%X' $$(( $(PB_ENTRY) - 0x40 )) \
 	                $$(( $$(stat -c%s $(BUILD_DIR)/pb_pad.bin) + 0x200 ))); \
 	 sed -e "s#__BLOCKS__#$$blocks \"$(BUILD_DIR)/pb_pad.imx\"#g" \
 	     -e 's#__KEY_INDEX__#$(IMX8M_KEY_INDEX)#g' \
@@ -120,8 +125,8 @@ else
 # the boot media or the serial downloader (uuu)
 imx8m_image: $(BUILD_DIR)/pb.bin
 	@echo Generating $(BUILD_DIR)/pb.imx
-	@printf 'ROM_VERSION v2\nBOOT_FROM $(IMX8M_BOOT_FROM)\nLOADER $(BUILD_DIR)/pb.bin $(CONFIG_PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
-	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(CONFIG_PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
+	@printf 'ROM_VERSION v2\nBOOT_FROM $(IMX8M_BOOT_FROM)\nLOADER $(BUILD_DIR)/pb.bin $(PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
+	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
 endif
 
 image-$(CONFIG_IMX8M_CREATE_IMX_IMAGE) += imx8m_image

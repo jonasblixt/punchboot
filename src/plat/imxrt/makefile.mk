@@ -8,6 +8,11 @@
 #
 ifdef CONFIG_PLAT_IMXRT
 
+# pb's buffers (platform.md 5.1), in the OCRAM, after pb: the board's makefile.mk,
+# read before this one, may put them elsewhere
+PB_BUFFERS_BASE ?= 0x20289000
+PB_BUFFERS_SIZE ?= 0x37000
+
 cflags-y += -mtune=cortex-m7
 
 ldflags-y += -Tsrc/plat/imxrt/link.lds
@@ -31,7 +36,7 @@ IMXRT_FCB_SRC ?=
 
 # pb.imx: the IVT and the boot data, and pb.bin
 imxrt_image: $(BUILD_DIR)/pb.bin
-	@$(MKIMAGE) -n $(IMXRT_IMAGE_CFG) -T imximage -e $(CONFIG_PB_ENTRY) \
+	@$(MKIMAGE) -n $(IMXRT_IMAGE_CFG) -T imximage -e $(PB_ENTRY) \
 				-d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx
 
 $(BUILD_DIR)/fcb.bin: $(IMXRT_FCB_SRC)

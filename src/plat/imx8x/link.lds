@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Where pb, its buffers and the board's DRAM are is the board's, from its
- * defconfig (platform.md 5.1): PB_ENTRY, PB_SIZE, PB_BUFFERS_BASE and _SIZE,
+ * makefile.mk (platform.md 5.1): PB_ENTRY, PB_SIZE, PB_BUFFERS_BASE and _SIZE,
  * BOARD_DRAM_BASE and _SIZE. The addresses here are the SoC's.
  */
 
@@ -44,20 +44,20 @@ BOARD_DRAM_END = BOARD_DRAM_BASE + BOARD_DRAM_SIZE;
 PB_REGION_END = ORIGIN(ram) + LENGTH(ram);
 
 ASSERT(PB_ENTRY == ORIGIN(reset),
-       "CONFIG_PB_ENTRY is not 0x80000000, where the i.MX8X starts pb")
+       "PB_ENTRY is not 0x80000000, where the i.MX8X starts pb")
 
 ASSERT(PB_ENTRY >= BOARD_DRAM_BASE && PB_REGION_END > ORIGIN(ram) &&
        PB_REGION_END <= BOARD_DRAM_END,
-       "pb (CONFIG_PB_ENTRY, CONFIG_PB_SIZE) is not in the board's DRAM")
+       "pb (PB_ENTRY, PB_SIZE) is not in the board's DRAM")
 
 ASSERT(PB_BUFFERS_BASE >= BOARD_DRAM_BASE &&
        PB_BUFFERS_BASE + PB_BUFFERS_SIZE <= BOARD_DRAM_END,
-       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM")
+       "pb's buffers (PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM")
 
 /* pb here is the reset region too: BL31 is loaded there once pb's stub ran */
 ASSERT(ORIGIN(buffers) + LENGTH(buffers) <= ORIGIN(reset) ||
        ORIGIN(buffers) >= ORIGIN(ram) + LENGTH(ram),
-       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb")
+       "pb's buffers (PB_BUFFERS_BASE, _SIZE) overlap pb")
 
 /* The Firmware Handoff region is the board's too (CONFIG_BOOT_FH): in the
  * same memory. src/boot/fh.lds keeps it off pb and the buffers */

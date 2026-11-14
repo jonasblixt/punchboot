@@ -44,14 +44,6 @@ endif
 
 include $(BUILD_CONFIG)
 
-# What the link needs from the board's defconfig (platform.md 5.1). A value
-# that is missing would otherwise fail in the linker, without its name.
-ifneq ($(filter-out menuconfig olddefconfig clean,$(or $(MAKECMDGOALS),all)),)
-ifeq ($(CONFIG_PB_ENTRY),)
-$(error CONFIG_PB_ENTRY is not set: where pb is loaded and linked, in the board's defconfig (platform.md 5.1))
-endif
-endif
-
 # $(call value_file,<variable>) gives $(BUILD_DIR)/value/<variable>, a file
 # with the variable's value that is rewritten only when the value changes. What
 # is made from a variable depends on its file, so it is made again when the
@@ -82,13 +74,6 @@ cflags-y  += -I include/
 cflags-y  += -I include/libc
 cflags-y  += -I $(BOARD)/include
 cflags-y  += -I $(BUILD_DIR)
-
-# The board's DRAM (platform.md 5.1), from its defconfig. BOARD_RAM_BASE and
-# BOARD_RAM_END are its names in the platforms' memory maps; the end is made
-# here, where it doesn't wrap in 32 bits.
-BOARD_DRAM_END := $(shell printf '0x%x' $$(( $(CONFIG_BOARD_DRAM_BASE) + $(CONFIG_BOARD_DRAM_SIZE) )))
-cflags-y  += -DBOARD_RAM_BASE=$(CONFIG_BOARD_DRAM_BASE)
-cflags-y  += -DBOARD_RAM_END=$(BOARD_DRAM_END)
 
 # Warnings
 cflags-y += -Wall
@@ -133,6 +118,33 @@ include src/arch/*/makefile.mk
 include src/plat/*/makefile.mk
 include src/cm/makefile.mk
 
+# The board's memory (platform.md 5.1): where pb is linked, pb's region, the
+# board's DRAM and pb's buffers. They are facts of the board's hardware, so
+# its makefile.mk sets them, and the platform's makefile.mk, read after it,
+# gives the buffers a default with ?=. Each reaches the linker (--defsym) and
+# C (-D) under its own name. A value that is missing would otherwise fail in
+# the linker, without its name.
+PB_SIZE ?= 0x0
+BOARD_MEMORY = PB_ENTRY PB_SIZE BOARD_DRAM_BASE BOARD_DRAM_SIZE PB_BUFFERS_BASE PB_BUFFERS_SIZE
+ifneq ($(filter-out menuconfig olddefconfig clean,$(or $(MAKECMDGOALS),all)),)
+$(foreach v,$(BOARD_MEMORY),$(if $(strip $($(v))),,\
+    $(error $(v) is not set: the board's makefile.mk gives its memory (platform.md 5.1))))
+endif
+
+# Before 3.0.0 the board's makefile.mk gave the DRAM as -D flags: they would
+# be defined twice, with the board's values or with these
+ifneq ($(filter -DBOARD_RAM_BASE=% -DBOARD_RAM_END=%,$(cflags-y)),)
+$(error -DBOARD_RAM_BASE and -DBOARD_RAM_END are BOARD_DRAM_BASE and BOARD_DRAM_SIZE in the board's makefile.mk since 3.0.0 (platform.md 5.1))
+endif
+
+cflags-y  += $(foreach v,$(BOARD_MEMORY),-D$(v)=$($(v)))
+
+# BOARD_RAM_BASE and BOARD_RAM_END are the DRAM's names in the platforms'
+# memory maps; the end is made here, where it doesn't wrap in 32 bits.
+BOARD_DRAM_END := $(shell printf '0x%x' $$(( $(BOARD_DRAM_BASE) + $(BOARD_DRAM_SIZE) )))
+cflags-y  += -DBOARD_RAM_BASE=$(BOARD_DRAM_BASE)
+cflags-y  += -DBOARD_RAM_END=$(BOARD_DRAM_END)
+
 # The image stages (platform.md 6.2): image-y lists the stages `all` makes
 # after pb.bin, each added through its Kconfig option, and FINAL_OUTPUT is the
 # last file they make. Both are set while the makefiles are read, the board's
@@ -146,12 +158,7 @@ endif
 FINAL_OUTPUT ?= $(BUILD_DIR)/$(TARGET).bin
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
-ldflags-y += --defsym=PB_ENTRY=$(CONFIG_PB_ENTRY)
-ldflags-y += --defsym=PB_SIZE=$(CONFIG_PB_SIZE)
-ldflags-y += --defsym=BOARD_DRAM_BASE=$(CONFIG_BOARD_DRAM_BASE)
-ldflags-y += --defsym=BOARD_DRAM_SIZE=$(CONFIG_BOARD_DRAM_SIZE)
-ldflags-y += --defsym=PB_BUFFERS_BASE=$(CONFIG_PB_BUFFERS_BASE)
-ldflags-y += --defsym=PB_BUFFERS_SIZE=$(CONFIG_PB_BUFFERS_SIZE)
+ldflags-y += $(foreach v,$(BOARD_MEMORY),--defsym=$(v)=$($(v)))
 ldflags-y += --defsym=PB_STACK_SIZE_KiB=$(CONFIG_STACK_SIZE_KiB)
 ldflags-y += -T$(CONFIG_LINK_FILE) --build-id=none
 ldflags-y += --gc-sections

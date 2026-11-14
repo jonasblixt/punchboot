@@ -9,6 +9,11 @@
 
 ifdef CONFIG_PLAT_IMX8X_COMMON
 
+# pb's buffers (platform.md 5.1), in the DRAM: the board's makefile.mk,
+# read before this one, may put them elsewhere
+PB_BUFFERS_BASE ?= 0x85000000
+PB_BUFFERS_SIZE ?= 0x1000000
+
 src-y  += src/plat/imx8x/plat.c
 src-y  += src/plat/imx8x/fusebox.c
 src-y  += src/plat/imx8x/slc_helpers.c
@@ -71,7 +76,7 @@ imx8x_image: $(BUILD_DIR)/pb.bin
 				  -e $(IMX8X_BOOT_DEVICE) \
 				  -append $(IMX8X_AHAB_IMAGE) \
 				  -c -scfw $(IMX8X_SCFW_IMAGE) \
-				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(CONFIG_PB_ENTRY) \
+				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(PB_ENTRY) \
 				  -out $(BUILD_DIR)/pb.imx
 
 ifdef CONFIG_PLAT_IMX8XL

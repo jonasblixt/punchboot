@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Where pb, its buffers and the board's DRAM are is the board's, from its
- * defconfig (platform.md 5.1): PB_ENTRY, PB_SIZE, PB_BUFFERS_BASE and _SIZE,
+ * makefile.mk (platform.md 5.1): PB_ENTRY, PB_SIZE, PB_BUFFERS_BASE and _SIZE,
  * BOARD_DRAM_BASE and _SIZE. The addresses here are the SoC's.
  */
 
@@ -50,20 +50,20 @@ PB_LOAD_END = PB_ENTRY >= IMX6UL_OCRAM_LOAD_BASE && PB_ENTRY < IMX6UL_OCRAM_END 
 
 ASSERT((PB_ENTRY >= IMX6UL_OCRAM_LOAD_BASE && PB_ENTRY < IMX6UL_OCRAM_END) ||
        (PB_ENTRY >= BOARD_DRAM_BASE && PB_ENTRY < BOARD_DRAM_END),
-       "CONFIG_PB_ENTRY is not where the i.MX6UL's ROM loads pb to: the board's DRAM, or the OCRAM from 0x908000")
+       "PB_ENTRY is not where the i.MX6UL's ROM loads pb to: the board's DRAM, or the OCRAM from 0x908000")
 
 ASSERT(PB_REGION_END > PB_ENTRY && PB_REGION_END <= PB_LOAD_END,
-       "CONFIG_PB_SIZE ends pb's region after the memory the ROM loads pb to")
+       "PB_SIZE ends pb's region after the memory the ROM loads pb to")
 
 ASSERT((PB_BUFFERS_BASE >= BOARD_DRAM_BASE &&
         PB_BUFFERS_BASE + PB_BUFFERS_SIZE <= BOARD_DRAM_END) ||
        (PB_BUFFERS_BASE >= IMX6UL_OCRAM_BASE &&
         PB_BUFFERS_BASE + PB_BUFFERS_SIZE <= IMX6UL_OCRAM_END),
-       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM or the OCRAM")
+       "pb's buffers (PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM or the OCRAM")
 
 ASSERT(ORIGIN(buffers) + LENGTH(buffers) <= ORIGIN(ram) ||
        ORIGIN(buffers) >= ORIGIN(ram) + LENGTH(ram),
-       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb")
+       "pb's buffers (PB_BUFFERS_BASE, _SIZE) overlap pb")
 
 /* The Firmware Handoff region is the board's too (CONFIG_BOOT_FH): in the
  * same memory. src/boot/fh.lds keeps it off pb and the buffers */
