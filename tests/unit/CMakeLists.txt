@@ -740,6 +740,7 @@ pb_unit_test(test_usbd SOURCES
 # The Cadence USB3 controller's driver on a register file. Its TRBs hold 32 bit
 # addresses: -no-pie keeps the ring below 4 GiB
 pb_unit_test(test_cdns3_udc SOURCES
+    ${PB_DMA_MODEL}
     fakes/regs.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/cdns3_udc_core.c
 )

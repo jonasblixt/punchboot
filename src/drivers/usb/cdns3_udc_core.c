@@ -26,10 +26,10 @@
  *
  */
 
-#include <arch/arch.h>
 #include <drivers/usb/cdns3_udc_core.h>
 #include <inttypes.h>
 #include <pb/delay.h>
+#include <pb/dma.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <stdio.h>
@@ -131,12 +131,20 @@ struct cdns_trb {
 #define TRB_TYPE_LINK       (6)
 
 static uintptr_t base;
-static struct usb_setup_packet setup_pkt __aligned(64); // TODO: Define CASHE_WRITEBACK_GRANULE
-static struct cdns_trb ep0_in_trb[2] __aligned(64);
-static struct cdns_trb ep0_out_trb[2] __aligned(64);
-static uint8_t align_buffer[512] __aligned(64);
+
+/*
+ * What the controller reads and writes of the driver's own, each on cache
+ * lines of its own (drivers.md 4.2, 3 and 5). They were aligned and not
+ * padded: the setup packet is 8 bytes, and whatever the linker put behind it
+ * shared the line that every SETUP invalidates (F-205). Not zeroed at boot:
+ * a ring's terminating TRB is written with the ring.
+ */
+PB_DMA_BUFFER(struct usb_setup_packet, setup_pkt);
+PB_DMA_ARRAY(struct cdns_trb, ep0_in_trb, 2);
+PB_DMA_ARRAY(struct cdns_trb, ep0_out_trb, 2);
+PB_DMA_ARRAY(uint8_t, align_buffer, 512);
 #define CDNS_TRB_COUNT 128
-static struct cdns_trb trb[CDNS_TRB_COUNT] __aligned(64); // TODO: Hardcoded amount of TRB's
+PB_DMA_ARRAY(struct cdns_trb, trb, CDNS_TRB_COUNT); // TODO: Hardcoded amount of TRB's
 
 /* EP0's max packet size at high speed, the descriptor's bMaxPacketSize0. 512
  * is SuperSpeed's, which pb doesn't support: at high speed a longer reply,
@@ -147,6 +155,16 @@ static struct cdns_trb trb[CDNS_TRB_COUNT] __aligned(64); // TODO: Hardcoded amo
 static void *current_xfer_buf;
 static size_t current_xfer_length;
 static usb_ep_t current_xfer_ep;
+/* The bulk transfer's TRBs, and an OUT transfer's buffer, are the
+ * controller's: begun, and not ended yet */
+static bool current_xfer_dma;
+static size_t current_xfer_trb_length;
+/* The same for endpoint 0's two rings and what its OUT transfer writes,
+ * which is the setup packet */
+static bool ep0_in_dma;
+static bool ep0_out_dma;
+static void *ep0_out_buf;
+static size_t ep0_out_length;
 
 static int select_ep(usb_ep_t ep)
 {
@@ -160,6 +178,44 @@ static int select_ep(usb_ep_t ep)
     return PB_OK;
 }
 
+static bool is_out_with_data(usb_ep_t ep, const void *buf, size_t length)
+{
+    return !(ep % 2) && buf != NULL && length > 0;
+}
+
+/* Endpoint 0's transfer in one direction is over, or is replaced: its ring
+ * and what it wrote are the driver's again, and read from RAM */
+static void ep0_dma_end(bool in_xfer)
+{
+    if (in_xfer && ep0_in_dma) {
+        dma_in_end(ep0_in_trb, sizeof(ep0_in_trb));
+        ep0_in_dma = false;
+    }
+
+    if (!in_xfer && ep0_out_dma) {
+        dma_in_end(ep0_out_trb, sizeof(ep0_out_trb));
+
+        if (ep0_out_buf != NULL)
+            dma_in_end(ep0_out_buf, ep0_out_length);
+
+        ep0_out_dma = false;
+    }
+}
+
+/* The same for the bulk transfer */
+static void xfer_dma_end(void)
+{
+    if (!current_xfer_dma)
+        return;
+
+    dma_in_end(trb, current_xfer_trb_length);
+
+    if (is_out_with_data(current_xfer_ep, current_xfer_buf, current_xfer_length))
+        dma_in_end(current_xfer_buf, current_xfer_length);
+
+    current_xfer_dma = false;
+}
+
 static int ep0_xfer_start(void *buf, size_t length, bool in_xfer)
 {
     void *buf_p = buf;
@@ -168,14 +224,14 @@ static int ep0_xfer_start(void *buf, size_t length, bool in_xfer)
     if (length > TRB_MAX_LENGTH)
         return -PB_ERR_PARAM;
 
+    /* The transfer before this one in the same direction */
+    ep0_dma_end(in_xfer);
+
     if (in_xfer) {
         // TODO: Temparary alignment fix
         memcpy(align_buffer, buf, length);
         buf_p = align_buffer;
-    }
-
-    if (buf_p) {
-        arch_clean_cache_range((uintptr_t)buf_p, length);
+        dma_out(buf_p, length);
     }
 
     // LOG_DBG("%s: %p, len=%zu", in_xfer?"IN":"OUT", buf_p, length);
@@ -183,7 +239,27 @@ static int ep0_xfer_start(void *buf, size_t length, bool in_xfer)
     trb_p->addr = (uint32_t)(uintptr_t)buf_p;
     trb_p->length = (uint32_t)length;
     trb_p->flags = TRB_FLAG_CYCLE | TRB_FLAG_IOC | TRB_TYPE(TRB_TYPE_NORMAL);
-    arch_clean_cache_range((uintptr_t)trb_p, sizeof(*trb_p));
+    /* The ring ends behind it: the controller stops at a TRB whose cycle
+     * bit is clear. It was zero from .bss */
+    trb_p[1].addr = 0;
+    trb_p[1].length = 0;
+    trb_p[1].flags = 0;
+
+    /* The controller reads the ring and may write it, and it writes an OUT
+     * transfer's buffer: the setup packet, which owns its lines */
+    if (in_xfer) {
+        dma_in_begin(ep0_in_trb, sizeof(ep0_in_trb));
+        ep0_in_dma = true;
+    } else {
+        ep0_out_buf = (length > 0) ? buf : NULL;
+        ep0_out_length = length;
+
+        if (ep0_out_buf != NULL)
+            dma_in_begin(ep0_out_buf, ep0_out_length);
+
+        dma_in_begin(ep0_out_trb, sizeof(ep0_out_trb));
+        ep0_out_dma = true;
+    }
 
     select_ep(in_xfer ? USB_EP0_IN : USB_EP0_OUT);
     mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_TRBERR);
@@ -219,12 +295,17 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     if (length > (TRB_MAX_LENGTH * CDNS_TRB_COUNT))
         return -PB_ERR_PARAM;
 
+    /* One bulk transfer at a time: one that wasn't completed or cancelled
+     * ends here, and the ring is the driver's to write */
+    xfer_dma_end();
+
     // TODO: xfer alignment, what is the minimum alignment?
     current_xfer_ep = ep;
     current_xfer_buf = buf;
     current_xfer_length = length;
 
-    arch_clean_cache_range((uintptr_t)buf, length);
+    if (in_xfer)
+        dma_out(buf, length);
 
     while (bytes_to_xfer > 0) {
         chunk = bytes_to_xfer > TRB_MAX_LENGTH ? TRB_MAX_LENGTH : bytes_to_xfer;
@@ -260,8 +341,16 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     trb_p->length = 0;
     trb_p->flags = 0;
 
-    /* With the stop gap TRB, which the controller reads too */
-    arch_clean_cache_range((uintptr_t)trb, sizeof(trb[0]) * (desc_count + 1));
+    /* With the stop gap TRB, which the controller reads too. The ring and
+     * an OUT transfer's buffer, which owns its lines (usb.md 4.3), are the
+     * controller's until the transfer is done or given up */
+    current_xfer_trb_length = sizeof(trb[0]) * (desc_count + 1);
+    dma_in_begin(trb, current_xfer_trb_length);
+
+    if (is_out_with_data(ep, buf, length))
+        dma_in_begin(buf, length);
+
+    current_xfer_dma = true;
 
     select_ep(ep);
     mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_TRBERR);
@@ -285,9 +374,18 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
         LOG_DBG("%s: TRBERR (0x%x)", ep_to_str(ep), ep_sts);
         struct cdns_trb *trb_p =
             (struct cdns_trb *)(uintptr_t)mmio_read_32(base + CDNS_USB_EP_TRADDR);
-        arch_invalidate_cache_range((uintptr_t)trb_p, sizeof(struct cdns_trb));
+
+        /* For the log, the bulk ring as the controller has it */
+        (void)trb_p;
+
+        if (current_xfer_dma)
+            dma_in_end(trb, current_xfer_trb_length);
+
         LOG_DBG("  addr=%x, len=%u, flags=%x", trb_p->addr, trb_p->length & 0xffff, trb_p->flags);
         LOG_DBG("  trb_base=%p, trb_p=0x%p", (void *)trb, trb_p);
+
+        if (current_xfer_dma)
+            dma_in_begin(trb, current_xfer_trb_length);
 
         // Re-start DMA
         mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);
@@ -299,11 +397,13 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
 
         mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_ISP);
 
-        if (ep == current_xfer_ep) {
-            if (!in_xfer && current_xfer_buf && current_xfer_length > 0) {
-                LOG_DBG("Invalidate %p, len=%zu", current_xfer_buf, current_xfer_length);
-                arch_invalidate_cache_range((uintptr_t)current_xfer_buf, current_xfer_length);
-            }
+        if (ep / 2 == 0) {
+            /* The setup packet's transfer is polled in poll_setup_pkt() */
+            if (in_xfer)
+                ep0_dma_end(true);
+        } else if (ep == current_xfer_ep) {
+            /* The ring, and what an OUT transfer wrote */
+            xfer_dma_end();
 
             current_xfer_ep = -1;
             current_xfer_buf = NULL;
@@ -324,6 +424,11 @@ void cdns3_udc_core_xfer_cancel(usb_ep_t ep)
 
     while (mmio_read_32(base + CDNS_USB_EP_CMD) & EP_CMD_DFLUSH)
         ;
+
+    /* The endpoint is idle: its transfer's buffer is the caller's again
+     * (usb.md 4.3) */
+    if (ep == current_xfer_ep)
+        xfer_dma_end();
 }
 
 static void cdns_process_irq(void)
@@ -350,8 +455,16 @@ int cdns3_udc_core_poll_setup_pkt(struct usb_setup_packet *pkt)
         ep_sts = mmio_read_32(base + CDNS_USB_EP_STS);
 
         if (ep_sts & EP_STS_SETUP) {
-            arch_invalidate_cache_range((uintptr_t)&setup_pkt, sizeof(setup_pkt));
+            /* Read from RAM, and the controller's again: the next SETUP
+             * comes when the host sends it */
+            if (ep0_out_dma)
+                dma_in_end(&setup_pkt, sizeof(setup_pkt));
+
             memcpy(pkt, &setup_pkt, sizeof(setup_pkt));
+
+            if (ep0_out_dma)
+                dma_in_begin(&setup_pkt, sizeof(setup_pkt));
+
             got_setup_pkt = true;
         }
 
@@ -458,6 +571,12 @@ int cdns3_udc_core_init(void)
     dev_ctrl_version = mmio_read_32(base + CDNS_USB_CAP6);
 
     LOG_INFO("Device controller version: 0x%x", dev_ctrl_version);
+
+    /* A second init: the glue reset the controller, and what it had of the
+     * driver's memory is the driver's again */
+    xfer_dma_end();
+    ep0_dma_end(true);
+    ep0_dma_end(false);
 
     /* Wait for controller to come out of reset */
     while (!(mmio_read_32(base + CDNS_USB_STS) & STS_INRST))
