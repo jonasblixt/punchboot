@@ -12,7 +12,7 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 
-static uintptr_t base;
+static uintptr_t base; /* 0: not set up, every call is -PB_ERR_STATE */
 static uint32_t wpb;
 static uint32_t timing; /* 0: no ipg_clk rate, no writes */
 
@@ -76,13 +76,13 @@ static void ocotp_dump_fuse(uint32_t bank, uint32_t row)
 
 int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank, unsigned int ipg_rate_hz)
 {
+    uint32_t timing_ = 0;
     int rc;
 
-    base = base_;
-    wpb = words_per_bank;
-    timing = 0;
+    /* Set up only once this init works (drivers.md 2.1) */
+    base = 0;
 
-    LOG_DBG("Initializing ocotp at 0x%" PRIxPTR, base);
+    LOG_DBG("Initializing ocotp at 0x%" PRIxPTR, base_);
 
     if (words_per_bank < 4) {
         LOG_ERR("Invalid words_per_bank setting");
@@ -90,13 +90,17 @@ int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank, unsigned int ip
     }
 
     if (ipg_rate_hz != 0) {
-        rc = ocotp_timing(ipg_rate_hz, &timing);
+        rc = ocotp_timing(ipg_rate_hz, &timing_);
 
         if (rc != PB_OK) {
             LOG_ERR("No fuse timing for an ipg_clk of %u Hz", ipg_rate_hz);
             return rc;
         }
     }
+
+    wpb = words_per_bank;
+    timing = timing_;
+    base = base_;
 
 #ifdef CONFIG_IMX_OCOTP_DEBUG
     ocotp_dump_fuse(0, 1);
@@ -160,6 +164,9 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     uint32_t addr;
     int rc;
 
+    if (base == 0)
+        return -PB_ERR_STATE;
+
     rc = ocotp_addr(bank, row, &addr);
 
     if (rc != PB_OK)
@@ -222,6 +229,9 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
     uint32_t tmp = 0;
     uint32_t addr;
     int rc;
+
+    if (base == 0)
+        return -PB_ERR_STATE;
 
     rc = ocotp_addr(bank, row, &addr);
 

@@ -38,9 +38,11 @@
  *        read, and a write is -PB_ERR_NOT_SUPPORTED
  *
  * @return PB_OK, -PB_ERR_PARAM for words_per_bank or a rate the timing
- *         doesn't fit (above some 400 MHz)
+ *         doesn't fit (above some 400 MHz). After a failed init the
+ *         driver is not set up
  */
 int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz);
+/* Both -PB_ERR_STATE before an imx_ocotp_init() that worked */
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value);
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
 

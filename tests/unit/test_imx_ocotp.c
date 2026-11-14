@@ -212,11 +212,40 @@ static int teardown(void **state)
     return 0;
 }
 
-/* Runs first: the driver keeps its base between tests */
+/* Runs first: the driver keeps its base between tests. F-420: a read or a
+ * write before the init is -PB_ERR_STATE, where it went to address 0 */
 static void test_not_initialized(void **state)
 {
+    uint32_t value = 0x5a5a5a5a;
     (void)state;
     assert_int_equal(imx_ocotp_lock(LOCKS, true), -PB_ERR_STATE);
+    assert_int_equal(imx_ocotp_read(0, 1, &value), -PB_ERR_STATE);
+    assert_int_equal(value, 0x5a5a5a5a);
+    assert_int_equal(imx_ocotp_fuse_read(1, &value), -PB_ERR_STATE);
+    assert_int_equal(imx_ocotp_write(0, 1, 1), -PB_ERR_STATE);
+    assert_int_equal(imx_ocotp_fuse_write(1, 1), -PB_ERR_STATE);
+}
+
+/* F-420: an init that failed leaves the driver not set up, also after one
+ * that worked: nothing reaches the controller */
+static void test_a_failed_init_sets_up_nothing(void **state)
+{
+    uint32_t value;
+    (void)state;
+
+    assert_int_equal(imx_ocotp_init(BASE, 2, IPG_RATE), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_read(0, 1, &value), -PB_ERR_STATE);
+    assert_int_equal(imx_ocotp_write(0, 1, 1), -PB_ERR_STATE);
+    assert_int_equal(imx_ocotp_lock(LOCKS, false), -PB_ERR_STATE);
+
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 2000000000u), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_read(0, 1, &value), -PB_ERR_STATE);
+    assert_int_equal(m.programs, 0);
+
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE), PB_OK);
+    m.otp[1] = 0x1234;
+    assert_int_equal(imx_ocotp_read(0, 1, &value), PB_OK);
+    assert_int_equal(value, 0x1234);
 }
 
 static void test_lock(void **state)
@@ -408,8 +437,9 @@ static void test_timing_without_a_rate(void **state)
     assert_int_equal(m.programs, 0);
     assert_int_equal(m.timing, 0);
 
+    /* A failed init leaves the driver not set up (F-420) */
     assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 1000000000), -PB_ERR_PARAM);
-    assert_int_equal(imx_ocotp_write(0, 4, 1), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(imx_ocotp_write(0, 4, 1), -PB_ERR_STATE);
     assert_int_equal(m.programs, 0);
 }
 
@@ -442,6 +472,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_not_initialized),
+        cmocka_unit_test_setup_teardown(test_a_failed_init_sets_up_nothing, setup, teardown),
         cmocka_unit_test_setup_teardown(test_lock, setup, teardown),
         cmocka_unit_test_setup_teardown(test_scs_not_locked, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
