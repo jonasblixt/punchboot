@@ -60,7 +60,7 @@ static bool transfer_lost;
  * is the host's result, and command mode goes on (board.md 5.4) */
 bool cm_leave_requested;
 /* The device left the bus, until the transport is started again: it leaves
- * once, before a jump or before the reset */
+ * once, before a jump, before the reset or before a restart */
 static bool disconnected;
 
 #ifdef CONFIG_BOOT_LINUX_RAMOOPS
@@ -194,6 +194,13 @@ int cm_read(void *buf, size_t length)
     if (transfer_lost)
         return -PB_ERR_IO;
 
+    /* Nothing to read is done: no transfer (usb.md 2.3, a read of 0 bytes
+     * isn't used). A STREAM_PREPARE_BUFFER of size 0 asks for one, accepted
+     * or refused; no released front end sends it, but v2.7.1's C API passes
+     * any size, and the DWC3 and the cdns3 refuse a read of 0 (F-287) */
+    if (length == 0)
+        return PB_OK;
+
     rc = cm_transport_read(buf, length);
 
     if (rc == PB_OK)
@@ -232,12 +239,26 @@ int cm_drain(size_t length)
     return PB_OK;
 }
 
-void cm_disconnect(void)
+/*
+ * The device leaves the bus (usb.md 2.5), once until the transport is
+ * started again: a second call returns PB_OK, a disconnect that failed isn't
+ * tried again. Its error is the caller's: before a jump it is a failed boot,
+ * at a restart a failed restart, and both leave command mode so that pb
+ * resets (drivers.md 2.3, usb.md 2.1)
+ */
+int cm_disconnect(void)
 {
-    if (!disconnected)
-        cm_transport_disconnect();
+    int rc = PB_OK;
+
+    if (!disconnected) {
+        rc = cm_transport_disconnect();
+
+        if (rc != PB_OK)
+            LOG_ERR("Transport disconnect failed (%i)", rc);
+    }
 
     disconnected = true;
+    return rc;
 }
 
 /*
@@ -463,7 +484,8 @@ int cm_init(const struct cm_config *cfg_)
 /* Where the task is (command-mode.md 2) */
 enum cm_state {
     CM_SETUP, /* Its first call */
-    CM_START, /* No session: the transport is to be started, or restarted */
+    CM_RESTART, /* The session is over: the device leaves the bus (usb.md 2.1) */
+    CM_START, /* No session: the transport is to be started */
     CM_CONNECT, /* No session: waiting for the transport (2.2) */
     CM_READ, /* A session: the read of the next command is to be started */
     CM_COMMAND, /* A session: waiting for a command */
@@ -584,8 +606,9 @@ static int cm_setup(void)
     return PB_OK;
 }
 
-/* Starts the transport, and starts it again after a session: from here the
- * transport has CONFIG_CM_TRANSPORT_READY_TIMEOUT to become ready (2.2) */
+/* Starts the transport, and starts it again after a session, when the
+ * device has left the bus (CM_RESTART): from here the transport has
+ * CONFIG_CM_TRANSPORT_READY_TIMEOUT to become ready (2.2) */
 static int cm_start(void)
 {
     int rc;
@@ -610,11 +633,12 @@ static int cm_start(void)
 }
 
 /* Leaves command mode (command-mode.md 2.3): the device leaves the bus, and
- * the error ends the loop of the tasks, so that pb resets. A caller that
- * runs the task again all the same finds it at its first call */
+ * the error ends the loop of the tasks, so that pb resets. A disconnect that
+ * fails here changes nothing: the reset follows. A caller that runs the task
+ * again all the same finds it at its first call */
 static int cm_leave(int rc)
 {
-    cm_disconnect();
+    (void)cm_disconnect();
     cm_leave_requested = false;
     state = CM_SETUP;
     return rc;
@@ -627,10 +651,11 @@ static int cm_leave(int rc)
  * and it returns PB_OK to be called again, so that the other tasks run and
  * the core kicks the watchdog meanwhile. A command that has come runs to its
  * end inside the call, with its own kicks and its transfers' timeout (4.6).
- * An error ends the loop of the tasks: the set up failed, no host came in
- * time, the transport was lost again and again before a command came, a
- * command asked for the reset, or a boot the host started returned after the
- * transport's disconnect.
+ * An error ends the loop of the tasks: the set up failed, the transport
+ * didn't start or a restart's disconnect failed, no host came in time, the
+ * transport was lost again and again before a command came, a command asked
+ * for the reset, or a boot the host started returned after the transport's
+ * disconnect or its disconnect failed.
  */
 int cm_main_task(void)
 {
@@ -645,6 +670,21 @@ int cm_main_task(void)
                 return rc;
 
             starts_without_a_command = 0;
+            state = CM_START;
+            break;
+        case CM_RESTART:
+            /* A restart is a disconnect, then the start (usb.md 2.1, 2.5,
+             * command-mode.md 2.3): the device leaves the bus and comes
+             * back, so that the host sees a new device and starts over.
+             * The first start, after the set up, is the start alone */
+            rc = cm_disconnect();
+
+            /* A disconnect that fails is a restart that fails, as a start
+             * that fails (usb.md 2.1, command-mode.md 2.1): no command mode,
+             * and pb resets */
+            if (rc != PB_OK)
+                return cm_leave(rc);
+
             state = CM_START;
             break;
         case CM_START:
@@ -690,7 +730,7 @@ int cm_main_task(void)
              * watchdog is kicked also when the start fails again */
             if (rc != PB_OK) {
                 LOG_ERR("Read error %i", rc);
-                state = CM_START;
+                state = CM_RESTART;
                 return PB_OK;
             }
 
@@ -707,7 +747,7 @@ int cm_main_task(void)
              * transport is restarted and the device waits for a host */
             if (rc != PB_OK) {
                 LOG_ERR("Read error %i", rc);
-                state = CM_START;
+                state = CM_RESTART;
                 break;
             }
 
@@ -723,7 +763,7 @@ int cm_main_task(void)
                  * device is back at waiting for a host (command-mode.md
                  * 3.1, 4.4, 4.6) */
                 LOG_ERR("Transfer lost (%i), restarting the transport", rc);
-                state = CM_START;
+                state = CM_RESTART;
                 break;
             }
 

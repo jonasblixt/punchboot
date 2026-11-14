@@ -19,13 +19,21 @@
  * 5.5, board.md 5.4): the transport is disconnected, then late_boot(),
  * plat_lockdown() and the jump. The session is over whatever follows, so a
  * boot that returns here, stopped or failed, leaves command mode and pb
- * resets (2.3): nothing is read from the transport that is gone.
+ * resets (2.3): nothing is read from the transport that is gone. A
+ * disconnect that fails is a failed boot: pb doesn't jump with a controller
+ * it couldn't stop, and resets (usb.md 2.5, drivers.md 2.3).
  */
 static int cm_boot_jump(void)
 {
     int rc;
 
-    cm_disconnect();
+    rc = cm_disconnect();
+
+    if (rc != PB_OK) {
+        LOG_ERR("The disconnect failed (%i): no jump, resetting", rc);
+        cm_leave_requested = true;
+        return rc;
+    }
 
     rc = boot_jump();
 
