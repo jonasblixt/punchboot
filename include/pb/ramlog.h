@@ -39,9 +39,6 @@ void ramlog_init(void);
  * Append one character to the RAM log. When the log is full, the oldest
  * character is overwritten.
  *
- * With CONFIG_RAMLOG_SYNC the character and the header are cleaned from the
- * data cache before this returns, so the log in RAM is always current.
- *
  * @param[in] c Character to append
  */
 void ramlog_putc(char c);

@@ -13,8 +13,8 @@ void console_init(uintptr_t base, const struct console_ops *ops);
 
 /**
  * Mute the console's UART output, for messages that only go to the RAM log.
- * The LOG_* macros use it for levels above LOGLEVEL, up to
- * CONFIG_RAMLOG_LOGLEVEL. Unmuting when not muted does nothing.
+ * The LOG_* macros use it for the levels above LOGLEVEL, which with
+ * CONFIG_RAMLOG go to the RAM log alone. Unmuting when not muted does nothing.
  *
  * @param[in] mute True to mute, false to unmute
  */

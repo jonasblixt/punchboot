@@ -23,8 +23,8 @@ log. The board must stop in command mode after a reset: no active boot
 partition.
 
 Runs on the host. Needs the bpak and punchboot CLIs, openssl for -k, the
-board in command mode over USB and pb built with CONFIG_RAMLOG and debug in
-the RAM log (CONFIG_RAMLOG_LOGLEVEL=3).
+board in command mode over USB and pb built with CONFIG_RAMLOG, which has
+the debug messages.
 """
 
 import argparse

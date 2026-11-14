@@ -4,13 +4,13 @@
 #include <config.h>
 #include <stdio.h>
 
-/* LOGLEVEL is what the console (UART) prints. With CONFIG_RAMLOG, the levels
- * up to CONFIG_RAMLOG_LOGLEVEL are compiled in too, and the ones above
- * LOGLEVEL only go to the RAM log. LOG_MAX_LEVEL is the highest level that is
- * compiled in: use it, not LOGLEVEL, for code that only log messages need. */
-#if defined(CONFIG_RAMLOG) && (CONFIG_RAMLOG_LOGLEVEL > LOGLEVEL)
+/* LOGLEVEL is what the console (UART) prints. With CONFIG_RAMLOG every level
+ * up to debug is compiled in, and the ones above LOGLEVEL only go to the RAM
+ * log. LOG_MAX_LEVEL is the highest level that is compiled in: use it, not
+ * LOGLEVEL, for code that only log messages need. */
+#if defined(CONFIG_RAMLOG) && (LOGLEVEL < 3)
 #include <pb/console.h>
-#define LOG_MAX_LEVEL CONFIG_RAMLOG_LOGLEVEL
+#define LOG_MAX_LEVEL 3
 #else
 #define LOG_MAX_LEVEL LOGLEVEL
 #endif

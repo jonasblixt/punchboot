@@ -75,11 +75,9 @@ pb_unit_test(test_tzc380 SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/tzc/tzc380.c
 )
 
-pb_unit_test(test_ramlog SOURCES
-    ${PROJECT_SOURCE_DIR}/src/ramlog.c
-)
-# CONFIG_RAMLOG and the log size come from configs/host_defconfig
-target_compile_definitions(test_ramlog PRIVATE CONFIG_RAMLOG_SYNC=1)
+# test_ramlog.c includes src/ramlog.c, to read the log's header. CONFIG_RAMLOG
+# and the log size come from configs/host_defconfig
+pb_unit_test(test_ramlog SOURCES)
 
 pb_unit_test(test_console SOURCES
     ${PROJECT_SOURCE_DIR}/src/console.c

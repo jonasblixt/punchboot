@@ -9,7 +9,6 @@
  * a UART and for reading the log after the fact.
  */
 
-#include <arch/arch.h>
 #include <pb/pb.h>
 #include <pb/ramlog.h>
 #include <string.h>
@@ -17,8 +16,7 @@
 #define RAMLOG_SIZE (CONFIG_RAMLOG_SIZE_KiB * 1024)
 
 /* In .ramlog, so that it isn't zeroed by the startup code and is found by
- * its symbol name. Cache line aligned, so that syncing the header and the
- * data never touches anything else. */
+ * its symbol name. The header starts a cache line, the data follows it. */
 static struct {
     struct pb_ramlog_hdr hdr;
     char data[RAMLOG_SIZE];
@@ -28,23 +26,12 @@ static struct {
  * set up yet: nothing may touch it before ramlog_init(). */
 static bool ramlog_active;
 
-static void ramlog_sync(const void *p, size_t length)
-{
-#ifdef CONFIG_RAMLOG_SYNC
-    arch_clean_cache_range((uintptr_t)p, length);
-#else
-    (void)p;
-    (void)length;
-#endif
-}
-
 void ramlog_init(void)
 {
     ramlog.hdr.magic = PB_RAMLOG_MAGIC;
     ramlog.hdr.version = PB_RAMLOG_VERSION;
     ramlog.hdr.size = RAMLOG_SIZE;
     ramlog.hdr.head = 0;
-    ramlog_sync(&ramlog.hdr, sizeof(ramlog.hdr));
     ramlog_active = true;
 }
 
@@ -59,9 +46,7 @@ void ramlog_putc(char c)
      * counts a character which isn't in RAM yet */
     p = &ramlog.data[ramlog.hdr.head % RAMLOG_SIZE];
     *p = c;
-    ramlog_sync(p, 1);
     ramlog.hdr.head++;
-    ramlog_sync(&ramlog.hdr, sizeof(ramlog.hdr));
 }
 
 size_t ramlog_length(void)

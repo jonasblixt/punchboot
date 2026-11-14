@@ -11,7 +11,7 @@
  */
 
 /* The UART prints warnings and errors, the RAM log everything
- * (CONFIG_RAMLOG_LOGLEVEL is 3 in the host config) */
+ * (CONFIG_RAMLOG has every level up to debug) */
 #undef LOGLEVEL
 #define LOGLEVEL 1
 
