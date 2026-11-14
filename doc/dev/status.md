@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-14 (F-434, the cdns3's shared ring)_
+_Last updated: 2026-11-14 (D-078, the kernel command line is the handover's)_
 
 ## Current focus
 
@@ -44,7 +44,8 @@ bump is for the porting API. Each item's history is in `log/`.
      (the TrustZone filter), F-247 and the CAAM's stop, the 8MP EVK through TF-A. All four
      run `246bd897` and reach command mode with the preconditions met; boot time measured
      (log), jiffy and the 8MP EVK boot Linux. F-434 fixed (`af6e7060`); the MEK
-     to init 1069 ms (log).
+     to init 1069 ms (log). D-078 (`3e7399c6`, the command line in the handover's
+     configuration) not run on a board: `/proc/cmdline`, normal and `--verbose`.
    - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
