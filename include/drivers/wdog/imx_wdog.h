@@ -28,6 +28,7 @@
 #define WDOG_WCR_SRE   BIT(6) /* Software reset extension */
 #define WDOG_WCR_WDW   BIT(7) /* Suspended in wait mode */
 #define WDOG_WCR_WT(x) ((x) << 8) /* Timeout, 0.5 s + x * 0.5 s */
+#define WDOG_WT_MAX    0xff /* The largest WT, 128 s */
 
 /* The service sequence, written to WSR */
 #define WDOG_WSR_SEQ1  0x5555
@@ -50,6 +51,13 @@ int imx_wdog_kick(uintptr_t base);
 /**
  * Reset the SoC through the WDOG's software reset (WCR.SRS). It doesn't
  * return: it waits for the reset. The WDOG's clock must be on.
+ *
+ * The same write leaves WDA 0, and WDOG_B is asserted for as long as WDA is
+ * 0: on a board whose WDOG_B pad is muxed and reaches its PMIC, this reset
+ * goes through the PMIC, as a time-out's does (imx_wdog_init() sets WDT).
+ * Kept so (F-206): a board in the field may rely on it, and platform.md 2.1
+ * asks for resets that are cold where the SoC can make them so. No board in
+ * the tree muxes the pad.
  *
  * @param[in] base The WDOG's base address
  */

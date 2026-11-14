@@ -486,6 +486,15 @@ add_test(
 )
 set_tests_properties(unit.cm_usb_kconfig PROPERTIES LABELS unit TIMEOUT 60)
 
+# The watchdog's time-out has a range every platform's watchdog takes, and
+# every defconfig's value is inside it (F-416): its test reads Kconfig
+add_test(
+    NAME unit.watchdog_kconfig
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_watchdog_kconfig.py
+            ${PROJECT_SOURCE_DIR}
+)
+set_tests_properties(unit.watchdog_kconfig PROPERTIES LABELS unit TIMEOUT 60)
+
 # main() and its loop over the tasks (board.md 4.6). main.c's entry point is
 # renamed, as for pb-host
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/main.c
@@ -514,10 +523,14 @@ set_tests_properties(unit.test_main_no_tasks PROPERTIES LABELS unit TIMEOUT 60)
 # Kconfig symbols, which the host's config.h doesn't have.
 # A port with an MMU gets fakes/xlat.c for its set up.
 # pb_plat_test(name SOURCES <the port and its drivers> DEFINITIONS <symbols>
-#              INCLUDES <directories, before the others> OPTIONS <for the compiler>)
+#              INCLUDES <directories, before the others> OPTIONS <for the compiler>
+#              TEST <the test's source, when it isn't name.c: a second build of it>)
 function(pb_plat_test name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;DEFINITIONS;INCLUDES;OPTIONS" ${ARGN})
-    add_executable(${name} ${name}.c fakes/regs.c ${ARG_SOURCES})
+    cmake_parse_arguments(ARG "" "TEST" "SOURCES;DEFINITIONS;INCLUDES;OPTIONS" ${ARGN})
+    if(NOT ARG_TEST)
+        set(ARG_TEST ${name}.c)
+    endif()
+    add_executable(${name} ${ARG_TEST} fakes/regs.c ${ARG_SOURCES})
     target_include_directories(${name} BEFORE PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio ${ARG_INCLUDES})
     target_include_directories(${name} PRIVATE
@@ -571,6 +584,11 @@ pb_unit_test(test_imx8x_dry_run SOURCES
 target_compile_definitions(test_imx8x_dry_run PRIVATE
     CONFIG_PLAT_IMX8X=1 CONFIG_IMX8X_FUSE_DRY_RUN=1)
 target_include_directories(test_imx8x_dry_run PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
+# The WDOG's driver alone, on the register file
+pb_plat_test(test_imx_wdog
+    SOURCES ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
+)
+
 # The i.MX6UL, with the RAM that jiffy has
 pb_plat_test(test_plat_imx6ul
     SOURCES
@@ -581,6 +599,18 @@ pb_plat_test(test_plat_imx6ul
     DEFINITIONS
         CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
         BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+)
+
+# The same without CONFIG_ENABLE_WATCHDOG, which every defconfig has on: the
+# reset, the kick and the power-down counters don't depend on it
+pb_plat_test(test_plat_imx6ul_no_wdog
+    TEST test_plat_imx6ul.c
+    SOURCES
+        fakes/xlat.c
+        ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/plat.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
+    DEFINITIONS BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
 )
 
 # The i.MX8M Plus. The arch's system registers are the test's
