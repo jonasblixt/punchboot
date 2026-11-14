@@ -207,6 +207,26 @@ int imx8m_ddr_init(void)
     return PB_OK;
 }
 
+/* The variant's part (plat_imx8mp.c): the 8MP EVK's values */
+static uint32_t fake_digprog = 0x00824310;
+static const unsigned int fake_mts[] = { 4000 };
+struct dram_rates dram_rates = { .mts = fake_mts, .num = 1 };
+
+const char *imx8m_soc_name(void)
+{
+    return "i.MX8MP";
+}
+
+uint32_t imx8m_soc_digprog(void)
+{
+    return fake_digprog;
+}
+
+uint32_t imx8m_soc_cpu_hz(void)
+{
+    return 1000000000;
+}
+
 void write_cntfrq_el0(uint64_t value)
 {
     (void)value;
@@ -715,6 +735,30 @@ static void test_plat_rot_and_slc(void **state)
     assert_int_equal(fake_reg_log_len, 0);
 }
 
+/* platform.md 3.11: the variant's name and clock, DIGPROG's MINOR as the
+ * revision, the DRAM's clock half the trained rate */
+static void test_get_info(void **state)
+{
+    struct pb_plat_info info;
+    char extra[32];
+    (void)state;
+
+    memset(extra, 0xa5, sizeof(extra));
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_string_equal(info.soc, "i.MX8MP");
+    assert_string_equal(info.rev, "1.0");
+    assert_int_equal(info.cpu_hz, 1000000000);
+    assert_int_equal(info.mem_hz, 2000000000);
+    assert_string_equal(extra, "");
+
+    fake_digprog = 0x00824311; /* A1 */
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_string_equal(info.rev, "1.1");
+    fake_digprog = 0x00824310;
+
+    assert_int_equal(plat_get_info(&info, extra, 0), -PB_ERR_BUF_TOO_SMALL);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -737,6 +781,7 @@ int main(void)
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
         cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_get_info, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

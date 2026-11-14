@@ -71,3 +71,33 @@ void imx8m_soc_clock_init(void)
                            SSCG_PLL_DIV6_CLKE_MASK | SSCG_PLL_DIV8_CLKE_MASK |
                            SSCG_PLL_DIV10_CLKE_MASK | SSCG_PLL_DIV20_CLKE_MASK);
 }
+
+const char *imx8m_soc_name(void)
+{
+    return "i.MX8MQ";
+}
+
+/* RM 5.1.8.28. The B0 and B1 read the same; U-Boot tells them apart by a
+ * ROM word and an OCOTP magic, not read here */
+uint32_t imx8m_soc_digprog(void)
+{
+    return mmio_read_32(DIGPROG);
+}
+
+/* The ARM PLL that imx8m_soc_clock_init() sets, a fractional PLL from the
+ * 25 MHz oscillator (RM Fig. 5-9): REF / (REFCLK_DIV + 1) * 8 *
+ * (INT_DIV + 1) / (2 * (OUTPUT_DIV + 1)), the fraction left out */
+uint32_t imx8m_soc_cpu_hz(void)
+{
+    uint32_t cfg0 = mmio_read_32(ARM_PLL_CFG0);
+    uint32_t cfg1 = mmio_read_32(ARM_PLL_CFG1);
+    uint32_t ref_div = ((cfg0 & FRAC_PLL_REFCLK_DIV_VAL_MASK) >> FRAC_PLL_REFCLK_DIV_VAL_SHIFT) + 1;
+    uint32_t out_div = 2 * ((cfg0 & FRAC_PLL_OUTPUT_DIV_VAL_MASK) + 1);
+    uint32_t int_div = (cfg1 & FRAC_PLL_INT_DIV_CTL_MASK) + 1;
+
+    if (cfg0 & FRAC_PLL_BYPASS_MASK)
+        return 0;
+
+    /* In kHz: 32 bits hold 25 MHz * 8 * 128 only so */
+    return 25000u / ref_div * 8 * int_div / out_div * 1000;
+}

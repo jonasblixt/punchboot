@@ -27,6 +27,7 @@
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx8m/imx8m.h>
+#include <stdio.h>
 #include <uuid.h>
 #include <xlat_tables.h>
 
@@ -467,9 +468,6 @@ int plat_init(void)
                        SCTR_CNTCR_FCR1,
                        SCTR_CNTCR_FCR0 | SCTR_CNTCR_HDBG | SCTR_CNTCR_EN);
 
-    /* Read SOC variant and version */
-    // private.soc_ver_var = mmio_read_32(CCM_ANALOG_DIGPROG);
-
     /* Ungate GPIO clocks */
     mmio_write_32(CCM_CCGR_SET(CCGR_GPIO1), CCGR_CLK_ON_MASK);
     mmio_write_32(CCM_CCGR_SET(CCGR_GPIO2), CCGR_CLK_ON_MASK);
@@ -567,4 +565,26 @@ int plat_lockdown(void)
     /* Nothing locked yet: pb doesn't support the 8M's HAB (D-027), and its
      * CSF leaves SRK revocation locked (F-244) */
     return crypto_stop();
+}
+
+/* platform.md 3.11. DIGPROG's MINOR is the base layer in 7:4 and the metal
+ * layer in 3:0 (RM 5.1.8, DIGPROG): 0x10 is 1.0. The DRAM's clock is half the
+ * data rate it was trained at, the board's first rate (struct dram_rates) */
+int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size)
+{
+    static char rev[8];
+    uint32_t minor = imx8m_soc_digprog() & 0xff;
+
+    if (extra_size == 0)
+        return -PB_ERR_BUF_TOO_SMALL;
+    extra[0] = '\0';
+
+    info->soc = imx8m_soc_name();
+    (void)snprintf(
+        rev, sizeof(rev), "%u.%u", (unsigned int)(minor >> 4), (unsigned int)(minor & 0xf));
+    info->rev = rev;
+    info->cpu_hz = imx8m_soc_cpu_hz();
+    info->mem_hz = (dram_rates.num > 0) ? dram_rates.mts[0] * 500000u : 0;
+
+    return PB_OK;
 }
