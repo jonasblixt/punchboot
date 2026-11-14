@@ -32,6 +32,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-078 | jiffy (hardware / boot ROM) | An SRST reset from the JTAG adapter (OpenOCD `reset`, SRSR = 1, POR) makes the boot ROM fall back to the serial downloader (`15a2:007d`) within a second, instead of booting pb from eMMC. A second clean SRST pulse did the same. A watchdog reset does too (SRSR = 0x11, after pb without WDBG was halted over JTAG, and after the `auth token` hang below). Earlier resets when the ULINK was plugged in did reboot into pb, and a power cycle does. Cause unknown. Suspect: pb leaves the eMMC in 8-bit DDR52, and a warm reset doesn't reset the eMMC. Other options: HAB, or the reset itself. `src/board/jiffy/openocd.cfg` has no `reset_config` because of this. | Seen on the board (2026-10-22) | open: a power cycle boots pb. Forcing serial download with the boot mode buttons and resetting works (uuu loads `pb_signed_uuu.imx`), but in the downloader the ROM falls back to after a failed boot, every SDP command with a data phase (write, dcd) hangs. Hardware (jiffy R1 netlist): JTAG SRST is the `RST_N` net (POR_B, LP3470 supervisor, button PB2). The eMMC RST_n is a separate net from pad NAND_WP_B with a 46.4k pull-up, so a POR_B reset doesn't reset the eMMC (see F-079). Likely cause: the same SNVS SV1/Non-Secure state as F-080 (every warm reset after JTAG activity landed in the downloader, the one without JTAG since power-on booted; a direct test is blocked because `dev reset` needs `auth`). SNVS survives a warm reset, so HAB fails on the next boot and the ROM falls back to the downloader, where data writes then hang. A power cycle clears it. Fits every reset seen so far except one SRST at 12:26. |
 | F-079 | `src/board/jiffy/board.c` `usdhc_emmc_setup` | Muxes NAND_DQS (ball E6) as the eMMC reset, but on jiffy R1 NAND_DQS isn't connected. The eMMC RST_n is on NAND_WP_B (ball D5, `eMMC_RST_N`, 46.4k pull-up), which pb never configures, so the eMMC never gets a hardware reset. Possibly related to F-078. | Verified (netlist) | open: check NAND_WP_B's USDHC1_RESET_B alt in the RM, and whether the eMMC has RST_n_FUNCTION enabled |
 | F-081 | `src/arch/armv7a/cp15.S` `arch_invalidate_cache_range`, callers in `imx_caam.c` | The invalidate rounds the start down to a cache line and uses DCIMVAC (invalidate, no clean), so dirty CPU data sharing the first or last line is lost. `caam_wait_for_job` invalidates `caam.output` (0x8001a20c in the jiffy debug build), whose line also holds the tail of `struct caam` (`init`, `async_hashing`, `hash_align_buf_len`...), `wpb`, another `base`, `mmc_current_part` and `mmc_current_part_config`. Not shown to cause F-080. | Verified (code, symbol map) | open: clean+invalidate (DCCIMVAC) partial lines, or keep DMA buffers in their own cache-line-aligned sections |
+| | | 2026-11-14: nothing in a build invalidates a shared line any more (F-282): every invalidate a driver | | |
+| | | does goes through `dma_in_end()` on a range that owns its lines, asserted on the host. The ARMv7-A | | |
+| | | invalidate still rounds without a clean, documented in `pb/arch.h`. Close after a bench run | | |
 | F-083 | `punchboot part read` | Fails with `Error: I/O error` on jiffy, both for BOOT1 and the 512 B PB State Primary partition, in an authenticated session. Cause unknown. | Seen on the board (2026-10-22) | open |
 | | | The cause (F-190, `command-mode.md` 5.3): no board in the tree sets `READABLE` on a partition, | | |
 | | | and a bulk read without it answers an I/O error. The eMMC's BOOT0 and BOOT1 on 2.8.0 the same | | |
@@ -126,6 +129,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-13: `align_length` is done with F-131. Still there, and certain by reading: a cdns3 transfer | | |
 | | | of exactly 128 TRBs writes `trb[128]`, and `ep0_xfer_start()` copies into the 512 byte | | |
 | | | `align_buffer` unbounded | | |
+| | | 2026-11-14 (`e46baba4`): the cdns3's setup packet and rings own their lines. Left: the bulk ring's | | |
+| | | and the bounce buffer's bounds, four waits without a timeout | | |
 | F-206 | `src/drivers/wdog/imx_wdog.c`, `plat/imx6ul/plat.c:385` | `CONFIG_ENABLE_WATCHDOG=n`: | Reported | open |
 | | | `base` stays 0, kicks and `imx_wdog_reset_now()` write at address 0 and `plat_reset()` spins (every | | |
 | | | defconfig has it on). WT is `delay_s * 2` unmasked: 5.5 s for 5, 128 s wraps. `reset_now` also clears | | |
@@ -217,20 +222,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | with the boards that exist. Left: the guides' sections for F-247, F-240, F-282 and F-269, the A/B | | |
 | | | update flow and pbstate, the SLC and fusing procedure, SECURITY.md; `process.md` 2, `AGENTS.md` and | | |
 | | | `roadmap.md` still list the guides as to write | | |
-| F-240 | `src/board/*/makefile.mk` | The SoC's packaging and signing are in the boards: | Verified (code) | open |
-| | | jiffy holds the 6UL CSF recipe (IVT at `PB_ENTRY - 0xC00`, uuu's 0x00910000), the MEK and DXL repeat the 8X | | |
-| | | recipe. `FINAL_OUTPUT` is set with `$(eval)` in recipes. Signing inputs are Kconfig on the 6UL, make | | |
-| | | variables on the 8X. `platform.md` 6.2 | | |
-| | | 2026-11-14: not started. The plan from F-239's package: create and sign options per platform that | | |
-| | | default to what is built today (the 8X's inputs as Kconfig strings), the recipes in | | |
-| | | `src/plat/<p>/makefile.mk`, `image-y` with `FINAL_OUTPUT` at parse time, an out-of-tree board in | | |
-| | | `make.*`; bytes compared for jiffy, the RT and the 8MP (the container has `mkimage` and `cst`), | | |
-| | | `make -n` for the MEK, the DXL and imx8mevk | | |
-| | | 2026-11-14 (`72b69f8c`, `017d6595`): landed, two fixes found on the way: jiffy's and imx8mevk's | | |
-| | | signed images didn't build with a `BUILD_DIR` that has a slash. The rest is on the branch `pkg- | | |
-| | | stages` as one `WIP:` commit (`19a6e1bf`): `image-y` and `FINAL_OUTPUT` at parse time, an out-of- | | |
-| | | tree board in `make.stages`; steps 1 and 2 of the plan (options per platform, the recipes in the | | |
-| | | platforms) aren't started. `cst`'s output isn't deterministic (the signing time and the signature) | | |
 | F-241 | `plat/imx6ul/plat.c` | `tzasc_init()`: A failure is only logged: nothing tells | Verified (code, RM) | open |
 | | | the boot driver that the TZASC is bypassed. Region 1 gets the physical DDR base, while 6UL RM 52.3 says the | | |
 | | | TZASC sees the DDR controller's "local addresses": check with OP-TEE that its memory is protected. GPR9 has | | |
@@ -396,6 +387,15 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the ChipIdea, the cdns3 and the DWC3 through it. Left: the cores' refusal of a buffer that doesn't | | |
 | | | own its lines, the boot's bounce for such a load address, the contracts' markers; then the whole run | | |
 | | | and a bench, since every driver it changes runs at every boot | | |
+| | | 2026-11-14 (`2761391c`..`45fdb7c6`): in the code. `pb/dma.h` with a D-cache model for the tests, the | | |
+| | | cache by range in `pb/arch.h` on every arch, `arch_init()`'s line check, the five DMA drivers | | |
+| | | through it; `bio_read()` and the USB transport refuse a buffer that doesn't start on a line | | |
+| | | (`-PB_ERR_ALIGN`; three of pb's own buffers were put on a line: the GPT's MBR, the A/B state, the | | |
+| | | test fuse box); the boot bounces a part whose load address isn't on a line through a chunk of its | | |
+| | | own, so no image is refused. The register writes of the five drivers are the same; their cache | | |
+| | | operations changed beyond the ranges in the CAAM, the ChipIdea, the cdns3 and the DWC3, each named | | |
+| | | in its commit. Left: `drivers.md` 4.4's assertion "in a debug build", which pb doesn't have (for | | |
+| | | Jonas). Not run on a board: every driver it changes runs at every boot | | |
 | F-283 | `src/bio.c`, its users | `bio` against `bio.md`. A length that | Verified (code) | open |
 | | | isn't whole blocks goes to the driver as it is (F-182). A length of 0 reaches the driver, and | | |
 | | | the MMC's returns `-PB_ERR` (`mmc_bio_xfer()` starts with `rc = -1`). No block buffer, no | | |
@@ -828,6 +828,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | make images, and relink `pb` on every `make` (the blob rule writes somewhere other than its | | |
 | | | target). `imx_flexspi_xfer()` looks at INTR's errors after plain commands only: one during the | | |
 | | | last push or pop of a read or a write is lost | | |
+| | | 2026-11-14 (`b46e2405`, `928b1dc6`, `3bd9601d`): imx8mevk signs its image data with IMG1_1 (its | | |
+| | | signed image changes; both certificates are issued by SRK1), the 8M boards don't relink `pb` on | | |
+| | | every `make`, and their final output is the image. Left: the 8X boards' password, | | |
+| | | `board/password.h`, the FlexSPI's INTR check after a read or write | | |
 
 ## Dependencies / vendored code
 
@@ -865,6 +869,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | table per crypto backend is the contract's (D-071). The MMU set up is F-158 and F-269. Left: | |
 | | `plat_get_unique_id` per port, the hash-kind switch (4 times), `arch_init()` (empty in every | |
 | | arch; D-065 gives it the line size's check), `console_ops` | |
+| | 2026-11-14 (`b745abe9`): `arch_init()` checks the D-cache's line against `PB_DMA_ALIGN` (D-065). | |
+| | Left: `plat_get_unique_id` per port, the hash-kind switch, `console_ops` | |
 
 ## Build / CI / docs
 

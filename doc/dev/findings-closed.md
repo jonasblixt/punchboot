@@ -1294,6 +1294,28 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | than the device computes | | |
 | | | The HAB's failures are asked for from index 0; the dead code is gone; `pb_id()` of a name that isn't | | |
 | | | ASCII is its UTF-8 bytes, as the device computes it | | |
+| F-240 | `src/board/*/makefile.mk` | The SoC's packaging and signing are in the boards: | Verified (code) | fixed (`72b69f8c`, `017d6595`, `ce69417b`, `0fd8f7ac`..`1b212d0e`) |
+| | | jiffy holds the 6UL CSF recipe (IVT at `PB_ENTRY - 0xC00`, uuu's 0x00910000), the MEK and DXL repeat the 8X | | |
+| | | recipe. `FINAL_OUTPUT` is set with `$(eval)` in recipes. Signing inputs are Kconfig on the 6UL, make | | |
+| | | variables on the 8X. `platform.md` 6.2 | | |
+| | | 2026-11-14: not started. The plan from F-239's package: create and sign options per platform that | | |
+| | | default to what is built today (the 8X's inputs as Kconfig strings), the recipes in | | |
+| | | `src/plat/<p>/makefile.mk`, `image-y` with `FINAL_OUTPUT` at parse time, an out-of-tree board in | | |
+| | | `make.*`; bytes compared for jiffy, the RT and the 8MP (the container has `mkimage` and `cst`), | | |
+| | | `make -n` for the MEK, the DXL and imx8mevk | | |
+| | | 2026-11-14 (`72b69f8c`, `017d6595`): landed, two fixes found on the way: jiffy's and imx8mevk's | | |
+| | | signed images didn't build with a `BUILD_DIR` that has a slash. The rest is on the branch `pkg- | | |
+| | | stages` as one `WIP:` commit (`19a6e1bf`): `image-y` and `FINAL_OUTPUT` at parse time, an out-of- | | |
+| | | tree board in `make.stages`; steps 1 and 2 of the plan (options per platform, the recipes in the | | |
+| | | platforms) aren't started. `cst`'s output isn't deterministic (the signing time and the signature) | | |
+| | | The SoC's image stages are the platform's: `<p>_image`, `<p>_sign_desc`, `<p>_sign_image` in | | |
+| | | `src/plat/<p>/makefile.mk` with `?=` inputs, the options per platform in Kconfig (the 8X's and the | | |
+| | | 8M's signing inputs as strings, the 8X's revocation mask an `int`), `image-y` and `FINAL_OUTPUT` at | | |
+| | | parse time, no `$(eval)` in a recipe. jiffy's `makefile.mk` is its sources. Every output of every | | |
+| | | board is byte for byte the same (`cst`'s signing time and signature aside; the 8X's and the 8M's | | |
+| | | images with stubs for NXP's `mkimage_imx8*`), but imx8mevk's signed image (F-431). `make.stages` | | |
+| | | builds an out-of-tree board at each level of `platform.md` 6.2. Renamed stages: `imx8xl_*` is | | |
+| | | `imx8x_*`, `imx8mp_image` is `imx8m_image` | | |
 
 ## Dependencies / vendored code
 

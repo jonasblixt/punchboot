@@ -35,13 +35,12 @@ bump is for the porting API. Each item's history is in `log/`.
 
 ## Next steps
 
-0. **Resume here (2026-11-14): `log/2026-11-14.md`, "The wrap-up".** The unattended second
-   round is over: its packages are in, verified at the push (the log). Nothing of it ran on a
-   board. First:
-   - The bench, in the log's order: USB, the preconditions, F-247 and the CAAM's stop, the
-     8MP EVK through TF-A.
-   - Parked: `pkg-dma` (F-282, unverified), `pkg-stages` (F-240, a `WIP:` commit),
-     `bec794b7` on `pkg-plat` (F-206).
+0. **Resume here (2026-11-14): `log/2026-11-14.md`, "The wrap-up" and "The parked
+   branches".** The unattended round and its parked branches are in, verified at `1b212d0e`.
+   Nothing of it ran on a board. First:
+   - The bench, in this order: the DMA rule (F-282) and USB on all four, the preconditions
+     (the TrustZone filter), F-247 and the CAAM's stop, the 8MP EVK through TF-A.
+   - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
 1. What 3.0.0 waits for besides the code is `roadmap.md`'s first section: the Firmware
    Handoff tag (Jonas, upstream), the bench run, the review of the guides and the notes.
