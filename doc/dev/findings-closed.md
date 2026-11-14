@@ -1538,6 +1538,19 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 8MP's HSIO was). 5 to 10 tables of 32, 10 to 15 regions of 32. Reviewed; not run on a board. Left: | |
 | | | `pb_mmu_init()` (5.2's marker), with F-269. New from the review: F-437 | |
 | | | 2026-11-14: closed with F-269 (`a825cc17..3db1af44`): the ports no longer copy the MMU set up | |
+| F-136 | `src/drivers/usb/imx_ci_udc.c` (prime, flush, bus reset) | Against 6UL RM 54.4.6: the prime loop waits for ENDPTPRIME to clear but never checks that ENDPTSTAT got set (PRIME 0 and STAT 0 is a failed prime, 54.4.6.4.2.2; the dTD then stays Active for ever, F-130's symptom). `imx_ci_udc_flush_ep` doesn't check ENDPTSTAT and repeat a refused flush (54.4.6.6.5). The EP0 flush in `poll_setup_pkt` doesn't wait before EP0 is primed again. The bus reset handler waits `while (FLUSH == 0x00FF00FF)`, which ends when the first bit clears, and flushes without waiting for ENDPTPRIME to clear (54.4.6.2.1). None of the loops has a timeout. | Verified (code, RM) | fixed (`2f63780d`) |
+| | | 2026-11-14, from the ChipIdea review: `USBSTS` is cleared by writing all ones, not the value read, | |
+| | | so a bus reset between the read and the write is lost (seen only at the next enumeration); the flush | |
+| | | wait (`while (ENDPTFLUSH == ENDPT_ALL)`) ends at the first bit that clears and now also runs on an | |
+| | | unplug | |
+| | | 2026-11-14 (`2f63780d`, `pkg-b3-ci2` landed, with its review's fixes): prime, flush and the | |
+| | | bus reset as the RM, every wait bounded. On jiffy (BOOT1) and the RT1060 (BL): enumeration, a | |
+| | | boot from command mode (`stop`; jiffy to Linux, the RT's suite 7 of 7 twice), `usbreset` three | |
+| | | times, writes with `lsusb -v` alongside (jiffy 15 MB three times, the RT 1 MiB twice), each | |
+| | | verified; no "prime failed" or "Flush ... timeout" in either log. A replug wasn't run | |
+| F-137 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_xfer_complete` | Only the Active bit of the last dTD is checked. Halted, Data Buffer Error and Transaction Error are ignored (an RX overflow halts the endpoint and returns `PB_OK`), and the bytes left in Total Bytes are not reported (54.4.6.6.4). A short packet in an earlier dTD of a multi-dTD read retires that dTD and leaves the last one Active. pb's exact-size protocol avoids the last today. | Verified (code, RM 54.4.6.6.4) | fixed (`985af65e`) |
+| | | 2026-11-14 (`985af65e`, `pkg-b3-ci2` landed): the result is the descriptors' status and bytes; | |
+| | | the bench of F-136 | |
 
 ## Dependencies / vendored code
 

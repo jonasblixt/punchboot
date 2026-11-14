@@ -26,7 +26,7 @@ selects to have the boot check `crypto_engine` (`src/plat/Kconfig`, F-247), says
 the field has `PLAT_CRYPTO_ENGINE_NONE`: the core checks every platform. Proposed: it stays
 through 3.x, selected and unused, so that an out-of-tree platform's `select` still resolves,
 and goes in 4.0.
-
+Jonas: Ok.
 What the review decided and added, as written into the text:
 
 | Item                             | Rule                                                            | By           |

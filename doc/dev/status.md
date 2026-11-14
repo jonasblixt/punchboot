@@ -41,12 +41,9 @@ bump is for the porting API. Each item's history is in `log/`.
    rounds: verified and pushed at `bb91c1da`, `ec043c92`, `59f5bda7`, `1c7001b4` and the last
    one, F-269's `pb_mmu_init()` (see the log's end). Nothing of it ran on a board. Builds and
    tests run one at a time with `PB_JOBS=6` (load under 8, Jonas). First:
-   - **`pkg-b3-ci2`, pushed, not landed** (F-136, F-137, F-140: the ChipIdea's prime, flush and
-     bus reset, the dTDs' status, the init's order, with its review's fixes): bench it on jiffy
-     and the RT1060 (enumeration, a boot from command mode, a replug, `usbreset`, a 4 MiB
-     stream, no "prime failed" or "Flush ... timeout" in the log), then land it. It is on
-     `fa599d5b` (`784df645..08e7d1e2`), 117 of 117 on the host; no board build after its fixes.
-   - `pkg-b3-wundef` landed (`0447427d`, `26fc9636`, F-231). The remote branch can go.
+   - Both parked branches landed (log, the last two entries): `pkg-b3-wundef` (F-231) and
+     `pkg-b3-ci2` (F-136, F-137 closed; F-140's SDIS left), benched on jiffy and the RT1060 but
+     for a replug (Jonas). The two remote branches can go with the push.
    - The bench of the landed rounds, in the log's order: USB on all four (the cdns3's `stop`,
      the ChipIdea's endpoint 0, the DWC3's and the cdns3's reset reporting), the new MMU maps
      and the MEK's 2 GiB (F-436), the RT1060's VTOR/FORCEWT/D-cache at its entry (F-210,
