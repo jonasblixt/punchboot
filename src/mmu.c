@@ -144,6 +144,47 @@ static int check_board_mmap(const struct pb_mmap_region *board_mmap,
     return PB_OK;
 }
 
+/* The platform's layer, as pb_mmu_init() got it, for pb_mmu_mapped() */
+static const struct mmap_region *mapped_plat;
+static bool mapped;
+
+static bool inside(uint64_t base, uint64_t size, uint64_t r_base, uint64_t r_size)
+{
+    return size != 0 && base >= r_base && base + size >= base && base + size <= r_base + r_size;
+}
+
+bool pb_mmu_mapped(uintptr_t base, size_t size)
+{
+    struct pb_section pb[PB_SECTIONS];
+    size_t n_pb;
+
+    if (!mapped)
+        return false;
+
+    if (BOARD_RAM_END > BOARD_RAM_BASE &&
+        inside(base, size, BOARD_RAM_BASE, BOARD_RAM_END - BOARD_RAM_BASE))
+        return true;
+
+    for (const mmap_region_t *r = mapped_plat; r != NULL && !plat_region_end(r); r++) {
+        if (inside(base, size, r->base_pa, r->size))
+            return true;
+    }
+
+    for (const struct pb_mmap_region *r = board.mmap; r != NULL && r->size != 0; r++) {
+        if (inside(base, size, r->base, r->size))
+            return true;
+    }
+
+    n_pb = pb_sections(pb);
+
+    for (size_t i = 0; i < n_pb; i++) {
+        if (inside(base, size, pb[i].start, pb[i].end - pb[i].start))
+            return true;
+    }
+
+    return false;
+}
+
 int pb_mmu_init(const struct mmap_region *plat_mmap)
 {
     struct pb_section pb[PB_SECTIONS];
@@ -208,6 +249,8 @@ int pb_mmu_init(const struct mmap_region *plat_mmap)
         mmap_add_region(pb[i].start, pb[i].start, pb[i].end - pb[i].start, pb[i].attr);
 
     init_xlat_tables();
+    mapped_plat = plat_mmap;
+    mapped = true;
 
 #ifdef CONFIG_LIB_XLAT_TBLS_ARMV8
     enable_mmu_el3(0);

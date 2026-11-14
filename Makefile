@@ -109,6 +109,7 @@ src-y  += src/log.c
 src-y  += src/log_source.c
 src-y  += src/plat_info.c
 src-$(CONFIG_RAMLOG) += src/ramlog.c
+src-$(CONFIG_HACK_PEEK) += src/hacks/peek.c
 src-y  += src/rot.c
 src-y  += src/slc.c
 src-y  += src/board.c
