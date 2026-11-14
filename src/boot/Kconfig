@@ -207,13 +207,3 @@ config BOOT_LINUX_RAMOOPS_PMSG_SIZE
     hex "pmsg-size"
     depends on BOOT_LINUX_RAMOOPS
     default 0x0
-
-comment "Names before 3.0.0"
-
-config BOOT_AB_DRIVER
-    bool "A/B boot driver (selects BOOT_POLICY_AB)"
-    select BOOT_POLICY_AB
-    help
-        The name of BOOT_POLICY_AB before 3.0.0, kept so that a
-        configuration from before 3.0.0 builds unchanged. Use
-        BOOT_POLICY_AB.

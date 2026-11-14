@@ -803,7 +803,8 @@ its default (`platform.md` 6.2). Compare the defconfig with the closest one in `
 | -------------------------------------- | ------------------------------------------------- |
 | `PLAT_IMX8M`                           | `PLAT_IMX8MQ` or `PLAT_IMX8MP`; both select       |
 |                                        | `PLAT_IMX8M_COMMON` (D-018)                       |
-| `BOOT_AB_DRIVER`                       | `BOOT_POLICY_AB`. The old name still selects it   |
+| `BOOT_AB_DRIVER`                       | `BOOT_POLICY_AB`. The old name is gone: a board   |
+|                                        | that names the policy without it doesn't link     |
 | `BOOT_ARMV7M_BAREMETAL`                | `BOOT_FH`, `BOOT_FH_REGION_BASE` and `_SIZE`      |
 |                                        | (section 4)                                       |
 | `BOOT_ATF`, as the whole driver        | `BOOT_ATF` and the handover's option (section 3)  |

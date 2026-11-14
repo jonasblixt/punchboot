@@ -151,7 +151,7 @@ the policy the board chose, the policy's functions (3.1 to 3.4) with the board's
 for it (3.5, `board.md` 2.5). The core calls the board's policy. Kconfig compiles a policy in
 (`BOOT_POLICY_FIXED`, `BOOT_POLICY_CHAIN`, `BOOT_POLICY_AB`), more than one where a build wants
 them (the host's tests), and a board that names one that isn't compiled in doesn't link.
-`BOOT_AB_DRIVER`, A/B's name before 3.0.0, still compiles A/B in. The functions are in
+`BOOT_AB_DRIVER`, A/B's name before 3.0.0, is gone (D-081). The functions are in
 `include/boot/policy.h`.
 
 ### 3.1 Function : boot_policy_init() [mandatory]

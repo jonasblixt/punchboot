@@ -542,7 +542,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | without a delivery, which is what it had | | |
 | F-300 | `src/board/imx8mevk/board.c` | The board has a partition table and neither | Verified (code) | open |
 | | | a boot source policy nor a handover: `board_setup()` fails on the handover, nothing is bootable | | |
-| | | and nothing boots, by `boot bpak` neither. Its defconfig has `BOOT_AB_DRIVER` and `BOOT_LINUX`. | | |
+| | | and nothing boots, by `boot bpak` neither. Its defconfig has `BOOT_POLICY_AB` and `BOOT_LINUX`. | | |
 | | | With F-033: finish the board (a policy, `BOOT_POLICY_AB()` or `BOOT_POLICY_FIXED()`, and a | | |
 | | | handover) or drop it. `board.md` 2.5 and 3: both are mandatory. Since F-249 they are checked: | | |
 | | | `board_setup()` fails on the policy's check, one step earlier, with `-PB_ERR_PARAM` as before | | |

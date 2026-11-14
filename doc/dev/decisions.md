@@ -56,7 +56,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-038 | The boot flow contract after level 1             | In force                                           |
 | D-039 | The boot flow, Jonas's first answers             | Narrowed by D-048 (the in place header's address)  |
 | D-040 | The boot flow, Jonas's second answers            | Narrowed by D-046 (the policy is no Kconfig        |
-|       |                                                  | choice)                                            |
+|       |                                                  | choice), D-081 (`BOOT_AB_DRIVER` is gone)          |
 | D-041 | pb's status; the boot flow contract is reviewed  | In force                                           |
 | D-042 | The agent instructions are `AGENTS.md`           | In force                                           |
 | D-043 | pb's status stays, pb's version joins            | In force                                           |
@@ -99,6 +99,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-079 | The board's memory is its `makefile.mk`'s        | In force; a DRAM size read at run time waits for a |
 |       |                                                  | use                                                |
 | D-080 | Kconfig by subject; drivers by what the SoC has  | In force                                           |
+| D-081 | `BOOT_AB_DRIVER` is gone                         | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1925,3 +1926,17 @@ then "fix all" of my review of the rest.
 
 Why: menuconfig offered options that a board can't use (the DWC3 on a 6UL) or can't turn off
 (the translation tables), and "Generic options" mixed keys, logging, the watchdog and limits.
+
+## D-081: `BOOT_AB_DRIVER`, A/B's name before 3.0.0, is gone (2026-11-14)
+
+Jonas: switch the defconfigs to `BOOT_POLICY_AB` and drop the old option. Narrows D-040's "a
+defconfig with `BOOT_AB_DRIVER` still gets A/B".
+
+- The six board defconfigs in the tree had the old name; they set `BOOT_POLICY_AB`.
+- The alias leaves `src/boot/Kconfig`. A 2.x defconfig that still has it gets no A/B: its board,
+  which names `BOOT_POLICY_AB()` once it is ported, doesn't link. The migration guide (15) says
+  so.
+
+Why: the tree's boards used a name that existed only for old configurations, and `porting.md`
+tells a port to copy the closest defconfig. A 2.x board's `board.c` is ported anyway, and
+without the option the failure is a link error, not a silent difference.
