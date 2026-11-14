@@ -805,6 +805,26 @@ static void test_disconnect(void **state)
     assert_false(usb_host_state()->attached);
 }
 
+/* D-073: a string index the class doesn't have is answered with an empty
+ * string, where usb.md 3.2 would stall it: no controller can stall. This
+ * pins today's answer */
+static void test_unknown_string(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    host_get_descriptor(USB_DESC_TYPE_STRING, 3, 255);
+    (void)cm_transport_connect();
+    assert_answered(2);
+    assert_int_equal(usb_host_reply()->data[0], 2);
+    assert_int_equal(usb_host_reply()->data[1], USB_DESC_TYPE_STRING);
+
+    host_get_descriptor(USB_DESC_TYPE_STRING, 0xed, 255);
+    (void)cm_transport_connect();
+    assert_answered(2);
+    assert_int_equal(usb_host_state()->unanswered, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -830,6 +850,7 @@ int main(void)
         cmocka_unit_test(test_replug_between_transfers_is_lost),
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
+        cmocka_unit_test(test_unknown_string),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
