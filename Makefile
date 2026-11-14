@@ -44,6 +44,14 @@ endif
 
 include $(BUILD_CONFIG)
 
+# What the link needs from the board's defconfig (platform.md 5.1). A value
+# that is missing would otherwise fail in the linker, without its name.
+ifneq ($(filter-out menuconfig olddefconfig clean,$(or $(MAKECMDGOALS),all)),)
+ifeq ($(CONFIG_PB_ENTRY),)
+$(error CONFIG_PB_ENTRY is not set: where pb is loaded and linked, in the board's defconfig (platform.md 5.1))
+endif
+endif
+
 # $(call value_file,<variable>) gives $(BUILD_DIR)/value/<variable>, a file
 # with the variable's value that is rewritten only when the value changes. What
 # is made from a variable depends on its file, so it is made again when the
@@ -74,6 +82,13 @@ cflags-y  += -I include/
 cflags-y  += -I include/libc
 cflags-y  += -I $(BOARD)/include
 cflags-y  += -I $(BUILD_DIR)
+
+# The board's DRAM (platform.md 5.1), from its defconfig. BOARD_RAM_BASE and
+# BOARD_RAM_END are its names in the platforms' memory maps; the end is made
+# here, where it doesn't wrap in 32 bits.
+BOARD_DRAM_END := $(shell printf '0x%x' $$(( $(CONFIG_BOARD_DRAM_BASE) + $(CONFIG_BOARD_DRAM_SIZE) )))
+cflags-y  += -DBOARD_RAM_BASE=$(CONFIG_BOARD_DRAM_BASE)
+cflags-y  += -DBOARD_RAM_END=$(BOARD_DRAM_END)
 
 # Warnings
 cflags-y += -Wall
@@ -117,7 +132,12 @@ include src/plat/*/makefile.mk
 include src/cm/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
-ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)
+ldflags-y += --defsym=PB_ENTRY=$(CONFIG_PB_ENTRY)
+ldflags-y += --defsym=PB_SIZE=$(CONFIG_PB_SIZE)
+ldflags-y += --defsym=BOARD_DRAM_BASE=$(CONFIG_BOARD_DRAM_BASE)
+ldflags-y += --defsym=BOARD_DRAM_SIZE=$(CONFIG_BOARD_DRAM_SIZE)
+ldflags-y += --defsym=PB_BUFFERS_BASE=$(CONFIG_PB_BUFFERS_BASE)
+ldflags-y += --defsym=PB_BUFFERS_SIZE=$(CONFIG_PB_BUFFERS_SIZE)
 ldflags-y += --defsym=PB_STACK_SIZE_KiB=$(CONFIG_STACK_SIZE_KiB)
 ldflags-y += -T$(CONFIG_LINK_FILE) --build-id=none
 ldflags-y += --gc-sections

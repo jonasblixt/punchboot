@@ -1,13 +1,9 @@
-PB_ENTRY      = 0x7E1000
 
 CST_TOOL ?= cst
 MKIMAGE ?= mkimage_imx8m
 
 PB_CSF_TEMPLATE = src/plat/imx8m/pb.csf.template
 SED = $(shell which sed)
-
-cflags-y += -DBOARD_RAM_BASE=0x40000000
-cflags-y += -DBOARD_RAM_END=0xc0000000
 
 src-y += $(BOARD)/board.c
 src-y += $(BOARD)/lpddr4_timing.c
@@ -28,7 +24,7 @@ blobs-y  = $(IMX8M_UMCTL_TRAIN_1D_D) \
 		   $(IMX8M_UMCTL_TRAIN_2D_I)
 
 MKIMAGE_OPTS =
-MKIMAGE_OPTS += -loader $(BUILD_DIR)/pb_pad.bin $(PB_ENTRY)
+MKIMAGE_OPTS += -loader $(BUILD_DIR)/pb_pad.bin $(CONFIG_PB_ENTRY)
 MKIMAGE_OPTS += -out $(BUILD_DIR)/$(TARGET).imx
 
 .PHONY: imx8m_image imx8m_sign_image
@@ -46,7 +42,7 @@ imx8m_sign_image: imx8m_image
 	$(eval PB_FILESIZE_IMX2=$(shell echo " $$(( $(PB_FILESIZE_IMX) - 0x2000 ))" | bc	))
 	$(eval PB_FILESIZE2=$(shell echo " $$(( $(PB_FILESIZE) + 0x200 ))" | bc	))
 	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE2)" | bc	))
-	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0x40 ))" | bc	))
+	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(CONFIG_PB_ENTRY) - 0x40 ))" | bc	))
 	@echo "PB imx image size: $(PB_FILESIZE) bytes ($(PB_FILESIZE_HEX)), cst addr $(PB_CST_ADDR)"
 	@$(SED) -e 's#__BLOCKS__#Blocks = $(PB_CST_ADDR) 0x0 $(PB_FILESIZE_HEX) "$(BUILD_DIR)/pb_pad.imx"#g' < $(PB_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__KEY_INDEX__#$(IMX8M_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf

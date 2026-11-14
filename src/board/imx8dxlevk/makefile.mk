@@ -1,4 +1,3 @@
-PB_ENTRY     = 0x80000000
 CST_TOOL ?= cst
 IMX8X_MKIMAGE ?= mkimage_imx8
 IMX8XL_AHAB_IMAGE ?= mx8dxlb0-ahab-container.img
@@ -13,9 +12,6 @@ SED = $(shell which sed)
 
 src-y += $(BOARD)/board.c
 
-cflags-y += -DBOARD_RAM_BASE=0x80000000
-cflags-y += -DBOARD_RAM_END=0x140000000
-
 .PHONY: imx8xl_image imx8xl_sign_image
 
 imx8xl_image: $(BUILD_DIR)/$(TARGET).bin
@@ -29,7 +25,7 @@ imx8xl_image: $(BUILD_DIR)/$(TARGET).bin
 				  -e emmc_fast \
 				  -append $(IMX8XL_AHAB_IMAGE) \
 				  -c -scfw $(IMX8XL_SCFW_IMAGE) \
-				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(PB_ENTRY) \
+				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(CONFIG_PB_ENTRY) \
 				  -out $(BUILD_DIR)/pb.imx
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
 
