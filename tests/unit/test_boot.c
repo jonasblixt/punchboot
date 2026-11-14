@@ -883,6 +883,17 @@ static void test_not_initialized(void **state)
     assert_true(uuid_is_null(uu));
 }
 
+static bool takes_none(const struct boot_handover_ops *handover)
+{
+    (void)handover;
+    return false;
+}
+
+static bool takes_fake(const struct boot_handover_ops *handover)
+{
+    return handover == &fake_handover_ops;
+}
+
 static void test_init_rejects(void **state)
 {
     /* A handover is mandatory: the object, its functions, its prepare */
@@ -912,6 +923,30 @@ static void test_init_rejects(void **state)
         .handover = &fake_handover,
         .delivery = &delivery_no_jump,
     };
+    /* A delivery that can't deliver the board's handover (OP-TEE and
+     * Firmware Handoff, boot.md 5.7) */
+    static const struct boot_delivery_ops takes_none_ops = {
+        .takes = takes_none,
+        .prepare = fake_delivery_prepare,
+        .jump = fake_delivery_jump,
+    };
+    static const struct boot_delivery delivery_takes_none = { .ops = &takes_none_ops };
+    static const struct boot_driver delivery_of_another_handover = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .handover = &fake_handover,
+        .delivery = &delivery_takes_none,
+    };
+    static const struct boot_delivery_ops takes_fake_ops = {
+        .takes = takes_fake,
+        .prepare = fake_delivery_prepare,
+        .jump = fake_delivery_jump,
+    };
+    static const struct boot_delivery delivery_takes_fake = { .ops = &takes_fake_ops };
+    static const struct boot_driver delivery_of_this_handover = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .handover = &fake_handover,
+        .delivery = &delivery_takes_fake,
+    };
     (void)state;
 
     assert_int_equal(boot_init(NULL), -PB_ERR_PARAM);
@@ -920,6 +955,8 @@ static void test_init_rejects(void **state)
     assert_int_equal(boot_init(&handover_without_prepare), -PB_ERR_PARAM);
     assert_int_equal(boot_init(&delivery_without_ops), -PB_ERR_PARAM);
     assert_int_equal(boot_init(&delivery_without_jump), -PB_ERR_PARAM);
+    assert_int_equal(boot_init(&delivery_of_another_handover), -PB_ERR_PARAM);
+    assert_int_equal(boot_init(&delivery_of_this_handover), PB_OK);
 }
 
 static void test_set_source(void **state)

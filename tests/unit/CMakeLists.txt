@@ -503,6 +503,15 @@ pb_unit_test(test_tfa_image SOURCES
 )
 pb_tfa_test(test_tfa_image)
 
+# The image handover into the OP-TEE delivery, as jiffy would boot with it:
+# AArch32's registers (boot.md 5.2, 5.7)
+pb_unit_test(test_optee SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/optee.c
+    ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image.c
+)
+target_compile_definitions(test_optee PRIVATE CONFIG_ARCH_ARMV7=1)
+
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
     ${PROJECT_SOURCE_DIR}/src/cm/cm_auth.c
