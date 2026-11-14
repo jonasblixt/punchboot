@@ -124,9 +124,12 @@ scripts/pbdebug --load imxrt1060evk  # the same over the EVK's J-Link (SWD), con
 
 ## Lint
 
-`pre-commit run --all-files` runs pre-commit-hooks, mypy, ruff-check and clang-format.
-pre-commit.ci runs the same hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`,
-a ruff bump can break the check (it happened in 2.7.0).
+`pre-commit run --all-files` runs pre-commit-hooks, mypy, ruff-check, ruff-format, clang-format
+and two local hooks: `tests/compat/abi.txt` only grows (D-008) and the document lint. ruff leaves
+out what `pyproject.toml` excludes: `scripts/` (the vendored Kconfiglib with it), `pki/`,
+`testbench/scripts/` and every folder named `doc`, `tests/doc/` too. pre-commit.ci runs the same
+hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`, a ruff bump can break the check
+(it happened in 2.7.0).
 
 ## CI (`.github/workflows/`)
 
