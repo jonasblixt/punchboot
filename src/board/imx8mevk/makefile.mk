@@ -16,7 +16,7 @@ IMX8M_UMCTL_TRAIN_2D_I ?= lpddr4_pmu_train_2d_imem.bin
 IMX8M_SRK_TABLE ?= pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin
 IMX8M_KEY_INDEX ?= 0
 IMX8M_SIGN_CERT ?= pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem
-IMX8M_IMAGE_SIGN_CERT ?= pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem
+IMX8M_IMAGE_SIGN_CERT ?= pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem
 
 blobs-y  = $(IMX8M_UMCTL_TRAIN_1D_D) \
 		   $(IMX8M_UMCTL_TRAIN_1D_I)\
