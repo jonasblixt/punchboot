@@ -93,6 +93,8 @@ static struct {
     uint8_t boot_type_err; /* The SCFW's error for the question, 0: none */
     uint32_t uid[2]; /* sc_misc_unique_id()'s words, low then high */
     uint8_t uid_words; /* The size of its answer, 0: the usual 4 */
+    uint8_t gpt_power_err; /* ... for powering GPT0 */
+    uint8_t gpt_rate_err; /* ... for GPT0's rate, answered with a word that isn't one */
 } scfw;
 
 /* A reset leaves the code under test through here */
@@ -180,9 +182,18 @@ static void scfw_call(void)
     if (svc == SC_RPC_SVC_PM && func == PM_FUNC_RESET)
         longjmp(soc_reset, 1);
 
-    if (svc == SC_RPC_SVC_PM && func == PM_FUNC_SET_CLOCK_RATE)
+    if (svc == SC_RPC_SVC_PM && func == PM_FUNC_SET_POWER_MODE &&
+        (scfw.words[1] & 0xffff) == SC_R_GPT_0)
+        err = scfw.gpt_power_err;
+    else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_SET_CLOCK_RATE) {
+        /* The rate in the first word, the resource in the second's 15:0 */
         data = scfw.words[1]; /* The rate asked for */
-    else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_RESET_REASON) {
+
+        if ((scfw.words[2] & 0xffff) == SC_R_GPT_0 && scfw.gpt_rate_err) {
+            err = scfw.gpt_rate_err;
+            data = 0xdeadbeef;
+        }
+    } else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_RESET_REASON) {
         data = scfw.reset_reason;
         err = scfw.reset_reason_err;
     } else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_GET_CLOCK_RATE) {
@@ -768,6 +779,36 @@ static void test_mmu_map(void **state)
     fake_mmu_check_pb_map(BOARD_RAM_BASE, BOARD_RAM_END);
 }
 
+/* platform.md 2.1: plat_early_init() returns with the tick counting. The
+ * tick is GPT0's, which the SCFW powers and clocks: when it refuses either,
+ * there is no tick, and pb resets before GPT0 is set up, so not with the
+ * SCFW's answer for a rate (F-218) */
+static void test_early_init_resets_without_the_tick(void **state)
+{
+    (void)state;
+
+    for (unsigned int n = 0; n < 2; n++) {
+        setup(NULL);
+
+        if (n == 0)
+            scfw.gpt_power_err = SC_ERR_FAIL;
+        else
+            scfw.gpt_rate_err = SC_ERR_PARM;
+
+        if (setjmp(soc_reset) == 0) {
+            (void)plat_early_init();
+            fail_msg("plat_early_init() returned without a tick");
+        }
+
+        /* Reset, and nothing asked of GPT0 after the refusal */
+        assert_int_equal(scfw.calls[scfw.n_calls - 1].svc, SC_RPC_SVC_PM);
+        assert_int_equal(scfw.calls[scfw.n_calls - 1].func, PM_FUNC_RESET);
+        assert_int_equal(scfw.calls[scfw.n_calls - 2].func,
+                         n == 0 ? PM_FUNC_SET_POWER_MODE : PM_FUNC_SET_CLOCK_RATE);
+        assert_int_equal(fake_regs_writes_in(IMX_GPT_BASE, 0x1000), 0);
+    }
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -790,6 +831,7 @@ int main(void)
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
         cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_mmu_map, setup),
+        cmocka_unit_test_setup(test_early_init_resets_without_the_tick, setup),
         cmocka_unit_test_setup(test_get_info, setup),
         cmocka_unit_test_setup(test_get_info_unknown, setup),
     };

@@ -216,10 +216,19 @@ static void imx8x_systick_setup(void)
     int rc;
     sc_pm_clock_rate_t rate;
 
-    /* Setup GPT0 */
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
+    /* Setup GPT0. Each of the SCFW's answers is checked: pb has no tick
+     * without them (platform.md 2.1), and a rate the SCFW refused is its
+     * answer's word, not a rate (F-218) */
+    rc = sc_pm_set_resource_power_mode(plat.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
+
+    if (rc != SC_ERR_NONE)
+        goto systick_fatal;
+
     rate = 24000000;
-    sc_pm_set_clock_rate(plat.ipc, SC_R_GPT_0, 2, &rate);
+    rc = sc_pm_set_clock_rate(plat.ipc, SC_R_GPT_0, 2, &rate);
+
+    if (rc != SC_ERR_NONE)
+        goto systick_fatal;
 
     rc = sc_pm_clock_enable(plat.ipc, SC_R_GPT_0, 2, true, false);
 
@@ -231,6 +240,7 @@ static void imx8x_systick_setup(void)
         return;
 
 systick_fatal:
+    LOG_ERR("GPT0 set up failed (%i)", rc);
     plat_reset();
 }
 
@@ -399,7 +409,9 @@ static bool wdog_asked;
 
 int plat_early_init(void)
 {
-    sc_ipc_open(&plat.ipc, SC_IPC_BASE);
+    /* Without the channel nothing below reaches the SCFW (F-218) */
+    if (sc_ipc_open(&plat.ipc, SC_IPC_BASE) != SC_ERR_NONE)
+        return -PB_ERR_IO;
 
     wdog_rc = imx8x_wdog_init();
     wdog_asked = true;
