@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-14 (the batch's rounds pushed, `pkg-b3-ci2` and `pkg-b3-wundef` parked; D-084)_
+_Last updated: 2026-11-15 (the pico8ml closed; the i.MX8M's SLC and lockdown)_
 
 ## Current focus
 
@@ -57,8 +57,9 @@ bump is for the porting API. Each item's history is in `log/`.
      add-on, but an SMC from Linux faults in Monitor mode (F-444, with F-241). Then F-440.
    - pico8ml restored (`9ea656f2`), signed `pb_signed.imx` from `make all`, command mode on the
      board; `-Os` and packed DRAM tables (`gen-imx8m-dram-timing.py`) for room. Open: F-445.
-     The i.MX8M's SLC (`ce438b74`): `slc configure` and `slc lock` on the pico are Jonas's;
-     F-447 (the 8MQ's SRK_REVOKE unverified). Next on the 8M: `plat_lockdown()`'s locks (D-084).
+     The i.MX8M's SLC and lockdown; the pico8ml is closed (log 2026-11-15), its token
+     `scripts/c12f1c67-...token`. Open: F-447, F-448 (the 8MQ's 33 KiB image offset). Next: the
+     pico8ml's test bench (Jonas).
    - D-086 for Jonas's review: Mbed TLS set up by the core (`crypto.md` 2, `platform.md` 2.2,
      2.3, 3.8, Open (1)). Then F-442's code.
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
