@@ -84,7 +84,13 @@ static int pb_boot_state_defaults(struct pb_boot_state *state)
  * 512 bytes, a part of one block or several. bio_write() pads the last one */
 static int pb_boot_state_write(bio_dev_t part)
 {
-    if (bio_get_flags(part) & BIO_FLAG_ERASE_BEFORE_WRITE) {
+    /* A handle that isn't one answers an error, not flags (F-406) */
+    int flags = bio_get_flags(part);
+
+    if (flags < 0)
+        return flags;
+
+    if (flags & BIO_FLAG_ERASE_BEFORE_WRITE) {
         ssize_t block_size = bio_block_size(part);
         int rc;
 

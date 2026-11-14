@@ -822,6 +822,25 @@ static void test_commit_erases_first(void **state)
     assert_false(state_valid(f, PRIMARY_LBA));
 }
 
+/* F-406: a state partition whose handle isn't one any more (bio.md 2.6:
+ * every getter answers -PB_ERR_PARAM for it): the commit is that error, it
+ * doesn't take the error for flags, and nothing is erased or written */
+static void test_commit_with_a_handle_that_isnt_one(void **state)
+{
+    struct fixture *f = *state;
+    unsigned int writes;
+
+    attach_nor(f);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    erase_calls = 0;
+    writes = f->disk->writes;
+
+    bio_reset();
+    assert_int_equal(boot_ab_state_write_board_reg(0, 1), -PB_ERR_PARAM);
+    assert_int_equal(erase_calls, 0);
+    assert_int_equal(f->disk->writes, writes);
+}
+
 /* What init wrote, per block: 'primary' and 'backup' writes of the two
  * copies, and none anywhere else on the disk */
 static void assert_writes(struct fixture *f, unsigned int primary, unsigned int backup)
@@ -2583,6 +2602,7 @@ int main(void)
         AB_TEST(test_init_copies_that_differ_and_no_write),
         AB_TEST(test_commit_write_errors),
         AB_TEST(test_commit_erases_first),
+        AB_TEST(test_commit_with_a_handle_that_isnt_one),
         AB_TEST(test_backup_repair_writes_the_backup_only),
         AB_TEST(test_backup_repair_erases_the_backup_only),
         AB_TEST(test_state_in_blocks_of_another_size),
