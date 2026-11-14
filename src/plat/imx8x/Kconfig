@@ -51,4 +51,27 @@ config IMX8X_SIGN_IMAGE
     default n
     depends on IMX8X_CREATE_IMX_IMAGE
 
+config IMX8X_SRK_TABLE
+    string "SRK Table binary"
+    default "pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin"
+    depends on IMX8X_SIGN_IMAGE
+
+config IMX8X_SIGN_CERT
+    string "Signing certificate"
+    default "pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem"
+    depends on IMX8X_SIGN_IMAGE
+
+config IMX8X_KEY_INDEX
+    int "Key index (0-3)"
+    default 0
+    depends on IMX8X_SIGN_IMAGE
+
+config IMX8X_KEY_REVOKE_MASK
+    int "Revoked SRKs"
+    default 0
+    depends on IMX8X_SIGN_IMAGE
+    help
+        The bit mask of the revoked SRKs in the container's signature
+        (Revocations in the CSF), as a decimal number.
+
 endmenu
