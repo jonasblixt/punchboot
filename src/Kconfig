@@ -15,6 +15,10 @@ config KEYSTORE
 config LOGLEVEL
 	int "loglevel"
     default 0
+    help
+        What the console (UART) prints: 0 nothing, 1 errors, 2 also
+        warnings and info, 3 also debug. With CONFIG_RAMLOG the RAM log has
+        every level, up to debug (include/pb/log_def.h).
 
 config ENABLE_WATCHDOG
 	bool "Enable watchdog"
@@ -29,29 +33,20 @@ config WATCHDOG_TIMEOUT
     default 5
     depends on ENABLE_WATCHDOG
 
-config ENABLE_TIMESTAMPING
-    bool "Enable timestamping"
-    default n
-
-config PRINT_TIMESTAMPS
-    bool "Print timestamps before boot"
-    depends on ENABLE_TIMESTAMPING
-    default n
-
-config NO_OF_TIMESTAMPS
-    int "Maximum number of timestamps"
-    depends on ENABLE_TIMESTAMPING
-    default 64
-
 config RAMLOG
     bool "Keep a copy of the console output in RAM"
     default n
     help
         Everything written to the console is also kept in a ring buffer in
-        RAM, the symbol 'ramlog' in the .no_init section. It can be read
-        without a UART: over JTAG, through a boot ROM USB loader (FEL) or
-        from a RAM dump. The layout is struct pb_ramlog_hdr in
+        RAM, the symbol 'ramlog' in the .ramlog section (not zeroed, in the
+        RAM pb runs from). It can be read without a UART: over JTAG,
+        through a boot ROM USB loader (FEL) or from a RAM dump. The layout is struct pb_ramlog_hdr in
         include/pb/ramlog.h.
+
+        It has every level, up to debug, also the ones above LOGLEVEL,
+        which the console doesn't print: the UART can stay quiet and fast
+        while the RAM log has the whole story. Those messages are compiled
+        in, so pb is larger (debug adds about 8 KiB over info on jiffy).
 
         Output from before console_init() (early debug prints) goes only
         to the RAM log, and is written to the UART when console_init()
@@ -63,32 +58,7 @@ config RAMLOG_SIZE_KiB
     default 16
     depends on RAMLOG
 
-config RAMLOG_LOGLEVEL
-    int "RAM log level"
-    default 3
-    range 0 3
-    depends on RAMLOG
-    help
-        Log messages up to this level go to the RAM log, also the ones
-        above LOGLEVEL, which the console doesn't print (3: debug, 2: info,
-        1: warnings and errors). So the UART can stay quiet and fast while
-        the RAM log has the whole story. A level at or below LOGLEVEL
-        changes nothing.
-
-        The messages up to this level are compiled in, so a level above
-        LOGLEVEL makes pb larger: debug adds about 8 KiB over info on
-        jiffy.
-
-config RAMLOG_SYNC
-    bool "Synchronized RAM log (for debugging)"
     default n
-    depends on RAMLOG
-    help
-        Clean the data cache after every character, so that the log in RAM
-        is always current, also when pb hangs or crashes and the log is read
-        from outside (JTAG, FEL, a RAM dump after a warm reset). This costs
-        two cache line cleans per character.
-
 config DEVICE_UUID
     bool "Enable device UUID"
     default y

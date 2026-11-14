@@ -5,8 +5,9 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * RAM log (src/ramlog.c), built with the host config's log size and
- * CONFIG_RAMLOG_SYNC.
+ * RAM log (src/ramlog.c), built with the host config's log size. It is
+ * included, so that the tests read the log's header and data where an outside
+ * reader (JTAG, FEL, a RAM dump) finds them.
  */
 
 #include <setjmp.h>
@@ -17,30 +18,9 @@
 
 #include <cmocka.h>
 
-#include <pb/pb.h>
-#include <pb/ramlog.h>
+#include "../../src/ramlog.c"
 
 #define LOG_SIZE (CONFIG_RAMLOG_SIZE_KiB * 1024)
-
-/* Cache cleans done by the RAM log, in order */
-struct clean_call {
-    uintptr_t start;
-    size_t len;
-};
-
-static struct clean_call clean_calls[8];
-static unsigned int no_of_clean_calls;
-
-void arch_clean_cache_range(uintptr_t start, size_t len);
-
-void arch_clean_cache_range(uintptr_t start, size_t len)
-{
-    if (no_of_clean_calls < ARRAY_SIZE(clean_calls)) {
-        clean_calls[no_of_clean_calls].start = start;
-        clean_calls[no_of_clean_calls].len = len;
-    }
-    no_of_clean_calls++;
-}
 
 static void puts_ramlog(const char *s)
 {
@@ -52,7 +32,6 @@ static int setup(void **state)
 {
     (void)state;
     ramlog_init();
-    no_of_clean_calls = 0;
     return 0;
 }
 
@@ -66,20 +45,15 @@ static void test_putc_before_init_is_dropped(void **state)
     assert_int_equal(ramlog_length(), 0);
     assert_int_equal(ramlog_head(), 0);
     assert_int_equal(ramlog_read(0, buf, sizeof(buf)), 0);
-    assert_int_equal(no_of_clean_calls, 0);
 }
 
-static void test_init_writes_and_syncs_header(void **state)
+static void test_init_writes_header(void **state)
 {
-    const struct pb_ramlog_hdr *hdr;
+    const struct pb_ramlog_hdr *hdr = &ramlog.hdr;
     (void)state;
 
-    no_of_clean_calls = 0;
     ramlog_init();
 
-    assert_int_equal(no_of_clean_calls, 1);
-    assert_int_equal(clean_calls[0].len, sizeof(struct pb_ramlog_hdr));
-    hdr = (const struct pb_ramlog_hdr *)clean_calls[0].start;
     assert_int_equal(hdr->magic, PB_RAMLOG_MAGIC);
     assert_memory_equal(&hdr->magic, "PBLG", 4);
     assert_int_equal(hdr->version, PB_RAMLOG_VERSION);
@@ -150,39 +124,30 @@ static void test_wrap_keeps_newest(void **state)
         assert_int_equal((uint8_t)buf[i], (total - LOG_SIZE + i) % 251);
 }
 
-/* Synchronized output: the character is cleaned before the header, and the
- * data follows the header directly in memory (external readers rely on it). */
-static void test_sync_cleans_data_then_header(void **state)
+/* What an outside reader relies on: the header starts a cache line, the data
+ * follows it directly, and the head counts what is in the data. */
+static void test_layout(void **state)
 {
-    const struct pb_ramlog_hdr *hdr;
-    uintptr_t data;
+    const char *data = (const char *)&ramlog + sizeof(struct pb_ramlog_hdr);
     (void)state;
 
-    puts_ramlog("ab");
-    no_of_clean_calls = 0;
-    ramlog_putc('c');
+    puts_ramlog("abc");
 
-    assert_int_equal(no_of_clean_calls, 2);
-    assert_int_equal(clean_calls[1].len, sizeof(struct pb_ramlog_hdr));
-    hdr = (const struct pb_ramlog_hdr *)clean_calls[1].start;
-    data = clean_calls[1].start + sizeof(struct pb_ramlog_hdr);
-
-    assert_int_equal(clean_calls[0].len, 1);
-    assert_int_equal(clean_calls[0].start, data + 2);
-    assert_int_equal(*(const char *)clean_calls[0].start, 'c');
-    assert_int_equal(hdr->head, 3);
-    assert_int_equal(clean_calls[1].start % 64, 0);
+    assert_int_equal((uintptr_t)&ramlog % 64, 0);
+    assert_ptr_equal(data, ramlog.data);
+    assert_memory_equal(data, "abc", 3);
+    assert_int_equal(ramlog.hdr.head, 3);
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_putc_before_init_is_dropped),
-        cmocka_unit_test(test_init_writes_and_syncs_header),
+        cmocka_unit_test(test_init_writes_header),
         cmocka_unit_test_setup(test_write_and_read, setup),
         cmocka_unit_test_setup(test_init_resets_log, setup),
         cmocka_unit_test_setup(test_wrap_keeps_newest, setup),
-        cmocka_unit_test_setup(test_sync_cleans_data_then_header, setup),
+        cmocka_unit_test_setup(test_layout, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

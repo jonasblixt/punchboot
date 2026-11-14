@@ -12,7 +12,6 @@
 #include <inttypes.h>
 #include <pb/bio.h>
 #include <pb/pb.h>
-#include <pb/timestamp.h>
 #include <string.h>
 
 static const struct boot_driver *boot_cfg;
@@ -267,7 +266,7 @@ int boot_load(uuid_t boot_part_override_uu)
         goto err_out;
     }
 
-    ts("Boot early");
+    LOG_DBG("Early boot");
 
     if (boot_cfg->early_boot_cb) {
         rc = boot_cfg->early_boot_cb();
@@ -282,7 +281,7 @@ int boot_load(uuid_t boot_part_override_uu)
         uuid_copy(boot_part_uu, boot_part_override_uu);
     }
 
-    ts("Boot load");
+    LOG_DBG("Load");
     switch (boot_source) {
     case BOOT_SOURCE_BIO:
         rc = load_auth_verify_from_bio();
@@ -312,7 +311,7 @@ int boot_load(uuid_t boot_part_override_uu)
         goto err_out;
     }
 
-    ts("Boot prepare");
+    LOG_DBG("Prepare");
     if (boot_cfg->prepare) {
         rc = boot_cfg->prepare(header_ptr, boot_part_uu);
         if (rc != PB_OK) {
@@ -331,7 +330,7 @@ int boot_jump(void)
 {
     int rc;
 
-    ts("Boot late");
+    LOG_DBG("Late boot");
     if (boot_cfg->late_boot_cb) {
         rc = boot_cfg->late_boot_cb(header_ptr, boot_part_uu);
         if (rc != PB_OK) {
@@ -340,7 +339,7 @@ int boot_jump(void)
         }
     }
 
-    ts("Boot jump");
+    LOG_DBG("Jump");
     boot_cfg->jump();
     boot_flags = 0;
     return -PB_ERR;

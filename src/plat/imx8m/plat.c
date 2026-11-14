@@ -11,6 +11,7 @@
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
+#include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -163,6 +164,7 @@ int plat_init(void)
     /* Configure systick */
     mmio_write_32(CCM_CCGR_SET(CCGR_GPT1), CCGR_CLK_ON_MASK);
     imx_gpt_init(IMX8M_GPT1_BASE, MHz(24));
+    log_time_start();
 
     /*
      * The system counter, which the Arm generic timer counts: TF-A's delays

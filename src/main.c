@@ -14,7 +14,6 @@
 #include <pb/plat.h>
 #include <pb/ramlog.h>
 #include <pb/self_test.h>
-#include <pb/timestamp.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -47,9 +46,6 @@ void main(void)
 
 enter_command_mode:
     printf("Boot aborted (%i), entering command mode\n\r", rc);
-#ifdef CONFIG_PRINT_TIMESTAMPS
-    ts_print();
-#endif
 #ifdef CONFIG_CM
     cm_run();
 #endif

@@ -71,6 +71,15 @@ SECTIONS
         PROVIDE (_zero_region_end = .);
     } > ram
 
+    /* The RAM log: not zeroed, and in the RAM pb runs from, which is usable
+     * from the start (the i.MX8M's buffers are in DRAM, trained later) */
+    .ramlog (NOLOAD):
+    {
+        . = ALIGN(PB_SECTION_ALIGNMENT);
+        *(.ramlog)
+        . = ALIGN(PB_SECTION_ALIGNMENT);
+    } > ram
+
     .no_init (NOLOAD):
     {
         . = ALIGN(PB_SECTION_ALIGNMENT);
