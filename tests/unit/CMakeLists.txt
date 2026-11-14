@@ -745,6 +745,7 @@ pb_plat_test(test_plat_imx8m
 # The transport that a build for a SoC links (usb.md 2): pb's USB class and
 # the stack, over a fake controller. pb-host links the socket instead
 pb_unit_test(test_usb_transport SOURCES
+    ${PROJECT_SOURCE_DIR}/src/delay.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/pb_dev_cls.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/usbd.c
 )
@@ -753,6 +754,7 @@ pb_unit_test(test_usb_transport SOURCES
 # requests, bulk transfers, a bus reset and a replug (fakes/usb_host.h)
 pb_unit_test(test_usbd SOURCES
     fakes/usb_host.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/pb_dev_cls.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/usbd.c
 )

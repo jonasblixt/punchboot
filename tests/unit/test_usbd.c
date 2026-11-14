@@ -28,6 +28,7 @@
 #include <string.h>
 #include <uuid.h>
 
+#include "fakes/plat.h"
 #include "fakes/usb_host.h"
 
 #define DEVICE_UUID  "02e49231-756e-35ee-a982-378e5ba866a9"
@@ -925,6 +926,37 @@ static void test_control_transfer_given_up(void **state)
     assert_int_equal(cm_transport_connect(), -PB_ERR_IO);
 }
 
+/* F-138: a reply on endpoint 0 the host never takes (it was reset or went
+ * away in the data stage) is given up after 500 ms (USB 2.0 9.2.6.4), where
+ * the stack waited for ever: before the configuration the host starts over,
+ * in a session the transfer is lost */
+static void test_data_stage_given_up(void **state)
+{
+    unsigned int step = fake_us_tick_step;
+    unsigned int t0;
+
+    (void)state;
+    fake_us_tick_step = 1000;
+    start(NULL);
+
+    usb_host_hold_ep0_in(true);
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    t0 = fake_us_tick;
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_true(fake_us_tick - t0 >= 500000);
+    assert_true(fake_us_tick - t0 < 600000);
+    usb_host_hold_ep0_in(false);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_hold_ep0_in(true);
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_TIMEOUT);
+    usb_host_hold_ep0_in(false);
+
+    fake_us_tick_step = step;
+}
+
 /* SET_IDLE, a request of another class without a data stage: answered as
  * it was (D-073 has it stalled, which no controller can yet), with one
  * status stage, IN. F-422: the stack asked for an OUT status stage after
@@ -1007,6 +1039,7 @@ int main(void)
         cmocka_unit_test(test_disconnect),
         cmocka_unit_test(test_unknown_request),
         cmocka_unit_test(test_control_transfer_given_up),
+        cmocka_unit_test(test_data_stage_given_up),
         cmocka_unit_test(test_set_idle),
         cmocka_unit_test(test_unknown_string),
     };

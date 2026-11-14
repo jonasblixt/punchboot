@@ -8,6 +8,7 @@
  */
 
 #include <drivers/usb/usbd.h>
+#include <pb/delay.h>
 #include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -115,12 +116,35 @@ const char *ep_to_str(usb_ep_t ep)
     };
 }
 
+/*
+ * Endpoint 0's data stage, a reply to the host (F-138, drivers.md 3). USB 2.0
+ * 9.2.6.4 gives a device 500 ms for each packet of a data stage; a host takes
+ * a reply at once, so one that hasn't in that time was reset or went away.
+ * The request is given up, -PB_ERR_TIMEOUT: before the device is configured
+ * the host starts over (usbd_connect()), in a session the transfer is lost
+ * and command mode starts the transport again, whose init resets the
+ * controller. An IN transfer only reads its buffer, which stays the stack's.
+ * The loop waited for ever, with nothing kicking the watchdog.
+ */
+#define EP0_DATA_STAGE_TIMEOUT_us 500000
+
 static int wait_for_completion(usb_ep_t ep)
 {
+    struct pb_timeout to;
     int rc;
+
+    rc = pb_timeout_init_us(&to, EP0_DATA_STAGE_TIMEOUT_us);
+
+    if (rc != PB_OK)
+        return rc;
 
     do {
         rc = hal_ops->xfer_complete(ep);
+
+        if (rc == -PB_ERR_AGAIN && pb_timeout_has_expired(&to)) {
+            LOG_ERR("%s: the host didn't take the reply", ep_to_str(ep));
+            return -PB_ERR_TIMEOUT;
+        }
     } while (rc == -PB_ERR_AGAIN);
 
     return rc;

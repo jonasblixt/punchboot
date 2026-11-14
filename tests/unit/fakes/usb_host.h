@@ -94,6 +94,10 @@ void usb_host_fail_next_poll(int rc);
  * status stage (-PB_ERR_TIMEOUT); PB_OK again after it */
 void usb_host_fail_next_status(int rc);
 
+/* The host takes endpoint 0's replies (false, the default) or never does
+ * (true): its data stage stays pending, as after a reset or an unplug */
+void usb_host_hold_ep0_in(bool held);
+
 /* The host sends a SETUP. The one before it, if the stack didn't take it, is
  * replaced (usb.md 4.4) */
 void usb_host_request(uint8_t request_type,

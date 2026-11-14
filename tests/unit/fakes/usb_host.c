@@ -41,6 +41,9 @@ static uint8_t out_fifo[64 * 1024];
 static size_t out_fifo_length;
 
 /* Off the bus, or a bus reset: what the controller forgets */
+/* The host doesn't take endpoint 0's replies (usb_host_hold_ep0_in()) */
+static bool ep0_in_held;
+
 static void controller_reset(void)
 {
     memset(xfers, 0, sizeof(xfers));
@@ -151,6 +154,9 @@ static int hal_xfer_complete(usb_ep_t ep)
 
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
+
+    if (ep == USB_EP0_IN && ep0_in_held)
+        return -PB_ERR_AGAIN;
 
     if (!EP_IS_BULK(ep))
         return PB_OK;
@@ -280,6 +286,7 @@ void usb_host_reset(const struct usb_host_config *cfg)
     next_start_rc = PB_OK;
     next_poll_rc = PB_OK;
     next_status_rc = PB_OK;
+    ep0_in_held = false;
     controller_reset();
 
     if (cfg != NULL)
@@ -309,6 +316,11 @@ void usb_host_fail_next_poll(int rc)
 void usb_host_fail_next_status(int rc)
 {
     next_status_rc = rc;
+}
+
+void usb_host_hold_ep0_in(bool held)
+{
+    ep0_in_held = held;
 }
 
 void usb_host_request(uint8_t request_type,
