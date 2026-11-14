@@ -19,6 +19,9 @@ SECTIONS
         PROVIDE (_code_start = .);
         KEEP(*(.vectors .vectors.*))
         *(.text .text.*)
+        /* ld's stubs: ARM and Thumb interworking, the VFP11 erratum. Code,
+         * empty for the cores pb builds for */
+        *(.glue_7 .glue_7t .vfp11_veneer .v4_bx)
         . = ALIGN(PB_SECTION_ALIGNMENT);
         _etext = .;
         PROVIDE (_code_end = .);
@@ -30,6 +33,36 @@ SECTIONS
     .vector_handlers :
     {
         *(.vector_handlers .vector_handlers.*)
+    } > ram
+
+    /* The unwind tables that libgcc's objects have on ARM, 8 bytes on the
+     * RT1060. pb has no unwinder; they are where ld put them as orphans */
+    .ARM.extab :
+    {
+        *(.ARM.extab .ARM.extab.* .gnu.linkonce.armextab.*)
+    } > ram
+
+    .ARM.exidx :
+    {
+        *(.ARM.exidx .ARM.exidx.* .gnu.linkonce.armexidx.*)
+    } > ram
+
+    /* What ld makes for ifuncs and run time relocations. pb is linked static,
+     * has no ifunc and nothing that would apply a relocation: they are
+     * empty, and the link fails when one isn't (below) */
+    .iplt :
+    {
+        *(.iplt)
+    } > ram
+
+    .rel.dyn :
+    {
+        *(.rel.dyn .rel.iplt)
+    } > ram
+
+    .rela.dyn :
+    {
+        *(.rela.dyn .rela.iplt .rela.got)
     } > ram
 
     .data :
@@ -116,7 +149,35 @@ SECTIONS
     } > buffers
 
     PROVIDE(end = .);
+
+    /* What isn't loaded: the compiler's notes and the attributes, and the
+     * debug information, as ld's own script has them. The note that the
+     * stack isn't executable is for an OS's loader, which pb has none of */
+    .comment 0 : { *(.comment) }
+    .ARM.attributes 0 : { KEEP(*(.ARM.attributes)) KEEP(*(.gnu.attributes)) }
+    .debug_aranges 0 : { *(.debug_aranges) }
+    .debug_pubnames 0 : { *(.debug_pubnames) }
+    .debug_info 0 : { *(.debug_info .gnu.linkonce.wi.*) }
+    .debug_abbrev 0 : { *(.debug_abbrev) }
+    .debug_line 0 : { *(.debug_line .debug_line.* .debug_line_end) }
+    .debug_frame 0 : { *(.debug_frame) }
+    .debug_str 0 : { *(.debug_str) }
+    .debug_loc 0 : { *(.debug_loc) }
+    .debug_macinfo 0 : { *(.debug_macinfo) }
+    .debug_pubtypes 0 : { *(.debug_pubtypes) }
+    .debug_ranges 0 : { *(.debug_ranges) }
+    .debug_addr 0 : { *(.debug_addr) }
+    .debug_line_str 0 : { *(.debug_line_str) }
+    .debug_loclists 0 : { *(.debug_loclists) }
+    .debug_macro 0 : { *(.debug_macro) }
+    .debug_names 0 : { *(.debug_names) }
+    .debug_rnglists 0 : { *(.debug_rnglists) }
+    .debug_str_offsets 0 : { *(.debug_str_offsets) }
+    /DISCARD/ : { *(.note.GNU-stack) }
 }
+
+ASSERT(SIZEOF(.iplt) == 0 && SIZEOF(.rel.dyn) == 0 && SIZEOF(.rela.dyn) == 0,
+       "pb has an ifunc or a run time relocation (.iplt, .rel.dyn, .rela.dyn), which nothing in pb applies")
 
 /* The stack grows down, towards .ro_data and the keystore at its end. Where
  * the arch has an MMU (its sections are page aligned) the platforms map

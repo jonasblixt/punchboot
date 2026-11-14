@@ -189,6 +189,9 @@ ldflags-y += $(foreach v,$(BOARD_MEMORY),--defsym=$(v)=$($(v)))
 ldflags-y += --defsym=PB_STACK_SIZE_KiB=$(CONFIG_STACK_SIZE_KiB)
 ldflags-y += -T$(CONFIG_LINK_FILE) --build-id=none
 ldflags-y += --gc-sections
+# Every section is placed by a link script (platform.md 5.3): ld warns about
+# one that isn't, which it would put where it chooses
+ldflags-y += --orphan-handling=warn
 
 OBJS =
 OBJS += $(patsubst %.c, $(BUILD_DIR)/%.o, $(src-y))
