@@ -21,6 +21,7 @@
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
+#include <pb/mmu.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/rot.h>
@@ -30,20 +31,6 @@
 #include <string.h>
 #include <uuid.h>
 #include <xlat_tables.h>
-
-IMPORT_SYM(uintptr_t, _code_start, code_start);
-IMPORT_SYM(uintptr_t, _code_end, code_end);
-IMPORT_SYM(uintptr_t, _data_region_start, data_start);
-IMPORT_SYM(uintptr_t, _data_region_end, data_end);
-IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
-IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
-IMPORT_SYM(uintptr_t, _stack_start, stack_start);
-IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-/* The rest of pb, .bss and the RAM log, and the buffers (platform.md 5.1) */
-IMPORT_SYM(uintptr_t, _zero_region_start, pb_rw_start);
-IMPORT_SYM(uintptr_t, _pb_end, pb_rw_end);
-IMPORT_SYM(uintptr_t, _buffers_start, buffers_start);
-IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
 
 /* USB OTG1 device address, see imx_ci_udc.c */
 #define USB_DEVICEADDR      0x154
@@ -183,52 +170,6 @@ uint32_t plat_get_us_tick(void)
 void plat_wdog_kick(void)
 {
     imx_wdog_kick(IMX6UL_WDOG1_BASE);
-}
-
-static int plat_mmu_init(void)
-{
-    /* Configure MMU */
-    reset_xlat_tables();
-
-    mmap_add_region(code_start, code_start, code_end - code_start, MT_RO | MT_MEMORY | MT_EXECUTE);
-
-    mmap_add_region(
-        data_start, data_start, data_end - data_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(ro_data_start,
-                    ro_data_start,
-                    ro_data_end - ro_data_start,
-                    MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(
-        stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    /* The rest of pb and the buffers, each a region of its own: one span
-     * from pb to the buffers mapped what is between them as memory, which
-     * is the address space and its devices when they aren't in the same
-     * memory (F-158). The DRAM between them is the DRAM's region's */
-    mmap_add_region(
-        pb_rw_start, pb_rw_start, pb_rw_end - pb_rw_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(buffers_start,
-                    buffers_start,
-                    buffers_end - buffers_start,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    /* The board's DRAM, where the images are loaded. What of pb is in it
-     * is a region inside it, and the innermost region wins */
-    mmap_add_region(BOARD_RAM_BASE,
-                    BOARD_RAM_BASE,
-                    BOARD_RAM_END - BOARD_RAM_BASE,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add(imx_mmap);
-
-    init_xlat_tables();
-
-    enable_mmu_svc_mon(0);
-
-    return PB_OK;
 }
 
 /**
@@ -497,7 +438,15 @@ int plat_init(void)
     LOG_INFO("uSDHC2 clk: %u MHz", plat.usdhc2_clk_MHz);
 
     imx_wdog_kick(IMX6UL_WDOG1_BASE);
-    plat_mmu_init();
+
+    /* The memory map, imx_mmap[] as its layer 2 (platform.md 5.2). Without
+     * it command mode doesn't run: plat_init()'s error (2.2) */
+    rc = pb_mmu_init(imx_mmap);
+
+    if (rc != PB_OK) {
+        LOG_ERR("MMU setup failed (%i)", rc);
+        return rc;
+    }
 
     /* Not plat_init()'s error: command mode needs no TZASC, and main() would
      * reset (platform.md 2.2). It is recorded, and no boot goes on without

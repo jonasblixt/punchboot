@@ -38,6 +38,8 @@
 #include <plat/imx6ul/imx6ul.h>
 #include <string.h>
 
+#include <xlat_tables.h>
+
 #include "fakes/regs.h"
 #include "fakes/xlat.h"
 
@@ -845,6 +847,33 @@ static void test_mmu_map(void **state)
     fake_mmu_check_pb_map(BOARD_RAM_BASE, BOARD_RAM_END);
 }
 
+/* platform.md 5.2: the whole map, the same since F-158 (ec043c92): layer 1
+ * the board's DRAM, layer 2 the ROM (its API, executable), the OCRAM (the
+ * HAB's) and AIPS-1 and -2 whole, layer 4 pb. Each region once: xlat_tables
+ * sorts them, so the order they are added in doesn't change the tables. The
+ * enable is ARMv7-A's */
+static void test_mmu_map_regions(void **state)
+{
+    const unsigned int rw_nox = MT_RW | MT_MEMORY | MT_EXECUTE_NEVER;
+    struct fake_mmap_region expected[16] = {
+        { BOARD_RAM_BASE, BOARD_RAM_END - BOARD_RAM_BASE, rw_nox },
+        { IMX6UL_ROM_BASE, 128 * 1024, MT_MEMORY | MT_RO | MT_EXECUTE },
+        { IMX6UL_OCRAM_BASE, 256 * 1024, MT_MEMORY | MT_RW },
+        { AIPS1_ARB_BASE_ADDR, 1024 * 1024, MT_DEVICE | MT_RW },
+        { AIPS2_ARB_BASE_ADDR, 1024 * 1024, MT_DEVICE | MT_RW },
+    };
+    size_t n = 5;
+    (void)state;
+
+    n += fake_mmap_pb_regions(&expected[n]);
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    fake_mmap_check_equal(expected, n);
+    assert_int_equal(fake_mmu_enables, 1);
+    assert_string_equal(fake_mmu_enabled_by, "svc_mon");
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -871,6 +900,7 @@ int main(void)
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
         cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_mmu_map, setup),
+        cmocka_unit_test_setup(test_mmu_map_regions, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

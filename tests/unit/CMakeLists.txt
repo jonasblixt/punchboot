@@ -704,12 +704,13 @@ pb_plat_test(test_imx_wdog
 pb_plat_test(test_plat_imx6ul
     SOURCES
         fakes/xlat.c
+        ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/plat.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
         CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5 CONFIG_DRIVERS_IMX_CAAM=1
-        BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+        BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000 MAX_MMAP_REGIONS=32
 )
 
 # The same without CONFIG_ENABLE_WATCHDOG, which every defconfig has on: the
@@ -718,11 +719,13 @@ pb_plat_test(test_plat_imx6ul_no_wdog
     TEST test_plat_imx6ul.c
     SOURCES
         fakes/xlat.c
+        ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/plat.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
         CONFIG_DRIVERS_IMX_CAAM=1 BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+        MAX_MMAP_REGIONS=32
 )
 
 # The i.MX8M Plus. The arch's system registers are the test's
