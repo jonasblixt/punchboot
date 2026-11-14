@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 import punchboot
 import pytest
+from punchboot import wire
 
 from .pbtest import PB_COMMAND_SIZE, PB_WIRE_MAGIC
 
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from multiprocessing.connection import Connection
 
-PB_CMD_AUTHENTICATE = 16
+PB_CMD_AUTHENTICATE = wire.Command.PB_CMD_AUTHENTICATE
 AUTH_DATA_SIZE = 1024
 OK = struct.pack("<Ib", PB_WIRE_MAGIC, 0).ljust(PB_COMMAND_SIZE, b"\0")
 

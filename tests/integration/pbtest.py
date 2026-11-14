@@ -19,6 +19,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 import punchboot
+from punchboot import wire
 
 from . import fdt
 
@@ -403,16 +404,17 @@ class Device:
         return result
 
 
-# Wire protocol, include/pb-tools/wire.h
-PB_WIRE_MAGIC = 0x50424C30
-PB_CMD_BOOTLOADER_VERSION_READ = 9
-PB_CMD_STREAM_INITIALIZE = 18
-PB_CMD_STREAM_PREPARE_BUFFER = 19
-PB_CMD_STREAM_WRITE_BUFFER = 20
-PB_CMD_BOARD_COMMAND = 24
-PB_CMD_STREAM_READ_BUFFER = 26
-PB_COMMAND_SIZE = 512
-PB_REQUEST_SIZE = 504
+# Wire protocol, include/pb-tools/wire.h: the values are the punchboot
+# package's (wire.py, checked against tests/compat/abi.txt), one source (F-035)
+PB_WIRE_MAGIC = wire.PB_WIRE_MAGIC
+PB_CMD_BOOTLOADER_VERSION_READ = wire.Command.PB_CMD_BOOTLOADER_VERSION_READ
+PB_CMD_STREAM_INITIALIZE = wire.Command.PB_CMD_STREAM_INITIALIZE
+PB_CMD_STREAM_PREPARE_BUFFER = wire.Command.PB_CMD_STREAM_PREPARE_BUFFER
+PB_CMD_STREAM_WRITE_BUFFER = wire.Command.PB_CMD_STREAM_WRITE_BUFFER
+PB_CMD_BOARD_COMMAND = wire.Command.PB_CMD_BOARD_COMMAND
+PB_CMD_STREAM_READ_BUFFER = wire.Command.PB_CMD_STREAM_READ_BUFFER
+PB_COMMAND_SIZE = wire.pb_command.sizeof()
+PB_REQUEST_SIZE = wire.PB_COMMAND_REQUEST_MAX_SIZE
 
 
 class Wire:

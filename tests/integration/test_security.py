@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 import punchboot
 import pytest
+from punchboot import wire
 
 from .pbtest import (
     AUTH_TOKEN,
@@ -33,12 +34,12 @@ if TYPE_CHECKING:
 DEVICE_UUID = "02e49231-756e-35ee-a982-378e5ba866a9"
 AUTH_FAILED_DELAY_S = 1.0  # command-mode.md 3.3
 
-# include/pb-tools/wire.h and error.h
-PB_CMD_DEVICE_IDENTIFIER_READ = 2
-PB_CMD_AUTHENTICATE = 16
-PB_CMD_END = 31
-PB_RESULT_NOT_AUTHENTICATED = 3
-PB_RESULT_INVALID_COMMAND = 6
+# include/pb-tools/wire.h and error.h, from the punchboot package (F-035)
+PB_CMD_DEVICE_IDENTIFIER_READ = wire.Command.PB_CMD_DEVICE_IDENTIFIER_READ
+PB_CMD_AUTHENTICATE = wire.Command.PB_CMD_AUTHENTICATE
+PB_CMD_END = len(wire.Command)  # The first id that isn't a command
+PB_RESULT_NOT_AUTHENTICATED = wire.Result.PB_RESULT_NOT_AUTHENTICATED
+PB_RESULT_INVALID_COMMAND = wire.Result.PB_RESULT_INVALID_COMMAND
 
 
 def test_device_identity(device: Device) -> None:
