@@ -11,6 +11,7 @@
 #include <boot/atf.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/crypto/mbedtls.h>
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
@@ -278,12 +279,29 @@ static int tzasc_open_dram(void)
     return rc;
 }
 
+/* HABv4's SRK_REVOKE[2:0] (platform.md 4.1) */
+#define IMX8M_REVOCABLE_SRKS (3)
+
+/* HABv4's state in the OCOTP (fusebox.h, plat-imx.md 4.1) */
+static const struct imx_hab_fuses hab_fuses = {
+    .sec_config_bank = IMX8M_FUSE_SEC_CONFIG_BANK,
+    .sec_config_word = IMX8M_FUSE_SEC_CONFIG_WORD,
+    .closed = IMX8M_FUSE_SEC_CONFIG_CLOSED,
+    .srk_bank = IMX8M_FUSE_SRK_BANK,
+    .srk_word = IMX8M_FUSE_SRK_WORD,
+#ifdef CONFIG_PLAT_IMX8MQ
+    .revoke_bank = IMX8MQ_FUSE_REVOKE_BANK,
+    .revoke_word = IMX8MQ_FUSE_REVOKE_WORD,
+    .revocable = IMX8M_REVOCABLE_SRKS,
+#endif
+    .revoke_allowed = imx_hab_no_failure,
+};
+
 /*
- * The root of trust and the life cycle (platform.md 4.1, 4.2). pb doesn't
- * support the 8M's HAB (D-027, plat-imx.md 4.1): no key is revoked, no fuse
- * is written, and without a life cycle command mode is open. The i.MX8M
- * Plus's keys can be used. The i.MX8MQ's can't: its board, imx8mevk, had no
- * read_key_status, and that is kept, though platform.md 4.1 asks for one.
+ * The root of trust and the life cycle (platform.md 4.1, 4.2): HABv4's fuses.
+ * The 8MQ revokes keys through SRK_REVOKE. The 8M Plus's SRK_REVOKE isn't in
+ * its public RM: its keys read as active and none is revoked (fusebox.h).
+ * No EOL (F-263).
  */
 #ifdef CONFIG_PLAT_IMX8MP
 static int read_key_status(const struct rot_key *key)
@@ -293,9 +311,6 @@ static int read_key_status(const struct rot_key *key)
 }
 #endif
 
-/* HABv4's SRK_REVOKE[2:0] (platform.md 4.1) */
-#define IMX8M_REVOCABLE_SRKS (3)
-
 /* The build's warning for a board key in a slot without a bit reads the
  * makefile.mk's count (platform.md 4.1) */
 #ifdef PLAT_REVOKE_SLOTS
@@ -304,14 +319,34 @@ _Static_assert(PLAT_REVOKE_SLOTS == IMX8M_REVOCABLE_SRKS,
 #endif
 
 const struct rot_config plat_rot = {
-    .revoke_key = NULL,
-#ifdef CONFIG_PLAT_IMX8MP
+#ifdef CONFIG_PLAT_IMX8MQ
+    .revoke_key = imx_hab_revoke_key,
+    .read_key_status = imx_hab_read_key_status,
+#else
     .read_key_status = read_key_status,
 #endif
     .revoke_slots = IMX8M_REVOCABLE_SRKS,
 };
 
-const struct slc_ops plat_slc = { 0 };
+/* Closing a device whose image HAB doesn't accept would leave one that
+ * doesn't boot: the lock waits for a boot without a HAB failure */
+static int imx8m_slc_lock(void)
+{
+    int rc = imx_hab_no_failure();
+
+    if (rc != PB_OK)
+        return rc;
+
+    return imx_hab_slc_set_configuration_locked();
+}
+
+const struct slc_ops plat_slc = {
+    .read_status = imx_hab_slc_read_status,
+    .set_configuration = imx_hab_slc_set_configuration,
+    .set_configuration_locked = imx8m_slc_lock,
+    .fuse_read = imx_ocotp_fuse_read,
+    .fuse_write = imx_ocotp_fuse_write,
+};
 
 /*
  * The build's crypto backends (platform.md 2.2, crypto.md 2), each behind
@@ -474,6 +509,7 @@ int plat_init(void)
      * the ipg_clk the ROM left: fuse writes (the life cycle, plat_slc) */
     mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);
     imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK, ipg_rate_hz());
+    imx_hab_fuses_init(&hab_fuses);
 
     /*
      * The system counter, which the Arm generic timer counts: TF-A's delays
@@ -589,8 +625,25 @@ int plat_get_boot_source(struct pb_boot_source *src)
 
 int plat_lockdown(void)
 {
-    /* Nothing locked yet: pb doesn't support the 8M's HAB (D-027), and its
-     * CSF leaves SRK revocation locked (F-244) */
+    int rc;
+
+    /*
+     * D-084, as the 6UL: the CSF unlocks SRK revocation for pb's command mode
+     * (pb.csf.template), so it is locked again before the next stage runs,
+     * with field return, in SW_STICKY. SCS holds HAB_JDE, which HAB "must
+     * lock ... before passing control to the OS" (8MQ RM 6.3.5, OCOTP_SCS).
+     * NXP's U-Boot does the same on a closed 8MQ (secure_lockup()). The 8M
+     * family's OCOTP has SW_STICKY and SCS where the 8MQ has them (U-Boot's
+     * struct ocotp_regs). SW_STICKY holds until a reset, SCS's lock until a
+     * POR.
+     */
+    rc = imx_ocotp_lock(OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK, true);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* Last, and only when the locks are set: a lockdown that fails ends in
+     * command mode, where a locked device verifies its token with the CAAM */
     return crypto_stop();
 }
 

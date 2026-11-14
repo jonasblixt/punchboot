@@ -28,8 +28,15 @@ static const uint8_t event0[] = {
     0x00, 0x00, 0x00, 0x92, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
 };
 
+/* The i.MX8MQ's ROM on the pico8ml: a warning, the CAAM's engine failure */
+static const uint8_t event_warning[] = {
+    0xdb, 0x00, 0x24, 0x43, 0x69, 0x30, 0xe1, 0x1d, 0x00, 0x08, 0x00, 0x02,
+};
+
 static uint32_t fake_status = 0x33;
 static size_t fake_events = 1;
+static const uint8_t *fake_event = event0;
+static size_t fake_event_size = sizeof(event0);
 
 static uint32_t fake_report_status(uint32_t *config, uint32_t *state)
 {
@@ -40,11 +47,12 @@ static uint32_t fake_report_status(uint32_t *config, uint32_t *state)
 
 static uint32_t fake_report_event(uint32_t status, uint32_t index, uint8_t *event, size_t *bytes)
 {
-    assert_int_equal(status, 0); /* Any status */
-    if (index >= fake_events || *bytes < sizeof(event0))
+    /* Any status (0), or the events of one: the event's own, its byte 4 */
+    if (index >= fake_events || *bytes < fake_event_size ||
+        (status != 0 && status != fake_event[4]))
         return 0x33;
-    memcpy(event, event0, sizeof(event0));
-    *bytes = sizeof(event0);
+    memcpy(event, fake_event, fake_event_size);
+    *bytes = fake_event_size;
     return 0xf0;
 }
 
@@ -127,13 +135,51 @@ static void test_log_source(void **state)
     assert_memory_equal(text, event_text, strlen(event_text));
 }
 
+/* Whether HAB checked the boot without a failure (imx_hab_no_failure()):
+ * what closing the device or revoking a key waits for */
+static void test_no_failure(void **state)
+{
+    (void)state;
+
+    /* Its status failed, or it has a failure event: an unsigned image */
+    fake_status = 0x33;
+    fake_events = 1;
+    assert_int_equal(imx_hab_no_failure(), -PB_ERR_STATE);
+    fake_status = 0x69;
+    assert_int_equal(imx_hab_no_failure(), -PB_ERR_STATE);
+
+    /* A warning passes: the 8MQ's ROM's CAAM event */
+    fake_event = event_warning;
+    fake_event_size = sizeof(event_warning);
+    assert_int_equal(imx_hab_no_failure(), PB_OK);
+
+    /* No event */
+    fake_status = 0xf0;
+    fake_events = 0;
+    assert_int_equal(imx_hab_no_failure(), PB_OK);
+
+    fake_status = 0x33;
+    fake_events = 1;
+    fake_event = event0;
+    fake_event_size = sizeof(event0);
+}
+
+/* Without the HAB API there is nothing to ask: no answer either way */
+static void test_no_failure_without_rvt(void **state)
+{
+    (void)state;
+    assert_int_equal(imx_hab_no_failure(), -PB_ERR_NOT_FOUND);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_no_failure_without_rvt),
         cmocka_unit_test(test_decode),
         cmocka_unit_test(test_no_events),
         cmocka_unit_test(test_truncated),
         cmocka_unit_test(test_log_source),
+        cmocka_unit_test(test_no_failure),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
