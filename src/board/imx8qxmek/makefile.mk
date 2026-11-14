@@ -1,50 +1,6 @@
-CST_TOOL ?= cst
-IMX8X_MKIMAGE ?= mkimage_imx8
-IMX8X_AHAB_IMAGE ?= mx8qx-ahab-container.img
-IMX8X_SCFW_IMAGE ?= mx8qx-mek-scfw-tcm.bin
-# The signing inputs, from the defconfig unless the command line gives them
-IMX8X_SRK_TABLE ?= $(call unquote,$(CONFIG_IMX8X_SRK_TABLE))
-IMX8X_SIGN_CERT ?= $(call unquote,$(CONFIG_IMX8X_SIGN_CERT))
-IMX8X_KEY_INDEX ?= $(CONFIG_IMX8X_KEY_INDEX)
-IMX8X_KEY_REVOKE_MASK ?= $(CONFIG_IMX8X_KEY_REVOKE_MASK)
-PB_CSF_TEMPLATE = src/plat/imx8x/pb.csf.template
-
-SED = $(shell which sed)
-
 src-y += $(BOARD)/board.c
 src-y += src/board/password.c
 
-.PHONY: imx8x_image imx8x_sign_image
-
-imx8x_image: $(BUILD_DIR)/$(TARGET).bin
-	@echo Using SCFW image: $(shell readlink -f $(IMX8X_SCFW_IMAGE))
-	@echo Using AHAB image: $(shell readlink -f $(IMX8X_AHAB_IMAGE))
-	@echo Using SRK Table: $(shell readlink -f $(IMX8X_SRK_TABLE))
-	@echo Using signing cert: $(shell readlink -f $(IMX8X_SIGN_CERT))
-	@$(IMX8X_MKIMAGE) -commit > $(BUILD_DIR)/head.hash
-	@cat $(BUILD_DIR)/pb.bin $(BUILD_DIR)/head.hash > $(BUILD_DIR)/pb_hash.bin
-	$(Q)$(IMX8X_MKIMAGE) -soc QX -rev B0 \
-				  -e emmc_fast \
-				  -append $(IMX8X_AHAB_IMAGE) \
-				  -c -scfw $(IMX8X_SCFW_IMAGE) \
-				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(CONFIG_PB_ENTRY) \
-				  -out $(BUILD_DIR)/pb.imx
-
-imx8x_sign_image: imx8x_image
-	@cp $(PB_CSF_TEMPLATE) $(BUILD_DIR)/pb.csf
-	@$(SED) -i -e 's#__KEY_INDEX__#$(IMX8X_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf
-	@$(SED) -i -e 's#__KEY_REVOKE_MASK__#$(IMX8X_KEY_REVOKE_MASK)#g' $(BUILD_DIR)/pb.csf
-	@$(SED) -i -e 's#__SRK_TBL__#$(IMX8X_SRK_TABLE)#g' $(BUILD_DIR)/pb.csf
-	@$(SED) -i -e 's#__CSFK_PEM__#$(IMX8X_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
-	@$(SED) -i -e 's#__FILE__#$(BUILD_DIR)/pb.imx#g' $(BUILD_DIR)/pb.csf
-	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/$(TARGET)_signed.imx  > /dev/null
-
-image-$(CONFIG_IMX8X_CREATE_IMX_IMAGE) += imx8x_image
-image-$(CONFIG_IMX8X_SIGN_IMAGE) += imx8x_sign_image
-
-# What `all` names as the build's output, set here and not by a recipe
-ifdef CONFIG_IMX8X_SIGN_IMAGE
-FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET)_signed.imx
-else ifdef CONFIG_IMX8X_CREATE_IMX_IMAGE
-FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).imx
-endif
+# The image stages are the i.MX8X's (src/plat/imx8x/makefile.mk), turned on
+# and given the keys in the defconfig. The board's input is its SCU firmware.
+IMX8X_SCFW_IMAGE ?= mx8qx-mek-scfw-tcm.bin
