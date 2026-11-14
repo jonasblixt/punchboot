@@ -2,6 +2,7 @@
 #define WORD_SIZE   4
 #define DCCMVAC		p15, 0, c7, c10, 1
 #define DCIMVAC		p15, 0, c7, c6, 1
+#define DCCIMVAC	p15, 0, c7, c14, 1
 #define CTR		p15, 0, c0, c0, 1
 
 /* CLIDR and CCSIDR fields for the set/way loops (ARMv7 ARM B4.1.19, B4.1.20) */
@@ -53,6 +54,11 @@ func (arch_invalidate_cache_range)
     /* void arch_flush_cache_range(addr_t start, size_t len); */
 func (arch_clean_cache_range)
 	do_dcache_maintenance_by_mva cmvac, DCCMVAC
+    bx lr
+
+    /* void arch_clean_invalidate_cache_range(uintptr_t start, size_t len); */
+func (arch_clean_invalidate_cache_range)
+	do_dcache_maintenance_by_mva cimvac, DCCIMVAC
     bx lr
 
 func (arch_disable_cache)

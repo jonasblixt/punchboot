@@ -15,7 +15,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-void arch_invalidate_cache_range(uintptr_t start, size_t len);
-void arch_clean_cache_range(uintptr_t start, size_t len);
+/* The D-cache by range, which do nothing here: arch_clean_cache_range() and
+ * the two others */
+#include <pb/arch.h>
 
 #endif // ARCH_HOST_ARCH_H

@@ -24,9 +24,31 @@
 #ifndef INCLUDE_PB_ARCH_H_
 #define INCLUDE_PB_ARCH_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 void arch_init(void);
+
+/**
+ * The D-cache by range. Drivers don't call these: what a device reads or
+ * writes goes through pb/dma.h, which has the rule (drivers.md 4) and is
+ * built on them.
+ *
+ * Each acts on every line that [start, start + len) touches: the start is
+ * rounded down to a line and the end up, by the core's own line size. A line
+ * the range shares with other data is cleaned or invalidated whole, so an
+ * invalidate of such a line discards the neighbour's bytes that were in the
+ * cache only: what is invalidated owns its lines (drivers.md 4.2). Each ends
+ * with the barrier the architecture requires.
+ *
+ *  - clean: what the CPU wrote in the range is in memory
+ *  - invalidate: the cache's copy is dropped, dirty or not, and the next
+ *    read is from memory
+ *  - clean and invalidate: the first, then the second, a line at a time
+ */
+void arch_clean_cache_range(uintptr_t start, size_t len);
+void arch_invalidate_cache_range(uintptr_t start, size_t len);
+void arch_clean_invalidate_cache_range(uintptr_t start, size_t len);
 
 /**
  * Clean the D-cache, then turn it and the MMU (MPU) off and mask
