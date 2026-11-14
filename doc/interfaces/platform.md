@@ -527,8 +527,9 @@ the ROM set up) and the board's DRAM (where images are loaded). Their names say 
 | The ROM's load windows                | Platform              | Where the ROM may load | Linker checks, `pb` size |
 |                                       |                       | pb                     |                          |
 | `PLAT_*_ADDR_SPACE_SIZE`              | Platform              | The translation tables | xlat_tables              |
-| `MAX_XLAT_TABLES`, `MAX_MMAP_REGIONS` | Board, default from   | Their number, with the | xlat_tables              |
-|                                       | the platform          | board's regions (5.2)  |                          |
+| `MAX_XLAT_TABLES`, `MAX_MMAP_REGIONS` | Kconfig: the          | Their number, with the | xlat_tables,             |
+|                                       | platform's default,   | board's regions (5.2)  | `pb_mmu_init()`          |
+|                                       | the board's defconfig |                        |                          |
 | `PB_SECTION_ALIGNMENT`                | Arch                  | Section alignment      | Linker                   |
 
 Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
@@ -565,8 +566,6 @@ platform trains, so nothing before `plat_init()` uses `.no_init`.
 
 ### 5.2 The memory map
 
-**Not yet in the code (F-158)**: the ports copy the same MMU setup.
-
 `pb_mmu_init(plat_mmap)` (`src/mmu.c`) maps four layers. xlat_tables_v2 accepts fully nested
 flat regions, the innermost wins; partial overlaps are refused.
 
@@ -586,11 +585,11 @@ doesn't call that itself. ARMv7-M has an MPU and no `plat_mmap`. Layer 1 also ma
 touches, such as a secure carve-out: pb runs in the Secure state, and the filter (4.3), not pb's
 MMU, protects it from the normal world.
 
-**The board's regions** `[optional]`. **Not yet in the code (F-269).** A board will want hardware
-the platform didn't map (Jonas, D-054): a device on an external bus (a chip select, an FPGA), a
-memory mapped flash, a SoC peripheral outside the buses of layer 2. The board declares it as
-data, `mmap` in `struct board` (`board.md` 2.8), and `pb_mmu_init()` maps it with the rest. The
-platform does nothing for it, and the board needs no patch to the platform:
+**The board's regions** `[optional]`. A board will want hardware the platform didn't map
+(Jonas, D-054): a device on an external bus (a chip select, an FPGA), a memory mapped flash, a
+SoC peripheral outside the buses of layer 2. The board declares it as data, `mmap` in
+`struct board` (`board.md` 2.8), and `pb_mmu_init()` maps it with the rest. The platform does
+nothing for it, and the board needs no patch to the platform:
 
 ```c
 static const struct pb_mmap_region board_mmap[] = {
@@ -681,7 +680,8 @@ Not the platform's to declare:
   serves (`HAVE_IMX_CAAM`, `HAVE_IMX_CI_UDC`), and the driver's option depends on it, so
   menuconfig offers only the drivers the SoC can use. The board's defconfig turns them on. A
   driver that every SoC of the family has depends on `SOC_FAMILY_*` alone.
-- `src/plat/<p>/Kconfig`: the platform's options, among them the image stages' (6.2).
+- `src/plat/<p>/Kconfig`: the platform's options, among them the image stages' (6.2). Where the
+  arch has an MMU, also the default of `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` (5.1, 5.2).
 - `src/plat/<p>/Kconfig.cm`: the choice of command mode's USB port (3.10), shown in the Command
   mode menu.
 

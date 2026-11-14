@@ -334,7 +334,7 @@ Where each port is (2026-11-11).
 | command mode                         |              |                   |            |           |               |
 | `plat_get_status()`                  | yes          | yes               | yes        | yes       | F-248         |
 | `plat_cm_init()`                     | one port     | one port          | one port   | one port  | F-402         |
-| The board's regions in the map (5.2) | no           | no                | no         | n/a       | F-269, F-158  |
+| The board's regions in the map (5.2) | yes          | yes               | yes        | n/a       | F-269         |
 | SoC memory for image data,           | n/a          | partly            | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |
 | The system controller's API through  | n/a          | n/a               | yes        | n/a       |               |
@@ -349,7 +349,7 @@ Where each port is (2026-11-11).
 | EOL as the SoC's own state           | no           | no                | no         | no        | F-263         |
 | Crypto engine and RNG in             | yes          | yes               | yes (no    | yes (Mbed |               |
 | `plat_init()`                        |              |                   | RNG)       | TLS)      |               |
-| MMU from `pb_mmu_init()`             | no           | no                | no         | n/a       | F-158         |
+| MMU from `pb_mmu_init()`             | yes          | yes               | yes        | n/a       | F-158, F-269  |
 | Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
 | Image stages                         | yes          | yes               | yes        | yes       | F-240         |
 | `<p>_plat()` accessor                | yes          | no                | yes        | no        |               |

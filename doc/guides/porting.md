@@ -194,7 +194,7 @@ All optional. jiffy has `status()` and one named command, and none of the others
 | `password_auth()`                     | `board.md` 4.4, `security.md` 4.10      |
 | A named command                       | `command-mode.md` 5.6                   |
 | A task                                | `board.md` 4.5                          |
-| Hardware the platform didn't map      | `board.md` 2.8 (F-269: not in the code) |
+| Hardware the platform didn't map      | `board.md` 2.8                          |
 
 What a board may include and touch: `board.md` 6.
 

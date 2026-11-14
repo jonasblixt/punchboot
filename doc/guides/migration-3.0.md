@@ -34,8 +34,8 @@ neither has the code, another board's or the header's, and the section says whic
 | 16      | The image stages are the platform's                   | `platform.md` 6.2     |
 | 17      | An out-of-tree driver                                 | `drivers.md`          |
 | 18      | An out-of-tree platform                               | D-030, `platform.md`  |
-| 19      | `pb/dma.h`, and not in the code yet: one change that  | D-066, F-247, F-269   |
-|         | changes a board again, and one that is added          |                       |
+| 19      | `pb/dma.h`, the board's `mmap`, and not in the code   | D-066, D-054, F-247   |
+|         | yet: one change that changes a board again            |                       |
 | 20      | Before the ported pb goes to a device in the field    | `board.md` 8          |
 
 ## 1. The board is `const struct board board`
@@ -1107,15 +1107,25 @@ Rests on: D-018, D-064 to D-073, `drivers.md`, `bio.md`, `crypto.md`, `usb.md`.
 - The platform's `link.lds` makes `MEMORY` from the board's Kconfig values (section 15) and
   asserts where pb and its buffers lie. The RT's `MEMORY`, which was its board's, is the
   platform's.
+- **The MMU is set up by the core** (`platform.md` 5.2). Where the arch has one, `plat_init()`
+  calls `pb_mmu_init(plat_mmap)` (`<pb/mmu.h>`) once DRAM works, with the port's list of
+  xlat_tables regions, and returns its error. `pb_mmu_init()` maps the board's DRAM, that list,
+  the board's `mmap` (section 19.3) and pb itself, and turns the MMU on: the port calls neither
+  `mmap_add_region()` for pb or the DRAM nor `enable_mmu_el3()` or `enable_mmu_svc_mon()`. The
+  list maps the SoC's peripheral buses whole, so that a board needs no `mmap` for a SoC
+  peripheral.
+- `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES`, the `-D` flags of the platform's `makefile.mk`, are
+  `CONFIG_MAX_MMAP_REGIONS` and `CONFIG_MAX_XLAT_TABLES`: the port gives their default in its
+  `Kconfig`, a board raises them in its defconfig.
 
 Rests on: D-030, D-053, `platform.md`.
 
-## 19. `pb/dma.h`, and not in the code yet
+## 19. `pb/dma.h`, the board's `mmap`, and not in the code yet
 
-`pb/dma.h` (19.2) came into the code last, and is written as the sections above are. The other
-two are changes that the contracts decided and the code doesn't have yet: 19.1 changes a
-board's files again, 19.3 is new and optional. What each of them will ask is the contract's
-text today; the names can still move with the code.
+`pb/dma.h` (19.2) and the board's `mmap` (19.3, new and optional) came into the code last, and
+are written as the sections above are. 19.1 is a change that the contracts decided and the code
+doesn't have yet, and it changes a board's files again. What it will ask is the contract's text
+today; the names can still move with the code.
 
 ### 19.1 The RoT, the SLC and the crypto engine move to the platform
 
@@ -1215,12 +1225,39 @@ Rests on: D-065, D-066, `drivers.md` 4, `bio.md` 3.1, `usb.md` 2.3.
 
 ### 19.3 The board's `mmap`
 
-**Not yet in the code (F-269)**: `struct board` has no `mmap`.
+2.x had no way for a board to map memory: a board that reached a device the platform didn't map
+patched the platform's `imx_mmap[]`. In 3.0.0 a board that reaches memory the platform didn't
+map (a device on an external bus, a memory mapped flash) lists it as data, `mmap` in
+`struct board`, with `PB_MAP_DEVICE()`, `PB_MAP_MEMORY_RO()` and `PB_MAP_MEMORY_RW()` from
+`<pb/mmu.h>`, ended by `PB_MAP_END`. No board of the tree has one; the example is
+`platform.md` 5.2's:
 
-What `board.md` 2.8 and `platform.md` 5.2 will ask: a board that reaches memory the platform
-didn't map (a device on an external bus, a memory mapped flash) lists it as data, `mmap`, with
-`PB_MAP_DEVICE()`, `PB_MAP_MEMORY_RO()` and `PB_MAP_MEMORY_RW()` from `<pb/mmu.h>`. A board that
-needs no such memory doesn't change.
+```c
+#include <pb/mmu.h>
+
+static const struct pb_mmap_region board_mmap[] = {
+    PB_MAP_DEVICE(0x08000000, 0x00010000),    /* The FPGA on chip select 0 */
+    PB_MAP_MEMORY_RO(0x60000000, 0x01000000), /* The NOR flash's window */
+    PB_MAP_END,
+};
+
+const struct board board = {
+    /* ... */
+    .mmap = board_mmap,
+};
+```
+
+- A region is whole pages (the macro stops the build otherwise) and never executable.
+- It lies outside pb, its buffers, the board's DRAM and every region of the platform's: a
+  region that overlaps one, or another of the board's, fails `plat_init()` with a log line that
+  names it, and pb resets (`board.md` 2.8). A board that needs other attributes inside a region
+  of the platform's has found an error in the platform.
+- A board with many regions raises `CONFIG_MAX_MMAP_REGIONS` and `CONFIG_MAX_XLAT_TABLES` in its
+  defconfig (section 18).
+- On the RT1060 (ARMv7-M, no MMU) `mmap` is accepted and not read.
+- A board that needs no such memory doesn't change.
+
+Rests on: D-054, `board.md` 2.8, `platform.md` 5.2.
 
 ## 20. Before the ported pb goes to a device in the field
 

@@ -297,8 +297,7 @@ Set up last, and also after a failed step (2.1).
 
 ### 2.8 Data : mmap [optional]
 
-**Not yet in the code (F-269).** Added after the review (Jonas, D-054), and reviewed with
-`platform.md`.
+Added after the review (Jonas, D-054), and reviewed with `platform.md`.
 
 The memory the board reaches and the platform didn't map: a device on an external bus (a chip
 select, an FPGA), a memory mapped flash, a SoC peripheral outside the buses the platform maps.
