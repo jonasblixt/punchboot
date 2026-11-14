@@ -575,16 +575,17 @@ static void test_erase_busy_poll_fails(void **state)
 {
     (void)state;
 
+    /* The poll before the first command (F-420): nothing is erased */
     nor.fail_seq = SEQ_READ_STATUS;
     assert_int_equal(bio_erase(dev, 4, 2), -PB_ERR_IO);
-    assert_int_equal(nor.erases, 1);
+    assert_int_equal(nor.erases, 0);
     nor.busy = 0;
 
     /* An erase that doesn't end */
     nor.fail_seq = -1;
     nor.busy_after = 1000000000;
     assert_int_equal(bio_erase(dev, 8, 2), -PB_ERR_TIMEOUT);
-    assert_int_equal(nor.erases, 2);
+    assert_int_equal(nor.erases, 1);
     nor.busy = 0;
 }
 
@@ -827,6 +828,44 @@ static void test_watermark_fields(void **state)
     assert_int_equal(fake_regs_get(BASE + IPTXFCR) & 0x3d, 0);
 }
 
+/* F-420: a write and an erase wait for the flash before their first
+ * command, as a read does. After an operation that timed out the flash is
+ * still busy: the write enable was ignored, and the call returned OK having
+ * done nothing */
+static void test_waits_for_the_flash_first(void **state)
+{
+    (void)state;
+
+    /* An erase that timed out */
+    nor.busy_after = 1000000000;
+    assert_int_equal(bio_erase(dev, 2, 1), -PB_ERR_TIMEOUT);
+    nor.busy = 20;
+    nor.busy_after = 2;
+
+    assert_int_equal(bio_erase(dev, 3, 2), PB_OK);
+    assert_int_equal(nor.ignored, 0);
+    assert_mem_is(3 * BLOCK, 0xff, 2 * BLOCK);
+
+    /* A page program that timed out */
+    nor.busy_after = 1000000000;
+    fill(out, PAGE, 6);
+    assert_int_equal(bio_write(dev, 4, PAGE, out), -PB_ERR_TIMEOUT);
+    nor.busy = 20;
+    nor.busy_after = 2;
+
+    fill(out, BLOCK, 7);
+    assert_int_equal(bio_write(dev, 3, BLOCK, out), PB_OK);
+    assert_int_equal(nor.ignored, 0);
+    assert_mem(3 * BLOCK, out, BLOCK);
+
+    /* A flash that stays busy: nothing is sent to it */
+    nor.stuck_busy = true;
+    assert_int_equal(bio_erase(dev, 4, 1), -PB_ERR_TIMEOUT);
+    assert_int_equal(bio_write(dev, 4, PAGE, out), -PB_ERR_TIMEOUT);
+    nor.stuck_busy = false;
+    assert_int_equal(nor.ignored, 0);
+}
+
 /* The codes of drivers.md 3: a port the controller doesn't have is the
  * caller's argument */
 static void test_port_out_of_range(void **state)
@@ -857,6 +896,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_port_out_of_range, setup, teardown),
         cmocka_unit_test_setup_teardown(test_error_while_moving_data, setup, teardown),
         cmocka_unit_test_setup_teardown(test_watermark_fields, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_waits_for_the_flash_first, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

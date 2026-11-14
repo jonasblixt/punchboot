@@ -448,6 +448,12 @@ static int imx_flexspi_write(bio_dev_t dev, lba_t lba, size_t length, const void
 
     LOG_DBG("Write buffer to flash at address: 0x%x, size: 0x%zx", address, length);
 
+    /* A flash still busy ignores the write enable: bounded as a read's */
+    rc = imx_flexspi_busy_wait(cfg_nor, 100, cfg_nor->erase_cmds[0].erase_time_ms);
+
+    if (rc != PB_OK)
+        return rc;
+
     if ((bytes_to_next_page_boundry < cfg_nor->page_size) &&
         (length > bytes_to_next_page_boundry)) {
         rc = imx_flexspi_pp(cfg_nor, address, buffer, bytes_to_next_page_boundry);
@@ -525,6 +531,12 @@ static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
             "0x%08x, %zu bytes, isn't whole erase units of %zu", addr, bytes_to_erase, smallest);
         return -PB_ERR_PARAM;
     }
+
+    /* A flash still busy ignores the write enable: bounded as a read's */
+    rc = imx_flexspi_busy_wait(cfg_nor, 100, cfg_nor->erase_cmds[0].erase_time_ms);
+
+    if (rc != PB_OK)
+        return rc;
 
     while (bytes_to_erase) {
         cmd = imx_flexspi_erase_cmd(cfg_nor, addr, bytes_to_erase);
