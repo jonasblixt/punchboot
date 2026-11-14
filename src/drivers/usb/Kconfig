@@ -13,6 +13,8 @@ config DRIVER_IMX_CI_UDC
     bool "i.MX ChipIdea UDC controller"
     depends on SOC_FAMILY_IMX
     depends on DRIVER_USB_DEVICE
+    # Command mode's transport: its descriptors are sized by CM_BUF_SIZE_KiB
+    depends on CM
     default y
 
 config DRIVER_IMX_USBDCD

@@ -26,6 +26,7 @@
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/usbd.h>
 #include <inttypes.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <stdio.h>
@@ -37,6 +38,12 @@
 #define IMX_CI_UDC_NO_OF_EPS         8
 #define IMX_CI_UDC_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KiB / 20))
 #define IMX_CI_UDC_SZ_64B            0x40
+
+/* A status stage the host hasn't taken in this time it has left: USB 2.0
+ * 9.2.6.4 gives the device 500 ms for each packet of a data stage and 50 ms
+ * for the status stage after it, and the host polls for that stage at once.
+ * The DWC3's driver waits as long (DWC3_EP0_TIMEOUT_us) */
+#define IMX_CI_UDC_EP0_TIMEOUT_us    500000
 
 #define EP_IS_IN(ep)                 ((ep) & 1)
 #define EP_USB_NUMBER(ep)            ((ep) >> 1)
@@ -56,6 +63,11 @@ static size_t xfer_length;
 static struct imx_ci_udc_transfer_head *xfer_head;
 static usb_ep_t xfer_ep;
 static uintptr_t imx_ci_udc_base;
+/* The host configured the device, and reset the bus after that: every bulk
+ * transfer fails until the device is configured or started again
+ * (usb.md 2.4, 4.3) */
+static bool configured;
+static bool bus_reset_seen;
 
 /* The bit of an endpoint in ENDPTPRIME, ENDPTFLUSH, ENDPTSTAT and ENDPTCOMPLETE */
 static uint32_t ep_bit(usb_ep_t ep)
@@ -79,6 +91,8 @@ static void imx_ci_udc_reset_queues(void)
     xfer_length = 0;
     xfer_ep = 0;
     xfer_head = NULL;
+    configured = false;
+    bus_reset_seen = false;
 }
 
 static void imx_ci_udc_reset(void)
@@ -131,6 +145,11 @@ static int imx_ci_udc_irq_process(void)
         mmio_write_32(imx_ci_udc_base + CI_DEVICEADDR, 0);
 
         LOG_DBG("Bus reset");
+
+        /* Before the device is configured a reset is the host's
+         * enumeration and no error (usb.md 2.2) */
+        if (configured)
+            bus_reset_seen = true;
     }
 
     if (sts & USBSTS_UEI) {
@@ -152,11 +171,17 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     uint32_t epreg = 0;
     size_t bytes_to_tx = length;
     size_t align_length = 0;
+    size_t align_offset = 0;
     uintptr_t bfr = (uintptr_t)bfr_;
     uintptr_t buf_ptr = bfr;
 
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
+
+    /* A bus reset while no transfer ran is the error of the next one.
+     * Endpoint 0 goes on: the host enumerates */
+    if (bus_reset_seen && ep >= USB_EP1_OUT)
+        return -PB_ERR_IO;
 
     if (bytes_to_tx == 0) {
         dtd->next = DTD_NEXT_T;
@@ -169,33 +194,46 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     if ((length > 0) && (bfr & DTD_PAGE_OFFSET_MASK)) {
         align_length = (DTD_PAGE_SIZE - (bfr & DTD_PAGE_OFFSET_MASK)) & DTD_PAGE_OFFSET_MASK;
         align_length = (length > DTD_PAGE_SIZE) ? align_length : length;
+        /* The controller fills page 0 from its offset up to the page's end
+         * before it goes on to page 1 (RM 54.4.5, Table 54-63). A head that
+         * more pages follow therefore ends at the bounce buffer's end */
+        align_offset = (length > DTD_PAGE_SIZE) ? DTD_PAGE_SIZE - align_length : 0;
         /* LOG_DBG("Aligning buffer <%p> (%zu bytes)", (void *) bfr, align_length); */
         /* If this is an IN transfer we need to fill the align buffer */
         if (EP_IS_IN(ep)) {
-            memcpy(align_buffer, (void *)bfr, align_length);
+            memcpy(align_buffer + align_offset, (void *)bfr, align_length);
         }
-        arch_clean_cache_range((uintptr_t)align_buffer, align_length);
+        arch_clean_cache_range((uintptr_t)align_buffer + align_offset, align_length);
     }
 
     while (bytes_to_tx) {
+        /* The descriptor that starts with the bounced head holds what is
+         * left of page 0 and four pages */
+        size_t dtd_max_bytes = DTD_MAX_BYTES - (align_length ? align_offset : 0);
+
         dtd->next = DTD_NEXT_T;
         dtd->token = DTD_TOKEN_STATUS_ACTIVE;
 
-        if (bytes_to_tx > DTD_MAX_BYTES) {
-            dtd->token |= DTD_TOKEN_TOTAL_BYTES(DTD_MAX_BYTES);
+        if (bytes_to_tx > dtd_max_bytes) {
+            dtd->token |= DTD_TOKEN_TOTAL_BYTES(dtd_max_bytes);
         } else {
             dtd->token |= DTD_TOKEN_TOTAL_BYTES(bytes_to_tx);
         }
 
         for (int n = 0; n < DTD_NO_OF_PAGES; n++) {
+            /* Only the bounced head starts inside its page */
+            uint32_t page_offset = 0;
+
             dtd->page[n] = (uint32_t)buf_ptr;
 
             if (align_length) {
                 /* If we need to align the input buffer, it will be at most
-                 * one 4k page */
-                dtd->page[n] = (uint32_t)(uintptr_t)align_buffer;
+                 * one 4k page, and the first one only */
+                page_offset = (uint32_t)align_offset;
+                dtd->page[n] = (uint32_t)(uintptr_t)align_buffer + page_offset;
                 bytes_to_tx -= align_length;
                 buf_ptr += align_length;
+                align_length = 0;
             } else if (bytes_to_tx >= DTD_PAGE_SIZE) {
                 buf_ptr += DTD_PAGE_SIZE;
                 bytes_to_tx -= DTD_PAGE_SIZE;
@@ -204,7 +242,7 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
                 bytes_to_tx = 0;
             }
 
-            if (dtd->page[n] & DTD_PAGE_OFFSET_MASK)
+            if ((dtd->page[n] & DTD_PAGE_OFFSET_MASK) != page_offset)
                 return -PB_ERR_ALIGN;
 
             if (bytes_to_tx == 0) {
@@ -262,6 +300,10 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     if (rc != PB_OK)
         return rc;
 
+    /* A bus reset ends a bulk transfer: lost */
+    if (bus_reset_seen && ep >= USB_EP1_OUT)
+        return -PB_ERR_IO;
+
     if (xfer_head == NULL)
         return -PB_ERR;
 
@@ -272,25 +314,29 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     if (xfer_head->token & DTD_TOKEN_STATUS_ACTIVE)
         return -PB_ERR_AGAIN;
 
+    if (!EP_IS_IN(ep) && xfer_bfr && xfer_length) {
+        /* Output from host, invalidate cache. Before the copy below, which
+         * is in the cache only: an invalidate after it would drop it
+         * (drivers.md 4.2) */
+        arch_invalidate_cache_range(xfer_bfr, xfer_length);
+    }
+
     /* Check for un-aligned buffers */
     if (xfer_length && (xfer_bfr & DTD_PAGE_OFFSET_MASK)) {
         size_t align_length = (DTD_PAGE_SIZE - (xfer_bfr & DTD_PAGE_OFFSET_MASK)) &
                               DTD_PAGE_OFFSET_MASK;
         align_length = (xfer_length > DTD_PAGE_SIZE) ? align_length : xfer_length;
+        /* As in imx_ci_udc_xfer_start() */
+        size_t align_offset = (xfer_length > DTD_PAGE_SIZE) ? DTD_PAGE_SIZE - align_length : 0;
 
         /* If this was an out transfer we should copy data from the
          * alignment buffer */
         if (!EP_IS_IN(ep)) {
             /* LOG_DBG("Align: copying %zu bytes to %p", align_length,
                     (void *) xfer_bfr); */
-            arch_invalidate_cache_range((uintptr_t)align_buffer, align_length);
-            memcpy((void *)xfer_bfr, align_buffer, align_length);
+            arch_invalidate_cache_range((uintptr_t)align_buffer + align_offset, align_length);
+            memcpy((void *)xfer_bfr, align_buffer + align_offset, align_length);
         }
-    }
-
-    if (!EP_IS_IN(ep) && xfer_bfr && xfer_length) {
-        /* Output from host, invalidate cache*/
-        arch_invalidate_cache_range(xfer_bfr, xfer_length);
     }
 
     return PB_OK;
@@ -371,6 +417,9 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
         mmio_write_32(imx_ci_udc_base + epctrl, ep_reg);
         imx_ci_udc_config_ep(ep, max_pkt_sz, 0);
     }
+
+    configured = true;
+    bus_reset_seen = false;
 
     return PB_OK;
 }
@@ -455,8 +504,10 @@ static int imx_ci_udc_stop(void)
     return PB_OK;
 }
 
+/* The status stage of a control transfer, bounded (usb.md 4.4, drivers.md 3) */
 static int imx_ci_udc_xfer_zlp(usb_ep_t ep)
 {
+    struct pb_timeout to;
     int rc;
 
     rc = imx_ci_udc_xfer_start(ep, 0, 0);
@@ -464,11 +515,21 @@ static int imx_ci_udc_xfer_zlp(usb_ep_t ep)
     if (rc != PB_OK)
         return rc;
 
-    do {
-        rc = imx_ci_udc_xfer_complete(ep);
-    } while (rc == -PB_ERR_AGAIN);
+    pb_timeout_init_us(&to, IMX_CI_UDC_EP0_TIMEOUT_us);
 
-    return rc;
+    for (;;) {
+        rc = imx_ci_udc_xfer_complete(ep);
+
+        if (rc != -PB_ERR_AGAIN)
+            return rc;
+
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("EP0 status stage timeout");
+            /* Given up: nothing of it completes later (drivers.md 3) */
+            imx_ci_udc_flush_ep(ep);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 }
 
 int imx_ci_udc_init(uintptr_t base)
