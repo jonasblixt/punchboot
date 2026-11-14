@@ -14,6 +14,7 @@
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imxrt/imxrt.h>
+#include <stdio.h>
 #include <string.h>
 #include <uuid.h>
 
@@ -121,7 +122,6 @@ int plat_init(void)
 
     plat.speed_grade = fuse_read_helper(
         IMXRT_FUSE_SPEED_GRADE_WORD, IMXRT_FUSE_SPEED_GRADE_SHIFT, IMXRT_FUSE_SPEED_GRADE_MASK, 1);
-    LOG_INFO("Speed grade: %u", plat.speed_grade);
 
     /* Configure ARM Core clock */
     // Use PLL2 for AHB Root while we reconfigure the ARM PLL.
@@ -179,7 +179,6 @@ int plat_init(void)
     plat.per_root_clk_MHz = plat.ipg_root_clk_MHz / per_podf;
 
     LOG_INFO("PLL1 clock = %d MHz", pll1_clk);
-    LOG_INFO("AHB root clock = %d MHz", plat.ahb_root_clk_MHz);
     LOG_INFO("IPG root clock = %d MHz", plat.ipg_root_clk_MHz);
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
@@ -319,5 +318,45 @@ int plat_lockdown(void)
 {
     /* Nothing yet: pb's image isn't HAB signed here, no CSF unlocks
      * revocation; the OCOTP's locks are unchecked (F-244) */
+    return PB_OK;
+}
+
+/* The core runs at AHB_CLK_ROOT (RM 14.5, cm7_mxrt_main_clk): PLL1 =
+ * 24 MHz * DIV_SELECT / 2, then ARM_PODF and AHB_PODF, as plat_init() set
+ * them. pb sets up no SEMC: it runs from the OCRAM (D-077) */
+int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size)
+{
+    static char rev[8];
+    uint32_t digprog = mmio_read_32(IMXRT_USB_ANALOG_DIGPROG);
+    uint32_t div_select =
+        (mmio_read_32(IMXRT_CCM_ANALOG_PLL_ARM) & ANALOG_PLL_ARM_DIV_SELECT_MASK) >>
+        ANALOG_PLL_ARM_DIV_SELECT_SHIFT;
+    uint32_t arm_podf =
+        ((mmio_read_32(IMXRT_CCM_CACRR) & CACRR_ARM_PODF_MASK) >> CACRR_ARM_PODF_SHIFT) + 1;
+    uint32_t ahb_podf =
+        ((mmio_read_32(IMXRT_CCM_CBCDR) & CBCDR_AHB_PODF_MASK) >> CBCDR_AHB_PODF_SHIFT) + 1;
+    char line[32];
+    size_t len;
+
+    if (extra_size == 0)
+        return -PB_ERR_BUF_TOO_SMALL;
+    extra[0] = '\0';
+
+    /* The RM has the RT1060 alone; nothing tells the 1061/1062/1064 apart */
+    info->soc = "i.MX RT1060";
+    (void)snprintf(rev,
+                   sizeof(rev),
+                   "%u.%u",
+                   (unsigned int)((digprog >> 8) & 0xff) + 1,
+                   (unsigned int)(digprog & 0xff));
+    info->rev = rev;
+    /* At most 24 MHz * 127: 32 bits hold it */
+    info->cpu_hz = 24000000u * div_select / 2 / arm_podf / ahb_podf;
+    info->mem_hz = 0;
+
+    len = (size_t)snprintf(line, sizeof(line), "Speed grade %u\n", (unsigned int)plat.speed_grade);
+    if (len < extra_size)
+        memcpy(extra, line, len + 1);
+
     return PB_OK;
 }
