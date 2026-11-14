@@ -33,6 +33,7 @@ static struct usb_setup_packet setup;
 static bool setup_pending;
 static bool in_control; /* A SETUP was taken and its status stage isn't done */
 static int next_start_rc;
+static int next_poll_rc;
 
 /* What the host sent on bulk OUT and no transfer took yet */
 static uint8_t out_fifo[64 * 1024];
@@ -186,6 +187,13 @@ static void hal_xfer_cancel(usb_ep_t ep)
 
 static int hal_poll_setup_pkt(struct usb_setup_packet *pkt)
 {
+    int rc = next_poll_rc;
+
+    next_poll_rc = PB_OK;
+
+    if (rc != PB_OK)
+        return rc;
+
     if (in_control) {
         /* No status stage: the host waits out its timeout, or gets a stall */
         state.unanswered++;
@@ -257,6 +265,7 @@ void usb_host_reset(const struct usb_host_config *cfg)
     memset(&state, 0, sizeof(state));
     memset(&reply, 0, sizeof(reply));
     next_start_rc = PB_OK;
+    next_poll_rc = PB_OK;
     controller_reset();
 
     if (cfg != NULL)
@@ -276,6 +285,11 @@ const struct usb_host_state *usb_host_state(void)
 void usb_host_fail_next_start(int rc)
 {
     next_start_rc = rc;
+}
+
+void usb_host_fail_next_poll(int rc)
+{
+    next_poll_rc = rc;
 }
 
 void usb_host_request(uint8_t request_type,

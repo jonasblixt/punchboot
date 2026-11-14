@@ -471,7 +471,14 @@ static int usbd_xfer_poll(void)
     int rc;
     struct usb_setup_packet pkt;
 
-    if (hal_ops->poll_setup_pkt(&pkt) == PB_OK) {
+    rc = hal_ops->poll_setup_pkt(&pkt);
+
+    /* An error is a bus reset or an unplug of the device that was
+     * configured, or a controller that failed: lost (usb.md 2.4, 4.4) */
+    if (rc != PB_OK && rc != -PB_ERR_AGAIN)
+        return rc;
+
+    if (rc == PB_OK) {
         /* A host that sets an address or a configuration inside a session
          * enumerates the device again: it was plugged in again or the bus
          * was reset, whether the controller reported that or not, or the

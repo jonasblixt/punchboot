@@ -780,6 +780,41 @@ static void test_replug_between_transfers_is_lost(void **state)
     assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
 }
 
+/* usb.md 4.4, 2.4: an error of poll_setup_pkt in a session is a bus reset,
+ * an unplug or a controller that failed: lost, also while the transfer
+ * itself would go on (F-422: it was dropped and the transfer polled) */
+static void test_setup_poll_error_is_lost(void **state)
+{
+    (void)state;
+    start(NULL);
+    enumerate();
+
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+
+    usb_host_fail_next_poll(-PB_ERR_IO);
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_IO);
+
+    /* Nothing is configured after it (usb.md 3.2) */
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 64);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+
+    /* The same on a controller with one transfer for all endpoints */
+    start(&one_xfer);
+    enumerate();
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+    usb_host_fail_next_poll(-PB_ERR_TIMEOUT);
+    assert_int_equal(cm_transport_complete(), -PB_ERR_TIMEOUT);
+    assert_int_equal(usb_host_state()->cancel_calls, 0);
+
+    /* Before the device is configured it is the controller's failure, as
+     * it was (usb.md 2.2) */
+    start(NULL);
+    usb_host_fail_next_poll(-PB_ERR_IO);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_IO);
+}
+
 /* usb.md 2.3: the controller's refusal of a transfer is the transport's */
 static void test_start_error(void **state)
 {
@@ -848,6 +883,7 @@ int main(void)
         cmocka_unit_test(test_replug_in_a_session_is_lost),
         cmocka_unit_test(test_set_configuration_in_a_session_is_lost),
         cmocka_unit_test(test_replug_between_transfers_is_lost),
+        cmocka_unit_test(test_setup_poll_error_is_lost),
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
         cmocka_unit_test(test_unknown_string),
