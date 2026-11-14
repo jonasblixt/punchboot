@@ -733,14 +733,15 @@ pb_plat_test(test_plat_imx6ul_no_wdog
 pb_plat_test(test_plat_imx8m
     SOURCES
         fakes/xlat.c
+        ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx8m/plat.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
         CONFIG_PLAT_IMX8MP=1 CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
-        CONFIG_DRIVERS_IMX_CAAM=1
+        CONFIG_DRIVERS_IMX_CAAM=1 CONFIG_LIB_XLAT_TBLS_ARMV8=1
         IMX8M_OCRAM_SIZE=0x90000 IMX8M_ROM_SIZE=0x3f000
-        BOARD_RAM_BASE=0x40000000 BOARD_RAM_END=0x80000000
+        BOARD_RAM_BASE=0x40000000 BOARD_RAM_END=0x80000000 MAX_MMAP_REGIONS=32
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/fakes/armv8a
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
