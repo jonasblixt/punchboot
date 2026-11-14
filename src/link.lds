@@ -24,6 +24,14 @@ SECTIONS
         PROVIDE (_code_end = .);
     } > ram
 
+    /* The ARMv7-M's entry and exception handlers (arch/armv7m/entry.c), which
+     * the vectors point to. A section of the script's, between _pb_start and
+     * _pb_end: as an orphan it was where ld chose to put it */
+    .vector_handlers :
+    {
+        *(.vector_handlers .vector_handlers.*)
+    } > ram
+
     .data :
     {
         . = ALIGN(PB_SECTION_ALIGNMENT);

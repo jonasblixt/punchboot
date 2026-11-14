@@ -239,6 +239,10 @@ REGIONS = {
     },
 }
 
+# The ARMv7-M's entry and exception handlers are in a section the script
+# places, with content, not in an orphan that ld puts where it sees fit (F-209)
+SCRIPT_SECTION = ".vector_handlers"
+
 # (board, the values that are changed, the regions they give): other places
 # the checks allow. The link fails when pb or its buffers don't fit there,
 # with the linker's "region ... overflowed", but not with a message of the
@@ -358,6 +362,20 @@ class Links:
             regions[fields[0]] = (int(fields[1], 16), int(fields[2], 16))
         return regions
 
+    def check_section(self, build: str, name: str) -> str:
+        """Check that the section has content and is one the link script places."""
+        lines = (self.work / build / "pb.map").read_text().splitlines()
+        # The output section's line, with its address and size after the name
+        # or on the next line; the script's pattern follows only when the
+        # script placed it
+        at = max(i for i, line in enumerate(lines) if line.startswith(name))
+        size = int((lines[at].split()[1:] or lines[at + 1].split())[1], 16)
+        if size and any(line.strip().startswith(f"*({name}") for line in lines[at : at + 3]):
+            return f"ok: {build}: {name} is a section of the link script's, {size} bytes"
+        return f"FAILED: {build}: {name} is an orphan section or empty:\n" + "\n".join(
+            lines[at : at + 3]
+        )
+
     def check_links(self, build: str, what: str) -> str:
         """Check that the build links with its defconfig, with the board's regions."""
         result = self.make(build, {})
@@ -400,6 +418,8 @@ class Links:
         report = []
         for build in (board, f"{board}-fh") if board in FH_REGION else (board,):
             report.append(self.check_links(build, "its defconfig links"))
+            if board == "imxrt1060evk":
+                report.append(self.check_section(build, SCRIPT_SECTION))
             report += [self.check_refused(*case) for case in CASES if case[0] == build]
             report += [self.check_allowed(*case) for case in ALLOWED if case[0] == build]
             report.append(self.check_links(build, "and its defconfig links again"))
