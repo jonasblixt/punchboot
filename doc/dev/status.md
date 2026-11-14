@@ -43,8 +43,8 @@ bump is for the porting API. Each item's history is in `log/`.
    - The bench, in this order: the DMA rule (F-282) and USB on all four, the preconditions
      (the TrustZone filter), F-247 and the CAAM's stop, the 8MP EVK through TF-A. All four
      run `246bd897` and reach command mode with the preconditions met; boot time measured
-     (log), jiffy and the 8MP EVK boot Linux. F-434 fixed (`af6e7060`): left
-     the MEK's boot time to the login.
+     (log), jiffy and the 8MP EVK boot Linux. F-434 fixed (`af6e7060`); the MEK
+     to init 1069 ms (log).
    - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
