@@ -20,6 +20,20 @@ src-$(CONFIG_PLAT_IMX8MQ) += src/plat/imx8m/ddr_imx8mq.c
 src-$(CONFIG_PLAT_IMX8MP) += src/plat/imx8m/plat_imx8mp.c
 src-$(CONFIG_PLAT_IMX8MP) += src/plat/imx8m/ddr_imx8mp.c
 
+# NXP's LPDDR4 PHY training firmware (imx8m-ddr.md), linked in under these
+# names: ddr.c uses the symbols they give. It isn't in the tree (NXP's EULA).
+# The board's makefile.mk, read before this one, or the command line may name
+# other files; scripts/ci/build-firmware.sh gives them from IMX8M_FW_DIR.
+IMX8M_UMCTL_TRAIN_1D_D ?= lpddr4_pmu_train_1d_dmem.bin
+IMX8M_UMCTL_TRAIN_1D_I ?= lpddr4_pmu_train_1d_imem.bin
+IMX8M_UMCTL_TRAIN_2D_D ?= lpddr4_pmu_train_2d_dmem.bin
+IMX8M_UMCTL_TRAIN_2D_I ?= lpddr4_pmu_train_2d_imem.bin
+
+blobs-y += $(IMX8M_UMCTL_TRAIN_1D_D) \
+           $(IMX8M_UMCTL_TRAIN_1D_I) \
+           $(IMX8M_UMCTL_TRAIN_2D_D) \
+           $(IMX8M_UMCTL_TRAIN_2D_I)
+
 # IMX8M_LOAD_BASE, IMX8M_LOAD_END: the ROM's load window, the on-chip RAM pb
 # is loaded to and runs from. link.lds gives pb the window from the board's
 # PB_ENTRY to its end (platform.md 5.1). IMX8M_OCRAM_SIZE: the OCRAM, to map

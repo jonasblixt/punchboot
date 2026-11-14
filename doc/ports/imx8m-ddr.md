@@ -33,6 +33,8 @@ its DRAM trains and passes a write/read test (2026-10-28, see "i.MX8M Plus EVK")
 
 The training firmware (`lpddr4_pmu_train_{1d,2d}_{imem,dmem}.bin`) comes from NXP under its own
 EULA and is not in the repository. The firmware build needs it (F-051); placeholder files do for a compile check (see "Testing").
+The platform's `makefile.mk` links it in for every i.MX8M board, `IMX8M_UMCTL_TRAIN_{1D,2D}_{I,D}`
+the files, the names above by default; a board or the make command line may name others.
 
 ## The IP, and how it compares to AMD/Xilinx
 

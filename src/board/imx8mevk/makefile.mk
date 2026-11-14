@@ -9,15 +9,7 @@ PB_ENTRY        = 0x7e1000
 BOARD_DRAM_BASE = 0x40000000
 BOARD_DRAM_SIZE = 0x80000000
 
-IMX8M_UMCTL_TRAIN_1D_D ?= lpddr4_pmu_train_1d_dmem.bin
-IMX8M_UMCTL_TRAIN_1D_I ?= lpddr4_pmu_train_1d_imem.bin
-IMX8M_UMCTL_TRAIN_2D_D ?= lpddr4_pmu_train_2d_dmem.bin
-IMX8M_UMCTL_TRAIN_2D_I ?= lpddr4_pmu_train_2d_imem.bin
-
-blobs-y  = $(IMX8M_UMCTL_TRAIN_1D_D) \
-		   $(IMX8M_UMCTL_TRAIN_1D_I)\
-		   $(IMX8M_UMCTL_TRAIN_2D_D) \
-		   $(IMX8M_UMCTL_TRAIN_2D_I)
+# The LPDDR4 training firmware is the platform's (src/plat/imx8m/makefile.mk)
 
 # The image stages are the i.MX8M's (src/plat/imx8m/makefile.mk), turned on
 # and given the keys in the defconfig
