@@ -125,6 +125,8 @@ bool emmc_model_powered(void);
 unsigned int emmc_model_cmd_count(uint8_t idx);
 /* The bus clock at the first command idx since emmc_model_init(), 0 if none */
 unsigned int emmc_model_cmd_first_clk_hz(uint8_t idx);
+/* The bus clock at the last CMD6 that wrote EXT_CSD [index], 0 if none */
+unsigned int emmc_model_switch_clk_hz(uint8_t index);
 /* Number of data blocks moved since emmc_model_init() */
 unsigned int emmc_model_blocks_read(void);
 unsigned int emmc_model_blocks_written(void);

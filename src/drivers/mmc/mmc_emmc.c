@@ -426,11 +426,39 @@ static int hs200_tune(struct mmc_device *dev)
 }
 
 /*
+ * Back from HS200 to high speed when the tuning found no tap: the board's
+ * tap and 52 MHz first, then HS_TIMING 1 and the status. The tap the sweep
+ * ended on failed, and so did the board's, so at 200 MHz the CMD6 and its
+ * response would be sampled where nothing works. HS200 timing holds at any
+ * clock up to 200 MHz (JESD84-B51 6.6.2.2), and Linux's mmc_select_hs400()
+ * lowers the clock before the same switch. Only after a failed tuning: the
+ * success paths keep their order
+ */
+static int hs200_fallback(struct mmc_device *dev)
+{
+    int rc;
+
+    dev->hal->set_delay_tap(dev->hal->priv, dev->hal->delay_tap_default);
+
+    rc = mmc_set_bus_clock(dev, MHz(52));
+    if (rc == PB_OK)
+        rc = mmc_send_cmd(dev,
+                          MMC_CMD_SWITCH,
+                          EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_HS_TIMING) |
+                              EXTCSD_VALUE(EXT_CSD_TIMING_HS) | EXTCSD_CMD_SET_NORMAL,
+                          MMC_RSP_R1b,
+                          NULL);
+    if (rc == PB_OK)
+        rc = mmc_wait_state(dev, MMC_STATE_TRAN, dev->generic_cmd6_time_ms);
+    return rc;
+}
+
+/*
  * HS400 without Enhanced Strobe is selected from HS200 after tuning
  * (JESD84-B51 6.6.2.3, steps 3 to 6): 8 bit SDR, HS_TIMING 2, 200 MHz and
  * CMD21, then HS_TIMING 1 at 52 MHz, from where HS400 is selected.
  * -PB_ERR_NOT_FOUND when no tap works: the device is left in high speed with
- * the board's tap, as for HS200
+ * the board's tap, as for HS200 (hs200_fallback())
  */
 static int hs400_tune(struct mmc_device *dev)
 {
@@ -452,10 +480,12 @@ static int hs400_tune(struct mmc_device *dev)
         return rc;
 
     tune_rc = hs200_tune(dev);
-    if (tune_rc == -PB_ERR_NOT_FOUND)
-        dev->hal->set_delay_tap(dev->hal->priv, dev->hal->delay_tap_default);
-    else if (tune_rc != PB_OK)
+    if (tune_rc == -PB_ERR_NOT_FOUND) {
+        rc = hs200_fallback(dev);
+        return (rc != PB_OK) ? rc : tune_rc;
+    } else if (tune_rc != PB_OK) {
         return tune_rc;
+    }
 
     /* CMD6 in HS200, the clock down, then the status (JESD84-B51 6.6.2.3) */
     rc = mmc_send_cmd(dev,
@@ -557,18 +587,7 @@ static int mmc_select_bus_mode(struct mmc_device *dev)
         if (rc == -PB_ERR_NOT_FOUND) {
             /* Boot slower rather than not at all: high speed needs no tuning */
             LOG_WARN("HS200 tuning failed, using high speed (52 MHz)");
-            dev->hal->set_delay_tap(dev->hal->priv, dev->hal->delay_tap_default);
-            /* CMD6 in HS200, the clock down, then the status (JESD84-B51 6.6.2.3) */
-            rc = mmc_send_cmd(dev,
-                              MMC_CMD_SWITCH,
-                              EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_HS_TIMING) |
-                                  EXTCSD_VALUE(EXT_CSD_TIMING_HS) | EXTCSD_CMD_SET_NORMAL,
-                              MMC_RSP_R1b,
-                              NULL);
-            if (rc == PB_OK)
-                rc = mmc_set_bus_clock(dev, MHz(52));
-            if (rc == PB_OK)
-                rc = mmc_wait_state(dev, MMC_STATE_TRAN, dev->generic_cmd6_time_ms);
+            rc = hs200_fallback(dev);
         }
         if (rc != 0)
             return rc;
@@ -678,6 +697,15 @@ int mmc_emmc_setup(struct mmc_device *dev)
     mmc_cmd_resp_t resp_data;
 
     LOG_DBG("eMMC init");
+
+    /* HS400 runs on the 8 bit DDR bus, BUS_WIDTH 6 or, with Enhanced Strobe,
+     * 0x86 (JESD84-B51 6.6.2.3, 7.4.67): another width is the board's
+     * mistake, refused before the card is switched */
+    if (cfg->mode == MMC_BUS_MODE_HS400 && cfg->width != MMC_BUS_WIDTH_8BIT_DDR &&
+        cfg->width != MMC_BUS_WIDTH_8BIT_DDR_STROBE) {
+        LOG_ERR("HS400 needs the 8 bit DDR bus, not width %i", cfg->width);
+        return -PB_ERR_PARAM;
+    }
 
     /* A mode the host can't run is refused before the card is switched */
     if (cfg->mode == MMC_BUS_MODE_HS400 &&
@@ -876,6 +904,23 @@ int mmc_emmc_setup(struct mmc_device *dev)
         { cfg->user_uu, 0 },
     };
 
+    /* The devices this card gets: the user area always, the others when the
+     * card has them. Two with one UUID would register the first and fail on
+     * the second, which bio_get_part_by_uu() finds as the first */
+    bool gets_device[ARRAY_SIZE(checks)];
+
+    for (size_t i = 0; i < ARRAY_SIZE(checks); i++) {
+        gets_device[i] = (i == ARRAY_SIZE(checks) - 1) || checks[i].blocks > 0;
+
+        for (size_t j = 0; j < i; j++) {
+            if (gets_device[i] && gets_device[j] && checks[i].uu != NULL && checks[j].uu != NULL &&
+                memcmp(checks[i].uu, checks[j].uu, sizeof(uuid_t)) == 0) {
+                LOG_ERR("Two of the card's devices have one UUID");
+                return -PB_ERR_PARAM;
+            }
+        }
+    }
+
     for (size_t i = 0; i < ARRAY_SIZE(checks); i++) {
         if (i == ARRAY_SIZE(checks) - 1) {
             /* The user area's range as released, SEC_COUNT 0 included */
@@ -974,6 +1019,12 @@ static int mmc_part_switch(struct mmc_device *dev, enum mmc_part part)
     }
 
     return rc;
+}
+
+void mmc_emmc_reset(void)
+{
+    mmc_boot_part_config = -PB_ERR_STATE;
+    mmc_boot_cfg = NULL;
 }
 
 int mmc_get_boot_part_config(uuid_t part_uu)

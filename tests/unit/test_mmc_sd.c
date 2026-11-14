@@ -46,6 +46,7 @@ static int setup(void **state)
 
     bench_reset();
     bio_reset();
+    mmc_reset();
     sd_model_default_config(&card_cfg);
 
     dev_cfg = (struct mmc_device_config){

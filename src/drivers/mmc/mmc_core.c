@@ -301,6 +301,12 @@ int mmc_write(struct mmc_device *dev, unsigned int lba, size_t length, const uin
     return mmc_rw(dev, lba, length, buf, true);
 }
 
+void mmc_reset(void)
+{
+    memset(devices, 0, sizeof(devices));
+    mmc_emmc_reset();
+}
+
 int mmc_init(const struct mmc_hal *hal,
              const struct mmc_device_config *cfg,
              struct mmc_device **dev_out)

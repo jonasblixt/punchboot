@@ -466,8 +466,9 @@ struct mmc_device;
  * @param[out] dev The card, optional
  *
  * @return PB_OK on success
- *        -PB_ERR_PARAM, on invalid bus mode or NULL parameters, or a UUID
- *         that another device has
+ *        -PB_ERR_PARAM, on invalid bus mode or NULL parameters, HS400 on
+ *         a bus that isn't 8 bit DDR, a UUID that another device has,
+ *         or one UUID for two of the card's devices
  *        -PB_ERR_NOT_SUPPORTED, the card or the host doesn't support the
  *         bus mode
  *        -PB_ERR_MEM, too many cards, or the bio pool is full
@@ -478,6 +479,16 @@ struct mmc_device;
 int mmc_init(const struct mmc_hal *hal,
              const struct mmc_device_config *cfg,
              struct mmc_device **dev);
+
+/**
+ * Forget every card, as at reset: no slot is used and no e.MMC's boot
+ * partition is recorded (mmc_get_boot_part_config()). The bio devices are
+ * bio_reset()'s.
+ *
+ * Intended for unit tests, which need a clean state between test cases,
+ * as bio_reset() is. pb doesn't call it.
+ */
+void mmc_reset(void);
 
 /**
  * Get the card device info struct

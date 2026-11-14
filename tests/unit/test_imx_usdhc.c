@@ -137,6 +137,7 @@ static int setup(void **state)
     bench_reset();
     dcache_reset();
     bio_reset();
+    mmc_reset();
     emmc_model_default_config(&card_cfg);
     window.on = false;
     return 0;
@@ -528,6 +529,8 @@ static void test_imx8mpevk_tuning_fails(void **state)
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
     assert_int_equal((usdhc_model_read(IMX8M_USDHC3_BASE + 0x60) >> 9) & 0x7f, 35);
+    /* F-419: the switch back at 52 MHz, not at 200 MHz on a failed tap */
+    assert_true(emmc_model_switch_clk_hz(EXT_CSD_HS_TIMING) <= 52000000);
     read_write();
     assert_bench_clean();
 }

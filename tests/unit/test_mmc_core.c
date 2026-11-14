@@ -244,6 +244,7 @@ static bool image_is(enum mmc_part part, const uint8_t *image)
 static int setup(void **state)
 {
     (void)state;
+    mmc_reset();
     card_provision();
     return 0;
 }

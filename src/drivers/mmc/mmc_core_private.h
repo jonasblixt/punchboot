@@ -99,5 +99,7 @@ int mmc_bio_ready(const struct mmc_device *dev);
 
 int mmc_emmc_setup(struct mmc_device *dev);
 int mmc_sd_setup(struct mmc_device *dev);
+/* mmc_reset()'s part in mmc_emmc.c: no e.MMC's boot partition recorded */
+void mmc_emmc_reset(void);
 
 #endif // DRIVERS_MMC_MMC_CORE_PRIVATE_H

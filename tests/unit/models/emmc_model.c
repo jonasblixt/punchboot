@@ -287,6 +287,7 @@ static struct emmc {
     int bad_width;
     unsigned int cmd_count[64];
     unsigned int cmd_first_clk_hz[64];
+    unsigned int switch_clk_hz[192]; /* At the last CMD6 to each field */
     unsigned int blocks_read;
     unsigned int blocks_written;
     /* Faults */
@@ -852,6 +853,8 @@ static void cmd_switch(uint32_t arg)
         emmc.status |= ST_SWITCH_ERROR;
         return;
     }
+
+    emmc.switch_clk_hz[index] = emmc.bus_cfg.clk_hz;
 
     old = emmc.ext_csd[index];
     if (access == ACCESS_SET_BITS)
@@ -1580,6 +1583,11 @@ unsigned int emmc_model_cmd_count(uint8_t idx)
 unsigned int emmc_model_cmd_first_clk_hz(uint8_t idx)
 {
     return emmc.cmd_first_clk_hz[idx & 63];
+}
+
+unsigned int emmc_model_switch_clk_hz(uint8_t index)
+{
+    return (index < 192) ? emmc.switch_clk_hz[index] : 0;
 }
 
 unsigned int emmc_model_blocks_read(void)
