@@ -385,7 +385,7 @@ static void test_lock(void **state)
 }
 
 /* The key state: SRK n is revoked by bit 8 + n of the revoke word. Slots
- * past the four SRKs read as not revoked */
+ * 4 to 31, past the four SRKs, read as not revoked; 32 and up are an error */
 static void test_key_status(void **state)
 {
     struct rot_key key = { .id = 0xa90f9680, .slot = 0 };
@@ -406,10 +406,26 @@ static void test_key_status(void **state)
     key.slot = 3;
     assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_KEY_REVOKED);
 
-    /* Bits 12-15 aren't SRKs: slot 4 is never revoked */
+    /* Bits 12-15 aren't SRKs: slot 4 is never revoked. Kept as released
+     * (v2.7.1 boots a key a board mapped past SRK3): an error here would
+     * refuse its images (F-429, D-008) */
     scfw.fuses[IMX8X_FUSE_REVOKE] = 0xf000;
     key.slot = 4;
     assert_int_equal(imx8x_read_key_status(&key), PB_OK);
+    key.slot = 31;
+    assert_int_equal(imx8x_read_key_status(&key), PB_OK);
+
+    /* No bit at 32 and up, and no shift by 32 or more: SRK0's bit, set
+     * here, isn't slot 32's (F-429) */
+    scfw.fuses[IMX8X_FUSE_REVOKE] = 0xffffffff;
+    key.slot = 32;
+    assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_PARAM);
+    scfw.fuses[IMX8X_FUSE_REVOKE] = 0;
+    assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_PARAM);
+    key.slot = 33;
+    assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_PARAM);
+    key.slot = UINT32_MAX;
+    assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_PARAM);
 
     scfw.read_fails_at = scfw.reads + 1;
     key.slot = 0;

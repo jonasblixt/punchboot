@@ -103,12 +103,19 @@ int imx8x_read_key_status(const struct rot_key *key)
     int rc;
     uint32_t current_revoke_bits = 0xffffffff;
 
+    /* No revoke bit of its own, and a shift by 32 is undefined. Slots 4 to
+     * 31 read as not revoked, as released (F-429) */
+    if (key->slot >= 32) {
+        LOG_ERR("Key %u has no revoke bit", key->slot);
+        return -PB_ERR_PARAM;
+    }
+
     rc = imx8x_fuse_read(IMX8X_FUSE_REVOKE, &current_revoke_bits);
 
     if (rc != PB_OK)
         return rc;
 
-    uint32_t revoke_value = (1 << key->slot);
+    uint32_t revoke_value = (1u << key->slot);
     uint8_t rom_key_mask = (current_revoke_bits >> 8) & 0x0f;
 
     if ((rom_key_mask & revoke_value) == revoke_value)
