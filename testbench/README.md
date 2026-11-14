@@ -83,7 +83,8 @@ built in `output/<board>-<addon>`:
 make BOARD=jiffy ADDON=optee   # jiffy with OP-TEE, in output/jiffy-optee
 ```
 
-- **`optee`** (jiffy): OP-TEE 4.9.0 (mx6ulevk, jiffy's 1 GiB, UART2) before Linux, through
+- **`optee`** (jiffy): OP-TEE 4.9.0 (mx6ulevk, jiffy's 1 GiB, UART2, at 0xbdf00000 below jiffy's
+  ramoops, `CFG_NS_ENTRY_ADDR=n` so that the entry is punchboot's) before Linux, through
   punchboot's OP-TEE delivery (`boot.md` 5.7, `CONFIG_BOOT_OPTEE` from
   `board/jiffy/punchboot-optee.fragment`). `boot.bpak` gets the part `tee`, OP-TEE's
   `tee-raw.bin` at its load address; punchboot enters it with the zImage's entry, and OP-TEE

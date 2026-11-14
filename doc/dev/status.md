@@ -53,8 +53,10 @@ bump is for the porting API. Each item's history is in `log/`.
      ROM boot port (F-402), a kick per candidate (F-320), the 8M's HAB and its locks, EOL with
      data (F-263, PR #51), the SCU kick on the MEK (F-322). F-246 is in (`2a209705`, seen on
      jiffy). Left: the bench for F-241 and F-294.
-   - D-085, reviewed by Jonas: F-439 landed (`3b65ac38`); F-441 (OP-TEE, `boot.md` 5.7) next,
-     then F-440 (`platform.md` 7, `board.md` 2.2, 2.3).
+   - D-085, reviewed by Jonas: F-439 and F-441 landed; OP-TEE runs on jiffy from the test bench's
+     add-on, but an SMC from Linux faults in Monitor mode (F-444, with F-241). Then F-440.
+   - pico8ml restored (`9602c832`), command mode on the board; the 8MQ fits its TCM with the real
+     training firmware (`__dram_bss`). Open: F-445 (its ROM log), F-446 (`mkimage_imx8m`).
    - D-086 for Jonas's review: Mbed TLS set up by the core (`crypto.md` 2, `platform.md` 2.2,
      2.3, 3.8, Open (1)). Then F-442's code.
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".

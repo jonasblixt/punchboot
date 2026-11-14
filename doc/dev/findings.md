@@ -860,6 +860,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | in the delivery's ops), jiffy's board data behind the option, `test_optee`; the test bench's | | |
 | | | add-ons, `make BOARD=jiffy ADDON=optee`. Left: the bench (OP-TEE 4.9.0 to Linux on jiffy, xtest, | | |
 | | | the plain `boot.bpak` directly), then F-241's check from Linux | | |
+| | | 2026-11-14, on jiffy (pb from BOOT1): OP-TEE 4.9.0 starts from the part `tee` and enters Linux at | | |
+| | | pb's entry, Linux mounts Root B and starts tee-supplicant; the plain `boot.bpak` boots Linux | | |
+| | | directly. Two fixes in the add-on: `CFG_NS_ENTRY_ADDR=n` (OP-TEE's i.MX default, 0x80800000, | | |
+| | | overrides lr) and OP-TEE 1 MiB lower (jiffy's ramoops is the last MiB). Left: F-444 | | |
 | F-442 | `src/plat/*/plat.c`, `src/main.c`, `src/boot/boot.c` | Every platform sets up Mbed TLS | Verified | open |
 | | | in its `plat_init()`, and `plat_status.crypto_engine` says whether the build's backends all | | |
 | | | came up, Mbed TLS among them. D-086: the core sets the software backend up, the field is | | |
@@ -872,6 +876,22 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`core/arch/arm/kernel/boot.c:152`: `mon_spsr` is `CPSR_MODE_SVC` and `CPSR_I`); Xen | | |
 | | | on AArch32 is entered in Hyp. Needs OP-TEE to return to Non-secure Hyp (the A7 has the virtualization | | |
 | | | extensions), then a Xen build for the 6UL and OP-TEE's virtualization for its guests | | |
+| F-444 | OP-TEE on jiffy, `plat/imx6ul/plat.c` | An SMC from Linux, after OP-TEE's driver | Seen (board) | open |
+| | | probed (`optee_bus_scan`, and the PSCI reset at a reboot), takes a prefetch abort in Monitor mode | | |
+| | | at OP-TEE's own monitor vector (0xbdf00c48), handled by Linux's vector: "Bad mode in prefetch | | |
+| | | abort handler"; Linux then hangs, the watchdog doesn't reset it (SRST over the ULINK does). The | | |
+| | | first SMCs of the probe work. Candidates: F-241's TZASC region 1 at the DRAM's physical base, | | |
+| | | where the RM has the controller's local addresses; OP-TEE's own TZC-380 and CSU set up after | | |
+| | | pb's; what jiffy's own test bench sets and this add-on doesn't (`CFG_NXP_CAAM`, | | |
+| | | `CFG_IMX_SNVS_NS_ACCESS`) | | |
+| F-445 | `src/plat/imx8m/plat.c` | The i.MX8MQ's ROM log isn't found on the pico8ml | Seen (board) | open |
+| | | (`log rom`: not found, status "ROM logs none"). AN12853 Rev 2.0 has the mSCALE series' pointer | | |
+| | | at 0x9e0, which pb reads; the buffer is checked against the OCRAM at 0x900000, and the 8MQ's ROM | | |
+| | | may keep it in OCRAM_S or the TCM. Read the pointer on the board | | |
+| F-446 | `src/plat/imx8m/makefile.mk`, the dev container | The i.MX8MQ's image is made with NXP's | Reported | open |
+| | | `mkimage_imx8m` (imx-mkimage `iMX8M/`), which neither the host nor the container has: CI builds | | |
+| | | `pb.bin` only. The pico8ml's image was made and signed by hand with a build of it in the | | |
+| | | scratchpad and the test bench's `cst` | | |
 
 ## Dependencies / vendored code
 

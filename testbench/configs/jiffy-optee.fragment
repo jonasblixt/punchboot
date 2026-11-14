@@ -2,14 +2,18 @@
 # output/jiffy-optee. OP-TEE before Linux through punchboot's OP-TEE
 # delivery (boot.md 5.7, BOOT_DELIVERY_OPTEE in src/board/jiffy/board.c):
 # punchboot enters tee-raw.bin, the part "tee", with the zImage's entry in lr,
-# and OP-TEE enters Linux there. No CFG_NS_ENTRY_ADDR: the entry is
-# punchboot's. OP-TEE grows the device tree in place to CFG_DTB_MAX_SIZE,
+# and OP-TEE enters Linux there. CFG_NS_ENTRY_ADDR=n: the entry is
+# punchboot's; OP-TEE's i.MX platform defaults it to 0x80800000 for the
+# mx6ulevk, which OP-TEE would then enter instead of lr. OP-TEE's memory
+# 1 MiB below its default, the end of the DRAM: jiffy's DT has ramoops in
+# the last MiB (0xbff00000). OP-TEE is 0xbdf00000 to 0xbfd00000, its shared
+# memory to 0xbff00000. OP-TEE grows the device tree in place to CFG_DTB_MAX_SIZE,
 # which board.c gives punchboot (128 KiB).
 
 BR2_TARGET_OPTEE_OS=y
 BR2_TARGET_OPTEE_OS_PLATFORM="imx"
 BR2_TARGET_OPTEE_OS_PLATFORM_FLAVOR="mx6ulevk"
-BR2_TARGET_OPTEE_OS_ADDITIONAL_VARIABLES="CFG_DDR_SIZE=0x40000000 CFG_UART_BASE=UART2_BASE CFG_DTB_MAX_SIZE=0x20000"
+BR2_TARGET_OPTEE_OS_ADDITIONAL_VARIABLES="CFG_DDR_SIZE=0x40000000 CFG_UART_BASE=UART2_BASE CFG_DTB_MAX_SIZE=0x20000 CFG_NS_ENTRY_ADDR=n CFG_TZDRAM_START=0xbdf00000"
 BR2_TARGET_OPTEE_OS_CORE_IMAGES="tee.bin tee-raw.bin"
 
 # The normal world's side: tee-supplicant and xtest. xtest is C++: the
