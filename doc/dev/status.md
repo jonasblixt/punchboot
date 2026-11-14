@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-14 (D-078, the kernel command line is the handover's)_
+_Last updated: 2026-11-14 (D-079, the board's memory is its `makefile.mk`'s)_
 
 ## Current focus
 
@@ -46,6 +46,8 @@ bump is for the porting API. Each item's history is in `log/`.
      (log), jiffy and the 8MP EVK boot Linux. F-434 fixed (`af6e7060`); the MEK
      to init 1069 ms (log). D-078 (`3e7399c6`, the command line in the handover's
      configuration): the 8MP EVK runs it from BOOT0, normal and verbose command lines seen.
+     D-079 (`5c55b9ff`): the board's memory left Kconfig for its `makefile.mk`, the six
+     `pb.bin` unchanged.
    - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,

@@ -43,7 +43,8 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-027 | The core owns the security rules                 | In force                                           |
 | D-028 | One handover state; the `simple` boot driver     | Narrowed by D-039 (Firmware Handoff for `simple`)  |
 | D-029 | The simple target test bench, also Cortex-A      | In force                                           |
-| D-030 | The platform contract                            | Closed by D-053 to D-056                           |
+| D-030 | The platform contract                            | Closed by D-053 to D-056; narrowed by D-079 (the   |
+|       |                                                  | board's memory is its `makefile.mk`'s)             |
 | D-031 | The board contract                               | Closed by D-045 to D-052                           |
 | D-032 | The boot flow contract (draft)                   | Closed by D-038 to D-041; changed by D-035, D-046, |
 |       |                                                  | D-048, D-055                                       |
@@ -95,6 +96,8 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-076 | Named commands, declared anywhere and listed     | In force                                           |
 | D-077 | The platform describes the SoC, the core shows it | In force                                          |
 | D-078 | The kernel command line is the handover's        | In force                                           |
+| D-079 | The board's memory is its `makefile.mk`'s        | In force; a DRAM size read at run time waits for a |
+|       |                                                  | use                                                |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1875,3 +1878,29 @@ through a hook that read the global back, and meant nothing on a board whose han
 or a hook of its own. The wire and bpak don't change, and the next stage gets the same bytes.
 The porting API does: before the 3.0.0 tag this costs the migration guide's example, after it
 the change would wait for 4.0.0 (D-031).
+
+## D-079: The board's memory is its `makefile.mk`'s, not Kconfig (2026-11-14)
+
+Jonas: the Memory menu in Kconfig (Platform support) is the wrong place. A board's DRAM is fixed
+by its design, and where it isn't, zero ohm resistors choose the density: both are the board's,
+in its `makefile.mk` or `board.c`. Narrows D-030's "the board's addresses become Kconfig values".
+
+- **Make variables in the board's `makefile.mk`**: `PB_ENTRY`, `PB_SIZE`, `BOARD_DRAM_BASE` and
+  `_SIZE`, `PB_BUFFERS_BASE` and `_SIZE` (`platform.md` 5.1). The platform's `makefile.mk`, read
+  after the board's, gives the buffers' default with `?=`; `PB_SIZE` defaults to 0 (derived).
+  The Memory menu and the six defconfigs' values go.
+- **One source, the same names**: the Makefile passes each to the linker (`--defsym`) and to C
+  (`-D`), so a value given on make's command line reaches both; with Kconfig it reached only the
+  linker, and C kept the defconfig's. `BOARD_RAM_BASE` and `_END` stay for C.
+- **The build stops** naming a value that is missing, and on a board that still has 2.x's
+  `-DBOARD_RAM_BASE` or `-DBOARD_RAM_END`. A board without DRAM sets both DRAM values to 0.
+- **Only the static move** (Jonas): a DRAM size read at run time (straps, a density detected in
+  the DRAM's set up) waits for a board that needs it. Then the static size is the smallest the
+  board has, for the link's checks, and the MMU's first layer and the image data regions take
+  the size read.
+
+Why: these are facts of the hardware, not choices of the product; menuconfig showed them as
+options with a default of 0. The board's other memory facts (the DRAM's timing, the image data
+regions) were already in its directory. The images and the wire don't change (the six boards'
+`pb.bin` are byte for byte the same); the porting API does, before the 3.0.0 tag: no release
+had the Kconfig names.
