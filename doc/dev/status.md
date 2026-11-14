@@ -55,8 +55,9 @@ bump is for the porting API. Each item's history is in `log/`.
      jiffy). Left: the bench for F-241 and F-294.
    - D-085, reviewed by Jonas: F-439 and F-441 landed; OP-TEE runs on jiffy from the test bench's
      add-on, but an SMC from Linux faults in Monitor mode (F-444, with F-241). Then F-440.
-   - pico8ml restored (`9ea656f2`), command mode on the board; the 8MQ fits its TCM with the real
-     training firmware (`__dram_bss`). Open: F-445 (its ROM log), F-446 (`mkimage_imx8m`).
+   - pico8ml restored (`9ea656f2`), signed `pb_signed.imx` from `make all`, command mode on the
+     board; `-Os` and packed DRAM tables (`gen-imx8m-dram-timing.py`) for room. Open: F-445.
+     Next: SLC on the i.MX8M (log, the last entry has the 8MQ's fuses).
    - D-086 for Jonas's review: Mbed TLS set up by the core (`crypto.md` 2, `platform.md` 2.2,
      2.3, 3.8, Open (1)). Then F-442's code.
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
