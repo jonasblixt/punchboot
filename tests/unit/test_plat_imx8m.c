@@ -759,6 +759,21 @@ static void test_get_info(void **state)
     assert_int_equal(plat_get_info(&info, extra, 0), -PB_ERR_BUF_TOO_SMALL);
 }
 
+/* platform.md 5.2: the memory map. The rest of pb (.bss, the RAM log) and
+ * the buffers are two regions, RW and execute never, and nothing maps the
+ * address space between them: one span from pb to the buffers mapped it as
+ * memory, on the i.MX8M Plus 1 GiB with device windows in it (F-158). The
+ * board's DRAM is one region, the same, which pb's regions in it nest in */
+static void test_mmu_map(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(fake_mmu_enables, 1);
+    fake_mmu_check_pb_map(BOARD_RAM_BASE, BOARD_RAM_END);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -781,6 +796,7 @@ int main(void)
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
         cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_mmu_map, setup),
         cmocka_unit_test_setup(test_get_info, setup),
     };
 

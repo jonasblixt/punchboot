@@ -43,8 +43,11 @@ IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
 IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
 IMPORT_SYM(uintptr_t, _stack_start, stack_start);
 IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
-IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
+/* The rest of pb, .bss and the RAM log, and the buffers (platform.md 5.1) */
+IMPORT_SYM(uintptr_t, _zero_region_start, pb_rw_start);
+IMPORT_SYM(uintptr_t, _pb_end, pb_rw_end);
+IMPORT_SYM(uintptr_t, _buffers_start, buffers_start);
+IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
 
 /* System counter control frame */
 #define SCTR_CNTCR      0x00
@@ -211,14 +214,23 @@ static int plat_mmu_init(void)
     mmap_add_region(
         stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(rw_nox_start,
-                    rw_nox_start,
-                    rw_nox_end - rw_nox_start,
+    /* The rest of pb and the buffers, each a region of its own: one span
+     * from pb to the buffers mapped what is between them as memory, on the
+     * i.MX8M Plus 1 GiB of the address space and its devices (F-158) */
+    mmap_add_region(
+        pb_rw_start, pb_rw_start, pb_rw_end - pb_rw_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(buffers_start,
+                    buffers_start,
+                    buffers_end - buffers_start,
                     MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    /* Add the rest of the RAM */
-    mmap_add_region(
-        rw_nox_end, rw_nox_end, BOARD_RAM_END - rw_nox_end, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    /* The board's DRAM, where the images are loaded. What of pb is in it
+     * is a region inside it, and the innermost region wins */
+    mmap_add_region(BOARD_RAM_BASE,
+                    BOARD_RAM_BASE,
+                    BOARD_RAM_END - BOARD_RAM_BASE,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add(imx_mmap);
 
