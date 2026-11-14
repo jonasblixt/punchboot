@@ -1326,6 +1326,76 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-14, fixed: the handovers write the command line, the boards carry it in their | | |
 | | | handover's configuration, and a command line without the DT's part is refused at set up. | | |
 | | | Host tests in `test_image.c`, `test_fh.c` and `test_tfa_image.c`. Not run on a board | | |
+| F-414 | `doc/guides/testing.md`, `bio.md` | From F-191's package. The coverage note in | Reported (read) | fixed (`52179a6e`) |
+| | | `testing.md` names `gpt.c` lines 298 and 383 to 389 as unreachable; that code is gone. The tables in | | |
+| | | `bio.md` 2.4 and section 8 are wider than the aligner makes them (they were before the package) | | |
+| | | 2026-11-13 (`e1680053`): the coverage note is corrected. Left: the tables' widths in `bio.md` (the | | |
+| | | commit that padded them, `193e1ff7` on `pkg-boards-tools`, collides with the rows two other packages | | |
+| | | changed and wasn't landed) and, found with it, in `crypto.md`, `drivers.md`, `usb.md`, `boot.md` 9 | | |
+| | | and `command-mode.md` 9 | | |
+| | | 2026-11-14 (`52179a6e`): the tables of `bio.md`, `crypto.md`, `drivers.md`, `usb.md` and `command- | |
+| | | mode.md` are padded as the aligner pads them; `boot.md` 9 already was. Done | |
+| F-418 | build, low | From the build package. `tests/02e49231-...token` is tracked and matches | Reported | fixed (`ddaf74bc`, `d05198ef`, `47fb27aa`) |
+| | | `*.token` in `.gitignore`. `include/libc/string.h` declares `strncmp`, `strnlen`, `strrchr` and | | |
+| | | `strlcpy`, which nothing defines. `get_up_stack` in both `asm_macros.S` is unused. The RT1060's | | |
+| | | first LOAD segment holds the ELF's headers, 248 bytes below `PB_ENTRY`. After an unsupported | | |
+| | | format letter `snprintf()` returns a length below the buffer's, so a caller can't tell the | | |
+| | | text was cut | | |
+| | | 2026-11-14 (`af2f21cf`, `39b34748`): the tests' token isn't ignored; `strnlen`, `strrchr` and | | |
+| | | `strlcpy` are no longer declared (`strncmp` is defined, in `strcmp.c`: the row was wrong). Left: | | |
+| | | `get_up_stack`, the RT's ELF headers in its first segment, `snprintf()`'s return after an | | |
+| | | unsupported letter; three tracked `testbench/board/**/patches/*.patch` match `*.patch` in | | |
+| | | `.gitignore` | | |
+| | | 2026-11-14 (`ddaf74bc`, `d05198ef`, `47fb27aa`): `get_up_stack` is gone; `src/link.lds` names the | |
+| | | segments (PHDRS), so the ELF's headers are in none and the RT1060's code segment starts at | |
+| | | `PB_ENTRY` (it began 216 bytes below), `build-firmware.sh` fails on a segment that holds them; | |
+| | | `pb.bin` unchanged on all six boards. `snprintf()` returns at least `n` after an unsupported letter, | |
+| | | so the text reads as cut. The `.patch` files were never ignored: `testbench/.gitignore` has | |
+| | | `!*.patch` since `433f617e` (the row was wrong). Done | |
+| F-413 | `board/{imx8mevk,host}`, `cm_main.c` | From F-095's package. | Reported (read) | fixed (`bd60084c`) |
+| | | imx8mevk's `board_command()` writes `response[(*response_size)++] = 0` after `snprintf()`, past its | | |
+| | | room when the text is longer, and several boards return `snprintf()`'s full length as the size (the | | |
+| | | core cuts it now). The host board's test command writes `arg[size] = 0`, a byte past a 1024-byte | | |
+| | | request (inside the buffer). `rot_no_of_keys()` returns an error cast to `size_t` without a RoT | | |
+| | | (`boot.c` handles it, `cmd_slc_read()` is bounded now). A transport whose read can never be started | | |
+| | | after a connect is restarted every round for ever with the watchdog kicked, as after a failed | | |
+| | | `complete()`. `command-mode.md` 5.6 says `rsp` holds `*rsp_size` bytes "(the command buffer)"; since F-095 | | |
+| | | it is the smaller of the host's size and a buffer | | |
+| | | 2026-11-13: the boards' items are done (imx8mevk, the RT's and the host board's test commands write | | |
+| | | only what fits, the host board's size is what it wrote). Left: a transport restarted for ever, | | |
+| | | `command-mode.md` 5.6's words, the status functions returning `snprintf()`'s full length | | |
+| | | 2026-11-14 (`bd60084c`): after 16 starts of the transport without a command, command mode ends and | |
+| | | pb resets, as for a failed start (2.1; `command-mode.md` 2.2 names it, `bb91c1da`); the default | |
+| | | `status()` reports what it wrote (no board has its own). 5.6 already had the code's words (D-076). | |
+| | | Done | |
+| F-419 | `src/drivers/mmc/`, `drivers.md` 3 | Low, from the MMC package. A board configuration | Reported | fixed (`bedc445b`) |
+| | | with the same UUID twice (`user_uu` equal to `boot0_uu`) leaves devices registered when the | | |
+| | | init fails. HS400 has no check of the width: an SDR width reaches HS_TIMING 3. The HS200 and | | |
+| | | HS400 fallbacks send their CMD6 at 200 MHz on the tap tuning just failed with. `drivers.md` 3 | | |
+| | | still has "the uSDHC returns -PB_ERR_IO" for a timeout as its example. `mmc_core`'s | | |
+| | | `devices[]` carries slot state from one unit test to the next | | |
+| | | 2026-11-14 (`bedc445b`, `361a9718`): one UUID for two of the card's devices is `-PB_ERR_PARAM` | |
+| | | before the first is registered; HS400 on a bus that isn't 8 bit DDR is `-PB_ERR_PARAM` before the | |
+| | | card is switched; the HS200 and HS400 fallbacks set the board's tap and 52 MHz before their CMD6 | |
+| | | (the success paths' register traces unchanged; JESD84-B51 6.6.2.2 cited from memory); `mmc_reset()` | |
+| | | for the tests; `drivers.md` 3's example. Done; on the bench: the 8MP EVK's HS200 as before | |
+| F-281 | `src/drivers/{mmc,virtio,usb}` | Waits without a bound that no finding | Reported (read) | fixed (`cf9535f1`, `991ce70c`) |
+| | | names: `mmc_rw()`'s wait for the card's state after a transfer and the same loop in | | |
+| | | `mmc_set_ext_csd()`; virtio block's completion; the cdns3 glue's wait for power-on-ready. With | | |
+| | | F-102, F-136, F-198, F-200 and F-205 they are the list. `drivers.md` 3: every wait has a bound | | |
+| | | with its source and returns `-PB_ERR_TIMEOUT` | | |
+| | | 2026-11-13 (`272f8d69`, `5eb1f07b`, `82a26ceb`): the MMC waits are bounded: the state after a | | |
+| | | transfer by 1 s (the HAL has waited for the busy), a CMD6 by the card's own switch time. The | | |
+| | | bounds' sources are cited from memory. Left: virtio block's completion and the cdns3 glue's | | |
+| | | wait for power-on-ready | | |
+| | | 2026-11-14 (`cf9535f1`, `991ce70c`): virtio block's completion is bounded by 1 s (a bound, VIRTIO | |
+| | | 1.1 gives none), the device reset and set up again after it (`test_virtio_block`); the cdns3 glue's | |
+| | | wait for power-on-ready is bounded at 100 ms (Linux 6.1 `cdns3-imx.c`'s bound on the same register). | |
+| | | Done; not run on a board | |
+| F-436 | `src/board/imx8qxmek/makefile.mk` | The MEK's DRAM was 3 GiB from 0x80000000, so the 8X's MMU set up mapped | Verified (code, the board's device tree) | fixed (`2599f9d8`) |
+| | | 0x100000000 to 0x13fffffff as Normal memory. The MEK's third GiB is at 0x880000000 (`board.c`, the | | |
+| | | test bench's device tree). Found by the build package (F-428). 2026-11-14 (`2599f9d8`): the board's | | |
+| | | DRAM is its first 2 GiB, to 4 GiB, where the image data regions already ended. Not run on a board | | |
 
 ## Dependencies / vendored code
 

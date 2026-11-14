@@ -147,7 +147,7 @@ command mode started, the transport is gone by then and pb resets (`board.md` 5.
 - **Every wait is bounded.** A loop that waits for the device has a timeout and returns
   `-PB_ERR_TIMEOUT`. The bound is the driver's constant, with its source next to it: the IP
   block's manual, the medium's standard, or a measurement. **Not yet in the code (F-102,
-  F-136, F-200, F-205, F-281)**: section 8 says where each driver stands.
+  F-136)**: section 8 says where each driver stands.
 - **No driver kicks the watchdog**, and neither do `pb_delay_*()` and `pb_timeout_*()`
   (`platform.md` 3.3): a driver that polls for ever must not keep the board alive. The core
   kicks between a driver's calls, once per chunk.
