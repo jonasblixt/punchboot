@@ -94,8 +94,7 @@ enumerates a device, often more than once. Until the device is configured there 
 to lose: on a bus reset or an unplug the stack starts over, with address 0 and nothing
 configured, and `connect` goes on answering `-PB_ERR_AGAIN`.
 
-It returns at once, so that the tasks run and the watchdog is kicked meanwhile. **Not yet in
-the code (F-287)**: the host platform's socket blocks in `init` until a client connects.
+It returns at once, so that the tasks run and the watchdog is kicked meanwhile.
 
 ### 2.3 Functions : cm_transport_read(), cm_transport_write() [mandatory]
 
@@ -438,7 +437,7 @@ The stack and the transport:
 | bounded                                     |                                          |         |
 | A request leaves a bulk transfer alone      | yes; on the ChipIdea one of a packet is  | F-203   |
 |                                             | started again, a longer one fails        |         |
-| The socket's `connect` polls                | no: `init` blocks in the accept          | F-287   |
+| The socket's `connect` polls                | yes                                      |         |
 | Tested on the host                          | Command mode on the socket and on a fake | F-230   |
 |                                             | transport; the USB transport's functions |         |
 |                                             | on a fake controller, no controller      |         |

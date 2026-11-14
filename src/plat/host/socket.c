@@ -13,12 +13,15 @@
  * transfer and 'complete' polls it (usb.md 2.4): it moves what the socket
  * has, waits at most POLL_MS for more, and returns -PB_ERR_AGAIN until the
  * transfer is whole, so that command mode's transfer timeout and watchdog
- * kicks run (command-mode.md 4.6). When the client disconnects, 'complete'
- * fails, which makes the command mode loop call 'init' again, and that
- * waits for the next client.
+ * kicks run (command-mode.md 4.6). 'init' listens and returns at once, and
+ * 'connect' is the accept, polled the same way (usb.md 2.2, 2.6), so that
+ * command mode's ready timeout runs as on a board (command-mode.md 2.2).
+ * When the client disconnects, 'complete' fails, which makes the command
+ * mode loop call 'init' again, and 'connect' accepts the next client.
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <pb/cm.h>
 #include <pb/dma.h>
 #include <pb/pb.h>
@@ -31,7 +34,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-/* The longest a call to 'complete' waits for the socket */
+/* The longest a call to 'connect' or 'complete' waits for the socket */
 #define POLL_MS 10
 
 static int listen_fd = -1;
@@ -47,7 +50,8 @@ static struct {
 
 /* Listens on a temporary path and then renames it to the socket path, so
  * the socket path only exists once it accepts connections. Clients wait for
- * the path to appear. */
+ * the path to appear. The socket doesn't block: 'connect' accepts a client
+ * when there is one */
 static int socket_listen(void)
 {
     struct sockaddr_un addr = { .sun_family = AF_UNIX };
@@ -67,7 +71,8 @@ static int socket_listen(void)
         return -PB_ERR_IO;
     }
 
-    if (bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr)) != 0 || listen(listen_fd, 1) != 0) {
+    if (fcntl(listen_fd, F_SETFL, O_NONBLOCK) != 0 ||
+        bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr)) != 0 || listen(listen_fd, 1) != 0) {
         LOG_ERR("Could not listen on '%s' (%s)", host_opts.socket_path, strerror(errno));
         close(listen_fd);
         listen_fd = -1;
@@ -84,43 +89,61 @@ static int socket_listen(void)
     return PB_OK;
 }
 
+/* Listens, and returns at once: it doesn't wait for a client (usb.md 2.1) */
 int cm_transport_init(void)
 {
-    int rc;
-
     if (client_fd >= 0) {
         close(client_fd);
         client_fd = -1;
     }
 
-    if (listen_fd < 0) {
-        rc = socket_listen();
+    if (listen_fd < 0)
+        return socket_listen();
 
-        if (rc != PB_OK)
-            return rc;
+    return PB_OK;
+}
+
+/* The accept (usb.md 2.2, 2.6): -PB_ERR_AGAIN until a client connects. It
+ * waits at most POLL_MS for one, as 'complete' does for data, so that the
+ * rounds of the tasks don't spin meanwhile */
+int cm_transport_connect(void)
+{
+    struct pollfd pfd = { .fd = listen_fd, .events = POLLIN };
+    int ready;
+
+    if (listen_fd < 0)
+        return -PB_ERR_STATE;
+
+    if (client_fd >= 0)
+        return PB_OK;
+
+    ready = poll(&pfd, 1, POLL_MS);
+
+    if (ready == 0 || (ready < 0 && errno == EINTR))
+        return -PB_ERR_AGAIN;
+
+    if (ready < 0) {
+        LOG_ERR("poll: %s", strerror(errno));
+        return -PB_ERR_IO;
     }
-
-    LOG_DBG("Waiting for connection on '%s'", host_opts.socket_path);
 
     client_fd = accept(listen_fd, NULL, NULL);
 
     if (client_fd < 0) {
+        /* The client went again before the accept: still none */
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR || errno == ECONNABORTED)
+            return -PB_ERR_AGAIN;
+
         LOG_ERR("accept: %s", strerror(errno));
         return -PB_ERR_IO;
     }
 
-    return PB_OK;
-}
-
-/* The accept is in init, which blocks until a client connects (F-287):
- * nothing is left to wait for */
-int cm_transport_connect(void)
-{
+    LOG_DBG("Client connected on '%s'", host_opts.socket_path);
     return PB_OK;
 }
 
 /* Nothing, as before the transport was linked: the connection stays until
- * init accepts the next client or the process exits */
+ * init closes it for the next client or the process exits */
 int cm_transport_disconnect(void)
 {
     return PB_OK;

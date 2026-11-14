@@ -87,8 +87,11 @@ A single integration test, inside `scripts/pbdev shell`:
   set with `--defsym` (`-no-pie`) at the start of RAM, so the image overlap checks keep working.
 - **Transport.** A unix socket server. `complete()` polls: it moves what the socket has, waits at
   most 10 ms for more and returns AGAIN until the transfer is whole, so command mode's transfer
-  timeout and kicks run (`command-mode.md` 4.6). When a client disconnects,
-  `complete()` fails, command mode's task calls `init()` again, and `init()` accepts the next
+  timeout and kicks run (`command-mode.md` 4.6). `init()` listens and returns at once, and
+  `connect()` is the accept, polled the same way (`usb.md` 2.2): pb-host without a client for
+  `CONFIG_CM_TRANSPORT_READY_TIMEOUT` (10 s) resets, which ends the process, as a board does
+  (`command-mode.md` 2.2). When a client disconnects,
+  `complete()` fails, command mode's task calls `init()` again, and `connect()` accepts the next
   client, so each
   CLI or `Session` is one connection, and one session (`command-mode.md` 3.1): a locked device
   asks each for authentication.
