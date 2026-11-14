@@ -43,6 +43,18 @@ master_cpu:
     msr    sctlr_el3, x0
     isb
 
+    /* Empty the data and unified caches, by set/way to the level of
+     * coherency, before the MMU and the D-cache are turned on
+     * (plat_mmu_init()) (F-207). Their contents are UNKNOWN until
+     * invalidated (Arm ARM), and on the i.MX8M the ROM runs on this core
+     * with the MMU on and the D-cache on during the image's authentication,
+     * off after it, unless DCACHE_DIS is fused (8MP RM 6.1.4.4): a valid
+     * line left would answer for memory written since. SCTLR_EL3.M and
+     * .C are clear from here, data accesses are Device and allocate
+     * nothing, so nothing of pb's is in them. Uses x0-x17, no stack */
+    mov     x0, #DCISW
+    bl      dcsw_op_all
+
 .L__do_bss:
     ldr     x9, =_zero_region_start
     ldr     x10, =_zero_region_end
