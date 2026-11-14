@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Where pb, its buffers and the board's DRAM are is the board's, from its
- * defconfig (platform.md 5.1): PB_ENTRY, PB_SIZE, PB_BUFFERS_BASE and _SIZE,
+ * makefile.mk (platform.md 5.1): PB_ENTRY, PB_SIZE, PB_BUFFERS_BASE and _SIZE,
  * BOARD_DRAM_BASE and _SIZE. The addresses here are the SoC's, and the ones
  * that differ per SoC are makefile.mk's: IMX8M_LOAD_BASE, IMX8M_LOAD_END and
  * IMX8M_OCRAM_SIZE.
@@ -43,20 +43,20 @@ BOARD_DRAM_END = BOARD_DRAM_BASE + BOARD_DRAM_SIZE;
 PB_REGION_END = ORIGIN(ram) + LENGTH(ram);
 
 ASSERT(PB_ENTRY >= IMX8M_LOAD_BASE && PB_ENTRY < IMX8M_LOAD_END,
-       "CONFIG_PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to")
+       "PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to")
 
 ASSERT(PB_REGION_END > PB_ENTRY && PB_REGION_END <= IMX8M_LOAD_END,
-       "CONFIG_PB_SIZE ends pb's region after the memory the ROM loads pb to")
+       "PB_SIZE ends pb's region after the memory the ROM loads pb to")
 
 /* The buffers are in the DRAM here, after the controller's state: the on-chip
  * RAM has no room for them, and the region is one range */
 ASSERT(PB_BUFFERS_BASE >= BOARD_DRAM_BASE && PB_BUFFERS_BASE >= ADDR(.umctl) + SIZEOF(.umctl) &&
        PB_BUFFERS_BASE + PB_BUFFERS_SIZE <= BOARD_DRAM_END,
-       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM, after the DDR controller's state")
+       "pb's buffers (PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM, after the DDR controller's state")
 
 ASSERT(ORIGIN(buffers) + LENGTH(buffers) <= ORIGIN(ram) ||
        ORIGIN(buffers) >= ORIGIN(ram) + LENGTH(ram),
-       "pb's buffers (CONFIG_PB_BUFFERS_BASE, _SIZE) overlap pb")
+       "pb's buffers (PB_BUFFERS_BASE, _SIZE) overlap pb")
 
 /* The Firmware Handoff region is the board's too (CONFIG_BOOT_FH): in the
  * same memory. src/boot/fh.lds keeps it off pb and the buffers */

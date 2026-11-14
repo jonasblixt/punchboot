@@ -12,7 +12,7 @@ of its own, and checks what its build makes:
 The cases, each in a build directory of its own, at the levels at which a
 board overrides the platform's stages (platform.md 6.2):
 
-- Level 0: the board's makefile.mk has its sources, the defconfig turns the
+- Level 0: the board's makefile.mk has its sources and memory, the defconfig turns the
   i.MX6UL's stages on: pb.imx, the two descriptions and the signed images.
 - Level 1: its own signing tool (CST_TOOL in its makefile.mk), which gets
   the descriptions and writes the signatures.
@@ -59,8 +59,15 @@ SIGN_INPUTS = (
     "CONFIG_IMX6UL_IMAGE_SIGN_CERT",
 )
 
-# A board's makefile.mk: its sources, and nothing else
-SOURCES = "src-y += $(BOARD)/board.c\n"
+# A board's makefile.mk: its sources and its memory (jiffy's), and nothing else
+SOURCES = """src-y += $(BOARD)/board.c
+PB_ENTRY = 0x80001000
+PB_SIZE = 0x100000
+BOARD_DRAM_BASE = 0x80000000
+BOARD_DRAM_SIZE = 0x40000000
+PB_BUFFERS_BASE = 0x81021000
+PB_BUFFERS_SIZE = 0xfdf000
+"""
 
 # Level 1: the board's own signing tool, called as cst is
 OWN_TOOL = """
@@ -88,7 +95,7 @@ image-y += oot_image
 FINAL_OUTPUT = $(BUILD_DIR)/oot.img
 
 oot_image: $(BUILD_DIR)/pb.bin
-\t$(Q)(printf 'OOT %s\\n' $(CONFIG_PB_ENTRY); cat $<) > $(BUILD_DIR)/oot.img
+\t$(Q)(printf 'OOT %s\\n' $(PB_ENTRY); cat $<) > $(BUILD_DIR)/oot.img
 """
 
 # The list's name before 3.0.0
