@@ -553,6 +553,15 @@ add_test(
 )
 set_tests_properties(unit.cm_usb_kconfig PROPERTIES LABELS unit TIMEOUT 60)
 
+# The watchdog's time-out has a range every platform's watchdog takes, and
+# every defconfig's value is inside it (F-416): its test reads Kconfig
+add_test(
+    NAME unit.watchdog_kconfig
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_watchdog_kconfig.py
+            ${PROJECT_SOURCE_DIR}
+)
+set_tests_properties(unit.watchdog_kconfig PROPERTIES LABELS unit TIMEOUT 60)
+
 # main() and its loop over the tasks (board.md 4.5). main.c's entry point is
 # renamed, as for pb-host
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/main.c

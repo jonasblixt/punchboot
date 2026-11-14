@@ -21,6 +21,7 @@
 #include <pb/utils_def.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
+#include <plat/imx8x/sci/rpc.h>
 #include <plat/imx8x/sci/svc/misc/api.h>
 #include <plat/imx8x/sci/svc/pm/api.h>
 #include <plat/imx8x/sci/svc/seco/api.h>
@@ -30,6 +31,8 @@
 #include <string.h>
 #include <uuid.h>
 #include <xlat_tables.h>
+
+#include "sci/svc/misc/rpc.h"
 
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
@@ -87,11 +90,40 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
         uint8_t uid_bytes[8];
     } plat_unique;
 
+    sc_rpc_msg_t msg;
+
     if (*length < sizeof(plat_unique.uid_bytes))
         return -PB_ERR_BUF_TOO_SMALL;
-    *length = sizeof(plat_unique.uid_bytes);
 
-    sc_misc_unique_id(plat.ipc, &plat_unique.uid[0], &plat_unique.uid[1]);
+    /*
+     * sc_misc_unique_id()'s message, which the SCFW API answers without an
+     * error (F-416): the function is void, and the answer's error byte isn't
+     * one (Linux's SCU driver ignores it for this function). What can be
+     * checked is the answer's size: the header and the id's two words. One
+     * that is shorter didn't carry the id, and its words are the request's.
+     * The id's bytes and their order are sc_misc_unique_id()'s, the
+     * identity's (platform.md 3.5, 3.7).
+     *
+     * An id of zero or of all ones isn't refused: the SCFW reads it from
+     * the fuses NXP programs, and nothing says either can't be one. Refusing
+     * it would leave such a device without command mode (cm_setup() fails
+     * without an identity). Not tried on a board.
+     */
+    memset(&msg, 0, sizeof(msg));
+    RPC_VER(&msg) = SC_RPC_VERSION;
+    RPC_SIZE(&msg) = 1U;
+    RPC_SVC(&msg) = (uint8_t)SC_RPC_SVC_MISC;
+    RPC_FUNC(&msg) = (uint8_t)MISC_FUNC_UNIQUE_ID;
+    sc_call_rpc(plat.ipc, &msg, SC_FALSE);
+
+    if (RPC_SIZE(&msg) < 3U) {
+        LOG_ERR("Unique id: an answer of %u words", (unsigned int)RPC_SIZE(&msg));
+        return -PB_ERR_IO;
+    }
+
+    plat_unique.uid[0] = RPC_U32(&msg, 0U);
+    plat_unique.uid[1] = RPC_U32(&msg, 4U);
+    *length = sizeof(plat_unique.uid_bytes);
     memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
     return PB_OK;
 }

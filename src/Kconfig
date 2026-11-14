@@ -148,7 +148,16 @@ config ENABLE_WATCHDOG
 config WATCHDOG_TIMEOUT
     int "Timeout (s)"
     default 5
+    range 1 127
     depends on ENABLE_WATCHDOG
+    help
+        What every platform's watchdog takes as it is (F-416). The i.MX
+        WDOG (6UL, 8M, RT) counts half seconds in eight bits: n s is
+        n + 0.5 s, and a longer one was clamped to 128 s, 0 to 0.5 s. The
+        8X's SCFW takes milliseconds; Linux's driver for it stops at
+        128 s. Kconfig keeps a value outside the range from a defconfig
+        out with a warning, so tests/unit/check_watchdog_kconfig.py
+        checks every configs/*_defconfig against it.
 
 comment "Limits"
 

@@ -58,6 +58,7 @@
 #define MISC_FUNC_GET_TEMP      13
 #define MISC_FUNC_BUILD_INFO    15
 #define MISC_FUNC_GET_BOOT_TYPE 33
+#define MISC_FUNC_UNIQUE_ID     19
 
 /* The GPT's control register and its software reset */
 #define GPT_CR                  0x0
@@ -90,6 +91,8 @@ static struct {
     uint8_t timer_err; /* ... for every call of its timer service */
     uint8_t boot_type; /* What the ROM booted from, SC_MISC_BT_* */
     uint8_t boot_type_err; /* The SCFW's error for the question, 0: none */
+    uint32_t uid[2]; /* sc_misc_unique_id()'s words, low then high */
+    uint8_t uid_words; /* The size of its answer, 0: the usual 4 */
 } scfw;
 
 /* A reset leaves the code under test through here */
@@ -162,6 +165,8 @@ static void scfw_call(void)
     uint8_t svc = (scfw.words[0] >> 16) & 0xff;
     uint8_t func = (scfw.words[0] >> 24) & 0xff;
     uint32_t data = 0;
+    uint32_t data2 = 0;
+    uint32_t words = 4;
     uint32_t err = SC_ERR_NONE;
 
     assert_true(scfw.n_calls < MAX_CALLS);
@@ -201,11 +206,18 @@ static void scfw_call(void)
     } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_GET_BOOT_TYPE) {
         data = scfw.boot_type;
         err = scfw.boot_type_err;
+    } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_UNIQUE_ID) {
+        /* A void function: no error in the answer */
+        data = scfw.uid[0];
+        data2 = scfw.uid[1];
+        if (scfw.uid_words != 0)
+            words = scfw.uid_words;
     }
 
-    fake_regs_set(MU_ARR(0), (err << 24) | (SC_RPC_SVC_RETURN << 16) | (4 << 8) | SC_RPC_VERSION);
+    fake_regs_set(MU_ARR(0),
+                  (err << 24) | (SC_RPC_SVC_RETURN << 16) | (words << 8) | SC_RPC_VERSION);
     fake_regs_set(MU_ARR(1), data);
-    fake_regs_set(MU_ARR(2), 0);
+    fake_regs_set(MU_ARR(2), data2);
     fake_regs_set(MU_ARR(3), 0);
 }
 
@@ -493,6 +505,90 @@ static void test_platform_ns_uuid(void **state)
     assert_memory_equal(platform_ns_uuid, ns, sizeof(ns));
 }
 
+/* platform.md 3.5, 3.7: the unique id is the SCFW's two words, the low one
+ * first, each with its low byte first: eight bytes that never change,
+ * because the device's UUID is made from them. They are what
+ * sc_misc_unique_id() gave, from one message to the SCFW */
+static void test_unique_id(void **state)
+{
+    static const uint8_t expected[8] = { 0x04, 0x03, 0x02, 0x01, 0x08, 0x07, 0x06, 0x05 };
+    uint8_t id[16];
+    size_t length = sizeof(id);
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    scfw.uid[0] = 0x01020304;
+    scfw.uid[1] = 0x05060708;
+    scfw.n_calls = 0;
+    memset(id, 0xa5, sizeof(id));
+
+    assert_int_equal(plat_get_unique_id(id, &length), PB_OK);
+    assert_int_equal(length, 8);
+    assert_memory_equal(id, expected, sizeof(expected));
+    assert_int_equal(id[8], 0xa5);
+    assert_int_equal(scfw.n_calls, 1);
+    assert_int_equal(scfw.calls[0].svc, SC_RPC_SVC_MISC);
+    assert_int_equal(scfw.calls[0].func, MISC_FUNC_UNIQUE_ID);
+
+    /* The answer as large as it may be is the same id */
+    scfw.uid_words = SC_RPC_MAX_MSG;
+    memset(id, 0xa5, sizeof(id));
+    length = sizeof(id);
+    assert_int_equal(plat_get_unique_id(id, &length), PB_OK);
+    assert_memory_equal(id, expected, sizeof(expected));
+
+    /* Zero isn't refused: nothing says it can't be an id (plat.c) */
+    scfw.uid_words = 0;
+    scfw.uid[0] = 0;
+    scfw.uid[1] = 0;
+    length = sizeof(id);
+    assert_int_equal(plat_get_unique_id(id, &length), PB_OK);
+    assert_int_equal(length, 8);
+}
+
+/* platform.md 3.5 (F-416): the SCFW's function has no error, so the answer's
+ * size is what is checked. One without the id's two words, or one the
+ * messaging unit refused as too large, is an error, and nothing is written:
+ * never the request's words or the stack's as an id */
+static void test_unique_id_answer_without_the_id(void **state)
+{
+    static const uint8_t sizes[] = { 1, 2, SC_RPC_MAX_MSG + 1 };
+    uint8_t untouched[16];
+    uint8_t id[16];
+    size_t length;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    scfw.uid[0] = 0x01020304;
+    scfw.uid[1] = 0x05060708;
+    memset(untouched, 0xa5, sizeof(untouched));
+
+    for (size_t i = 0; i < ARRAY_SIZE(sizes); i++) {
+        scfw.uid_words = sizes[i];
+        memset(id, 0xa5, sizeof(id));
+        length = sizeof(id);
+
+        assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_IO);
+        assert_memory_equal(id, untouched, sizeof(id));
+        assert_int_equal(length, sizeof(id));
+    }
+}
+
+/* platform.md 3.5: a buffer that is too small is its own error, and nothing
+ * is asked or written */
+static void test_unique_id_buffer_too_small(void **state)
+{
+    uint8_t id[8] = { 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5 };
+    size_t length = 7;
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    scfw.n_calls = 0;
+    assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(id[0], 0xa5);
+    assert_int_equal(scfw.n_calls, 0);
+}
+
 /* platform.md 3.11: the SoC, its clocks and its specifics, from the SCFW */
 static void test_get_info(void **state)
 {
@@ -671,6 +767,9 @@ int main(void)
         cmocka_unit_test_setup(test_boot_source, setup),
         cmocka_unit_test_setup(test_boot_source_scfw_error, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
+        cmocka_unit_test_setup(test_unique_id, setup),
+        cmocka_unit_test_setup(test_unique_id_answer_without_the_id, setup),
+        cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
         cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
