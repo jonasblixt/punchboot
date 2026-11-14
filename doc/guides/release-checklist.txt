@@ -3,7 +3,7 @@
 1) Run tests
     $ scripts/pbdev test
 
-2) Update 'Changelog'
+2) Update 'CHANGELOG.md'
     Run 'git log --oneline --decorate' for summary of changes
 
 3) Update README if relevant
