@@ -1493,6 +1493,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `OTGSC.BSV`, as Linux's chipidea `ci_handle_vbus_change()`) as it reports a bus reset; where VBUS | |
 | | | doesn't reach the controller nothing is reported, as before. One sample, no debounce: on the bench, | |
 | | | BSV during a 4 MiB write on a bus powered jiffy, and on the RT1060 and the DXL. Done | |
+| F-204 | `cdns3_udc_core.c:507` | `cdns3_udc_core_stop()` is a stub: after `disconnect()` the MEK | Reported | fixed (`b4341687`, `bc26d789`) |
+| | | stays enumerated with EP0 armed at pb's `setup_pkt`, a SETUP after the handover writes 8 bytes into the | | |
+| | | OS's memory. | | |
+| | | 2026-11-14 (`b4341687`, `bc26d789`): `stop` leaves the bus (`USB_CONF_DEVDS`), disables and resets | |
+| | | each endpoint pb enabled, endpoint 0 included (`EP_CMD_EPRST`, 1 ms), interrupts off, as Linux 6.1's | |
+| | | gadget unbind; the operations are `-PB_ERR_STATE` until `init`; the i.MX glue then holds the block | |
+| | | in reset (`ALL_SW_RESET`), power and clocks left for the next stage, whose glue resets it itself. | |
+| | | Only command mode's path reaches it. Not run on a board: on the MEK a boot from command mode to | |
+| | | Linux, Linux's USB after it, `dev reset`, a restart of the transport. Done but the bench | |
 
 ## Dependencies / vendored code
 

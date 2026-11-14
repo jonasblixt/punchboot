@@ -128,9 +128,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | blocks (refusing it could stop a small byte addressed e.MMC that boots today; for Jonas) | | |
 | | | 2026-11-13 (`d8d98609`): a partly programmed SRK word is completed when its bits are a subset of the | | |
 | | | hash's word (`command-mode.md` 5.2); one with another bit is still refused | | |
-| F-204 | `cdns3_udc_core.c:507` | `cdns3_udc_core_stop()` is a stub: after `disconnect()` the MEK | Reported | open |
-| | | stays enumerated with EP0 armed at pb's `setup_pkt`, a SETUP after the handover writes 8 bytes into the | | |
-| | | OS's memory. | | |
 | F-205 | USB, low | cdns3: `setup_pkt` shares its cache line with boot.c's callbacks and digest | Reported | open |
 | | | (invalidated per SETUP, F-081 class); `trb[128]` and `align_buffer` bounds; four waits without timeout. | | |
 | | | dwc3 rounds an OUT TRB up to the max packet: up to 511 bytes past a part in a RAM boot. | | |
@@ -526,6 +523,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | ChipIdea, the DWC3 and the cdns3 check `CONFIG_CM_BUF_SIZE_KiB` and `CONFIG_BOOT_LOAD_CHUNK_kB` | |
 | | | against theirs at build time (the migration guide names the limits). Left: a restart without a | |
 | | | disconnect, the disconnect's ignored result, the DWC3's read of 0 bytes, (2), (4) | |
+| | | 2026-11-14 (`e18b4785`, `55ac5fe2`, `ee03e73f`, `1c7001b4`): of (1), every restart in command mode | |
+| | | is a disconnect, then `init` (`CM_RESTART`), and the socket's disconnect closes the client; a | |
+| | | disconnect that fails before a jump is a failed boot (no jump, pb resets), at a restart a failed | |
+| | | start (pb resets); of (3), the DWC3 refuses a read of 0 bytes, and command mode never asks for one: | |
+| | | a `STREAM_PREPARE_BUFFER` of size 0 (v2.7.1's C API passes any size) reads nothing and answers as | |
+| | | before. Left: (2) a short read, (4) speed. Not run on a board | |
 | F-310 | `doc/interfaces/bio.md`, `include/pb/bio.h` | `bio.md` describes five | Verified (code) | open |
 | | | functions of `bio.h` and doesn't name them: `bio_set_ios()` and `bio_set_ios_erase()` ("then | | |
 | | | the callbacks", 2.1), `bio_get_hal_flags()` (2.5 names the setter), | | |
@@ -826,6 +829,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | ends the OCRAM at 0x920000 (128 KiB, the 6UL's and the 6ULL's): the 128 KiB above are mapped as Normal | | |
 | | | memory, F-158's class. Found by the review of F-158's package, unverified against the RM: read the 6UL | | |
 | | | RM's memory map (an alias of the OCRAM, or reserved), then map 128 KiB | | |
+| F-438 | `src/drivers/usb/imx_ci_udc.c` | The ChipIdea splits a bulk transfer into dTDs of 16 KiB plus the bounced | Reported (review) | open |
+| | | head (`align_length`): for a buffer that isn't 512 byte aligned the first dTD's length isn't a multiple of | | |
+| | | the packet, and a packet can't span two dTDs (RM 42.5.6.4.1, the 6UL's 54.4.6.4.1): an OUT longer than | | |
+| | | 16 KiB overflows at that boundary (it hung; with F-137's branch it is `-PB_ERR_IO`), an IN sends a short packet | | |
+| | | in the middle. The boot's bounce buffer is only line aligned, and a load address may be too (`boot bpak` on | | |
+| | | jiffy). Found by the review of F-137's branch: split at packet multiples, or align the dTDs' buffers | | |
 | F-434 | `src/drivers/usb/cdns3_udc_core.c`, the MEK | `part write` of the 15 MB `boot.bpak` | Verified | fixed |
 | | | fails at `246bd897` with "Bad result magic 0xf9401421", seven times out of seven, also after a | | |
 | | | `dev reset`: the host reads the image's own bytes (offset 0x1660) where the device's result | | |
