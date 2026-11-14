@@ -138,7 +138,7 @@ CASES = [
     # DRAM's end, below it, in no memory, and over the on-chip RAM's end
     (
         "jiffy",
-        {"CONFIG_PB_BUFFERS_BASE": "0xbf001000"},
+        {"CONFIG_PB_BUFFERS_BASE": "0xbf022000"},
         BUFFERS_NOT_IN + "the board's DRAM or the OCRAM",
     ),
     (
@@ -172,6 +172,12 @@ CASES = [
         {"CONFIG_PB_BUFFERS_BASE": "0x80000000"},
         BUFFERS_NOT_IN + "the OCRAM, the DTCM or the board's DRAM",
     ),
+    # The linker holds the regions' ends, where a board's image data region
+    # starts (F-391): a pb or buffers that need more than the board gives them
+    ("jiffy", {"CONFIG_PB_SIZE": "0x30000"}, "region `ram' overflowed"),
+    ("jiffy", {"CONFIG_PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
+    ("imx8qxmek", {"CONFIG_PB_SIZE": "0x50000"}, "region `ram' overflowed"),
+    ("imx8mpevk", {"CONFIG_PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
     # A Firmware Handoff region that isn't in such memory: in the ROM's data,
     # in the flash, in no memory, over the DRAM's end and below it, over the
     # OCRAM's end
@@ -214,12 +220,16 @@ CASES = [
 
 # The regions the boards' defconfigs give, (origin, length), as pb.map has
 # them. A length that ld can't work out is every address, without a message.
+# pb's region and the buffers' end where the board's next image data region
+# starts (F-391): jiffy's at 0x80101000 and 0x82000000, the MEK's at
+# 0x80080000 and 0x86000000, the 8MP EVK's buffers' at 0x41060000, the RT1060
+# EVK's below pb.
 REGIONS = {
-    "jiffy": {"ram": (0x80001000, 0x100000), "buffers": (0x81021000, 0x1000000)},
+    "jiffy": {"ram": (0x80001000, 0x100000), "buffers": (0x81021000, 0xFDF000)},
     "imxrt1060evk": {"ram": (0x20249000, 0x40000), "buffers": (0x20289000, 0x37000)},
     "imx8qxmek": {
         "reset": (0x80000000, 0x20000),
-        "ram": (0x80020000, 0x1000000),
+        "ram": (0x80020000, 0x60000),
         "buffers": (0x85000000, 0x1000000),
     },
     "imx8mpevk": {

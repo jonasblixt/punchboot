@@ -389,17 +389,19 @@ static const struct boot_ab_state_config boot_state_cfg = {
 /*
  * Where an image's parts may be loaded (board.md 2.9): the RAM an application
  * is linked for. OCRAM2 between the transfer list's region, which follows the
- * ROM's data, and pb, which is linked from 0x20249000 to the end of the OCRAM
- * (link.lds), and the two TCMs, which pb doesn't use. The SDRAM isn't set up.
+ * ROM's data, and pb, which is linked from 0x20249000 to the end of the OCRAM,
+ * and the two TCMs, which pb doesn't use. The SDRAM isn't set up.
  * board_setup() checks the list against what is linked and against the
  * transfer list's region.
  *
- * The transfer list's region has one source, the defconfig (platform.md 5.1):
- * the OCRAM2 region starts where it ends. A defconfig that has it somewhere
- * else than after the ROM's data, or leaves nothing below pb, doesn't build.
+ * The transfer list's region and pb's entry have one source, the defconfig
+ * (platform.md 5.1): the OCRAM2 region starts where the first ends, and ends
+ * at CONFIG_PB_ENTRY. A defconfig that has the transfer list's region
+ * somewhere else than after the ROM's data, or leaves nothing below pb,
+ * doesn't build.
  */
 #define BOARD_OCRAM2_IMAGE_BASE (CONFIG_BOOT_FH_REGION_BASE + CONFIG_BOOT_FH_REGION_SIZE)
-#define BOARD_OCRAM2_IMAGE_END  0x20249000
+#define BOARD_OCRAM2_IMAGE_END  CONFIG_PB_ENTRY
 
 _Static_assert(CONFIG_BOOT_FH_REGION_BASE == IMXRT_OCRAM2_BASE + IMXRT_OCRAM2_ROM_SIZE,
                "CONFIG_BOOT_FH_REGION_BASE is not the end of the ROM data in OCRAM2");

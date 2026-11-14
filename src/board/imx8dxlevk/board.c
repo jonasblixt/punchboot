@@ -326,16 +326,28 @@ static const struct boot_ab_state_config boot_state_cfg = {
 /*
  * Where an image's parts may be loaded (board.md 2.9): the DRAM, 1 GiB from
  * 0x80000000, without pb, which runs in it (src/plat/imx8x/link.lds). BL31
- * goes where pb's reset stub was. pb is linked from 0x80020000 and its
- * buffers from 0x85000000, 16 MiB each. pb's 16 MiB aren't all kept: the
- * build uses less than 256 KiB, and a kernel with the older text offset is at
- * 0x80080000 (the MEK's images, this board's aren't known). board_setup()
- * checks the list against what is linked.
+ * goes where pb's reset stub was. pb is linked from 0x80020000, with room to
+ * 0x80080000: the build uses less than 256 KiB, and a kernel with the older
+ * text offset is at 0x80080000 (the MEK's images, this board's aren't
+ * known). Its buffers have 16 MiB from 0x85000000.
+ *
+ * The regions and the link have one source, the defconfig (platform.md
+ * 5.1): a region starts where pb's region (CONFIG_PB_ENTRY, CONFIG_PB_SIZE)
+ * or its buffers' (CONFIG_PB_BUFFERS_BASE, _SIZE) ends, so the link fails
+ * when pb or its buffers grow into one. board_setup() checks the list
+ * against what is linked.
  */
+#define BOARD_PB_END      ((uint64_t)CONFIG_PB_ENTRY + CONFIG_PB_SIZE)
+#define BOARD_BUFFERS_END ((uint64_t)CONFIG_PB_BUFFERS_BASE + CONFIG_PB_BUFFERS_SIZE)
+
+_Static_assert(CONFIG_PB_SIZE != 0,
+               "CONFIG_PB_SIZE is where the image data region after pb starts");
+
 static const struct boot_image_region image_regions[] = {
     BOOT_IMAGE_REGION(IMX8X_ATF_BASE, IMX8X_ATF_SIZE),
-    BOOT_IMAGE_REGION(0x80080000, 0x85000000 - 0x80080000), /* Between pb and its buffers */
-    BOOT_IMAGE_REGION(0x86000000, 0xc0000000 - 0x86000000),
+    /* Between pb and its buffers */
+    BOOT_IMAGE_REGION(BOARD_PB_END, CONFIG_PB_BUFFERS_BASE - BOARD_PB_END),
+    BOOT_IMAGE_REGION(BOARD_BUFFERS_END, 0xc0000000 - BOARD_BUFFERS_END),
     BOOT_IMAGE_REGION_END,
 };
 

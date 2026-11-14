@@ -244,9 +244,15 @@ static const struct gpt_table_list gpt_tables[] = {
  * controller's state and pb's buffers, to 0x41060000
  * (src/plat/imx8m/link.lds). pb itself runs from on-chip RAM. The board has
  * no handover yet (F-300), so nothing is loaded.
+ *
+ * The region and the link have one source, the defconfig (platform.md 5.1):
+ * the region starts where the buffers' region (CONFIG_PB_BUFFERS_BASE,
+ * _SIZE) ends, so the link fails when the buffers grow into it.
  */
+#define BOARD_BUFFERS_END ((uint64_t)CONFIG_PB_BUFFERS_BASE + CONFIG_PB_BUFFERS_SIZE)
+
 static const struct boot_image_region image_regions[] = {
-    BOOT_IMAGE_REGION(0x41060000, BOARD_RAM_END - 0x41060000),
+    BOOT_IMAGE_REGION(BOARD_BUFFERS_END, BOARD_RAM_END - BOARD_BUFFERS_END),
     BOOT_IMAGE_REGION_END,
 };
 
