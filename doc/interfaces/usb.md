@@ -113,7 +113,7 @@ return at once; `cm_transport_complete()` says when it is done.
   boot's bounce buffer when that address doesn't. Any other is refused, `-PB_ERR_ALIGN`.
 - **A read is done when exactly `length` bytes arrived**, and nothing is written past them.
   Fewer bytes at the end of the host's transfer (a short packet) is an error: the two sides
-  no longer agree (`command-mode.md` 4.4). **Not yet in the code (F-137, F-205, F-287)**: no
+  no longer agree (`command-mode.md` 4.4). **Not yet in the code (F-205, F-287)**: no
   controller reports a short read, and one writes up to a packet past the buffer.
 - **A read that is whole packets ends at its length**, and what the host sent beyond it stays
   for the next read. `BOOT_BPAK`'s parts rest on it: the host splits a part into transfers of
@@ -449,10 +449,10 @@ checklist's last item.
 
 | Finding      | What                                                                        |
 | ------------ | --------------------------------------------------------------------------- |
-| F-137, F-205 | An OUT transfer ends at `length`, writes nothing past it, and its result is |
+| F-205        | An OUT transfer ends at `length`, writes nothing past it, and its result is |
 |              | the controller's (2.3, 4.3)                                                 |
 | F-280        | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)       |
 | F-138        | Endpoint 0: stall and bounds (3.2)                                          |
-| F-136, F-205 | Every wait is bounded (4)                                                   |
+| F-205        | Every wait is bounded (4)                                                   |
 | F-139, F-140 | The ChipIdea's set up against its reference manual                          |
 | F-172        | Writes that reset the MEK                                                   |
