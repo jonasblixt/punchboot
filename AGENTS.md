@@ -58,7 +58,8 @@ Do not read these up front. Open only what the task needs.
 
 Skip unless the task is about them: `pki/` (test keys), vendored code
 (`scripts/kconfiglib.py`, `src/lib/{fdt,uuid,libc}`, `src/plat/imx8x/sci`,
-`src/boot/atf-interface`, `include/xlat_tables`), binary files under `doc/`.
+`src/boot/atf-interface`, `include/xlat_tables`; what each is and its version:
+`doc/guides/vendored.md`), binary files under `doc/`.
 
 ## Essentials
 

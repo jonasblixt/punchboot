@@ -42,6 +42,8 @@ Beside the levels, not normative:
 |           | `porting.md`            | A new board, driver or platform: the order, and where    |
 |           |                         | each rule is                                             |
 |           | `release-checklist.txt` | The steps of a release                                   |
+|           | `vendored.md`           | The code pb didn't write: upstream, version, licence and |
+|           |                         | local changes of each piece                              |
 | `dev/`    | `status.md`             | Where the work is: read first                            |
 |           | `roadmap.md`            | What comes next, and what is to be discussed             |
 |           | `decisions.md`          | Why: D-nnn, appended; the index says what still holds    |
