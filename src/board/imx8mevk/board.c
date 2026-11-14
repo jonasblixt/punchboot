@@ -48,10 +48,15 @@ static int board_command(uint32_t command,
         LOG_DBG("Got test command");
         char *response = (char *)response_bfr;
         size_t resp_buf_size = *response_size;
+        int n = snprintf(response, resp_buf_size, "Test command hello 0x%x\n", command);
 
-        (*response_size) = snprintf(response, resp_buf_size, "Test command hello 0x%x\n", command);
-
-        response[(*response_size)++] = 0;
+        /* The text and its NUL, cut to the room there is */
+        if (n < 0 || resp_buf_size == 0) {
+            *response_size = 0;
+        } else {
+            *response_size = ((size_t)n < resp_buf_size) ? (size_t)n : resp_buf_size - 1;
+            response[(*response_size)++] = 0;
+        }
     } else {
         *response_size = 0;
     }
