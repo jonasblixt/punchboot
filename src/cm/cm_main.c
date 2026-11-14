@@ -217,6 +217,8 @@ static int error_to_wire(int error_code)
         return -PB_RESULT_INVALID_ARGUMENT;
     case -PB_ERR_NOT_SUPPORTED:
         return -PB_RESULT_NOT_SUPPORTED;
+    case -PB_ERR_BAD_PAYLOAD:
+        return -PB_RESULT_BAD_PAYLOAD;
     default:
         return -PB_RESULT_ERROR;
     }
@@ -1292,8 +1294,9 @@ static int pb_command_parse(void)
         rc = cmd_boot_bpak();
         return rc; /* Should not return, we should not try to send a result */
         break;
-    case PB_CMD_PART_TBL_INSTALL: /* Deprecated */
-    {
+    case PB_CMD_PART_TBL_INSTALL: {
+        /* In use, not deprecated: how a device gets its table (board.md
+         * 2.1, 2.4, command-mode.md 5.3) */
         struct pb_command_install_part_table *install_cmd =
             (struct pb_command_install_part_table *)cmd.request;
         if (cm_part_hidden(install_cmd->uu))
@@ -1372,6 +1375,7 @@ static int pb_command_parse(void)
         rc = cmd_auth();
         break;
     case PB_CMD_AUTH_SET_PASSWORD: {
+        /* Reserved: never implemented (command-mode.md 5.8) */
         pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
     } break;
     case PB_CMD_BOARD_COMMAND:
@@ -1412,7 +1416,14 @@ static int pb_command_parse(void)
     } break;
     case PB_CMD_SLC_SET_EOL: {
         LOG_DBG("Set EOL");
+#ifdef CONFIG_SLC_EOL
         rc = slc_set_eol();
+#else
+        /* EOL without the product's option (system.md 4): the build left
+         * it out, which is NOT_SUPPORTED and never INVALID_COMMAND
+         * (command-mode.md 4.5, 5.2) */
+        rc = -PB_ERR_NOT_SUPPORTED;
+#endif
         pb_wire_init_result(&result, error_to_wire(rc));
         slc = slc_read_status();
     } break;
@@ -1429,8 +1440,10 @@ static int pb_command_parse(void)
         pb_wire_init_result(&result, error_to_wire(rc));
         break;
     case PB_CMD_PART_RESIZE: {
-        /* Deprecated and no longer supported,
-         * Use partition table configration index instead. */
+        /* Retired before 1.0.0: the partition table's variants replaced
+         * it. A retired command keeps its case and answers NOT_SUPPORTED,
+         * behind the gate, and its number is never reused (command-mode.md
+         * 5.8, compatibility.md) */
         pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
     } break;
     case PB_CMD_BOOT_STATUS: {

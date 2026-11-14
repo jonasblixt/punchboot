@@ -40,7 +40,8 @@ def test_install_partition_table(blank_device: Device) -> None:
     with blank_device.session() as s:
         s.part_table_install(DISK_UUID)
 
-    # The new table is used after the next boot
+    # The new table is in effect at once (F-194, test_gpt.py); after a
+    # reset it is read from the disk
     blank_device.reboot()
 
     with blank_device.session() as s:
