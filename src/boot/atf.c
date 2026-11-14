@@ -87,15 +87,25 @@ static uint32_t bl33_spsr(void)
     return SPSR_64(mode, MODE_SP_ELX, DISABLE_ALL_EXCEPTIONS);
 }
 
-/* OP-TEE's execution state, from the image's attribute for it: 64 without one */
+/*
+ * OP-TEE's execution state, from the image's attribute for it: 64 without one.
+ * The value is the meta's own bytes (F-417), as a part's load address is
+ * (boot_image_load_addr()): 4 or more, the first 4 as every release read
+ * them; fewer, zero extended, never the bytes after the meta.
+ */
 static uint32_t optee_rw(struct bpak_header *hdr)
 {
     struct bpak_meta_header *mh;
+    uint32_t bits = 0;
 
-    if (bpak_get_meta_anyref(hdr, BPAK_ID_OPTEE_ARCH, &mh) == BPAK_OK)
-        return (*bpak_get_meta_ptr(hdr, mh, uint32_t) == 32) ? MODE_RW_32 : MODE_RW_64;
+    if (bpak_get_meta_anyref(hdr, BPAK_ID_OPTEE_ARCH, &mh) != BPAK_OK)
+        return MODE_RW_64;
 
-    return MODE_RW_64;
+    memcpy(&bits,
+           bpak_get_meta_ptr(hdr, mh, uint8_t),
+           (mh->size < sizeof(bits)) ? mh->size : sizeof(bits));
+
+    return (bits == 32) ? MODE_RW_32 : MODE_RW_64;
 }
 
 /* The size of the part that is loaded at 'addr' */
