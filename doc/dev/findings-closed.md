@@ -1320,3 +1320,6 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | 2026-11-14: pb-host no longer dies from SIGPIPE, ends with the process that started it, and the | |
 | | transcript recorder's answers time out (the library's socket had 60 s already). A `-m32` job is | |
 | | F-428's | |
+| F-041 | Wheels are never tested (no cibuildwheel `test-command`, before D-021). There are no Python unit tests. | fixed (D-021, `22c077b3`) |
+| | 2026-11-14: `tests/unit/python`, 100 pytest cases of the host tools without a device (the wire's | |
+| | packing, the error mapping, bpak detection, the CLI on a fake session), in ctest as `unit.python` | |

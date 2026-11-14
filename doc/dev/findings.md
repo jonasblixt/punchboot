@@ -188,6 +188,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 99.2%. `imx_caam.c` 38%: `caam_ecda_verify` and the hash path 0%. Never compiled by a host test: | | |
 | | | `boot/atf.c`, `boot/simple.c`, `usbd.c`, `pb_dev_cls.c`, `partition/static.c`. No tests: `imx_ocotp.c`, | | |
 | | | `imx6ul/hab.c`, the 8X RoT/SLC helpers, the UDCs, `imx_flexspi.c`. | | |
+| | | 2026-11-14 (`d4b509a2`..`09a2c478`): measured with CI's gcovr command at `63249d59`: 77.0% of lines, | | |
+| | | and 77.4% (7921/10237) with the new tests; 91.8% without NXP's SCFW clients. `hab.c` and the 8X's | | |
+| | | fuse, RoT and SLC helpers are at 100%, and `testing.md` has the figure with its date and command, a | | |
+| | | row for every test program and the files no test compiles. Left: the DWC3's driver, the virtio | | |
+| | | drivers (F-052), what `testing.md` lists as least covered | | |
 | F-231 | build, low | Pre-release builds identify as 3.0.0. `blobs/` is shared in the source root | Reported | open |
 | | | (pb relinks every make). pbstate is built without sanitizers. `-fno-stack-protector`, no `-Wundef`. | | |
 | | | `.gitignore` ignores `*.bin` globally, matching tracked pki files. | | |
@@ -759,6 +764,20 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | its configuration and 1 GiB on the board. The six defconfigs aren't what `olddefconfig` writes. | | |
 | | | `CONFIG_PB_SIZE` isn't in `platform.md` 5.1's table, and 5.3's "everything pb links is in one | | |
 | | | of the two" doesn't hold for the 8X's stub, by design | | |
+| F-429 | `src/plat/imx8x/{fusebox,rot_helpers}.c` | The 8X's fuse helpers, found by the tests | Verified (test) | open |
+| | | written for them. `imx8x_is_srk_fused()` ignores a failed fuse read and tests an uninitialised | | |
+| | | value; the SLC's status and a key's revocation rest on it. `imx8x_fuse_write_srk()` doesn't | | |
+| | | compare what is fused: `slc configure` on a device with another or a partly written hash | | |
+| | | writes all 16 words again, where the 6UL's driver refuses another hash and completes a partial | | |
+| | | one (F-200); what the SCFW does with a word written twice isn't known. | | |
+| | | `imx8x_read_key_status()` has no slot check: slots 4 and up read as not revoked, and 32 or more | | |
+| | | is an undefined shift. `test_imx8x_helpers` pins what the code does today | | |
+| F-430 | `src/plat/imx6ul/hab.c` | Low. The loop over the HAB's failure events starts its index | Verified (test) | open |
+| | | where the warnings ended: with one warning and one failure the failure is asked for at index 1 | | |
+| | | and never logged (the log only; the answer is the HAB's status). `hab_secureboot_active()` has | | |
+| | | no caller, `get_idx()` and `struct record` are unused. `helpers.py` `pb_id()` takes a | | |
+| | | character's code point modulo 256, not its UTF-8 bytes: a name that isn't ASCII gets another id | | |
+| | | than the device computes | | |
 
 ## Dependencies / vendored code
 
@@ -768,6 +787,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | 2026-11-13 (`a1c5a80f`): BASE64 and PKCS1_V21 are off; neither was compiled into a build, the | |
 | | RT1060's `pb.bin` is the same with and without. Left: the pin to 3.4.0 | |
 | F-022 | Vendored code has no version record: Kconfiglib, libfdt, libuuid, TF-A xlat_tables_v2 + libc, NXP SCFW (littlefs was removed). | open |
+| | 2026-11-14, what the files and the history say (the coverage package; upstream's dates from memory): | |
+| | Kconfiglib 14.1.0 (its `VERSION`, imported `e21a6592`, since reformatted); libfdt of dtc 1.4.1 or a | |
+| | snapshot before 1.4.2 (inferred: error codes to `BADNCELLS`, no overlay code; `03a97c91`); libuuid | |
+| | of util-linux 2.16 to 2.19, through bpak's copy (`60615325`); TF-A's xlat tables of about v2.3 | |
+| | (`ab6b8beb`), and the folder `xlat_tables_v2` holds TF-A's v1 library; libc of TF-A v2.0 | |
+| | (`d7eb9189`); NXP's SCFW API 1.31 (`ba72c499`, the NXP release unknown). None was synced since its | |
+| | import. Left: the record in the tree | |
 
 ## Dead code / cleanup
 
@@ -778,6 +804,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | The RT1060 EVK runs on the bench. Left: `bebop_defconfig` and `pico8ml_defconfig` have no | |
 | | board in `src/board/`; which boards to keep | |
 | F-035 | The same data is defined in several places: exception names (C ×1, Python ×3, before D-021), partition flags, SLC enum, and the crc32 id table (`helpers.py`, could be `zlib.crc32`). | partly fixed (D-021): exception names are defined once (`errors.py`), and `wire.py` mirrors the wire values checked against `abi.txt`. Left: `pbtest.py`'s `PB_CMD_*`, the crc32 table |
+| | 2026-11-14 (`93508742`): the tests take their wire values from `wire.py`. `zlib.crc32(name, | |
+| | 0xffffffff) ^ 0xffffffff` equals `pb_id()` for every name in use and any ASCII name | |
+| | (`test_pb_id.py`): the table in `helpers.py` can go. Left: that change in `tools/` | |
 | F-145 | De-duplication left from the 2026-10-29 slimming review (D-020): board boilerplate (default GPT table and `partitions.h` byte-identical in 5 boards, the same `board_init` sequence and 3 dev keys in all, cm `.tops` in 6), ~900 lines; the write/read/check/print block 42 times in `tools/punchboot/api_*.c` and the validate/call/exception pattern 28 times in `python_wrapper.c`, ~550; `plat_mmu_init` and `plat_get_unique_id` near-identical in imx6ul/imx8m/imx8x; the bpak hash-kind switch 4 times in `image_helpers.c`; one-provider crypto ops tables; `test_mmc_core.c`'s own fake card vs the card models. Porting API: `arch_init()` empty everywhere, single-member `console_ops`, `board_init(struct imx*_platform *)` (imx8m struct empty), cm `command`/`status` stubs in 4 boards. | open; the host tools part is gone with the C library (D-021) |
 | | Checked 2026-11-12: gone with D-026 are the boards' `board_init` sequence and signature and | |
 | | their cm `.tops`; a shared default layout was tried and moved back (Jonas, D-026). One ops | |
@@ -789,7 +818,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 
 | ID | Finding | Status |
 |---|---|---|
-| F-041 | Wheels are never tested (no cibuildwheel `test-command`, before D-021). There are no Python unit tests. | partly fixed (D-021): `punchboot-tools.yml` installs and runs the wheel on Linux, Windows and macOS. No Python unit tests yet |
 | F-043 | No `ruff-format` hook despite the format config. mypy only runs through pre-commit.ci. There is no `_punchboot.pyi`. | open (`_punchboot.pyi` is moot since D-021) |
 | F-044 | Sphinx docs are mostly stubs, with version 1.0.0 in `conf.py`, broken header paths, and `sphinx<7`. The README test instructions are wrong (no `BOARD`). `doc/guides/release-checklist.txt` is stale. | partly fixed: Sphinx/RTD removed (D-020); README and the checklist still open |
 | F-052 | `src/drivers/virtio/*` has no user since `plat/qemu` was removed. Verified. | open: keep for a QEMU smoke tier, or remove |
