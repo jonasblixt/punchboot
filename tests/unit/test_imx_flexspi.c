@@ -42,6 +42,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "../../src/drivers/memc/imx_flexspi_private.h"
 #include "fakes/plat.h"
 #include "fakes/regs.h"
 
@@ -807,6 +808,25 @@ static void test_error_while_moving_data(void **state)
     assert_mem(BLOCK, out, BLOCK);
 }
 
+/* F-420: the watermarks, in 64 bit entries less one, go into IPRXFCR and
+ * IPTXFCR bits 5:2. The macros didn't shift: right for 8 bytes only, the
+ * size the driver sets, whose field is 0 */
+static void test_watermark_fields(void **state)
+{
+    (void)state;
+
+    assert_int_equal(FLEXSPI_IPRXFCR_RXWMRK(8), 0);
+    assert_int_equal(FLEXSPI_IPTXFCR_TXWMRK(8), 0);
+    assert_int_equal(FLEXSPI_IPRXFCR_RXWMRK(16), 1 << 2);
+    assert_int_equal(FLEXSPI_IPTXFCR_TXWMRK(16), 1 << 2);
+    assert_int_equal(FLEXSPI_IPRXFCR_RXWMRK(128), 0xf << 2);
+    assert_int_equal(FLEXSPI_IPTXFCR_TXWMRK(128), 0xf << 2);
+
+    /* What init leaves: 8 bytes, the FIFOs' clear bits cleared */
+    assert_int_equal(fake_regs_get(BASE + IPRXFCR) & 0x3d, 0);
+    assert_int_equal(fake_regs_get(BASE + IPTXFCR) & 0x3d, 0);
+}
+
 /* The codes of drivers.md 3: a port the controller doesn't have is the
  * caller's argument */
 static void test_port_out_of_range(void **state)
@@ -836,6 +856,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_any_length, setup, teardown),
         cmocka_unit_test_setup_teardown(test_port_out_of_range, setup, teardown),
         cmocka_unit_test_setup_teardown(test_error_while_moving_data, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_watermark_fields, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
