@@ -15,7 +15,7 @@
  *  1. The keys and   The platform's plat_rot and plat_slc (pb/plat.h), the
  *     the life cycle latter with slc_fuses: before anything that can fail, so
  *                    that command mode knows whether to ask for authentication
- *  2. init()         Hardware: crypto, storage
+ *  2. init()         Hardware: storage
  *  3. ptbl           The partition table
  *  4. boot_policy    The boot source policy
  *  5. late_init()    What needs the partitions
@@ -64,7 +64,7 @@ struct board {
     const struct slc_fuse *slc_fuses;
     size_t slc_fuses_length;
 
-    int (*init)(void); /*!< Hardware: crypto, storage */
+    int (*init)(void); /*!< Hardware: storage */
 
     /* The partition table: PTBL_GPT(), PTBL_STATIC() or PTBL_STATIC_MAPPED().
      * Absent: init() created the partitions, or there are none. A GPT has

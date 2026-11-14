@@ -218,8 +218,8 @@ keys, and CAAM's MID for OP-TEE.
 |                          | pb doesn't (F-246). CSU: OP-TEE    |                             |           |           |
 |                          | sets it and locks it; without it   |                             |           |           |
 |                          | the reset defaults (SRM, CSU_SA)   |                             |           |           |
-| Hardware RNG             | pb instantiates the CAAM's RNG4    | pb (boards)                 | unchecked | - (no     |
-|                          | (in the boards today)              |                             |           | CAAM)     |
+| Hardware RNG             | pb instantiates the CAAM's RNG4    | pb (`plat_init()`)          | unchecked | - (no     |
+|                          | (`plat_init()`)                    |                             |           | CAAM)     |
 | Crypto engine            | OP-TEE sets the job rings to the   | BL31                        | The       | -         |
 |                          | normal world                       |                             | SCFW/SECO |           |
 | handover                 | (`imx_caam.c`); the CSF unlocks    | (`imx8m_caam_init()`)       |           |           |
@@ -288,10 +288,12 @@ Where each port is (2026-11-11).
 |                                      |              |                   |            |           | F-261         |
 | `plat_lockdown()`                    | yes          | yes (nothing yet) | unchecked  | unchecked | F-244         |
 | Bus access control                   | no (AIPS-TZ) | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
-| `plat_rot`, `plat_slc`               | no           | no (no HAB)       | no         | no        | F-247         |
+| `plat_rot`, `plat_slc`               | yes          | yes (no HAB; the  | yes        | yes       |               |
+|                                      |              | 8MQ can't read a  |            |           |               |
+|                                      |              | key's status)     |            |           |               |
 | EOL as the SoC's own state           | no           | no                | no         | no        | F-263         |
-| Crypto engine and RNG in             | no           | no                | no         | yes       | F-247         |
-| `plat_init()`                        |              |                   |            |           |               |
+| Crypto engine and RNG in             | yes          | yes               | yes (no    | yes (Mbed |               |
+| `plat_init()`                        |              |                   | RNG)       | TLS)      |               |
 | MMU from `pb_mmu_init()`             | no           | no                | no         | n/a       | F-158         |
 | Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
 | Image stages                         | no           | no                | no         | no        | F-240         |

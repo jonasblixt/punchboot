@@ -86,7 +86,7 @@ main()
   plat_init()                              the memory map, with board.mmap: 2.8
   board_setup()                            src/board.c
     the board's data is checked            3
-    rot_init(board.rot), slc_init(board.slc)
+    rot_init(plat_rot), slc_init(plat_slc, board.slc_fuses)
     board.init()                           2.3
     the partition table                    2.4
     boot_policy_init()                     2.5, boot.md 3.1
@@ -160,16 +160,14 @@ Return   : int, PB_OK or -PB_ERR_*
 
 Called once by `board_setup()`, after the RoT and the SLC. Valid from: what `plat_init()` provides
 (`platform.md` 2.2): DRAM, the MMU, fuses, `<p>_plat()`. It sets up the hardware the boot needs:
-the storage the boot loads from (its bio devices and their partition UUIDs), and until F-247 the
-crypto engine and its RNG. What only command mode needs isn't the board's (4.1, D-023).
+the storage the boot loads from (its bio devices and their partition UUIDs). What only command
+mode needs isn't the board's (4.1, D-023).
 
 Failure, sorted the way `security.md` 4.5 sorts a failed precondition:
 
 - What the boot can't go on without, or what its security rests on, returns an error (2.1): the
-  device the boot loads from; until F-247 the crypto engine the boot verifies with, unless a
-  fallback verifies the same.
-- Anything else is logged, shown by `status()` (4.3), and returns PB_OK. jiffy: the CAAM's RNG,
-  which Linux needs and pb doesn't.
+  device the boot loads from.
+- Anything else is logged, shown by `status()` (4.3), and returns PB_OK.
 
 The second kind is what pb couldn't do and booted anyway, which pb reports to the next stage
 (`system.md` 5.4). The log and `status()` need a host, so the board also calls
@@ -609,7 +607,7 @@ OK means "loaded and verified", not "booted".
   that asks for the verified header (5.3) also includes the format's header, `<bpak/bpak.h>`.
 - It sets up the clocks and pads of the peripherals it selects: the UART, SD/MMC, Ethernet
   (`platform.md` 7). The platform does the timer, the watchdog, the fuse controller, the TrustZone
-  filter, DRAM, command mode's USB (4.1), and after F-247 the crypto engine and the RNG.
+  filter, DRAM, command mode's USB (4.1), the crypto engine and the RNG.
 - It reads the ROM's state, the boot source and the boot reason through the platform's services
   (`plat_get_boot_source()`, `plat_get_boot_reason()`). It may show raw registers in `status()`.
 - It may define tasks, which run while pb is stopped (4.5), and named commands, which a host
@@ -625,7 +623,7 @@ OK means "loaded and verified", not "booted".
 - The A/B state's four board registers (`boot_ab_state_read_board_reg()`, `_write_board_reg()`)
   are the board's, and what they mean is between the board and its OS (`boot.md` 3.7). The other
   policies have no state, so no registers.
-- It never writes fuses itself: the configuration fuses are data (`slc.fuses`), written by the
+- It never writes fuses itself: the configuration fuses are data (`slc_fuses`), written by the
   core's `slc_set_configuration()` (D-027). The root of trust's state changes only through the
   core (`security.md` 2).
 - It never verifies or starts an image itself (`security.md` 4.1), and never marks a partition
@@ -681,7 +679,7 @@ changes them only for a new product, never in an update:
 - The boot source policy and its data: the A/B state partitions, System A and B, a chain's
   order, and what the state's board registers mean (2.5, section 6). The state's format is
   `boot.md` 7's.
-- The configuration fuses (`slc.fuses`) and the keystore's slots (`CONFIG_KEYSTORE_SLOTS`, D-027):
+- The configuration fuses (`slc_fuses`) and the keystore's slots (`CONFIG_KEYSTORE_SLOTS`, D-027):
   fuses can't be unwritten.
 - The names of the board's commands, so their ids (`pb_id()` of each), and their answers
   (`command-mode.md` 5.6). A command a released board answered through `command()`, removed in

@@ -65,8 +65,7 @@ A backend registers its operations when it is set up: `hash_add_ops()`, `dsa_add
 with the algorithms it has (`alg_bits`).
 
 - **Set up by the platform**, in `plat_init()`, each behind its Kconfig option
-  (`platform.md` 2.2). The board's defconfig says which backends the build has. **Not yet in
-  the code (F-247)**: the boards set the engine up.
+  (`platform.md` 2.2). The board's defconfig says which backends the build has.
 - **A backend that failed isn't registered.** An algorithm no backend has is
   `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check that can't be made
   is a no (`security.md` 4.4). A failed verification engine refuses the boot before the load
@@ -289,8 +288,7 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 
 | Requirement                          | CAAM                    | Mbed TLS             | Finding      |
 | ------------------------------------ | ----------------------- | -------------------- | ------------ |
-| Set up by the platform               | no (the boards)         | yes on the RT; the   | F-247        |
-|                                      |                         | host's board         |              |
+| Set up by the platform               | yes (`test_plat_*`)     | yes (`test_plat_*`)  |              |
 | `hash_init()` starts clean           | yes                     | yes                  |              |
 |                                      | (`test_caam_crypto`)    |                      |              |
 | Any length and split                 | yes (the suite)         | yes (the suite)      |              |
@@ -342,4 +340,3 @@ simple target (D-025): F-181 was found in such a model, not on hardware. **Not y
 | Finding      | What                                                                            |
 | ------------ | ------------------------------------------------------------------------------- |
 | F-286        | The core and the backends against sections 3, 4 and 6; the suite on the bench   |
-| F-247        | The platform sets the backend up (2)                                            |

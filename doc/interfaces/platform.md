@@ -132,7 +132,7 @@ Called once by `main()`, after `board.console_init()`. When it returns PB_OK:
 - The MMU is on, where the arch has one, with the memory map of 5.2, after DRAM works.
 - The SoC's crypto engine and hardware RNG are set up when their Kconfig option is on. A board
   that needs the software implementation turns the option off in its defconfig. How they are
-  handed to the next stage is 4.5. **Not yet in the code (F-247)**: the boards set them up.
+  handed to the next stage is 4.5.
 - `plat_rot` and `plat_slc` can be used.
 - The state of everything 2.3 checks is known (`plat_get_status()`).
 
@@ -374,8 +374,6 @@ clocks, its power, its PHY and its controller, so that the transport can start.
 
 ### 4.1 Data : plat_rot [mandatory]
 
-**Not yet in the code (F-247)**: the boards set `board.rot` to the SoC's functions.
-
 ```c
 extern const struct rot_config plat_rot; /* revoke_key, read_key_status */
 ```
@@ -386,17 +384,13 @@ used; `revoke_key` returns -PB_ERR_NOT_SUPPORTED.
 
 ### 4.2 Data : plat_slc [mandatory]
 
-**Not yet in the code (F-247)**: `struct slc_config` is split into the SoC's operations and the
-board's data.
-
 ```c
 extern const struct slc_ops plat_slc; /* read_status, set_configuration(_locked), set_eol,
                                          fuse_read, fuse_write */
 ```
 
-The board keeps only its configuration fuses (`board.slc_fuses`, `board.slc_fuses_length`; today
-`fuses` in the board's `struct slc_config`, which `board.md` calls `slc.fuses`), by the platform's
-fuse index macro (`<P>_FUSE()`). `board_setup()` passes both to `slc_init()`. The
+The board keeps only its configuration fuses (`board.slc_fuses`, `board.slc_fuses_length`), by
+the platform's fuse index macro (`<P>_FUSE()`). `board_setup()` passes both to `slc_init()`. The
 rules (the order of the states, D-011, F-166) are the core's, in `slc.c`; the platform only reads
 and writes fuses.
 
