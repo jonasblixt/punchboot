@@ -87,16 +87,25 @@ int imx8x_fuse_write_srk(const uint32_t *srk, size_t words)
     return PB_OK;
 }
 
-bool imx8x_is_srk_fused(void)
+int imx8x_is_srk_fused(bool *fused)
 {
     uint32_t val;
+    int rc;
+
+    *fused = false;
 
     for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
-        (void)imx8x_fuse_read(IMX8X_FUSE_SRK0 + n, &val);
+        rc = imx8x_fuse_read(IMX8X_FUSE_SRK0 + n, &val);
 
-        if (val != 0)
-            return true;
+        /* Unknown, not "not fused" */
+        if (rc != PB_OK)
+            return rc;
+
+        if (val != 0) {
+            *fused = true;
+            return PB_OK;
+        }
     }
 
-    return false;
+    return PB_OK;
 }

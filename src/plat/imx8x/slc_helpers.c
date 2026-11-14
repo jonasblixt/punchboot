@@ -26,6 +26,8 @@ slc_t imx8x_slc_read_status(void)
     uint16_t monotonic;
     uint32_t uid_l;
     uint32_t uid_h;
+    bool fused;
+    int rc;
 
     if (sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h) != SC_ERR_NONE) {
         LOG_ERR("Could not read the life cycle");
@@ -39,9 +41,15 @@ slc_t imx8x_slc_read_status(void)
     /**
      * Note: If SRK fuses are set or partially set we
      * report 'SLC_CONFIGURATION'. This is not perfect but will probably
-     * cover most cases.
+     * cover most cases. An SRK word that can't be read leaves the life cycle
+     * unknown (security.md 4.4).
      */
-    if (imx8x_is_srk_fused())
+    rc = imx8x_is_srk_fused(&fused);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (fused)
         return SLC_CONFIGURATION;
     else
         return SLC_NOT_CONFIGURED;

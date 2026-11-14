@@ -134,6 +134,15 @@ static void fuse_srk(void)
         scfw.fuses[IMX8X_FUSE_SRK0 + n] = srk_fuse[n];
 }
 
+/* imx8x_is_srk_fused(), whose reads work */
+static bool srk_fused(void)
+{
+    bool fused;
+
+    assert_int_equal(imx8x_is_srk_fused(&fused), PB_OK);
+    return fused;
+}
+
 /* Without the SCFW's handle nothing is read or written */
 static void test_no_ipc(void **state)
 {
@@ -176,7 +185,7 @@ static void test_fuse_srk(void **state)
     other[15] = 0;
     assert_int_equal(imx8x_fuse_write_srk(other, IMX8X_SRK_HASH_WORDS), -PB_ERR_PARAM);
     assert_int_equal(scfw.writes, 0);
-    assert_false(imx8x_is_srk_fused());
+    assert_false(srk_fused());
 
     assert_int_equal(imx8x_slc_set_configuration(), PB_OK);
     assert_int_equal(scfw.writes, IMX8X_SRK_HASH_WORDS);
@@ -184,7 +193,7 @@ static void test_fuse_srk(void **state)
     for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++)
         assert_int_equal(scfw.fuses[IMX8X_FUSE_SRK0 + n], srk_fuse[n]);
 
-    assert_true(imx8x_is_srk_fused());
+    assert_true(srk_fused());
 }
 
 /* A write that fails stops the hash where it is: the words before it are
@@ -232,14 +241,60 @@ static void test_srk_fused_by_any_word(void **state)
     for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
         memset(scfw.fuses, 0, sizeof(scfw.fuses));
         scfw.fuses[IMX8X_FUSE_SRK0 + n] = 0x80000000;
-        assert_true(imx8x_is_srk_fused());
+        assert_true(srk_fused());
     }
 
     /* The words around the hash aren't it */
     memset(scfw.fuses, 0, sizeof(scfw.fuses));
     scfw.fuses[IMX8X_FUSE_SRK0 - 1] = 1;
     scfw.fuses[IMX8X_FUSE_SRK15 + 1] = 1;
-    assert_false(imx8x_is_srk_fused());
+    assert_false(srk_fused());
+}
+
+/* F-429: an SRK word that can't be read leaves the life cycle unknown, an
+ * error and not a state (security.md 4.4, command-mode.md 3.2). A word read
+ * before it that is fused has decided already, and so has a closed SECO */
+static void test_srk_read_fails(void **state)
+{
+    struct rot_key key = { .id = 0xa90f9680, .slot = 0 };
+    bool fused = true;
+    (void)state;
+
+    scfw.read_fails_at = 1;
+    assert_int_equal(imx8x_is_srk_fused(&fused), -PB_ERR_IO);
+    assert_false(fused);
+
+    scfw.reads = 0;
+    assert_int_equal(imx8x_slc_read_status(), -PB_ERR_IO);
+
+    /* The second word, after an empty first one */
+    scfw.reads = 0;
+    scfw.read_fails_at = 2;
+    assert_int_equal(imx8x_slc_read_status(), -PB_ERR_IO);
+
+    /* Or the last one */
+    scfw.reads = 0;
+    scfw.read_fails_at = IMX8X_SRK_HASH_WORDS;
+    assert_int_equal(imx8x_slc_read_status(), -PB_ERR_IO);
+
+    scfw.reads = 0;
+    scfw.read_fails_at = 2;
+    scfw.fuses[IMX8X_FUSE_SRK0] = 1;
+    assert_int_equal(imx8x_slc_read_status(), SLC_CONFIGURATION);
+
+    scfw.reads = 0;
+    scfw.read_fails_at = 1;
+    scfw.lc = 0x80;
+    assert_int_equal(imx8x_slc_read_status(), SLC_CONFIGURATION_LOCKED);
+
+    /* A revocation isn't committed on a hash that can't be read */
+    scfw.fuses[IMX8X_FUSE_SRK0] = 0;
+    scfw.fuses[IMX8X_FUSE_SRK15] = 1;
+    scfw.commit_revokes = 1u << 8;
+    scfw.reads = 0;
+    scfw.read_fails_at = 3;
+    assert_int_equal(imx8x_revoke_key(&key), -PB_ERR_IO);
+    assert_int_equal(scfw.commits, 0);
 }
 
 /* The life cycle: SECO's bits 6-10 are closed, whatever the SRK fuses say.
@@ -390,6 +445,7 @@ int main(void)
         cmocka_unit_test_setup(test_fuse_srk_fails_half_way, setup),
         cmocka_unit_test_setup(test_fuse_srk_over_another_hash, setup),
         cmocka_unit_test_setup(test_srk_fused_by_any_word, setup),
+        cmocka_unit_test_setup(test_srk_read_fails, setup),
         cmocka_unit_test_setup(test_life_cycle, setup),
         cmocka_unit_test_setup(test_lock, setup),
         cmocka_unit_test_setup(test_key_status, setup),
