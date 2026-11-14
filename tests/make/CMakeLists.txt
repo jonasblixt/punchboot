@@ -24,3 +24,12 @@ add_test(
 )
 set_tests_properties(make.link PROPERTIES LABELS make TIMEOUT 300 SKIP_RETURN_CODE 77)
 
+
+# The host build: pb-host links every file of the firmware core, as the
+# firmware's link does, so a task in a file nothing refers to runs (F-407)
+add_test(
+    NAME make.host_link
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_host_link.py
+            ${CMAKE_NM} $<TARGET_FILE:pb-host> $<TARGET_OBJECTS:pb_core>
+)
+set_tests_properties(make.host_link PROPERTIES LABELS make TIMEOUT 60)

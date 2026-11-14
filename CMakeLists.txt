@@ -131,10 +131,10 @@ add_library(pb_keystore STATIC ${CMAKE_CURRENT_BINARY_DIR}/keystore.c)
 target_link_libraries(pb_keystore PUBLIC pb_host_flags)
 
 # The firmware core: everything that is not arch, platform or board specific.
-# A static library: a file of it is linked into pb-host only when something
-# refers to it, so a task (pb/task.h) needs another symbol of its file to be
-# used. Command mode's is linked through cm_init(), which src/board.c calls.
-add_library(pb_core STATIC
+# An object library: every file of it is linked into pb-host, as every object
+# is into the firmware, so a task (pb/task.h) in a file that nothing refers
+# to runs (F-407). tests/make/check_host_link.py checks it.
+add_library(pb_core OBJECT
     src/main.c
     src/bio.c
     src/board.c

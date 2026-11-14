@@ -19,6 +19,7 @@ void pb_main(void);
 
 struct host_options host_opts = {
     .disk_path = "disk.img",
+    .fuse_path = "fuses.img",
     .socket_path = "pb.sock",
     .boot_status_path = "boot_status",
     .force_command_mode = false,
@@ -29,6 +30,7 @@ static void usage(const char *name)
     printf("Usage: %s [options]\n"
            "  -d, --disk PATH          Disk image (default: disk.img)\n"
            "  -n, --nor PATH           Memory mapped flash image (default: none)\n"
+           "  -f, --fuses PATH         Fuse file (default: fuses.img)\n"
            "  -s, --socket PATH        Command mode socket (default: pb.sock)\n"
            "  -b, --boot-status PATH   Boot status output (default: boot_status)\n"
            "  -c, --command-mode       Force command mode\n"
@@ -41,6 +43,7 @@ int main(int argc, char **argv)
     static const struct option long_options[] = {
         { "disk", required_argument, NULL, 'd' },
         { "nor", required_argument, NULL, 'n' },
+        { "fuses", required_argument, NULL, 'f' },
         { "socket", required_argument, NULL, 's' },
         { "boot-status", required_argument, NULL, 'b' },
         { "command-mode", no_argument, NULL, 'c' },
@@ -49,10 +52,13 @@ int main(int argc, char **argv)
     };
     int opt;
 
-    while ((opt = getopt_long(argc, argv, "d:n:s:b:ch", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "d:n:f:s:b:ch", long_options, NULL)) != -1) {
         switch (opt) {
         case 'd':
             host_opts.disk_path = optarg;
+            break;
+        case 'f':
+            host_opts.fuse_path = optarg;
             break;
         case 'n':
             host_opts.nor_path = optarg;

@@ -550,6 +550,12 @@ pb_plat_test(test_plat_imx8m
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
 
+# The transport that pb-host links (usb.md 2.6): the unix socket, with a
+# client of the test's own
+pb_unit_test(test_host_socket SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/host/socket.c
+)
+
 # The transport that a build for a SoC links (usb.md 2): pb's USB class and
 # the stack, over a fake controller. pb-host links the socket instead
 pb_unit_test(test_usb_transport SOURCES
