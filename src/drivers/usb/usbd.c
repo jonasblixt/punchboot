@@ -28,11 +28,7 @@
 static const struct usbd_hal_ops *hal_ops;
 static const struct usbd_cls_config *cls_config;
 static bool enumerated;
-/* The controller has one transfer for all its endpoints (usbd_hal_one_xfer()) */
-static bool hal_one_xfer;
 static usb_ep_t cur_xfer_ep;
-static void *cur_xfer_buf;
-static size_t cur_xfer_length;
 /* A transfer was started and its result not given yet: one at a time
  * (usb.md 2.3, 2.4) */
 static bool cur_xfer_running;
@@ -302,7 +298,6 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
 int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
 {
     hal_ops = NULL;
-    hal_one_xfer = false;
     cur_xfer_running = false;
 
     /* Every operation is mandatory, and none is called that wasn't checked
@@ -316,11 +311,6 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
     hal_ops = ops;
 
     return PB_OK;
-}
-
-void usbd_hal_one_xfer(void)
-{
-    hal_one_xfer = true;
 }
 
 int usbd_init_cls(const struct usbd_cls_config *cfg)
@@ -426,8 +416,6 @@ int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length)
     }
 
     cur_xfer_ep = ep;
-    cur_xfer_buf = buf;
-    cur_xfer_length = length;
 
     rc = hal_ops->xfer_start(ep, buf, length);
 
@@ -456,65 +444,6 @@ static bool usbd_host_starts_over(const struct usb_setup_packet *setup)
     return request == USB_SET_ADDRESS || request == USB_SET_CONFIGURATION;
 }
 
-/* The largest packet of one of the class's endpoints, 0 when it has no such */
-static size_t usbd_max_packet(usb_ep_t ep)
-{
-    uint8_t addr = (uint8_t)(ep >> 1) | ((ep & 1) ? USB_EP_ADDR_IN : 0);
-
-    for (unsigned int i = 0; i < cls_config->desc->interface.bNumEndpoints; i++) {
-        if (cls_config->desc->eps[i].bEndpointAddress == addr)
-            return cls_config->desc->eps[i].wMaxPacketSize;
-    }
-
-    return 0;
-}
-
-/*
- * A request while a bulk transfer runs, on a controller with one transfer
- * for all its endpoints: answering on endpoint 0 ends the bulk transfer, so
- * it can't go on where it was (usb.md 3.2, 8).
- *
- *  - A transfer that is done isn't touched: its result is the caller's.
- *  - One of a packet at most is given up and started again after the
- *    answer. Nothing of it has moved: a packet arrives whole or not at all.
- *    It is what the device waits in between two commands.
- *  - A longer one fails. A part of it may have moved, and starting it again
- *    from its first byte would lose that part without a word (F-203).
- */
-static int usbd_xfer_poll_one_xfer(struct usb_setup_packet *pkt)
-{
-    int rc;
-
-    rc = hal_ops->xfer_complete(cur_xfer_ep);
-
-    if (rc == PB_OK)
-        return usbd_enumerate(pkt);
-
-    if (rc != -PB_ERR_AGAIN)
-        return rc;
-
-    if (cur_xfer_length > usbd_max_packet(cur_xfer_ep)) {
-        LOG_ERR("EP0 request during a transfer of %zu bytes on %s",
-                cur_xfer_length,
-                ep_to_str(cur_xfer_ep));
-        return -PB_ERR_IO;
-    }
-
-    hal_ops->xfer_cancel(cur_xfer_ep);
-
-    rc = usbd_enumerate(pkt);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = hal_ops->xfer_start(cur_xfer_ep, cur_xfer_buf, cur_xfer_length);
-
-    if (rc != PB_OK)
-        return rc;
-
-    return hal_ops->xfer_complete(cur_xfer_ep);
-}
-
 static int usbd_xfer_poll(void)
 {
     int rc;
@@ -539,9 +468,6 @@ static int usbd_xfer_poll(void)
             LOG_ERR("The host enumerates again (%x %x)", pkt.bRequest, pkt.wValue);
             return -PB_ERR_IO;
         }
-
-        if (hal_one_xfer)
-            return usbd_xfer_poll_one_xfer(&pkt);
 
         /* A request doesn't disturb a bulk transfer (usb.md 3.2): it is
          * answered on endpoint 0 and the transfer goes on where it was */

@@ -68,7 +68,6 @@ static void ram_write(uintptr_t addr, const void *src, size_t length)
  */
 
 static const struct usbd_hal_ops *ops;
-static bool one_xfer;
 static uint32_t primed;
 
 int usbd_init_hal_ops(const struct usbd_hal_ops *ops_)
@@ -77,13 +76,9 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops_)
     return PB_OK;
 }
 
-void usbd_hal_one_xfer(void)
-{
-    one_xfer = true;
-}
-
 /* What the registers do with a write: the bits that clear themselves, and
- * the status registers, which are written to clear */
+ * the status registers, which are written to clear. A flush ends what was
+ * primed on its endpoints */
 static uint64_t on_write(uintptr_t addr, uint64_t value)
 {
     switch (addr - BASE) {
@@ -93,6 +88,8 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
         primed |= (uint32_t)value;
         return 0;
     case CI_ENDPTFLUSH:
+        primed &= ~(uint32_t)value;
+        return 0;
     case CI_USBSTS:
     case CI_ENDPTCOMPLETE:
     case CI_ENDPTSETUPSTAT:
@@ -198,7 +195,6 @@ static int setup(void **state)
     fake_regs_reset();
     fake_regs_on_write = on_write;
     primed = 0;
-    one_xfer = false;
     ops = NULL;
 
     assert_int_equal(imx_ci_udc_init(BASE), PB_OK);
@@ -281,8 +277,7 @@ static void transfer_in(size_t offset, size_t length)
         fail_msg("IN, offset 0x%zx, %zu bytes: not what the caller wrote", offset, length);
 }
 
-/* usb.md 4: the driver registers its operations, and says that it has one
- * transfer for all its endpoints (usb.md 8, F-203) */
+/* usb.md 4: the driver registers its operations */
 static void test_registration(void **state)
 {
     (void)state;
@@ -296,7 +291,6 @@ static void test_registration(void **state)
     assert_non_null(ops->set_configuration);
     assert_non_null(ops->set_address);
     assert_non_null(ops->ep0_xfer_zlp);
-    assert_true(one_xfer);
 }
 
 /* usb.md 2.3, 4.3: transfers of every size around a page and around a
@@ -613,6 +607,178 @@ static void test_status_stage_is_bounded(void **state)
     transfer_out(0x200, 512);
 }
 
+/* What the controller sees of the transfer primed on 'ep', in RAM: its
+ * queue head and its descriptors */
+static size_t snapshot(usb_ep_t ep, uint8_t *dst, size_t size)
+{
+    struct imx_ci_udc_queue_head qh;
+    struct imx_ci_udc_transfer_head dtd;
+    size_t n = sizeof(qh);
+
+    ram_read(fake_regs_get(BASE + CI_ENDPTLISTADDR) + ep * sizeof(qh), &qh, sizeof(qh));
+    assert_true(n <= size);
+    memcpy(dst, &qh, sizeof(qh));
+
+    for (uintptr_t addr = qh.next;; addr = dtd.next) {
+        ram_read(addr, &dtd, sizeof(dtd));
+        assert_true(n + sizeof(dtd) <= size);
+        memcpy(dst + n, &dtd, sizeof(dtd));
+        n += sizeof(dtd);
+
+        if (dtd.next & DTD_NEXT_T)
+            return n;
+    }
+}
+
+/* The device descriptor a host asks for, from a buffer that isn't on a
+ * line or a page, as the stack's are */
+static const struct {
+    uint8_t pad[3];
+    uint8_t desc[18];
+} __attribute__((aligned(PAGE))) device_descriptor = {
+    .desc = { 18, 1, 0, 2, 0xff, 0xff, 0xff, 64, 0x09, 0x12, 0x19, 0x20, 0, 1, 1, 1, 2, 1 },
+};
+
+/* A host's request on endpoint 0, answered as the stack does: the SETUP,
+ * a data stage of the device descriptor and the status stage. Each
+ * transfer's result is given once (usb.md 4.3; F-287) */
+static void answer_a_request(void)
+{
+    static const struct usb_setup_packet get_descriptor = {
+        .bRequestType = 0x80,
+        .bRequest = 6,
+        .wValue = 0x0100,
+        .wLength = 64,
+    };
+    uintptr_t qh = (uintptr_t)fake_regs_get(BASE + CI_ENDPTLISTADDR) +
+                   USB_EP0_OUT * sizeof(struct imx_ci_udc_queue_head);
+    struct usb_setup_packet pkt;
+    uint8_t reply[64];
+
+    ram_write(qh + offsetof(struct imx_ci_udc_queue_head, setup),
+              &get_descriptor,
+              sizeof(get_descriptor));
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+    assert_memory_equal(&pkt, &get_descriptor, sizeof(pkt));
+
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, (void *)device_descriptor.desc, 18), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), -PB_ERR_AGAIN);
+    assert_int_equal(controller_run(USB_EP0_IN, reply, sizeof(reply)), 18);
+    assert_memory_equal(reply, device_descriptor.desc, 18);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), -PB_ERR_STATE);
+
+    assert_int_equal(ops->xfer_start(USB_EP0_OUT, NULL, 0), PB_OK);
+    assert_int_equal(controller_run(USB_EP0_OUT, reply, 0), 0);
+    assert_int_equal(ops->xfer_complete(USB_EP0_OUT), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP0_OUT), -PB_ERR_STATE);
+}
+
+/* usb.md 3.2, 4.3: a request on endpoint 0 during a bulk transfer changes
+ * nothing of it. Endpoint 0 has its own descriptor and bounce buffer: what
+ * the controller follows for the bulk transfer, its queue head and its
+ * descriptors, stays as it was, the endpoint stays primed, and the bytes
+ * come whole after the request (F-203: the driver had one transfer for all
+ * endpoints, and the stack gave the bulk transfer up or failed it). Both
+ * directions, from a buffer inside a page over several pages: the head
+ * through the bulk endpoints' bounce buffer */
+static void test_request_during_a_bulk_transfer(void **state)
+{
+    static uint8_t before[1024];
+    static uint8_t after[1024];
+    const size_t length = 3 * PAGE + 0x200;
+    uint8_t *bfr = arena + PAGE + 0x200;
+    size_t n;
+    (void)state;
+
+    for (int i = 0; i < 2; i++) {
+        usb_ep_t ep = (i == 0) ? USB_EP2_OUT : USB_EP1_IN;
+
+        memset(arena, 0xee, sizeof(arena));
+        memset(host, 0, sizeof(host));
+        fill(EP_IS_IN(ep) ? bfr : host, length, 7 + i);
+
+        assert_int_equal(ops->xfer_start(ep, bfr, length), PB_OK);
+        assert_int_equal(ops->xfer_complete(ep), -PB_ERR_AGAIN);
+        n = snapshot(ep, before, sizeof(before));
+
+        answer_a_request();
+
+        assert_true(primed & ep_bit(ep));
+        assert_int_equal(snapshot(ep, after, sizeof(after)), n);
+        assert_memory_equal(before, after, n);
+        assert_int_equal(ops->xfer_complete(ep), -PB_ERR_AGAIN);
+
+        assert_int_equal(controller_run(ep, host, length), length);
+        assert_int_equal(ops->xfer_complete(ep), PB_OK);
+        assert_memory_equal(bfr, host, length);
+        assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    }
+}
+
+/* The same when the bulk transfer is done when the request comes and its
+ * result is polled after it: a command read into the bulk endpoints' bounce
+ * buffer (jiffy's command buffer is 0x200 into a page) isn't overwritten by
+ * endpoint 0's reply, which bounces too */
+static void test_request_before_the_result(void **state)
+{
+    uint8_t *bfr = arena + PAGE + 0x200;
+    (void)state;
+
+    memset(arena, 0xee, sizeof(arena));
+    fill(host, 512, 3);
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, bfr, 512), PB_OK);
+    assert_int_equal(controller_run(USB_EP2_OUT, host, 512), 512);
+
+    answer_a_request();
+
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(bfr, host, 512);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+}
+
+/* usb.md 2.4, 4.3: xfer_complete gives a transfer's result once, for the
+ * endpoint it was started on. With none started there, after the result,
+ * and after a cancel it is -PB_ERR_STATE (F-287: it ignored its endpoint
+ * and returned PB_OK again) */
+static void test_result_once(void **state)
+{
+    (void)state;
+
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_STATE);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), -PB_ERR_STATE);
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_STATE);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), -PB_ERR_STATE);
+    assert_int_equal(controller_run(USB_EP2_OUT, host, 512), 512);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_STATE);
+
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), PB_OK);
+    ops->xfer_cancel(USB_EP1_IN);
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_STATE);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+}
+
+/* usb.md 4.3: endpoint 0's transfers fit its bounce buffer, and a longer
+ * one is refused, not shortened */
+static void test_ep0_length(void **state)
+{
+    (void)state;
+
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, arena + 0x40, 513), -PB_ERR_PARAM);
+
+    memset(host, 0, sizeof(host));
+    fill(arena + 0x40, 512, 5);
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, arena + 0x40, 512), PB_OK);
+    assert_int_equal(controller_run(USB_EP0_IN, host, 512), 512);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
+    assert_memory_equal(host, arena + 0x40, 512);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -627,6 +793,10 @@ int main(void)
         cmocka_unit_test_setup(test_setup_packet, setup),
         cmocka_unit_test_setup(test_bus_reset_is_reported, setup),
         cmocka_unit_test_setup(test_status_stage_is_bounded, setup),
+        cmocka_unit_test_setup(test_request_during_a_bulk_transfer, setup),
+        cmocka_unit_test_setup(test_request_before_the_result, setup),
+        cmocka_unit_test_setup(test_result_once, setup),
+        cmocka_unit_test_setup(test_ep0_length, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

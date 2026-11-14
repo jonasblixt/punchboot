@@ -39,10 +39,6 @@
 #define USB_HOST_SET_CONFIGURATION 0x09
 
 struct usb_host_config {
-    /* One transfer for all endpoints, as the ChipIdea's driver: a transfer
-     * on endpoint 0 takes the place of a bulk transfer that wasn't cancelled,
-     * whose xfer_complete then reads endpoint 0's result */
-    bool one_xfer;
     /* A bus reset ends a bulk transfer that runs with -PB_ERR_IO, as the
      * DWC3's driver. Without it the reset is handled inside the driver, as
      * the other two do: the transfer is flushed and never completes */
@@ -67,7 +63,6 @@ struct usb_host_state {
     int set_address_calls;
     int set_configuration_calls;
     int unanswered; /* Requests the stack took and didn't answer */
-    int clobbered; /* Bulk transfers that endpoint 0 took the place of */
     int stray_status; /* Status stages with no control transfer to end */
     bool attached; /* On the bus: between init and stop */
     bool configured; /* The bulk endpoints are set up */

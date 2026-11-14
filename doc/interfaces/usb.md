@@ -227,9 +227,7 @@ The stack answers these requests and no others:
   index the class doesn't have, which gets an empty string. **Not yet in the code (F-287).**
 - **A request doesn't disturb a bulk transfer.** Hosts send requests at any time
   (`lsusb -v`, another program that lists devices). The stack answers on endpoint 0 and the
-  bulk transfer goes on where it was. **Not yet in the code (F-203)**: on the ChipIdea, whose
-  driver has one transfer for all endpoints, a transfer of a packet at most is cancelled and
-  started again, and a longer one fails.
+  bulk transfer goes on where it was.
 - **A control transfer is bounded**: a host that stops inside one doesn't hold pb. Its data
   and status stages are waited for with a timeout, and a new SETUP ends the one before
   (F-138).
@@ -412,8 +410,8 @@ what the code doesn't settle without the hardware.
 | refused                          |                    |                     |                 |         |
 | `xfer_complete` reads the        | no                 | no                  | partly          | F-137,  |
 | controller's result              |                    |                     |                 | F-287   |
-| Endpoint 0 independent of a bulk | no: one transfer   | yes                 | yes             | F-203   |
-| transfer                         | for the driver     |                     |                 |         |
+| Endpoint 0 independent of a bulk | yes                | yes                 | yes             |         |
+| transfer                         |                    |                     |                 |         |
 | An unknown request is stalled    | no                 | no                  | no              | F-138   |
 | The driver's DMA objects own     | yes (`test_imx_`   | yes (`test_dwc3_`   | yes (`test_`    |         |
 | their lines                      | `ci_udc`)          | `udc`)              | `cdns3_udc`)    |         |
@@ -435,8 +433,7 @@ The stack and the transport:
 | A restart disconnects first                 | no                                       | F-287   |
 | Unknown requests stalled, control transfers | no                                       | F-138   |
 | bounded                                     |                                          |         |
-| A request leaves a bulk transfer alone      | yes; on the ChipIdea one of a packet is  | F-203   |
-|                                             | started again, a longer one fails        |         |
+| A request leaves a bulk transfer alone      | yes                                      |         |
 | The socket's `connect` polls                | yes                                      |         |
 | Tested on the host                          | Command mode on the socket and on a fake | F-230   |
 |                                             | transport; the USB transport's functions |         |
@@ -457,7 +454,7 @@ checklist's last item.
 | F-137, F-205 | An OUT transfer ends at `length`, writes nothing past it, and its result is |
 |              | the controller's (2.3, 4.3)                                                 |
 | F-280        | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)       |
-| F-138, F-203 | Endpoint 0: stall, bounds, no effect on a bulk transfer (3.2)               |
+| F-138        | Endpoint 0: stall and bounds (3.2)                                          |
 | F-204        | Every controller has a `stop` (4.2)                                         |
 | F-136, F-205 | Every wait is bounded (4)                                                   |
 | F-139, F-140 | The ChipIdea's set up against its reference manual                          |

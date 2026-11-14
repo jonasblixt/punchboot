@@ -1040,8 +1040,9 @@ struct mmc_hal {
 
 **A USB device controller** (`usb.md` 4): every operation of `struct usbd_hal_ops` is
 mandatory, `stop` too, and `usbd_init_hal_ops()` refuses a driver that leaves one out. 2.x
-checked five of the nine. A driver with one transfer for all its endpoints says so with
-`usbd_hal_one_xfer()`. The platform's `plat_cm_init()` sets the driver up, not a board.
+checked five of the nine. Its endpoints are independent: a transfer on endpoint 0 leaves a
+bulk transfer as it is (`usb.md` 4.3). The platform's `plat_cm_init()` sets the driver up, not
+a board.
 
 **A crypto backend** (`crypto.md`):
 

@@ -8,8 +8,10 @@
  *
  * LIMITATIONS:
  *
- * - This driver only supports one queued transfer at the time. The 'dtds' array
- * of transfer descriptors is shared between all endpoints.
+ * - Endpoint 0 has a transfer of its own, with its own descriptor and bounce
+ *   buffer, and the bulk endpoints have one between them: the stack starts
+ *   one bulk transfer at a time (usb.md 2.3). A request on endpoint 0 leaves
+ *   the bulk transfer alone (usb.md 3.2, 4.3).
  *
  * - It only supports device mode.
  *
@@ -39,6 +41,11 @@
 #define IMX_CI_UDC_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KiB / 20))
 #define IMX_CI_UDC_SZ_64B            0x40
 
+/* Endpoint 0's transfers: what the stack sends there is a descriptor or a
+ * status, the longest a string descriptor, 255 bytes (usbd.c). Its bounce
+ * buffer is aligned to its size, so it is inside one page */
+#define IMX_CI_UDC_EP0_MAX_BYTES     512
+
 /* A status stage the host hasn't taken in this time it has left: USB 2.0
  * 9.2.6.4 gives the device 500 ms for each packet of a data stage and 50 ms
  * for the status stage after it, and the host polls for that stage at once.
@@ -55,8 +62,8 @@
 /*
  * What the controller reads and writes of the driver's own (drivers.md 4.2,
  * 5). No data structure seen by the controller should span a 4k page
- * boundary: a descriptor is half a cache line and a queue head is one, and
- * the bounce buffer is a page.
+ * boundary: a descriptor is half a cache line and a queue head is one, the
+ * bulk endpoints' bounce buffer is a page and endpoint 0's is inside one.
  *
  * The controller writes a queue head whenever it likes while it runs: the
  * overlay during a transfer, the setup packet when one arrives. The queue
@@ -67,14 +74,49 @@
 PB_DMA_ARRAY_ALIGNED(struct imx_ci_udc_transfer_head, dtds, IMX_CI_UDC_NO_OF_DESCRIPTORS, 4096);
 PB_DMA_ARRAY_ALIGNED(struct imx_ci_udc_queue_head, dqhs, IMX_CI_UDC_NO_OF_EPS * 2, 4096);
 PB_DMA_ARRAY_ALIGNED(uint8_t, align_buffer, DTD_PAGE_SIZE, 4096);
+PB_DMA_ARRAY(struct imx_ci_udc_transfer_head, ep0_dtd, 1);
+PB_DMA_ARRAY_ALIGNED(uint8_t, ep0_bounce, IMX_CI_UDC_EP0_MAX_BYTES, IMX_CI_UDC_EP0_MAX_BYTES);
 static bool queues_dma;
-static uintptr_t xfer_bfr;
-static size_t xfer_length;
-static struct imx_ci_udc_transfer_head *xfer_head;
-static usb_ep_t xfer_ep;
-/* The transfer's descriptors, and an OUT transfer's buffer and the bounce
- * buffer, are the controller's: begun, and not ended yet */
-static bool xfer_dma;
+
+/*
+ * A transfer, and what it has of its own. Endpoint 0 has one, and the bulk
+ * endpoints have one: a transfer on endpoint 0 writes nothing of the bulk
+ * transfer's, its descriptors, its bounce buffer or its queue head, so the
+ * bulk transfer goes on where it was (usb.md 3.2, 4.3; F-203).
+ */
+struct imx_ci_udc_xfer {
+    struct imx_ci_udc_transfer_head *dtds;
+    size_t no_of_dtds;
+    uint8_t *bounce;
+    size_t bounce_size;
+    size_t max_length;
+    uintptr_t bfr;
+    size_t length;
+    /* The last descriptor, which xfer_complete polls. NULL when no transfer
+     * was started, or its result was given, or it was given up */
+    struct imx_ci_udc_transfer_head *head;
+    usb_ep_t ep;
+    /* The transfer's descriptors, and an OUT transfer's buffer and the
+     * bounce buffer, are the controller's: begun, and not ended yet */
+    bool dma;
+};
+
+static struct imx_ci_udc_xfer ep0_xfer = {
+    .dtds = ep0_dtd,
+    .no_of_dtds = 1,
+    .bounce = ep0_bounce,
+    .bounce_size = IMX_CI_UDC_EP0_MAX_BYTES,
+    .max_length = IMX_CI_UDC_EP0_MAX_BYTES,
+};
+
+static struct imx_ci_udc_xfer bulk_xfer = {
+    .dtds = dtds,
+    .no_of_dtds = IMX_CI_UDC_NO_OF_DESCRIPTORS,
+    .bounce = align_buffer,
+    .bounce_size = DTD_PAGE_SIZE,
+    .max_length = SIZE_MAX,
+};
+
 static uintptr_t imx_ci_udc_base;
 /* The host configured the device, and reset the bus after that: every bulk
  * transfer fails until the device is configured or started again
@@ -91,62 +133,76 @@ static uint32_t ep_bit(usb_ep_t ep)
         return ENDPT_RX(EP_USB_NUMBER(ep));
 }
 
+/* Endpoint 0's transfer, or the bulk endpoints' */
+static struct imx_ci_udc_xfer *xfer_of(usb_ep_t ep)
+{
+    return (EP_USB_NUMBER(ep) == 0) ? &ep0_xfer : &bulk_xfer;
+}
+
 /* The cache line of the transfer's last descriptor, which xfer_complete
  * polls, and the descriptors before that line */
-static void *xfer_head_line(void)
+static void *xfer_head_line(const struct imx_ci_udc_xfer *x)
 {
-    return (void *)((uintptr_t)xfer_head & ~((uintptr_t)PB_DMA_ALIGN - 1));
+    return (void *)((uintptr_t)x->head & ~((uintptr_t)PB_DMA_ALIGN - 1));
 }
 
-static size_t xfer_dtds_before_head(void)
+static size_t xfer_dtds_before_head(const struct imx_ci_udc_xfer *x)
 {
-    return (uintptr_t)xfer_head_line() - (uintptr_t)dtds;
+    return (uintptr_t)xfer_head_line(x) - (uintptr_t)x->dtds;
 }
 
-static bool xfer_is_out(void)
+static bool xfer_is_out(const struct imx_ci_udc_xfer *x)
 {
-    return !EP_IS_IN(xfer_ep) && xfer_bfr != 0 && xfer_length != 0;
+    return !EP_IS_IN(x->ep) && x->bfr != 0 && x->length != 0;
 }
 
 /* The controller gets the transfer's descriptors, and what an OUT transfer
  * writes: the caller's buffer, which owns its lines (usb.md 4.3), and the
  * bounce buffer for a head that isn't on a page */
-static void xfer_dma_begin(void)
+static void xfer_dma_begin(struct imx_ci_udc_xfer *x)
 {
-    dma_in_begin(dtds, xfer_dtds_before_head());
-    dma_in_begin(xfer_head_line(), PB_DMA_ALIGN);
+    dma_in_begin(x->dtds, xfer_dtds_before_head(x));
+    dma_in_begin(xfer_head_line(x), PB_DMA_ALIGN);
 
-    if (xfer_is_out()) {
-        dma_in_begin((void *)xfer_bfr, xfer_length);
+    if (xfer_is_out(x)) {
+        dma_in_begin((void *)x->bfr, x->length);
 
-        if (xfer_bfr & DTD_PAGE_OFFSET_MASK)
-            dma_in_begin(align_buffer, sizeof(align_buffer));
+        if (x->bfr & DTD_PAGE_OFFSET_MASK)
+            dma_in_begin(x->bounce, x->bounce_size);
     }
 
-    xfer_dma = true;
+    x->dma = true;
 }
 
 /* The transfer is done, given up, or the controller is stopped: its memory
  * is the driver's and the caller's again, and read from RAM (drivers.md
  * 4.2). 'head' is false when the last descriptor's line was ended already */
-static void xfer_dma_end(bool head)
+static void xfer_dma_end(struct imx_ci_udc_xfer *x, bool head)
 {
-    if (!xfer_dma)
+    if (!x->dma)
         return;
 
-    dma_in_end(dtds, xfer_dtds_before_head());
+    dma_in_end(x->dtds, xfer_dtds_before_head(x));
 
     if (head)
-        dma_in_end(xfer_head_line(), PB_DMA_ALIGN);
+        dma_in_end(xfer_head_line(x), PB_DMA_ALIGN);
 
-    if (xfer_is_out()) {
-        dma_in_end((void *)xfer_bfr, xfer_length);
+    if (xfer_is_out(x)) {
+        dma_in_end((void *)x->bfr, x->length);
 
-        if (xfer_bfr & DTD_PAGE_OFFSET_MASK)
-            dma_in_end(align_buffer, sizeof(align_buffer));
+        if (x->bfr & DTD_PAGE_OFFSET_MASK)
+            dma_in_end(x->bounce, x->bounce_size);
     }
 
-    xfer_dma = false;
+    x->dma = false;
+}
+
+/* The transfer is given up, its endpoint flushed: nothing of it completes
+ * later, and a poll of it is -PB_ERR_STATE (usb.md 4.3) */
+static void xfer_give_up(struct imx_ci_udc_xfer *x)
+{
+    xfer_dma_end(x, true);
+    x->head = NULL;
 }
 
 /* The driver reads or changes a queue head: taken back from the controller,
@@ -167,7 +223,8 @@ static void qh_give(struct imx_ci_udc_queue_head *qh)
  * its own */
 static void imx_ci_udc_dma_take_back(void)
 {
-    xfer_dma_end(true);
+    xfer_dma_end(&ep0_xfer, true);
+    xfer_dma_end(&bulk_xfer, true);
 
     for (int i = 0; queues_dma && i < IMX_CI_UDC_NO_OF_EPS * 2; i++)
         dma_in_end(&dqhs[i], sizeof(dqhs[i]));
@@ -184,10 +241,8 @@ static void imx_ci_udc_reset_queues(void)
         dqhs[i].current_dtd = 0;
     }
 
-    xfer_bfr = 0;
-    xfer_length = 0;
-    xfer_ep = 0;
-    xfer_head = NULL;
+    ep0_xfer.head = NULL;
+    bulk_xfer.head = NULL;
     configured = false;
     bus_reset_seen = false;
 }
@@ -235,7 +290,8 @@ static int imx_ci_udc_irq_process(void)
 
         /* Every endpoint is flushed: a transfer's buffer is the caller's
          * again (usb.md 4.3) */
-        xfer_dma_end(true);
+        xfer_dma_end(&ep0_xfer, true);
+        xfer_dma_end(&bulk_xfer, true);
 
         tmp = mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT);
         mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, tmp);
@@ -267,8 +323,9 @@ static int imx_ci_udc_irq_process(void)
  */
 static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
 {
-    struct imx_ci_udc_queue_head *qh = &dqhs[ep];
-    struct imx_ci_udc_transfer_head *dtd = dtds;
+    struct imx_ci_udc_xfer *x;
+    struct imx_ci_udc_queue_head *qh;
+    struct imx_ci_udc_transfer_head *dtd;
     uint32_t epreg = 0;
     size_t bytes_to_tx = length;
     size_t align_length = 0;
@@ -279,14 +336,23 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
 
+    x = xfer_of(ep);
+    qh = &dqhs[ep];
+    dtd = x->dtds;
+
     /* A bus reset while no transfer ran is the error of the next one.
      * Endpoint 0 goes on: the host enumerates */
     if (bus_reset_seen && ep >= USB_EP1_OUT)
         return -PB_ERR_IO;
 
-    /* One transfer for all endpoints: one that wasn't completed or
-     * cancelled ends here, and the descriptors are the driver's to write */
-    xfer_dma_end(true);
+    if (length > x->max_length)
+        return -PB_ERR_PARAM;
+
+    /* The endpoint's transfer that wasn't completed or cancelled ends here,
+     * and its descriptors are the driver's to write. The other transfer
+     * isn't touched */
+    xfer_dma_end(x, true);
+    x->head = NULL;
 
     if (bytes_to_tx == 0) {
         dtd->next = DTD_NEXT_T;
@@ -306,8 +372,8 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         /* LOG_DBG("Aligning buffer <%p> (%zu bytes)", (void *) bfr, align_length); */
         /* If this is an IN transfer we need to fill the align buffer */
         if (EP_IS_IN(ep)) {
-            memcpy(align_buffer + align_offset, (void *)bfr, align_length);
-            dma_out(align_buffer + align_offset, align_length);
+            memcpy(x->bounce + align_offset, (void *)bfr, align_length);
+            dma_out(x->bounce + align_offset, align_length);
         }
     }
 
@@ -334,8 +400,8 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
             if (align_length) {
                 /* If we need to align the input buffer, it will be at most
                  * one 4k page, and the first one only */
-                page_offset = (uint32_t)align_offset;
-                dtd->page[n] = (uint32_t)(uintptr_t)align_buffer + page_offset;
+                dtd->page[n] = (uint32_t)(uintptr_t)(x->bounce + align_offset);
+                page_offset = dtd->page[n] & DTD_PAGE_OFFSET_MASK;
                 bytes_to_tx -= align_length;
                 buf_ptr += align_length;
                 align_length = 0;
@@ -360,7 +426,7 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         if (bytes_to_tx) {
             struct imx_ci_udc_transfer_head *dtd_prev = dtd;
             dtd++;
-            if (dtd == &dtds[IMX_CI_UDC_NO_OF_DESCRIPTORS])
+            if (dtd == &x->dtds[x->no_of_dtds])
                 return -PB_ERR_MEM;
             dtd_prev->next = (uint32_t)(uintptr_t)dtd;
         }
@@ -372,19 +438,19 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
      * Drop the cached copy first, and clear the overlay's active and halted
      * bits before priming (RM 54.4.6.6.3, an empty list). */
     qh_take(qh);
-    qh->next = (uint32_t)(uintptr_t)dtds;
+    qh->next = (uint32_t)(uintptr_t)x->dtds;
     qh->token = 0;
     qh_give(qh);
 
-    xfer_bfr = (uintptr_t)bfr;
-    xfer_length = length;
-    xfer_head = dtd;
-    xfer_ep = ep;
+    x->bfr = (uintptr_t)bfr;
+    x->length = length;
+    x->head = dtd;
+    x->ep = ep;
 
-    /* Every descriptor is cleaned, as before, and the ones of this transfer
-     * are the controller's with what it writes */
-    dma_out(dtds, sizeof(dtds));
-    xfer_dma_begin();
+    /* The transfer's descriptors are cleaned, and are the controller's with
+     * what it writes */
+    dma_out(x->dtds, (size_t)(dtd + 1 - x->dtds) * sizeof(*dtd));
+    xfer_dma_begin(x);
 
     epreg = ep_bit(ep);
 
@@ -398,6 +464,7 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
 
 static int imx_ci_udc_xfer_complete(usb_ep_t ep)
 {
+    struct imx_ci_udc_xfer *x;
     int rc;
 
     if (ep >= USB_EP_END)
@@ -412,41 +479,46 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     if (bus_reset_seen && ep >= USB_EP1_OUT)
         return -PB_ERR_IO;
 
-    if (xfer_head == NULL)
-        return -PB_ERR;
+    x = xfer_of(ep);
+
+    /* Nothing was started on the endpoint, or its result was given: it is
+     * given once (usb.md 2.4, 4.3) */
+    if (x->head == NULL || x->ep != ep)
+        return -PB_ERR_STATE;
 
     /* The last descriptor is read, and is the controller's again while the
      * transfer runs */
-    if (xfer_dma)
-        dma_in_end(xfer_head_line(), PB_DMA_ALIGN);
+    if (x->dma)
+        dma_in_end(xfer_head_line(x), PB_DMA_ALIGN);
 
     // TODO: We should look at the error bit's as well
 
-    if (xfer_head->token & DTD_TOKEN_STATUS_ACTIVE) {
-        if (xfer_dma)
-            dma_in_begin(xfer_head_line(), PB_DMA_ALIGN);
+    if (x->head->token & DTD_TOKEN_STATUS_ACTIVE) {
+        if (x->dma)
+            dma_in_begin(xfer_head_line(x), PB_DMA_ALIGN);
         return -PB_ERR_AGAIN;
     }
 
     /* Output from host, invalidate cache: the caller's buffer and the
      * bounce buffer. Before the copy below, which is in the cache only: an
      * invalidate after it would drop it (drivers.md 4.2) */
-    xfer_dma_end(false);
+    xfer_dma_end(x, false);
+    x->head = NULL;
 
     /* Check for un-aligned buffers */
-    if (xfer_length && (xfer_bfr & DTD_PAGE_OFFSET_MASK)) {
-        size_t align_length = (DTD_PAGE_SIZE - (xfer_bfr & DTD_PAGE_OFFSET_MASK)) &
+    if (x->length && (x->bfr & DTD_PAGE_OFFSET_MASK)) {
+        size_t align_length = (DTD_PAGE_SIZE - (x->bfr & DTD_PAGE_OFFSET_MASK)) &
                               DTD_PAGE_OFFSET_MASK;
-        align_length = (xfer_length > DTD_PAGE_SIZE) ? align_length : xfer_length;
+        align_length = (x->length > DTD_PAGE_SIZE) ? align_length : x->length;
         /* As in imx_ci_udc_xfer_start() */
-        size_t align_offset = (xfer_length > DTD_PAGE_SIZE) ? DTD_PAGE_SIZE - align_length : 0;
+        size_t align_offset = (x->length > DTD_PAGE_SIZE) ? DTD_PAGE_SIZE - align_length : 0;
 
         /* If this was an out transfer we should copy data from the
          * alignment buffer */
         if (!EP_IS_IN(ep)) {
             /* LOG_DBG("Align: copying %zu bytes to %p", align_length,
-                    (void *) xfer_bfr); */
-            memcpy((void *)xfer_bfr, align_buffer + align_offset, align_length);
+                    (void *) x->bfr); */
+            memcpy((void *)x->bfr, x->bounce + align_offset, align_length);
         }
     }
 
@@ -455,6 +527,8 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
 
 static void imx_ci_udc_flush_ep(usb_ep_t ep)
 {
+    struct imx_ci_udc_xfer *x;
+
     if (ep >= USB_EP_END)
         return;
 
@@ -465,10 +539,12 @@ static void imx_ci_udc_flush_ep(usb_ep_t ep)
     while ((mmio_read_32(imx_ci_udc_base + CI_ENDPTFLUSH) & flush_cmd) != 0) {
     };
 
-    /* The endpoint is idle: its transfer's buffer is the caller's again
-     * (usb.md 4.3) */
-    if (EP_USB_NUMBER(xfer_ep) == EP_USB_NUMBER(ep))
-        xfer_dma_end(true);
+    /* The endpoint is idle: its transfer is given up and its buffer is the
+     * caller's again (usb.md 4.3) */
+    x = xfer_of(ep);
+
+    if (x->head != NULL && EP_USB_NUMBER(x->ep) == EP_USB_NUMBER(ep))
+        xfer_give_up(x);
 }
 
 static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_t no_of_eps)
@@ -561,6 +637,10 @@ static int imx_ci_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
 
         while (mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT) & ENDPTSETUPSTAT_EP(0)) {
         };
+
+        /* A control transfer the SETUP ended is given up: endpoint 0's
+         * alone, a bulk transfer goes on */
+        xfer_give_up(&ep0_xfer);
 
         return PB_OK;
     }
@@ -662,8 +742,6 @@ static int imx_ci_udc_xfer_zlp(usb_ep_t ep)
 
 int imx_ci_udc_init(uintptr_t base)
 {
-    int rc;
-
     imx_ci_udc_base = base;
 
     static const struct usbd_hal_ops ops = {
@@ -678,14 +756,5 @@ int imx_ci_udc_init(uintptr_t base)
         .ep0_xfer_zlp = imx_ci_udc_xfer_zlp,
     };
 
-    rc = usbd_init_hal_ops(&ops);
-
-    if (rc != PB_OK)
-        return rc;
-
-    /* One transfer for all endpoints: 'dtds', 'align_buffer' and the
-     * xfer_* state above are endpoint 0's as well as a bulk endpoint's */
-    usbd_hal_one_xfer();
-
-    return PB_OK;
+    return usbd_init_hal_ops(&ops);
 }
