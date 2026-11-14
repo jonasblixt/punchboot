@@ -338,3 +338,15 @@ int plat_lockdown(void)
 {
     return PB_OK;
 }
+
+/* No SoC: a process. The tests read the line and 'info' */
+int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size)
+{
+    info->soc = "host";
+    info->rev = "unknown";
+    info->cpu_hz = 0;
+    info->mem_hz = 0;
+    if (extra_size > 0)
+        extra[0] = '\0';
+    return PB_OK;
+}

@@ -370,6 +370,35 @@ clocks, its power, its PHY and its controller, so that the transport can start.
 - The transport itself is linked, not set up here: the USB class driver on a SoC, and on the
   host platform its socket, for the tests (`board.md` 4.2).
 
+### 3.11 Function : plat_get_info() [mandatory]
+
+```
+Argument : struct pb_plat_info *, char *extra, size_t extra_size
+Return   : int, PB_OK or -PB_ERR_*
+```
+
+```c
+struct pb_plat_info {
+    const char *soc; /* the SoC variant, e.g. "i.MX8QXP" */
+    const char *rev; /* its silicon revision, e.g. "B0"; "unknown" when the SoC doesn't say */
+    uint32_t cpu_hz; /* the clock of the cores pb runs on, as plat_init() left it; 0: unknown */
+    uint32_t mem_hz; /* the DRAM's clock, half a DDR memory's data rate; 0: none set up */
+};
+```
+
+What the SoC is and how it runs, for the log and for a host (D-077). The core logs it once,
+right after `plat_init()` returns PB_OK, and answers the named command `info` with it
+(`command-mode.md` 5.6), asking again at each call. Valid from `plat_init()`.
+
+- **`extra`**: the SoC's specifics, as lines of text that end in `\n`, NUL terminated, at most
+  `extra_size` bytes with the NUL: the other firmware on the SoC (a boot or system
+  controller's, a security controller's: their builds), the boot configuration the ROM read,
+  the temperature. `""` when there is nothing. A line that doesn't fit is left out whole.
+- **Reads only**: it changes nothing, and it is on the boot path, so it waits for nothing:
+  register reads and a system controller's calls.
+- **Strings** stay valid until the next call.
+- **Failure**: the core logs the error and the boot goes on; `info` answers the error.
+
 ## 4. Security
 
 ### 4.1 Data : plat_rot [mandatory]
@@ -744,6 +773,9 @@ For a new platform, and for a change to one:
 - [ ] `plat_get_boot_source()` reports a serial download, USB and UART, where the ROM has one.
 - [ ] `plat_cm_init()` sets up the USB port the defconfig chose, relies on nothing of the
       board's, and nothing of it runs on the boot path.
+- [ ] `plat_get_info()` names the SoC variant and its revision from the SoC, not from the
+      build alone where the SoC says it, gives the core and the DRAM clock as they run, and
+      puts the SoC's other firmware and boot configuration in `extra`.
 - [ ] The device identity is unchanged: `platform_ns_uuid`, the unique id's bytes, order, length.
       A new platform has a new random namespace. `plat_get_unique_id()` returns an error when a
       read fails, never a partial id.

@@ -205,6 +205,32 @@ int plat_get_boot_source(struct pb_boot_source *src);
  */
 int plat_cm_init(void);
 
+/** What the SoC is and how it runs (doc/interfaces/platform.md 3.11) */
+struct pb_plat_info {
+    const char *soc; /*!< The SoC variant, e.g. "i.MX8QXP" */
+    const char *rev; /*!< Its silicon revision, e.g. "B0"; "unknown" when the SoC doesn't say */
+    uint32_t cpu_hz; /*!< The clock of the cores pb runs on; 0: unknown */
+    uint32_t mem_hz; /*!< The DRAM's clock, half a DDR memory's data rate; 0: none set up */
+};
+
+/**
+ * Describe the SoC: its variant and revision, the core's and the DRAM's
+ * clock as they run, and its specifics as text. Valid from plat_init(). The
+ * core logs it right after plat_init() and answers the named command 'info'
+ * with it, asking again at each call. It changes nothing and waits for
+ * nothing: it is on the boot path (doc/interfaces/platform.md 3.11, D-077).
+ *
+ * @param[out] info The SoC; its strings stay valid until the next call
+ * @param[out] extra The SoC's specifics: its other firmware, the boot
+ *                   configuration, the temperature. Lines that end in '\n',
+ *                   NUL terminated; "" when there is nothing. A line that
+ *                   doesn't fit is left out whole
+ * @param[in] extra_size The room in extra, with the NUL
+ *
+ * @return PB_OK, or a negative number when the platform couldn't read it
+ */
+int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size);
+
 /**
  * The SoC's key revocation (pb/rot.h): the revoke bit of key slot n, shared
  * with the ROM. Valid from plat_init(). A SoC whose revocation pb doesn't

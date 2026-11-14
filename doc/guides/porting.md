@@ -283,6 +283,8 @@ The order, with what shows that each step works:
 - Steps 1 to 3 need a board for the console: write the two side by side.
 - Step 4: the namespace is generated once, at random, and never changes
   (`platform.md` 3.7).
+- With step 3, `plat_get_info()` (`platform.md` 3.11): the SoC's name, revision and clocks,
+  read from the SoC. The boot log's line after the banner shows what step 3 set up.
 - Step 7 before the first product: a filter that is left in bypass shows nowhere else
   (`platform.md` 2.3).
 - Step 8 is `rot` and `slc` functions that the boards name today (F-247). The rules stay in

@@ -93,6 +93,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-074 | An entry in an empty part is refused             | Waits for Jonas's review                           |
 | D-075 | The decisions have an index                      | In force                                           |
 | D-076 | Named commands, declared anywhere and listed     | In force                                           |
+| D-077 | The platform describes the SoC, the core shows it | In force                                          |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1827,3 +1828,24 @@ protected, when a boot may use it (`security.md`: what pb reads from storage bef
 is verified).
 
 Code: F-425 (pb), F-426 (the host).
+
+## D-077: The platform describes the SoC, the core shows it (2026-11-14)
+
+Jonas: every platform prints the SoC variant and revision, the CPU core frequency, the memory
+frequency and the SoC's specifics (its boot and security controllers' firmware), and the
+command `info`, which every platform has, shows the same.
+
+- **`plat_get_info()`** (`platform.md` 3.11, mandatory) fills a struct (the variant, the
+  revision, the core's and the DRAM's clock in Hz) and lines of text for the specifics.
+- **The core owns the output** (Jonas, of two: the core, or each platform printing and
+  declaring `info` itself): it logs one line and the specifics right after `plat_init()`, and
+  declares the named command `info` (`command-mode.md` 5.6). One format on every SoC, and no
+  platform can leave the command out.
+- **No DRAM** (the RT runs from OCRAM): memory 0, printed "none set up" (Jonas).
+- **On the boot path**, against D-023, by Jonas's choice: the boot's record of what it ran on.
+  Register reads and a system controller's calls, ~40 µs on the 8X.
+- The boards' status functions go (Jonas): what they printed is the SoC's, now in `info`.
+  `struct board`'s `status` and `board status` stay as released; the default answers.
+
+Why: one place to see what a device is and runs at, the same on every SoC, in the boot log and
+over USB.

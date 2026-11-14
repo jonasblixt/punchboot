@@ -1051,6 +1051,8 @@ Rests on: D-018, D-064 to D-073, `drivers.md`, `bio.md`, `crypto.md`, `usb.md`.
 | `void plat_reset()`                 | `noreturn`, and it works before `plat_early_init()`   |
 |                                     | (`platform.md` 3.1)                                   |
 | None                                | `plat_get_status()` (`platform.md` 3.8)               |
+| None                                | `plat_get_info()`: the SoC, its revision and clocks   |
+|                                     | for the boot log and `info` (`platform.md` 3.11)      |
 | None                                | `plat_cm_init()` with `CONFIG_CM` (`platform.md`      |
 |                                     | 3.10), and a Kconfig choice for the port              |
 | None                                | `plat_lockdown()` (`platform.md` 4.4)                 |

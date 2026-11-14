@@ -637,6 +637,9 @@ int fn(const uint8_t *request, size_t request_size, uint8_t *response, size_t *r
   are the same for the core's, a platform's (`platform.md` 5.1), a driver's and the board's.
 - **Fixed** (section 7): once released, a command's name and what its bytes mean. A command
   is retired like a core one (5.8): it stays in the list and answers `NOT_SUPPORTED`.
+- **The core's `info`** (D-077): the platform's `plat_get_info()` (`platform.md` 3.11) as
+  text, the line the boot logs and the SoC's specifics, read again at each call, ending in a
+  NUL. Every build has it; no platform or board declares a command of that name.
 
 ### 5.7 Logs
 
