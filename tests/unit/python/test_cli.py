@@ -189,25 +189,25 @@ def test_board_command_args_or_file(tmp_path: pathlib.Path) -> None:
 
 
 def test_named_command_request(tmp_path: pathlib.Path) -> None:
-    result = run(*SOCKET, "command", "test", "hello")
+    result = run(*SOCKET, "cmd", "test", "hello")
     assert result.exit_code == 0, result.output
     assert FakeSession.calls == [("command_run", ("test", b"hello"))]
 
     # From stdin when it isn't a terminal
     FakeSession.calls = []
-    result = run(*SOCKET, "command", "test", stdin=b"piped")
+    result = run(*SOCKET, "cmd", "test", stdin=b"piped")
     assert FakeSession.calls == [("command_run", ("test", b"piped"))]
 
     # At most 1024 bytes (command-mode.md 5.6)
     request = tmp_path / "request"
     request.write_bytes(bytes(1024))
     FakeSession.calls = []
-    result = run(*SOCKET, "command", "test", "--args-from-file", str(request))
+    result = run(*SOCKET, "cmd", "test", "--args-from-file", str(request))
     assert result.exit_code == 0, result.output
 
     request.write_bytes(bytes(1025))
     FakeSession.calls = []
-    result = run(*SOCKET, "command", "test", "--args-from-file", str(request))
+    result = run(*SOCKET, "cmd", "test", "--args-from-file", str(request))
     assert result.exit_code == 2
     assert "at most 1024" in result.output
     assert FakeSession.calls == []

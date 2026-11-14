@@ -71,8 +71,8 @@ Boot:
 
 Named commands (D-076, 2026-11-13):
 
-- One new command, `COMMAND_LIST`, and `punchboot command list` and `punchboot command <name>`
-  in the host tool: a device says which commands it has, with a help line each. A device older
+- One new command, `COMMAND_LIST`, and `punchboot cmd list` and `punchboot cmd <name>` in
+  the host tool: a device says which commands it has, with a help line each. A device older
   than the command answers `INVALID_COMMAND`, and a command is still run by its name.
 - A board's command keeps its id, and `punchboot board command` works as released.
 - An id the device doesn't have answers `NOT_SUPPORTED`. The RT1060 EVK, imx8mevk, the MEK and

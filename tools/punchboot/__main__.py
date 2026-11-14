@@ -574,7 +574,7 @@ def _command_request(args: str | None, args_from_file: pathlib.Path | None) -> b
     return request
 
 
-@cli.command("command")
+@cli.command("cmd")
 @click.argument("command", type=str, shell_complete=_command_completion)
 @click.argument("args", type=str, required=False)
 @click.option(
@@ -606,7 +606,7 @@ def named_command(
     The request is ARGS, the contents of --args-from-file, or stdin when
     neither is given and stdin isn't a terminal:
 
-        echo -n data | punchboot command some-command
+        echo -n data | punchboot cmd some-command
 
     In a script whose stdin stays open, give ARGS or use < /dev/null.
     """

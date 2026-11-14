@@ -1799,6 +1799,7 @@ What the draft says (`command-mode.md` 5.6):
   stdin (`echo -n data | punchboot command name`): it is read when stdin isn't a terminal and
   neither `args` nor `--args-from-file` is given; two sources are an error. The host checks
   the 1024 bytes before it sends. `board command` and `board status` stay as released.
+  Renamed `punchboot cmd` before any release (Jonas, 2026-11-14): `cmd list`, `cmd <name>`.
 
 Jonas's answers to the draft's items (`command-mode.md`, items 9 to 13), before his review:
 

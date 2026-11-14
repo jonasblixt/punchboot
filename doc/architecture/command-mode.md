@@ -607,7 +607,7 @@ int fn(const uint8_t *request, size_t request_size, uint8_t *response, size_t *r
 - **The name** is 1 to 31 characters of `[a-z0-9-]`, the help line at most 79 printable ones.
   The id is `pb_id(name)`, the id hosts have sent since 1.0.0: a board's command that a
   release answered keeps its id under the name hosts call it by. `list` is the host's word
-  (`command list`) and no command's name. The set up checks the list (2.1): a name outside
+  (`cmd list`) and no command's name. The set up checks the list (2.1): a name outside
   the set, two names with one id, the name `list`, or a list larger than a buffer.
 - **`BOARD_COMMAND`** looks the id up in the list. An id that isn't there is
   `NOT_SUPPORTED`, the answer of every release to an id the board didn't have.
