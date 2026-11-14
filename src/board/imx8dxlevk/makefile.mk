@@ -5,10 +5,11 @@ src-y += src/board/password.c
 # the DRAM and pb's buffers. The link checks them against the SoC.
 # pb after BL31 at the DRAM's start, with an image data region between pb's
 # 512 KiB and its buffers (board.c). The buffers are the platform's.
+# The EVK has 1 GiB of LPDDR4.
 PB_ENTRY        = 0x80000000
 PB_SIZE         = 0x80000
 BOARD_DRAM_BASE = 0x80000000
-BOARD_DRAM_SIZE = 0xc0000000
+BOARD_DRAM_SIZE = 0x40000000
 
 # The image stages are the i.MX8X's (src/plat/imx8x/makefile.mk), turned on
 # in the defconfig. The board's input is its SCU firmware. IMX8XL_SCFW_IMAGE
