@@ -755,6 +755,7 @@ target_link_options(test_cdns3_udc PRIVATE -no-pie)
 # number of descriptors follows the command mode buffer's size, which
 # fakes/imx_ci_udc/config.h sets
 pb_unit_test(test_imx_ci_udc SOURCES
+    ${PB_DMA_MODEL}
     fakes/regs.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/imx_ci_udc.c
 )

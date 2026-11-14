@@ -16,11 +16,12 @@
  *    the page's end, the others from their start, and retires it. Nothing
  *    of the bus, of endpoint 0's setup or of the registers' timing: that is
  *    the bench's (usb.md 8).
- *  - A data cache (drivers.md 4.2). The controller reads and writes RAM,
- *    the driver the cache. Where the two differ is kept per line: a clean
- *    writes the cache's line to RAM, an invalidate drops the cache's line
- *    for RAM's. A clean that is missing gives the controller old bytes, an
- *    invalidate that is missing or late gives them to the caller.
+ *  - A data cache (drivers.md 4.2, fakes/dcache.h). The controller reads and
+ *    writes RAM, the driver the cache. A clean that is missing gives the
+ *    controller old bytes, an invalidate that is missing or late gives them
+ *    to the caller, and the controller writes only what the driver began:
+ *    its queue heads from init to stop, a transfer's descriptors and an OUT
+ *    transfer's buffers while the transfer runs.
  */
 
 #include <setjmp.h>
@@ -30,12 +31,13 @@
 
 #include <cmocka.h>
 
-#include <arch/arch.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/usbd.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <string.h>
 
+#include "fakes/dcache.h"
 #include "fakes/regs.h"
 #include "imx_ci_udc_private.h"
 
@@ -46,108 +48,18 @@
 
 /* The driver's transfer descriptors with fakes/imx_ci_udc/config.h */
 #define NO_OF_DTDS   (1 + CONFIG_CM_BUF_SIZE_KiB / 20)
+#define NO_OF_DQHS   16
+#define LINE         PB_DMA_ALIGN
 
-/*
- * The cache
- */
-
-#define LINE         64
-#define MAX_LINES    8192 /* A power of two, and twice what a test tracks */
-
-/* A line whose content in RAM isn't, or wasn't always, the cache's. A hash
- * table on the line's address: 'used' is the test's own, since 0 is no
- * address of a line here */
-static struct line {
-    bool used;
-    uintptr_t addr;
-    uint8_t ram[LINE];
-} lines[MAX_LINES];
-
-static size_t n_lines;
-
-/* RAM and the cache agree everywhere */
-static void cache_reset(void)
-{
-    memset(lines, 0, sizeof(lines));
-    n_lines = 0;
-}
-
-static struct line *line_get(uintptr_t addr, bool create)
-{
-    struct line *l;
-
-    addr &= ~(uintptr_t)(LINE - 1);
-
-    for (size_t i = (addr / LINE) % MAX_LINES;; i = (i + 1) % MAX_LINES) {
-        l = &lines[i];
-
-        if (!l->used)
-            break;
-        if (l->addr == addr)
-            return l;
-    }
-
-    if (!create)
-        return NULL;
-
-    /* Until now RAM and the cache agreed */
-    assert_true(n_lines < MAX_LINES / 2);
-    n_lines++;
-    l->used = true;
-    l->addr = addr;
-    memcpy(l->ram, (const void *)addr, LINE);
-    return l;
-}
-
-/* From here on what the CPU writes in the range is in the cache only, until
- * it is cleaned */
-static void cache_track(const void *p, size_t length)
-{
-    uintptr_t addr = (uintptr_t)p;
-
-    for (uintptr_t a = addr & ~(uintptr_t)(LINE - 1); a < addr + length; a += LINE)
-        (void)line_get(a, true);
-}
-
-void arch_clean_cache_range(uintptr_t start, size_t len)
-{
-    for (uintptr_t a = start & ~(uintptr_t)(LINE - 1); a < start + len; a += LINE) {
-        struct line *l = line_get(a, false);
-
-        if (l != NULL)
-            memcpy(l->ram, (const void *)a, LINE);
-    }
-}
-
-void arch_invalidate_cache_range(uintptr_t start, size_t len)
-{
-    for (uintptr_t a = start & ~(uintptr_t)(LINE - 1); a < start + len; a += LINE) {
-        struct line *l = line_get(a, false);
-
-        if (l != NULL)
-            memcpy((void *)a, l->ram, LINE);
-    }
-}
-
-/* The controller reads RAM */
+/* The controller reads and writes RAM, behind the driver's cache */
 static void ram_read(uintptr_t addr, void *dst, size_t length)
 {
-    uint8_t *d = dst;
-
-    for (size_t i = 0; i < length; i++) {
-        struct line *l = line_get(addr + i, false);
-
-        d[i] = (l != NULL) ? l->ram[(addr + i) % LINE] : *(const uint8_t *)(addr + i);
-    }
+    dcache_dev_read(addr, dst, length);
 }
 
-/* The controller writes RAM, which the cache doesn't see */
 static void ram_write(uintptr_t addr, const void *src, size_t length)
 {
-    const uint8_t *s = src;
-
-    for (size_t i = 0; i < length; i++)
-        line_get(addr + i, true)->ram[(addr + i) % LINE] = s[i];
+    dcache_dev_write(addr, src, length);
 }
 
 /*
@@ -284,7 +196,6 @@ static int setup(void **state)
 
     fake_regs_reset();
     fake_regs_on_write = on_write;
-    cache_reset();
     primed = 0;
     one_xfer = false;
     ops = NULL;
@@ -293,6 +204,19 @@ static int setup(void **state)
     assert_non_null(ops);
     assert_int_equal(ops->init(), PB_OK);
 
+    /* A running controller has the queue heads, and nothing else */
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+
+    return 0;
+}
+
+/* The driver keeps what it gave the controller between the tests, and so
+ * does the cache's model */
+static int group_setup(void **state)
+{
+    (void)state;
+
+    dcache_reset();
     return 0;
 }
 
@@ -312,8 +236,6 @@ static void transfer_out(size_t offset, size_t length)
 
     fill(host, length, (unsigned int)(offset + length));
     memset(arena, 0xee, sizeof(arena));
-    cache_reset();
-    cache_track(arena, sizeof(arena));
 
     assert_int_equal(ops->xfer_start(USB_EP2_OUT, bfr, length), PB_OK);
     assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
@@ -323,9 +245,11 @@ static void transfer_out(size_t offset, size_t length)
     if (memcmp(bfr, host, length) != 0)
         fail_msg("OUT, offset 0x%zx, %zu bytes: not what the host sent", offset, length);
 
-    /* The caller's view and RAM, before the buffer and after its last line */
-    arch_invalidate_cache_range((uintptr_t)arena, sizeof(arena));
+    /* The transfer is done: the buffer is the caller's again */
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
 
+    /* Before the buffer and after its last line: the model fails a write of
+     * the controller's there, and the driver's copy stays inside too */
     for (size_t i = 0; i < sizeof(arena); i++) {
         if (arena + i >= bfr && arena + i < bfr + whole_lines)
             continue;
@@ -344,8 +268,6 @@ static void transfer_in(size_t offset, size_t length)
     uint8_t *bfr = arena + PAGE + offset;
 
     memset(arena, 0xee, sizeof(arena));
-    cache_reset();
-    cache_track(arena, sizeof(arena));
     fill(bfr, length, (unsigned int)(offset + length + 1));
     memset(host, 0, sizeof(host));
 
@@ -513,6 +435,67 @@ static void test_buffer_from_inside_a_page_over_several(void **state)
                      -PB_ERR_MEM);
 }
 
+/* usb.md 4.3: a transfer that is given up, or that a bus reset ended, leaves
+ * its buffer with the caller, and the next one starts from there */
+static void test_cancel_gives_the_buffer_back(void **state)
+{
+    (void)state;
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 512), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+    /* The descriptors' line, the buffer and the bounce buffer */
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS + 3);
+    ops->xfer_cancel(USB_EP2_OUT);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    transfer_out(0x200, 512);
+
+    /* Started over a transfer that nobody completed */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 512), PB_OK);
+    transfer_out(0, 3 * PAGE);
+    transfer_in(0x40, 64);
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
+    assert_int_equal(ops->stop(), PB_OK);
+    assert_int_equal(dma_host_in_open(), 0);
+}
+
+/* usb.md 4.4, drivers.md 4.2: the controller writes a setup packet into
+ * endpoint 0's queue head whenever the host sends one. The queue head is
+ * the controller's while it runs, and the driver reads the packet from RAM */
+static void test_setup_packet(void **state)
+{
+    static const struct usb_setup_packet get_descriptor = {
+        .bRequestType = 0x80,
+        .bRequest = 6,
+        .wValue = 0x0100,
+        .wLength = 18,
+    };
+    uintptr_t qh = (uintptr_t)fake_regs_get(BASE + CI_ENDPTLISTADDR) +
+                   USB_EP0_OUT * sizeof(struct imx_ci_udc_queue_head);
+    struct usb_setup_packet pkt;
+    (void)state;
+
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+
+    for (int i = 0; i < 2; i++) {
+        memset(&pkt, 0, sizeof(pkt));
+        ram_write(qh + offsetof(struct imx_ci_udc_queue_head, setup),
+                  &get_descriptor,
+                  sizeof(get_descriptor));
+        fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+        assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+        assert_memory_equal(&pkt, &get_descriptor, sizeof(pkt));
+        assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+
+        /* The data stage on the same queue head's endpoint pair */
+        assert_int_equal(ops->xfer_start(USB_EP0_IN, arena, 18), PB_OK);
+        assert_int_equal(controller_run(USB_EP0_IN, host, 18), 18);
+        assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
+    }
+
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+}
+
 /* The host resets the bus: USBSTS's reset bit, which the driver reads and
  * clears at its next poll */
 static void bus_reset(void)
@@ -597,8 +580,10 @@ int main(void)
         cmocka_unit_test_setup(test_write_from_inside_a_page, setup),
         cmocka_unit_test_setup(test_read_into_a_page, setup),
         cmocka_unit_test_setup(test_buffer_from_inside_a_page_over_several, setup),
+        cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
+        cmocka_unit_test_setup(test_setup_packet, setup),
         cmocka_unit_test_setup(test_bus_reset_is_reported, setup),
     };
 
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    return cmocka_run_group_tests(tests, group_setup, NULL);
 }
