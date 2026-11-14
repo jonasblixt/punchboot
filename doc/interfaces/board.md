@@ -639,14 +639,38 @@ A board directory holds:
 | File          | What                                                                           |
 | ------------- | ------------------------------------------------------------------------------ |
 | `board.c`     | `const struct board board`, the hooks                                          |
-| `makefile.mk` | `src-y` for its sources, its memory (`platform.md` 5.1), image stage overrides |
-|               | (`platform.md` 6.2), included before the platform's makefile                   |
+| `makefile.mk` | `src-y` for its sources, its memory (`platform.md` 5.1), its keys, image stage |
+|               | overrides (`platform.md` 6.2), included before the platform's makefile         |
 | `Kconfig`     | Optional, the board's options (`osource "$(BOARD)/Kconfig"` in `src/Kconfig`)  |
 | `include/`    | Optional, on the include path                                                  |
 
-The defconfig selects the arch, the platform and the keys: `configs/<b>_defconfig` in the tree,
-any file out of it, passed as `KCONFIG_CONFIG` (`build-and-test.md`). The build directory is
+The defconfig selects the arch and the platform: `configs/<b>_defconfig` in the tree, any file
+out of it, passed as `KCONFIG_CONFIG` (`build-and-test.md`). The build directory is
 `build-<last part of BOARD>`.
+
+**The keys** pb verifies images and command mode's tokens with are the board's `makefile.mk`'s
+(D-083). Key n is in revoke slot n, on HABv4 SRK n's revoke fuse (D-027):
+
+```make
+VERIFY_KEY0_PATH = $(BOARD)/keys/field1.der
+VERIFY_KEY0_ID   = field1
+VERIFY_KEY2_PATH = $(BOARD)/keys/field3.pem
+VERIFY_KEY2_ID   = 0x1b5ac0de
+```
+
+- `VERIFY_KEY<n>_PATH` is the public key, a `SubjectPublicKeyInfo` in DER or PEM, on P-256, P-384
+  or P-521 (`crypto.md` 5). n is 0 to 15.
+- `VERIFY_KEY<n>_ID` is its id, the one an image's header, the token and the `SLC_*` commands
+  name: a name, whose id is bpak's id of it (`pb-development` is `0xa90f9680`), or the id in hex.
+  No two keys have the same id.
+- A slot without a key is empty. A key that is dropped leaves its slot empty, so the keys after it
+  keep their fuse bits; slot 1 above is one.
+- A board that names no key gets pb's development keys, `pki/dev-keys.mk`, and the build says so.
+  Their private keys are in the tree: they are never a product's. It is all or nothing: a board
+  that names one key gets only its own.
+- The build stops on a key named in part (a path without an id or the other way round), a slot
+  above 15, or `CONFIG_KEYSTORE` or `CONFIG_KEYSTORE_SLOTS`, the options before 3.0.0.
+- A build may set them on the make command line, for a development build of a product's board.
 
 The defconfig compiles in what the board's objects name, and holds the product's choices that
 aren't the board's data (`system.md` 6):
@@ -659,7 +683,7 @@ aren't the board's data (`system.md` 6):
 | Addresses the build needs   | `BOOT_FH_REGION_BASE` and `_SIZE` (`boot.md` 5.4)                              |
 | Command mode                | The USB port (4.1); `CM_ON_SERIAL_DOWNLOAD` (5.1); the authentication methods, |
 |                             | `CM_AUTH_TOKEN` and `CM_AUTH_PASSWORD`                                         |
-| The keys and the life cycle | `KEYSTORE_SLOTS` (D-027); EOL, off by default (`system.md` 4)                  |
+| The life cycle              | EOL, off by default (`system.md` 4)                                            |
 
 `BOOT_ATF` is the delivery alone: a board that goes through TF-A also has its handover's option
 (`BOOT_LINUX`), as it names both objects. Before 3.0.0 `BOOT_ATF` was a whole boot driver and
@@ -678,8 +702,8 @@ changes them only for a new product, never in an update:
 - The boot source policy and its data: the A/B state partitions, System A and B, a chain's
   order, and what the state's board registers mean (2.5, section 6). The state's format is
   `boot.md` 7's.
-- The configuration fuses (`slc_fuses`) and the keystore's slots (`CONFIG_KEYSTORE_SLOTS`, D-027):
-  fuses can't be unwritten.
+- The configuration fuses (`slc_fuses`) and each key's slot and id (7, D-083): fuses can't be
+  unwritten.
 - The names of the board's commands, so their ids (`pb_id()` of each), and their answers
   (`command-mode.md` 5.6). A command a released board answered through `command()`, removed in
   3.0.0, keeps its id as a named command. The

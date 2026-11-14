@@ -40,7 +40,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-024 | bpak 1.0.1, and the headers it rejects           | In force                                           |
 | D-025 | An MCU test bench                                | Narrowed by D-029 (its name), D-039 (the handover) |
 | D-026 | A board is data, `struct board`                  | Narrowed by D-046, D-047, D-049                    |
-| D-027 | The core owns the security rules                 | In force                                           |
+| D-027 | The core owns the security rules                 | Narrowed by D-083 (a key's slot is its index)      |
 | D-028 | One handover state; the `simple` boot driver     | Narrowed by D-039 (Firmware Handoff for `simple`)  |
 | D-029 | The simple target test bench, also Cortex-A      | In force                                           |
 | D-030 | The platform contract                            | Closed by D-053 to D-056; narrowed by D-079 (the   |
@@ -101,6 +101,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-080 | Kconfig by subject; drivers by what the SoC has  | In force                                           |
 | D-081 | `BOOT_AB_DRIVER` is gone                         | In force                                           |
 | D-082 | The RAM log has every level, unsynchronized      | In force                                           |
+| D-083 | The board's keys are its `makefile.mk`'s         | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1959,3 +1960,34 @@ on debug level so we have all the info in the ram log".
 
 Why: one RAM log configuration that always has the whole story; two options fewer that no board
 in the tree used other than as the default.
+
+## D-083: The board's keys are its `makefile.mk`'s, without a bpak keystore (2026-11-14)
+
+Jonas: move away from `internal_keystore.bpak`, so that pb can later be built with another image
+format and without bpak (`system.md` 3, D-061). The keys are `VERIFY_KEY<n>_PATH` in the board's
+`makefile.mk`; drop `CONFIG_KEYSTORE`, "it's easy to adapt to this and we're doing a major
+release"; 16 slots. Narrows D-027: the slots are no longer a list of their own.
+
+- **The keys are the board's** (`board.md` 7), like its memory (D-079): `VERIFY_KEY<n>_PATH`,
+  a public key (DER or PEM), and `VERIFY_KEY<n>_ID`, its id. n is 0 to 15.
+- **Key n is in revoke slot n.** `CONFIG_KEYSTORE_SLOTS` is gone: the slot is the key's index,
+  and a dropped key leaves its index empty. One list, where D-027 had two that had to agree.
+  Every board in the tree had its keys in slot order, so their slots don't change.
+- **The ids don't change** (D-008): images, tokens and `SLC_*` name them. An id is a name,
+  hashed with bpak's id function as the keystore's part names were, or a hex number. The id
+  function is pb's key ids' from now on, also in a build without bpak.
+- **`scripts/gen-keystore.py`** writes `keystore.c`, the same structures as `bpak generate
+  keystore` (`key.h`, `keystore.h`) and the slot of each key. The build no longer needs the bpak
+  CLI for the keys. It refuses a key that isn't P-256, P-384 or P-521: pb verifies ECDSA only
+  (`crypto.md`), where the bpak CLI let RSA 4096 keys in.
+- **The development keys** are `pki/dev-keys.mk`, for a board that names no key at all. All or
+  nothing: a board that names one key gets none of the others, so a product build can't pick up
+  a test key in a slot it left empty. The build says when it uses them.
+- **`CONFIG_KEYSTORE` and `CONFIG_KEYSTORE_SLOTS` are gone**, and a configuration or command
+  line that still sets either stops the build: a 2.x product's defconfig would otherwise build
+  with the development keys. `pki/internal_keystore.bpak` and its script are gone; nothing
+  else read them.
+
+Why: the bpak file only carried the keys to `bpak generate keystore`; it is not signed and its
+id was never compared (`boot.md` 4.4). The format's own structures in pb, `struct bpak_key`,
+stay until a second format needs pb's own.

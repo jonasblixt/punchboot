@@ -517,8 +517,8 @@ struct pb_fh_handover {
 };
 ```
 
-A build whose keystore has more than 16 keys, or whose version string doesn't fit, doesn't compile
-with this handover (static asserts).
+A keystore has at most 16 keys (`board.md` 7). A build whose version string doesn't fit doesn't
+compile with this handover (a static assert).
 
 Its tag is allocated in the specification (requested upstream by Jonas, before 3.0.0); the
 non-standard range is discouraged there. A tag is allocated by a pull request that adds the

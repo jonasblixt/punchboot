@@ -80,8 +80,8 @@ device read, so it needs no capability bit:
   bytes (`transport_size` for transport parts).
 - punchboot's on-disk layout: the payload from LBA 0 of the partition, the header in the last
   4 KiB (`pb_api_partition_write`, `boot.c`, `cm_main.c`). File layout: header first.
-- The keystore layout (`key.h`/`keystore.h`) and the `bpak generate keystore` output that codegen
-  consumes.
+- The keystore layout (`key.h`/`keystore.h`), which `scripts/gen-keystore.py` writes (D-083).
+  pb's key ids are the ID function's, also in a build without bpak.
 
 Rule for the firmware: every image that a released bpak CLI produced and a released punchboot
 accepted must still be accepted. The one exception is security, which comes first
