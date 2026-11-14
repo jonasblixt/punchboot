@@ -92,7 +92,7 @@ int plat_early_init(void)
     wrsr = mmio_read_16(IMXRT_WDOG1_BASE + WDOG_WRSR);
 
     status.wdog_armed = false;
-#if CONFIG_ENABLE_WATCHDOG
+#ifdef CONFIG_ENABLE_WATCHDOG
     status.wdog_armed = (imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT) == PB_OK);
 #endif
 

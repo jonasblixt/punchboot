@@ -367,7 +367,7 @@ int plat_early_init(void)
     imx_wdog_disable_powerdown(IMX8M_WDOG3_BASE);
 
     status.wdog_armed = false;
-#if CONFIG_ENABLE_WATCHDOG
+#ifdef CONFIG_ENABLE_WATCHDOG
     /* Enable and ungate WDOG1 clock */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
     mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);

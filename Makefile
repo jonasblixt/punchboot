@@ -90,6 +90,9 @@ cflags-y += -Wmissing-prototypes
 cflags-y += -Wpointer-arith
 cflags-y += -Wredundant-decls
 cflags-y += -Waggregate-return
+# An #if on a macro that isn't defined is 0 without a word: a Kconfig bool
+# that is off isn't defined, so it is #ifdef or defined() (F-231)
+cflags-y += -Wundef
 
 # Bootloader
 src-y   = src/main.c
@@ -227,7 +230,7 @@ $(OBJS): $(call value_file,PB_VERSION)
 # What the objects are compiled with and pb is linked with: a changed flag
 # (CONFIG_OPTIMIZE on the command line, an edited makefile.mk), compiler or
 # list of objects makes them again, and so does a changed link script (F-398)
-compile_cmd = $(CC) $(cflags-y)
+compile_cmd = $(CC) $(cflags-y) $(asflags-y)
 link_cmd = $(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS) $(LIBS)
 LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(ldflags-y))))
 
@@ -274,7 +277,7 @@ $(foreach blob,$(blobs-y),$(eval $(call blob_rule,$(blob))))
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(@D)
 	@echo AS $<
-	$(Q)$(CC) -D__ASSEMBLY__ -c $(cflags-y) $< -o $@
+	$(Q)$(CC) -D__ASSEMBLY__ -c $(cflags-y) $(asflags-y) $< -o $@
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)

@@ -415,7 +415,7 @@ static void test_wdog_armed_by_the_option(void **state)
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
 
-#if CONFIG_ENABLE_WATCHDOG
+#ifdef CONFIG_ENABLE_WATCHDOG
     assert_int_equal(fake_regs_writes(IMX6UL_WDOG1_BASE + WDOG_WCR), 1);
     assert_true(fake_regs_get(IMX6UL_WDOG1_BASE + WDOG_WCR) & WDOG_WCR_WDE);
     assert_true(fake_regs_get(IMX6UL_WDOG1_BASE + WDOG_WCR) >> 8 != 0);
@@ -473,7 +473,7 @@ static void test_status(void **state)
 
     assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
     assert_int_equal(f.tzc_regions, 1);
-#if CONFIG_ENABLE_WATCHDOG
+#ifdef CONFIG_ENABLE_WATCHDOG
     assert_true(status.wdog_armed);
 #else
     assert_false(status.wdog_armed);

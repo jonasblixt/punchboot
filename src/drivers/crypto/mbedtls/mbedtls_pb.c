@@ -226,7 +226,7 @@ static int mbed_ecda_verify(const uint8_t *der_signature,
     rc = mbedtls_pk_parse_public_key(&ctx, der_key, key_length);
 
     if (rc != 0) {
-#if CONFIG_MBEDTLS_STRERROR
+#ifdef CONFIG_MBEDTLS_STRERROR
         char mbedtls_error_str[256];
         mbedtls_strerror(rc, mbedtls_error_str, sizeof(mbedtls_error_str));
 #else
@@ -286,7 +286,7 @@ int mbedtls_pb_init(void)
         return rc;
 #endif
 
-#if CONFIG_MBEDTLS_ECDSA
+#ifdef CONFIG_MBEDTLS_ECDSA
     static const struct dsa_ops mbed_dsa_ops = {
         .name = "mbedtls-dsa",
         .alg_bits = DSA_EC_SECP256r1 | DSA_EC_SECP384r1 | DSA_EC_SECP521r1,

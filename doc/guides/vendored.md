@@ -163,3 +163,11 @@ records a version.
 | `src/lib/crc.c`                                         | Gary S. Brown's CRC-32 (1986), with  | Brown's: use        |
 |                                                         | zlib's table                         | without restriction |
 | `src/drivers/usb/imx_salvo_phy.c`, its register values  | U-Boot (F-205)                       | GPL-2.0+ upstream   |
+
+pb builds with `-Wundef` (F-231), and the TF-A code tests its build options with `#if`, which
+TF-A's build always defines. pb's makefiles define them too, with the value an undefined one had,
+without changing the files: `ARM_ARCH_MAJOR` and the `ERRATA_*` (no erratum's workaround is built
+in) in the arch's `makefile.mk`, `DEBUG` and `ERROR_DEPRECATED` there for assembly only
+(`asflags-y`), `RECLAIM_INIT_CODE` in `src/lib/makefile.mk`. Two objects are compiled without
+`-Wundef` instead: `xlat_tables_common.o` (its own `MMU_LOG_LEVEL` and `ENABLE_ASSERTIONS`) and
+`uldivmod.o` (coreboot's `__COREBOOT_ARM_ARCH__`, which defined would change the code).

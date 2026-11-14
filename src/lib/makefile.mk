@@ -22,6 +22,9 @@ src-y  += src/lib/libc/assert.c
 
 cflags-$(CONFIG_ARCH_ARMV8) += -I include/libc/aarch64
 cflags-$(CONFIG_ARCH_ARMV7) += -I include/libc/aarch32
+# TF-A's build option, which the libc's cdefs.h tests with #if: TF-A's build
+# defines it, so it is defined here too (-Wundef), off, as it was undefined
+cflags-y += -DRECLAIM_INIT_CODE=0
 
 # Device tree lib
 src-$(CONFIG_LIB_FDT)  += src/lib/fdt/fdt.c
@@ -47,6 +50,10 @@ src-y  += src/lib/uuid/uuid3.c
 
 # VM/MMU helpers
 src-$(CONFIG_LIB_XLAT_TBLS) += src/lib/xlat_tables_v2/xlat_tables_common.c
+# TF-A's (vendored.md) tests MMU_LOG_LEVEL, a switch of its own for the debug
+# print that nothing defines, and ENABLE_ASSERTIONS: -Wundef is off for this
+# object only, which keeps both undefined, as they were
+$(BUILD_DIR)/src/lib/xlat_tables_v2/xlat_tables_common.o: cflags-y += -Wno-undef
 src-$(CONFIG_LIB_XLAT_TBLS_ARMV7) += src/lib/xlat_tables_v2/aarch32/xlat_tables.c
 src-$(CONFIG_LIB_XLAT_TBLS_ARMV8) += src/lib/xlat_tables_v2/aarch64/xlat_tables.c
 cflags-$(CONFIG_LIB_XLAT_TBLS) += -I include/xlat_tables
