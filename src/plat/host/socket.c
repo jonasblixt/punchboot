@@ -16,8 +16,9 @@
  * kicks run (command-mode.md 4.6). 'init' listens and returns at once, and
  * 'connect' is the accept, polled the same way (usb.md 2.2, 2.6), so that
  * command mode's ready timeout runs as on a board (command-mode.md 2.2).
- * When the client disconnects, 'complete' fails, which makes the command
- * mode loop call 'init' again, and 'connect' accepts the next client.
+ * When the client disconnects, 'complete' fails, which makes command mode
+ * restart the transport, 'disconnect' and then 'init' (usb.md 2.1), and
+ * 'connect' accepts the next client.
  */
 
 #include <errno.h>
@@ -142,10 +143,20 @@ int cm_transport_connect(void)
     return PB_OK;
 }
 
-/* Nothing, as before the transport was linked: the connection stays until
- * init closes it for the next client or the process exits */
+/* The device leaves (usb.md 2.5): the client's connection is closed, so
+ * that the host sees it go, before a restart as before a jump or the reset.
+ * A transfer that ran is given up. The socket still listens: the next client
+ * waits in the backlog until 'init' and 'connect' after a restart. Twice, or
+ * before 'init', is no error (drivers.md 2.3) */
 int cm_transport_disconnect(void)
 {
+    xfer.pending = false;
+
+    if (client_fd >= 0) {
+        close(client_fd);
+        client_fd = -1;
+    }
+
     return PB_OK;
 }
 
