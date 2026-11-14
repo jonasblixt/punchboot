@@ -28,7 +28,7 @@ Punchboot could be useful if you care about the following:
 
 ## Design
 
-Punchboot is written in C and some assembler. Currently armv7a and armv8 is supported.
+Punchboot is written in C and some assembler, for armv7a, armv8a and armv7m.
 
 The directory layout is as follows:
 
@@ -42,6 +42,8 @@ The directory layout is as follows:
 | /src/plat    | Platform support        |
 | /src/drivers | Drivers                 |
 | /tools       | Tools                   |
+| /tests       | Host tests              |
+| /testbench   | Test benches for boards |
 
 Supported architectures:
 
@@ -53,39 +55,30 @@ Supported architectures:
 
 Supported platforms:
 
-| Platform   | Supported | USB | EMMC | HW Crypto | Secure Boot | Fusebox |
-| ---------- | --------- | --- | ---- | --------- | ----------- | ------- |
-| NXP imx6ul | Yes       | Yes | Yes  | Yes       | Yes         | Yes     |
-| NXP imx8m  | Yes       | Yes | Yes  | Yes       | No          | Yes     |
-| NXP imx8x  | Yes       | Yes | Yes  | Yes       | Yes         | Yes     |
+| Platform   | USB | Storage     | Crypto              | Secure Boot | Fuses      |
+| ---------- | --- | ----------- | ------------------- | ----------- | ---------- |
+| NXP imx6ul | Yes | eMMC        | CAAM                | Yes         | Read/write |
+| NXP imx8m  | Yes | eMMC, SD    | CAAM                | No          | Read       |
+| NXP imx8x  | Yes | eMMC        | CAAM                | Yes         | Read/write |
+| NXP imxrt  | Yes | FlexSPI NOR | Mbed TLS (software) | No          | Read       |
 
+Boards in the tree:
 
-Supported boards:
+| Board               | Platform         | State                                      |
+| ------------------- | ---------------- | ------------------------------------------ |
+| Jiffy               | imx6ul           | Boots Linux                                |
+| NXP i.MX8M Plus EVK | imx8m (i.MX8MP)  | Boots Linux through TF-A                   |
+| NXP i.MX8QXP MEK    | imx8x (i.MX8QXP) | Boots Linux through TF-A                   |
+| NXP i.MX RT1060 EVK | imxrt            | Boots a bare metal application from RAM    |
+| NXP i.MX8MQ EVK     | imx8m (i.MX8MQ)  | Builds, not run on a board                 |
+| NXP i.MX8DXL EVK    | imx8x (i.MX8DXL) | Builds, not run on a board                 |
 
-| Board                | Supported               | More info |
-| -------------------- | ----------------------- | --------- |
-| Jiffy                | Fully supported         | https://github.com/jonasblixt/jiffy       |
-| Bebop                | Fully supported         | https://github.com/jonasblixt/bebop       |
-| Technexion PICO-IMX8M| Partial support         | https://www.technexion.com/products/system-on-modules/pico/pico-compute-modules/detail/PICO-IMX8M |
-| NXP IMX8QXP MEK      | Fully supported         | https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/i.mx-applications-processors/i.mx-8-processors/i.mx-8-multisensory-enablement-kit:i.MX8-MEK |
+Jiffy: https://github.com/jonasblixt/jiffy
 
-Hardware accelerated signature verification
-
-| Platform   | RSA4096 | EC secp256r1 | EC secp384r1 | EC secp521 |
-| ---------- | ------- | ------------ | ------------ | ---------- |
-| NXP imx6ul | Yes     | Yes          | No           | No         |
-| NXP imx8m  | Yes     | Yes          | No           | No         |
-| nxp imx8x  | yes     | yes          | yes          | yes        |
-| nxp imx RT | no      | no           | no           | no         |
-
-Hardware accelerated hash algorithms
-
-| Platform   | MD5 | SHA256 | SHA384 | SHA512 |
-| ---------- | --- | ------ | ------ | ------ |
-| NXP imx6ul | Yes | Yes    | No     | No     |
-| NXP imx8m  | Yes | Yes    | No     | No     |
-| NXP imx8x  | Yes | Yes    | Yes    | Yes    |
-| NXP imx RT | No  | No     | No     | No     |
+Images are signed with ECDSA on P-256, P-384 or P-521, over a SHA-256, SHA-384 or SHA-512
+hash. The CAAM computes MD5 and SHA-256 and verifies the three curves; it computes SHA-384 and
+SHA-512 where its hash block has them, which the i.MX6UL's doesn't. A build with Mbed TLS has
+the algorithms its configuration selects.
 
 ## Secure Boot
 
@@ -93,7 +86,7 @@ Hardware accelerated hash algorithms
  - ROM loads a set of public keys, calculates the checksum of the keys and compares the result to a fused checksum
  - ROM loads punchboot, calculates checksum and verifies signature using key's in step one
  - Run punchboot
- - Punchboot loads a PBI bundle, calculates the checksum and verifies the signature using built in keys
+ - Punchboot loads a bpak image, calculates the checksum and verifies the signature using built in keys
  - Run next step in boot chain
 
 Most SoC:s have a boot rom that includes meachanisms for calculating a checksum
@@ -208,31 +201,30 @@ Command mode is entered when the system can't boot or if the bootloader is
 forced by a configurable, external event to do so.
 
 In the command mode it is possible to update the bootloader, write data to
-partitions and install default settings. From v0.3 and forward
-an 'authentication cookie' must be used to interact with the bootloader to
-prevent malicious activity. The only command that can be executed without
-authentication is listing the device information (including the device UUID)
-
-The authentication cookie consists of the device UUID encrypted with one of
-the active key pair's private key.
+partitions and install default settings. When the device's security life cycle
+is locked, the session must be authenticated first, with a signed token or a
+password. Before that the device answers only its identity: the device UUID and
+the board's name.
 
 ## punchboot tool
 The punchboot CLI is used for interacting with the command mode. A summary of the features available:
 
-- Update the bootloader it self
-- Manually start system A or B
-- Activate boot partitions
-- Load image to ram and execute it
-- Display basic device info
-- Configure fuses and GPT parition tables
-- Call board specific functions
+- Update the bootloader it self (`part write`, `part verify`)
+- Manually start system A or B (`boot partition`)
+- Activate boot partitions (`boot enable`, `boot disable`, `boot status`)
+- Load image to ram and execute it (`boot bpak`)
+- Display basic device info (`dev show`, `list`)
+- Configure fuses and GPT parition tables (`slc`, `part install`)
+- List and run the commands of the device's board and platform (`command list`, `command <name>`)
+- Read the device's logs (`log`, `log --list`)
 
-The tool is written in Python and some parts in C to allow bindings for other
-languages. The tool is built on top of a library to make it possible to integrate
-with other tooling and environments.
+`punchboot --help` and `punchboot <group> --help` have the commands and their options.
 
-The tool is distributed through PyPi. Binary wheels are available for Windows,
-Linux and macos (x86_64 and arm64).
+The tool and the library it is built on are pure Python, so that they can be
+integrated with other tooling and environments. USB goes through pyusb and
+libusb.
+
+The tool is distributed through PyPi, as one wheel for Windows, Linux and macOS.
 
 Install using pypi:
 ```
@@ -252,32 +244,29 @@ or a signed token.
 The authentication token is generated by hashing the device UUID and signing
 it with one of the active key pairs.
 
-Example:
+Example, on a locked device (the bootloader's version is shown once the session
+is authenticated):
 ```
 $ punchboot dev show
-Bootloader version: v0.6.1-40-ga47f-dirty
 Device UUID:        0b177094-6b62-3572-902e-c1de339ecb01
-Board name:         pico8ml
+Board name:         jiffy
 ```
 
 Creating the authentication token using the 'createtoken.sh' script located
-in the scripts folder. In this example the private key is stored on a yubikey 5 HSM.
+in the scripts folder. The UUID is written as `dev show` prints it, and the hash
+goes with the key: sha256 for P-256, sha384 for P-384, sha512 for P-521. In this
+example the private key is stored on a yubikey 5 HSM.
 
 ```
-$ ./createtoken.sh 0B177094-6B62-3572-902E-C1DE339ECB01 pkcs11 sha256 "pkcs11:id=%02;type=private"
+$ ./createtoken.sh 0b177094-6b62-3572-902e-c1de339ecb01 pkcs11 sha256 "pkcs11:id=%02;type=private"
 engine "pkcs11" set.
 Enter PKCS#11 token PIN for PIV Card Holder pin (PIV_II):
 Enter PKCS#11 key PIN for SIGN key:
 ```
 
-Authenticating the session:
+Authenticating the session, which prints nothing when it succeeds:
 ```
-$ punchboot auth token ./0B177094-6B62-3572-902E-C1DE339ECB01.token <name of a key>
-Signature format: secp256r1
-Hash: sha256
-Authenticating using key index 0 and './0B177094-6B62-3572-902E-C1DE339ECB01.token'
-Read 103 bytes
-Authentication successful
+$ punchboot auth token ./0b177094-6b62-3572-902e-c1de339ecb01.token <name of a key>
 ```
 Now the command mode is fully unlocked. The token is of course only valid for
 the individual unit with that perticular UUID.
@@ -304,20 +293,14 @@ jiffy: 528 MHz, HAB closed, eMMC in DDR52 8-bit. The EVK: eMMC in HS200, not
 HAB closed, most of its init is LPDDR4 training (64 ms). A 29 MiB image loads
 and verifies in 399 ms on jiffy and 349 ms on the EVK.
 
-Measurements taken on IMX8QXP, loading a 14296kByte binary.
+## Documentation
 
-Using hardware accelerators for SHA and RSA signatures:
-
-| Parameter            | Value | Unit |
-| -------------------- | ----- | ---- |
-| Power On Reset       | 175   | ms   |
-| Bootloader init      | 6.358 | ms   |
-| Blockdev read / hash | 107   | ms   |
-| RSA 4096 Signature   | 0.676 | ms   |
-| Total                | 288   | ms   |
-
-The POR time is off due to some unidentified problem with the SCU firmware.
- A guess would be that this metric should be in the 20ms -range.
+- [CHANGELOG.md](CHANGELOG.md): the release notes. 3.0.0 is compatible with 2.x on the wire
+  and in the image format; its major version is for the porting API.
+- [doc/guides/porting.md](doc/guides/porting.md): writing a board, a driver or a platform.
+- [doc/guides/migration-3.0.md](doc/guides/migration-3.0.md): porting a 2.x board to 3.0.0.
+- [doc/guides/build-and-test.md](doc/guides/build-and-test.md): building the firmware.
+- [doc/README.md](doc/README.md): the map of the documents.
 
 ## Contributing
 
