@@ -846,13 +846,32 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | alone, so the revision's split into major and minor is the other i.MX's. 2026-11-14 on the | | |
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
-| F-434 | `src/drivers/usb/cdns3_udc_core.c`, the MEK | `part write` of the MEK's 15 MB `boot.bpak` | Verified | open |
+| F-434 | `src/drivers/usb/cdns3_udc_core.c`, the MEK | `part write` of the 15 MB `boot.bpak` | Verified | fixed |
 | | | fails at `246bd897` with "Bad result magic 0xf9401421", seven times out of seven, also after a | | |
 | | | `dev reset`: the host reads the image's own bytes (offset 0x1660) where the device's result | | |
 | | | is, so the result frame carries data of the write. Random 15 MB files fail one write in two | | |
 | | | with other values, 4 and 8 MB pass, `root.bpak` (7 MB) passed at its second try. At | | |
 | | | `bc640ba1` the same writes passed (log 2026-11-13). Suspect: F-282's cdns3 changes | | |
 | | | (`e46baba4`); maybe F-172's cause. Not bisected | | |
+| | | 2026-11-14, the cause, on the MEK at `246bd897`: both bulk endpoints use one TRB ring, | | |
+| | | `trb[]`, since the driver came in (`bf965ce9`). After an IN result (`trb[0]`, the stop gap | | |
+| | | in `trb[1]`) the IN endpoint stays at `trb[1]`, and the TRBERR path rings DRDY again without | | |
+| | | moving it. The next OUT data transfer writes its second TRB there (the buffer + 127 KiB, cycle | | |
+| | | set); the host's IN token for the data's result comes before the device rewrites the ring, | | |
+| | | and the IN endpoint sends that TRB's 127 KiB instead of the result. The host reads 512 bytes of | | |
+| | | it as the result, and the device times out on its real result 10 s later ("Transfer timed | | |
+| | | out", then "Transfer lost"). Measured: the 512 bytes the host got are the file's at 0xc20c00, | | |
+| | | the last chunk's start (0xc01000) + 0x1fc00 (`TRB_MAX_LENGTH`); 0xf9401421 is the word at | | |
+| | | 0x420c00, the second chunk's + 0x1fc00 (offset 0x1660 was only its first copy), 0x361002c0 of | | |
+| | | another run the first chunk's. The failing step is the result after a PREPARE_BUFFER's data. | | |
+| | | Why at `246bd897` and not `bc640ba1` isn't known: the ring was shared before, so `e46baba4` | | |
+| | | changes only the timing, or not at all (F-172). The fix: a ring per bulk endpoint. Left: the | | |
+| | | fix, a bisect if Jonas wants the regression's commit | | |
+| | | 2026-11-14, fixed (`af6e7060`): `trb_in` and `trb_out`, a host test that the IN endpoint's | | |
+| | | next TRB isn't the OUT transfer's (fails on the old driver). On the MEK, from BOOT0: | | |
+| | | `boot.bpak` 5 of 5 and random 15 MB files 10 of 10, each verified; System A holds | | |
+| | | `boot.bpak` again and boots Linux to the login. The old pb failed a 500 KB write once on the | | |
+| | | way. Left: whether it is F-172's cause too, which a longer run will tell | | |
 
 ## Dependencies / vendored code
 

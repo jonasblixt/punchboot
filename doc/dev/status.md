@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-14 (the 8X's log `seco`)_
+_Last updated: 2026-11-14 (F-434, the cdns3's shared ring)_
 
 ## Current focus
 
@@ -24,7 +24,8 @@ bump is for the porting API. Each item's history is in `log/`.
   `bc640ba1` from its NOR; jiffy (BOOT0), the 8MP EVK and the MEK (BOOT1) run `bc640ba1`
   with the F-424 fix (`b6a3df47`). Since 2026-11-14 all four run `246bd897` (log, "The
   tip on all four"): jiffy, the 8MP EVK and the MEK from BOOT0 (BOOT1 keeps an older pb),
-  the RT from its BL. All four in command mode, nothing enabled.
+  the RT from its BL. All four in command mode, nothing enabled. The MEK's BOOT0 has
+  `69e185dc` with the F-434 fix (`af6e7060`) (log, "F-434").
   imx8dxlevk and imx8mevk only build (F-033, F-300). Never write fuses on the 8MP EVK,
   never run SLC or fuse commands on the MEK. Untested on any board: fuse writes, the 8X
   closed state.
@@ -42,7 +43,8 @@ bump is for the porting API. Each item's history is in `log/`.
    - The bench, in this order: the DMA rule (F-282) and USB on all four, the preconditions
      (the TrustZone filter), F-247 and the CAAM's stop, the 8MP EVK through TF-A. All four
      run `246bd897` and reach command mode with the preconditions met; boot time measured
-     (log), jiffy and the 8MP EVK boot Linux. F-434: the MEK's 15 MB writes fail, first.
+     (log), jiffy and the 8MP EVK boot Linux. F-434 fixed (`af6e7060`): left
+     the MEK's boot time to the login.
    - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
