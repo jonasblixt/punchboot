@@ -712,6 +712,9 @@ CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
   hex), so its id stays what images and tokens name. `bpak extract keystore.bpak --part <name>
   -o <name>.der` gets a key out of a 2.x keystore. Only P-256, P-384 and P-521 keys: an RSA key
   stops the build.
+- **The build reads the keys with Python's `cryptography` package**, and no longer needs the
+  bpak CLI for them. The code it writes is pb's key list, `pb_keys` (`pb/keys.h`), not a
+  `bpak_keystore`: code of a board's that read `keystore_pb` reads `pb_keys` or `rot.h`.
 - **The key map is gone, and n is the key's revoke slot**: write each key at its 2.x map's
   `param1`. A key that is dropped leaves its slot empty, so the keys after it keep their fuse
   bits.

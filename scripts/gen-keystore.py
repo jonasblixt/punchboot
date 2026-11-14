@@ -1,41 +1,39 @@
 #!/usr/bin/env python3
-"""Write pb's keystore as C: the keys a board names in its makefile.mk.
+"""Write pb's keys as C: the keys a board names in its makefile.mk.
 
   gen-keystore.py <slot> <id> <path> [<slot> <id> <path> ...]
 
 Each key is its revoke slot (0 to 15), its id and its public key, a
 SubjectPublicKeyInfo in DER or PEM (board.md 7, D-083). The id is a name,
-whose id is bpak's id of it, or a hex number with 0x. The output has the
-structures 'bpak generate keystore --name pb --decorate' writes (bpak/key.h,
-bpak/keystore.h), with the keys in slot order, and keystore_pb_slot[], the slot
-of each.
+whose id is bpak's id of it, or a hex number with 0x. The output is pb_keys[]
+(pb/keys.h), the keys in slot order, each with its id, curve and slot, and
+pb_no_of_keys. A key's data is its SubjectPublicKeyInfo in DER, with the point
+uncompressed.
 """
 
 from __future__ import annotations
 
-import base64
-import binascii
 import pathlib
 import re
 import sys
 import zlib
 
+from cryptography.exceptions import UnsupportedAlgorithm
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+
 MAX_SLOTS = 16
 
-ID_EC_PUBLIC_KEY = bytes.fromhex("2a8648ce3d0201")
-# The curves pb verifies with (crypto.md 5): their OID, kind and the size of
-# an uncompressed point, 0x04 and both coordinates
+# The curves pb verifies with (crypto.md 5), their dsa_t (pb/crypto.h)
 CURVES = {
-    bytes.fromhex("2a8648ce3d030107"): ("BPAK_KEY_PUB_PRIME256v1", 65),
-    bytes.fromhex("2b81040022"): ("BPAK_KEY_PUB_SECP384r1", 97),
-    bytes.fromhex("2b81040023"): ("BPAK_KEY_PUB_SECP521r1", 133),
+    "secp256r1": "DSA_EC_SECP256r1",
+    "secp384r1": "DSA_EC_SECP384r1",
+    "secp521r1": "DSA_EC_SECP521r1",
 }
 
-PEM = re.compile(rb"-----BEGIN ([A-Z ]+)-----(.*?)-----END \1-----", re.DOTALL)
 
-
-class KeyError_(Exception):  # noqa: N801
-    """A key that can't be in pb's keystore."""
+class KeyFileError(Exception):
+    """A key that can't be one of pb's."""
 
 
 def bpak_id(name: str) -> int:
@@ -49,111 +47,58 @@ def parse_id(text: str) -> int:
         return int(text, 16)
     if not text or re.search(r"\s", text):
         msg = f"'{text}' is not an id: a name, or a hex number with 0x"
-        raise KeyError_(msg)
+        raise KeyFileError(msg)
     return bpak_id(text)
 
 
-def tlv(data: bytes, pos: int, tag: int) -> tuple[bytes, int]:
-    """Return the value of the DER element with 'tag' at 'pos', and the position after it."""
-    if pos + 2 > len(data) or data[pos] != tag:
-        msg = f"not a SubjectPublicKeyInfo: no element 0x{tag:02x} at byte {pos}"
-        raise KeyError_(msg)
-    length = data[pos + 1]
-    pos += 2
-    if length & 0x80:
-        count = length & 0x7F
-        if count == 0 or count > 2 or pos + count > len(data):  # noqa: PLR2004
-            msg = f"not a SubjectPublicKeyInfo: a bad length at byte {pos - 1}"
-            raise KeyError_(msg)
-        length = int.from_bytes(data[pos : pos + count], "big")
-        pos += count
-    if pos + length > len(data):
-        msg = "not a SubjectPublicKeyInfo: an element runs past its end"
-        raise KeyError_(msg)
-    return data[pos : pos + length], pos + length
-
-
-def der_of(raw: bytes) -> bytes:
-    """Return the DER of a key file: the file itself, or its PEM block's."""
-    if not raw.lstrip().startswith(b"-----BEGIN"):
-        return raw
-    match = PEM.search(raw)
-    if match is None:
-        msg = "a PEM file without a whole block"
-        raise KeyError_(msg)
-    if match.group(1) != b"PUBLIC KEY":
-        msg = f"a PEM '{match.group(1).decode()}', not a 'PUBLIC KEY'"
-        raise KeyError_(msg)
+def load_key(raw: bytes) -> tuple[str, bytes]:
+    """Return the dsa_t and the DER of a public key on a curve pb verifies with."""
+    pem = raw.lstrip().startswith(b"-----BEGIN")
     try:
-        return base64.b64decode(b"".join(match.group(2).split()), validate=True)
-    except binascii.Error as e:
-        msg = f"a PEM block that isn't base64: {e}"
-        raise KeyError_(msg) from e
-
-
-def parse_key(der: bytes) -> str:
-    """Return the bpak_key_kind of a SubjectPublicKeyInfo on a curve pb verifies with."""
-    spki, end = tlv(der, 0, 0x30)
-    if end != len(der):
-        msg = "not a SubjectPublicKeyInfo: bytes after it"
-        raise KeyError_(msg)
-    alg, pos = tlv(spki, 0, 0x30)
-    point, pos = tlv(spki, pos, 0x03)
-    if pos != len(spki):
-        msg = "not a SubjectPublicKeyInfo: more than an algorithm and a key"
-        raise KeyError_(msg)
-    oid, apos = tlv(alg, 0, 0x06)
-    if oid != ID_EC_PUBLIC_KEY:
+        if pem:
+            key = serialization.load_pem_public_key(raw)
+        else:
+            key = serialization.load_der_public_key(raw)
+    except (ValueError, UnsupportedAlgorithm) as e:
+        what = "a PEM 'PUBLIC KEY'" if pem else "a SubjectPublicKeyInfo in DER"
+        msg = f"not a public key, {what}: {e}"
+        raise KeyFileError(msg) from e
+    if not isinstance(key, ec.EllipticCurvePublicKey):
         msg = "not an EC key: pb verifies ECDSA only (crypto.md 5)"
-        raise KeyError_(msg)
-    curve, apos = tlv(alg, apos, 0x06)
-    if apos != len(alg) or curve not in CURVES:
-        msg = "not on P-256, P-384 or P-521 (crypto.md 5)"
-        raise KeyError_(msg)
-    kind, size = CURVES[curve]
-    if len(point) != 1 + size or point[0] != 0 or point[1] != 0x04:  # noqa: PLR2004
-        msg = "not an uncompressed point of its curve"
-        raise KeyError_(msg)
-    return kind
+        raise KeyFileError(msg)
+    if key.curve.name not in CURVES:
+        msg = f"{key.curve.name}, not P-256, P-384 or P-521 (crypto.md 5)"
+        raise KeyFileError(msg)
+    der = key.public_bytes(
+        serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    return CURVES[key.curve.name], der
 
 
 def generate(keys: list[tuple[int, int, str, bytes]]) -> str:
-    """Return keystore.c for the keys, (slot, id, kind, DER) in slot order."""
-    code = ["/* Generated by scripts/gen-keystore.py */\n"]
-    code += ["#include <bpak/bpak.h>\n", "#include <bpak/keystore.h>\n", "\n\n"]
-    for index, (_, key_id, kind, data) in enumerate(keys):
+    """Return keystore.c for the keys, (slot, id, dsa_t, DER) in slot order."""
+    code = ["/* Generated by scripts/gen-keystore.py */\n", "#include <pb/keys.h>\n"]
+    for slot, _, _, data in keys:
         code += [
-            f'const struct bpak_key keystore_pb_key{index} __attribute__((section (".keystore_key"))) =\n',
-            "{\n",
-            f"    .id = 0x{key_id:x},\n",
-            f"    .size = {len(data)},\n",
-            f"    .kind = {kind},\n",
-            "    .data =\n",
-            "    {\n",
+            f"\nstatic const uint8_t key{slot}[] = {{\n",
             *(
-                "            " + " ".join(f"0x{b:02x}," for b in data[i : i + 8]) + "\n"
-                for i in range(0, len(data), 8)
+                "    " + " ".join(f"0x{b:02x}," for b in data[i : i + 12]) + "\n"
+                for i in range(0, len(data), 12)
             ),
-            "    },\n",
-            "};\n\n",
+            "};\n",
         ]
-    code += [
-        'const struct bpak_keystore keystore_pb __attribute__((section (".keystore_header"))) =\n',
-        "{\n",
-        f"    .id = 0x{bpak_id('pb'):x},\n",
-        f"    .no_of_keys = {len(keys)},\n",
-        "    .verified = true,\n",
-        "    .keys =\n",
-        "    {\n",
-        *(f"        (struct bpak_key *) &keystore_pb_key{i},\n" for i in range(len(keys))),
-        "    },\n",
-        "};\n\n",
-        "/* The revoke slot of each key in keystore_pb.keys (board.md 7) */\n",
-        f"const uint8_t keystore_pb_slot[{len(keys)}] =\n",
-        "{\n",
-        *(f"    {slot},\n" for slot, *_ in keys),
-        "};\n",
-    ]
+    code += ["\nconst struct pb_key pb_keys[] = {\n"]
+    for slot, key_id, kind, _ in keys:
+        code += [
+            "    {\n",
+            f"        .id = 0x{key_id:08x},\n",
+            f"        .kind = {kind},\n",
+            f"        .slot = {slot},\n",
+            f"        .size = sizeof(key{slot}),\n",
+            f"        .data = key{slot},\n",
+            "    },\n",
+        ]
+    code += ["};\n\n", f"const unsigned int pb_no_of_keys = {len(keys)};\n"]
     return "".join(code)
 
 
@@ -169,14 +114,14 @@ def main(argv: list[str]) -> int:
         try:
             if not slot.isdigit() or int(slot) >= MAX_SLOTS:
                 msg = f"slot '{slot}': pb has slots 0 to {MAX_SLOTS - 1}"
-                raise KeyError_(msg)
+                raise KeyFileError(msg)
             key_id = parse_id(name)
             try:
-                der = der_of(pathlib.Path(path).read_bytes())
+                raw = pathlib.Path(path).read_bytes()
             except OSError as e:
-                raise KeyError_(str(e)) from e
-            kind = parse_key(der)
-        except KeyError_ as e:
+                raise KeyFileError(str(e)) from e
+            kind, der = load_key(raw)
+        except KeyFileError as e:
             sys.stderr.write(f"{what} ({path}): {e}\n")
             return 1
         for other_slot, other_id, *_ in keys:

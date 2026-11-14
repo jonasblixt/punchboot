@@ -46,15 +46,17 @@ RUN curl -fsSL -o /tmp/mbedtls.tar.gz \
     && rm /tmp/mbedtls.tar.gz
 ENV MBEDTLS_DIR=/opt/mbedtls-${MBEDTLS_VERSION}
 
-# Python environment for the punchboot package, coverage reports and the
-# bpak CLI (the bpak python package since 1.0), which generates the keystore
-# and builds test images. The container runs as the invoking host user, so
-# the locations that get installed into at runtime (venv, /opt/pb prefix for
-# pbstate) are left world writable. Containers are ephemeral, so nothing
+# Python environment for the punchboot package, coverage reports, the bpak
+# CLI (the bpak python package since 1.0), which builds test images, and
+# cryptography, which scripts/gen-keystore.py reads the board's keys with.
+# The container runs as the invoking host user, so the locations that get
+# installed into at runtime (venv, /opt/pb prefix for pbstate) are left
+# world writable. Containers are ephemeral, so nothing
 # persists between runs.
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir \
         "click>=8.2,<9" \
+        "cryptography>=42" \
         "semver>=3,<4" \
         "pyusb>=1.2,<2" \
         "libusb-package>=1.0.26" \

@@ -33,5 +33,6 @@ stay backward compatible, permanently (D-008, supersedes D-001). What is frozen:
 
 1. `sizeof(struct bpak_header) == 4096` is baked into the LBA math (`boot.c`, `cm_main.c`, `image_helpers.c`). The header sits at the end of the partition.
 2. The raw header is sent over the wire protocol.
-3. Keystore codegen depends on the output of `bpak generate keystore --decorate` and on the `key.h`/`keystore.h` layouts.
+3. The keys' ids are bpak's id function of their names (`scripts/gen-keystore.py`, D-083). The keys themselves are pb's
+   `struct pb_key` (`pb/keys.h`), not `key.h`/`keystore.h`.
 4. The dev container installs the bpak CLI 1.0.1 from PyPI; the vendored copy is the same version.

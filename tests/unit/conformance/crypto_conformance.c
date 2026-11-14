@@ -15,15 +15,13 @@
 
 #include <cmocka.h>
 
-#include <bpak/keystore.h>
 #include <pb/crypto.h>
+#include <pb/keys.h>
 #include <pb/pb.h>
 #include <string.h>
 
 #include "crypto_conformance.h"
 #include "crypto_vectors.h"
-
-extern const struct bpak_keystore keystore_pb;
 
 hash_t crypto_conformance_hashes;
 dsa_t crypto_conformance_curves;
@@ -63,7 +61,7 @@ static const struct hash_case {
 };
 
 /* Command mode's token, per curve: the hash that goes with the curve, over
- * VECTOR_TOKEN_UUID, signed with the internal keystore's key */
+ * VECTOR_TOKEN_UUID, signed with a development key */
 static const struct token {
     dsa_t dsa;
     uint32_t key_id;
@@ -118,11 +116,11 @@ static const struct token *token_of(dsa_t dsa)
     return NULL;
 }
 
-static const struct bpak_key *key_of(const struct token *t)
+static const struct pb_key *key_of(const struct token *t)
 {
-    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
-        if (keystore_pb.keys[i]->id == t->key_id)
-            return keystore_pb.keys[i];
+    for (unsigned int i = 0; i < pb_no_of_keys; i++) {
+        if (pb_keys[i].id == t->key_id)
+            return &pb_keys[i];
     }
     fail_msg("No key 0x%x in the keystore", t->key_id);
     return NULL;
@@ -169,7 +167,7 @@ static int verify(const struct token *t,
 
 static int verify_token(const struct token *t, bool *verified)
 {
-    const struct bpak_key *k = key_of(t);
+    const struct pb_key *k = key_of(t);
 
     return verify(t, t->signature_length, k->data, k->size, verified);
 }
@@ -361,7 +359,7 @@ void crypto_4_one_bit_changed(void **state)
 
     for (size_t i = 0; i < ARRAY_SIZE(tokens); i++) {
         const struct token *t = &tokens[i];
-        const struct bpak_key *k;
+        const struct pb_key *k;
 
         if (!has_token(t))
             continue;
@@ -400,7 +398,7 @@ void crypto_4_malformed_der(void **state)
 
     for (size_t i = 0; i < ARRAY_SIZE(tokens); i++) {
         const struct token *t = &tokens[i];
-        const struct bpak_key *k;
+        const struct pb_key *k;
 
         if (!has_token(t))
             continue;
@@ -431,7 +429,7 @@ void crypto_4_malformed_der(void **state)
     const struct token *t = token_of(DSA_EC_SECP256r1);
 
     if (t != NULL) {
-        const struct bpak_key *k = key_of(t);
+        const struct pb_key *k = key_of(t);
 
         token_begin(t);
         memcpy(key, k->data, k->size);

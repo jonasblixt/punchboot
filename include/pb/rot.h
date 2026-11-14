@@ -14,7 +14,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/** A key of the keystore built into pb */
+/** A key of pb_keys (pb/keys.h), as the platform revokes it */
 struct rot_key {
     key_id_t id; /*!< Punchboot ID of the key */
     unsigned int slot; /*!< Its revoke slot, e.g. SRK n's revoke fuse bit */
@@ -32,7 +32,7 @@ struct rot_config {
 int rot_init(const struct rot_config *cfg);
 
 /**
- * The number of keys in the keystore
+ * The number of keys in pb_keys (pb/keys.h)
  *
  * @param[out] count The number of keys. Not written on an error
  *
@@ -43,13 +43,13 @@ int rot_read_key_status_by_idx(unsigned int index);
 int rot_read_key_status(key_id_t id);
 
 /**
- * The id of the key at 'index', in the keystore's order
+ * The id of the key at 'index', in pb_keys' order, the slots'
  *
  * @param[in] index Below rot_no_of_keys()'s count
  * @param[out] id The key's id. Not written on an error
  *
  * @return PB_OK, -PB_ERR_NOT_SUPPORTED before rot_init(), or
- *        -PB_ERR_PARAM for an index the keystore doesn't have
+ *        -PB_ERR_PARAM for an index pb_keys doesn't have
  */
 int rot_key_idx_to_id(unsigned int index, key_id_t *id);
 int rot_revoke_key(key_id_t id);

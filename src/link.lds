@@ -65,8 +65,6 @@ SECTIONS
         . = ALIGN(8);
         . = ALIGN(PB_SECTION_ALIGNMENT);
         _edata = .;
-        *(.keystore_header)
-        *(.keystore_key)
         . = ALIGN(PB_SECTION_ALIGNMENT);
         PROVIDE (_ro_data_region_end = .);
     } > ram

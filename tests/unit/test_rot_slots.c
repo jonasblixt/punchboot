@@ -17,7 +17,7 @@
 
 #include <cmocka.h>
 
-#include <bpak/keystore.h>
+#include <pb/keys.h>
 #include <pb/pb.h>
 #include <pb/rot.h>
 
@@ -25,16 +25,12 @@
 #define KEY_B 0x25c6dd36
 #define KEY_C 0x52c1eda0
 
-static const struct bpak_key key_a = { .id = KEY_A, .kind = BPAK_KEY_PUB_PRIME256v1 };
-static const struct bpak_key key_b = { .id = KEY_B, .kind = BPAK_KEY_PUB_SECP384r1 };
-static const struct bpak_key key_c = { .id = KEY_C, .kind = BPAK_KEY_PUB_SECP521r1 };
-
-const struct bpak_keystore keystore_pb = {
-    .no_of_keys = 3,
-    .verified = true,
-    .keys = { (struct bpak_key *)&key_a, (struct bpak_key *)&key_b, (struct bpak_key *)&key_c },
+const struct pb_key pb_keys[] = {
+    { .id = KEY_A, .kind = DSA_EC_SECP256r1, .slot = 0 },
+    { .id = KEY_B, .kind = DSA_EC_SECP384r1, .slot = 2 },
+    { .id = KEY_C, .kind = DSA_EC_SECP521r1, .slot = 3 },
 };
-const uint8_t keystore_pb_slot[3] = { 0, 2, 3 };
+const unsigned int pb_no_of_keys = 3;
 
 static uint32_t revoked; /* Bit per slot */
 
@@ -86,7 +82,7 @@ static void test_dropped_key(void **state)
     assert_int_equal(rot_read_key_status(KEY_A), PB_OK);
     assert_int_equal(rot_read_key_status(KEY_B), PB_OK);
     assert_int_equal(rot_read_key_status(KEY_C), PB_OK);
-    for (unsigned int i = 0; i < keystore_pb.no_of_keys; i++)
+    for (unsigned int i = 0; i < pb_no_of_keys; i++)
         assert_int_equal(rot_read_key_status_by_idx(i), PB_OK);
 }
 

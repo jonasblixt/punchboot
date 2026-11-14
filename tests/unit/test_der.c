@@ -15,8 +15,8 @@
 
 #include <cmocka.h>
 
-#include <bpak/keystore.h>
 #include <pb/der_helpers.h>
+#include <pb/keys.h>
 #include <pb/pb.h>
 #include <stdlib.h>
 #include <string.h>
@@ -462,34 +462,31 @@ static void test_ec_public_key_point(void **state)
     }
 }
 
-/* The keys that verified before still parse: every key of a keystore is as
- * bpak writes it (bpak generate keystore re-encodes each with Mbed TLS's
- * mbedtls_pk_write_pubkey_der()), as the internal keystore's three are */
+/* The keys that verified before still parse: every key of pb_keys is as
+ * scripts/gen-keystore.py writes it, a SubjectPublicKeyInfo with the point
+ * uncompressed, as the development keys' three are */
 static void test_ec_public_key_keystore(void **state)
 {
-    extern const struct bpak_keystore keystore_pb;
-
     static const struct {
-        enum bpak_key_kind bpak;
         dsa_t dsa;
         size_t coordinate;
     } kinds[] = {
-        { BPAK_KEY_PUB_PRIME256v1, DSA_EC_SECP256r1, 32 },
-        { BPAK_KEY_PUB_SECP384r1, DSA_EC_SECP384r1, 48 },
-        { BPAK_KEY_PUB_SECP521r1, DSA_EC_SECP521r1, 66 },
+        { DSA_EC_SECP256r1, 32 },
+        { DSA_EC_SECP384r1, 48 },
+        { DSA_EC_SECP521r1, 66 },
     };
 
     uint8_t out[160];
     unsigned int seen = 0;
     (void)state;
 
-    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
-        const struct bpak_key *key = keystore_pb.keys[i];
+    for (unsigned int i = 0; i < pb_no_of_keys; i++) {
+        const struct pb_key *key = &pb_keys[i];
         size_t point = 0;
         dsa_t kind = 0;
 
         for (size_t k = 0; k < ARRAY_SIZE(kinds); k++) {
-            if (kinds[k].bpak == key->kind) {
+            if (kinds[k].dsa == key->kind) {
                 assert_int_equal(
                     der_ec_public_key_data(key->data, key->size, out, sizeof(out), &kind), PB_OK);
                 assert_int_equal(kind, kinds[k].dsa);

@@ -43,7 +43,6 @@
 
 #include "desc_defines.h"
 #include "desc_helper.h"
-#include <bpak/keystore.h>
 #include <drivers/crypto/imx_caam.h>
 #include <inttypes.h>
 #include <pb/crypto.h>

@@ -27,7 +27,7 @@ CI runs these tests (D-006).
 | `tests/make/`             | The firmware build: `check_rebuild.py` (`make.rebuild`) runs `make` for jiffy and      |
 |                           | checks that a changed key, SRK fuse file or version is made again (F-183);             |
 |                           | `check_config.py` (`make.config`), its configuration and keys (F-229, F-147, D-083);   |
-|                           | `check_gen_keystore.py` (`make.gen_keystore`), the keystore's generator;               |
+|                           | `check_gen_keystore.py` (`make.gen_keystore`), the keys' generator;                    |
 |                           | `check_include_dirs.py` (`make.include_dirs`), that each `-I` exists (F-031)           |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest                                    |
 

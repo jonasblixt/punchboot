@@ -10,7 +10,7 @@ hosts and firmware from v1.0.0 on.
 
 Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/cm/`,
 `tools/punchboot/` (`wire.py`, `bpak.py`, `session.py`), `include/bpak/`, `src/lib/bpak.c`,
-`src/boot/image_helpers.c`, keystore codegen, or anything that writes or reads images.
+`src/boot/image_helpers.c`, the keys' generator (`scripts/gen-keystore.py`), or anything that writes or reads images.
 
 ## Wire protocol: what is frozen
 

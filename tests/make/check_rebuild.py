@@ -99,7 +99,7 @@ class Build:
         srk_fuse = (self.build / "srk_fuse.c").read_text()
         console = (self.build / "src/console.o").read_bytes()
         found = (
-            keystore.count("const struct bpak_key keystore_pb_key"),
+            keystore.count(".slot = "),
             srk_fuse.splitlines()[0],
             f"PB {version}".encode() in console,
         )

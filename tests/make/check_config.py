@@ -54,7 +54,7 @@ def check_keys(
             "a board without keys gets the development keys",
             result.returncode == 0
             and "development keys" in result.stdout
-            and keystore.read_text().count("keystore_pb_key") == 3 * 2,
+            and keystore.read_text().count(".slot = ") == 3,
             f": {result.stdout}{result.stderr}",
         )
     )
@@ -83,9 +83,9 @@ def check_keys(
             ok = (
                 result.returncode == 0
                 and "development keys" not in result.stdout
-                and text.count("keystore_pb_key") == 1 * 2
-                and ".id = 0x1234," in text
-                and "    3,\n" in text
+                and text.count(".slot = ") == 1
+                and ".id = 0x00001234," in text
+                and ".slot = 3," in text
             )
         results.append((what, ok, f": exit {result.returncode}{result.stdout}{result.stderr}"))
     makefile.write_text(original)

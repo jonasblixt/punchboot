@@ -31,15 +31,13 @@
 #include "fakes/dcache.h"
 #include "models/bench.h"
 #include "models/caam_model.h"
-#include <bpak/keystore.h>
 #include <drivers/crypto/imx_caam.h>
 #include <pb/crypto.h>
 #include <pb/dma.h>
+#include <pb/keys.h>
 #include <pb/pb.h>
 #include <stdio.h>
 #include <string.h>
-
-extern const struct bpak_keystore keystore_pb;
 
 /* Job ring 0 of the i.MX6UL */
 #define CAAM_JR_BASE 0x02141000
@@ -122,11 +120,11 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
     caam_model_write(addr, (uint32_t)value);
 }
 
-static const struct bpak_key *find_key(uint32_t id)
+static const struct pb_key *find_key(uint32_t id)
 {
-    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
-        if (keystore_pb.keys[i]->id == id)
-            return keystore_pb.keys[i];
+    for (unsigned int i = 0; i < pb_no_of_keys; i++) {
+        if (pb_keys[i].id == id)
+            return &pb_keys[i];
     }
     fail_msg("No key 0x%x in the keystore", id);
     return NULL;
@@ -211,7 +209,7 @@ static int teardown(void **state)
  * 'good' is the token, otherwise one bit of its signature is changed */
 static int verify_token(const struct token *t, bool good, bool *verified)
 {
-    const struct bpak_key *key = find_key(t->key_id);
+    const struct pb_key *key = find_key(t->key_id);
     int rc;
 
     rc = hash_init(t->hash);
@@ -474,7 +472,7 @@ static void test_4_codes(void **state)
 {
     static uint8_t key[256];
     const struct token *t = &tokens[0];
-    const struct bpak_key *p256 = find_key(t->key_id);
+    const struct pb_key *p256 = find_key(t->key_id);
     bool verified = true;
     (void)state;
 
@@ -574,7 +572,7 @@ static void test_4_nothing_of_the_key_before(void **state)
 {
     static uint8_t key[256];
     const struct token *t = &tokens[0];
-    const struct bpak_key *p256 = find_key(t->key_id);
+    const struct pb_key *p256 = find_key(t->key_id);
     bool verified = true;
     (void)state;
 
@@ -608,7 +606,7 @@ static void test_4_nothing_of_the_key_before(void **state)
 static void test_an_address_above_4gib_is_refused(void **state)
 {
     const struct token *t = &tokens[0];
-    const struct bpak_key *key = find_key(t->key_id);
+    const struct pb_key *key = find_key(t->key_id);
     bool verified = true;
     (void)state;
 
@@ -701,7 +699,7 @@ static void test_3_1_hash_init_new_context(void **state)
 static void test_4_verdict_is_this_calls(void **state)
 {
     const struct token *t = &tokens[0];
-    const struct bpak_key *key = find_key(t->key_id);
+    const struct pb_key *key = find_key(t->key_id);
     bool verified = true;
     (void)state;
 
@@ -861,7 +859,7 @@ static void test_job_status_is_the_entrys(void **state)
 static void test_job_timeout(void **state)
 {
     const struct token *t = &tokens[0];
-    const struct bpak_key *key = find_key(t->key_id);
+    const struct pb_key *key = find_key(t->key_id);
     bool verified = true;
     (void)state;
 

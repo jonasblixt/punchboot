@@ -150,7 +150,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14 (`eac22242`, `6ec60648`): `.vector_handlers` is an output section of the link script's, | | |
 | | | and an assert keeps the stack directly above `.ro_data` where an MMU maps that read only. Left: the | | |
 | | | RT1060, where a guard needs an MPU region (code in `src/arch/armv7m`, 32 bytes of stack) or a | | |
-| | | reorder that moves every symbol after the stack | | |
+| | | reorder that moves every symbol after the stack. Since the key list (D-083) the keys are in | | |
+| | | `.rodata` and the `.keystore_*` sections are gone: an overflow still rewrites `.ro_data` | | |
 | F-210 | arch/plat, low | v7m: CACR.FORCEWT never cleared at the handover, VTOR never set to pb's | Reported | open |
 | | | table. 6UL: PLL1 raised without writing CACRR.ARM_PODF (F-148 class), SRSR never cleared (stale reset | | |
 | | | reason). Exception policy differs per arch, v8 handlers run on the faulting stack and hang by default. | | |
