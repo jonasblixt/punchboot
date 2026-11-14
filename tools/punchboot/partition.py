@@ -16,14 +16,18 @@ class PartitionFlags(Flag):
     FLAG_OTP: Partition is OTP, One time programmable"
     FLAG_WRITABLE: Partition is writable
     FLAG_ERASE_BEFORE_WRITE: Partition must be erased before it can be written to
+    FLAG_RFU4, FLAG_RFU7: Reserved. Every bit of the byte on the wire is a member,
+        so that the bits a newer device sets are kept, not refused (F-225)
     """
 
     FLAG_BOOTABLE = 1 << 0
     FLAG_OTP = 1 << 1
     FLAG_WRITABLE = 1 << 2
     FLAG_ERASE_BEFORE_WRITE = 1 << 3
+    FLAG_RFU4 = 1 << 4
     FLAG_UNUSED1 = 1 << 5
     FLAG_READABLE = 1 << 6
+    FLAG_RFU7 = 1 << 7
 
 
 @dataclass(frozen=True)
