@@ -36,7 +36,7 @@ RECORDS = ("dev/log/", "dev/decisions.md", "dev/findings-closed.md")
 NOT_LEVELS = ("dev/", "guides/", "README.md")
 STATES = ("draft", "reviewed", "in force")
 CODE_DIRS = ("include", "src", "tools", "tests", "scripts", ".github")
-CODE_FILES = ("AGENTS.md","README.md", "Makefile", "CMakeLists.txt")
+CODE_FILES = ("AGENTS.md", "README.md", "Makefile", "CMakeLists.txt")
 VENDORED = (
     "scripts/kconfiglib.py",
     "src/lib/",
@@ -137,6 +137,26 @@ def without_code_blocks(text: str) -> str:
     return "\n".join(out)
 
 
+def start_section(sections: list[Section], heading: re.Match[str], number: int) -> str:
+    """Start the section of a heading at line 'number', and return its number."""
+    current = heading.group(2) or ""
+    if current:
+        sections.append(Section(current, heading.group(3), number))
+    for section in sections:
+        if current.startswith(section.number + "."):
+            section.intro += "\0"  # A sub-heading ends the intro
+    return current
+
+
+def add_line(sections: list[Section], current: str, line: str) -> None:
+    """Add a line of the section 'current' to it and to the sections it is in."""
+    for section in sections:
+        if section.number == current or current.startswith(section.number + "."):
+            section.body += line + "\n"
+            if "\0" not in section.intro:
+                section.intro += line + "\n"
+
+
 def parse(path: pathlib.Path) -> Document:
     """Read a document: its numbered sections and the numbers that can be cited."""
     text = without_code_blocks(path.read_text(encoding="utf-8"))
@@ -147,12 +167,7 @@ def parse(path: pathlib.Path) -> Document:
     for number, line in enumerate(text.split("\n"), 1):
         heading = HEADING_RE.match(line)
         if heading:
-            current = heading.group(2) or ""
-            if current:
-                sections.append(Section(current, heading.group(3), number))
-            for section in sections:
-                if current.startswith(section.number + "."):
-                    section.intro += "\0"  # A sub-heading ends the intro
+            current = start_section(sections, heading, number)
             continue
         item = ITEM_RE.match(line)
         if item:
@@ -160,11 +175,7 @@ def parse(path: pathlib.Path) -> Document:
         bold = BOLD_RE.match(line)
         if bold:
             numbered.add(bold.group(1))  # A rule: "**4.1 Only verified code runs next.**"
-        for section in sections:
-            if section.number == current or current.startswith(section.number + "."):
-                section.body += line + "\n"
-                if "\0" not in section.intro:
-                    section.intro += line + "\n"
+        add_line(sections, current, line)
     anchors = {section.number for section in sections} | numbered
     if sections:
         anchors |= {f"{section}.{item}" for section, item in items if section}
@@ -204,7 +215,10 @@ def table_rows(text: str, key: int) -> list[tuple[int, list[str]]]:
         if line.startswith("|") and not re.match(r"\|[ :-]*-", line):
             cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
             if rows and len(cells) == len(rows[-1][1]) and len(cells) > key and not cells[key]:
-                rows[-1] = (rows[-1][0], [f"{a} {b}".strip() for a, b in zip(rows[-1][1], cells)])
+                rows[-1] = (
+                    rows[-1][0],
+                    [f"{a} {b}".strip() for a, b in zip(rows[-1][1], cells, strict=True)],
+                )
             else:
                 rows.append((position, cells))
         elif rows and rows[-1][1]:
@@ -228,7 +242,7 @@ def check_states(doc: pathlib.Path, documents: dict[str, Document], report: Repo
     listed: dict[str, str] = {}
     last = ["", ""]
     for position, cells in table_rows(readme.text, 2):
-        if len(cells) != 4 or cells[0] == "Level":  # noqa: PLR2004
+        if len(cells) != 4 or cells[0] == "Level":
             continue
         last = [cells[0] or last[0], cells[1] or last[1]]
         for name in NAME_RE.findall(cells[2]):
@@ -588,7 +602,9 @@ def check_contracts(root: pathlib.Path, documents: dict[str, Document], report: 
 
     headers = [root / "include" / "pb" / "boot.h", *sorted((root / "include" / "boot").glob("*.h"))]
     text = "".join(without_comments(h.read_text()) for h in headers if h.exists())
-    check_entries(documents["boot.md"], set(re.findall(r"\b(\w+)\s*\(", text)), "include/boot/", report)
+    check_entries(
+        documents["boot.md"], set(re.findall(r"\b(\w+)\s*\(", text)), "include/boot/", report
+    )
 
 
 def main() -> int:

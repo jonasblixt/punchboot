@@ -51,7 +51,7 @@ version = { file = "version.txt" }
 line-length = 100
 extend-exclude = [
     "pki",
-    "doc",
+    "doc/**",
     "scripts/**",
     "testbench/scripts/**",
 ]
