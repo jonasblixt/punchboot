@@ -807,6 +807,20 @@ static void test_mmu_map_regions(void **state)
     assert_string_equal(fake_mmu_enabled_by, "el3");
 }
 
+/* platform.md 2.2, 5.2, board.md 2.8: a board region over one of
+ * imx_mmap[]'s (the CAAM's job ring 2) fails pb_mmu_init() before anything is mapped, and
+ * with it plat_init(): main() resets */
+static void test_mmu_board_region_refused(void **state)
+{
+    (void)state;
+
+    fake_board_mmap[0] = (struct pb_mmap_region)PB_MAP_DEVICE(IMX_CAAM_JR2_BASE, 0x1000);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), -PB_ERR_PARAM);
+    assert_int_equal(fake_mmu_enables, 0);
+    fake_board_mmap[0] = (struct pb_mmap_region)PB_MAP_END;
+}
+
 /* platform.md 2.1: plat_early_init() returns with the tick counting. The
  * tick is GPT0's, which the SCFW powers and clocks: when it refuses either,
  * there is no tick, and pb resets before GPT0 is set up, so not with the
@@ -860,6 +874,7 @@ int main(void)
         cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_mmu_map, setup),
         cmocka_unit_test_setup(test_mmu_map_regions, setup),
+        cmocka_unit_test_setup(test_mmu_board_region_refused, setup),
         cmocka_unit_test_setup(test_early_init_resets_without_the_tick, setup),
         cmocka_unit_test_setup(test_get_info, setup),
         cmocka_unit_test_setup(test_get_info_unknown, setup),

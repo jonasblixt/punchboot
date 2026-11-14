@@ -11,6 +11,7 @@
 #ifndef TESTS_UNIT_FAKES_XLAT_H
 #define TESTS_UNIT_FAKES_XLAT_H
 
+#include <pb/mmu.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -61,6 +62,11 @@ void fake_mmap_check_equal(const struct fake_mmap_region *expected, size_t lengt
 /* pb's six regions of layer 4 (platform.md 5.2), as src/mmu.c adds them, in
  * out[]: the number of entries */
 size_t fake_mmap_pb_regions(struct fake_mmap_region *out);
+
+/* The board's mmap (board.md 2.8) in fakes/board.c, which the test fills;
+ * empty (zeroes, PB_MAP_END) as it starts */
+#define FAKE_BOARD_MMAP_MAX 8
+extern struct pb_mmap_region fake_board_mmap[FAKE_BOARD_MMAP_MAX];
 
 /* xlat_tables declares it for the AArch64 compiler only */
 void enable_mmu_el3(unsigned int flags);
