@@ -46,15 +46,6 @@
 	\label:
 	.endm
 
-	/*
-	 * This macro calculates the base address of a uniprocessor(UP) stack
-	 * using the name of the stack storage and the size of the stack
-	 * Out: r0 = physical address of stack base
-	 */
-	.macro get_up_stack _name, _size
-	ldr r0, =(\_name + \_size)
-	.endm
-
 #if ARM_ARCH_MAJOR == 7 && !defined(ARMV7_SUPPORTS_VIRTUALIZATION)
 	/*
 	 * ARMv7 cores without Virtualization extension do not support the

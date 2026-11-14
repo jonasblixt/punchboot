@@ -50,16 +50,6 @@
 	.endm
 
 	/*
-	 * This macro calculates the base address of a UP stack using the
-	 * name of the stack storage and the size of the stack
-	 * Out: X0 = physical address of stack base
-	 */
-	.macro get_up_stack _name, _size
-	adrp	x0, (\_name + \_size)
-	add	x0, x0, :lo12:(\_name + \_size)
-	.endm
-
-	/*
 	 * Helper macro to generate the best mov/movk combinations according
 	 * the value to be moved. The 16 bits from '_shift' are tested and
 	 * if not zero, they are moved into '_reg' without affecting
