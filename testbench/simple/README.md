@@ -104,7 +104,7 @@ and B and pb's boot state.
 - It writes the boot state with the ROM's FlexSPI NOR API (RM 9.13),
   configured with pb's own FCB.
 - Console: the J-Link's serial port (LPUART1). The watchdog is WDOG1, 30 s
-  (`CONFIG_WATCHDOG_TIMEOUT`, 30.5 s as the hardware counts it).
+  (`CONFIG_WATCHDOG_TIMEOUT`, exact since F-206).
 
 ## Boot time
 
