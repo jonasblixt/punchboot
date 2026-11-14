@@ -129,6 +129,8 @@ static struct sd {
     unsigned int acmd_count[64];
     enum bus_data_status fail_read;
     enum bus_data_status fail_write;
+    int fail_writes_blocks;
+    enum bus_data_status fail_writes;
 } sd;
 
 static const char *state_name(enum sd_state s)
@@ -888,6 +890,11 @@ static enum bus_data_status card_write(struct bus_card *card, const void *buf, s
                         sd.x.block_size);
         return BUS_DATA_CRC;
     }
+    if (sd.fail_writes_blocks == 0 && sd.fail_write == BUS_DATA_OK)
+        sd.fail_write = sd.fail_writes;
+    else if (sd.fail_writes_blocks > 0)
+        sd.fail_writes_blocks--;
+
     if (sd.fail_write != BUS_DATA_OK) {
         enum bus_data_status st = sd.fail_write;
 
@@ -964,6 +971,7 @@ struct bus_card *sd_model_init(const struct sd_model_config *cfg)
     sd.bus.ops = &ops;
     sd.cfg = *cfg;
     sd.inserted = true;
+    sd.fail_writes_blocks = -1;
     bench_store_init(&sd.store, cfg->sectors, BLOCK_SIZE);
     build_cid();
     go_idle();
@@ -1035,4 +1043,10 @@ void sd_model_fail_read(enum bus_data_status status)
 void sd_model_fail_write(enum bus_data_status status)
 {
     sd.fail_write = status;
+}
+
+void sd_model_fail_writes_after(int blocks, enum bus_data_status status)
+{
+    sd.fail_writes_blocks = blocks;
+    sd.fail_writes = status;
 }

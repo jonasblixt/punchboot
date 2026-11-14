@@ -977,6 +977,7 @@ target_link_options(test_imx_usdhc PRIVATE -no-pie)
 # The FlexSPI NOR driver and bio against a NOR flash modelled behind the
 # controller's registers (see the test)
 pb_unit_test(test_imx_flexspi SOURCES
+    ${PB_BIO_CONFORMANCE}
     fakes/regs.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/delay.c

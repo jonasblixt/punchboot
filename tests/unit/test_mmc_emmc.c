@@ -115,19 +115,52 @@ static void fill(uint8_t *buf, size_t len, unsigned int seed)
         buf[i] = (uint8_t)(i * 7 + seed + (i >> 9));
 }
 
-/* The block device conformance tests (bio.md 8) on the user area, through
- * mmc_core and the card model: each ends without a violation */
+/* The block device conformance tests (bio.md 8) on the user area and on a
+ * boot partition, the one device with a write_done, through mmc_core and the
+ * card model: each ends without a violation. No erase (bio.md 3.3) */
 static void conformance_after(void)
 {
     assert_bench_clean();
 }
 
+/* A medium that fails half way through a write (bio.md 3.2): the card
+ * answers every block after the first ones with a CRC error */
+static void conformance_fail_writes(lba_t lba, size_t blocks)
+{
+    (void)lba;
+    emmc_model_fail_writes_after((int)blocks, BUS_DATA_CRC);
+}
+
+static void conformance_fault_end(void)
+{
+    emmc_model_fail_writes_after(-1, BUS_DATA_OK);
+}
+
+static const struct bio_conformance_fault conformance_fault = {
+    .fail_writes = conformance_fail_writes,
+    .end = conformance_fault_end,
+};
+
+static void conformance_device(const unsigned char *uu)
+{
+    assert_int_equal(init(), PB_OK);
+    bio_conformance_dev = part(uu);
+    bio_conformance_after = conformance_after;
+    bio_conformance_erases = false;
+    bio_conformance_fault = &conformance_fault;
+}
+
 static int conformance_setup(void **state)
 {
     setup(state);
-    assert_int_equal(init(), PB_OK);
-    bio_conformance_dev = part(UU_USER);
-    bio_conformance_after = conformance_after;
+    conformance_device(UU_USER);
+    return 0;
+}
+
+static int conformance_setup_boot(void **state)
+{
+    setup(state);
+    conformance_device(UU_BOOT1);
     return 0;
 }
 
@@ -951,8 +984,18 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_a_card_of_another_size_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_one_uuid_for_two_devices, setup, teardown),
         cmocka_unit_test_setup_teardown(test_reset_frees_the_slots, setup, teardown),
+    };
+    const struct CMUnitTest user_area[] = {
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
+    const struct CMUnitTest boot_partition[] = {
+        BIO_CONFORMANCE_TESTS(conformance_setup_boot, teardown),
+    };
+    int failed = 0;
 
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    failed += cmocka_run_group_tests(tests, NULL, NULL);
+    failed += cmocka_run_group_tests_name("Conformance, the user area", user_area, NULL, NULL);
+    failed +=
+        cmocka_run_group_tests_name("Conformance, a boot partition", boot_partition, NULL, NULL);
+    return failed;
 }

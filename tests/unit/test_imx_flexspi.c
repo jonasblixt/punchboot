@@ -25,6 +25,9 @@
  *
  * The sequence ids are the test's own: the model knows a sequence by its id,
  * not by the LUT's content.
+ *
+ * The block device conformance tests (conformance/bio_conformance.h, bio.md
+ * 8) run on the same model, at the end.
  */
 
 #include <setjmp.h>
@@ -44,6 +47,7 @@
 #include <unistd.h>
 
 #include "../../src/drivers/memc/imx_flexspi_private.h"
+#include "conformance/bio_conformance.h"
 #include "fakes/plat.h"
 #include "fakes/regs.h"
 
@@ -120,6 +124,8 @@ static struct {
      * RFDR, while the driver moves the data. 0: never */
     unsigned int tfdr_writes, rfdr_reads;
     unsigned int err_at_tfdr, err_at_rfdr;
+    /* And at every write of TFDR from the n-th on. 0: never */
+    unsigned int err_from_tfdr;
 } nor;
 
 static void violation(const char *what)
@@ -323,9 +329,14 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
     /* The model reads no log: keep it from filling */
     fake_reg_log_len = 0;
 
-    if (addr >= BASE + TFDR(0) && addr < BASE + TFDR(32) && ++nor.tfdr_writes == nor.err_at_tfdr) {
-        nor.intr |= INTR_IPCMDERR;
-        update_intr();
+    if (addr >= BASE + TFDR(0) && addr < BASE + TFDR(32)) {
+        nor.tfdr_writes++;
+
+        if (nor.tfdr_writes == nor.err_at_tfdr ||
+            (nor.err_from_tfdr != 0 && nor.tfdr_writes >= nor.err_from_tfdr)) {
+            nor.intr |= INTR_IPCMDERR;
+            update_intr();
+        }
     }
 
     switch (addr - BASE) {
@@ -915,8 +926,48 @@ static void test_port_out_of_range(void **state)
     assert_int_equal(imx_flexspi_init(&core), -PB_ERR_PARAM);
 }
 
+/* The block device conformance tests (bio.md 8) on the EVK's flash: 4 KiB
+ * blocks, BIO_FLAG_ERASE_BEFORE_WRITE, an erase. Each ends without a
+ * violation of the model */
+static void conformance_after(void)
+{
+    assert_int_equal(nor.violations, 0);
+}
+
+/* A medium that fails half way through a write (bio.md 3.2): the controller
+ * flags IPCMDERR from the first word of the block after the first ones on,
+ * while the driver moves it into the FIFO. Each word is a write of TFDR */
+static void conformance_fail_writes(lba_t lba, size_t blocks)
+{
+    (void)lba;
+    nor.err_from_tfdr = nor.tfdr_writes + (unsigned int)(blocks * (BLOCK / 4)) + 1;
+}
+
+static void conformance_fault_end(void)
+{
+    nor.err_from_tfdr = 0;
+}
+
+static const struct bio_conformance_fault conformance_fault = {
+    .fail_writes = conformance_fail_writes,
+    .end = conformance_fault_end,
+};
+
+static int conformance_setup(void **state)
+{
+    setup(state);
+    bio_conformance_dev = dev;
+    bio_conformance_after = conformance_after;
+    bio_conformance_erases = true;
+    bio_conformance_fault = &conformance_fault;
+    return 0;
+}
+
 int main(void)
 {
+    const struct CMUnitTest conformance[] = {
+        BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
+    };
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_erase_write_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_flash_stays_busy, setup, teardown),
@@ -938,5 +989,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_waits_for_the_flash_first, setup, teardown),
     };
 
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    int failed = 0;
+
+    failed += cmocka_run_group_tests(tests, NULL, NULL);
+    failed += cmocka_run_group_tests_name("Conformance", conformance, NULL, NULL);
+    return failed;
 }

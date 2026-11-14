@@ -30,6 +30,10 @@ struct ramdisk {
      * then fails every operation with -PB_ERR_IO */
     int fail_reads_after;
     int fail_writes_after;
+    /* A write that fails half way: -1 never, n lets n more blocks be
+     * written and fails every write that reaches a block after them with
+     * -PB_ERR_IO, its blocks before that one written */
+    int fail_writes_after_blocks;
 };
 
 /* Allocate 'blocks' zeroed blocks of RAMDISK_BLOCK_SIZE bytes of backing memory */

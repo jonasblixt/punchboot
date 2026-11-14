@@ -128,7 +128,8 @@ A single integration test, inside `scripts/pbdev shell`:
   `tests/unit/CMakeLists.txt`. Link only the modules under test, and fake what they call in the
   test file (D-007). Call `bio_reset()` between cases (see `test_gpt.c`).
   - `fakes/ramdisk.h`: set `fail_reads_after`/`fail_writes_after` to n to let n operations succeed
-    and fail the rest with `-PB_ERR_IO`.
+    and fail the rest with `-PB_ERR_IO`; `fail_writes_after_blocks` to n to let n more blocks be
+    written and fail every write after them half way.
   - `fakes/plat.h`: `fake_us_tick` and `fake_us_tick_step` drive `plat_get_us_tick()`. Reset them
     in teardown; `test_gpt.c` depends on the default.
   - Modules keep their config in statics that can't be reset (`rot`, `slc`, `crypto`, `ab_state`,
@@ -166,7 +167,8 @@ A single integration test, inside `scripts/pbdev shell`:
   Time is simulated: `plat_get_us_tick()` advances 1 us per call (the real `delay.c` runs),
   every uSDHC register read costs 1 us, and polling for more than 10 s fails as stuck.
   Faults: no response or bad CRC on a command, SWITCH_ERROR on a field, data CRC/timeout,
-  status error bits, power loss after n blocks; `emmc_model_rom_handover()` starts from where a
+  status error bits, every written block after n failing, power loss after n blocks;
+  `emmc_model_rom_handover()` starts from where a
   boot ROM leaves the card. `test_mmc_models.c` checks the models themselves: a scripted host
   runs the standard sequences (DDR52, HS400 after tuning, SD high speed, SDR104 with CMD11)
   clean, and known mistakes give the expected violation. Not modeled: signal timing (DLL taps,
@@ -309,8 +311,10 @@ Unit tests, by module under test:
 | `test_imx_usdhc.c`                            | `imx_usdhc.c`, `mmc_core.c`  | uSDHC model, e.MMC and SD models |
 | `test_mmc_models.c`                           | the card models              | scripted host                    |
 | `test_bio_conformance.c`                      | the block device conformance | the RAM disk (512 B, 4 KiB, a    |
-|                                               | tests (`bio.md` 8)           | partition), the host's disk and  |
-|                                               |                              | flash                            |
+|                                               | tests (`bio.md` 8); also in  | partition), the host's disk and  |
+|                                               | `test_mmc_emmc`, `_sd`,      | flash; a write that fails: the   |
+|                                               | `test_imx_usdhc`,            | RAM disk's fault, a file size    |
+|                                               | `test_imx_flexspi`           | limit for the host's files       |
 | `test_board.c`, `test_board_password`         | `board.c`, `password.c`: the | RoT, SLC, bio, boot, command     |
 |                                               | board's set up, with and     | mode; records the order          |
 |                                               | without the password method  |                                  |
@@ -350,7 +354,8 @@ Unit tests, by module under test:
 |                                               | MDHA LP256 before era 10: no |                                  |
 |                                               | SHA-384/512                  |                                  |
 | `test_imx_flexspi.c`                          | `imx_flexspi.c` and bio      | a NOR flash behind the           |
-|                                               | against `bio.md` 3           | controller's registers           |
+|                                               | against `bio.md` 3, the      | controller's registers           |
+|                                               | conformance tests            |                                  |
 | `test_imx8m_ddr.c`                            | the i.MX8MQ's DRAM init      | a model of the uMCTL2, the PHY   |
 |                                               | (`ddr.c`, `ddr_imx8mq.c`,    | and its firmware's mailbox       |
 |                                               | `umctl2.c`, `dwc_ddrphy.c`)  | (`fakes/mmio`): golden trace     |

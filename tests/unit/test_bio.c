@@ -480,6 +480,40 @@ static void test_missing_ops(void **state)
     assert_int_equal(bio_read(dev, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(bio_write(dev, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(bio_erase(dev, 0, 1), -PB_ERR_NOT_SUPPORTED);
+    /* bio.md 3.4: a device without the callback answers PB_OK */
+    assert_int_equal(bio_write_done(dev), PB_OK);
+}
+
+static int write_done_calls;
+
+static int fake_write_done(bio_dev_t dev, int param)
+{
+    (void)dev;
+    (void)param;
+    write_done_calls++;
+    return -PB_ERR_IO;
+}
+
+/* bio.md 2.2, 3.4: write_done is the device's, a partition doesn't get it,
+ * and the device's callback's answer is the caller's */
+static void test_write_done_isnt_inherited(void **state)
+{
+    struct fixture *f = *state;
+    bio_dev_t disk = bio_get_part_by_uu(UU_DISK);
+    bio_dev_t part;
+
+    assert_true(disk >= 0);
+    write_done_calls = 0;
+    assert_int_equal(bio_set_write_done_cb(disk, fake_write_done), PB_OK);
+    part = bio_allocate_parent(disk, 2, 9, RAMDISK_BLOCK_SIZE, UU_OTHER, "Other");
+    assert_true(part >= 0);
+
+    assert_int_equal(bio_write_done(part), PB_OK);
+    assert_int_equal(bio_write_done(f->part), PB_OK);
+    assert_int_equal(write_done_calls, 0);
+
+    assert_int_equal(bio_write_done(disk), -PB_ERR_IO);
+    assert_int_equal(write_done_calls, 1);
 }
 
 static int erase_calls;
@@ -1083,6 +1117,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_block_getters_of_a_large_device, setup, teardown),
         cmocka_unit_test_setup_teardown(test_flags, setup, teardown),
         cmocka_unit_test_setup_teardown(test_missing_ops, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_write_done_isnt_inherited, setup, teardown),
         cmocka_unit_test_setup_teardown(test_erase_calls_the_driver, setup, teardown),
         cmocka_unit_test_setup_teardown(test_set_private, setup, teardown),
         cmocka_unit_test_setup_teardown(test_get_part_by_uu, setup, teardown),

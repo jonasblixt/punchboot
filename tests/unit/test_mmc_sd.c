@@ -93,12 +93,32 @@ static void conformance_after(void)
     assert_bench_clean();
 }
 
+/* A medium that fails half way through a write (bio.md 3.2): the card
+ * answers every block after the first ones with a CRC error */
+static void conformance_fail_writes(lba_t lba, size_t blocks)
+{
+    (void)lba;
+    sd_model_fail_writes_after((int)blocks, BUS_DATA_CRC);
+}
+
+static void conformance_fault_end(void)
+{
+    sd_model_fail_writes_after(-1, BUS_DATA_OK);
+}
+
+static const struct bio_conformance_fault conformance_fault = {
+    .fail_writes = conformance_fail_writes,
+    .end = conformance_fault_end,
+};
+
 static int conformance_setup(void **state)
 {
     setup(state);
     assert_int_equal(init(), PB_OK);
     bio_conformance_dev = sd();
     bio_conformance_after = conformance_after;
+    bio_conformance_erases = false;
+    bio_conformance_fault = &conformance_fault;
     return 0;
 }
 

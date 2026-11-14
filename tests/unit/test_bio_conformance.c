@@ -10,8 +10,14 @@
  * byte and with 4 KiB blocks and through a partition, and the host
  * platform's disk file and its memory mapped flash.
  *
+ * None of them has an erase. A write that fails half way: the RAM disk's
+ * fault injection, and for the host's files a file size limit
+ * (RLIMIT_FSIZE) at the block where the medium is to fail, which cuts a
+ * pwrite() short or refuses it.
+ *
  * The MMC and SD drivers run the same tests on their card models, in
- * test_mmc_emmc.c, test_mmc_sd.c and test_imx_usdhc.c.
+ * test_mmc_emmc.c, test_mmc_sd.c and test_imx_usdhc.c, and the FlexSPI's
+ * driver on its NOR model, in test_imx_flexspi.c.
  */
 
 #include <setjmp.h>
@@ -25,8 +31,10 @@
 #include <pb/bio.h>
 #include <pb/pb.h>
 #include <plat/host/host.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/resource.h>
 #include <unistd.h>
 
 #include "conformance/bio_conformance.h"
@@ -48,13 +56,74 @@ static struct ramdisk *disk;
 static char disk_path[64];
 static char nor_path[64];
 
+static void ramdisk_fail_writes(lba_t lba, size_t blocks)
+{
+    (void)lba;
+    disk->fail_writes_after_blocks = (int)blocks;
+}
+
+static void ramdisk_fault_end(void)
+{
+    disk->fail_writes_after_blocks = -1;
+}
+
+static const struct bio_conformance_fault ramdisk_fault = {
+    .fail_writes = ramdisk_fail_writes,
+    .end = ramdisk_fault_end,
+};
+
+static struct rlimit fsize_before;
+static void (*sigxfsz_before)(int);
+
+/* The process may write its files up to the block where the medium is to
+ * fail, and not past it: a pwrite() that crosses it is cut short, one
+ * that starts there is refused (EFBIG, with SIGXFSZ ignored) */
+static void file_fail_writes(lba_t lba, size_t blocks)
+{
+    struct rlimit limit;
+    int64_t first = bio_get_first_block(bio_conformance_dev);
+    ssize_t bs = bio_block_size(bio_conformance_dev);
+
+    assert_true(first >= 0 && bs > 0);
+    assert_int_equal(getrlimit(RLIMIT_FSIZE, &fsize_before), 0);
+
+    /* What is buffered for the test's output goes out before the limit */
+    fflush(stdout);
+    fflush(stderr);
+    sigxfsz_before = signal(SIGXFSZ, SIG_IGN);
+
+    limit = fsize_before;
+    limit.rlim_cur = (rlim_t)((uint64_t)first + lba + blocks) * (rlim_t)bs;
+    assert_true(limit.rlim_max == RLIM_INFINITY || limit.rlim_cur <= limit.rlim_max);
+    assert_int_equal(setrlimit(RLIMIT_FSIZE, &limit), 0);
+}
+
+static void file_fault_end(void)
+{
+    assert_int_equal(setrlimit(RLIMIT_FSIZE, &fsize_before), 0);
+    signal(SIGXFSZ, sigxfsz_before);
+}
+
+static const struct bio_conformance_fault file_fault = {
+    .fail_writes = file_fail_writes,
+    .end = file_fault_end,
+};
+
+/* What the devices here have: no erase, no write_done */
+static void conformance_device(bio_dev_t dev, const struct bio_conformance_fault *fault)
+{
+    assert_true(dev >= 0);
+    bio_conformance_dev = dev;
+    bio_conformance_erases = false;
+    bio_conformance_fault = fault;
+}
+
 static int setup_ramdisk(size_t block_size)
 {
     disk = ramdisk_new_block_size(DISK_BYTES / block_size, block_size);
     assert_non_null(disk);
     bio_reset();
-    bio_conformance_dev = ramdisk_attach(disk, UU_DISK);
-    assert_true(bio_conformance_dev >= 0);
+    conformance_device(ramdisk_attach(disk, UU_DISK), &ramdisk_fault);
     return 0;
 }
 
@@ -79,9 +148,9 @@ static int setup_ramdisk_partition(void **state)
 
     setup_ramdisk(RAMDISK_BLOCK_SIZE);
     dev = bio_conformance_dev;
-    bio_conformance_dev =
-        bio_allocate_parent(dev, PART_FIRST, part_last, RAMDISK_BLOCK_SIZE, UU_PART, "Part");
-    assert_true(bio_conformance_dev >= 0);
+    conformance_device(
+        bio_allocate_parent(dev, PART_FIRST, part_last, RAMDISK_BLOCK_SIZE, UU_PART, "Part"),
+        &ramdisk_fault);
     return 0;
 }
 
@@ -113,8 +182,7 @@ static int setup_host_disk(void **state)
 
     assert_int_equal(temp_file(disk_path, sizeof(disk_path)), 0);
     bio_reset();
-    bio_conformance_dev = host_disk_init(disk_path, DISK_BYTES, UU_DISK, "Host disk");
-    assert_true(bio_conformance_dev >= 0);
+    conformance_device(host_disk_init(disk_path, DISK_BYTES, UU_DISK, "Host disk"), &file_fault);
     return 0;
 }
 
@@ -188,8 +256,7 @@ static int setup_host_nor(void **state)
     (void)state;
 
     bio_reset();
-    bio_conformance_dev = host_nor_init(UU_DISK, "Host NOR");
-    assert_true(bio_conformance_dev >= 0);
+    conformance_device(host_nor_init(UU_DISK, "Host NOR"), &file_fault);
     return 0;
 }
 

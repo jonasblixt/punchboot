@@ -66,13 +66,28 @@ static int ramdisk_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
     if (((uint64_t)lba * disk->block_size + length) > (uint64_t)disk->blocks * disk->block_size)
         return -PB_ERR_IO;
 
-    memcpy(ramdisk_block(disk, lba), buf, length);
+    size_t n = length / disk->block_size;
+    int rc = PB_OK;
+
+    if (disk->fail_writes_after_blocks >= 0) {
+        if (n > (size_t)disk->fail_writes_after_blocks) {
+            n = (size_t)disk->fail_writes_after_blocks;
+            rc = -PB_ERR_IO;
+        }
+
+        disk->fail_writes_after_blocks -= (int)n;
+    }
+
+    if (n == 0)
+        return rc;
+
+    memcpy(ramdisk_block(disk, lba), buf, n * disk->block_size);
     disk->writes++;
 
-    for (size_t i = 0; i < length / disk->block_size; i++)
+    for (size_t i = 0; i < n; i++)
         disk->block_writes[(size_t)lba + i]++;
 
-    return PB_OK;
+    return rc;
 }
 
 struct ramdisk *ramdisk_new(size_t blocks)
@@ -101,6 +116,7 @@ struct ramdisk *ramdisk_new_block_size(size_t blocks, size_t block_size)
     disk->block_size = block_size;
     disk->fail_reads_after = -1;
     disk->fail_writes_after = -1;
+    disk->fail_writes_after_blocks = -1;
     return disk;
 }
 

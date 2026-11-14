@@ -377,7 +377,8 @@ For a new storage driver or partition table, and for a change to one or to `bio`
 
 ## 8. Conformance
 
-Where each driver is (2026-11-12). Read in the code, not run, unless a test is named.
+Where each driver is (2026-11-14). Read in the code, not run, unless a test is named; "the
+suite" is the conformance suite below.
 
 | Requirement                 | MMC, SD (uSDHC)    | FlexSPI NOR       | Host disk, RAM disk | Finding |
 | --------------------------- | ------------------ | ----------------- | ------------------- | ------- |
@@ -401,10 +402,16 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | The codes of `drivers.md` 3 | yes (`test_mmc_`   | yes               | yes                 |         |
 |                             | `emmc`, `test_`    |                   |                     |         |
 |                             | `imx_usdhc`)       |                   |                     |         |
-| Erase: exactly the blocks   | n/a (no erase)     | yes (`test_imx_`  | n/a (no erase)      |         |
-|                             |                    | `flexspi`)        |                     |         |
+| Erase: exactly the blocks   | n/a: no erase,     | yes (`test_imx_`  | n/a: no erase,      |         |
+|                             | `NOT_SUPPORTED`    | `flexspi`, the    | `NOT_SUPPORTED`     |         |
+|                             | (the suite)        | suite)            | (the suite)         |         |
 | `write_done`                | yes (`test_mmc_`   | n/a               | n/a                 |         |
-|                             | `core`)            |                   |                     |         |
+|                             | `core`, the suite  |                   |                     |         |
+|                             | on a boot          |                   |                     |         |
+|                             | partition)         |                   |                     |         |
+| A write that fails half     | yes: the error,    | yes (the suite)   | yes (the suite)     |         |
+| way: the error, nothing     | and the next write |                   |                     |         |
+| outside it, usable after    | works (the suite)  |                   |                     |         |
 | Flags no wider than the     | yes                | yes               | yes                 |         |
 | medium                      |                    |                   |                     |         |
 | What it leaves behind, in   | yes (`mmc_core.h`, | no                | n/a                 |         |
@@ -438,25 +445,31 @@ The partition tables:
 
 **The conformance suite** (`process.md` 7): one set of tests
 for section 3, run on the host against every device that can run there: the RAM disk, the host's
-disk, and the MMC and SD drivers on their card models through the uSDHC's model. The fakes pass
-the same suite, so that none is more forgiving than a driver (F-182 hid behind two that wrote
-exact byte counts). The FlexSPI's driver has a model, a NOR flash behind the controller's
-registers (`test_imx_flexspi`), which runs the driver's own tests and not yet the suite; on the
-board, the bench, through the simple target (D-025).
+disk, the MMC and SD drivers on their card models through the uSDHC's model, and the FlexSPI's
+driver on its model, a NOR flash behind the controller's registers. The fakes pass the same
+suite, so that none is more forgiving than a driver (F-182 hid behind two that wrote exact byte
+counts). On the board, the bench, through the simple target (D-025).
 
-`tests/unit/conformance/bio_conformance.c` has its start: a length that isn't whole blocks, a
-length of 0, a range outside the device, a length of more than a driver's chunk. It runs
-against the RAM disk (512 byte and 4 KiB blocks, and a partition), the host's disk and its
-flash (`test_bio_conformance`), and `mmc_core` on the e.MMC and the SD model (`test_mmc_emmc`,
-`test_mmc_sd`) and through the uSDHC's driver and model (`test_imx_usdhc`). The RAM disk and
-the host's devices refuse what a driver never gets: a length that isn't whole blocks, or 0.
-**Not yet in the code (F-283)**: the rest of section 3: an erase, `write_done`, a device
-without a callback, a driver's errors and their codes, a write that fails half way.
+`tests/unit/conformance/bio_conformance.c`: a length that isn't whole blocks, a length of 0, a
+range outside the device, a length of more than a driver's chunk; an erase of exactly the
+blocks named, of 0 blocks and outside the device, or `-PB_ERR_NOT_SUPPORTED` from a device
+without one; `write_done` after a complete write; a write that fails half way, whole blocks
+and in the core's last block: the caller gets `-PB_ERR_IO` or `-PB_ERR_TIMEOUT`, nothing
+outside the range is written, and the same write works next. On a device with
+`ERASE_BEFORE_WRITE` it erases before it writes (3.3). It runs against the RAM disk (512 byte
+and 4 KiB blocks, and a partition), the host's disk and its flash (`test_bio_conformance`),
+`mmc_core` on the e.MMC's user area and a boot partition and on the SD model (`test_mmc_emmc`,
+`test_mmc_sd`), through the uSDHC's driver and model (`test_imx_usdhc`), and the FlexSPI's
+driver on its model (`test_imx_flexspi`). The RAM disk and the host's devices refuse what a
+driver never gets: a length that isn't whole blocks, or 0. A device without a callback is the
+core's, `test_bio`: a read, a write and an erase answer `-PB_ERR_NOT_SUPPORTED`, `write_done`
+PB_OK, and a partition doesn't get its parent's `write_done`. **Not yet in the code
+(F-283)**: a read that fails, what the caller gets and that the device reads after it.
 
 ## 9. Not yet in the code
 
 | Finding      | What                                                                        |
 | ------------ | --------------------------------------------------------------------------- |
-| F-283        | The block size asked, not assumed; the rest of the conformance suite (2, 8) |
+| F-283        | The block size asked (2.3); a read that fails, in the suite (8)             |
 | F-200        | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                |
 | F-078, F-079 | The ROM boots from the eMMC after a warm reset (5)                          |
