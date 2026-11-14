@@ -50,7 +50,9 @@ int imx_hab_read_key_status(const struct rot_key *key);
 int imx_hab_revoke_key(const struct rot_key *key);
 
 /**
- * Fuse the SRK hash. Words that are fused already must match.
+ * Fuse the SRK hash. A word that has bits set already must have none the
+ * hash's word doesn't: a word a failed write left half programmed is
+ * completed, one with another bit is -PB_ERR_MEM and nothing is written.
  *
  * @param srk The hash, e.g. srk_fuse (pb/srk_fuse.h)
  * @param words Its length, IMX_HAB_SRK_HASH_WORDS

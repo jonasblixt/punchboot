@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #define OCOTP_CTRL           0x0000
+#define OCOTP_CTRL_CLR       0x0008 /* ERROR is cleared here only (6UL RM 35.5.1) */
 #define OCOTP_TIMING         0x0010
 #define OCOTP_DATA           0x0020
 #define OCOTP_READ_CTRL      0x0030
@@ -29,7 +30,19 @@
 
 #define OCOTP_CTRL_WR_KEY    0x3E77
 
-int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank);
+/**
+ * @param base The controller
+ * @param words_per_bank The fuse map's words per bank
+ * @param ipg_rate_hz The controller's ipg_clk, which a write's timing is
+ *        computed from. 0 when the platform doesn't give it: the fuses are
+ *        read, and a write is -PB_ERR_NOT_SUPPORTED
+ *
+ * @return PB_OK, -PB_ERR_PARAM for words_per_bank or a rate the timing
+ *         doesn't fit (above some 400 MHz). After a failed init the
+ *         driver is not set up
+ */
+int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz);
+/* Both -PB_ERR_STATE before an imx_ocotp_init() that worked */
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value);
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
 
