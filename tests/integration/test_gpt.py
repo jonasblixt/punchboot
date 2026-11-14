@@ -185,9 +185,7 @@ def blocks(parts: Listing) -> dict[uuid.UUID, tuple[int, int]]:
     return {part: (first, last) for part, (first, last, _) in parts.items()}
 
 
-def test_installed_table_is_in_effect_at_once(
-    blank_device: Device, tmp_path: pathlib.Path
-) -> None:
+def test_installed_table_is_in_effect_at_once(blank_device: Device, tmp_path: pathlib.Path) -> None:
     """A device without a table has its partitions when the install returned.
 
     Until F-194 they were there after a reset only: the host listed the disk

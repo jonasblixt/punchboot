@@ -210,11 +210,7 @@ class UsbTransport(Transport):
         self._usb = usb
         if dev is None:
             dev = next(
-                (
-                    d
-                    for d in _usb_devices()
-                    if device_uuid is None or _usb_uuid(d) == device_uuid
-                ),
+                (d for d in _usb_devices() if device_uuid is None or _usb_uuid(d) == device_uuid),
                 None,
             )
         if dev is None:

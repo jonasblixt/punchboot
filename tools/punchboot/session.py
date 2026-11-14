@@ -55,6 +55,7 @@ class NamedCommand(NamedTuple):
         """The id the device knows it by, pb_id() of the name."""
         return pb_id(self.name)
 
+
 PartUUIDType = uuid.UUID | str
 
 # Bytes asked for per log read. Devices send at most their command buffer.
@@ -254,8 +255,7 @@ class Session:
         if not entries:
             raise GenericError
         return [
-            wire.pb_result_part_table_entry.unpack(data[i * entry_size :])
-            for i in range(entries)
+            wire.pb_result_part_table_entry.unpack(data[i * entry_size :]) for i in range(entries)
         ]
 
     def _part_size(self, part: uuid.UUID, max_entries: int) -> int:

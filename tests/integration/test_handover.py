@@ -131,9 +131,7 @@ def test_a_boot_from_ram_names_no_partition(dt_device: Device, img: pathlib.Path
     assert chosen["pb,active-system"] == b"B\0"
 
 
-def test_an_image_without_the_part_does_not_boot(
-    dt_device: Device, tmp_path: pathlib.Path
-) -> None:
+def test_an_image_without_the_part_does_not_boot(dt_device: Device, tmp_path: pathlib.Path) -> None:
     # The board names a device tree part: an image without one fails its
     # prepare, and pb stays in command mode with nothing handed over
     img = make_bpak(tmp_path / "no-dt.bpak", os.urandom(16 * 1024))

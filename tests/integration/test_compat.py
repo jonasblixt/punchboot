@@ -245,8 +245,16 @@ def test_host_wire_and_bpak_match_the_abi() -> None:
         if name.startswith(("PB_WIRE_", "PB_COMMAND_", "PB_RESULT_RESPONSE", "PB_LOG_ID_")):
             assert getattr(wire, name) == values[name], name
     for name in dir(bpak):
-        if name.startswith(("BPAK_MAX_", "BPAK_HEADER_MAGIC", "BPAK_PART_ALIGN", "BPAK_FLAG_",
-                            "BPAK_METADATA_BYTES", "BPAK_SIGNATURE_MAX_BYTES")):
+        if name.startswith(
+            (
+                "BPAK_MAX_",
+                "BPAK_HEADER_MAGIC",
+                "BPAK_PART_ALIGN",
+                "BPAK_FLAG_",
+                "BPAK_METADATA_BYTES",
+                "BPAK_SIGNATURE_MAX_BYTES",
+            )
+        ):
             assert getattr(bpak, name) == values[name], name
 
 

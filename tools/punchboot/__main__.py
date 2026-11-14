@@ -437,7 +437,7 @@ def part_erase(_ctx: click.Context, s: Session, part_uuid: uuid.UUID) -> None:
     logger.debug("Erasing partition %s...", part_uuid)
 
     def _update_pgbar(total: int, remaining: int) -> None:
-        click.echo(f"\rErasing {total-remaining}/{total}", nl=False)
+        click.echo(f"\rErasing {total - remaining}/{total}", nl=False)
 
     s.part_erase(part_uuid, _update_pgbar)
     click.echo("")
