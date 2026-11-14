@@ -92,16 +92,18 @@ static void test_init_timeout_too_long(void **state)
 }
 
 /* The time-outs the boards in the tree run (CONFIG_WATCHDOG_TIMEOUT 5, 10
- * and 30) and the ends of the range */
+ * and 30) and the ends of the range. The time-out is 0.5 s + WT * 0.5 s,
+ * so n seconds is WT 2n - 1, not 2n, which was half a second more (F-206).
+ * 0 is the shortest, half a second */
 static void test_init_timeout(void **state)
 {
     (void)state;
 
-    assert_int_equal(wt_of(1), 2);
-    assert_int_equal(wt_of(5), 10);
-    assert_int_equal(wt_of(10), 20);
-    assert_int_equal(wt_of(30), 60);
-    assert_int_equal(wt_of(127), 254);
+    assert_int_equal(wt_of(1), 1);
+    assert_int_equal(wt_of(5), 9);
+    assert_int_equal(wt_of(10), 19);
+    assert_int_equal(wt_of(30), 59);
+    assert_int_equal(wt_of(127), 253);
     assert_int_equal(wt_of(0), 0);
 }
 

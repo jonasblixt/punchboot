@@ -13,9 +13,19 @@
 
 int imx_wdog_init(uintptr_t base, unsigned int delay_s)
 {
-    /* WT is eight bits. A time-out that doesn't fit is the longest one, not
-     * one that wrapped into a short one */
-    unsigned int wt = delay_s <= WDOG_WT_MAX / 2 ? delay_s * 2 : WDOG_WT_MAX;
+    /* The time-out is 0.5 s + WT * 0.5 s, so delay_s is WT = 2 * delay_s - 1.
+     * 0 is the shortest, half a second. WT is eight bits: a time-out that
+     * doesn't fit is the longest one, 128 s, not one that wrapped into a
+     * short one */
+    unsigned int wt;
+
+    if (delay_s == 0)
+        wt = 0;
+    else if (delay_s <= (WDOG_WT_MAX + 1) / 2)
+        wt = delay_s * 2 - 1;
+    else
+        wt = WDOG_WT_MAX;
+
     uint16_t regval = WDOG_WCR_WT(wt) | WDOG_WCR_WDE | WDOG_WCR_WDT | WDOG_WCR_SRS | WDOG_WCR_WDA;
 
 #ifdef CONFIG_DRIVERS_IMX_WDOG_DEBUG

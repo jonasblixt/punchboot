@@ -129,6 +129,9 @@ The host tools (`pip install punchboot`):
   still names the slot that failed as enabled, and `pb,boot-mode` is `fallback` (F-174,
   2026-11-12).
 - The watchdog is kicked after each chunk that is loaded, and before the jump (F-243).
+- On the i.MX6UL, 8M and RT the watchdog's time-out is `CONFIG_WATCHDOG_TIMEOUT` exactly,
+  half a second shorter than before: a board with 5 s gave the next stage 5.5 s to take over
+  the watchdog, and gives it 5.0 s now (F-206).
 - An image on ARMv7-M starts with the D-cache off and PRIMASK set (D-028), and gets Arm's
   Firmware Handoff registers and a transfer list where it got nothing (D-039).
 - `linux,initrd-start` and `-end` are the bytes every release wrote. Only a ramdisk that
