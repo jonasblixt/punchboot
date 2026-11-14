@@ -332,9 +332,14 @@ static const struct boot_ab_state_config boot_state_cfg = {
  * The DRAM's region and the link have one source, the defconfig
  * (platform.md 5.1): the region starts where the buffers' region
  * (CONFIG_PB_BUFFERS_BASE, _SIZE) ends, so the link fails when the buffers
- * grow into it.
+ * grow into it. And pb's region (CONFIG_PB_ENTRY, CONFIG_PB_SIZE) ends
+ * before BL31's on-chip RAM, so the link fails when pb grows into that.
  */
 #define BOARD_BUFFERS_END ((uint64_t)CONFIG_PB_BUFFERS_BASE + CONFIG_PB_BUFFERS_SIZE)
+
+_Static_assert(CONFIG_PB_SIZE != 0 &&
+                   (uint64_t)CONFIG_PB_ENTRY + CONFIG_PB_SIZE <= IMX8MP_BL31_BASE,
+               "CONFIG_PB_SIZE doesn't end pb's region before BL31's on-chip RAM");
 
 static const struct boot_image_region image_regions[] = {
     BOOT_IMAGE_REGION(BOARD_BUFFERS_END, BOARD_RAM_END - BOARD_BUFFERS_END),

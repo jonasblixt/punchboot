@@ -177,6 +177,7 @@ CASES = [
     ("jiffy", {"CONFIG_PB_SIZE": "0x30000"}, "region `ram' overflowed"),
     ("jiffy", {"CONFIG_PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
     ("imx8qxmek", {"CONFIG_PB_SIZE": "0x50000"}, "region `ram' overflowed"),
+    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x3f000"}, "region `ram' overflowed"),
     ("imx8mpevk", {"CONFIG_PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
     # A Firmware Handoff region that isn't in such memory: in the ROM's data,
     # in the flash, in no memory, over the DRAM's end and below it, over the
@@ -222,8 +223,8 @@ CASES = [
 # them. A length that ld can't work out is every address, without a message.
 # pb's region and the buffers' end where the board's next image data region
 # starts (F-391): jiffy's at 0x80101000 and 0x82000000, the MEK's at
-# 0x80080000 and 0x86000000, the 8MP EVK's buffers' at 0x41060000, the RT1060
-# EVK's below pb.
+# 0x80080000 and 0x86000000, the 8MP EVK's at 0x970000 (BL31's on-chip RAM)
+# and 0x41060000, the RT1060 EVK's below pb.
 REGIONS = {
     "jiffy": {"ram": (0x80001000, 0x100000), "buffers": (0x81021000, 0xFDF000)},
     "imxrt1060evk": {"ram": (0x20249000, 0x40000), "buffers": (0x20289000, 0x37000)},
@@ -233,7 +234,7 @@ REGIONS = {
         "buffers": (0x85000000, 0x1000000),
     },
     "imx8mpevk": {
-        "ram": (0x920000, 0x60000),
+        "ram": (0x920000, 0x50000),
         "buffers": (0x40000000, 0x1060000),
     },
 }
@@ -264,6 +265,8 @@ ALLOWED = [
     # pb's region derived in the DRAM: to the buffers that follow it
     ("jiffy", {"CONFIG_PB_SIZE": "0x0"}, {"ram": (0x80001000, 0x1020000)}),
     ("imx8qxmek", {"CONFIG_PB_SIZE": "0x0"}, {"ram": (0x80020000, 0x4FE0000)}),
+    # and in the i.MX8M's on-chip RAM: to the window's end
+    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x0"}, {"ram": (0x920000, 0x60000)}),
     # and to the DRAM's end when they are below it
     (
         "jiffy",
@@ -271,7 +274,7 @@ ALLOWED = [
         {"ram": (0x83000000, 0x3D000000)},
     ),
     # A board that gives pb less
-    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x50000"}, {"ram": (0x920000, 0x50000)}),
+    ("imx8mpevk", {"CONFIG_PB_SIZE": "0x58000"}, {"ram": (0x920000, 0x58000)}),
     ("imxrt1060evk", {"CONFIG_PB_SIZE": "0x30000"}, {"ram": (0x20249000, 0x30000)}),
     # The i.MX8M's buffers right after the DDR controller's state
     (
