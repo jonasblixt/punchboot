@@ -301,7 +301,8 @@ The stages are in `src/plat/<p>/makefile.mk` (`platform.md` 6.2), their files in
 |                     |                            | `pb_csf_uuu.bin`, `pb_signed_uuu.imx`                   |
 | `imx8m_image`       | `IMX8M_CREATE_IMX_IMAGE`   | `pb.imx`; 8MQ: `pb_pad.bin`, `pb_pad.imx`               |
 | `imx8m_sign_desc`   | `IMX8M_SIGN_IMAGE` (8MQ)   | `pb.csf`                                                |
-| `imx8m_sign_image`  | `IMX8M_SIGN_IMAGE` (8MQ)   | `pb_csf.bin`, `pb_signed.imx`                           |
+| `imx8m_sign_image`  | `IMX8M_SIGN_IMAGE` (8MQ)   | `pb_csf.bin`, `pb_signed.imx` (33 KiB of zeros before,  |
+|                     |                            | the ROM's IVT offset), `pb_signed_uuu.imx` (without)    |
 | `imx8x_image`       | `IMX8X_CREATE_IMX_IMAGE`   | `pb.imx`                                                |
 | `imx8x_sign_desc`   | `IMX8X_SIGN_IMAGE`         | `pb.csf`; on the DXL it stops the build (not supported) |
 | `imx8x_sign_image`  | `IMX8X_SIGN_IMAGE`         | `pb_signed.imx`                                         |

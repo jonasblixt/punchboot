@@ -890,15 +890,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | SRK_REVOKE unknown (the 8MP's keys can't be revoked). Verify on a part that can be spent: a | | |
 | | | revocation on an 8MQ (the pico8ml is the only 8MQ on the bench), the 8MP's fuses in its | | |
 | | | Security Reference Manual (NDA) | | |
-| F-448 | `src/board/pico8ml/`, `src/board/imx8mevk/` | The i.MX8MQ's ROM reads the image's IVT at 33 KiB | Verified (RM) | open |
-| | | (0x8400) on SD/MMC/eMMC, a boot partition too (8MQ RM Table "IVT offset"; U-Boot's i.MX8MQ | | |
-| | | docs, `seek=33`), where the 8MM, 8MN and 8MP read a boot partition at 0. pb's `part write` to | | |
-| | | BOOT0 starts at block 0: a `pb_signed.imx` written as is doesn't boot. The retired pico8ml | | |
-| | | started its "eMMC boot0" at block 66. 2026-11-15: the pico8ml's BOOT0 got 33 KiB of zeros and | | |
-| | | `pb_signed.imx` by hand. Fix: an 8MQ image with the offset, or the boards' boot partitions | | |
-| | | starting at 33 KiB | | |
-| | | 2026-11-15: so written, the closed pico8ml boots from its eMMC: the ROM reads at 0x40 and 0x50 | | |
-| | | of the image, authentication passes, the jump to 0x7e1000 | | |
 
 ## Dependencies / vendored code
 

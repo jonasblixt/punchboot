@@ -139,13 +139,22 @@ imx8m_sign_desc: imx8m_image
 	     -e 's#__IMG_PEM__#$(IMX8M_IMAGE_SIGN_CERT)#g' \
 	     $(IMX8M_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
 
-# pb_signed.imx: pb_pad.imx with the signature in its last 0x2000 bytes,
-# which mkimage_imx8m leaves for it
+# The ROM reads the IVT 33 KiB into an SD/MMC/eMMC device, a boot partition
+# too (8MQ RM, Table "IVT offset"; the 8M Plus reads a boot partition at 0)
+IMX8MQ_IMAGE_OFFSET_KiB = 33
+
+# pb_signed_uuu.imx: pb_pad.imx with the signature in its last 0x2000 bytes,
+# which mkimage_imx8m leaves for it; for the serial downloader (uuu), which
+# loads it to RAM. pb_signed.imx: the same after IMX8MQ_IMAGE_OFFSET_KiB of
+# zeros, for the boot partition or the card (part write, F-448). The zeros
+# aren't loaded: one signature is both's
 imx8m_sign_image: imx8m_sign_desc
 	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/pb_csf.bin
-	@cp $(BUILD_DIR)/pb_pad.imx $(BUILD_DIR)/pb_signed.imx
-	$(Q)dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/pb_signed.imx bs=1 conv=notrunc \
+	@cp $(BUILD_DIR)/pb_pad.imx $(BUILD_DIR)/pb_signed_uuu.imx
+	$(Q)dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/pb_signed_uuu.imx bs=1 conv=notrunc \
 	       seek=$$(( $$(stat -c%s $(BUILD_DIR)/pb_pad.imx) - 0x2000 ))
+	$(Q)dd if=/dev/zero of=$(BUILD_DIR)/pb_signed.imx bs=1024 count=$(IMX8MQ_IMAGE_OFFSET_KiB) 2> /dev/null
+	$(Q)cat $(BUILD_DIR)/pb_signed_uuu.imx >> $(BUILD_DIR)/pb_signed.imx
 else
 # pb.imx: pb.bin with the header of the i.MX8M Plus ROM (ROM_VERSION v2), for
 # the boot media or the serial downloader (uuu)

@@ -1577,6 +1577,19 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 0x1e8) at 0x968; the log is 64 words, in OCRAM, with a zero word inside it and authentication | | |
 | | | without a tick (`IMX_ROM_LOG_DEFS_V2_8MQ`), and event 0xd1, "Jump to the SDP boot image", | | |
 | | | AN12853 has. `log rom` on the pico8ml reads it whole | | |
+| F-448 | `src/board/pico8ml/`, `src/board/imx8mevk/` | The i.MX8MQ's ROM reads the image's IVT at 33 KiB | Verified (RM) | fixed |
+| | | (0x8400) on SD/MMC/eMMC, a boot partition too (8MQ RM Table "IVT offset"; U-Boot's i.MX8MQ | | |
+| | | docs, `seek=33`), where the 8MM, 8MN and 8MP read a boot partition at 0. pb's `part write` to | | |
+| | | BOOT0 starts at block 0: a `pb_signed.imx` written as is doesn't boot. The retired pico8ml | | |
+| | | started its "eMMC boot0" at block 66. 2026-11-15: the pico8ml's BOOT0 got 33 KiB of zeros and | | |
+| | | `pb_signed.imx` by hand. Fix: an 8MQ image with the offset, or the boards' boot partitions | | |
+| | | starting at 33 KiB | | |
+| | | 2026-11-15: so written, the closed pico8ml boots from its eMMC: the ROM reads at 0x40 and 0x50 | | |
+| | | of the image, authentication passes, the jump to 0x7e1000 | | |
+| | | 2026-11-15: `imx8m_sign_image` makes two files from one signature, `pb_signed.imx` with 33 KiB | | |
+| | | of zeros before it for the eMMC or the card, `pb_signed_uuu.imx` without for the serial | | |
+| | | downloader (zeros aren't loaded, HAB signs from the IVT). `part write` of `pb_signed.imx` to | | |
+| | | BOOT0 boots the closed pico8ml. The 8M Plus's image unchanged | | |
 
 ## Dependencies / vendored code
 

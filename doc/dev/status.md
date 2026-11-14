@@ -58,7 +58,7 @@ bump is for the porting API. Each item's history is in `log/`.
    - pico8ml restored (`9ea656f2`), signed `pb_signed.imx` from `make all`, command mode on the
      board; `-Os` and packed DRAM tables (`gen-imx8m-dram-timing.py`) for room. Open: F-445.
      The i.MX8M's SLC and lockdown; the pico8ml is closed (log 2026-11-15), its token
-     `scripts/c12f1c67-...token`. Open: F-447, F-448 (the 8MQ's 33 KiB image offset). Next: the
+     `scripts/c12f1c67-...token`. Open: F-447. Next: the
      pico8ml's test bench (Jonas).
    - D-086 for Jonas's review: Mbed TLS set up by the core (`crypto.md` 2, `platform.md` 2.2,
      2.3, 3.8, Open (1)). Then F-442's code.
