@@ -215,19 +215,28 @@ int board_setup(void)
     return setup_boot_driver();
 }
 
+/* The length is what was written: snprintf() returns the whole text's,
+ * also when only size - 1 bytes of it fit (F-413). cm_board_status() never
+ * calls it with a size of 0 */
 static int default_status(uint8_t *buf, size_t *length)
 {
     size_t size = *length;
+    int n = snprintf((char *)buf, size, "Board status OK!\n");
 
-    *length = snprintf((char *)buf, size, "Board status OK!\n");
+    if (n < 0)
+        *length = 0;
+    else
+        *length = ((size_t)n < size) ? (size_t)n : size - 1;
+
     return PB_OK;
 }
 
 /*
  * Command mode's 'board status' (board.md 4.3). The board's status(), or the
  * default, writes text, at most size - 1 bytes of it. The length it reports
- * is clamped to that: snprintf() returns the length of the whole text, also
- * when it didn't fit. The NUL is appended here, and counted.
+ * is clamped to that all the same, for a board's that reports snprintf()'s
+ * result, the length of the whole text, also when it didn't fit. The NUL is
+ * appended here, and counted.
  */
 static int cm_board_status(uint8_t *buf, size_t *length)
 {

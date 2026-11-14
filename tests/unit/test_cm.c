@@ -120,8 +120,8 @@ static struct {
 
     int complete_rcs[8]; /* Returned by complete() before it does anything */
     int n_complete_rcs;
-    size_t lost_at[4]; /* A read that starts at this input position is lost, */
-    int lost_rc[4]; /* complete() returns this for it, once */
+    size_t lost_at[32]; /* A read that starts at this input position is lost, */
+    int lost_rc[32]; /* complete() returns this for it, once */
     int n_lost;
     int lose_write; /* The write with this number (from 1) is lost */
     int write_calls;
@@ -3756,6 +3756,88 @@ static void test_lost_at_the_start_of_a_read(void **state)
     assert_int_equal(t.rounds, 5);
 }
 
+/* src/cm/cm_main.c: the starts of the transport without a command between
+ * them, at most */
+#define STARTS_WITHOUT_A_COMMAND_MAX 16
+
+/*
+ * command-mode.md 2.1, 2.2 (F-413): a transport that says it is ready and is
+ * lost before a command can come, every time, is a transport that doesn't
+ * start. It was restarted every round for ever, each start with the time of
+ * 2.2 again and the watchdog kicked. After STARTS_WITHOUT_A_COMMAND_MAX
+ * starts command mode ends as for a failed start: the device leaves the bus
+ * and pb resets. Both ways: the read of a command can never be started, and
+ * it is started and then lost at once.
+ */
+static void test_transport_lost_before_every_command(void **state)
+{
+    (void)state;
+
+    /* The read can't be started */
+    t.max_inits = 1000;
+    t.fail_reads_after = 0;
+    assert_int_equal(cm_run(), -PB_ERR_IO);
+    assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.connect_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.read_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.disconnect_calls, 1);
+    expect_end();
+
+    /* A caller that runs the task again finds it at its set up */
+    teardown(state);
+    setup(state);
+    t.max_inits = 1000;
+    assert_int_equal(cm_run(), -PB_ERR_IO);
+    /* Started, then lost at once: no host sends anything */
+    assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.read_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(t.after_disconnect, 0);
+    expect_end();
+}
+
+/* The count is of starts without a command: one less than the most is still
+ * a host, and a command starts the count again, so that hosts that come and
+ * go, each with a command, are served for as long as they come */
+static void test_transport_lost_count_ends_with_a_command(void **state)
+{
+    /* STARTS_WITHOUT_A_COMMAND_MAX - 1 losses, and the last start's command */
+    for (int i = 0; i < STARTS_WITHOUT_A_COMMAND_MAX - 1; i++)
+        host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
+
+    /* One more: the command never comes */
+    teardown(state);
+    setup(state);
+    for (int i = 0; i < STARTS_WITHOUT_A_COMMAND_MAX; i++)
+        host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    t.max_inits = 1000;
+    assert_int_equal(cm_run(), -PB_ERR_IO);
+    expect_end();
+    assert_int_equal(t.init_calls, STARTS_WITHOUT_A_COMMAND_MAX);
+    assert_int_equal(t.disconnect_calls, 1);
+
+    /* Twice as many losses as the most, each after a command */
+    teardown(state);
+    setup(state);
+    for (int i = 0; i < 2 * STARTS_WITHOUT_A_COMMAND_MAX; i++) {
+        host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+        host_lost(-PB_ERR_IO);
+    }
+    run();
+    for (int i = 0; i < 2 * STARTS_WITHOUT_A_COMMAND_MAX; i++)
+        expect_result(PB_RESULT_OK);
+    expect_end();
+    /* The first start, one per loss, and the one the fake refuses */
+    assert_int_equal(t.init_calls, 2 * STARTS_WITHOUT_A_COMMAND_MAX + 2);
+    assert_int_equal(t.disconnect_calls, 0);
+}
+
 /* The set up starts with the platform's (command-mode.md 2.1, platform.md
  * 3.10): plat_cm_init(), before the board's data is checked and before the
  * transport is started, and once: not again when the transport is restarted,
@@ -4828,6 +4910,8 @@ int main(void)
         CM_TEST(test_boot_fails_after_the_disconnect),
         CM_TEST(test_run_errors),
         CM_TEST(test_lost_at_the_start_of_a_read),
+        CM_TEST(test_transport_lost_before_every_command),
+        CM_TEST(test_transport_lost_count_ends_with_a_command),
         CM_TEST(test_setup_platform_first),
         CM_TEST(test_setup_logs_the_platforms_status),
         CM_TEST(test_setup_logs_a_good_platforms_status),

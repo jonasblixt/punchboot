@@ -473,6 +473,19 @@ static enum cm_state state = CM_SETUP;
 /* The time the transport has to become ready, from when it was started */
 static struct pb_timeout ready_timeout;
 
+/*
+ * The starts of the transport since the last command came (F-413). Each
+ * start gives the transport CONFIG_CM_TRANSPORT_READY_TIMEOUT again (2.2),
+ * so one that says it is ready and is then lost at once, a read that can
+ * never be started or a complete() that fails at once, was restarted every
+ * round for ever, with the watchdog kicked. After this many starts without a
+ * command it is a transport that doesn't start, a failure of the set up's
+ * step 5 (2.1): no command mode, and pb resets. A host that unplugs is one
+ * start; the next host's first command starts the count again.
+ */
+#define CM_STARTS_WITHOUT_A_COMMAND_MAX 16
+static unsigned int starts_without_a_command;
+
 /* Microseconds in 32 bits, and neither 0 nor UINT32_MAX, which
  * pb_timeout_init_us() refuses: Kconfig's range, for a build that has its
  * configuration from elsewhere */
@@ -615,8 +628,9 @@ static int cm_leave(int rc)
  * the core kicks the watchdog meanwhile. A command that has come runs to its
  * end inside the call, with its own kicks and its transfers' timeout (4.6).
  * An error ends the loop of the tasks: the set up failed, no host came in
- * time, a command asked for the reset, or a boot the host started returned
- * after the transport's disconnect.
+ * time, the transport was lost again and again before a command came, a
+ * command asked for the reset, or a boot the host started returned after the
+ * transport's disconnect.
  */
 int cm_main_task(void)
 {
@@ -630,9 +644,16 @@ int cm_main_task(void)
             if (rc != PB_OK)
                 return rc;
 
+            starts_without_a_command = 0;
             state = CM_START;
             break;
         case CM_START:
+            if (starts_without_a_command >= CM_STARTS_WITHOUT_A_COMMAND_MAX) {
+                LOG_ERR("Transport lost %u times without a command", starts_without_a_command);
+                return cm_leave(-PB_ERR_IO);
+            }
+
+            starts_without_a_command++;
             rc = cm_start();
 
             if (rc != PB_OK) {
@@ -688,6 +709,8 @@ int cm_main_task(void)
                 break;
             }
 
+            /* A command came: the transport works */
+            starts_without_a_command = 0;
             rc = pb_command_parse();
 
             if (cm_leave_requested)
