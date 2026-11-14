@@ -846,6 +846,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | alone, so the revision's split into major and minor is the other i.MX's. 2026-11-14 on the | | |
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
+| F-434 | `src/drivers/usb/cdns3_udc_core.c`, the MEK | `part write` of the MEK's 15 MB `boot.bpak` | Verified | open |
+| | | fails at `246bd897` with "Bad result magic 0xf9401421", seven times out of seven, also after a | | |
+| | | `dev reset`: the host reads the image's own bytes (offset 0x1660) where the device's result | | |
+| | | is, so the result frame carries data of the write. Random 15 MB files fail one write in two | | |
+| | | with other values, 4 and 8 MB pass, `root.bpak` (7 MB) passed at its second try. At | | |
+| | | `bc640ba1` the same writes passed (log 2026-11-13). Suspect: F-282's cdns3 changes | | |
+| | | (`e46baba4`); maybe F-172's cause. Not bisected | | |
 
 ## Dependencies / vendored code
 
