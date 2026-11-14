@@ -216,6 +216,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the sanitizers in a sanitizer run. `-Wundef` isn't added: 785 warnings from 28 lines in 15 files | | |
 | | | (the vendored TF-A arch headers, `cm_main.c`, `mbedtls_pb.c`). Left: the version of a pre-release | | |
 | | | build, `blobs/`, the stack protector, `-Wundef` | | |
+| | | 2026-11-14 (`0447427d`, `26fc9636`, `pkg-b3-wundef` landed): `-Wundef` is on (the six `pb.bin` | | |
+| | | byte for byte the same); the blobs are read where they are, nothing is written to `blobs/`, | | |
+| | | and the 8M firmware isn't written again, so a second build makes nothing. Left: the version | | |
+| | | of a pre-release build, the stack protector | | |
 | F-232 | docs | The README (also the PyPI page) describes removed things (PBI, C parts and binary | Reported | open |
 | | | wheels, the auth cookie, Bebop/PICO) and lacks the 8MP EVK and RT1060. Missing: a porting guide for | | |
 | | | 3.0.0, firmware build and image signing, the A/B update flow and pbstate, the SLC and fusing procedure, | | |

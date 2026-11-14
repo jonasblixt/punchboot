@@ -46,10 +46,7 @@ bump is for the porting API. Each item's history is in `log/`.
      and the RT1060 (enumeration, a boot from command mode, a replug, `usbreset`, a 4 MiB
      stream, no "prime failed" or "Flush ... timeout" in the log), then land it. It is on
      `fa599d5b` (`784df645..08e7d1e2`), 117 of 117 on the host; no board build after its fixes.
-   - **`pkg-b3-wundef`, pushed, not landed** (F-231, on `639fd113`): `33659169` turns `-Wundef`
-     on (the six `pb.bin` byte for byte the same, 110 of 110); `c97f7e26` is `WIP:`, the blobs
-     read where they are, the 8M firmware no longer rewritten, not built yet. Rebase, build each
-     board twice (the second make does nothing, no `blobs/` in the tree), then land.
+   - `pkg-b3-wundef` landed (`0447427d`, `26fc9636`, F-231). The remote branch can go.
    - The bench of the landed rounds, in the log's order: USB on all four (the cdns3's `stop`,
      the ChipIdea's endpoint 0, the DWC3's and the cdns3's reset reporting), the new MMU maps
      and the MEK's 2 GiB (F-436), the RT1060's VTOR/FORCEWT/D-cache at its entry (F-210,
