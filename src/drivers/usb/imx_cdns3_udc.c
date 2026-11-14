@@ -10,7 +10,6 @@
  *
  */
 
-#include <arch/arch.h>
 #include <drivers/usb/cdns3_udc_core.h>
 #include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/imx_salvo_phy.h>

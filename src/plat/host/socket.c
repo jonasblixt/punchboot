@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <pb/cm.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <plat/host/host.h>
 #include <poll.h>
@@ -127,6 +128,11 @@ int cm_transport_disconnect(void)
 
 int cm_transport_read(void *buf, size_t length)
 {
+    /* As the USB transport (usb.md 2.3): the host has no cache, but a
+     * buffer declared off a line fails here as on a board */
+    if (!dma_owns_lines(buf, 0))
+        return -PB_ERR_ALIGN;
+
     xfer.pending = true;
     xfer.is_read = true;
     xfer.buf = buf;

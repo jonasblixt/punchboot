@@ -27,6 +27,7 @@
 #include <drivers/usb/usbd.h>
 #include <pb/cm.h>
 #include <pb/device_uuid.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <string.h>
 #include <uuid.h>
@@ -219,7 +220,7 @@ static void test_connect_is_ready_when_configured(void **state)
  * at once, with the controller's answer */
 static void test_read_and_write_start_a_transfer(void **state)
 {
-    static uint8_t buf[1024];
+    static uint8_t buf[1024] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(cm_transport_read(buf, 512), PB_OK);
@@ -241,11 +242,35 @@ static void test_read_and_write_start_a_transfer(void **state)
     assert_int_equal(cm_transport_write(buf, 512), -PB_ERR_IO);
 }
 
+/* usb.md 2.3, drivers.md 4.3: what the controller writes owns its cache
+ * lines. A read into a buffer that doesn't start on one is refused, and the
+ * controller isn't asked; a write takes a buffer anywhere */
+static void test_a_read_into_a_buffer_off_a_line_is_refused(void **state)
+{
+    static uint8_t buf[2 * PB_DMA_ALIGN + 512] __aligned(PB_DMA_ALIGN);
+    static const size_t shifts[] = { 1, 4, 8, 32, PB_DMA_ALIGN - 1 };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(shifts); i++) {
+        assert_int_equal(cm_transport_read(buf + shifts[i], 512), -PB_ERR_ALIGN);
+        assert_int_equal(cm_transport_read(buf + shifts[i], 1), -PB_ERR_ALIGN);
+    }
+    assert_int_equal(hal.start_calls, 0);
+
+    assert_int_equal(cm_transport_read(buf + PB_DMA_ALIGN, 512), PB_OK);
+    assert_int_equal(hal.start_calls, 1);
+    assert_ptr_equal(hal.start_buf, buf + PB_DMA_ALIGN);
+
+    assert_int_equal(cm_transport_write(buf + 1, 512), PB_OK);
+    assert_int_equal(hal.start_calls, 2);
+    assert_ptr_equal(hal.start_buf, buf + 1);
+}
+
 /* usb.md 2.4: complete polls the transfer that was started, on its
  * endpoint, and gives the controller's answer: done, not yet, or lost */
 static void test_complete_polls_the_transfer(void **state)
 {
-    static uint8_t buf[512];
+    static uint8_t buf[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(cm_transport_read(buf, sizeof(buf)), PB_OK);
@@ -280,6 +305,7 @@ int main(void)
         cmocka_unit_test_setup(test_init_starts_the_controller, setup),
         cmocka_unit_test_setup(test_connect_is_ready_when_configured, setup),
         cmocka_unit_test_setup(test_read_and_write_start_a_transfer, setup),
+        cmocka_unit_test_setup(test_a_read_into_a_buffer_off_a_line_is_refused, setup),
         cmocka_unit_test_setup(test_complete_polls_the_transfer, setup),
         cmocka_unit_test_setup(test_disconnect_stops_the_controller, setup),
     };

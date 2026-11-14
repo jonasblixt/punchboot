@@ -14,8 +14,11 @@
 #define ARM_ISB()  arm_isb(15)
 #define ARM_DMB()  arm_dmb(15)
 
-void arch_clean_cache_range(uintptr_t start, size_t len);
-void arch_invalidate_cache_range(uintptr_t start, size_t len);
+/* The D-cache by range: arch_clean_cache_range() and the two others */
+#include <pb/arch.h>
+
+/* The D-cache's line in bytes, which the range functions step by */
+size_t armv7m_dcache_line_size(void);
 
 /* Every line of the L1 D-cache invalidated, before pb turns it on (mmu.S) */
 void armv7m_dcache_invalidate_all(void);

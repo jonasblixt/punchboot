@@ -57,10 +57,10 @@ func (arch_clean_invalidate_cache_range)
 
     /* void arch_invalidate_cache_range(uintptr_t start, size_t len);
      *
-     * The range must be cache line aligned and a multiple of the line size, see
-     * the note on the declaration in include/pb/arch.h. A line is invalidated
-     * as a whole, so for a partially covered line this discards dirty bytes
-     * outside the range as well. */
+     * A line is invalidated as a whole, so for a partially covered line this
+     * discards dirty bytes outside the range as well: what is invalidated owns
+     * its lines, see the declaration in include/pb/arch.h. The drivers get
+     * there through dma_in_end() (include/pb/dma.h). */
 func (arch_invalidate_cache_range)
     cache_range_op dc ivac         // invalidate dcache to PoC by MVA
     ret

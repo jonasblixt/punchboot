@@ -19,6 +19,7 @@
 
 #include <drivers/partition/static.h>
 #include <pb/bio.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <stdlib.h>
 #include <string.h>
@@ -188,7 +189,7 @@ static void test_init(void **state)
 
     /* A partition is read through its parent */
     memset(ramdisk_block(f->disk, 32), 0xa5, BLOCK);
-    uint8_t buf[BLOCK];
+    uint8_t buf[BLOCK] __aligned(PB_DMA_ALIGN);
     assert_int_equal(bio_read(bio_get_part_by_uu(UU_SYS_B), 0, sizeof(buf), buf), PB_OK);
     assert_int_equal(buf[0], 0xa5);
     assert_int_equal(buf[BLOCK - 1], 0xa5);
@@ -316,7 +317,7 @@ static void test_mapped(void **state)
     /* It is the memory that bio reads */
     uintptr_t a_base;
     size_t a_size;
-    uint8_t buf[BLOCK];
+    uint8_t buf[BLOCK] __aligned(PB_DMA_ALIGN);
     assert_int_equal(static_ptbl_in_place(bio_get_part_by_uu(UU_SYS_A), &a_base, &a_size), PB_OK);
     memset(ramdisk_block(f->disk, 31), 0x3c, BLOCK);
     assert_int_equal(bio_read(bio_get_part_by_uu(UU_SYS_A), 15, sizeof(buf), buf), PB_OK);

@@ -143,6 +143,7 @@ add_library(pb_core STATIC
     src/log_source.c
     src/crypto.c
     src/delay.c
+    src/dma.c
     src/device_uuid.c
     src/ramlog.c
     src/rot.c
