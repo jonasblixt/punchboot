@@ -44,8 +44,10 @@ void arch_disable_mmu(void)
     disable_irq();
     disable_fiq();
 
-    arch_clean_cache_range(stack_start, stack_size);
-    arch_invalidate_cache_range(stack_start, stack_size);
+    /* One operation per line, DCCIMVAC: as a clean of the stack followed by
+     * an invalidate, a store the compiler put between the two calls would
+     * be in a line the invalidate drops, and lost */
+    arch_clean_invalidate_cache_range(stack_start, stack_size);
 
     /* Clean and disable the D-cache. What runs next reads with the cache
      * off what was written with it on, the boot arguments among them. */
