@@ -141,6 +141,7 @@ set(PB_CORE_SOURCES
     src/console.c
     src/log.c
     src/log_source.c
+    src/plat_info.c
     src/crypto.c
     src/delay.c
     src/dma.c

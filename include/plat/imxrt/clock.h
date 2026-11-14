@@ -442,6 +442,11 @@
     ((x << ANALOG_PLL_ARM_DIV_SELECT_SHIFT) & ANALOG_PLL_ARM_DIV_SELECT_MASK)
 
 #define IMXRT_CCM_ANALOG_PLL_USB1           (0x400D8010)
+
+/* The chip's revision (RM 43.5.13): 0x006C0000 is silicon 1.0, the only
+ * value the RM gives. As on the other i.MX: MAJOR_LOWER in 15:8 is the
+ * major revision less one, MINOR in 7:0 the minor one */
+#define IMXRT_USB_ANALOG_DIGPROG            (0x400D8260)
 #define IMXRT_CCM_ANALOG_PLL_USB2           (0x400D8020)
 #define ANALOG_PLL_USB_LOCK                 BIT(31)
 #define ANALOG_PLL_USB_BYPASS               BIT(16)
