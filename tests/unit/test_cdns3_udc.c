@@ -59,6 +59,7 @@
 /* The longest transfer: the ring's TRBs but its stop gap */
 #define XFER_MAX        ((TRB_COUNT - 1) * TRB_MAX_LENGTH)
 #define TRB_FLAG_CYCLE  BIT(0)
+#define TRB_FLAG_IOC    BIT(5)
 
 #define LINE            PB_DMA_ALIGN
 
@@ -469,6 +470,44 @@ static void test_a_bus_reset_between_transfers_is_kept(void **state)
     assert_int_equal(dma_host_in_open(), 2);
 }
 
+/*
+ * usb.md 2.3, 4.3: a write of 0 bytes is one empty packet, a TRB of length 0
+ * that ends the transfer; a read of 0 bytes is refused, -PB_ERR_PARAM, with
+ * nothing written. The driver built no TRB for 0 bytes and armed the
+ * endpoint on the stop gap: nothing was sent and the transfer never ended
+ * (F-287)
+ */
+static void test_a_transfer_of_0_bytes(void **state)
+{
+    uint8_t *buf = arena + LINE;
+    uint8_t none[1];
+    uint32_t trb[3];
+    uintptr_t ring;
+    size_t writes;
+    (void)state;
+
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP1_IN, buf, 0), PB_OK);
+    assert_int_equal(fake_regs_get(EP_CMD), EP_CMD_DRDY);
+    ring = traddr[USB_EP1_IN];
+    dcache_dev_read(ring, trb, sizeof(trb));
+    assert_true(trb[2] & TRB_FLAG_CYCLE);
+    assert_true(trb[2] & TRB_FLAG_IOC);
+    assert_int_equal(trb[1] & 0x1ffff, 0);
+    dcache_dev_read(ring + TRB_SIZE, trb, sizeof(trb));
+    assert_int_equal(trb[2], 0);
+
+    assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP1_IN), -PB_ERR_AGAIN);
+    assert_int_equal(controller_run(USB_EP1_IN, none, 0), 0);
+    fake_regs_set(EP_STS, EP_STS_IOC);
+    assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP1_IN), PB_OK);
+    assert_int_equal(dma_host_in_open(), 2);
+
+    writes = fake_reg_log_len;
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 0), -PB_ERR_PARAM);
+    assert_int_equal(fake_reg_log_len, writes);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
 /* usb.md 2.3, 4.3: a transfer from the host arrives in the caller's buffer,
  * all of it and nothing outside the buffer's lines, and a transfer to the
  * host is what the caller wrote. Over one TRB and over several */
@@ -634,6 +673,7 @@ int main(void)
         cmocka_unit_test_setup(test_setup_packet, setup),
         cmocka_unit_test_setup(test_init_again, setup),
         cmocka_unit_test_setup(test_a_transfer_longer_than_the_ring_is_refused, setup),
+        cmocka_unit_test_setup(test_a_transfer_of_0_bytes, setup),
         cmocka_unit_test_setup(test_an_ep0_reply_longer_than_the_bounce_buffer_is_refused, setup),
         cmocka_unit_test_setup(test_the_reset_wait_times_out, setup),
         cmocka_unit_test_setup(test_the_status_stage_wait_times_out, setup),

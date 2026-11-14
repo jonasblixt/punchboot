@@ -129,7 +129,7 @@ return at once; `cm_transport_complete()` says when it is done.
   empty packet (`command-mode.md` 6: a transfer of 0 bytes is one).
 - **The largest transfer** is at least command mode's buffer (`CONFIG_CM_BUF_SIZE_KiB`) and
   the boot's piece. A length the transport can't take is `-PB_ERR_PARAM`, never a shorter
-  transfer. **Not yet in the code (F-287)**: one controller masks the length.
+  transfer.
 - A read of 0 bytes isn't used and is `-PB_ERR_PARAM`.
 
 ### 2.4 Function : cm_transport_complete() [mandatory]
@@ -407,9 +407,10 @@ what the code doesn't settle without the hardware.
 | its length                       |                    |                     |                 |         |
 | IN: no empty packet after whole  | yes                | yes                 | yes             |         |
 | packets                          |                    |                     |                 |         |
-| A transfer of 0 bytes            | yes                | IN yes              | no (unverified) | F-287   |
-| A length it can't queue is       | yes                | no: masked to 24    | yes             | F-287   |
-| refused                          |                    | bits                |                 |         |
+| A transfer of 0 bytes            | yes                | IN yes              | IN yes, a read  | F-287   |
+|                                  |                    |                     | refused         |         |
+| A length it can't queue is       | yes                | yes                 | yes             |         |
+| refused                          |                    |                     |                 |         |
 | `xfer_complete` reads the        | no                 | no                  | partly          | F-137,  |
 | controller's result              |                    |                     |                 | F-287   |
 | Endpoint 0 independent of a bulk | no: one transfer   | yes                 | yes             | F-203   |

@@ -59,6 +59,24 @@
 #define DWC3_EP0_MPS_HS_FS      64
 #define DWC3_SETUP_PKT_SIZE     sizeof(struct usb_setup_packet)
 
+/*
+ * The longest transfer: one TRB, whose size field (BUFSIZ) has 24 bits, in
+ * whole packets of up to 1024 bytes, so that an OUT transfer's size rounded
+ * up to its packets still fits. 16 MiB - 1 KiB. It was masked to 24 bits,
+ * and a longer transfer was cut (F-287). At least command mode's buffer and
+ * the boot's piece (usb.md 2.3)
+ */
+#define DWC3_XFER_MAX           ((size_t)TRB_SIZE_BUFSIZ_MASK & ~(size_t)1023)
+
+#ifdef CONFIG_CM_BUF_SIZE_KiB
+_Static_assert((size_t)CONFIG_CM_BUF_SIZE_KiB * 1024 <= DWC3_XFER_MAX,
+               "CONFIG_CM_BUF_SIZE_KiB: above the DWC3's longest transfer");
+#endif
+#ifdef CONFIG_BOOT_LOAD_CHUNK_kB
+_Static_assert((size_t)CONFIG_BOOT_LOAD_CHUNK_kB * 1024 <= DWC3_XFER_MAX,
+               "CONFIG_BOOT_LOAD_CHUNK_kB: above the DWC3's longest transfer");
+#endif
+
 #define EP_IS_IN(ep)            ((ep) & 1)
 #define EP_USB_NUMBER(ep)       ((ep) >> 1)
 
@@ -541,6 +559,12 @@ static int dwc3_ep0_finish(void)
 static int dwc3_udc_xfer_start(usb_ep_t ep, void *buf, size_t length)
 {
     if (ep >= USB_EP_END)
+        return -PB_ERR_PARAM;
+
+    /* One TRB per transfer, whose size field has 24 bits: a longer transfer
+     * is refused before anything is written, never cut (usb.md 2.3, 4.3).
+     * An OUT transfer's size is rounded up to whole packets, below */
+    if (length > DWC3_XFER_MAX)
         return -PB_ERR_PARAM;
 
     if (ep == USB_EP0_IN || ep == USB_EP0_OUT) {

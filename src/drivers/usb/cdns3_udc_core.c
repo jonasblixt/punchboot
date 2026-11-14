@@ -361,6 +361,11 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     if (length > CDNS_XFER_MAX)
         return -PB_ERR_PARAM;
 
+    /* A read of 0 bytes isn't a transfer (usb.md 2.3). One wasn't refused:
+     * the endpoint was armed with no TRB, and the transfer never ended */
+    if (length == 0 && !in_xfer)
+        return -PB_ERR_PARAM;
+
     if (xfer_flush_failed)
         return -PB_ERR_TIMEOUT;
 
@@ -381,7 +386,10 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     if (in_xfer)
         dma_out(buf, length);
 
-    while (bytes_to_xfer > 0) {
+    /* At least one TRB: a write of 0 bytes is one of length 0, which sends
+     * one empty packet (usb.md 2.3, 4.3). It had none, and the endpoint was
+     * armed on the stop gap: nothing was sent and the transfer never ended */
+    do {
         chunk = bytes_to_xfer > TRB_MAX_LENGTH ? TRB_MAX_LENGTH : bytes_to_xfer;
 
         trb_p->addr = (uint32_t)buf_p;
@@ -408,7 +416,7 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
         trb_p++;
         trb_p->flags = 0;
         desc_count++;
-    }
+    } while (bytes_to_xfer > 0);
 
     /* Stop gap TRB */
     trb_p->addr = 0;
