@@ -172,8 +172,9 @@ def identify(transport: Transport) -> str | None:
 def _usb_uuid(dev: Any) -> str | None:  # noqa: ANN401
     """Return a device's UUID: its serial number, or what it reports over the wire.
 
-    pb's cdns3 driver (the i.MX8QXP MEK) can't send the serial number string
-    (F-159), the identifier command works on every device.
+    pb 2.0.0's cdns3 driver (the i.MX8QXP MEK) couldn't send the serial
+    number string (F-159). Every driver sends it since (usb.md 3.1), but such
+    a device is still in the field: the identifier command works on every one.
     """
     serial = _usb_serial(dev)
     if serial is not None:
