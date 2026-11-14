@@ -33,8 +33,6 @@ asm-y += src/plat/imx8x/reset_vector.S
 cflags-y += -mtune=cortex-a35
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x200000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x200000000
-cflags-y += -DMAX_XLAT_TABLES=32
-cflags-y += -DMAX_MMAP_REGIONS=32
 cflags-y += -Iinclude/plat/imx8x/
 
 ldflags-y += -Tsrc/plat/imx8x/link.lds

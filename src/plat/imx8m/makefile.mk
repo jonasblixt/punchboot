@@ -75,8 +75,6 @@ ldflags-y += --defsym=PLAT_BL_PARAMS_LIMIT=$(PLAT_BL_PARAMS_LIMIT)
 
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000
-cflags-y += -DMAX_XLAT_TABLES=32
-cflags-y += -DMAX_MMAP_REGIONS=32
 ldflags-y += -Tsrc/plat/imx8m/link.lds
 
 src-y  += src/drivers/pinctrl/imx_iomuxc.c

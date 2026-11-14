@@ -52,3 +52,10 @@ src-$(CONFIG_LIB_XLAT_TBLS_ARMV8) += src/lib/xlat_tables_v2/aarch64/xlat_tables.
 cflags-$(CONFIG_LIB_XLAT_TBLS) += -I include/xlat_tables
 cflags-$(CONFIG_LIB_XLAT_TBLS_ARMV7) += -I include/xlat_tables/aarch32
 cflags-$(CONFIG_LIB_XLAT_TBLS_ARMV8) += -I include/xlat_tables/aarch64
+# Their room: Kconfig values, with the platform's default (platform.md 5.1)
+ifdef CONFIG_LIB_XLAT_TBLS
+$(if $(CONFIG_MAX_MMAP_REGIONS),,$(error CONFIG_MAX_MMAP_REGIONS: the platform gives no default (platform.md 5.1)))
+$(if $(CONFIG_MAX_XLAT_TABLES),,$(error CONFIG_MAX_XLAT_TABLES: the platform gives no default (platform.md 5.1)))
+cflags-y += -DMAX_MMAP_REGIONS=$(CONFIG_MAX_MMAP_REGIONS)
+cflags-y += -DMAX_XLAT_TABLES=$(CONFIG_MAX_XLAT_TABLES)
+endif

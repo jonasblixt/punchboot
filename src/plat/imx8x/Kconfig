@@ -48,3 +48,11 @@ config IMX8X_KEY_REVOKE_MASK
         (Revocations in the CSF), as a decimal number.
 
 endmenu
+
+# The platform's room in the translation tables (platform.md 5.1), with room
+# for a few regions of a board's (board.md 2.8)
+config MAX_MMAP_REGIONS
+    default 32 if PLAT_IMX8X_COMMON
+
+config MAX_XLAT_TABLES
+    default 32 if PLAT_IMX8X_COMMON

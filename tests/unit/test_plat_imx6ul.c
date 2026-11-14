@@ -39,6 +39,8 @@
 #include <plat/imx6ul/imx6ul.h>
 #include <string.h>
 
+#include <xlat_tables.h>
+
 #include "fakes/regs.h"
 #include "fakes/xlat.h"
 
@@ -963,6 +965,65 @@ static void test_mmu_map(void **state)
     fake_mmu_check_pb_map(BOARD_RAM_BASE, BOARD_RAM_END);
 }
 
+/* platform.md 5.2: the whole map, the same since F-158 (ec043c92): layer 1
+ * the board's DRAM, layer 2 the ROM (its API, executable), the OCRAM (the
+ * HAB's) and AIPS-1 and -2 whole, layer 4 pb. Each region once: xlat_tables
+ * sorts them, so the order they are added in doesn't change the tables. The
+ * enable is ARMv7-A's */
+static void test_mmu_map_regions(void **state)
+{
+    const unsigned int rw_nox = MT_RW | MT_MEMORY | MT_EXECUTE_NEVER;
+    struct fake_mmap_region expected[16] = {
+        { BOARD_RAM_BASE, BOARD_RAM_END - BOARD_RAM_BASE, rw_nox },
+        { IMX6UL_ROM_BASE, 128 * 1024, MT_MEMORY | MT_RO | MT_EXECUTE },
+        { IMX6UL_OCRAM_BASE, 256 * 1024, MT_MEMORY | MT_RW },
+        { AIPS1_ARB_BASE_ADDR, 1024 * 1024, MT_DEVICE | MT_RW },
+        { AIPS2_ARB_BASE_ADDR, 1024 * 1024, MT_DEVICE | MT_RW },
+    };
+    size_t n = 5;
+    (void)state;
+
+    n += fake_mmap_pb_regions(&expected[n]);
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    fake_mmap_check_equal(expected, n);
+    assert_int_equal(fake_mmu_enables, 1);
+    assert_string_equal(fake_mmu_enabled_by, "svc_mon");
+}
+
+/* platform.md 2.2, 5.2, board.md 2.8: a board region over one of
+ * imx_mmap[]'s (AIPS-1) fails pb_mmu_init() before anything is mapped, and
+ * with it plat_init(): main() resets */
+static void test_mmu_board_region_refused(void **state)
+{
+    (void)state;
+
+    fake_board_mmap[0] = (struct pb_mmap_region)PB_MAP_DEVICE(AIPS1_ARB_BASE_ADDR + 0x1000, 0x1000);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), -PB_ERR_PARAM);
+    assert_int_equal(fake_mmu_enables, 0);
+    fake_board_mmap[0] = (struct pb_mmap_region)PB_MAP_END;
+}
+
+/* board.md 2.8: a board region outside everything of the platform's, here
+ * the EIM's chip select 0 window, is mapped as layer 3, device memory */
+static void test_mmu_board_region(void **state)
+{
+    const struct fake_mmap_region *r;
+    (void)state;
+
+    fake_board_mmap[0] = (struct pb_mmap_region)PB_MAP_DEVICE(0x50000000, 0x10000);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    fake_board_mmap[0] = (struct pb_mmap_region)PB_MAP_END;
+
+    r = fake_mmap_find(0x50000000, 0x10000);
+    assert_non_null(r);
+    assert_int_equal(r->attr, MT_DEVICE | MT_RW | MT_EXECUTE_NEVER);
+    assert_int_equal(fake_mmu_enables, 1);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -992,6 +1053,9 @@ int main(void)
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
         cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_mmu_map, setup),
+        cmocka_unit_test_setup(test_mmu_map_regions, setup),
+        cmocka_unit_test_setup(test_mmu_board_region_refused, setup),
+        cmocka_unit_test_setup(test_mmu_board_region, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

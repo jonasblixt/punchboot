@@ -9,8 +9,8 @@
  *
  * A board is data: what is on the PCB and what the product decides. Each
  * board defines 'board'. main() calls console_init() between
- * plat_early_init() and plat_init(), then src/board.c sets up the rest in
- * this order:
+ * plat_early_init() and plat_init(), which maps the board's mmap (board.md
+ * 2.8), then src/board.c sets up the rest in this order:
  *
  *  1. The keys and   The platform's plat_rot and plat_slc (pb/plat.h), the
  *     the life cycle latter with slc_fuses: before anything that can fail, so
@@ -45,6 +45,7 @@
 #include <boot/handover.h>
 #include <boot/image_regions.h>
 #include <boot/policy.h>
+#include <pb/mmu.h>
 #include <pb/ptbl.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -56,6 +57,14 @@ struct board {
     const char *name; /*!< The board id in command mode, 1 to 16 characters */
 
     void (*console_init)(void); /*!< The debug UART: clock, pads, console_init() */
+
+    /* Memory the board reaches and the platform didn't map (board.md 2.8):
+     * PB_MAP_DEVICE(), PB_MAP_MEMORY_RO() and PB_MAP_MEMORY_RW() entries,
+     * then PB_MAP_END (pb/mmu.h). Read once by pb_mmu_init() in plat_init(),
+     * before any other member but console_init(), and checked there: a
+     * region that breaks a rule fails plat_init(). Not read on an arch
+     * without an MMU. Absent: the board reaches what the platform maps */
+    const struct pb_mmap_region *mmap;
 
     /* The configuration fuses slc_set_configuration() sets after the
      * platform's own (the SRK hash), by the platform's fuse index macro
