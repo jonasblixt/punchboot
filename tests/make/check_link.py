@@ -509,8 +509,9 @@ def main() -> int:
         say(f"skipped: no {', '.join(missing)}")
         return SKIP
 
-    # The boards at once, each in build directories of its own. A board's two
-    # builds run after each other: the i.MX8M's both copy its firmware to blobs/
+    # The boards at once, each in build directories of its own, which hold all
+    # a build writes (the i.MX8M's firmware too, F-231). A board's two builds
+    # run after each other.
     links = Links(root, work)
     with concurrent.futures.ThreadPoolExecutor(budget(len(BOARDS))[0]) as pool:
         reports = list(pool.map(links.check_board, BOARDS))

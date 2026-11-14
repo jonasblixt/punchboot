@@ -23,6 +23,16 @@ cd "$(dirname "$0")/../.."
 board="${1:?Usage: $0 <board> [make args]}"
 shift
 
+# The training firmware is written only when it changes: a file written
+# again is newer than pb, which make would link again on every run (F-231)
+update() {
+    cmp -s "$1" "$2" || cp "$1" "$2"
+}
+
+placeholder() {
+    head -c 1024 /dev/zero | cmp -s - "$1" || head -c 1024 /dev/zero > "$1"
+}
+
 case "$board" in
     jiffy | imxrt1060evk)
         cross=arm-none-eabi-
@@ -41,7 +51,7 @@ case "$board" in
             echo "Using placeholder DDR training firmware: pb.bin is a compile check only" >&2
             mkdir -p "$fw_dir"
             for fw in 1d_imem 1d_dmem 2d_imem 2d_dmem; do
-                head -c 1024 /dev/zero > "$fw_dir/lpddr4_pmu_train_$fw.bin"
+                placeholder "$fw_dir/lpddr4_pmu_train_$fw.bin"
             done
         fi
         set -- IMX8M_UMCTL_TRAIN_1D_I="$fw_dir/lpddr4_pmu_train_1d_imem.bin" \
@@ -58,9 +68,9 @@ case "$board" in
         mkdir -p "$fw_dir"
         for fw in 1d_imem 1d_dmem 2d_imem 2d_dmem; do
             if [ -n "${IMX8M_FW_DIR:-}" ]; then
-                cp "$IMX8M_FW_DIR/lpddr4_pmu_train_${fw}_202006.bin" "$fw_dir/lpddr4_pmu_train_$fw.bin"
+                update "$IMX8M_FW_DIR/lpddr4_pmu_train_${fw}_202006.bin" "$fw_dir/lpddr4_pmu_train_$fw.bin"
             else
-                head -c 1024 /dev/zero > "$fw_dir/lpddr4_pmu_train_$fw.bin"
+                placeholder "$fw_dir/lpddr4_pmu_train_$fw.bin"
             fi
         done
         if [ -z "${IMX8M_FW_DIR:-}" ]; then

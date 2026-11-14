@@ -261,16 +261,23 @@ $(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS) $(LINK_SCRI
 
 # A rule per blob, for the object the link reads: the pattern rule's target
 # was the blob's path under $(BUILD_DIR), a file nothing made, so pb was
-# linked again on every make (F-431). The copy in blobs/ gives the symbols a
-# name without the blob's directory.
+# linked again on every make (F-431). objcopy names the symbols after the
+# path it reads (every character but a letter or digit is a _); they are
+# renamed to what a blobs/<file> gives, the names ddr.c uses
+# (_binary_blobs_..._start). That was a copy in the source tree's blobs/,
+# shared by every build there: the two i.MX8M boards' training firmware has
+# the same names (F-231). Nothing is written outside $(BUILD_DIR).
 define blob_rule
 $(BUILD_DIR)/$(notdir $(1:.bin=.bino)): $(1)
 	@mkdir -p $$(@D)
-	@mkdir -p blobs/
-	@mkdir -p $$(BUILD_DIR)/blobs
-	@cp $$< blobs/
 	@echo BLOB $$< $$(notdir $$<)
-	$$(Q)$$(OBJCOPY) -I binary -O $$(ARCH_OUTPUT) -B $$(ARCH) blobs/$$(notdir $$<) $$@
+	$$(Q)from=_binary_$$$$(printf '%s' '$$<' | tr -c 'A-Za-z0-9' '_'); \
+	to=_binary_$$$$(printf '%s' 'blobs/$$(notdir $$<)' | tr -c 'A-Za-z0-9' '_'); \
+	$$(OBJCOPY) -I binary -O $$(ARCH_OUTPUT) -B $$(ARCH) \
+	    --redefine-sym $$$${from}_start=$$$${to}_start \
+	    --redefine-sym $$$${from}_end=$$$${to}_end \
+	    --redefine-sym $$$${from}_size=$$$${to}_size \
+	    $$< $$@
 endef
 $(foreach blob,$(blobs-y),$(eval $(call blob_rule,$(blob))))
 
