@@ -4,7 +4,8 @@
 A KCONFIG_CONFIG that doesn't exist would build the Kconfig defaults, and a
 failed scripts/genconfig.py the configuration of the build before. Both stop
 the build. The goals that need no configuration (clean, menuconfig,
-olddefconfig) run without one, and olddefconfig updates a configuration. The
+olddefconfig) run without one, and olddefconfig updates a configuration. A
+2.x configuration with CONFIG_EXECUTE_IN_FLASH stops the build. The
 keys are the board's makefile.mk's: all of the development keys or only the
 board's, and a key named in part, a slot above 15 or a 2.x CONFIG_KEYSTORE
 stops the build (board.md 7). jiffy is built as an out-of-tree board, a copy in
@@ -172,6 +173,17 @@ def main() -> int:
         "olddefconfig fills in a missing symbol",
         ok=result.returncode == 0 and "CONFIG_STACK_SIZE_KiB=" in old.read_text(),
         detail=f": exit {result.returncode}{result.stdout}{result.stderr}",
+    )
+
+    # A 2.x configuration that ran pb from flash stops the build: it would
+    # link for RAM (F-428)
+    flash = work / "flash_defconfig"
+    flash.write_text((root / "configs/jiffy_defconfig").read_text() + "CONFIG_EXECUTE_IN_FLASH=y\n")
+    result = make(str(flash), f"{build}/keystore.o")
+    check(
+        "CONFIG_EXECUTE_IN_FLASH stops the build",
+        ok=result.returncode != 0 and "CONFIG_EXECUTE_IN_FLASH" in result.stderr,
+        detail=f": exit {result.returncode}{result.stderr}",
     )
 
     for what, ok, detail in check_keys(root, work, board, make):

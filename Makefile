@@ -164,6 +164,12 @@ ifneq ($(or $(filter-out undefined,$(origin CONFIG_KEYSTORE) $(origin CONFIG_KEY
             $(shell grep -E '^CONFIG_KEYSTORE(_SLOTS)?=' $(KCONFIG_CONFIG))),)
 $(error CONFIG_KEYSTORE and CONFIG_KEYSTORE_SLOTS are the board's VERIFY_KEY<n>_PATH and VERIFY_KEY<n>_ID since 3.0.0 (board.md 7, migration-3.0.md 13))
 endif
+# Before 3.0.0 CONFIG_EXECUTE_IN_FLASH chose src/link_flash.lds, for a flash
+# region no platform has, and the ARMv7-M copied .data from the flash. A
+# configuration with it would otherwise link for RAM, without the copy.
+ifneq ($(shell grep -E '^CONFIG_EXECUTE_IN_FLASH=y' $(KCONFIG_CONFIG)),)
+$(error CONFIG_EXECUTE_IN_FLASH: pb runs from RAM since 3.0.0, no platform has a flash region (F-428))
+endif
 endif
 
 # BOARD_RAM_BASE and BOARD_RAM_END are the DRAM's names in the platforms'

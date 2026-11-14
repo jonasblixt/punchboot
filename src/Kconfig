@@ -186,14 +186,6 @@ source "src/lib/Kconfig"
 
 menu "Build"
 
-choice EXECUTE
-    bool "pb runs from"
-config EXECUTE_IN_RAM
-    bool "RAM"
-config EXECUTE_IN_FLASH
-    bool "Flash (XIP)"
-endchoice
-
 config OPTIMIZE
     string "Optimization level"
     help
@@ -208,8 +200,7 @@ config STACK_SIZE_KiB
 
 config LINK_FILE
     string "Link script"
-    default "src/link.lds" if EXECUTE_IN_RAM
-    default "src/link_flash.lds" if EXECUTE_IN_FLASH
+    default "src/link.lds"
     help
         pb's sections. The platform's link script, with the memory, comes
         before it (platform.md 5.1).

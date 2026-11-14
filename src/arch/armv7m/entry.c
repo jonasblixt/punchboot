@@ -8,9 +8,6 @@ IMPORT_SYM(uintptr_t, _zero_region_start, zero_region_start);
 IMPORT_SYM(uintptr_t, _zero_region_end, zero_region_end);
 IMPORT_SYM(uintptr_t, _stack_start, stack_start);
 IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-IMPORT_SYM(uintptr_t, _sdata, data_start_ram);
-IMPORT_SYM(uintptr_t, _edata, data_end_ram);
-IMPORT_SYM(uintptr_t, _code_end, code_end);
 
 static void armv7m_entry(void);
 static void armv7m_default_handler(void);
@@ -59,12 +56,6 @@ static __section(".vector_handlers") void armv7m_entry(void)
     /* Clear BSS */
     size_t bss_length = zero_region_end - zero_region_start;
     memset((void *)zero_region_start, 0, bss_length);
-
-#ifdef CONFIG_EXECUTE_IN_FLASH
-    /* Copy data */
-    size_t data_length = data_end_ram - data_start_ram;
-    memcpy((void *)data_start_ram, (void *)code_end, data_length);
-#endif
 
     main();
 }
