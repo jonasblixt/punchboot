@@ -26,7 +26,6 @@
 
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/crypto/mbedtls.h>
-#include <pb/command.h>
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -51,9 +50,11 @@
 /* The functions' indexes (src/plat/imx8x/sci/svc/pm/rpc.h) */
 #define PM_FUNC_SET_POWER_MODE  3
 #define PM_FUNC_SET_CLOCK_RATE  5
+#define PM_FUNC_GET_CLOCK_RATE  6
 #define PM_FUNC_RESET_REASON    10
 #define PM_FUNC_RESET           13
 /* src/plat/imx8x/sci/svc/misc/rpc.h */
+#define MISC_FUNC_GET_CONTROL   2
 #define MISC_FUNC_GET_TEMP      13
 #define MISC_FUNC_BUILD_INFO    15
 #define MISC_FUNC_GET_BOOT_TYPE 33
@@ -81,6 +82,9 @@ static struct {
     uint8_t reset_reason;
     uint8_t reset_reason_err; /* The SCFW's error for the question, 0: none */
     uint32_t scfw_build; /* sc_misc_build_info()'s build, its commit is 0 */
+    uint32_t id; /* SC_C_ID: the SoC id in 4:0, the revision in 8:5 */
+    uint32_t cpu_rate; /* SC_R_A35's SC_PM_CLK_CPU */
+    uint32_t drc_rate; /* SC_R_DRC_0's SC_PM_CLK_SLV_BUS */
     uint32_t temp; /* sc_misc_get_temp()'s word: celsius in 15:0, tenths in 23:16 */
     uint8_t temp_err;
     uint8_t timer_err; /* ... for every call of its timer service */
@@ -176,6 +180,17 @@ static void scfw_call(void)
     else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_RESET_REASON) {
         data = scfw.reset_reason;
         err = scfw.reset_reason_err;
+    } else if (svc == SC_RPC_SVC_PM && func == PM_FUNC_GET_CLOCK_RATE) {
+        /* The resource in 15:0, the clock in 23:16 */
+        if ((scfw.words[1] & 0xffff) == SC_R_A35 && ((scfw.words[1] >> 16) & 0xff) == SC_PM_CLK_CPU)
+            data = scfw.cpu_rate;
+        else if ((scfw.words[1] & 0xffff) == SC_R_DRC_0 &&
+                 ((scfw.words[1] >> 16) & 0xff) == SC_PM_CLK_SLV_BUS)
+            data = scfw.drc_rate;
+        else
+            err = SC_ERR_PARM;
+    } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_GET_CONTROL) {
+        data = scfw.id;
     } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_BUILD_INFO) {
         data = scfw.scfw_build;
     } else if (svc == SC_RPC_SVC_MISC && func == MISC_FUNC_GET_TEMP) {
@@ -478,59 +493,59 @@ static void test_platform_ns_uuid(void **state)
     assert_memory_equal(platform_ns_uuid, ns, sizeof(ns));
 }
 
-/* The platform's named command 'info' (command-mode.md 5.6), from the
- * linker's list */
-static const struct cm_command *find_command(const char *name)
-{
-    for (const struct cm_command *c = __start_pb_commands; c < __stop_pb_commands; c++) {
-        if (strcmp(c->name, name) == 0)
-            return c;
-    }
-    return NULL;
-}
-
-static size_t run_info(uint8_t *response, size_t room)
-{
-    const struct cm_command *info = find_command("info");
-    size_t size = room;
-
-    assert_non_null(info);
-    assert_int_equal(info->run(NULL, 0, response, &size), PB_OK);
-    return size;
-}
-
-static void test_info_command(void **state)
+/* platform.md 3.11: the SoC, its clocks and its specifics, from the SCFW */
+static void test_get_info(void **state)
 {
     static const char text[] = "SCFW 5665 (0)\n"
                                "SECO 0 (0)\n"
-                               "SoC id 0, rev 0\n"
                                "Temperature 31.5 C\n";
-    uint8_t response[256];
+    struct pb_plat_info info;
+    char extra[128];
     (void)state;
 
-    assert_int_equal(plat_early_init(), PB_OK);
+    scfw.id = 0x2 | (1u << 5); /* i.MX8QXP B0 */
+    scfw.cpu_rate = 1200000000;
+    scfw.drc_rate = 600000000;
     scfw.scfw_build = 5665;
     scfw.temp = 31 | (5u << 16);
+    assert_int_equal(plat_early_init(), PB_OK);
 
-    /* The text and its NUL */
-    memset(response, 0xa5, sizeof(response));
-    assert_int_equal(run_info(response, sizeof(response)), sizeof(text));
-    assert_memory_equal(response, text, sizeof(text));
+    memset(extra, 0xa5, sizeof(extra));
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_string_equal(info.soc, "i.MX8QXP");
+    assert_string_equal(info.rev, "B0");
+    assert_int_equal(info.cpu_hz, 1200000000);
+    /* Twice the DRC's root clock */
+    assert_int_equal(info.mem_hz, 1200000000);
+    assert_string_equal(extra, text);
 
     /* Below zero: one sign */
     scfw.temp = 0xfffd | (0xfbu << 16);
-    run_info(response, sizeof(response));
-    assert_non_null(strstr((char *)response, "Temperature -3.5 C\n"));
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_non_null(strstr(extra, "Temperature -3.5 C\n"));
 
     scfw.temp_err = SC_ERR_UNAVAILABLE;
-    run_info(response, sizeof(response));
-    assert_non_null(strstr((char *)response, "Temperature not read\n"));
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_non_null(strstr(extra, "Temperature not read\n"));
 
-    /* Cut to the room, with its NUL */
-    memset(response, 0xa5, sizeof(response));
-    assert_int_equal(run_info(response, 8), 8);
-    assert_memory_equal(response, "SCFW 56\0", 8);
-    assert_int_equal(response[8], 0xa5);
+    /* Whole lines only: the SECO's doesn't fit after the SCFW's */
+    assert_int_equal(plat_get_info(&info, extra, 20), PB_OK);
+    assert_string_equal(extra, "SCFW 5665 (0)\n");
+}
+
+/* An SoC id the platform doesn't know, and no clocks */
+static void test_get_info_unknown(void **state)
+{
+    struct pb_plat_info info;
+    char extra[128];
+    (void)state;
+
+    scfw.id = 0x7;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_string_equal(info.soc, "unknown");
+    assert_int_equal(info.cpu_hz, 0);
+    assert_int_equal(info.mem_hz, 0);
 }
 
 /* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
@@ -656,11 +671,12 @@ int main(void)
         cmocka_unit_test_setup(test_boot_source, setup),
         cmocka_unit_test_setup(test_boot_source_scfw_error, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
-        cmocka_unit_test_setup(test_info_command, setup),
         cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
         cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_get_info, setup),
+        cmocka_unit_test_setup(test_get_info_unknown, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
