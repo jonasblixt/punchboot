@@ -108,8 +108,16 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
 /* The MEK's glue, and its status bit */
 #define NON_CORE_BASE      0x5b110000u
 #define PHY_BASE           0x5b160000u
+#define USB3_CORE_CTRL11   (NON_CORE_BASE + 0x00)
 #define USB3_CORE_STATUS   (NON_CORE_BASE + 0x0c)
+#define ALL_SW_RESET       (0x3fu << 26)
 #define DEV_POWER_ON_READY BIT(13)
+
+static const struct imx_cdns3_udc_config glue_cfg = {
+    .base = CDNS3_BASE,
+    .non_core_base = NON_CORE_BASE,
+    .phy_base = PHY_BASE,
+};
 
 /* EP_TRADDR and EP_CFG are the selected endpoint's: an index for each
  * direction */
@@ -418,19 +426,23 @@ static void test_the_flush_wait_times_out(void **state)
  * core is set up */
 static void test_the_power_on_ready_wait_times_out(void **state)
 {
-    static const struct imx_cdns3_udc_config cfg = {
-        .base = CDNS3_BASE,
-        .non_core_base = NON_CORE_BASE,
-        .phy_base = PHY_BASE,
-    };
+    size_t core_writes;
     (void)state;
 
     hal_ops = NULL;
-    assert_int_equal(imx_cdns3_udc_init(&cfg), PB_OK);
+    assert_int_equal(imx_cdns3_udc_init(&glue_cfg), PB_OK);
     assert_non_null(hal_ops);
 
     fake_regs_set(USB3_CORE_STATUS, 0);
     assert_int_equal(hal_ops->init(), -PB_ERR_TIMEOUT);
+
+    /* The core wasn't set up: stop holds the block in reset and touches
+     * none of the core's registers */
+    fake_regs_set(USB3_CORE_CTRL11, 0);
+    core_writes = fake_regs_writes_in(CDNS3_BASE, CDNS3_SIZE);
+    assert_int_equal(hal_ops->stop(), PB_OK);
+    assert_int_equal(fake_regs_get(USB3_CORE_CTRL11) & ALL_SW_RESET, ALL_SW_RESET);
+    assert_int_equal(fake_regs_writes_in(CDNS3_BASE, CDNS3_SIZE), core_writes);
 
     fake_regs_set(USB3_CORE_STATUS, DEV_POWER_ON_READY);
     assert_int_equal(hal_ops->init(), PB_OK);
@@ -745,6 +757,11 @@ static void test_stop_before_init(void **state)
     fake_regs_reset();
     cdns3_udc_core_set_base(CDNS3_BASE);
     assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+
+    hal_ops = NULL;
+    assert_int_equal(imx_cdns3_udc_init(&glue_cfg), PB_OK);
+    assert_non_null(hal_ops);
+    assert_int_equal(hal_ops->stop(), PB_OK);
     assert_int_equal(fake_reg_log_len, 0);
 }
 
@@ -874,6 +891,54 @@ static void test_a_busy_endpoint_is_reset(void **state)
     assert_stopped();
 }
 
+/*
+ * drivers.md 2.3: the glue's stop stops the core, then holds the block in
+ * reset (ALL_SW_RESET), as its init found it; power and clocks are left on
+ * for the next stage, whose glue resets the block itself. A second stop
+ * touches nothing: the core's registers aren't read while it is held in
+ * reset. Init takes it out again. A core that fails to stop is held in
+ * reset all the same, and its error is stop's
+ */
+static void test_the_glue_holds_the_block_in_reset(void **state)
+{
+    size_t writes;
+    (void)state;
+
+    hal_ops = NULL;
+    assert_int_equal(imx_cdns3_udc_init(&glue_cfg), PB_OK);
+    assert_non_null(hal_ops);
+    fake_regs_set(USB3_CORE_STATUS, DEV_POWER_ON_READY);
+
+    for (int failing = 0; failing < 2; failing++) {
+        assert_int_equal(hal_ops->init(), PB_OK);
+        assert_int_equal(fake_regs_get(USB3_CORE_CTRL11) & ALL_SW_RESET, 0);
+        assert_true(armed[USB_EP0_OUT]);
+        configure();
+
+        eprst_hangs = (failing != 0);
+        writes = fake_reg_log_len;
+        assert_int_equal(hal_ops->stop(), failing ? -PB_ERR_TIMEOUT : PB_OK);
+        assert_int_equal(fake_regs_get(USB3_CORE_CTRL11) & ALL_SW_RESET, ALL_SW_RESET);
+        assert_int_equal(fake_regs_get(USB_CONF), CONF_DEVDS);
+        /* The core is stopped before the block's reset, the last write */
+        assert_int_equal(fake_reg_log[fake_reg_log_len - 1].addr, USB3_CORE_CTRL11);
+        assert_true(fake_reg_log_len > writes);
+
+        if (!failing)
+            assert_stopped();
+
+        writes = fake_reg_log_len;
+        assert_int_equal(hal_ops->stop(), PB_OK);
+        assert_int_equal(fake_reg_log_len, writes);
+        eprst_hangs = false;
+    }
+
+    assert_int_equal(hal_ops->init(), PB_OK);
+    assert_int_equal(dma_host_in_open(), 2);
+    assert_int_equal(hal_ops->stop(), PB_OK);
+    assert_stopped();
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -896,6 +961,7 @@ int main(void)
         cmocka_unit_test_setup(test_stop, setup),
         cmocka_unit_test_setup(test_the_endpoint_reset_wait_times_out, setup),
         cmocka_unit_test_setup(test_a_busy_endpoint_is_reset, setup),
+        cmocka_unit_test_setup(test_the_glue_holds_the_block_in_reset, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

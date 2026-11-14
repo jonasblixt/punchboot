@@ -56,6 +56,10 @@
 #define HOST_POWER_ON_READY BIT(12)
 
 static const struct imx_cdns3_udc_config *cfg;
+/* The operation init took the block out of reset, and set the core up on it:
+ * what stop has to undo */
+static bool started;
+static bool core_started;
 
 /* The core's power-on-ready after its resets are released (drivers.md 3).
  * Neither the i.MX 8QXP RM here nor Linux gives a time: 100 ms, as Linux
@@ -69,6 +73,9 @@ static int imx_cdns3_udc_start(void)
     struct pb_timeout to;
     // NOTE: U-boot configures SSPHY_STATUS, but that reg is not documented
     // in imx8x datasheet...
+
+    started = true;
+    core_started = false;
 
     mmio_clrsetbits_32(cfg->non_core_base + USB3_CORE_CTRL11, 0, ALL_SW_RESET);
     pb_delay_us(1);
@@ -97,7 +104,38 @@ static int imx_cdns3_udc_start(void)
 
     LOG_DBG("Okay, let's go");
 
-    return cdns3_udc_core_init();
+    rc = cdns3_udc_core_init();
+    core_started = (rc == PB_OK);
+
+    return rc;
+}
+
+/*
+ * drivers.md 2.3, usb.md 4.2: the core leaves the bus and stops its DMA, then
+ * the block is held in reset, as init found it after its first write. Its
+ * power and clocks stay on: they are the platform's (plat_cm_init()), and the
+ * next stage's glue resets the block itself before it uses it (Linux 6.1's
+ * cdns3-imx.c, cdns_imx_noncore_init(), sets and clears ALL_SW_RESET in
+ * USB3_CORE_CTRL1). Held in reset nothing of pb's runs in it, whatever the
+ * core's registers did. The core's registers aren't read again until init
+ * takes it out of reset: so a second stop does nothing
+ */
+static int imx_cdns3_udc_stop(void)
+{
+    int rc = PB_OK;
+
+    if (!started)
+        return PB_OK;
+
+    /* Its DMA stopped before the AXI side is reset */
+    if (core_started)
+        rc = cdns3_udc_core_stop();
+
+    mmio_clrsetbits_32(cfg->non_core_base + USB3_CORE_CTRL11, 0, ALL_SW_RESET);
+    started = false;
+    core_started = false;
+
+    return rc;
 }
 
 int imx_cdns3_udc_init(const struct imx_cdns3_udc_config *cfg_)
@@ -108,7 +146,7 @@ int imx_cdns3_udc_init(const struct imx_cdns3_udc_config *cfg_)
 
     static const struct usbd_hal_ops ops = {
         .init = imx_cdns3_udc_start,
-        .stop = cdns3_udc_core_stop,
+        .stop = imx_cdns3_udc_stop,
         .xfer_start = cdns3_udc_core_xfer_start,
         .xfer_complete = cdns3_udc_core_xfer_complete,
         .xfer_cancel = cdns3_udc_core_xfer_cancel,
