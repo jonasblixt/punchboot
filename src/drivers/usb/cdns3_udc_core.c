@@ -144,7 +144,14 @@ PB_DMA_ARRAY(struct cdns_trb, ep0_in_trb, 2);
 PB_DMA_ARRAY(struct cdns_trb, ep0_out_trb, 2);
 PB_DMA_ARRAY(uint8_t, align_buffer, 512);
 #define CDNS_TRB_COUNT 128
-PB_DMA_ARRAY(struct cdns_trb, trb, CDNS_TRB_COUNT); // TODO: Hardcoded amount of TRB's
+/*
+ * A ring for each direction of the bulk endpoints (TODO: hardcoded amount
+ * of TRB's). An endpoint stays after its transfer's last TRB, and with
+ * CONF_DMULT it takes a TRB written there later as its own: with one ring
+ * for both, the OUT data's second TRB went out on IN as the result (F-434).
+ */
+PB_DMA_ARRAY(struct cdns_trb, trb_in, CDNS_TRB_COUNT);
+PB_DMA_ARRAY(struct cdns_trb, trb_out, CDNS_TRB_COUNT);
 
 /* EP0's max packet size at high speed, the descriptor's bMaxPacketSize0. 512
  * is SuperSpeed's, which pb doesn't support: at high speed a longer reply,
@@ -158,6 +165,7 @@ static usb_ep_t current_xfer_ep;
 /* The bulk transfer's TRBs, and an OUT transfer's buffer, are the
  * controller's: begun, and not ended yet */
 static bool current_xfer_dma;
+static struct cdns_trb *current_xfer_trb;
 static size_t current_xfer_trb_length;
 /* The same for endpoint 0's two rings and what its OUT transfer writes,
  * which is the setup packet */
@@ -208,7 +216,7 @@ static void xfer_dma_end(void)
     if (!current_xfer_dma)
         return;
 
-    dma_in_end(trb, current_xfer_trb_length);
+    dma_in_end(current_xfer_trb, current_xfer_trb_length);
 
     if (is_out_with_data(current_xfer_ep, current_xfer_buf, current_xfer_length))
         dma_in_end(current_xfer_buf, current_xfer_length);
@@ -277,11 +285,12 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
 {
     size_t chunk;
     size_t bytes_to_xfer = length;
-    struct cdns_trb *trb_p = &trb[0];
     uintptr_t buf_p = (uintptr_t)buf;
     uint8_t ep_val = ep / 2;
     size_t desc_count = 0;
     bool in_xfer = !!(ep % 2);
+    struct cdns_trb *trb = in_xfer ? trb_in : trb_out;
+    struct cdns_trb *trb_p = &trb[0];
 
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
@@ -344,6 +353,7 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     /* With the stop gap TRB, which the controller reads too. The ring and
      * an OUT transfer's buffer, which owns its lines (usb.md 4.3), are the
      * controller's until the transfer is done or given up */
+    current_xfer_trb = trb;
     current_xfer_trb_length = sizeof(trb[0]) * (desc_count + 1);
     dma_in_begin(trb, current_xfer_trb_length);
 
@@ -379,13 +389,13 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
         (void)trb_p;
 
         if (current_xfer_dma)
-            dma_in_end(trb, current_xfer_trb_length);
+            dma_in_end(current_xfer_trb, current_xfer_trb_length);
 
         LOG_DBG("  addr=%x, len=%u, flags=%x", trb_p->addr, trb_p->length & 0xffff, trb_p->flags);
-        LOG_DBG("  trb_base=%p, trb_p=0x%p", (void *)trb, trb_p);
+        LOG_DBG("  trb_base=%p, trb_p=0x%p", (void *)current_xfer_trb, trb_p);
 
         if (current_xfer_dma)
-            dma_in_begin(trb, current_xfer_trb_length);
+            dma_in_begin(current_xfer_trb, current_xfer_trb_length);
 
         // Re-start DMA
         mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);

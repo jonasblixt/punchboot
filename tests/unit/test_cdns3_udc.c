@@ -251,6 +251,36 @@ static void test_bulk_transfers(void **state)
     }
 }
 
+/* F-434: an endpoint stays after its transfer's last TRB, and with
+ * CONF_DMULT it takes a TRB written there later as its own. After a result
+ * on IN, the next OUT transfer's TRBs are not where the IN endpoint is: with
+ * one ring for both, its second TRB went out on IN instead of the result */
+static void test_in_and_out_have_their_own_rings(void **state)
+{
+    uint8_t *buf = arena + LINE;
+    uint8_t result[512];
+    uint32_t trb[3];
+    (void)state;
+
+    fill(buf, sizeof(result), 1);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP1_IN, buf, sizeof(result)), PB_OK);
+    assert_int_equal(controller_run(USB_EP1_IN, result, sizeof(result)), sizeof(result));
+    fake_regs_set(EP_STS, EP_STS_IOC);
+    assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP1_IN), PB_OK);
+
+    /* Where the IN endpoint is now: the TRB after its result's */
+    uintptr_t in_at = traddr[USB_EP1_IN] + TRB_SIZE;
+
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 3 * TRB_MAX_LENGTH), PB_OK);
+    assert_true(traddr[USB_EP2_OUT] != traddr[USB_EP1_IN]);
+
+    dcache_dev_read(in_at, trb, sizeof(trb));
+    assert_false(trb[2] & TRB_FLAG_CYCLE);
+
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
 /* usb.md 4.3: a transfer that is given up, or that the next one replaces,
  * leaves its buffer with the caller */
 static void test_cancel_gives_the_buffer_back(void **state)
@@ -336,6 +366,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_the_terminating_trb_is_cleaned, setup),
         cmocka_unit_test_setup(test_bulk_transfers, setup),
+        cmocka_unit_test_setup(test_in_and_out_have_their_own_rings, setup),
         cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
         cmocka_unit_test_setup(test_setup_packet, setup),
         cmocka_unit_test_setup(test_init_again, setup),
