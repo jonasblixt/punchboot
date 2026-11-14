@@ -403,8 +403,8 @@ what the code doesn't settle without the hardware.
 | its length                       |                    |                     |                 |         |
 | IN: no empty packet after whole  | yes                | yes                 | yes             |         |
 | packets                          |                    |                     |                 |         |
-| A transfer of 0 bytes            | yes                | IN yes              | IN yes, a read  | F-287   |
-|                                  |                    |                     | refused         |         |
+| A transfer of 0 bytes            | yes                | IN yes, a read      | IN yes, a read  | F-287   |
+|                                  |                    | refused             | refused         |         |
 | A length it can't queue is       | yes                | yes                 | yes             |         |
 | refused                          |                    |                     |                 |         |
 | `xfer_complete` reads the        | no                 | no                  | partly          | F-137,  |

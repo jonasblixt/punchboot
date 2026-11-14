@@ -485,6 +485,47 @@ static void test_bus_reset_and_disconnect_are_kept(void **state)
     read_ok();
 }
 
+/*
+ * usb.md 2.3 (F-287): a read of 0 bytes isn't used and is -PB_ERR_PARAM,
+ * refused before anything is written, also on a device that was lost. It
+ * was queued as an OUT TRB of size 0. A write of 0 bytes is one empty packet:
+ * a TRB of size 0 on the IN endpoint
+ */
+static void test_a_read_of_0_bytes_is_refused(void **state)
+{
+    uint32_t trb[4];
+    size_t writes;
+    (void)state;
+
+    configure();
+    writes = fake_reg_log_len;
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 0), -PB_ERR_PARAM);
+    assert_int_equal(fake_reg_log_len, writes);
+    assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+    assert_int_equal(trb_addr[USB_EP2_OUT], 0);
+
+    /* The endpoint is as it was: the next read works */
+    read_ok();
+
+    /* A write of 0 bytes */
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena + LINE, 0), PB_OK);
+    dcache_dev_read((uintptr_t)trb_addr[USB_EP1_IN], trb, sizeof(trb));
+    assert_int_equal(trb[2] & TRB_SIZE_BUFSIZ_MASK, 0);
+    assert_true(trb[3] & TRB_CTRL_HWO);
+    controller_run(USB_EP1_IN, host, 0);
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), PB_OK);
+    assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+
+    /* The parameter first: a device that was lost refuses it the same way,
+     * and the next real read is the loss's error */
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    writes = fake_reg_log_len;
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 0), -PB_ERR_PARAM);
+    assert_int_equal(fake_reg_log_len, writes);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 512), -PB_ERR_IO);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -495,6 +536,7 @@ int main(void)
             test_a_transfer_longer_than_a_trb_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_stop_and_init_again, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bus_reset_and_disconnect_are_kept, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_read_of_0_bytes_is_refused, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

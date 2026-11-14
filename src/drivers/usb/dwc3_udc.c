@@ -575,6 +575,12 @@ static int dwc3_udc_xfer_start(usb_ep_t ep, void *buf, size_t length)
         return dwc3_start_trb(ep, buf, length, length, TRBCTL_CONTROL_DATA);
     }
 
+    /* A read of 0 bytes isn't a transfer (usb.md 2.3), as the cdns3 has it.
+     * One was queued as a TRB of size 0, which the RM's rule of whole
+     * packets for an OUT TRB doesn't cover (F-287) */
+    if (length == 0 && !EP_IS_IN(ep))
+        return -PB_ERR_PARAM;
+
     /* A reset or a disconnect seen while no transfer ran is the error of
      * the next one; one still in the event buffer is the error of its
      * xfer_complete. Endpoint 0 goes on: the host enumerates */
