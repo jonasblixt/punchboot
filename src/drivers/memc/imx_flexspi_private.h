@@ -56,15 +56,18 @@
 #define FLEXSPI_IPTXFCR_CLRIPTXF_MASK (0x1U)
 #define FLEXSPI_IPTXFCR_TXDMAEN(x) \
     (((uint32_t)(((uint32_t)(x)) << FLEXSPI_IPTXFCR_TXDMAEN_SHIFT)) & FLEXSPI_IPTXFCR_TXDMAEN_MASK)
-#define FLEXSPI_IPTXFCR_TXWMRK_MASK      (0x3CU)
-#define FLEXSPI_IPTXFCR_TXWMRK_SHIFT     (2U)
-#define FLEXSPI_IPTXFCR_TXWMRK(n)        (((n) / 8) - 1)
+#define FLEXSPI_IPTXFCR_TXWMRK_MASK  (0x3CU)
+#define FLEXSPI_IPTXFCR_TXWMRK_SHIFT (2U)
+/* n bytes, a multiple of 8: 64 bit entries less one, in bits 5:2 */
+#define FLEXSPI_IPTXFCR_TXWMRK(n) \
+    (((((uint32_t)(n) / 8) - 1) << FLEXSPI_IPTXFCR_TXWMRK_SHIFT) & FLEXSPI_IPTXFCR_TXWMRK_MASK)
 
 /* IPRXFCR */
-#define FLEXSPI_IPRXFCR                  0x00B8
-#define FLEXSPI_IPRXFCR_CLRIPRXF_MASK    (0x1U)
-#define FLEXSPI_IPRXFCR_RXWMRK_MASK      (0xf << 2)
-#define FLEXSPI_IPRXFCR_RXWMRK(n)        (((n) / 8) - 1)
+#define FLEXSPI_IPRXFCR               0x00B8
+#define FLEXSPI_IPRXFCR_CLRIPRXF_MASK (0x1U)
+#define FLEXSPI_IPRXFCR_RXWMRK_MASK   (0xf << 2)
+#define FLEXSPI_IPRXFCR_RXWMRK(n) \
+    (((((uint32_t)(n) / 8) - 1) << FLEXSPI_IPRXFCR_RXWMRK_SHIFT) & FLEXSPI_IPRXFCR_RXWMRK_MASK)
 #define FLEXSPI_IPRXFCR_RXWMRK_SHIFT     (2U)
 
 /* STS0 */
@@ -99,7 +102,7 @@
 #define FLEXSPI_MCR1_AHBBUSWAIT(x)       ((uint32_t)(x) << 0)
 
 /* MCR2 register bits */
-#define FLEXSPI_MCR2_RESUMEWAIT(n)       ((n) << 24)
+#define FLEXSPI_MCR2_RESUMEWAIT(n)       ((uint32_t)(n) << 24)
 #define FLEXSPI_MCR2_RESUMEWAIT_MASK     (FLEXSPI_MCR2_RESUMEWAIT(0xff))
 #define FLEXSPI_MCR2_SCKBDIFFOPT         BIT(19)
 #define FLEXSPI_MCR2_SAMEDEVICEEN        BIT(15)
