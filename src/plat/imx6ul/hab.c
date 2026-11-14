@@ -91,6 +91,10 @@ int hab_has_no_errors(void)
         bytes = sizeof(_event_data);
         index++;
     }
+
+    /* The index counts the events of the status asked for */
+    index = 0;
+
     while (hab_rvt_report_event(HAB_FAILURE, index, _event_data, &bytes) == HAB_SUCCESS) {
         LOG_ERR("Error %x, event data:", index + 1);
 

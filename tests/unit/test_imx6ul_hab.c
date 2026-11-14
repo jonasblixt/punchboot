@@ -253,12 +253,10 @@ static void test_status(void **state)
     assert_int_equal(hab_has_no_errors(), PB_OK);
 }
 
-/* The events are logged: the warnings, then the failures. The index the
- * failures are asked for starts where the warnings' ended, so with a
- * warning before it the first failure is never asked for and not logged
- * (a defect, reported 2026-11-13: report_event() counts the index among
- * the events of the status asked for). This pins today's calls; a fix asks
- * for the failure at index 0, or asks for HAB_STS_ANY once */
+/* The events are logged: the warnings, then the failures, each from index
+ * 0: report_event() counts the index among the events of the status asked
+ * for. The failures' index started where the warnings' ended, and a failure
+ * after a warning was never asked for nor logged (F-430) */
 static void test_events(void **state)
 {
     (void)state;
@@ -281,20 +279,38 @@ static void test_events(void **state)
     assert_int_equal(rom.calls[1].index, 0);
     assert_int_equal(rom.calls[2].index, 1);
 
-    /* A warning and then the failure: the failure loop starts at 1 */
+    /* A warning and then the failure: the failure is asked for at 0, and
+     * found */
     memset(&rom.events, 0, sizeof(rom.events));
     rom.nr_events = 0;
     rom.nr_calls = 0;
     add_event(HAB_WARNING, 0x69);
     add_event(HAB_FAILURE, 0x33);
     assert_int_equal(hab_has_no_errors(), -PB_ERR);
-    assert_int_equal(rom.nr_calls, 3);
+    assert_int_equal(rom.nr_calls, 4);
     assert_int_equal(rom.calls[0].status, HAB_WARNING);
     assert_int_equal(rom.calls[0].index, 0);
     assert_int_equal(rom.calls[1].status, HAB_WARNING);
     assert_int_equal(rom.calls[1].index, 1);
     assert_int_equal(rom.calls[2].status, HAB_FAILURE);
-    assert_int_equal(rom.calls[2].index, 1); /* Should be 0 */
+    assert_int_equal(rom.calls[2].index, 0);
+    assert_int_equal(rom.calls[3].status, HAB_FAILURE);
+    assert_int_equal(rom.calls[3].index, 1);
+
+    /* Two warnings and two failures, interleaved: each is asked for once */
+    memset(&rom.events, 0, sizeof(rom.events));
+    rom.nr_events = 0;
+    rom.nr_calls = 0;
+    add_event(HAB_FAILURE, 0x31);
+    add_event(HAB_WARNING, 0x61);
+    add_event(HAB_FAILURE, 0x32);
+    add_event(HAB_WARNING, 0x62);
+    assert_int_equal(hab_has_no_errors(), -PB_ERR);
+    assert_int_equal(rom.nr_calls, 6);
+    assert_int_equal(rom.calls[3].status, HAB_FAILURE);
+    assert_int_equal(rom.calls[3].index, 0);
+    assert_int_equal(rom.calls[4].index, 1);
+    assert_int_equal(rom.calls[5].index, 2);
 }
 
 /* The life cycle a 6UL reports, from its fuses */
