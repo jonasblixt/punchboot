@@ -24,6 +24,7 @@ from .pbtest import (
     SYSTEM_A_UUID,
     make_bpak,
 )
+from .test_security import DEVICE_UUID
 from .test_stream import (
     BUFFER_SIZE as STREAM_BUFFER_SIZE,
 )
@@ -177,6 +178,18 @@ def test_boot_from_ram_after_a_failed_policy_init(
     assert no_policy_device.boot_status == "?"
 
 
+def test_identity_after_a_failed_init(no_disk_device: Device) -> None:
+    # platform.md 2.2 (F-247): the crypto backend is set up by the platform,
+    # before the board's init(). The device's identity is a hash (platform.md
+    # 3.7), and without it there is no command mode (F-416): a failed init()
+    # leaves both
+    run = no_disk_device.log.read_text(errors="replace").rpartition("=== start:")[2]
+    assert "Board init failed" in run
+
+    with no_disk_device.session() as s:
+        assert str(s.device_get_uuid()) == DEVICE_UUID
+
+
 def test_boot_activate_after_a_failed_policy_init_writes_no_state(
     no_policy_device: Device,
 ) -> None:
@@ -199,9 +212,9 @@ def test_boot_from_ram_after_a_failed_init(
     """board.md 2.1 and 2.3 (F-394): a failed init() leaves what a RAM boot needs.
 
     The board's disk can't be opened, so its init() fails and pb stops in
-    command mode. The host board sets up Mbed TLS before the disk, as the
-    real boards set up their crypto engine before their storage, so the image
-    from RAM verifies.
+    command mode. The platform sets up Mbed TLS in plat_init(), before the
+    board's init(), as the real ports set up their crypto engine (F-247), so
+    the image from RAM verifies.
     """
     img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
 

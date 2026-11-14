@@ -14,7 +14,6 @@
 #include <boot/boot.h>
 #include <boot/image.h>
 #include <boot/image_helpers.h>
-#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/partition/static.h>
@@ -368,23 +367,16 @@ static int nor_init(void)
 }
 
 /*
- * The crypto first, as the real boards set up their crypto engine before
- * their storage: a failed init() leaves what verifies a RAM boot (board.md
- * 2.1, F-394)
+ * The storage. The crypto backend is the platform's, set up before this
+ * (platform.md 2.2): a failed init() leaves what verifies a RAM boot
+ * (board.md 2.1, F-394)
  */
 static int board_hw_init(void)
 {
-    int rc;
-
     /* Before anything that can fail: the handover is set up also after a
      * failed init() (board.md 2.1) */
     if (host_opts.dt_path != NULL)
         boot_image.dtb_bpak_id = HOST_DT_ID;
-
-    rc = mbedtls_pb_init();
-
-    if (rc != PB_OK)
-        return rc;
 
     bio_dev_t disk = host_disk_init(host_opts.disk_path, SZ_MiB(32), PART_disk, "Host disk");
 

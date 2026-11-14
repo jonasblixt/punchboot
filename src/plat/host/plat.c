@@ -8,6 +8,7 @@
  */
 
 #include <board_defs.h>
+#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <errno.h>
 #include <pb/console.h>
@@ -170,10 +171,22 @@ int plat_init(void)
     if (rc == PB_OK)
         rc = test_fuse_init(fuses);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
         LOG_ERR("Could not read the fuses (%i)", rc);
+        return rc;
+    }
 
-    return rc;
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    /* The crypto backend, behind its option (platform.md 2.2, crypto.md 2).
+     * Command mode can start without it, so it isn't plat_init()'s error:
+     * without a backend no image verifies, and the boot stops with that */
+    rc = mbedtls_pb_init();
+
+    if (rc != PB_OK)
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+#endif
+
+    return PB_OK;
 }
 
 /*
