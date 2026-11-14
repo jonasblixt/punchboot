@@ -80,7 +80,7 @@ static void call(const char *name)
 /* The crypto backends: what their set up returns, what it got, and the
  * register log's length and the MMU's state when the first was called */
 static struct {
-    int caam_rc, rng_rc, mbedtls_rc;
+    int caam_rc, rng_rc, mbedtls_rc, stop_rc;
     uintptr_t caam_base, rng_base;
     size_t caam_at;
     unsigned int caam_mmu_enables;
@@ -106,6 +106,12 @@ int mbedtls_pb_init(void)
 {
     call("mbedtls");
     return crypto.mbedtls_rc;
+}
+
+int imx_caam_stop(void)
+{
+    call("stop");
+    return crypto.stop_rc;
 }
 
 /* The fuses */
@@ -666,6 +672,27 @@ static void test_status_crypto_engine(void **state)
     assert_true(status_now().crypto_engine);
 }
 
+/* platform.md 4.5, drivers.md 2.3, crypto.md 6 (F-286): the platform stops
+ * what plat_init() started before the jump, in plat_lockdown(), the core's
+ * last call of it: the CAAM's job ring. A stop that fails is a failed boot */
+static void test_lockdown_stops_the_crypto_engine(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_lockdown(), PB_OK);
+    assert_string_equal(calls, "stop ");
+    assert_int_equal(fake_reg_log_len, 0);
+
+    /* A second lockdown before a reset (platform.md 4.4) */
+    assert_int_equal(plat_lockdown(), PB_OK);
+    assert_string_equal(calls, "stop stop ");
+
+    setup(NULL);
+    crypto.stop_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(plat_lockdown(), -PB_ERR_TIMEOUT);
+    assert_string_equal(calls, "stop ");
+}
+
 /* platform.md 4.1, 4.2 (F-247): the root of trust and the life cycle are the
  * platform's. pb doesn't support the 8M's HAB: what the 8MP EVK wired itself
  * until then, unchanged. Every key can be used and none is revoked; there is
@@ -709,6 +736,7 @@ int main(void)
         cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
+        cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

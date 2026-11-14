@@ -386,8 +386,7 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 |                         |                       | `.no_init`, next to the |                     |               |
 |                         |                       | driver's state          |                     |               |
 | FlexSPI                 | yes                   | n/a: no DMA             | n/a: synchronous    |               |
-| CAAM                    | yes: 1 s              | no                      | yes, no board calls | F-081, F-286  |
-|                         |                       |                         | it                  |               |
+| CAAM                    | yes: 1 s              | no                      | yes                 | F-081, F-286  |
 | Mbed TLS                | n/a                   | n/a                     | n/a                 |               |
 | ChipIdea                | no                    | yes                     | yes, unbounded      | F-136         |
 | DWC3                    | yes                   | partly: aligned, not    | yes                 | F-282         |

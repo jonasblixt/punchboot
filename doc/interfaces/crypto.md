@@ -242,8 +242,7 @@ The arguments:
   is done. A hash that was given up before that was ended by the `hash_init()` of the
   verification that followed (3.1).
 - **The engine holds no address in pb's memory that it would write to** (`drivers.md` 2.3). A
-  backend with rings or queues the engine keeps has a `stop` that takes them away. **Not yet
-  in the code (F-286)**: the engine's ring registers still name pb's buffers at the jump.
+  backend with rings or queues the engine keeps has a `stop` that takes them away.
 - **The engine is handed over as the next stage expects it** (`platform.md` 4.5): which of its
   interfaces belong to the secure world and which to the normal one is the platform's, in its
   port's document.
@@ -308,8 +307,8 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | The key parsed inside its length     | yes (`test_der`)        | yes (the library)    |              |
 | The key's curve is `alg`             | no                      | no                   | F-286        |
 | Every wait bounded                   | yes (1 s)               | n/a                  |              |
-| Nothing left at the jump             | partly: a `stop`, no    | n/a                  | F-286        |
-|                                      | board calls it          |                      |              |
+| Nothing left at the jump             | yes (`test_plat_*`),    | n/a                  | F-286        |
+|                                      | not run on a board      |                      |              |
 | The library's results checked        | n/a                     | yes                  |              |
 |                                      |                         | (`test_mbedtls`)     |              |
 | An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |

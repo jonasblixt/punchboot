@@ -445,6 +445,27 @@ static bool crypto_init(void)
     return backends > 0 && !failed;
 }
 
+/*
+ * Before the jump the platform stops what plat_init() started (platform.md
+ * 4.5, drivers.md 2.3): the CAAM's job ring holds no address in pb's memory
+ * any more (crypto.md 6). Mbed TLS has nothing to stop. After it the CAAM's
+ * backend answers -PB_ERR_STATE until a reset. A stop that fails is a failed
+ * boot: plat_lockdown() returns its error and pb doesn't jump.
+ */
+static int crypto_stop(void)
+{
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    int rc = imx_caam_stop();
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM stop failed (%i)", rc);
+
+    return rc;
+#else
+    return PB_OK;
+#endif
+}
+
 int plat_init(void)
 {
     if (wdog_rc != 0) {
@@ -605,6 +626,6 @@ int plat_get_boot_source(struct pb_boot_source *src)
 
 int plat_lockdown(void)
 {
-    /* Nothing yet: what the SECO can lock is unchecked (F-244) */
-    return PB_OK;
+    /* Nothing locked yet: what the SECO can lock is unchecked (F-244) */
+    return crypto_stop();
 }

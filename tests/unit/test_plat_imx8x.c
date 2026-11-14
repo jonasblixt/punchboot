@@ -95,8 +95,8 @@ static jmp_buf soc_reset;
  * called, what the CAAM's got, and the number of the SCFW's calls, the
  * register log's length and the MMU's state when it was called */
 static struct {
-    int caam_rc, mbedtls_rc;
-    unsigned int caam_inits, mbedtls_inits;
+    int caam_rc, mbedtls_rc, stop_rc;
+    unsigned int caam_inits, mbedtls_inits, stops;
     uintptr_t caam_base;
     size_t caam_scfw_calls, caam_at, mbedtls_at;
     unsigned int caam_mmu_enables;
@@ -117,6 +117,12 @@ int mbedtls_pb_init(void)
     crypto.mbedtls_inits++;
     crypto.mbedtls_at = fake_reg_log_len;
     return crypto.mbedtls_rc;
+}
+
+int imx_caam_stop(void)
+{
+    crypto.stops++;
+    return crypto.stop_rc;
 }
 
 void imx8x_fuse_init(sc_ipc_t ipc)
@@ -616,6 +622,26 @@ static void test_status_crypto_engine(void **state)
     assert_true(status_now().crypto_engine);
 }
 
+/* platform.md 4.5, drivers.md 2.3, crypto.md 6 (F-286): the platform stops
+ * what plat_init() started before the jump, in plat_lockdown(), the core's
+ * last call of it: the CAAM's job ring. A stop that fails is a failed boot */
+static void test_lockdown_stops_the_crypto_engine(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_lockdown(), PB_OK);
+    assert_int_equal(crypto.stops, 1);
+    /* Nothing of the SCFW's: the ring's power stays as it is */
+    assert_int_equal(scfw.n_calls, 0);
+
+    /* A second lockdown before a reset (platform.md 4.4) */
+    assert_int_equal(plat_lockdown(), PB_OK);
+    assert_int_equal(crypto.stops, 2);
+
+    crypto.stop_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(plat_lockdown(), -PB_ERR_TIMEOUT);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -634,6 +660,7 @@ int main(void)
         cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
+        cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
