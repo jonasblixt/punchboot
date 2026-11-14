@@ -232,8 +232,8 @@ and `configs/test_defconfig` were then removed.
 | `test_pbstate.py`     | new: the pbstate tool's command line on pb-host's disk, its library's symbols, a build  |
 |                       | with default partitions (F-221, F-222, F-010)                                           |
 
-ctest runs 98 tests (2026-11-14): 91 labelled `unit` (72 CMocka programs, 16 compile checks, 2
-Kconfig checks and `unit.python`), the pytest suite `integration`, 4 `make`, 1 `compat`, 1 `doc`.
+ctest runs 107 tests (2026-11-14): 97 labelled `unit` (78 CMocka programs, 16 compile checks, 2
+Kconfig checks and `unit.python`), the pytest suite `integration`, 7 `make`, 1 `compat`, 1 `doc`.
 The unit tests take about 4 s, the integration suite about 80 s with coverage.
 
 Unit tests, by module under test:
@@ -245,13 +245,18 @@ Unit tests, by module under test:
 | `test_bpak.c`, `test_der.c`, `test_wire.c`,   | `bpak.c`, `der_helpers.c`,   | clock (`test_delay.c`)           |
 |                                               | `wire.c`,                    |                                  |
 | `test_delay.c`                                | `delay.c`                    |                                  |
+| `test_dma.c`                                  | `dma.c`: the DMA and cache   | the D-cache model                |
+|                                               | rule's functions             | (`fakes/dcache.h`), checked by   |
+|                                               | (`drivers.md` 4)             | the same suite                   |
 | `test_crypto.c`, `test_mbedtls.c`             | `crypto.c`, `mbedtls_pb.c`   | providers / none (real keys and  |
 |                                               |                              | the auth token)                  |
 | `test_rot.c`, `test_device_uuid.c`            | `rot.c`, `slc.c`,            | board callbacks, unique id       |
 |                                               | `device_uuid.c`              |                                  |
-| `test_ab_state.c`, `test_boot.c`              | `ab_state.c`, `boot.c`       | ramdisk, image helpers, boot     |
-|                                               |                              | driver. In place: `static.c`,    |
-|                                               |                              | the ramdisk's memory as the map  |
+| `test_ab_state.c`, `test_boot.c`,             | `ab_state.c`, `boot.c`;      | ramdisk, image helpers, boot     |
+| `test_ab_state_speculative`,                  | again with speculative       | driver. In place: `static.c`,    |
+| `test_boot_preconditions`,                    | mode, with a watchdog and    | the ramdisk's memory as the map  |
+| `test_boot_no_crypto_engine`                  | a crypto engine, and for a   |                                  |
+|                                               | platform with no engine      |                                  |
 | `test_pbstate.c`                              | `tools/pbstate`'s            | `sync()`, which counts; two      |
 |                                               | `pbstate.c` (libpbstate)     | files in a temporary directory   |
 |                                               |                              | are the copies                   |
@@ -259,42 +264,46 @@ Unit tests, by module under test:
 | `test_policy.c`                               | `policy.c`,                  | ramdisk                          |
 |                                               | `policy_fixed.c`,            |                                  |
 |                                               | `policy_chain.c`             |                                  |
-| `test_fh.c`                                   | `fh.c`, `dtb.c` (not in      | arch (the cache); a receiver of  |
-|                                               | pb-host), once per register  | the test's own reads the list in |
+| `test_fh.c`, `test_fh_armv7`,                 | `fh.c`, `dtb.c` (not in      | arch (the cache); a receiver of  |
+| `test_fh_armv7m`                              | pb-host), once per register  | the test's own reads the list in |
 |                                               | convention                   | a region the test maps           |
-| `test_tfa.c`                                  | `atf.c` (not in pb-host),    | arch (ARMv8-A's names, the ID    |
+| `test_tfa.c`, `test_tfa_plat`                 | `atf.c` (not in pb-host),    | arch (ARMv8-A's names, the ID    |
 |                                               | twice: the `bl_params` list  | register); pins what BL31 reads, |
 |                                               | in pb's data and in the      | field by field                   |
 |                                               | platform's memory            |                                  |
 | `test_tfa_image.c`                            | `image.c`, `dtb.c`, `atf.c`: | as `test_image.c` and            |
 |                                               | the 8MP EVK's and the MEK's  | `test_tfa.c`                     |
 |                                               | boot                         |                                  |
-| `test_image_helpers.c`                        | `image_helpers.c`            | hash, DSA, root of trust (memory |
-|                                               |                              | regions via `--defsym`)          |
-| `test_image.c`                                | `image.c`                    | arch, SLC, root of trust, device |
-|                                               |                              | UUID; builds DTBs with libfdt    |
-| `test_cm.c`                                   | `src/cm/`                    | transport, boot, root of trust,  |
-|                                               |                              | SLC, crypto providers            |
+| `test_image_helpers.c`,                       | `image_helpers.c`; again     | hash, DSA, root of trust (memory |
+| `test_image_helpers_handover`                 | with the handover's regions  | regions via `--defsym`)          |
+| `test_image.c`, `test_image_armv7`            | `image.c`; again with        | arch, SLC, root of trust, device |
+|                                               | AArch32's registers          | UUID; builds DTBs with libfdt    |
+| `test_cm.c`, `test_cm_no_eol`                 | `src/cm/`; again without     | transport, boot, root of trust,  |
+|                                               | `CONFIG_SLC_EOL`             | SLC, crypto providers            |
 | `test_usb_transport.c`                        | `pb_dev_cls.c`, `usbd.c`:    | the USB device controller        |
 |                                               | the transport on USB         |                                  |
-| `test_main.c`                                 | `main.c`: the loop over the  | platform, board set up, boot;    |
+| `test_main.c`, `test_main_no_tasks`           | `main.c`: the loop over the  | platform, board set up, boot;    |
 |                                               | tasks, twice: with three     | three tasks                      |
 |                                               | tasks and with none; the     |                                  |
 |                                               | reset after a platform       |                                  |
 |                                               | failure                      |                                  |
-| `test_plat_imxrt.c`                           | `plat/imxrt/plat.c`,         | the SoC's registers in a         |
-|                                               | `imx_gpt.c`, `imx_wdog.c`:   | register file; the fuses, the    |
+| `test_plat_imxrt.c`,                          | `plat/imxrt/plat.c`,         | the SoC's registers in a         |
+| `test_plat_imxrt_no_mbedtls`                  | `imx_gpt.c`, `imx_wdog.c`:   | register file; the fuses, the    |
 |                                               | the port against             | HAB, Mbed TLS                    |
-|                                               | `platform.md`                |                                  |
+|                                               | `platform.md`, with and      |                                  |
+|                                               | without Mbed TLS             |                                  |
 | `test_plat_imx8x.c`                           | `plat/imx8x/plat.c`, its     | a model of the SCFW behind its   |
 |                                               | SCFW client (`sci/`),        | messaging unit; the fuses, the   |
 |                                               | `imx_gpt.c`                  | RoT and SLC helpers, the MMU     |
 |                                               |                              | (`fakes/xlat.c`)                 |
-| `test_imx8x_dry_run.c`                        | `plat/imx8x/`'s fuse, RoT    | the SCFW's fuse and SECO calls   |
-|                                               | and SLC helpers, with the    |                                  |
+| `test_imx8x_dry_run.c`,                       | `plat/imx8x/`'s fuse, RoT    | the SCFW's fuse and SECO calls   |
+| `test_imx8xl_dry_run`                         | and SLC helpers, with the    |                                  |
 |                                               | fuse dry run                 |                                  |
-| `test_mmc_core.c`                             | `mmc_core.c` (boot partition | fake card                        |
-|                                               | updates, power loss)         |                                  |
+|                                               | for the 8X and the 8DXL      |                                  |
+| `test_mmc_core.c`,                            | `mmc_core.c` (boot partition | fake card                        |
+| `test_mmc_core_debug_ios`                     | updates, power loss); again  |                                  |
+|                                               | with its reads' and writes'  |                                  |
+|                                               | log                          |                                  |
 | `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |
 | `test_mmc_sd.c`                               | `mmc_core.c`, `mmc_sd.c`     | SD card model, `hal_model`       |
 | `test_imx_usdhc.c`                            | `imx_usdhc.c`, `mmc_core.c`  | uSDHC model, e.MMC and SD models |
@@ -342,6 +351,9 @@ Unit tests, by module under test:
 |                                               | SHA-384/512                  |                                  |
 | `test_imx_flexspi.c`                          | `imx_flexspi.c` and bio      | a NOR flash behind the           |
 |                                               | against `bio.md` 3           | controller's registers           |
+| `test_imx8m_ddr.c`                            | the i.MX8MQ's DRAM init      | a model of the uMCTL2, the PHY   |
+|                                               | (`ddr.c`, `ddr_imx8mq.c`,    | and its firmware's mailbox       |
+|                                               | `umctl2.c`, `dwc_ddrphy.c`)  | (`fakes/mmio`): golden trace     |
 | `test_imx8mp_ddr.c`                           | the i.MX8M Plus's DRAM init  | as `test_imx8m_ddr.c`: golden    |
 |                                               | (`ddr_imx8mp.c`)             | trace                            |
 | `test_plat_imx6ul.c`,                         | `plat/imx6ul/plat.c`,        | register file; the fuses, ROM    |
@@ -358,6 +370,11 @@ Unit tests, by module under test:
 |                                               | with a host on the bus:      | that plays the host              |
 |                                               | endpoint 0 (`usb.md` 3, 6),  |                                  |
 |                                               | transfers, bus reset, replug |                                  |
+| `test_dwc3_udc.c`                             | `dwc3_udc.c`: what it gives  | register file and a few lines    |
+|                                               | the controller and that the  | of a model of the controller;    |
+|                                               | bytes are the caller's       | the D-cache model                |
+|                                               | (`drivers.md` 4, `usb.md`    |                                  |
+|                                               | 4.3, 4.4)                    |                                  |
 | `test_imx_ci_udc.c`                           | `imx_ci_udc.c`: what it      | register file; models of the     |
 |                                               | queues and what the caller   | controller's side of a transfer  |
 |                                               | gets back                    | and of the cache                 |
