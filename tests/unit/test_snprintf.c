@@ -10,7 +10,8 @@
  * host has its own).
  * It writes at most n - 1 characters and the terminator, and returns the
  * number of characters the whole output has (F-089). A specifier it doesn't
- * have ends the output where it stands.
+ * have ends the output where it stands, and the result is at least n: the
+ * text was cut (F-418).
  */
 
 #include <setjmp.h>
@@ -101,43 +102,6 @@ static void test_d_u_s_bounded(void **state)
     check_guard(o.buf, 4);
 }
 
-/* A specifier it doesn't have ends the call: the text before it, terminated,
- * and its length. It used to spin forever */
-static void test_unsupported_ends(void **state)
-{
-    struct out o;
-    (void)state;
-
-    memset(o.buf, GUARD, sizeof(o.buf));
-    assert_int_equal(snprintf(o.buf, 16, "ab%cde", 'x'), 2);
-    assert_string_equal(o.buf, "ab");
-    check_guard(o.buf, 16);
-
-    memset(o.buf, GUARD, sizeof(o.buf));
-    assert_int_equal(snprintf(o.buf, 16, "%u %zu", 1u, (size_t)2), 2);
-    assert_string_equal(o.buf, "1 ");
-
-    /* A width without a 0 */
-    memset(o.buf, GUARD, sizeof(o.buf));
-    assert_int_equal(snprintf(o.buf, 16, "[%2u]", 3u), 1);
-    assert_string_equal(o.buf, "[");
-
-    /* After padding, and at the end of the format */
-    memset(o.buf, GUARD, sizeof(o.buf));
-    assert_int_equal(snprintf(o.buf, 16, "%04x%08", 0x1u), 4);
-    assert_string_equal(o.buf, "0001");
-
-    memset(o.buf, GUARD, sizeof(o.buf));
-    assert_int_equal(snprintf(o.buf, 16, "abc%"), 3);
-    assert_string_equal(o.buf, "abc");
-
-    /* In a buffer that is already full */
-    memset(o.buf, GUARD, sizeof(o.buf));
-    assert_int_equal(snprintf(o.buf, 2, "abc%c", 'x'), 3);
-    assert_string_equal(o.buf, "a");
-    check_guard(o.buf, 2);
-}
-
 /* vsnprintf() is snprintf() with the arguments in a va_list */
 static int call_vsnprintf(char *s, size_t n, const char *fmt, ...)
 {
@@ -148,6 +112,71 @@ static int call_vsnprintf(char *s, size_t n, const char *fmt, ...)
     rc = vsnprintf(s, n, fmt, args);
     va_end(args);
     return rc;
+}
+
+/* A specifier it doesn't have ends the call: the text before it, terminated.
+ * It used to spin forever (F-089). The result is at least n, so that a
+ * caller sees the text was cut: it used to be the length before the
+ * specifier, which is below n and read as a whole text (F-418) */
+static void test_unsupported_ends(void **state)
+{
+    struct out o;
+    (void)state;
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "ab%cde", 'x'), 16);
+    assert_string_equal(o.buf, "ab");
+    check_guard(o.buf, 16);
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "%u %zu", 1u, (size_t)2), 16);
+    assert_string_equal(o.buf, "1 ");
+
+    /* A width without a 0 */
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "[%2u]", 3u), 16);
+    assert_string_equal(o.buf, "[");
+
+    /* After padding, and at the end of the format */
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "%04x%08", 0x1u), 16);
+    assert_string_equal(o.buf, "0001");
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 16, "abc%"), 16);
+    assert_string_equal(o.buf, "abc");
+
+    /* In a buffer that is already full: the length so far is above n */
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 2, "abc%c", 'x'), 3);
+    assert_string_equal(o.buf, "a");
+    check_guard(o.buf, 2);
+
+    /* One byte holds the terminator alone, none holds nothing */
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 1, "%c", 'x'), 1);
+    assert_int_equal(o.buf[0], '\0');
+    check_guard(o.buf, 1);
+
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(snprintf(o.buf, 0, "%c", 'x'), 0);
+    check_guard(o.buf, 0);
+
+    /* The C99 check of a cut text holds whatever the size */
+    for (size_t n = 0; n < 16; n++) {
+        int rc;
+
+        memset(o.buf, GUARD, sizeof(o.buf));
+        rc = snprintf(o.buf, n, "ab%pcd", (void *)&rc);
+        assert_true(rc >= 0 && (size_t)rc >= n);
+        check_guard(o.buf, n);
+    }
+
+    /* And vsnprintf() the same, for a caller that keeps a text's length
+     * (imx_hab_log.c, seco_log.c) */
+    memset(o.buf, GUARD, sizeof(o.buf));
+    assert_int_equal(call_vsnprintf(o.buf, 32, "ev %s %lu", "a", 1UL), 32);
+    assert_string_equal(o.buf, "ev a ");
 }
 
 static void test_vsnprintf(void **state)
