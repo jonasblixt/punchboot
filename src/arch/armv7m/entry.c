@@ -58,7 +58,9 @@ static __section(".vector_handlers") void armv7m_entry(void)
     ARM_DSB();
     ARM_ISB();
 
-    /* Enable the caches, the D-cache write-through */
+    /* Enable the caches, the D-cache write-through and empty first (F-207,
+     * mmu.S) */
+    armv7m_dcache_invalidate_all();
     mmio_clrsetbits_32(ARMV7M_CACR, 0, ARMV7M_CACR_FORCEWT);
     mmio_clrsetbits_32(ARMV7M_SCB_CCR, 0, ARMV7M_CCR_DC | ARMV7M_CCR_IC);
     ARM_DSB();

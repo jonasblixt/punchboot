@@ -53,7 +53,56 @@
     dsb
 .endm
 
+/* The L1 D-cache's geometry for dcache_all_sw: r2, r3, r5 and r6. Uses r0,
+ * r1 and r4 */
+.macro dcache_geometry
+    ldr     r0, =SCB_CSSELR
+    movs    r1, #0
+    str     r1, [r0]
+    dsb
+    ldr     r0, =SCB_CCSIDR
+    ldr     r4, [r0]
+    ubfx    r5, r4, #13, #15     /* NumSets: sets - 1 */
+    ubfx    r6, r4, #3, #10      /* Associativity: ways - 1 */
+    and     r2, r4, #7           /* LineSize: log2(words) - 2 */
+    adds    r2, r2, #4
+    clz     r3, r6
+.endm
+
 .text
+
+/*
+ * void armv7m_dcache_invalidate_all(void)
+ *
+ * Empties the L1 D-cache before pb turns it on (entry.c). A cache's
+ * contents are UNKNOWN until it is invalidated (Arm ARM), and the RT1060's
+ * ROM used the D-cache and only turned it off before it left (RM 9.5.4): a
+ * valid line it left would answer for memory written since. With the
+ * D-cache off, as the ROM leaves it, nothing of pb's is in it and each line
+ * is invalidated; were it on, each is cleaned and invalidated, so what pb
+ * pushed before is kept either way. Between the push and the pop only the
+ * SCS is accessed.
+ */
+.global armv7m_dcache_invalidate_all
+.type armv7m_dcache_invalidate_all, %function
+.thumb_func
+armv7m_dcache_invalidate_all:
+    push    {r4-r7, lr}
+    dcache_geometry
+
+    ldr     r7, =SCB_DCISW
+    ldr     r0, =SCB_CCR
+    ldr     r1, [r0]
+    tst     r1, #CCR_DC
+    beq     1f
+    ldr     r7, =SCB_DCCISW
+1:
+    dcache_all_sw
+
+    isb
+    pop     {r4-r7, pc}
+.size armv7m_dcache_invalidate_all, . - armv7m_dcache_invalidate_all
+
 .global arch_disable_mmu
 .type arch_disable_mmu, %function
 .thumb_func
@@ -67,18 +116,7 @@ arch_disable_mmu:
     dsb
     isb
 
-    /* The L1 D-cache's geometry */
-    ldr     r0, =SCB_CSSELR
-    movs    r1, #0
-    str     r1, [r0]
-    dsb
-    ldr     r0, =SCB_CCSIDR
-    ldr     r4, [r0]
-    ubfx    r5, r4, #13, #15     /* NumSets: sets - 1 */
-    ubfx    r6, r4, #3, #10      /* Associativity: ways - 1 */
-    and     r2, r4, #7           /* LineSize: log2(words) - 2 */
-    adds    r2, r2, #4
-    clz     r3, r6
+    dcache_geometry
 
     /* Off already: nothing of pb's is in it, only drop what is there */
     ldr     r0, =SCB_CCR

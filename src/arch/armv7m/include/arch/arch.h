@@ -20,6 +20,9 @@
 /* The D-cache's line in bytes, which the range functions step by */
 size_t armv7m_dcache_line_size(void);
 
+/* Every line of the L1 D-cache invalidated, before pb turns it on (mmu.S) */
+void armv7m_dcache_invalidate_all(void);
+
 /* The system control block */
 #define ARMV7M_SCB_VTOR     0xe000ed08 /* Vector table offset */
 #define ARMV7M_SCB_CCR      0xe000ed14 /* Configuration and control */
