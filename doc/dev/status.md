@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-14 (the batch's rounds pushed, `pkg-b3-ci2` and `pkg-b3-wundef` parked)_
+_Last updated: 2026-11-14 (the batch's rounds pushed, `pkg-b3-ci2` and `pkg-b3-wundef` parked; D-084)_
 
 ## Current focus
 
@@ -55,7 +55,10 @@ bump is for the porting API. Each item's history is in `log/`.
      and the MEK's 2 GiB (F-436), the RT1060's VTOR/FORCEWT/D-cache at its entry (F-210,
      F-207), then the older list: the DMA rule (F-282), the preconditions, F-247 and the
      CAAM's stop, the 8MP EVK through TF-A.
-   - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
+   - D-084 (the platform's questions): F-206 landed (`9bffc006`). To do: command mode on every
+     ROM boot port (F-402), a kick per candidate (F-320), the 8M's HAB and its locks, EOL with
+     data (F-263, PR #51), the SCU kick on the MEK (F-322). Still open: F-429, the accessor on
+     the 8M and RT, F-246, the bench for F-241 and F-294.
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
      F-433.
@@ -77,9 +80,6 @@ bump is for the porting API. Each item's history is in `log/`.
   D-008), D-070 (which form of "A"), D-066 (which drivers have a `stop`), D-056 (D-054's
   form).
 - Which open findings gate the 3.0.0 tag (`roadmap.md`).
-- Platform contract: can "type 1 masters are secure at reset" (6UL SRM, CSU_SA, NDA) be
-  written in the public docs, or only the register's name (as now)? Put the Arm specs and
-  the TZC-380 TRM (DDI0431) on the share?
+- The Arm specs and the TZC-380 TRM (DDI0431) on the share (D-084: yes, Jonas to put them).
 - Which boards are still in use? bebop and pico8ml only have defconfigs (F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
-- Mbed TLS: 3.6 LTS or 4.x?

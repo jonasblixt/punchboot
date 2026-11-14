@@ -113,6 +113,17 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | to serial download. jiffy sets the 6UL's BT_FUSE_SEL. Fixing it burns one more | | |
 | | | fuse on devices that ran slc set-configuration. Fixed (`work-3.0.0-plat`): BOOT0 | | |
 | | | is BT_FUSE_SEL and the eMMC boot mode, 0x42. Not run on hardware. | | |
+| F-206 | `src/drivers/wdog/imx_wdog.c`, `plat/imx6ul/plat.c:385` | `CONFIG_ENABLE_WATCHDOG=n`: | Verified | fixed (`9bffc006`) |
+| | | `base` stays 0, kicks and `imx_wdog_reset_now()` write at address 0 and `plat_reset()` spins (every | | |
+| | | defconfig has it on). WT is `delay_s * 2` unmasked: 5.5 s for 5, 128 s wraps. `reset_now` also clears | | |
+| | | WDA. | | |
+| | | 2026-11-13: `base` 0 was fixed by `f85aa2b6`, and a test builds the 6UL port without the option | | |
+| | | (`b85f9a75`); 128 s or more is the longest time-out, not a wrapped one (`62907e94`); that the | | |
+| | | software reset clears WDA is kept and written in the header (`666df7f1`). Left, for Jonas: WT is | | |
+| | | still `delay_s * 2`, half a second more than configured. `bec794b7` on the branch `pkg-plat` makes | | |
+| | | it exact and wasn't landed: it shortens every 6UL, 8M and RT board's watchdog by 0.5 s (5.0 s where | | |
+| | | an OS in the field has had 5.5 s to take over) | | |
+| | | 2026-11-14 (`9bffc006`): WT is `2 * delay_s - 1`, the time-out exact; Jonas: land it | | |
 | F-208 | `src/plat/imx8m/plat.c` | The 8M never enabled its TZASC while | Verified (on the 8MP EVK) | fixed (8M) |
 | | | `boot/atf.c` supports a BL32: the normal world could read secure DRAM (the 8M's F-096). TF-A doesn't enable | | |
 | | | it: `bl31_tzc380_setup()` returns when GPR10's TZASC_EN is clear. Fixed: GPR10's TZASC_EN, ID_SWAP_BYPASS | | |

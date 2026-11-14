@@ -40,7 +40,8 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-024 | bpak 1.0.1, and the headers it rejects           | In force                                           |
 | D-025 | An MCU test bench                                | Narrowed by D-029 (its name), D-039 (the handover) |
 | D-026 | A board is data, `struct board`                  | Narrowed by D-046, D-047, D-049                    |
-| D-027 | The core owns the security rules                 | Narrowed by D-083 (a key's slot is its index)      |
+| D-027 | The core owns the security rules                 | Narrowed by D-083 (a key's slot is its index),     |
+|       |                                                  | D-084 (the 8M gets HAB)                            |
 | D-028 | One handover state; the `simple` boot driver     | Narrowed by D-039 (Firmware Handoff for `simple`)  |
 | D-029 | The simple target test bench, also Cortex-A      | In force                                           |
 | D-030 | The platform contract                            | Closed by D-053 to D-056; narrowed by D-079 (the   |
@@ -102,6 +103,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-081 | `BOOT_AB_DRIVER` is gone                         | In force                                           |
 | D-082 | The RAM log has every level, unsynchronized      | In force                                           |
 | D-083 | The board's keys are its `makefile.mk`'s         | In force                                           |
+| D-084 | The platform's open questions, answered          | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1995,3 +1997,35 @@ release"; 16 slots. Narrows D-027: the slots are no longer a list of their own.
 Why: the bpak file only carried the keys to `bpak generate keystore`; it is not signed and its
 id was never compared (`boot.md` 4.4). The keys are pb's, not the format's: `struct pb_key` has
 no bpak in it, and only the ids keep bpak's id function.
+
+## D-084: The platform's open questions, answered (2026-11-14)
+
+Jonas's answers to the platform level's list (log 2026-11-14, "The platform's questions").
+
+- **Command mode on every port the ROM boots from** (`platform.md` 3.10, F-402): "PB shall
+  support cm on any port that the rom supports as a boot path, not at the same time." One port
+  per build, chosen in Kconfig by driver and by port; a SoC whose ports are different blocks
+  (the i.MX8QXP: OTG1 a ChipIdea, the USB3 port a cdns3) has a choice of each. The ports no
+  board in the tree uses are written without a board to run them on.
+- **The boot loop kicks the watchdog once per candidate** (`platform.md` 3.3, `boot.md`,
+  F-320), as well as after each chunk and before the jump. The stretch between two candidates
+  is then one candidate's, whatever the policy.
+- **The watchdog's time-out is exact** (F-206, `9bffc006`): "land it". The i.MX6UL, 8M and RT
+  boards get 0.5 s less than before.
+- **The i.MX8M gets HAB, then `plat_lockdown()` sets the locks** (narrows D-027's open item):
+  pb's HABv4 driver on the 8M, then SW_STICKY's SRK revoke and field return locks and SCS's
+  lock, as on the 6UL. Not `plat_lockdown()` with nothing to lock until then.
+- **EOL is the SoC's own end of life, with room for how each SoC gets there** (F-263,
+  `system.md` 4): on NXP, field return. On some it is a fuse; on the i.MX8X it is a signed
+  message that the SECO checks (`sc_seco_return_lifecycle()`, GitHub PR #51). So the
+  platform's `set_eol` may take data from the host, and command mode passes it. PR #51 is the
+  starting point for the 8X; its wire change goes through `compatibility.md` (D-008).
+- **Public docs may say that type 1 masters are secure at reset** (6UL SRM, CSU_SA), in pb's
+  words, not quoted (`platform.md` 8).
+- **The Arm specs and the TZC-380 TRM (DDI0431) go on the share** (F-241's TZASC1_BOOT_LOCK).
+- **Mbed TLS: 3.6 LTS** for now.
+- **The SCU kick may be measured on the MEK** (F-322), with `scripts/boot-time-image`.
+
+Open from the same list: the i.MX8X's key slots 4 to 31 (F-429), the `<p>_plat()` accessor on
+the 8M and the RT (`platform.md` 7), the 6UL's AIPS-TZ (F-246), the bench work for F-241 and
+F-294. No 6ULL board for now (F-433); an 8MQ can be borrowed (F-432).

@@ -136,16 +136,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 1 ms), the glue's is F-281's; a cancel whose flush times out refuses the next bulk transfer until | |
 | | | `init`. Bounds from Linux 6.1, no manual. Left: the DWC3's OUT rounding, the salvo PHY's licence. | |
 | | | Not run on a board | |
-| F-206 | `src/drivers/wdog/imx_wdog.c`, `plat/imx6ul/plat.c:385` | `CONFIG_ENABLE_WATCHDOG=n`: | Reported | open |
-| | | `base` stays 0, kicks and `imx_wdog_reset_now()` write at address 0 and `plat_reset()` spins (every | | |
-| | | defconfig has it on). WT is `delay_s * 2` unmasked: 5.5 s for 5, 128 s wraps. `reset_now` also clears | | |
-| | | WDA. | | |
-| | | 2026-11-13: `base` 0 was fixed by `f85aa2b6`, and a test builds the 6UL port without the option | | |
-| | | (`b85f9a75`); 128 s or more is the longest time-out, not a wrapped one (`62907e94`); that the | | |
-| | | software reset clears WDA is kept and written in the header (`666df7f1`). Left, for Jonas: WT is | | |
-| | | still `delay_s * 2`, half a second more than configured. `bec794b7` on the branch `pkg-plat` makes | | |
-| | | it exact and wasn't landed: it shortens every 6UL, 8M and RT board's watchdog by 0.5 s (5.0 s where | | |
-| | | an OS in the field has had 5.5 s to take over) | | |
 | F-209 | `src/link.lds:60-67` | The stack is directly above `.keystore_key`; on the RT1060 (no | Reported | open |
 | | | MPU region, 4 KiB stack, software ECDSA) an overflow rewrites a root-of-trust key silently. | | |
 | | | `.vector_handlers` is an orphan section placed after `_code_end`, outside the overlap check (F-157). | | |
@@ -246,6 +236,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14 (`cf79ee28`): a `tzasc_init()` that fails is recorded as bypassed and refuses the boot | | |
 | | | (F-248). Left, each needing a board or OP-TEE: region 1 gets the physical DDR base, GPR9 has no | | |
 | | | lock, TZASC1_BOOT_LOCK is unread | | |
+| | | 2026-11-14, D-084: the TZC-380 TRM goes on the share | | |
 | F-320 | `doc/interfaces/platform.md` 3.3, `src/boot/boot.c` | Stretches without a kick on the boot | Verified (code) | open |
 | | | path that aren't in 3.3's list of what `CONFIG_WATCHDOG_TIMEOUT` must be longer than. Since F-243 the | | |
 | | | kicks are: after each chunk, and before the jump. (1) 3.3 doesn't say whether a chunk's kick comes before | | |
@@ -262,6 +253,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | isn't is a driver's wait that runs to its bound (F-321). To decide: the list names these stretches, or the | | |
 | | | loop kicks once per candidate. `boot_image_copy_and_hash()` (no caller, kept by D-020) copies and hashes a | | |
 | | | whole part at once: no chunk to kick for | | |
+| | | 2026-11-14, D-084: the loop kicks once per candidate; 3.3 and `boot.c` to change | | |
 | F-321 | `src/drivers/mmc/imx_usdhc.c`, the defconfigs | One chunk's read may wait longer | Verified (code) | open |
 | | | than the watchdog. The uSDHC's data wait is `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us per byte, and a chunk | | |
 | | | is one request: 6.0 s for 1 MiB (jiffy, imx8mpevk), 9.2 s for 4 MiB (imx8qxmek, imx8mevk, imx8dxlevk), | | |
@@ -277,6 +269,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | handful in a boot of the MEK's 15 MB image. `platform.md` 3.3 has the kick cheap; the i.MX WDOG's is two | | |
 | | | register writes, the SCU's isn't measured. To measure on the MEK (`scripts/boot-time-image`). With | | |
 | | | `plat-imx.md` 7: the 8X's kick before arming is unchecked | | |
+| | | 2026-11-14, D-084: Jonas: measure it on the MEK | | |
 | F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL | Verified (on jiffy) | open |
 | | | RM (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 | | |
 | | | (supervisor only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code | | |
@@ -343,6 +336,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-13 (`404803b1`): `CONFIG_SLC_EOL`, off by default, on in the host's defconfig: without it | | |
 | | | `slc_set_eol()` and SLC_SET_EOL answer NOT_SUPPORTED and reach nothing, which is what every board | | |
 | | | answered already (no port has `set_eol`). Left: each port's own end of life, or why it can't | | |
+| | | 2026-11-14, D-084: NXP's field return; a fuse, or the 8X's signed SECO message (PR #51) | | |
 | F-325 | `doc/interfaces/board.md` 5.3, `include/boot/image_helpers.h` | What 5.3 doesn't say | Verified (code) | open |
 | | | about `boot_image_get_bpak_header()`, and what the code does since F-266. (1) Its header: | | |
 | | | `boot/image_helpers.h`, with the format's other functions, so a board that asks for the header | | |
@@ -668,6 +662,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | uses. Without an option: the 6UL's USB OTG2, the 8MQ's and the 8MP's USB2, the 8QXP's USB OTG1, the | | |
 | | | 8DXL's USB OTG1, the RT1060's USB OTG2. Their set up would be SoC code nobody can run. For Jonas: | | |
 | | | write it untested, or does the rule mean the ports that have code. From F-267 | | |
+| | | 2026-11-14, D-084: every port the ROM boots from, one per build, Kconfig by driver and port; write them | | |
 | F-403 | `doc/architecture/boot.md` 3, `ab_state.c` | What the A/B policy does where the | Verified (code) | open |
 | | | contract is silent, from the fixes of F-173 to F-393, for Jonas. (1) A resync of two valid copies | | |
 | | | that can't be written: init returns PB_OK with the primary's state, while a repair of a corrupt or | | |
@@ -802,12 +797,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (0x824010) contradicts its own "0x3 = Plus". `mm.h`'s `CCM_ANALOG_DIGPROG` is the 8MQ's | | |
 | | | address, wrong on the 8MP (unused). 2026-11-14 on the 8MP EVK: 1.1 (A1, DIGPROG at 0x800 | | |
 | | | read), 1000 MHz, 2000 MHz; the CORE_SEL question stays. The 8MQ isn't run (imx8mevk builds) | | |
+| | | 2026-11-14: Jonas can borrow an 8MQ | | |
 | F-433 | `src/plat/imx6ul/plat.c`, `src/plat/imxrt/plat.c` | `plat_get_info()` on the 6UL and the | Verified (code) | open |
 | | | RT. 6UL: the 6ULL's DIGPROG (0x65) is Linux's and U-Boot's, not in the 6UL RM, and the 6ULZ | | |
 | | | reads the same; an MMDC on PLL4 is "none set up". RT: the RM gives DIGPROG 0x006C0000 (1.0) | | |
 | | | alone, so the revision's split into major and minor is the other i.MX's. 2026-11-14 on the | | |
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
+| | | 2026-11-14: no 6ULL board for now | | |
 | F-437 | `src/plat/imx6ul/plat.c` `imx_mmap` | The 6UL maps the OCRAM as 256 KiB from 0x900000, while its link script | Reported (review) | open |
 | | | ends the OCRAM at 0x920000 (128 KiB, the 6UL's and the 6ULL's): the 128 KiB above are mapped as Normal | | |
 | | | memory, F-158's class. Found by the review of F-158's package, unverified against the RM: read the 6UL | | |

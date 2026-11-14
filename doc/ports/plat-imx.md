@@ -224,7 +224,7 @@ keys, and CAAM's MID for OP-TEE.
   `plat_lockdown()` SW_STICKY is 0x1e and the shadow write is refused. A watchdog reset (Linux's
   `reboot`) clears SW_STICKY, so command mode can revoke keys after a reboot, and HAB still boots.
 - **i.MX8M**: nothing locked yet; pb doesn't support its HAB (D-027) and its CSF leaves revocation
-  locked. NXP's U-Boot (`secure_lockup()`, i.MX8MQ, SPL, closed devices) sets SW_STICKY's field
+  locked. D-084: pb gets the 8M's HAB, then `plat_lockdown()` sets the locks as on the 6UL. NXP's U-Boot (`secure_lockup()`, i.MX8MQ, SPL, closed devices) sets SW_STICKY's field
   return and SRK revoke locks and locks SCS. The 8MP's OCOTP registers aren't in its public RM.
 - **i.MX8X** (SECO) and **i.MX RT**: unchecked.
 
@@ -316,7 +316,7 @@ linked at `PB_ENTRY` and entered at its first byte, and puts around it what the 
 
 ## 7. Conformance
 
-Where each port is (2026-11-11).
+Where each port is (2026-11-14).
 
 | Requirement                          | imx6ul       | imx8m             | imx8x      | imxrt     | Finding       |
 | ------------------------------------ | ------------ | ----------------- | ---------- | --------- | ------------- |
@@ -327,7 +327,7 @@ Where each port is (2026-11-11).
 | `plat_reset()` before early init     | yes          | yes               | yes        | yes       | F-262         |
 | `plat_wdog_kick()` before arming     | yes          | yes               | yes        | yes       | F-234         |
 | `plat_get_boot_reason()`             | yes          | yes               | yes        | yes       | F-236         |
-| The unique id fails on a failed read | yes          | yes               | unchecked  | yes       | F-200         |
+| The unique id fails on a failed read | yes          | yes               | can't fail | yes       | F-416         |
 | Serial download in                   | yes          | yes               | yes        | pins only | F-251         |
 | `plat_get_boot_source()`             |              |                   |            |           |               |
 | `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
@@ -339,14 +339,14 @@ Where each port is (2026-11-11).
 | `bl_params`' region (5.3)            |              |                   |            |           |               |
 | The system controller's API through  | n/a          | n/a               | yes        | n/a       |               |
 | the platform header (7)              |              |                   |            |           |               |
-| TrustZone filter                     | partly       | partly            | n/a (BL31) | n/a       | F-241, F-208, |
-|                                      |              |                   |            |           | F-261         |
-| `plat_lockdown()`                    | yes          | yes (nothing yet) | unchecked  | unchecked | F-244         |
+| TrustZone filter                     | partly       | partly            | n/a (BL31) | n/a       | F-241, F-261  |
+| `plat_lockdown()`                    | yes          | no (HAB first,    | unchecked  | unchecked | F-244, D-084  |
+|                                      |              | D-084)            |            |           |               |
 | Bus access control                   | no (AIPS-TZ) | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
 | `plat_rot`, `plat_slc`               | yes          | yes (no HAB; the  | yes        | yes       |               |
 |                                      |              | 8MQ can't read a  |            |           |               |
 |                                      |              | key's status)     |            |           |               |
-| EOL as the SoC's own state           | no           | no                | no         | no        | F-263         |
+| EOL as the SoC's own state           | no           | no                | no         | no        | F-263, D-084  |
 | Crypto engine and RNG in             | yes          | yes               | yes (no    | yes (Mbed |               |
 | `plat_init()`                        |              |                   | RNG)       | TLS)      |               |
 | MMU from `pb_mmu_init()`             | yes          | yes               | yes        | n/a       | F-158, F-269  |
@@ -354,3 +354,6 @@ Where each port is (2026-11-11).
 | Image stages                         | yes          | yes               | yes        | yes       | F-240         |
 | `<p>_plat()` accessor                | yes          | no                | yes        | no        |               |
 | `plat_get_info()`                    | yes (jiffy)  | 8MP EVK; 8MQ not  | yes (MEK)  | yes       | F-432, F-433  |
+| The header: the tick's accuracy, the | no           | no                | no         | no        |               |
+| longest stretch without a kick, what |              |                   |            |           |               |
+| `plat_lockdown()` locks (7)          |              |                   |            |           |               |
