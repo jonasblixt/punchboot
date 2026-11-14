@@ -307,6 +307,18 @@ ALLOWED = [
 ]
 
 
+
+def budget(tasks: int) -> tuple[int, int]:
+    """Return the workers and each one's make jobs for this many tasks.
+
+    Together they stay within PB_JOBS (scripts/ci/host-test.sh), or the CPUs
+    this process may run on: a pool of a dozen makes of -j<cores> each loaded
+    an 8 core machine to 100.
+    """
+    jobs = int(os.environ.get("PB_JOBS") or len(os.sched_getaffinity(0)))
+    workers = max(1, min(jobs, tasks))
+    return workers, max(1, jobs // workers)
+
 def say(text: str) -> None:
     """Print a line of the report."""
     sys.stdout.write(text + "\n")
@@ -358,7 +370,7 @@ class Links:
             values = {**self.firmware, **values}
         cmd = [
             "make",
-            f"-j{os.cpu_count() or 1}",
+            f"-j{budget(len(BOARDS))[1]}",
             f"BOARD=src/board/{board}",
             f"KCONFIG_CONFIG={config}",
             f"CROSS_COMPILE={BOARDS[board]}",
@@ -459,7 +471,7 @@ def main() -> int:
     # The boards at once, each in build directories of its own. A board's two
     # builds run after each other: the i.MX8M's both copy its firmware to blobs/
     links = Links(root, work)
-    with concurrent.futures.ThreadPoolExecutor() as pool:
+    with concurrent.futures.ThreadPoolExecutor(budget(len(BOARDS))[0]) as pool:
         reports = list(pool.map(links.check_board, BOARDS))
 
     lines = [line for report in reports for line in report]

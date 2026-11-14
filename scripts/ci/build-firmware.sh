@@ -84,6 +84,14 @@ esac
 make BOARD="src/board/$board" \
      KCONFIG_CONFIG="configs/${board}_defconfig" \
      CROSS_COMPILE="$cross" \
-     -j"$(nproc)" \
+     -j"${PB_JOBS:-$(nproc)}" \
      "$@" \
      "build-$board/pb.bin"
+
+# No LOAD segment of pb is writable and executable (F-090, F-396): pb.bin
+# doesn't carry the headers, but a debugger loads the ELF by them. The 32 bit
+# ld doesn't warn about one.
+if "${cross}readelf" -lW "build-$board/pb" | grep -E '^ +LOAD .* RWE '; then
+    echo "build-$board/pb has a writable and executable LOAD segment" >&2
+    exit 1
+fi

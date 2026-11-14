@@ -15,6 +15,7 @@ add_test(
             ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/config
 )
 set_tests_properties(make.config PROPERTIES LABELS make TIMEOUT 60 SKIP_RETURN_CODE 77)
+
 # The link's checks of a board's addresses (platform.md 5.1): each fails when
 # its condition is broken. It builds a board of each platform
 add_test(
@@ -24,6 +25,12 @@ add_test(
 )
 set_tests_properties(make.link PROPERTIES LABELS make TIMEOUT 300 SKIP_RETURN_CODE 77)
 
+add_test(
+    NAME make.include_dirs
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_include_dirs.py
+            ${CMAKE_SOURCE_DIR}
+)
+set_tests_properties(make.include_dirs PROPERTIES LABELS make TIMEOUT 60)
 
 # The host build: pb-host links every file of the firmware core, as the
 # firmware's link does, so a task in a file nothing refers to runs (F-407)
