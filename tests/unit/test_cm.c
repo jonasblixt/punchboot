@@ -4059,24 +4059,31 @@ static void test_run_connect(void **state)
     assert_true(t.connect_calls >= CONFIG_CM_TRANSPORT_READY_TIMEOUT - 1);
 }
 
-static void test_run_retries(void **state)
+/*
+ * usb.md 2.4: every error from complete() but -PB_ERR_AGAIN is lost, a
+ * timeout too. While pb waits for a command, -PB_ERR_TIMEOUT ends the
+ * session and the transport is restarted; it was polled on like
+ * -PB_ERR_AGAIN, and the stack's next poll was -PB_ERR_STATE (F-287). The
+ * command is the next host's, and the restart's
+ */
+static void test_timeout_while_waiting_is_lost(void **state)
 {
     (void)state;
 
-    /* The command read completes after a timeout and a retry: -PB_ERR_TIMEOUT
-     * while pb waits for a command is polled on, like -PB_ERR_AGAIN, and is
-     * not a lost transport (F-287). The fake starts once (max_inits is 1), so
-     * a restart on the timeout would end command mode with the command
-     * unanswered */
-    t.complete_rcs[0] = -PB_ERR_TIMEOUT;
-    t.complete_rcs[1] = -PB_ERR_AGAIN;
+    t.max_inits = 2;
+    t.complete_rcs[0] = -PB_ERR_AGAIN;
+    t.complete_rcs[1] = -PB_ERR_TIMEOUT;
     t.n_complete_rcs = 2;
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
     run();
     expect_result(PB_RESULT_OK);
     expect_end();
-    /* The start, and the restart when the host was gone after its command */
-    assert_int_equal(t.init_calls, 2);
+    /* The start, the restart on the timeout, and the one the fake refuses
+     * when the host was gone after its command */
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.connect_calls, 2);
+    /* A restart is no disconnect yet (usb.md 2.1, F-287) */
+    assert_int_equal(t.disconnect_calls, 0);
 }
 
 static void test_transport_errors_in_commands(void **state)
@@ -4118,8 +4125,7 @@ static void expect_part_table(void)
  * command-mode.md 3.1: the session ends with the transport. A host that
  * comes after an unplug or a bus reset (usb.md 2.4), or after a client
  * closed the socket (2.6), finds a locked device not authenticated. Every
- * error from complete() other than AGAIN is lost; TIMEOUT is still polled
- * (F-287).
+ * error from complete() other than AGAIN is lost, TIMEOUT too (F-287).
  */
 static void test_session_ends_with_the_transport(void **state)
 {
@@ -4137,6 +4143,10 @@ static void test_session_ends_with_the_transport(void **state)
     host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
     host_lost(-PB_ERR);
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_auth_token();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_lost(-PB_ERR_TIMEOUT);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
     run();
 
     expect_result(PB_RESULT_OK);
@@ -4149,10 +4159,15 @@ static void test_session_ends_with_the_transport(void **state)
     expect_part_table();
     /* And the one after it */
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_part_table();
+    /* And the one after a timeout */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_end();
     /* The transport was started for each host, and waited for each */
-    assert_int_equal(t.init_calls, 4);
-    assert_int_equal(t.connect_calls, 3);
+    assert_int_equal(t.init_calls, 5);
+    assert_int_equal(t.connect_calls, 4);
 }
 
 /* command-mode.md 3.1, 4.4: a transfer inside a command that fails ends the
@@ -4919,7 +4934,7 @@ int main(void)
         CM_TEST(test_setup_without_the_device_uuid_fails),
         CM_TEST(test_task_polls_once_per_call),
         CM_TEST(test_run_connect),
-        CM_TEST(test_run_retries),
+        CM_TEST(test_timeout_while_waiting_is_lost),
         CM_TEST(test_transport_errors_in_commands),
         CM_TEST(test_session_ends_with_the_transport),
         CM_TEST(test_session_ends_with_a_lost_transfer),

@@ -699,10 +699,12 @@ int cm_main_task(void)
         case CM_COMMAND:
             rc = cm_transport_complete();
 
-            /* No command yet. A timeout is polled on (F-287) */
-            if (rc == -PB_ERR_AGAIN || rc == -PB_ERR_TIMEOUT)
+            /* No command yet */
+            if (rc == -PB_ERR_AGAIN)
                 return PB_OK;
 
+            /* Every other error is lost, a timeout too (usb.md 2.4): the
+             * transport is restarted and the device waits for a host */
             if (rc != PB_OK) {
                 LOG_ERR("Read error %i", rc);
                 state = CM_START;

@@ -158,8 +158,7 @@ on the way (3.2) is bounded.
   transport reports each as an error of the transfer that was running. One is always running
   while a session waits for a command. What happens while none runs, inside a command, is
   kept and is the error of the next transfer, so nothing is missed. **Not yet in the code
-  (F-287, F-363)**: the ChipIdea reports a bus reset and no unplug; and command mode keeps
-  polling after `-PB_ERR_TIMEOUT`.
+  (F-287, F-363)**: the ChipIdea reports a bus reset and no unplug.
 - It is also where the stack answers endpoint 0 (3.2).
 
 ### 2.5 Function : cm_transport_disconnect() [mandatory]
