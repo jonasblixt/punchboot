@@ -69,92 +69,6 @@ static int usdhc_emmc_setup(void)
     return imx_usdhc_init(&cfg, MHz(imx6ul_plat()->usdhc1_clk_MHz));
 }
 
-static void boot_source_str(char *out, size_t size)
-{
-    struct pb_boot_source src;
-    char uu_str[37];
-
-    if (plat_get_boot_source(&src) != PB_OK) {
-        snprintf(out, size, "Not supported");
-        return;
-    }
-
-    switch (src.kind) {
-    case PB_BOOT_SOURCE_STORAGE: {
-        bio_dev_t dev = bio_get_part_by_uu(src.part_uu);
-
-        uuid_unparse(src.part_uu, uu_str);
-        snprintf(out, size, "%s (%s)", (dev >= 0) ? bio_get_description(dev) : "?", uu_str);
-    } break;
-    case PB_BOOT_SOURCE_USB:
-        snprintf(out, size, "USB");
-        break;
-    case PB_BOOT_SOURCE_UART:
-        snprintf(out, size, "UART");
-        break;
-    case PB_BOOT_SOURCE_DEBUGGER:
-        snprintf(out, size, "Debugger");
-        break;
-    default:
-        snprintf(out, size, "Unknown");
-        break;
-    }
-}
-
-/*
- * The boot configuration the ROM used (RM 8.2, Table 8-15 for uSDHC): SRC
- * SBMR1 is BOOT_CFG1..4 from the fuses or the boot pins, the BOOT_CFG fuse
- * word is the shadow at 0x450. Only read.
- */
-#define SRC_SBMR1       (IMX6UL_SRC_BASE + 0x04)
-#define SRC_SBMR2       (IMX6UL_SRC_BASE + 0x1c)
-#define OCOTP_BOOT_CFG0 (IMX6UL_OCOTP_CTRL_BASE + 0x450)
-
-static const char *boot_bus_width_str(uint32_t cfg)
-{
-    switch (IMX6UL_BOOT_CFG_BUS_WIDTH_OF(cfg)) {
-    case IMX6UL_BOOT_BUS_1BIT:
-        return "1-bit";
-    case IMX6UL_BOOT_BUS_4BIT:
-        return "4-bit";
-    case IMX6UL_BOOT_BUS_8BIT:
-        return "8-bit";
-    case IMX6UL_BOOT_BUS_4BIT_DDR:
-        return "4-bit DDR";
-    case IMX6UL_BOOT_BUS_8BIT_DDR:
-        return "8-bit DDR";
-    default:
-        return "reserved";
-    }
-}
-
-static int board_status(uint8_t *response_bfr, size_t *response_size)
-{
-    char *response = (char *)response_bfr;
-    size_t resp_buf_size = *response_size;
-    char boot_source[128];
-    uint32_t sbmr1 = mmio_read_32(SRC_SBMR1);
-
-    boot_source_str(boot_source, sizeof(boot_source));
-
-    (*response_size) = snprintf(response,
-                                resp_buf_size,
-                                "Board status OK!\n"
-                                "Boot source: %s\n"
-                                "Boot config: SBMR1 0x%08x, SBMR2 0x%08x, fuses 0x450 0x%08x\n"
-                                "ROM eMMC boot: %s, %s, %s speed, %s boot\n",
-                                boot_source,
-                                (unsigned int)sbmr1,
-                                (unsigned int)mmio_read_32(SRC_SBMR2),
-                                (unsigned int)mmio_read_32(OCOTP_BOOT_CFG0),
-                                (sbmr1 & IMX6UL_BOOT_CFG_MMC) ? "MMC" : "SD",
-                                boot_bus_width_str(sbmr1),
-                                (sbmr1 & IMX6UL_BOOT_CFG_MMC_HIGH_SPEED) ? "high" : "normal",
-                                (sbmr1 & IMX6UL_BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
-
-    return PB_OK;
-}
-
 /*
  * Warning: an example configuration. Be careful with the slc commands.
  * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
@@ -362,5 +276,4 @@ const struct board board = {
     .image_regions = image_regions,
     .bootargs = "console=ttymxc1,115200 quiet ",
     .bootargs_verbose = "console=ttymxc1,115200 earlyprintk ",
-    .status = board_status,
 };
