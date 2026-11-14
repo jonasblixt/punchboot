@@ -1611,6 +1611,48 @@ static void test_poll_between_descriptors(void **state)
     assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
 }
 
+/* RT1060 RM 42.5.6.1 (the 6UL's 54.4.6.1): after the controller's reset its
+ * mode is set first, once, then DEVICEADDR and ENDPTLISTADDR, device mode
+ * registers, then Run. USBMODE keeps Stream Disable and the setup lockout
+ * off (F-140: ENDPTLISTADDR and DEVICEADDR were written before USBMODE) */
+static void test_init_order(void **state)
+{
+    size_t start = fake_reg_log_len;
+    size_t rst = SIZE_MAX;
+    size_t mode = SIZE_MAX;
+    size_t list = SIZE_MAX;
+    size_t addr = SIZE_MAX;
+    size_t run = SIZE_MAX;
+    (void)state;
+
+    assert_int_equal(ops->init(), PB_OK);
+
+    for (size_t i = start; i < fake_reg_log_len; i++) {
+        const struct fake_reg_write *w = &fake_reg_log[i];
+
+        if (w->addr == BASE + CI_USBCMD && (w->value & USBCMD_RST)) {
+            assert_int_equal(rst, SIZE_MAX);
+            rst = i;
+        } else if (w->addr == BASE + CI_USBMODE) {
+            assert_int_equal(mode, SIZE_MAX);
+            assert_int_equal(w->value, USBMODE_SDIS | USBMODE_SLOM | USBMODE_CM_DEVICE);
+            mode = i;
+        } else if (w->addr == BASE + CI_ENDPTLISTADDR && list == SIZE_MAX) {
+            list = i;
+        } else if (w->addr == BASE + CI_DEVICEADDR && addr == SIZE_MAX) {
+            addr = i;
+        } else if (w->addr == BASE + CI_USBCMD && (w->value & USBCMD_RS) && run == SIZE_MAX) {
+            run = i;
+        }
+    }
+
+    assert_true(rst < mode);
+    assert_true(mode < addr);
+    assert_true(mode < list);
+    assert_true(list < run);
+    assert_true(run != SIZE_MAX);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -1645,6 +1687,7 @@ int main(void)
         cmocka_unit_test_setup(test_descriptor_error, setup),
         cmocka_unit_test_setup(test_short_packet_is_an_error, setup),
         cmocka_unit_test_setup(test_poll_between_descriptors, setup),
+        cmocka_unit_test_setup(test_init_order, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

@@ -1066,6 +1066,22 @@ static int imx_ci_udc_init_internal(void)
     if (rc != PB_OK)
         return rc;
 
+    /*
+     * The device mode first, after the reset, then the queue heads,
+     * ENDPOINTLISTADDR and Run (RT1060 RM 42.5.6.1, the 6UL's 54.4.6.1). An
+     * OTG core's mode is idle after a reset, and CM is written once after
+     * each (42.7.33). The setup lockout is off: the driver uses the
+     * tripwire (42.5.6.4.2.1).
+     *
+     * Stream disable (SDIS) is set, as it always was. The RM (42.7.33, the
+     * 6UL's 54.6.33): it "disables double priming on both RX and TX for
+     * low bandwidth systems", in high speed "all packets received are
+     * responded to with a NYET handshake", and it "substantially limits
+     * the overall USB performance that can be achieved". Whether a stream
+     * is faster without it, and as correct, is for the bench (F-140).
+     */
+    mmio_write_32(imx_ci_udc_base + CI_USBMODE, USBMODE_SDIS | USBMODE_SLOM | USBMODE_CM_DEVICE);
+
     /* In reset the controller writes nothing: what an init before this one
      * gave it is taken back, the queue heads are written, and they are the
      * controller's from here on */
@@ -1084,9 +1100,6 @@ static int imx_ci_udc_init_internal(void)
 
     /* Program QH top */
     mmio_write_32(imx_ci_udc_base + CI_ENDPTLISTADDR, (uint32_t)(uintptr_t)dqhs);
-
-    /* Enable USB */
-    mmio_write_32(imx_ci_udc_base + CI_USBMODE, USBMODE_SDIS | USBMODE_SLOM | USBMODE_CM_DEVICE);
 
     /* Interrupt threshold 0 (immediate), the driver polls */
     mmio_write_32(imx_ci_udc_base + CI_USBCMD, USBCMD_ITC(0) | USBCMD_RS);
