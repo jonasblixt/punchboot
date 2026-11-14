@@ -176,6 +176,10 @@ def test_boot_time(
     us = [int(t) for t in re.findall(r"^MCUTEST BOOTTIME (\d+) us", text, re.MULTILINE)]
     assert us, text
     assert "FAIL" not in text, text
+    # Each time is a reset this series asked for: none is the clock of a
+    # series that didn't end (F-171), which the image discards
+    resets = re.findall(r"^MCUTEST RESET boot", text, re.MULTILINE)
+    assert len(us) == len(resets), text
     ms = [t / 1000 for t in us]
     print(  # noqa: T201
         f"\nwarm reset to entry, {len(ms)} runs: min {min(ms):.2f} "

@@ -330,19 +330,37 @@ static void entry_checks(char *system)
 #if APP_MODE_BOOTTIME
 /* The persistent words: a magic, the clock at the reset request (us, 32 bit
  * is enough for a boot) and the runs so far */
-#define BOOTTIME_MAGIC 0x50424254 /* "PBBT" */
+#define BOOTTIME_MAGIC    0x50424254 /* "PBBT" */
+/* The longest a boot can take without a watchdog to bound it */
+#define BOOTTIME_LIMIT_US (60u * 1000000u)
 
+/*
+ * The words describe the reset this image asked for, and only until its next
+ * entry: they are read and cleared first. Words that a series left when it
+ * didn't end (a reset that didn't come back here, the board reset or powered
+ * in between) gave the next series' first boot the old reset's clock: one
+ * boot of 3262 s (F-171). A time longer than a boot can take, the watchdog's
+ * timeout, is such words: not a measurement, and the series starts over.
+ */
 static void boottime(uint64_t entry_us)
 {
     uint32_t runs = 0;
 
     if (board_persist_read(0) == BOOTTIME_MAGIC) {
-        uint32_t reset_us = board_persist_read(1);
+        uint32_t us = (uint32_t)entry_us - board_persist_read(1);
+        uint32_t wdog_ms = 0;
+        uint32_t limit_us = board_wdog_running(&wdog_ms) ? wdog_ms * 1000u : BOOTTIME_LIMIT_US;
 
-        runs = board_persist_read(2);
-        print("MCUTEST BOOTTIME ");
-        print_dec((uint32_t)entry_us - reset_us);
-        print(" us\n");
+        board_persist_write(0, 0);
+
+        if (us <= limit_us) {
+            runs = board_persist_read(2);
+            print("MCUTEST BOOTTIME ");
+            print_dec(us);
+            print(" us\n");
+        } else {
+            info("boottime-stale", "us", us);
+        }
     }
 
     if (runs < APP_BOOT_RUNS) {
@@ -351,6 +369,7 @@ static void boottime(uint64_t entry_us)
         /* Without words that keep their values it would reset forever */
         if (board_persist_read(0) != BOOTTIME_MAGIC || board_persist_read(2) != runs + 1) {
             check("boottime-persist", false, "read back", board_persist_read(0));
+            board_persist_write(0, 0);
             print("MCUTEST RESET command-mode\n");
             delay_ms(10);
             board_reset(true);
