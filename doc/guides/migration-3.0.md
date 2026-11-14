@@ -469,6 +469,11 @@ CONFIG_IMX6UL_CM_USB_OTG1=y
 - A board whose command mode needs something of the PCB (a mux, a VBUS switch) has no hook for
   it: none was needed so far, and one can be added (`board.md` 4.1).
 - pb has no other transport than USB (`board.md` 4.2).
+- Each USB driver checks at build time that command mode's buffer (`CONFIG_CM_BUF_SIZE_KiB`) and
+  the boot's piece (`CONFIG_BOOT_LOAD_CHUNK_kB`) fit the longest transfer it can queue: 4 MiB on
+  the ChipIdea (i.MX6UL, i.MX8DXL, RT1060), 16 MiB - 1 KiB on the DWC3, 15.75 MiB on the Cadence
+  USB3. In 2.x the ChipIdea sized its descriptors from the buffer: a board above 4 MiB doesn't
+  build now (F-287).
 
 Rests on: D-049, `board.md` 4.1 and 4.2, `platform.md` 3.10.
 

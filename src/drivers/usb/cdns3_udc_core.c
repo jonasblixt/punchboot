@@ -163,7 +163,16 @@ PB_DMA_ARRAY(struct cdns_trb, trb_out, CDNS_TRB_COUNT);
  * stop gap behind the transfer's. A transfer of CDNS_TRB_COUNT TRBs wrote
  * its stop gap past the ring (F-205). 15.75 MiB, above command mode's
  * buffer and the boot's piece (usb.md 2.3, 4.3; 4 MiB each on the MEK) */
-#define CDNS_XFER_MAX  ((size_t)TRB_MAX_LENGTH * (CDNS_TRB_COUNT - 1))
+#define CDNS_XFER_MAX ((size_t)TRB_MAX_LENGTH * (CDNS_TRB_COUNT - 1))
+
+#ifdef CONFIG_CM_BUF_SIZE_KiB
+_Static_assert((size_t)CONFIG_CM_BUF_SIZE_KiB * 1024 <= CDNS_XFER_MAX,
+               "CONFIG_CM_BUF_SIZE_KiB: above the cdns3's longest transfer");
+#endif
+#ifdef CONFIG_BOOT_LOAD_CHUNK_kB
+_Static_assert((size_t)CONFIG_BOOT_LOAD_CHUNK_kB * 1024 <= CDNS_XFER_MAX,
+               "CONFIG_BOOT_LOAD_CHUNK_kB: above the cdns3's longest transfer");
+#endif
 
 /* EP0's max packet size at high speed, the descriptor's bMaxPacketSize0. 512
  * is SuperSpeed's, which pb doesn't support: at high speed a longer reply,
