@@ -666,6 +666,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 8DXL's USB OTG1, the RT1060's USB OTG2. Their set up would be SoC code nobody can run. For Jonas: | | |
 | | | write it untested, or does the rule mean the ports that have code. From F-267 | | |
 | | | 2026-11-14, D-084: every port the ROM boots from, one per build, Kconfig by driver and port; write them | | |
+| | | 2026-11-14, Jonas: USB ports only for now; no UART transport for command mode | | |
 | F-403 | `doc/architecture/boot.md` 3, `ab_state.c` | What the A/B policy does where the | Verified (code) | open |
 | | | contract is silent, from the fixes of F-173 to F-393, for Jonas. (1) A resync of two valid copies | | |
 | | | that can't be written: init returns PB_OK with the primary's state, while a repair of a corrupt or | | |
