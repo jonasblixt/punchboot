@@ -26,7 +26,11 @@
  * enumeration as fatal, so a control transfer that a USB reset or a new
  * SETUP cuts short, or that times out, ends as done (aborted) instead of an
  * error; the next poll_setup_pkt() starts over. Bulk transfers return
- * -PB_ERR_AGAIN until done and -PB_ERR_IO after a USB reset.
+ * -PB_ERR_AGAIN until done. A USB reset or a disconnect of a configured
+ * device is lost (usb.md 2.4, 4.3): every bulk transfer, the one that runs
+ * and the next one started, fails with -PB_ERR_IO until the device is
+ * configured again or started over. Before the device is configured a reset
+ * is the host's enumeration and no error (usb.md 2.2).
  */
 
 #include <drivers/usb/dwc3_udc.h>
@@ -77,7 +81,6 @@ struct dwc3_ep {
     bool not_ready; /* XferNotReady received, stage in not_ready_stage */
     unsigned int not_ready_stage;
     bool cmd_complete; /* EPCmdCmplt received (End Transfer) */
-    bool reset; /* A USB reset ended this transfer */
     uint8_t rsc_idx;
     uint16_t mps;
     void *buf;
@@ -119,6 +122,11 @@ static unsigned int ev_index;
 static bool reset_pending;
 static bool connect_done_pending;
 static bool disconnect_pending;
+/* The host configured the device, and then reset the bus or left it: every
+ * bulk transfer fails until the device is configured or started again
+ * (usb.md 2.4, 4.3) */
+static bool configured;
+static bool lost;
 static uintptr_t base;
 
 static int dwc3_wait_clear(uintptr_t reg, uint32_t mask, uint32_t timeout_us)
@@ -326,7 +334,6 @@ static int dwc3_start_trb(usb_ep_t ep, void *buf, size_t length, size_t size, ui
     ep_dma[ep].begun = true;
 
     eps[ep].complete = false;
-    eps[ep].reset = false;
     eps[ep].buf = buf;
     eps[ep].length = length;
 
@@ -409,11 +416,14 @@ static void dwc3_handle_reset(void)
     LOG_DBG("USB reset");
 
     for (usb_ep_t ep = USB_EP1_OUT; ep < USB_EP_END; ep++) {
-        if (eps[ep].active) {
+        if (eps[ep].active)
             (void)dwc3_end_transfer(ep);
-            eps[ep].reset = true;
-        }
     }
+
+    /* Before the device is configured a reset is the host's enumeration
+     * and no error (usb.md 2.2) */
+    if (configured)
+        lost = true;
 
     /* The control endpoint isn't affected by the reset: end a data or
      * status stage in progress and go back to the Setup stage */
@@ -463,6 +473,8 @@ static void dwc3_handle_events(void)
     if (disconnect_pending) {
         disconnect_pending = false;
         LOG_INFO("Disconnected");
+        if (configured)
+            lost = true;
         /* RM 11.2.2.5.1.7 */
         mmio_clrsetbits_32(
             base + DWC3_DCTL, DCTL_ULSTCHNGREQ_MASK, DCTL_ULSTCHNGREQ(DCTL_ULSTCHNGREQ_RX_DET));
@@ -539,6 +551,12 @@ static int dwc3_udc_xfer_start(usb_ep_t ep, void *buf, size_t length)
         return dwc3_start_trb(ep, buf, length, length, TRBCTL_CONTROL_DATA);
     }
 
+    /* A reset or a disconnect seen while no transfer ran is the error of
+     * the next one; one still in the event buffer is the error of its
+     * xfer_complete. Endpoint 0 goes on: the host enumerates */
+    if (lost)
+        return -PB_ERR_IO;
+
     if (eps[ep].mps == 0) {
         LOG_ERR("%s is not configured", ep_to_str(ep));
         return -PB_ERR_STATE;
@@ -570,7 +588,8 @@ static int dwc3_udc_xfer_complete(usb_ep_t ep)
 
     dwc3_handle_events();
 
-    if (eps[ep].reset)
+    /* A reset or a disconnect ends a bulk transfer: lost */
+    if (lost)
         return -PB_ERR_IO;
 
     if (!eps[ep].complete)
@@ -718,6 +737,8 @@ static int dwc3_udc_set_configuration(const struct usb_endpoint_descriptor *desc
     }
 
     mmio_write_32(base + DWC3_DALEPENA, enabled);
+    configured = true;
+    lost = false;
     return PB_OK;
 }
 
@@ -739,6 +760,8 @@ static int dwc3_udc_init(void)
     reset_pending = false;
     connect_done_pending = false;
     disconnect_pending = false;
+    configured = false;
+    lost = false;
 
     /* Core and PHY soft reset, then device mode (RM GCTL[PRTCAPDIR]) */
     mmio_clrsetbits_32(base + DWC3_DCTL, DCTL_RUN_STOP, 0);
@@ -838,6 +861,8 @@ static int dwc3_udc_stop(void)
 
     /* Halted: it writes pb's memory no more (drivers.md 2.3) */
     dwc3_dma_take_back();
+    configured = false;
+    lost = false;
 
     return PB_OK;
 }

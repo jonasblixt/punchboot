@@ -332,6 +332,112 @@ static void test_stop_and_init_again(void **state)
     assert_int_equal(dma_host_in_open(), IDLE_RANGES);
 }
 
+/* The controller reports a device event: a USB reset or a disconnect */
+static void post_device_event(uint32_t type)
+{
+    post_event(DWC3_EVT_DEVICE | (type << DEVT_TYPE_SHIFT));
+}
+
+/* A transfer from the host that completes */
+static void read_ok(void)
+{
+    fill(host, 512, 3);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 512), PB_OK);
+    controller_run(USB_EP2_OUT, host, 512);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(arena + LINE, host, 512);
+}
+
+/* usb.md 2.2, 2.4, 4.3: a USB reset or a disconnect of a configured device
+ * ends the bulk transfer that runs with -PB_ERR_IO, and with none running it
+ * is kept for the next that is started or polled, on every bulk endpoint,
+ * until the device is configured again or started over. Before the device
+ * is configured a reset is the host's enumeration and no error, and
+ * endpoint 0 goes on through it (F-363: the reset was the error of the
+ * endpoint whose transfer ran only, the next start forgot it, and a
+ * disconnect was only logged) */
+static void test_bus_reset_and_disconnect_are_kept(void **state)
+{
+    static const struct usb_setup_packet set_address = {
+        .bRequest = 5,
+        .wValue = 7,
+    };
+    uint8_t packet[sizeof(struct usb_setup_packet)];
+    struct usb_setup_packet pkt;
+    (void)state;
+
+    /* Not configured: a host resets the bus when it enumerates */
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    configure();
+    read_ok();
+
+    /* During a transfer: lost, again when polled again, and the next start
+     * on any bulk endpoint */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 512), PB_OK);
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 512), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena + LINE, 512), -PB_ERR_IO);
+
+    /* Endpoint 0 answers the host's new enumeration */
+    memcpy(packet, &set_address, sizeof(packet));
+    controller_run(USB_EP0_OUT, packet, sizeof(packet));
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+    assert_memory_equal(&pkt, &set_address, sizeof(pkt));
+
+    /* Configured again, it is a new session */
+    configure();
+    read_ok();
+
+    /* Between two transfers of a command, seen while endpoint 0 is polled */
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena + LINE, 512), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_IO);
+
+    /* Between two transfers, with nothing polled: the next transfer's */
+    configure();
+    read_ok();
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena + LINE, 512), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_IO);
+    assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+
+    /* A disconnect, during a transfer and between two */
+    configure();
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 512), PB_OK);
+    post_device_event(DEVT_DISCONNECT);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 512), -PB_ERR_IO);
+    configure();
+    read_ok();
+    post_device_event(DEVT_DISCONNECT);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + LINE, 512), -PB_ERR_IO);
+
+    /* The transport is restarted: nothing is kept (usb.md 4.1) */
+    ev_write = 0;
+    ev_pending = 0;
+    assert_int_equal(ops->init(), PB_OK);
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    configure();
+    read_ok();
+
+    /* And after a stop */
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(ops->stop(), PB_OK);
+    ev_write = 0;
+    ev_pending = 0;
+    assert_int_equal(ops->init(), PB_OK);
+    configure();
+    read_ok();
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -339,6 +445,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_bulk_transfers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cancel_gives_the_buffer_back, setup, teardown),
         cmocka_unit_test_setup_teardown(test_stop_and_init_again, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_bus_reset_and_disconnect_are_kept, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);
