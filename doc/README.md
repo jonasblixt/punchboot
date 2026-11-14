@@ -37,6 +37,8 @@ Beside the levels, not normative:
 |           | `testing.md`            | Writing and running the host tests                       |
 |           | `bpak.md`               | The vendored bpak and how to update it                   |
 |           | `firmware-handoff.md`   | A brief on Arm's Firmware Handoff, for `boot.md` 5.4     |
+|           | `migration-3.0.md`      | What an out-of-tree board, driver or platform changes    |
+|           |                         | from 2.x                                                 |
 |           | `release-checklist.txt` | The steps of a release                                   |
 | `dev/`    | `status.md`             | Where the work is: read first                            |
 |           | `roadmap.md`            | What comes next, and what is to be discussed             |
@@ -45,4 +47,4 @@ Beside the levels, not normative:
 |           | `findings-closed.md`    | The fixed and rejected findings                          |
 |           | `log/`                  | What was done, per day                                   |
 
-Still to write: a porting guide and a migration guide for 3.0.0 (`guides/`).
+Still to write: a porting guide (`guides/`).
