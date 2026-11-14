@@ -20,6 +20,7 @@
 
 #include <drivers/mmc/mmc_core.h>
 #include <pb/bio.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <stdlib.h>
 #include <string.h>
@@ -205,7 +206,7 @@ static void test_tuning_window_at_end(void **state)
 /* No tap works: high speed, the boot goes on */
 static void test_tuning_fails(void **state)
 {
-    static uint8_t buf[4096];
+    static uint8_t buf[4096] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     hal_model_set_window(1, 0);
@@ -254,7 +255,7 @@ static void test_hs400_es_not_supported(void **state)
 /* HS400 without Enhanced Strobe: tuned in HS200 first, 6.6.2.3 */
 static void test_hs400(void **state)
 {
-    static uint8_t buf[4096];
+    static uint8_t buf[4096] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     dev_cfg.mode = MMC_BUS_MODE_HS400;
@@ -274,7 +275,7 @@ static void test_hs400(void **state)
  * as HS200 does */
 static void test_hs400_tuning_fails(void **state)
 {
-    static uint8_t buf[4096];
+    static uint8_t buf[4096] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     dev_cfg.mode = MMC_BUS_MODE_HS400;
@@ -329,9 +330,9 @@ static void test_hs200_not_supported(void **state)
 
 static void test_read_write(void **state)
 {
-    static uint8_t out[64 * 1024];
-    static uint8_t in[sizeof(out)];
-    static uint8_t check[sizeof(out)];
+    static uint8_t out[64 * 1024] __aligned(PB_DMA_ALIGN);
+    static uint8_t in[sizeof(out)] __aligned(PB_DMA_ALIGN);
+    static uint8_t check[sizeof(out)] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -363,8 +364,8 @@ static void test_read_write(void **state)
  * the flags they have by now */
 static void test_a_second_init_adds_no_devices(void **state)
 {
-    static uint8_t out[512];
-    static uint8_t in[512];
+    static uint8_t out[512] __aligned(PB_DMA_ALIGN);
+    static uint8_t in[512] __aligned(PB_DMA_ALIGN);
     bio_dev_t user;
     (void)state;
 
@@ -389,8 +390,8 @@ static void test_a_second_init_adds_no_devices(void **state)
  * driver has no command for it, and answered an error */
 static void test_a_length_of_0_doesnt_reach_the_driver(void **state)
 {
-    static uint8_t out[512];
-    static uint8_t in[512];
+    static uint8_t out[512] __aligned(PB_DMA_ALIGN);
+    static uint8_t in[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -411,8 +412,8 @@ static void test_a_length_of_0_doesnt_reach_the_driver(void **state)
 /* Up to 2 GiB: byte addresses, JESD84-B51 6.4.2 */
 static void test_byte_addressing(void **state)
 {
-    static uint8_t out[16 * 1024];
-    static uint8_t check[sizeof(out)];
+    static uint8_t out[16 * 1024] __aligned(PB_DMA_ALIGN);
+    static uint8_t check[sizeof(out)] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     card_cfg.user_sectors = 1024 * 1024 * 1024 / 512;
@@ -428,8 +429,8 @@ static void test_byte_addressing(void **state)
 
 static void test_boot_partitions(void **state)
 {
-    static uint8_t out[8 * 1024];
-    static uint8_t check[sizeof(out)];
+    static uint8_t out[8 * 1024] __aligned(PB_DMA_ALIGN);
+    static uint8_t check[sizeof(out)] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -451,7 +452,7 @@ static void test_boot_partitions(void **state)
 /* RPMB reads are CMD23 + CMD18 of whole frames, 6.6.22 */
 static void test_rpmb_read(void **state)
 {
-    uint8_t frame[512];
+    uint8_t frame[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -526,7 +527,7 @@ static void test_tran_speed_20mhz(void **state)
 /* GENERIC_CMD6_TIME and PARTITION_SWITCH_TIME 0: not defined (7.4.31, 7.4.56) */
 static void test_cmd6_times_not_defined(void **state)
 {
-    uint8_t buf[512];
+    uint8_t buf[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     card_cfg.generic_cmd6_time = 0;
@@ -540,7 +541,7 @@ static void test_cmd6_times_not_defined(void **state)
 /* A failed partition switch must not send the access to another partition */
 static void test_part_switch_error(void **state)
 {
-    uint8_t buf[512];
+    uint8_t buf[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -554,7 +555,7 @@ static void test_part_switch_error(void **state)
 /* An execution error during a read (Table 68, ERROR) must fail the read */
 static void test_read_status_error(void **state)
 {
-    uint8_t buf[2048];
+    uint8_t buf[2048] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -564,7 +565,7 @@ static void test_read_status_error(void **state)
 
 static void test_read_crc_error(void **state)
 {
-    uint8_t buf[2048];
+    uint8_t buf[2048] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -577,7 +578,7 @@ static void test_read_crc_error(void **state)
 
 static void test_write_crc_error(void **state)
 {
-    uint8_t buf[2048] = { 0 };
+    uint8_t buf[2048] __aligned(PB_DMA_ALIGN) = { 0 };
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -589,7 +590,7 @@ static void test_write_crc_error(void **state)
 
 static void test_cmd_crc_error(void **state)
 {
-    uint8_t buf[512];
+    uint8_t buf[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -626,8 +627,8 @@ static void test_wait_state_is_bounded(void **state)
  * one of 2^32 blocks (0 * 256 - 1 as the last block) */
 static void test_no_boot_partitions(void **state)
 {
-    static uint8_t out[4096];
-    static uint8_t in[sizeof(out)];
+    static uint8_t out[4096] __aligned(PB_DMA_ALIGN);
+    static uint8_t in[sizeof(out)] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     card_cfg.boot_size_mult = 0;
@@ -651,7 +652,7 @@ static void test_no_boot_partitions(void **state)
  * Programming, ready for data, fails the write with -PB_ERR_TIMEOUT */
 static void test_state_after_a_transfer_is_bounded(void **state)
 {
-    static uint8_t out[512];
+    static uint8_t out[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -668,7 +669,7 @@ static void test_state_after_a_transfer_is_bounded(void **state)
  * nothing is read */
 static void test_switch_wait_is_bounded(void **state)
 {
-    static uint8_t in[512];
+    static uint8_t in[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -686,7 +687,7 @@ static void test_switch_wait_is_bounded(void **state)
  * timeout, -PB_ERR_TIMEOUT, not an I/O error */
 static void test_not_ready_is_a_timeout(void **state)
 {
-    static uint8_t in[512];
+    static uint8_t in[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -786,7 +787,7 @@ static void test_a_failed_init_registers_nothing(void **state)
  * slot isn't given to another card while they name it */
 static void test_a_full_pool_leaves_no_working_device(void **state)
 {
-    static uint8_t in[512];
+    static uint8_t in[512] __aligned(PB_DMA_ALIGN);
     (void)state;
 
     for (unsigned int i = 0; i < CONFIG_BIO_MAX_DEVS - 2; i++) {
@@ -808,8 +809,8 @@ static void test_a_full_pool_leaves_no_working_device(void **state)
 static void test_a_failed_second_init_keeps_the_slot(void **state)
 {
     static struct mmc_hal hal_b;
-    static uint8_t out[512];
-    static uint8_t in[512];
+    static uint8_t out[512] __aligned(PB_DMA_ALIGN);
+    static uint8_t in[512] __aligned(PB_DMA_ALIGN);
     struct mmc_device_config cfg_b = dev_cfg;
     bio_dev_t user;
     (void)state;
@@ -853,7 +854,7 @@ static void test_a_failed_second_init_keeps_the_slot(void **state)
  * until an init works */
 static void test_a_card_of_another_size_is_refused(void **state)
 {
-    static uint8_t in[512];
+    static uint8_t in[512] __aligned(PB_DMA_ALIGN);
     bio_dev_t user;
     (void)state;
 

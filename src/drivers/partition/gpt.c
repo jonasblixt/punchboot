@@ -10,6 +10,7 @@
 #include <drivers/partition/gpt.h>
 #include <inttypes.h>
 #include <pb/crc.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <stdio.h>
@@ -74,7 +75,8 @@ static uint32_t prng_state;
 
 static struct gpt_primary_tbl primary __aligned(64);
 static struct gpt_backup_tbl backup __aligned(64);
-static uint8_t gpt_pmbr[512];
+/* Read by a device: it owns its cache lines (bio.md 3.1) */
+static uint8_t gpt_pmbr[512] __aligned(PB_DMA_ALIGN);
 static bio_dev_t gpt_dev;
 static const struct gpt_table_list *tables;
 static size_t tables_length;

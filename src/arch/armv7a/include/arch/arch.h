@@ -687,9 +687,9 @@ typedef volatile uint32_t __iomem;
 
 void exception(int id);
 
-void arch_invalidate_cache_range(uintptr_t start, size_t len);
-void arch_clean_cache_range(uintptr_t start, size_t len);
-void arch_clean_invalidate_cache_range(uintptr_t start, size_t len);
+/* The D-cache by range: arch_clean_cache_range() and the two others */
+#include <pb/arch.h>
+
 /* arch_disable_cache() flags */
 #define ARCH_CACHE_FLAG_ICACHE (1 << 0)
 #define ARCH_CACHE_FLAG_DCACHE (1 << 1)

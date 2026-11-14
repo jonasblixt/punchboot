@@ -5,11 +5,12 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(CMOCKA REQUIRED IMPORTED_TARGET cmocka)
 
 add_library(pb_unit_fakes STATIC
+    fakes/assert.c
     fakes/plat.c
     ${PROJECT_SOURCE_DIR}/src/log.c
     fakes/ramdisk.c
 )
-target_link_libraries(pb_unit_fakes PUBLIC pb_lib)
+target_link_libraries(pb_unit_fakes PUBLIC pb_lib PRIVATE PkgConfig::CMOCKA)
 
 # pb_unit_test(name SOURCES <modules under test> LIBS <extra libraries>)
 function(pb_unit_test name)
@@ -21,6 +22,15 @@ function(pb_unit_test name)
     # The unit tests take milliseconds, a hang should not block CI
     set_tests_properties(unit.${name} PROPERTIES LABELS unit TIMEOUT 60)
 endfunction()
+
+# The DMA and cache rule (drivers.md 4): pb/dma.h on a model of the D-cache,
+# which is the arch's cache functions for the tests of the drivers with DMA
+set(PB_DMA_MODEL
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/dcache.c
+    ${PROJECT_SOURCE_DIR}/src/dma.c
+)
+
+pb_unit_test(test_dma SOURCES ${PB_DMA_MODEL})
 
 pb_unit_test(test_bio SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
@@ -585,6 +595,7 @@ target_link_options(test_dwc3_udc PRIVATE -no-pie)
 # number of descriptors follows the command mode buffer's size, which
 # fakes/imx_ci_udc/config.h sets
 pb_unit_test(test_imx_ci_udc SOURCES
+    ${PB_DMA_MODEL}
     fakes/regs.c
     ${PROJECT_SOURCE_DIR}/src/delay.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/imx_ci_udc.c
@@ -712,6 +723,7 @@ target_link_options(test_imx_caam PRIVATE -no-pie)
 
 pb_unit_test(test_imx_usdhc
     SOURCES
+        ${PB_DMA_MODEL}
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c

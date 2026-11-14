@@ -8,7 +8,6 @@
  *
  */
 
-#include <arch/arch.h>
 #include <pb/bio.h>
 #include <pb/delay.h>
 #include <pb/errors.h>

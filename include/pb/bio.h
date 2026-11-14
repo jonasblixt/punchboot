@@ -313,6 +313,7 @@ int bio_get_no_of_blocks(bio_dev_t dev);
  *
  * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying read function,
  *         -PB_ERR_PARAM, lba and/or length is out of range,
+ *         -PB_ERR_ALIGN, a buffer that doesn't start on a cache line (pb/dma.h),
  *         -PB_ERR_IO, Driver I/O errors,
  *         -PB_TIMEOUT, Driver timeouts
  */

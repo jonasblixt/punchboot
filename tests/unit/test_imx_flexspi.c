@@ -37,6 +37,7 @@
 
 #include <drivers/memc/imx_flexspi.h>
 #include <pb/bio.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -401,8 +402,9 @@ static const struct flexspi_core_config core = {
 
 static bio_dev_t dev;
 static uint8_t out[128 * 1024];
-static uint8_t in[128 * 1024];
-static uint8_t out_device[CAPACITY];
+/* What is read into owns its cache lines (bio.md 3.1) */
+static uint8_t in[128 * 1024] __aligned(PB_DMA_ALIGN);
+static uint8_t out_device[CAPACITY] __aligned(PB_DMA_ALIGN);
 
 static void reset_model(void)
 {
@@ -731,7 +733,9 @@ static void test_write_reads_only_the_buffer(void **state)
 
 /* F-284: the caller's buffer is bytes, whatever its alignment. The host
  * takes unaligned words, so this fails under UBSan (the sanitizer build)
- * only, as it would fault on a core that doesn't */
+ * only, as it would fault on a core that doesn't. A write's: bio refuses a
+ * read into a buffer that doesn't start on a cache line before the driver
+ * sees it (bio.md 3.1), so a read is into one that does */
 static void test_unaligned_buffer(void **state)
 {
     (void)state;
@@ -745,14 +749,18 @@ static void test_unaligned_buffer(void **state)
         assert_mem(2 * BLOCK, buf, 2 * BLOCK);
 
         memset(in, 0, sizeof(in));
-        assert_int_equal(bio_read(dev, 2, 2 * BLOCK, in + off), PB_OK);
-        assert_memory_equal(in + off, buf, 2 * BLOCK);
+        assert_int_equal(bio_read(dev, 2, 2 * BLOCK, in + off), -PB_ERR_ALIGN);
+        assert_int_equal(bio_read(dev, 2, 2 * BLOCK, in), PB_OK);
+        assert_memory_equal(in, buf, 2 * BLOCK);
     }
 }
 
 /* F-284: a read of a length that isn't a multiple of 4 reads it, exactly
  * (bio.md 3.1), where it was refused after the command had started. A
- * flash with 1 byte blocks gives the driver such lengths */
+ * flash with 1 byte blocks gives the driver such lengths. The buffer is the
+ * last cache line before a page nobody may touch, as bio wants it (bio.md
+ * 3.1): a byte written past the length changes the rest of the line, a
+ * read past the line faults */
 static void test_read_any_length(void **state)
 {
     static const struct {
@@ -762,7 +770,7 @@ static void test_read_any_length(void **state)
 
     uint8_t *map;
     size_t map_len;
-    uint8_t *page_end = guarded(0, &map, &map_len);
+    uint8_t *buf = guarded(PB_DMA_ALIGN, &map, &map_len);
     (void)state;
 
     reset_model();
@@ -771,10 +779,11 @@ static void test_read_any_length(void **state)
     fill(nor.mem, CAPACITY, 5);
 
     for (size_t i = 0; i < ARRAY_SIZE(reads); i++) {
-        uint8_t *buf = page_end - reads[i].len;
-
+        memset(buf, 0x3c, PB_DMA_ALIGN);
         assert_int_equal(bio_read(dev, reads[i].first, reads[i].len, buf), PB_OK);
         assert_memory_equal(buf, nor.mem + reads[i].first, reads[i].len);
+        for (size_t b = reads[i].len; b < PB_DMA_ALIGN; b++)
+            assert_int_equal(buf[b], 0x3c);
     }
 
     munmap(map, map_len);
