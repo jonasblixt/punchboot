@@ -49,6 +49,8 @@
 #define EP_CMD_DFLUSH   BIT(7)
 #define EP_STS_SETUP    BIT(0)
 #define EP_STS_IOC      BIT(2)
+#define ISTS_DIS2I      BIT(17)
+#define ISTS_U2RESI     BIT(18)
 
 /* A TRB, and what the driver puts in one and in its ring (cdns3_udc_core.c) */
 #define TRB_SIZE        12
@@ -362,6 +364,111 @@ static void test_the_power_on_ready_wait_times_out(void **state)
     assert_int_equal(dma_host_in_open(), 2);
 }
 
+/* The host configures the device: pb's two bulk endpoints */
+static void configure(void)
+{
+    static const struct usb_endpoint_descriptor eps[] = {
+        { .bLength = 7,
+          .bDescriptorType = 5,
+          .bEndpointAddress = 0x81,
+          .bmAttributes = 2,
+          .wMaxPacketSize = 512 },
+        { .bLength = 7,
+          .bDescriptorType = 5,
+          .bEndpointAddress = 0x02,
+          .bmAttributes = 2,
+          .wMaxPacketSize = 512 },
+    };
+
+    assert_int_equal(cdns3_udc_set_configuration(eps, ARRAY_SIZE(eps)), PB_OK);
+}
+
+/* The controller reports a bus event, which the driver sees when the stack
+ * polls endpoint 0 */
+static void bus_event(uint32_t ists)
+{
+    struct usb_setup_packet pkt;
+
+    fake_regs_set(USB_ISTS, ists);
+    assert_int_equal(cdns3_udc_core_poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+}
+
+/* F-363, usb.md 2.4, 4.3: a bus reset or an unplug of a configured device
+ * ends the running bulk transfer with -PB_ERR_IO, every time it is polled,
+ * and the next one that is started. Endpoint 0 goes on: the host
+ * enumerates again. Before the device is configured it is the host's
+ * enumeration and no error (2.2) */
+static void test_a_bus_reset_of_a_configured_device_is_lost(void **state)
+{
+    static const uint32_t events[] = { ISTS_U2RESI, ISTS_DIS2I };
+    uint8_t *buf = arena + LINE;
+    uint8_t reply[18];
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(events); i++) {
+        assert_int_equal(cdns3_udc_core_init(), PB_OK);
+
+        /* Enumeration */
+        bus_event(events[i]);
+        configure();
+
+        assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+        bus_event(0);
+        assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+
+        bus_event(events[i]);
+        assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+        assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+        assert_int_equal(cdns3_udc_core_xfer_start(USB_EP1_IN, buf, 512), -PB_ERR_IO);
+        assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), -PB_ERR_IO);
+
+        /* The host's new enumeration is answered. The lost transfer's
+         * buffer is the transport's until it is restarted (usb.md 2.3) */
+        memset(host, 0, sizeof(reply));
+        fill(reply, sizeof(reply), 5);
+        assert_int_equal(cdns3_udc_core_xfer_start(USB_EP0_IN, reply, sizeof(reply)), PB_OK);
+        assert_int_equal(controller_run(USB_EP0_IN, host, sizeof(reply)), sizeof(reply));
+        fake_regs_set(EP_STS, EP_STS_IOC);
+        assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP0_IN), PB_OK);
+        assert_memory_equal(host, reply, sizeof(reply));
+
+        /* The transport is restarted: init takes the transfer back */
+        assert_int_equal(cdns3_udc_core_init(), PB_OK);
+        assert_int_equal(dma_host_in_open(), 2);
+        assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+        cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+    }
+}
+
+/* A bus reset while no bulk transfer runs, inside a command, is kept: the
+ * next transfer's error. A new configuration, init and stop forget it */
+static void test_a_bus_reset_between_transfers_is_kept(void **state)
+{
+    uint8_t *buf = arena + LINE;
+    (void)state;
+
+    configure();
+    bus_event(ISTS_U2RESI);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), -PB_ERR_IO);
+    configure();
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+
+    bus_event(ISTS_U2RESI);
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+
+    configure();
+    bus_event(ISTS_DIS2I);
+    assert_int_equal(cdns3_udc_core_init(), PB_OK);
+    /* Not configured since: a reset is enumeration again */
+    bus_event(ISTS_U2RESI);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
 /* usb.md 2.3, 4.3: a transfer from the host arrives in the caller's buffer,
  * all of it and nothing outside the buffer's lines, and a transfer to the
  * host is what the caller wrote. Over one TRB and over several */
@@ -532,6 +639,8 @@ int main(void)
         cmocka_unit_test_setup(test_the_status_stage_wait_times_out, setup),
         cmocka_unit_test_setup(test_the_flush_wait_times_out, setup),
         cmocka_unit_test_setup(test_the_power_on_ready_wait_times_out, setup),
+        cmocka_unit_test_setup(test_a_bus_reset_of_a_configured_device_is_lost, setup),
+        cmocka_unit_test_setup(test_a_bus_reset_between_transfers_is_kept, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

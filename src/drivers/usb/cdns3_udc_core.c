@@ -57,8 +57,15 @@
 #define USB_IEN_ALL                        (0xffffffff)
 #define CDNS_USB_ISTS                      (0x20018)
 #define ISTS_CON2I                         BIT(16) // HS/FS mode connection detected
+#define ISTS_DIS2I                         BIT(17) // HS/FS mode disconnection detected
 #define ISTS_U2RESI                        BIT(18) // USB reset in HS/FS mode ends
 #define ISTS_CFGRESI                       BIT(26) // USB configuration reset detected
+/* A bus reset or an unplug at high speed, as Linux 6.1's
+ * cdns3_check_usb_interrupt_proceed() (cdns3-gadget.c) takes them; DIS2I is
+ * its cdns3-gadget.h's. Not SuperSpeed's (DISI, UWRESI, UHRESI): pb runs at
+ * high speed (usb.md 4.1), and a SuperSpeed link's events beside it must
+ * not end a session */
+#define ISTS_LOST                          (ISTS_DIS2I | ISTS_U2RESI)
 
 #define CDNS_USB_EP_SEL                    (0x2001C)
 #define EP_SEL_DIR(x)                      ((x & 1) << 7)
@@ -181,6 +188,11 @@ static size_t ep0_out_length;
 /* A flush that didn't end: the bulk transfer may still be the
  * controller's, and the next one is refused until init (drivers.md 3) */
 static bool xfer_flush_failed;
+/* The host configured the device, and reset the bus or went away after
+ * that: every bulk transfer fails until the device is configured or
+ * started again (usb.md 2.4, 4.3) */
+static bool configured;
+static bool bus_lost;
 
 /*
  * The bounds of the driver's waits (drivers.md 3). There is no manual for
@@ -352,6 +364,11 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     if (xfer_flush_failed)
         return -PB_ERR_TIMEOUT;
 
+    /* A bus reset or an unplug while no transfer ran is the error of the
+     * next one. Endpoint 0 goes on: the host enumerates */
+    if (bus_lost)
+        return -PB_ERR_IO;
+
     /* One bulk transfer at a time: one that wasn't completed or cancelled
      * ends here, and the ring is the driver's to write */
     xfer_dma_end();
@@ -422,6 +439,11 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
 {
     bool in_xfer = !!(ep % 2);
     uint32_t ep_sts;
+
+    /* A bus reset or an unplug ends a bulk transfer: lost. It is seen in
+     * poll_setup_pkt(), which the stack calls before each poll of it */
+    if (bus_lost && ep / 2 != 0)
+        return -PB_ERR_IO;
 
     select_ep(ep);
     ep_sts = mmio_read_32(base + CDNS_USB_EP_STS);
@@ -497,6 +519,13 @@ void cdns3_udc_core_xfer_cancel(usb_ep_t ep)
 static void cdns_process_irq(void)
 {
     uint32_t ists = mmio_read_32(base + CDNS_USB_ISTS);
+
+    /* Before the device is configured a reset is the host's enumeration and
+     * no error (usb.md 2.2) */
+    if ((ists & ISTS_LOST) && configured && !bus_lost) {
+        LOG_ERR("Bus reset or unplug (0x%x)", ists);
+        bus_lost = true;
+    }
 
     if (ists & ISTS_CFGRESI) {
         ep0_xfer_start(&setup_pkt, sizeof(setup_pkt), false);
@@ -590,6 +619,9 @@ int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_
         mmio_write_32(base + CDNS_USB_EP_IEN, EP_IEN_EP_IN(ep_num) | EP_IEN_EP_OUT(ep_num));
     }
 
+    configured = true;
+    bus_lost = false;
+
     return PB_OK;
 }
 
@@ -642,6 +674,8 @@ int cdns3_udc_core_init(void)
     ep0_dma_end(true);
     ep0_dma_end(false);
     xfer_flush_failed = false;
+    configured = false;
+    bus_lost = false;
 
     /* Wait for controller to come out of reset */
     if (wait_for(CDNS_USB_STS, STS_INRST, STS_INRST, CDNS_RESET_TIMEOUT_us) != PB_OK) {
@@ -694,6 +728,8 @@ int cdns3_udc_core_init(void)
 int cdns3_udc_core_stop(void)
 {
     LOG_INFO("Stop");
+    configured = false;
+    bus_lost = false;
     return PB_OK;
 }
 
