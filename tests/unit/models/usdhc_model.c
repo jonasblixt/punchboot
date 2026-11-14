@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "bench.h"
+#include "fakes/dcache.h"
 #include "usdhc_model.h"
 
 #define RM                    "uSDHC RM "
@@ -156,7 +157,7 @@
 #define SDSTB_READS           3
 
 struct adma_seg {
-    uint8_t *ptr;
+    uint32_t addr;
     size_t len;
 };
 
@@ -429,7 +430,7 @@ static long adma_walk(size_t *n_segs)
     size_t n = 0;
 
     for (int i = 0; i < ADMA2_MAX_DESCS; i++) {
-        const uint32_t *d = (const uint32_t *)(uintptr_t)addr;
+        uint32_t d[2];
         uint32_t attr;
         uint32_t len;
 
@@ -437,6 +438,8 @@ static long adma_walk(size_t *n_segs)
             bench_violation(RM "ADMA_SYS_ADDR", "Descriptor address 0x%08x", addr);
             return -1;
         }
+        /* The controller reads RAM, behind the driver's cache (fakes/dcache.h) */
+        dcache_dev_read(addr, d, sizeof(d));
         attr = d[0] & 0xffff;
         len = d[0] >> 16;
 
@@ -453,7 +456,7 @@ static long adma_walk(size_t *n_segs)
                                 "Descriptor 0x%08x + %u is not word aligned and a multiple of 4",
                                 d[1],
                                 len);
-            m.segs[n].ptr = (uint8_t *)(uintptr_t)d[1];
+            m.segs[n].addr = d[1];
             m.segs[n].len = len;
             total += len;
             n++;
@@ -485,9 +488,9 @@ static void seg_copy(size_t n_segs, size_t off, void *block, size_t len, bool to
         if (chunk > len)
             chunk = len;
         if (to_mem)
-            memcpy(m.segs[i].ptr + off, b, chunk);
+            dcache_dev_write(m.segs[i].addr + off, b, chunk);
         else
-            memcpy(b, m.segs[i].ptr + off, chunk);
+            dcache_dev_read(m.segs[i].addr + off, b, chunk);
         b += chunk;
         len -= chunk;
         off = 0;

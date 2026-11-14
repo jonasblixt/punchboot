@@ -11,8 +11,8 @@
  * follow the uSDHC chapters of the i.MX6UL and i.MX8M Plus RMs.
  */
 
-#include <arch/arch.h>
 #include <pb/delay.h>
+#include <pb/dma.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <stdio.h>
@@ -56,9 +56,11 @@ struct imx_usdhc {
 };
 
 static struct imx_usdhc instances[USDHC_MAX_INSTANCES];
-/* Not zeroed at boot */
-static struct usdhc_adma2_desc tbls[USDHC_MAX_INSTANCES][ADMA2_DESCS] __section(".no_init")
-    __aligned(64);
+
+/* An instance's ADMA2 descriptors, which the controller reads: whole cache
+ * lines, on lines of their own (drivers.md 4.2, 5). Not zeroed at boot */
+typedef struct usdhc_adma2_desc usdhc_adma2_tbl[ADMA2_DESCS];
+PB_DMA_ARRAY(usdhc_adma2_tbl, tbls, USDHC_MAX_INSTANCES);
 
 static uint32_t usdhc_read(struct imx_usdhc *u, unsigned int reg)
 {
@@ -215,10 +217,11 @@ static int usdhc_dma_addr(const void *addr, size_t len, uint32_t *dma_addr)
     return PB_OK;
 }
 
-/* The ADMA2 descriptors and block attributes of a transfer */
-static int imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, size_t blocks)
+/* The ADMA2 descriptors and block attributes of a transfer. A read's buffer
+ * is the controller's from here until imx_usdhc_request() ends it */
+static int
+imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, size_t blocks, bool write)
 {
-    uintptr_t buf_ptr = (uintptr_t)buf;
     size_t length = block_size * blocks;
     size_t n = 0;
     uint32_t buf_addr;
@@ -233,7 +236,11 @@ static int imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, 
         return -PB_ERR_PARAM;
     }
 
-    arch_clean_cache_range(buf_ptr, length);
+    /* The caller's buffer: a read's owns its lines (bio.md 3.1) */
+    if (write)
+        dma_out(buf, length);
+    else
+        dma_in_begin(buf, length);
 
     while (length) {
         size_t chunk = (length > ADMA2_MAX_BYTES) ? ADMA2_MAX_BYTES : length;
@@ -246,7 +253,7 @@ static int imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, 
         n++;
     }
 
-    arch_clean_cache_range((uintptr_t)u->tbl, sizeof(u->tbl[0]) * n);
+    dma_out(u->tbl, sizeof(u->tbl[0]) * n);
 
     usdhc_write(u, USDHC_ADMA_SYS_ADDR, tbl_addr);
     usdhc_write(u, USDHC_BLK_ATT, BLK_ATT_BLKCNT(blocks) | BLK_ATT_BLKSIZE(block_size));
@@ -320,7 +327,7 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
         xfr_typ |= CMD_XFR_TYP_CMDTYP(CMDTYP_ABORT);
 
     if (data) {
-        err = imx_usdhc_prepare(u, cmd->buf, cmd->block_size, cmd->blocks);
+        err = imx_usdhc_prepare(u, cmd->buf, cmd->block_size, cmd->blocks, cmd->write);
         if (err != PB_OK)
             return err;
 
@@ -460,8 +467,9 @@ out:
 
     usdhc_write(u, USDHC_INT_STATUS, INT_ALL);
 
+    /* The controller is done with a read's buffer, or was reset */
     if (data && !cmd->write)
-        arch_invalidate_cache_range((uintptr_t)cmd->buf, cmd->block_size * cmd->blocks);
+        dma_in_end(cmd->buf, cmd->block_size * cmd->blocks);
 
     return err;
 }

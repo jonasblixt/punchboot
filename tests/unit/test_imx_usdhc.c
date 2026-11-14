@@ -19,10 +19,10 @@
 
 #include <cmocka.h>
 
-#include <arch/arch.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <pb/bio.h>
+#include <pb/dma.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <string.h>
@@ -36,6 +36,7 @@
     } while (0)
 
 #include "conformance/bio_conformance.h"
+#include "fakes/dcache.h"
 #include "models/bench.h"
 #include "models/emmc_model.h"
 #include "models/sd_model.h"
@@ -109,9 +110,10 @@ static struct {
     unsigned int lo, hi;
 } window;
 
-/* DMA buffers must be below 4 GiB (usdhc_model.h) */
+/* DMA buffers must be below 4 GiB (usdhc_model.h), and what the controller
+ * writes owns its cache lines (bio.md 3.1) */
 static uint8_t out[256 * 1024];
-static uint8_t in[sizeof(out)];
+static uint8_t in[sizeof(out)] __aligned(PB_DMA_ALIGN);
 static uint8_t check[sizeof(out)];
 
 uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
@@ -128,23 +130,12 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
     usdhc_model_write(addr, (uint32_t)value);
 }
 
-void arch_invalidate_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
-}
-
-void arch_clean_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
-}
-
 static int setup(void **state)
 {
     (void)state;
 
     bench_reset();
+    dcache_reset();
     bio_reset();
     emmc_model_default_config(&card_cfg);
     window.on = false;
@@ -156,6 +147,13 @@ static int teardown(void **state)
     (void)state;
     emmc_model_free();
     sd_model_free();
+
+    /* Whatever a transfer ended with, a read's buffer is the caller's again
+     * (drivers.md 4.2): the calls are synchronous */
+    if (dma_host_in_open() != 0) {
+        print_error("%zu ranges are the controller's after the test\n", dma_host_in_open());
+        return -1;
+    }
     return 0;
 }
 

@@ -912,6 +912,7 @@ target_link_options(test_caam_crypto PRIVATE -no-pie)
 pb_unit_test(test_imx_usdhc
     SOURCES
         ${PB_BIO_CONFORMANCE}
+        ${PB_DMA_MODEL}
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c

@@ -19,6 +19,7 @@
 #include <drivers/mmc/mmc_core.h>
 #include <pb/bio.h>
 #include <pb/delay.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <string.h>
@@ -42,7 +43,8 @@ static const struct mmc_device_config *mmc_boot_cfg;
 /* Tuning: a window narrower than this means a marginal board */
 #define TUNE_MIN_WINDOW 8
 
-static uint8_t mmc_tuning_rsp[128] __aligned(64);
+/* The tuning block, which the controller writes */
+PB_DMA_ARRAY(uint8_t, mmc_tuning_rsp, 128);
 static const uint8_t tuning_blk_pattern_4bit[] = {
     0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc, 0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
     0xff, 0xdf, 0xff, 0xdd, 0xff, 0xfb, 0xff, 0xfb, 0xbf, 0xff, 0x7f, 0xff, 0x77, 0xf7, 0xbd, 0xef,
