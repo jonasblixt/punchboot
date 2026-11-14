@@ -156,10 +156,14 @@ int imx_hab_fuse_srk(const uint32_t *srk, size_t words)
         if (rc != PB_OK)
             return rc;
 
-        if (val != 0 && val != srk[n]) {
+        /* A word with some of the hash's bits, from a write that failed
+         * half way, is completed: the bits that aren't set yet are
+         * written (command-mode.md 5.2). One with a bit the hash doesn't
+         * have can never become it */
+        if ((val & ~srk[n]) != 0) {
             LOG_ERR("Trying to change already fused srk[%u] from 0x%x to 0x%x", n, val, srk[n]);
             return -PB_ERR_MEM;
-        } else if (val != 0) {
+        } else if (val == srk[n]) {
             LOG_INFO("srk[%u] already fused to 0x%x", n, val);
         } else {
             fuse = true;
