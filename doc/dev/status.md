@@ -35,46 +35,22 @@ bump is for the porting API. Each item's history is in `log/`.
 
 ## Next steps
 
-0. **Resume here (2026-11-13, night): `log/2026-11-13.md`, "The evening and the night".**
-   The second round, a package per agent, unattended. Landed and verified at `bc640ba1`
-   (87 of 87, the sanitizers, six boards): command mode's boot commands (F-252), the
-   platform's tick and reset reason (F-238, F-236), the boot core (F-076, F-346, F-404), the
-   build (F-398, F-396, F-089), the MMC drivers (F-199, F-116), the fuses and the FlexSPI
-   (F-196 to F-198, F-284). The bench at `bc640ba1`: RT1060 7/7, 8MP EVK and MEK to the
-   login; jiffy found F-424, fixed (`b6a3df47`); with the fix all four pass. First:
-   - Land what the branches hold, each read first: `pkg-boards-tools`, `pkg-usb`,
-     `pkg-crypto2`, `pkg-cm2`, `pkg-link`, `pkg-precond`.
-   - `bec794b7` on `pkg-plat` is not landed (the watchdog half a second shorter, F-206).
-   - The rest of both rounds' "not run on a board" lists (the log's last entry has them).
-   - Next packages: F-247, F-282, the host test ones (F-347, F-341), then the guides
-     (`roadmap.md`).
-   - The log's "For Jonas" lists.
-   - Named commands (D-076) are in, F-425 and F-426, not run on a board. Next: the 8M's DRAM
-     training data as a platform command, a design of its own (log, "Named commands").
-   - The 8X's log `seco`, `vsnprintf()`, `log <tab>`, the 8X's builds in the boot log and its
-     command `info`, no board status (log 2026-11-14): run on the MEK (BOOT0, BOOT1 keeps
-     `bc640ba1`).
+0. **Resume here (2026-11-14): `log/2026-11-14.md`, "The wrap-up".** The unattended second
+   round is over: its packages are in, verified at the push (the log). Nothing of it ran on a
+   board. First:
+   - The bench, in the log's order: USB, the preconditions, F-247 and the CAAM's stop, the
+     8MP EVK through TF-A.
+   - Parked: `pkg-dma` (F-282, unverified), `pkg-stages` (F-240, a `WIP:` commit),
+     `bec794b7` on `pkg-plat` (F-206).
+   - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
 1. What 3.0.0 waits for besides the code is `roadmap.md`'s first section: the Firmware
-   Handoff tag (Jonas, upstream), the bench run, the two guides, the release notes.
-2. Jonas's review of the board work's code (D-026, D-027; its shape is D-046's since F-265).
-   On it: the 8M's HAB once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas,
-   2026-11-09).
-3. Open from the 3.0.0 work: MMC UHS-I, DDR52 on the EVK (F-113), HS400 tuning (F-116). Boot
-   time: MMU/caches on early, the eMMC power-up early. jiffy USB F-134 (before any cache
-   work), F-136. CAAM F-127. The 8MP EVK: F-100, F-102, F-104, F-110, the FEC (F-155), F-156.
-   The MEK: F-172, F-204. imx8mevk: F-106, F-107, the CAAM RNG untried.
-4. Security: F-004. JTAG (`scripts/pbdebug`): F-078, F-079, F-081, F-083, F-089, F-090.
-5. Check the Coverity job on master. Rebase `nanopi-neo-core2` onto master (WIP in a stash).
-   F-010, F-109, the rest of F-066 and F-067, F-143, F-147, F-148. `-Werror` for the host
-   build. D-023: other boot-path init only command mode needs (candidate: the HAB log's
-   registration in `plat_init()`).
+   Handoff tag (Jonas, upstream), the bench run, the review of the guides and the notes.
+2. Jonas's review of the board work's code (D-026, D-027, D-046). Clocks stay code (2026-11-09).
+3. The rest is `findings.md`: by board (the 8MP EVK F-100 to F-110, F-155, F-156; the MEK
+   F-172, F-204; imx8mevk F-106, F-107), JTAG (F-078 to F-090), boot time, Coverity on master.
 
 ## Open questions (for Jonas)
 
-- The order: F-181 (High: after an abandoned hash the CAAM reads the old job's result as
-  "verified"; a model, not run on hardware), F-182 (eMMC partial blocks) and F-183 (a stale
-  keystore) aren't in the order above. Before F-259, or after? Then F-184 against F-172.
-- A/B review: the fixes for F-173, F-175, F-176 and F-178 wait for a go.
 - Sentences for reviewed contracts, each with what the code does meanwhile. `boot.md`: F-291
   (a DT part in place: refuse, or copy it to RAM, and where), F-331 (5.1, with D-074), F-323
   (3.2), F-345 (3.4), F-360 (3.5), F-342 (3.6), F-348 (5.5). `board.md`: F-325 (5.3), F-335,

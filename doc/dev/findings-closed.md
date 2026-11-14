@@ -1274,6 +1274,26 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | pb's and the buffers' regions end where the board's first image data region starts, and the boards' | | |
 | | | regions are computed from the Kconfig values; no region an image may be loaded to changed (F-392 is | | |
 | | | open). The 8MP EVK's pb region ends at 0x970000, where BL31's RAM starts | | |
+| F-417 | `src/boot/atf.c` `optee_rw()` | Low. The `optee-arch` meta is read as a `uint32_t` | Reported (read) | fixed (`57ad9277`) |
+| | | without a look at the meta's size: F-065's class, signed input only. From F-065's package | | |
+| | | `optee_rw()` reads the meta's own bytes, zero extended; a 4 or 8 byte meta boots as before. No board | | |
+| | | in the tree names a BL32 | | |
+| F-421 | `tools/pbstate`, `session.py`, `src/board` | Low, from the boards and host tools | Reported (read) | fixed (`2aeccee1`, `f6338360`) |
+| | | package. pbstate: `-i` beats `-s`, `-v` and `-w` silently, and `-s` beats `-v`. `part_erase` | | |
+| | | would loop for ever on a partition whose last block is below its first. The 8X boards' example | | |
+| | | password is in the image and the same on every device (`board.md` 4.4). `<board/password.h>` is | | |
+| | | under `src/board/`, which `board.md` 6 and D-056 don't list among the headers a board includes | | |
+| | | pbstate refuses two of `-s`, `-v`, `-w`, `-i` in one call (EINVAL, nothing written); `part_erase` | | |
+| | | refuses a partition whose last block is below its first before anything is sent. The row's two | | |
+| | | other items, the 8X boards' example password and where `board/password.h` lives, are F-431's | | |
+| F-430 | `src/plat/imx6ul/hab.c` | Low. The loop over the HAB's failure events starts its index | Verified (test) | fixed (`7d279797`, `572c808c`, `f4d1278b`) |
+| | | where the warnings ended: with one warning and one failure the failure is asked for at index 1 | | |
+| | | and never logged (the log only; the answer is the HAB's status). `hab_secureboot_active()` has | | |
+| | | no caller, `get_idx()` and `struct record` are unused. `helpers.py` `pb_id()` takes a | | |
+| | | character's code point modulo 256, not its UTF-8 bytes: a name that isn't ASCII gets another id | | |
+| | | than the device computes | | |
+| | | The HAB's failures are asked for from index 0; the dead code is gone; `pb_id()` of a name that isn't | | |
+| | | ASCII is its UTF-8 bytes, as the device computes it | | |
 
 ## Dependencies / vendored code
 

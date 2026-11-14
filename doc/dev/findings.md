@@ -23,6 +23,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the meta's own bytes: 8 or more as before, 1 to 7 zero extended (what a release read when zeros | | |
 | | | follow, bpak's layout), none is `-PB_ERR_BAD_META` before the load. Left: `keystore_id` is only | | |
 | | | logged; `atf.c`'s `optee-arch` meta has the same unchecked read (F-417) | | |
+| | | 2026-11-14: `keystore_id` stays logged only: `boot.md` 4.4 says so, no release compared it (the | | |
+| | | check went in `7431b64f`), and a comparison would refuse images made without `--keystore-id` (id 0) | | |
+| | | or signed for another keystore with a key pb has | | |
 | F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | partly fixed (`jiffy-fixes`): `der_ecsig_to_rs` now pads short r/s and is used by the CAAM (F-057). `der_ec_public_key_data` is still open |
 | | | 2026-11-13 (`ab002f9f`): `der_ec_public_key_data()` takes the key's length and reads nothing past | | |
 | | | it; OIDs match on length and bytes. What is left of F-066 is in F-410 (the point's form and length) | | |
@@ -177,6 +180,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-13 (`cbc47194`, `997a705e`, `229c0c71`): a verify above 4 GiB is refused before anything is | | |
 | | | sent, `part verify` checks for a bpak as `part write` does, the CI guard compares a push with its | | |
 | | | previous head. Left: several devices and no `-u` (the first is used, also for `slc`), for Jonas | | |
+| | | 2026-11-14 (`88785f79`): with several devices and no `-u`, `slc configure`, `lock`, `eol` and | | |
+| | | `revoke-key` stop before they connect and list the devices; every other command still uses the | | |
+| | | first. Left: nothing of the row that isn't a choice of Jonas's | | |
 | F-228 | `.github/workflows`, `docker/`, `scripts/ci` | Any `v*` tag publishes to PyPI with no | Reported | open |
 | | | check against `version.txt`, master or the tests. Actions are pinned by tag, the publish action gets a | | |
 | | | long-lived token. The dev image is partly pinned and rebuilt per job. CI builds only `pb.bin` (never the | | |
@@ -206,6 +212,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | a changelog, SECURITY.md. Nothing on storage, USB or exceptions (the overview that lacked them is | | |
 | | | removed, D-062); `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
 | | | step 4. | | |
+| | | 2026-11-14 (`c86cf19c`..`fdd050a9`): drafts, for Jonas's review: `doc/guides/migration-3.0.md`, | | |
+| | | `doc/guides/porting.md`, `CHANGELOG.md` with 3.0.0's notes, and the README without what is gone and | | |
+| | | with the boards that exist. Left: the guides' sections for F-247, F-240, F-282 and F-269, the A/B | | |
+| | | update flow and pbstate, the SLC and fusing procedure, SECURITY.md; `process.md` 2, `AGENTS.md` and | | |
+| | | `roadmap.md` still list the guides as to write | | |
 | F-240 | `src/board/*/makefile.mk` | The SoC's packaging and signing are in the boards: | Verified (code) | open |
 | | | jiffy holds the 6UL CSF recipe (IVT at `PB_ENTRY - 0xC00`, uuu's 0x00910000), the MEK and DXL repeat the 8X | | |
 | | | recipe. `FINAL_OUTPUT` is set with `$(eval)` in recipes. Signing inputs are Kconfig on the 6UL, make | | |
@@ -215,6 +226,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `src/plat/<p>/makefile.mk`, `image-y` with `FINAL_OUTPUT` at parse time, an out-of-tree board in | | |
 | | | `make.*`; bytes compared for jiffy, the RT and the 8MP (the container has `mkimage` and `cst`), | | |
 | | | `make -n` for the MEK, the DXL and imx8mevk | | |
+| | | 2026-11-14 (`72b69f8c`, `017d6595`): landed, two fixes found on the way: jiffy's and imx8mevk's | | |
+| | | signed images didn't build with a `BUILD_DIR` that has a slash. The rest is on the branch `pkg- | | |
+| | | stages` as one `WIP:` commit (`19a6e1bf`): `image-y` and `FINAL_OUTPUT` at parse time, an out-of- | | |
+| | | tree board in `make.stages`; steps 1 and 2 of the plan (options per platform, the recipes in the | | |
+| | | platforms) aren't started. `cst`'s output isn't deterministic (the signing time and the signature) | | |
 | F-241 | `plat/imx6ul/plat.c` | `tzasc_init()`: A failure is only logged: nothing tells | Verified (code, RM) | open |
 | | | the boot driver that the TZASC is bypassed. Region 1 gets the physical DDR base, while 6UL RM 52.3 says the | | |
 | | | TZASC sees the DDR controller's "local addresses": check with OP-TEE that its memory is protected. GPR9 has | | |
@@ -265,6 +281,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
 | | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |
 | | | crypto engine in `plat_init()` behind a Kconfig option (`platform.md` 2.2, 4.1, 4.2) | | |
+| | | 2026-11-14 (`7c67ddee`..`c4cfdf05`): in the code. `struct board` has no `rot` and no `slc`, it has | | |
+| | | `slc_fuses` and `slc_fuses_length`; `pb/plat.h` declares `plat_rot` and `plat_slc`, each port's | | |
+| | | tables what its boards had (pinned per port); the CAAM and its RNG (the 6UL, the 8M), the CAAM with | | |
+| | | its SCFW power requests (the 8X) and Mbed TLS (the RT, the host) are set up last in `plat_init()`, | | |
+| | | and nothing else moved on any board. A crypto engine that didn't come up refuses the boot before a | | |
+| | | candidate (`PLAT_CRYPTO_ENGINE`, selected by every port), so an A/B trial spends no attempt. Left | | |
+| | | open for the guides only: the migration guide's 18.1 and its sections 1 and 13, the porting guide's | | |
+| | | 2.3 and 2.4 still describe it as to come. Not run on a board | | |
 | F-251 | `src/board/{imxrt1060evk,imx8qxmek,imx8dxlevk}` | The serial download | Verified (code) | open |
 | | | check is in the boards: the 8X reads the SCU's boot type in `early_boot`. The RT had two in a | | |
 | | | `late_boot` that was never called, removed with F-264 and to come back in its | | |
@@ -366,6 +390,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | own its lines, and the boot's load loop bounces an image part whose load address doesn't | | |
 | | | (D-066), with a host test that loads an image with such an address. The root of F-081, | | |
 | | | F-134, F-184, F-205 and F-220 | | |
+| | | 2026-11-14: written in part, on the branch `pkg-dma` (nine commits on `e7a3a9b8`, not landed, its | | |
+| | | verification not finished: the session's limit): `pb/dma.h` with a D-cache model for the tests, the | | |
+| | | cache by range in `pb/arch.h` on every arch, `arch_init()`'s line check, and the CAAM, the uSDHC, | | |
+| | | the ChipIdea, the cdns3 and the DWC3 through it. Left: the cores' refusal of a buffer that doesn't | | |
+| | | own its lines, the boot's bounce for such a load address, the contracts' markers; then the whole run | | |
+| | | and a bench, since every driver it changes runs at every boot | | |
 | F-283 | `src/bio.c`, its users | `bio` against `bio.md`. A length that | Verified (code) | open |
 | | | isn't whole blocks goes to the driver as it is (F-182). A length of 0 reaches the driver, and | | |
 | | | the MMC's returns `-PB_ERR` (`mmc_bio_xfer()` starts with `rc = -1`). No block buffer, no | | |
@@ -425,6 +455,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | registers SHA-256 and MD5 while its keystore has P-384 and P-521 keys, so a SHA-384 or SHA-512 | | |
 | | | header and those keys' tokens are refused there (`crypto.md` 2: the build has every algorithm its | | |
 | | | keys use; the defconfig, for Jonas because of the flash it costs) | | |
+| | | 2026-11-14 (`f3b5ef34`): (8)'s caller: `plat_lockdown()` on the 6UL, 8M and 8X ends with | | |
+| | | `imx_caam_stop()` (on the 6UL after the OCOTP locks); a failed stop fails the lockdown. Four | | |
+| | | register writes no board has run; the commit reverts alone | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
 | | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |
@@ -539,6 +572,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | policies end (fixed, chain, A/B). A board's own policy whose `next` never ends would loop, and | | |
 | | | since F-243 the loads in it kick the watchdog, where it reset before. A bound in the core, or | | |
 | | | a sentence in `boot.md` 3.2 that a policy hands out each candidate once per boot | | |
+| | | 2026-11-14: `boot.md` 3.2 says a policy "hands out the next candidate of this boot" and not that | | |
+| | | each is handed out once: no bound was added. For the contract | | |
 | F-342 | `doc/architecture/boot.md` 3.6 | Speculative mode's text is silent where | Verified (code) | open |
 | | | F-257 had to choose. (1) What the alternation writes besides `enable`: nothing, but | | |
 | | | `remaining_boot_attempts = 0`, which changes only a counter left behind with nothing enabled; | | |
@@ -708,14 +743,17 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | other set-up errors do, and pb resets: a token over a null UUID would be every such device's. Left: | | |
 | | | the 8X's unique id that can't fail, `CONFIG_WATCHDOG_TIMEOUT`'s range, the GPT1 gates, | | |
 | | | `testing.md`'s rows | | |
-| F-417 | `src/boot/atf.c` `optee_rw()` | Low. The `optee-arch` meta is read as a `uint32_t` | Reported (read) | open |
-| | | without a look at the meta's size: F-065's class, signed input only. From F-065's package | | |
 | F-418 | build, low | From the build package. `tests/02e49231-...token` is tracked and matches | Reported | open |
 | | | `*.token` in `.gitignore`. `include/libc/string.h` declares `strncmp`, `strnlen`, `strrchr` and | | |
 | | | `strlcpy`, which nothing defines. `get_up_stack` in both `asm_macros.S` is unused. The RT1060's | | |
 | | | first LOAD segment holds the ELF's headers, 248 bytes below `PB_ENTRY`. After an unsupported | | |
 | | | format letter `snprintf()` returns a length below the buffer's, so a caller can't tell the | | |
 | | | text was cut | | |
+| | | 2026-11-14 (`af2f21cf`, `39b34748`): the tests' token isn't ignored; `strnlen`, `strrchr` and | | |
+| | | `strlcpy` are no longer declared (`strncmp` is defined, in `strcmp.c`: the row was wrong). Left: | | |
+| | | `get_up_stack`, the RT's ELF headers in its first segment, `snprintf()`'s return after an | | |
+| | | unsupported letter; three tracked `testbench/board/**/patches/*.patch` match `*.patch` in | | |
+| | | `.gitignore` | | |
 | F-419 | `src/drivers/mmc/`, `drivers.md` 3 | Low, from the MMC package. A board configuration | Reported | open |
 | | | with the same UUID twice (`user_uu` equal to `boot0_uu`) leaves devices registered when the | | |
 | | | init fails. HS400 has no check of the width: an SDR width reaches HS_TIMING 3. The HS200 and | | |
@@ -727,11 +765,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | that is set. `TXWMRK`/`RXWMRK` don't shift into their field (right for 8 bytes only). Erase and | | |
 | | | write don't wait for the flash before their first command. OCOTP reads and writes before | | |
 | | | `imx_ocotp_init()` aren't `-PB_ERR_STATE`. `bio.md` 8 still says the FlexSPI has no model | | |
-| F-421 | `tools/pbstate`, `session.py`, `src/board` | Low, from the boards and host tools | Reported (read) | open |
-| | | package. pbstate: `-i` beats `-s`, `-v` and `-w` silently, and `-s` beats `-v`. `part_erase` | | |
-| | | would loop for ever on a partition whose last block is below its first. The 8X boards' example | | |
-| | | password is in the image and the same on every device (`board.md` 4.4). `<board/password.h>` is | | |
-| | | under `src/board/`, which `board.md` 6 and D-056 don't list among the headers a board includes | | |
+| | | 2026-11-14 (`81e1534b`, `521f3641`, `4358e8cc`): a FIFO push or pop writes its own INTR bit only, | | |
+| | | the watermark macros shift into their field (the value in use, 8 bytes, is the same), a write and an | | |
+| | | erase poll the flash's status before their first command. Left: OCOTP calls before | | |
+| | | `imx_ocotp_init()`; an error during the last push or pop of a read or write is still lost; `bio.md` | | |
+| | | 8's sentence | | |
 | F-422 | `src/drivers/usb/usbd.c`, `imx_ci_udc.c`, `usb.md` | From the USB package, read not | Reported (read) | open |
 | | | fixed. `usb.md` 2.3 and 2.4 have `-PB_ERR_STATE` for a start while a transfer runs and for a | | |
 | | | complete with none started; `usbd.c` does neither, and no marker says so. `usbd_xfer_complete()` | | |
@@ -748,6 +786,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | install leaves in the pool. Command mode's cached life cycle isn't read again after an install: | | |
 | | | on the host board the fuse partition's handle can die with variant 2. `test_part.py` still says | | |
 | | | the new table is used after the next boot. 4.5's table has no row for `PB_RESULT_BAD_PAYLOAD` | | |
+| | | 2026-11-14 (`2530f937`): `test_part.py`'s comment. `pb_error_string()` stays declared: v2.7.1's host | | |
+| | | library defined and used it, and `compatibility.md` freezes the header's values, not its | | |
+| | | declarations: for Jonas | | |
 | F-427 | `board/jiffy`, `plat.h`, `imx_wdog.c`, `imx_rom_log.c` | Low, from F-248's package. | Reported (read) | open |
 | | | jiffy's `init()` logs its RNG's failure and doesn't call `board_report_degraded()` (`board.md` | | |
 | | | 2.3). `struct plat_status.crypto_engine` can't tell "failed" from "the platform sets none up" | | |
@@ -772,12 +813,21 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | one (F-200); what the SCFW does with a word written twice isn't known. | | |
 | | | `imx8x_read_key_status()` has no slot check: slots 4 and up read as not revoked, and 32 or more | | |
 | | | is an undefined shift. `test_imx8x_helpers` pins what the code does today | | |
-| F-430 | `src/plat/imx6ul/hab.c` | Low. The loop over the HAB's failure events starts its index | Verified (test) | open |
-| | | where the warnings ended: with one warning and one failure the failure is asked for at index 1 | | |
-| | | and never logged (the log only; the answer is the HAB's status). `hab_secureboot_active()` has | | |
-| | | no caller, `get_idx()` and `struct record` are unused. `helpers.py` `pb_id()` takes a | | |
-| | | character's code point modulo 256, not its UTF-8 bytes: a name that isn't ASCII gets another id | | |
-| | | than the device computes | | |
+| | | 2026-11-14 (`877a7be8`, `583b3d7a`, `023e27ff`): a failed SRK read is an error (the life cycle is | | |
+| | | unknown, the gate stays closed, a revocation commits nothing); the SRK write reads all 16 words | | |
+| | | first, refuses a word with a bit the hash doesn't have, completes a partial one and never writes a | | |
+| | | word that equals its target; a slot of 32 or more is `-PB_ERR_PARAM`. Left, for Jonas: slots 4 to 31 | | |
+| | | still read as not revoked (in v2.7.1 a board could map a key there and boot it: an error would | | |
+| | | refuse what a release accepted, D-008); what the SCFW does with a partial word written again. Not | | |
+| | | run on a board | | |
+| F-431 | boards, build, `imx_flexspi.c` | Low, what the wrap-up's packages left or met. The 8X boards' | Reported | open |
+| | | example password is in the image and the same on every device (`board.md` 4.4), and | | |
+| | | `<board/password.h>` is under `src/board/`, which `board.md` 6 and D-056 don't list among the | | |
+| | | headers a board includes (both from F-421). imx8mevk's `IMX8M_IMAGE_SIGN_CERT` defaults to the | | |
+| | | CSF certificate, not `IMG1_1`; both 8M boards print `pb.bin` as the final output although they | | |
+| | | make images, and relink `pb` on every `make` (the blob rule writes somewhere other than its | | |
+| | | target). `imx_flexspi_xfer()` looks at INTR's errors after plain commands only: one during the | | |
+| | | last push or pop of a read or a write is lost | | |
 
 ## Dependencies / vendored code
 
@@ -807,6 +857,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | 2026-11-14 (`93508742`): the tests take their wire values from `wire.py`. `zlib.crc32(name, | |
 | | 0xffffffff) ^ 0xffffffff` equals `pb_id()` for every name in use and any ASCII name | |
 | | (`test_pb_id.py`): the table in `helpers.py` can go. Left: that change in `tools/` | |
+| | 2026-11-14 (`575c4cde`): `pb_id()` is `zlib.crc32` without its inversions; the table is gone. Left: | |
+| | nothing known | |
 | F-145 | De-duplication left from the 2026-10-29 slimming review (D-020): board boilerplate (default GPT table and `partitions.h` byte-identical in 5 boards, the same `board_init` sequence and 3 dev keys in all, cm `.tops` in 6), ~900 lines; the write/read/check/print block 42 times in `tools/punchboot/api_*.c` and the validate/call/exception pattern 28 times in `python_wrapper.c`, ~550; `plat_mmu_init` and `plat_get_unique_id` near-identical in imx6ul/imx8m/imx8x; the bpak hash-kind switch 4 times in `image_helpers.c`; one-provider crypto ops tables; `test_mmc_core.c`'s own fake card vs the card models. Porting API: `arch_init()` empty everywhere, single-member `console_ops`, `board_init(struct imx*_platform *)` (imx8m struct empty), cm `command`/`status` stubs in 4 boards. | open; the host tools part is gone with the C library (D-021) |
 | | Checked 2026-11-12: gone with D-026 are the boards' `board_init` sequence and signature and | |
 | | their cm `.tops`; a shared default layout was tried and moved back (Jonas, D-026). One ops | |
