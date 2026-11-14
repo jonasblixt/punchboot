@@ -49,8 +49,6 @@ __asm__(FAKE_PB_SYM(_zero_region_start, 0x4000));
 __asm__(FAKE_PB_SYM(_pb_end, 0x6000));
 __asm__(FAKE_PB_SYM(_buffers_start, 0x9000));
 __asm__(FAKE_PB_SYM(_buffers_end, 0xb000));
-/* The end of .no_init, which is the buffers' end, until no port uses it */
-__asm__(FAKE_PB_SYM(_no_init_end, 0xb000));
 
 void reset_xlat_tables(void)
 {
