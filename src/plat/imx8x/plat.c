@@ -40,8 +40,11 @@ IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
 IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
 IMPORT_SYM(uintptr_t, _stack_start, stack_start);
 IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
-IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
+/* The rest of pb, .bss and the RAM log, and the buffers (platform.md 5.1) */
+IMPORT_SYM(uintptr_t, _zero_region_start, pb_rw_start);
+IMPORT_SYM(uintptr_t, _pb_end, pb_rw_end);
+IMPORT_SYM(uintptr_t, _buffers_start, buffers_start);
+IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
 
 const char *platform_ns_uuid = "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
@@ -211,10 +214,19 @@ static void imx8x_systick_setup(void)
     int rc;
     sc_pm_clock_rate_t rate;
 
-    /* Setup GPT0 */
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
+    /* Setup GPT0. Each of the SCFW's answers is checked: pb has no tick
+     * without them (platform.md 2.1), and a rate the SCFW refused is its
+     * answer's word, not a rate (F-218) */
+    rc = sc_pm_set_resource_power_mode(plat.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
+
+    if (rc != SC_ERR_NONE)
+        goto systick_fatal;
+
     rate = 24000000;
-    sc_pm_set_clock_rate(plat.ipc, SC_R_GPT_0, 2, &rate);
+    rc = sc_pm_set_clock_rate(plat.ipc, SC_R_GPT_0, 2, &rate);
+
+    if (rc != SC_ERR_NONE)
+        goto systick_fatal;
 
     rc = sc_pm_clock_enable(plat.ipc, SC_R_GPT_0, 2, true, false);
 
@@ -226,6 +238,7 @@ static void imx8x_systick_setup(void)
         return;
 
 systick_fatal:
+    LOG_ERR("GPT0 set up failed (%i)", rc);
     plat_reset();
 }
 
@@ -270,14 +283,24 @@ static void imx8x_mmu_init(void)
     mmap_add_region(
         stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(rw_nox_start,
-                    rw_nox_start,
-                    rw_nox_end - rw_nox_start,
+    /* The rest of pb and the buffers, each a region of its own: one span
+     * from pb to the buffers mapped what is between them as memory, which
+     * is the address space and its devices when they aren't in the same
+     * memory (F-158). The DRAM between them is the DRAM's region's */
+    mmap_add_region(
+        pb_rw_start, pb_rw_start, pb_rw_end - pb_rw_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(buffers_start,
+                    buffers_start,
+                    buffers_end - buffers_start,
                     MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    /* Add the rest of the RAM */
-    mmap_add_region(
-        rw_nox_end, rw_nox_end, BOARD_RAM_END - rw_nox_end, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    /* The board's DRAM, where the images are loaded. What of pb is in it
+     * is a region inside it, and the innermost region wins */
+    mmap_add_region(BOARD_RAM_BASE,
+                    BOARD_RAM_BASE,
+                    BOARD_RAM_END - BOARD_RAM_BASE,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add(imx_mmap);
 
@@ -384,7 +407,9 @@ static bool wdog_asked;
 
 int plat_early_init(void)
 {
-    sc_ipc_open(&plat.ipc, SC_IPC_BASE);
+    /* Without the channel nothing below reaches the SCFW (F-218) */
+    if (sc_ipc_open(&plat.ipc, SC_IPC_BASE) != SC_ERR_NONE)
+        return -PB_ERR_IO;
 
     wdog_rc = imx8x_wdog_init();
     wdog_asked = true;
