@@ -8,10 +8,13 @@
  */
 
 #include <board_defs.h>
+#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <errno.h>
 #include <pb/console.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/host/host.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -143,6 +146,9 @@ int plat_early_init(void)
     return PB_OK;
 }
 
+/* Whether plat_init() set the crypto backend up */
+static bool crypto_engine;
+
 /*
  * Fuses can be read from here on (platform.md 2.2), as a SoC's are: a file of
  * their own, not on the disk, so that they don't depend on its partition
@@ -168,11 +174,92 @@ int plat_init(void)
     if (rc == PB_OK)
         rc = test_fuse_init(fuses);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
         LOG_ERR("Could not read the fuses (%i)", rc);
+        return rc;
+    }
 
-    return rc;
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    /* The crypto backend, behind its option (platform.md 2.2, crypto.md 2).
+     * Command mode can start without it, so it isn't plat_init()'s error:
+     * it is recorded, and the boot's preconditions refuse the boot (2.3) */
+    rc = mbedtls_pb_init();
+
+    if (rc != PB_OK)
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+
+    crypto_engine = (rc == PB_OK);
+#endif
+
+    return PB_OK;
 }
+
+/*
+ * The root of trust and the life cycle (platform.md 4.1, 4.2), in the test
+ * fuse driver's words: a revoke bit per key slot, and the life cycle's two
+ * bits. Valid from plat_init(), which reads the fuses' file.
+ */
+#define HOST_FUSE_REVOKE     (8)
+#define HOST_FUSE_SEC        (9)
+#define HOST_FUSE_SEC_LOCKED BIT(0)
+#define HOST_FUSE_SEC_EOL    BIT(1)
+
+static int host_revoke_key(const struct rot_key *key)
+{
+    return test_fuse_write(HOST_FUSE_REVOKE, (uint32_t)(1 << key->slot));
+}
+
+static int host_read_key_status(const struct rot_key *key)
+{
+    uint32_t val;
+    int rc = test_fuse_read(HOST_FUSE_REVOKE, &val);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (val & (1u << key->slot))
+        return -PB_ERR_KEY_REVOKED;
+    return PB_OK;
+}
+
+static slc_t host_slc_read_status(void)
+{
+    uint32_t val;
+    int rc = test_fuse_read(HOST_FUSE_SEC, &val);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (val & HOST_FUSE_SEC_EOL)
+        return SLC_EOL;
+    else if (val & HOST_FUSE_SEC_LOCKED)
+        return SLC_CONFIGURATION_LOCKED;
+    else
+        return SLC_CONFIGURATION;
+}
+
+static int host_slc_set_configuration_locked(void)
+{
+    return test_fuse_write(HOST_FUSE_SEC, HOST_FUSE_SEC_LOCKED);
+}
+
+static int host_slc_set_eol(void)
+{
+    return test_fuse_write(HOST_FUSE_SEC, HOST_FUSE_SEC_EOL);
+}
+
+const struct rot_config plat_rot = {
+    .revoke_key = host_revoke_key,
+    .read_key_status = host_read_key_status,
+};
+
+const struct slc_ops plat_slc = {
+    .read_status = host_slc_read_status,
+    .set_configuration_locked = host_slc_set_configuration_locked,
+    .set_eol = host_slc_set_eol,
+    .fuse_read = test_fuse_read,
+    .fuse_write = test_fuse_write,
+};
 
 /* Command mode's transport is the socket (socket.c): there is no port to
  * set up (platform.md 3.10) */
@@ -235,15 +322,15 @@ int plat_get_boot_source(struct pb_boot_source *src)
     return PB_OK;
 }
 
-/* A process has no TrustZone, no watchdog and no ROM, and the crypto backend
- * is the board's: everything is absent (platform.md 3.8). A test of the
- * boot's preconditions asks for a DRAM filter that is bypassed */
+/* A process has no TrustZone, no watchdog and no ROM: they are absent
+ * (platform.md 3.8). The crypto backend is what plat_init() set up. A test of
+ * the boot's preconditions asks for a DRAM filter that is bypassed */
 void plat_get_status(struct plat_status *status)
 {
     status->tz_dram_filter = host_opts.dram_filter_bypassed ? PLAT_TZ_DRAM_BYPASSED
                                                             : PLAT_TZ_DRAM_NONE;
     status->wdog_armed = false;
-    status->crypto_engine = false;
+    status->crypto_engine = crypto_engine;
     status->rom_log = false;
 }
 

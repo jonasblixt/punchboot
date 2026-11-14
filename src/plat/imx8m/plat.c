@@ -9,6 +9,8 @@
 
 #include <arch/arch_helpers.h>
 #include <boot/atf.h>
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
@@ -22,6 +24,8 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imx8m/imx8m.h>
 #include <stdio.h>
 #include <uuid.h>
@@ -322,6 +326,103 @@ static int tzasc_open_dram(void)
     return rc;
 }
 
+/*
+ * The root of trust and the life cycle (platform.md 4.1, 4.2). pb doesn't
+ * support the 8M's HAB (D-027, plat-imx.md 4.1): no key is revoked, no fuse
+ * is written, and without a life cycle command mode is open. The i.MX8M
+ * Plus's keys can be used. The i.MX8MQ's can't: its board, imx8mevk, had no
+ * read_key_status, and that is kept, though platform.md 4.1 asks for one.
+ */
+#ifdef CONFIG_PLAT_IMX8MP
+static int read_key_status(const struct rot_key *key)
+{
+    (void)key;
+    return PB_OK;
+}
+#endif
+
+const struct rot_config plat_rot = {
+    .revoke_key = NULL,
+#ifdef CONFIG_PLAT_IMX8MP
+    .read_key_status = read_key_status,
+#endif
+};
+
+const struct slc_ops plat_slc = { 0 };
+
+/*
+ * The build's crypto backends (platform.md 2.2, crypto.md 2), each behind
+ * its driver's option: the CAAM on job ring 0 with its RNG, and Mbed TLS. A
+ * board that needs the software implementation turns the CAAM's option off
+ * and Mbed TLS's on in its defconfig. The ROM leaves the CAAM's clock on.
+ *
+ * Command mode can start without a backend, so a failure isn't plat_init()'s
+ * error: main() would reset. A backend that failed isn't registered and no
+ * image verifies: it is recorded (plat_get_status()), and the boot's
+ * preconditions refuse the boot before anything is loaded (platform.md 2.3).
+ *
+ * Returns whether the build's backends all came up. A build without one has
+ * none that works.
+ */
+static bool crypto_init(void)
+{
+    unsigned int backends = 0;
+    bool failed = false;
+    int rc = PB_OK;
+
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    rc = imx_caam_init(IMX8M_CAAM_JR0_BASE);
+    backends++;
+
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+        failed = true;
+    } else {
+        /* Linux can't instantiate the RNG when it runs in the normal world
+         * (platform.md 4.5). Without it Linux has no hardware RNG, which is
+         * no reason not to boot */
+        rc = imx_caam_rng_init(IMX8M_CAAM_BASE);
+
+        if (rc != PB_OK)
+            LOG_ERR("CAAM RNG init failed (%i)", rc);
+    }
+#endif
+
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    rc = mbedtls_pb_init();
+    backends++;
+
+    if (rc != PB_OK) {
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+        failed = true;
+    }
+#endif
+
+    (void)rc;
+    return backends > 0 && !failed;
+}
+
+/*
+ * Before the jump the platform stops what plat_init() started (platform.md
+ * 4.5, drivers.md 2.3): the CAAM's job ring holds no address in pb's memory
+ * any more (crypto.md 6). Mbed TLS has nothing to stop. After it the CAAM's
+ * backend answers -PB_ERR_STATE until a reset. A stop that fails is a failed
+ * boot: plat_lockdown() returns its error and pb doesn't jump.
+ */
+static int crypto_stop(void)
+{
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    int rc = imx_caam_stop();
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM stop failed (%i)", rc);
+
+    return rc;
+#else
+    return PB_OK;
+#endif
+}
+
 int plat_early_init(void)
 {
     /* The reset reason. Read only: the OS reads the same register. The SRC
@@ -422,6 +523,9 @@ int plat_init(void)
     imx_wdog_kick(IMX8M_WDOG1_BASE);
     plat_mmu_init();
 
+    /* Last: until F-247 the board's init() did it, as its first step */
+    status.crypto_engine = crypto_init();
+
     LOG_DBG("Plat init done");
     return PB_OK;
 }
@@ -473,9 +577,9 @@ int plat_get_boot_source(struct pb_boot_source *src)
 
 int plat_lockdown(void)
 {
-    /* Nothing yet: pb doesn't support the 8M's HAB (D-027), and its CSF
-     * leaves SRK revocation locked (F-244) */
-    return PB_OK;
+    /* Nothing locked yet: pb doesn't support the 8M's HAB (D-027), and its
+     * CSF leaves SRK revocation locked (F-244) */
+    return crypto_stop();
 }
 
 /* platform.md 3.11. DIGPROG's MINOR is the base layer in 7:4 and the metal

@@ -10,6 +10,10 @@
  * SCFW's calls they make faked here. A dry run writes no fuse: not a fuse
  * word, not the SECO's revocation commit and not its life cycle forward,
  * which both burn fuses.
+ *
+ * And the port's plat_rot and plat_slc (platform.md 4.1, 4.2), which the
+ * helpers' files define. Built twice: for the i.MX8QXP and for the i.MX8DXL
+ * (test_imx8xl_dry_run), whose life cycle can't be locked.
  */
 
 #include <setjmp.h>
@@ -20,7 +24,9 @@
 #include <cmocka.h>
 
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/rot.h>
+#include <pb/slc.h>
 #include <pb/srk_fuse.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
@@ -134,12 +140,37 @@ static void test_dry_run_revokes_nothing(void **state)
     assert_int_equal(imx8x_read_key_status(&key), PB_OK);
 }
 
+/* platform.md 4.1, 4.2 (F-247): the root of trust and the life cycle are the
+ * platform's, AHAB's through the SECO and the SCFW's fuses. What the MEK and
+ * the DXL EVK wired themselves until then, unchanged: the DXL's life cycle
+ * can't be locked ('slc lock' answers NOT_SUPPORTED, F-212), and neither SoC
+ * has EOL (F-263) */
+static void test_plat_rot_and_slc(void **state)
+{
+    (void)state;
+
+    assert_ptr_equal(plat_rot.revoke_key, imx8x_revoke_key);
+    assert_ptr_equal(plat_rot.read_key_status, imx8x_read_key_status);
+
+    assert_ptr_equal(plat_slc.read_status, imx8x_slc_read_status);
+    assert_ptr_equal(plat_slc.set_configuration, imx8x_slc_set_configuration);
+#ifdef CONFIG_PLAT_IMX8XL
+    assert_null(plat_slc.set_configuration_locked);
+#else
+    assert_ptr_equal(plat_slc.set_configuration_locked, imx8x_slc_set_configuration_locked);
+#endif
+    assert_null(plat_slc.set_eol);
+    assert_ptr_equal(plat_slc.fuse_read, imx8x_fuse_read);
+    assert_ptr_equal(plat_slc.fuse_write, imx8x_fuse_write);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_dry_run_writes_no_fuse, setup),
         cmocka_unit_test_setup(test_dry_run_locks_nothing, setup),
         cmocka_unit_test_setup(test_dry_run_revokes_nothing, setup),
+        cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -10,14 +10,18 @@
 #include <pb/pb.h>
 #include <pb/slc.h>
 
-static const struct slc_config *cfg;
+static const struct slc_ops *ops;
+static const struct slc_fuse *fuses;
+static size_t fuses_length;
 
-int slc_init(const struct slc_config *cfg_)
+int slc_init(const struct slc_ops *ops_, const struct slc_fuse *fuses_, size_t fuses_length_)
 {
-    if (cfg_ && cfg_->fuses_length && (!cfg_->fuse_read || !cfg_->fuse_write))
+    if (ops_ && fuses_length_ && (!fuses_ || !ops_->fuse_read || !ops_->fuse_write))
         return -PB_ERR_PARAM;
 
-    cfg = cfg_;
+    ops = ops_;
+    fuses = fuses_;
+    fuses_length = fuses_length_;
     return PB_OK;
 }
 
@@ -27,10 +31,10 @@ static int write_fuses(void)
     uint32_t val;
     int rc;
 
-    for (size_t n = 0; n < cfg->fuses_length; n++) {
-        const struct slc_fuse *fuse = &cfg->fuses[n];
+    for (size_t n = 0; n < fuses_length; n++) {
+        const struct slc_fuse *fuse = &fuses[n];
 
-        rc = cfg->fuse_read(fuse->index, &val);
+        rc = ops->fuse_read(fuse->index, &val);
 
         if (rc != PB_OK) {
             LOG_ERR("Could not read fuse %u (%i)", fuse->index, rc);
@@ -43,7 +47,7 @@ static int write_fuses(void)
         }
 
         LOG_INFO("Fusing %u to 0x%x (was 0x%x)", fuse->index, fuse->value, val);
-        rc = cfg->fuse_write(fuse->index, fuse->value);
+        rc = ops->fuse_write(fuse->index, fuse->value);
 
         if (rc != PB_OK) {
             LOG_ERR("Could not write fuse %u (%i)", fuse->index, rc);
@@ -57,17 +61,17 @@ static int write_fuses(void)
 slc_t slc_read_status(void)
 {
     /* Not set up: the life cycle is unknown, not unsupported */
-    if (!cfg)
+    if (!ops)
         return -PB_ERR_STATE;
 
-    if (!cfg->read_status)
+    if (!ops->read_status)
         return -PB_ERR_NOT_SUPPORTED;
 
-    return cfg->read_status();
+    return ops->read_status();
 }
 
 /*
- * The life cycle only moves forward. The platform's callbacks only write
+ * The life cycle only moves forward. The platform's operations only write
  * the fuses, the order is checked here:
  *
  *   NOT_CONFIGURED -> CONFIGURATION -> CONFIGURATION_LOCKED
@@ -81,12 +85,12 @@ int slc_set_configuration(void)
     slc_t slc;
     int rc;
 
-    if (!cfg || (!cfg->set_configuration && !cfg->fuses_length))
+    if (!ops || (!ops->set_configuration && !fuses_length))
         return -PB_ERR_NOT_SUPPORTED;
 
     slc = slc_read_status();
 
-    /* Also a board without read_status: the order can't be checked */
+    /* Also a platform without read_status: the order can't be checked */
     if (slc < 0)
         return slc;
 
@@ -95,8 +99,8 @@ int slc_set_configuration(void)
         return -PB_ERR_STATE;
     }
 
-    if (cfg->set_configuration) {
-        rc = cfg->set_configuration();
+    if (ops->set_configuration) {
+        rc = ops->set_configuration();
 
         if (rc != PB_OK)
             return rc;
@@ -109,7 +113,7 @@ int slc_set_configuration_locked(void)
 {
     slc_t slc;
 
-    if (!cfg || !cfg->set_configuration_locked)
+    if (!ops || !ops->set_configuration_locked)
         return -PB_ERR_NOT_SUPPORTED;
 
     slc = slc_read_status();
@@ -127,7 +131,7 @@ int slc_set_configuration_locked(void)
         return -PB_ERR_STATE;
     }
 
-    return cfg->set_configuration_locked();
+    return ops->set_configuration_locked();
 }
 
 /*
@@ -140,7 +144,7 @@ int slc_set_eol(void)
 #ifdef CONFIG_SLC_EOL
     slc_t slc;
 
-    if (!cfg || !cfg->set_eol)
+    if (!ops || !ops->set_eol)
         return -PB_ERR_NOT_SUPPORTED;
 
     slc = slc_read_status();
@@ -153,7 +157,7 @@ int slc_set_eol(void)
         return PB_OK;
     }
 
-    return cfg->set_eol();
+    return ops->set_eol();
 #else
     return -PB_ERR_NOT_SUPPORTED;
 #endif
