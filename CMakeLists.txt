@@ -166,6 +166,12 @@ set(PB_CORE_SOURCES
     src/boot/image_helpers.c
     src/boot/image.c
     src/cm/cm_main.c
+    src/cm/cm_auth.c
+    src/cm/cm_board.c
+    src/cm/cm_boot.c
+    src/cm/cm_device.c
+    src/cm/cm_part.c
+    src/cm/cm_slc.c
     src/cm/commands.c
     src/drivers/crypto/mbedtls/mbedtls_pb.c
     src/drivers/fuse/test_fuse_bio.c
