@@ -241,8 +241,6 @@ own alignment (64, 4096, or none) and its own order.
 
 ### 4.3 The caller's buffer
 
-**Not yet in the code (F-282)**: the transport's read doesn't check its buffer.
-
 A driver's device also reads and writes buffers that aren't the driver's: a block read into an
 image's load address, a transfer into command mode's buffer, the bytes to hash.
 

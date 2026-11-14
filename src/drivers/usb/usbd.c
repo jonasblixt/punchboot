@@ -8,6 +8,7 @@
  */
 
 #include <drivers/usb/usbd.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/utils_def.h>
@@ -349,6 +350,15 @@ int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length)
 {
     if (hal_ops == NULL)
         return -PB_ERR_IO;
+
+    /* What the controller writes owns its cache lines (usb.md 2.3, 4.3,
+     * drivers.md 4.3): an OUT transfer into a buffer that doesn't start on
+     * one is refused before the controller sees it. Its last line is the
+     * buffer's by its declaration. IN reads the buffer only, and takes any */
+    if (!(ep & 1) && !dma_owns_lines(buf, 0)) {
+        LOG_ERR("%s: buffer %p isn't on a cache line", ep_to_str(ep), buf);
+        return -PB_ERR_ALIGN;
+    }
 
     cur_xfer_ep = ep;
     cur_xfer_buf = buf;
