@@ -3,6 +3,7 @@
 from .errors import (  # noqa: F401
     ArgumentError,
     AuthenticationError,
+    BadPayloadError,
     CommandError,
     Error,
     GenericError,
@@ -44,6 +45,7 @@ _pb_exceptions = [
     "SignatureError",
     "MemError",
     "IOError",
+    "BadPayloadError",
 ]
 
 __all__ = [

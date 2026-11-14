@@ -456,7 +456,17 @@ static struct {
     size_t no_of_keys; /* 0: two keys */
     int no_of_keys_rc; /* The RoT's error: it isn't set up */
     unsigned int key_reads; /* The key ids and statuses that were asked for */
+    int eol_calls; /* slc_set_eol() */
 } sec;
+
+/* EOL is the product's option (system.md 4, F-263). This file is built with
+ * it, as pb-host is, and without it (test_cm_no_eol), as every board is:
+ * SLC_SET_EOL then answers NOT_SUPPORTED and reaches nothing */
+#ifdef CONFIG_SLC_EOL
+#define EOL_RESULT PB_RESULT_OK
+#else
+#define EOL_RESULT (-PB_RESULT_NOT_SUPPORTED)
+#endif
 
 slc_t slc_read_status(void)
 {
@@ -479,6 +489,7 @@ int slc_set_configuration_locked(void)
 
 int slc_set_eol(void)
 {
+    sec.eol_calls++;
     if (sec.set_rc == PB_OK)
         sec.slc = SLC_EOL;
     return sec.set_rc;
@@ -917,6 +928,10 @@ static void test_invalid_command(void **state)
     expect_end();
 }
 
+/* The retired command and the reserved one (command-mode.md 5.8, F-032):
+ * NOT_SUPPORTED, never INVALID_COMMAND, which would tell a host that the
+ * device is older than the command. Behind the gate:
+ * test_gate_refused_sessions */
 static void test_deprecated_commands(void **state)
 {
     (void)state;
@@ -1190,6 +1205,8 @@ static void test_error_codes(void **state)
         { -PB_ERR_PARAM, -PB_RESULT_INVALID_ARGUMENT },
         { -PB_ERR_NOT_SUPPORTED, -PB_RESULT_NOT_SUPPORTED },
         { -PB_ERR_BAD_HEADER, -PB_RESULT_ERROR },
+        /* A code of its own, from 3.0.0 (command-mode.md 4.5, F-087) */
+        { -PB_ERR_BAD_PAYLOAD, -PB_RESULT_BAD_PAYLOAD },
         /* An error like any other: the next one is answered (F-252) */
         { -PB_ERR_ABORT, -PB_RESULT_ERROR },
         { -PB_ERR_STATE, -PB_RESULT_ERROR },
@@ -1845,8 +1862,50 @@ static void test_slc_commands(void **state)
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
-    expect_result(PB_RESULT_OK);
+    expect_result(EOL_RESULT);
+#ifdef CONFIG_SLC_EOL
     assert_int_equal(sec.slc, SLC_EOL);
+#else
+    assert_int_equal(sec.slc, SLC_CONFIGURATION_LOCKED);
+#endif
+    expect_end();
+}
+
+/*
+ * EOL is the product's option, CONFIG_SLC_EOL, off by default (system.md 4,
+ * command-mode.md 5.2, F-263). With it SLC_SET_EOL moves the device to EOL.
+ * Without it the command answers NOT_SUPPORTED, never INVALID_COMMAND (4.5),
+ * behind the gate, and reaches nothing: the device can't enter EOL, also
+ * where the port could. That is what a device answers whose port has no
+ * set_eol.
+ */
+static void test_eol_is_the_products_option(void **state)
+{
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_cmd(PB_CMD_SLC_SET_EOL, NULL, 0);
+    host_auth_token();
+    host_cmd(PB_CMD_SLC_SET_EOL, NULL, 0);
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    run();
+
+    /* Behind the gate, with and without the option */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(EOL_RESULT);
+
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+#ifdef CONFIG_SLC_EOL
+    assert_int_equal(sec.eol_calls, 1);
+    assert_int_equal(((const struct pb_result_slc *)r->response)->slc, SLC_EOL);
+#else
+    assert_int_equal(sec.eol_calls, 0);
+    assert_int_equal(((const struct pb_result_slc *)r->response)->slc, SLC_CONFIGURATION_LOCKED);
+#endif
+    expect_data(sizeof(struct pb_result_slc_key_status));
+    expect_result(PB_RESULT_OK);
     expect_end();
 }
 
@@ -1857,7 +1916,11 @@ static void test_slc_errors(void **state)
     sec.set_rc = -PB_ERR_IO;
     host_cmd(PB_CMD_SLC_SET_EOL, NULL, 0);
     run();
+#ifdef CONFIG_SLC_EOL
     expect_result(-PB_RESULT_IO_ERROR);
+#else
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+#endif
     assert_int_equal(sec.slc, SLC_CONFIGURATION);
 
     /* An SLC that can't be read counts as locked */
@@ -2895,6 +2958,43 @@ static void test_boot_bpak(void **state)
     host_cmd(PB_CMD_BOOT_BPAK, &req, sizeof(req));
     run();
     assert_int_equal(fake_boot.load_calls, 0);
+}
+
+/* A payload whose hash differs has a result of its own, where a release
+ * answered ERROR (command-mode.md 4.5, F-087): BOOT_PART's result and
+ * BOOT_BPAK's last one. The value is appended: a host that doesn't know it
+ * takes it as an error (compatibility.md) */
+static void test_boot_bad_payload(void **state)
+{
+    struct pb_command_boot_part part_req = { .verbose = 0 };
+    struct pb_command_bpak_boot bpak_req = { .verbose = 0 };
+    static struct bpak_header header;
+    (void)state;
+
+    assert_int_equal(PB_RESULT_BAD_PAYLOAD, 18);
+    assert_true(PB_RESULT_BAD_PAYLOAD < PB_RESULT_END);
+    assert_true(PB_RESULT_END <= INT8_MAX);
+
+    memcpy(part_req.uuid, UU_RW, 16);
+    memcpy(bpak_req.uuid, UU_RW, 16);
+    fake_boot.load_rc = -PB_ERR_BAD_PAYLOAD;
+    host_cmd(PB_CMD_BOOT_PART, &part_req, sizeof(part_req));
+    run();
+    expect_result(-PB_RESULT_BAD_PAYLOAD);
+
+    t.init_calls = 0;
+    fake_boot.reads_header = true;
+    host_cmd(PB_CMD_BOOT_BPAK, &bpak_req, sizeof(bpak_req));
+    host_send(&header, sizeof(header));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK); /* BOOT_BPAK */
+    expect_result(-PB_RESULT_BAD_PAYLOAD); /* The boot's result */
+    expect_result(PB_RESULT_OK); /* Command mode goes on */
+    expect_end();
+    assert_int_equal(fake_boot.jump_calls, 0);
+    assert_int_equal(t.disconnect_calls, 0);
 }
 
 /* A boot refused before the header is read (command-mode.md 5.5, D-058,
@@ -3993,7 +4093,7 @@ static const int8_t gate_open_results[PB_CMD_END] = {
     [PB_CMD_DEVICE_READ_CAPS] = PB_RESULT_OK,
     [PB_CMD_SLC_SET_CONFIGURATION] = PB_RESULT_OK,
     [PB_CMD_SLC_SET_CONFIGURATION_LOCK] = PB_RESULT_OK,
-    [PB_CMD_SLC_SET_EOL] = PB_RESULT_OK,
+    [PB_CMD_SLC_SET_EOL] = EOL_RESULT,
     [PB_CMD_SLC_REVOKE_KEY] = PB_RESULT_OK,
     [PB_CMD_SLC_READ] = PB_RESULT_OK,
     [PB_CMD_BOOTLOADER_VERSION_READ] = PB_RESULT_OK,
@@ -4190,6 +4290,7 @@ int main(void)
         CM_TEST(test_auth_failure_delay_counts_from_the_data),
         CM_TEST(test_auth_not_delayed),
         CM_TEST(test_slc_commands),
+        CM_TEST(test_eol_is_the_products_option),
         CM_TEST(test_slc_errors),
         CM_TEST(test_unknown_slc_requires_auth),
         CM_TEST(test_slc_read_key_status),
@@ -4217,6 +4318,7 @@ int main(void)
         CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
+        CM_TEST(test_boot_bad_payload),
         CM_TEST(test_boot_bpak_refused_before_the_header),
         CM_TEST(test_boot_stopped_before_the_disconnect),
         CM_TEST(test_boot_bpak_load_returns_abort),

@@ -69,6 +69,36 @@ def test_boot_partition(
     assert boot_partition(device, part) == name
 
 
+def test_payload_that_differs_from_its_hash_has_its_own_result(
+    device: Device, tmp_path: pathlib.Path
+) -> None:
+    """A payload whose hash differs is PB_RESULT_BAD_PAYLOAD (command-mode.md 4.5, F-087).
+
+    A release's device answered PB_RESULT_ERROR, "Generic error" for the
+    host. The host's exception is a GenericError, as that was.
+    """
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+    changed = bytearray(img.read_bytes())
+    changed[4096 + 100] ^= 1  # In the part, after the header
+    bad = tmp_path / "bad.bpak"
+    bad.write_bytes(changed)
+
+    with device.session() as s:
+        s.part_write(bad, SYSTEM_A_UUID)
+        with pytest.raises(punchboot.BadPayloadError):
+            s.boot_partition(SYSTEM_A_UUID)
+        # The last result of the boot from the host
+        with pytest.raises(punchboot.BadPayloadError):
+            s.boot_bpak(bad, NULL_UUID)
+        with pytest.raises(punchboot.GenericError):
+            s.boot_bpak(bad, NULL_UUID)
+        # Command mode goes on, and the image as it was signed boots
+        assert s.device_get_boardname()
+        assert device.boot_status is None
+
+    assert boot_ram(device, img) == "?"
+
+
 def test_write_image_larger_than_partition_fails(device: Device, tmp_path: pathlib.Path) -> None:
     small = make_bpak(tmp_path / "small.bpak", os.urandom(128 * 1024))
     large = make_bpak(tmp_path / "large.bpak", os.urandom(1024 * 1024))

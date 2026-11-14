@@ -22,6 +22,9 @@ enum pb_results {
     PB_RESULT_SIGNATURE_ERROR,
     PB_RESULT_MEM_ERROR,
     PB_RESULT_IO_ERROR,
+    /* From 3.0.0. A host that doesn't know a code takes it as an error
+     * (compatibility.md): a release's device answered PB_RESULT_ERROR here */
+    PB_RESULT_BAD_PAYLOAD, /* An image's payload doesn't have the header's hash */
     PB_RESULT_END, /* Sentinel */
 };
 
