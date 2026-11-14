@@ -37,6 +37,7 @@
 #define CDNS_USB_CONF                      (0x20000)
 #define CONF_DMULT                         BIT(9)
 #define CONF_DEV_EN                        BIT(14)
+#define CONF_DEVDS                         BIT(15)
 #define CONF_L1DS                          BIT(17)
 #define CONF_CLK2OFFDS                     BIT(19)
 #define CONF_CLK3OFFDS                     BIT(22)
@@ -79,6 +80,7 @@
 #define EP_CFG_ENABLE                      BIT(0)
 
 #define CDNS_USB_EP_CMD                    (0x20028)
+#define EP_CMD_EPRST                       BIT(0)
 #define EP_CMD_SSTALL                      BIT(1)
 #define EP_CMD_ERDY                        BIT(3)
 #define EP_CMD_REQ_CMPL                    BIT(5)
@@ -96,6 +98,7 @@
 #define EP_STS_ISP                         BIT(3) /* Short packet */
 #define EP_STS_DESCMIS                     BIT(4)
 #define EP_STS_TRBERR                      BIT(7)
+#define EP_STS_DBUSY                       BIT(9)
 
 #define CDNS_USB_EP_STS_SID                (0x20030)
 #define CDNS_USB_DRBL                      (0x20038)
@@ -202,6 +205,11 @@ static bool xfer_flush_failed;
  * started again (usb.md 2.4, 4.3) */
 static bool configured;
 static bool bus_lost;
+/* From init to stop: the controller is set up, and the operations may use
+ * it. Before init and after stop they are -PB_ERR_STATE (drivers.md 3) */
+static bool running;
+/* The endpoints pb enabled, a bit for each usb_ep_t: what stop resets */
+static uint32_t eps_enabled;
 
 /*
  * The bounds of the driver's waits (drivers.md 3). There is no manual for
@@ -220,6 +228,13 @@ static bool bus_lost;
  * the waits on the same block's status bits in Linux 6.1's cdns3-imx.c,
  * readl_poll_timeout(..., 10, 100000), 100 ms */
 #define CDNS_RESET_TIMEOUT_us        100000
+/* An endpoint's reset in stop, as Linux 6.1's cdns3_gadget_ep_disable():
+ * up to 10 us for the endpoint's DMA to go idle (EP_STS_DBUSY, "10us is
+ * enough time for controller to stop transfer", and no error when it isn't),
+ * then up to 1 ms for EP_CMD_EPRST to clear (cdns3_gadget_udc_stop() gives
+ * it 100 us, the longer of the two is taken) */
+#define CDNS_DBUSY_TIMEOUT_us        10
+#define CDNS_EPRST_TIMEOUT_us        1000
 
 /* Polls 'reg' until its bits in 'mask' are 'value', at most 'timeout_us' */
 static int wait_for(uintptr_t reg, uint32_t mask, uint32_t value, uint32_t timeout_us)
@@ -361,6 +376,10 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
 
+    /* After stop nothing is armed again but by init (drivers.md 2.3) */
+    if (!running)
+        return -PB_ERR_STATE;
+
     LOG_DBG("%s: buf=%p, len=%zu", ep_to_str(ep), buf, length);
 
     if (ep_val == 0) {
@@ -457,6 +476,9 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
     bool in_xfer = !!(ep % 2);
     uint32_t ep_sts;
 
+    if (!running)
+        return -PB_ERR_STATE;
+
     /* A bus reset or an unplug ends a bulk transfer: lost. It is seen in
      * poll_setup_pkt(), which the stack calls before each poll of it */
     if (bus_lost && ep / 2 != 0)
@@ -515,6 +537,10 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
 
 void cdns3_udc_core_xfer_cancel(usb_ep_t ep)
 {
+    /* Stopped: the endpoint was reset, and its transfer is the caller's */
+    if (!running)
+        return;
+
     select_ep(ep);
 
     mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DFLUSH);
@@ -556,6 +582,10 @@ int cdns3_udc_core_poll_setup_pkt(struct usb_setup_packet *pkt)
     bool got_setup_pkt = false;
     uint32_t ep_ists;
     uint32_t ep_sts;
+
+    /* It arms endpoint 0 again, which stop left unarmed */
+    if (!running)
+        return -PB_ERR_STATE;
 
     ep_ists = mmio_read_32(base + CDNS_USB_EP_ISTS);
     mmio_write_32(base + CDNS_USB_EP_ISTS, ep_ists);
@@ -614,6 +644,9 @@ int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_
     //  o Hard coded bulk EP type
     //  o Enable both IN/OUT INT
 
+    if (!running)
+        return -PB_ERR_STATE;
+
     for (size_t n = 0; n < no_of_eps; n++) {
         ep_num = (eps[n].bEndpointAddress & USB_EP_ADDR_NUM_MASK);
 
@@ -634,6 +667,8 @@ int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_
 
         /* Enable interrupt for EP0 in/out */
         mmio_write_32(base + CDNS_USB_EP_IEN, EP_IEN_EP_IN(ep_num) | EP_IEN_EP_OUT(ep_num));
+
+        eps_enabled |= BIT(ep);
     }
 
     configured = true;
@@ -644,6 +679,9 @@ int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_
 
 int cdns3_udc_core_set_address(uint16_t addr)
 {
+    if (!running)
+        return -PB_ERR_STATE;
+
     mmio_clrsetbits_32(
         base + CDNS_USB_CMD, USB_CMD_ADDR_MASK, USB_CMD_SET_ADDR | USB_CMD_ADDR(addr));
 
@@ -652,6 +690,9 @@ int cdns3_udc_core_set_address(uint16_t addr)
 
 int cdns3_udc_core_xfer_zlp(usb_ep_t ep)
 {
+    if (!running)
+        return -PB_ERR_STATE;
+
     select_ep(ep);
     /**
      * We set ERDY here because there is no data stage in the set address req.
@@ -693,12 +734,16 @@ int cdns3_udc_core_init(void)
     xfer_flush_failed = false;
     configured = false;
     bus_lost = false;
+    running = false;
+    eps_enabled = 0;
 
     /* Wait for controller to come out of reset */
     if (wait_for(CDNS_USB_STS, STS_INRST, STS_INRST, CDNS_RESET_TIMEOUT_us) != PB_OK) {
         LOG_ERR("Controller reset timeout");
         return -PB_ERR_TIMEOUT;
     }
+
+    running = true;
 
     /* Configure and enable EP0 */
     // TODO: Hardcoded values for SS
@@ -720,6 +765,7 @@ int cdns3_udc_core_init(void)
 
     /* Enable interrupt for EP0 in/out */
     mmio_write_32(base + CDNS_USB_EP_IEN, EP_IEN_EP_IN(0) | EP_IEN_EP_OUT(0));
+    eps_enabled = BIT(USB_EP0_OUT) | BIT(USB_EP0_IN);
 
     mmio_write_32(base + CDNS_USB_CONF, CONF_CLK2OFFDS | CONF_CLK3OFFDS | CONF_L1DS);
 
@@ -742,11 +788,87 @@ int cdns3_udc_core_init(void)
     return PB_OK;
 }
 
+/* An endpoint is disabled and reset: it is armed at no TRB, and moves no
+ * data. As Linux 6.1's cdns3_gadget_ep_disable() */
+static int ep_reset(usb_ep_t ep)
+{
+    select_ep(ep);
+    mmio_clrsetbits_32(base + CDNS_USB_EP_CFG, EP_CFG_ENABLE, 0);
+
+    /* Linux goes on to the reset when the endpoint stays busy: so does pb */
+    (void)wait_for(CDNS_USB_EP_STS, EP_STS_DBUSY, 0, CDNS_DBUSY_TIMEOUT_us);
+
+    mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_EPRST);
+
+    if (wait_for(CDNS_USB_EP_CMD, EP_CMD_EPRST, 0, CDNS_EPRST_TIMEOUT_us) != PB_OK) {
+        LOG_ERR("%s: reset timeout", ep_to_str(ep));
+        return -PB_ERR_TIMEOUT;
+    }
+
+    return PB_OK;
+}
+
+/*
+ * drivers.md 2.3, usb.md 4.2: the device leaves the bus, so the host sees it
+ * go; every endpoint pb enabled is disabled and reset, so none is armed at
+ * pb's memory; the controller's interrupts are off. It was empty, and the
+ * device stayed enumerated with endpoint 0 armed at setup_pkt: a SETUP
+ * after the handover was written into the next stage's memory (F-204).
+ *
+ * The order is Linux 6.1's when a gadget is unbound
+ * (usb_gadget_remove_driver()) on cdns3-gadget.c: cdns3_gadget_pullup(0),
+ * which clears the pending events and writes USB_CONF_DEVDS; each endpoint
+ * as cdns3_gadget_ep_disable(); then cdns3_gadget_udc_stop(), which resets
+ * each endpoint again and writes USB_IEN 0. Endpoint 0 is reset too, which
+ * Linux leaves: it is the one armed between two requests. EP_IEN, which pb
+ * sets and Linux leaves, is cleared as well. USB_CONF_SWRST isn't used: no
+ * driver here does, and what it resets isn't known. The i.MX glue holds the
+ * block in reset after it (imx_cdns3_udc.c).
+ */
 int cdns3_udc_core_stop(void)
 {
+    int rc = PB_OK;
+
+    /* Before init, or a second time */
+    if (!running)
+        return PB_OK;
+
     LOG_INFO("Stop");
+
+    mmio_write_32(base + CDNS_USB_EP_ISTS, 0xffffffff);
+    mmio_write_32(base + CDNS_USB_ISTS, 0xffffffff);
+    mmio_write_32(base + CDNS_USB_CONF, CONF_DEVDS);
+
+    for (usb_ep_t ep = USB_EP0_OUT; ep < USB_EP_END; ep++) {
+        if (!(eps_enabled & BIT(ep)))
+            continue;
+
+        if (ep_reset(ep) == PB_OK)
+            eps_enabled &= ~BIT(ep);
+        else
+            rc = -PB_ERR_TIMEOUT;
+    }
+
+    mmio_write_32(base + CDNS_USB_EP_IEN, 0);
+    mmio_write_32(base + CDNS_USB_IEN, 0);
+
     configured = false;
     bus_lost = false;
+
+    if (rc != PB_OK) {
+        /* An endpoint may still move data: what it has stays the
+         * controller's, every bulk transfer is refused, and a second stop
+         * tries the endpoints that failed again */
+        xfer_flush_failed = true;
+        return rc;
+    }
+
+    /* Nothing is armed: the driver's memory is its own again */
+    xfer_dma_end();
+    ep0_dma_end(true);
+    ep0_dma_end(false);
+    running = false;
+
     return PB_OK;
 }
 

@@ -262,8 +262,7 @@ power and PHY are done (`platform.md` 3.10).
 ### 4.2 Operation : stop [mandatory]
 
 `drivers.md` 2.3: the pull-up is off, the controller is halted, nothing is queued, no address
-in pb's memory is left in it. Bounded, and it can be called twice. **Not yet in the code
-(F-204)**: one controller's is empty.
+in pb's memory is left in it. Bounded, and it can be called twice.
 
 ### 4.3 Operations : xfer_start, xfer_complete, xfer_cancel [mandatory]
 
@@ -390,7 +389,7 @@ what the code doesn't settle without the hardware.
 
 | Requirement                      | ChipIdea           | DWC3                | Cadence USB3    | Finding |
 | -------------------------------- | ------------------ | ------------------- | --------------- | ------- |
-| `init` on a running controller   | yes                | yes                 | unverified      | F-204   |
+| `init` on a running controller   | yes                | yes                 | yes, not run    |         |
 | Every wait bounded               | no                 | yes                 | yes             | F-136   |
 | High speed, or not ready         | no                 | asks, doesn't act   | no              | F-287   |
 | A bus reset and an unplug are    | yes, kept; an      | yes, kept           | yes, at high    | F-287,  |
@@ -417,7 +416,7 @@ what the code doesn't settle without the hardware.
 | their lines                      | `ci_udc`)          | `udc`)              | `cdns3_udc`)    |         |
 | The order of clean, invalidate   | yes                | unverified          | yes             |         |
 | and copy                         |                    |                     |                 |         |
-| `stop`                           | yes, unbounded     | yes                 | no              | F-204   |
+| `stop`                           | yes, unbounded     | yes                 | yes, not run    | F-204   |
 | The serial number is read        | yes                | yes                 | yes (the MEK,   |         |
 |                                  |                    |                     | 2026-11-09)     |         |
 | Runs on the bench                | jiffy, the RT1060  | the 8MP EVK         | the MEK; resets | F-172   |
@@ -455,7 +454,6 @@ checklist's last item.
 |              | the controller's (2.3, 4.3)                                                 |
 | F-280        | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)       |
 | F-138        | Endpoint 0: stall and bounds (3.2)                                          |
-| F-204        | Every controller has a `stop` (4.2)                                         |
 | F-136, F-205 | Every wait is bounded (4)                                                   |
 | F-139, F-140 | The ChipIdea's set up against its reference manual                          |
 | F-172        | Writes that reset the MEK                                                   |

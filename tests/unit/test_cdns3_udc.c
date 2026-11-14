@@ -36,19 +36,30 @@
 
 /* The MEK's controller */
 #define CDNS3_BASE      0x5b120000u
+#define CDNS3_SIZE      0x30000u
+#define USB_CONF        (CDNS3_BASE + 0x20000)
 #define USB_STS         (CDNS3_BASE + 0x20004)
+#define USB_IEN         (CDNS3_BASE + 0x20014)
 #define USB_ISTS        (CDNS3_BASE + 0x20018)
 #define EP_SEL          (CDNS3_BASE + 0x2001c)
 #define EP_TRADDR       (CDNS3_BASE + 0x20020)
+#define EP_CFG          (CDNS3_BASE + 0x20024)
 #define EP_CMD          (CDNS3_BASE + 0x20028)
 #define EP_STS          (CDNS3_BASE + 0x2002c)
+#define EP_IEN          (CDNS3_BASE + 0x2003c)
 #define EP_ISTS         (CDNS3_BASE + 0x20040)
+#define CONF_DEV_EN     BIT(14)
+#define CONF_DEVDS      BIT(15)
 #define USB_STS_INRST   BIT(10)
+#define EP_CFG_ENABLE   BIT(0)
+#define EP_CMD_EPRST    BIT(0)
 #define EP_CMD_REQ_CMPL BIT(5)
 #define EP_CMD_DRDY     BIT(6)
 #define EP_CMD_DFLUSH   BIT(7)
 #define EP_STS_SETUP    BIT(0)
 #define EP_STS_IOC      BIT(2)
+#define EP_STS_DBUSY    BIT(9)
+#define ISTS_CFGRESI    BIT(26)
 #define ISTS_DIS2I      BIT(17)
 #define ISTS_U2RESI     BIT(18)
 
@@ -100,19 +111,29 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
 #define USB3_CORE_STATUS   (NON_CORE_BASE + 0x0c)
 #define DEV_POWER_ON_READY BIT(13)
 
-/* EP_TRADDR is the selected endpoint's: an index for each direction */
+/* EP_TRADDR and EP_CFG are the selected endpoint's: an index for each
+ * direction */
 static uint32_t traddr[32];
+static uint32_t ep_cfg[32];
 static unsigned int selected;
-/* A flush, or a status stage, that doesn't end */
+/* An endpoint that was given a ring (DRDY) and not reset since (EPRST), and
+ * the resets of each */
+static bool armed[32];
+static unsigned int eprsts[32];
+/* A flush, a status stage or an endpoint's reset that doesn't end, and an
+ * endpoint that stays busy */
 static bool flush_hangs;
 static bool status_stage_hangs;
+static bool eprst_hangs;
+static bool dbusy_hangs;
 
 /* What the registers do with a write: the status registers are written to
- * clear, and a flush and a status stage end at once */
+ * clear, and a flush, a status stage and an endpoint's reset end at once */
 static uint64_t on_write(uintptr_t addr, uint64_t value)
 {
+    uint64_t self_clearing = EP_CMD_DFLUSH | EP_CMD_REQ_CMPL | EP_CMD_EPRST;
     uint64_t sticky = (flush_hangs ? EP_CMD_DFLUSH : 0) |
-                      (status_stage_hangs ? EP_CMD_REQ_CMPL : 0);
+                      (status_stage_hangs ? EP_CMD_REQ_CMPL : 0) | (eprst_hangs ? EP_CMD_EPRST : 0);
 
     switch (addr) {
     case EP_SEL:
@@ -121,15 +142,60 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
     case EP_TRADDR:
         traddr[selected] = (uint32_t)value;
         return value;
+    case EP_CFG:
+        ep_cfg[selected] = (uint32_t)value;
+        return value;
     case USB_ISTS:
     case EP_ISTS:
     case EP_STS:
         return 0;
     case EP_CMD:
-        return value & ~(uint64_t)((EP_CMD_DFLUSH | EP_CMD_REQ_CMPL) & ~sticky);
+        if (value & EP_CMD_DRDY)
+            armed[selected] = true;
+
+        if (value & EP_CMD_EPRST) {
+            eprsts[selected]++;
+
+            if (!eprst_hangs)
+                armed[selected] = false;
+        }
+
+        return value & ~(self_clearing & ~sticky);
     default:
         return value;
     }
+}
+
+/* What a read gets: the selected endpoint's configuration, and its status
+ * with DBUSY when it stays busy */
+static uint64_t on_read(uintptr_t addr, uint64_t value)
+{
+    switch (addr) {
+    case EP_CFG:
+        return ep_cfg[selected];
+    case EP_STS:
+        return value | (dbusy_hangs ? EP_STS_DBUSY : 0);
+    default:
+        return value;
+    }
+}
+
+/* Nothing of pb's is left in the controller (drivers.md 2.3): no endpoint
+ * armed or enabled, none of the driver's memory the controller's, the device
+ * off the bus and its interrupts off */
+static void assert_stopped(void)
+{
+    for (size_t ep = 0; ep < ARRAY_SIZE(armed); ep++) {
+        if (armed[ep])
+            fail_msg("Endpoint %zu is armed", ep);
+        if (ep_cfg[ep] & EP_CFG_ENABLE)
+            fail_msg("Endpoint %zu is enabled", ep);
+    }
+
+    assert_int_equal(dma_host_in_open(), 0);
+    assert_int_equal(fake_regs_get(USB_CONF), CONF_DEVDS);
+    assert_int_equal(fake_regs_get(USB_IEN), 0);
+    assert_int_equal(fake_regs_get(EP_IEN), 0);
 }
 
 /* The controller runs the ring of 'ep': 'stream' is what the host sends on
@@ -193,8 +259,14 @@ static int setup(void **state)
 
     fake_regs_reset();
     fake_regs_on_write = on_write;
+    fake_regs_on_read = on_read;
     flush_hangs = false;
     status_stage_hangs = false;
+    eprst_hangs = false;
+    dbusy_hangs = false;
+    memset(ep_cfg, 0, sizeof(ep_cfg));
+    memset(armed, 0, sizeof(armed));
+    memset(eprsts, 0, sizeof(eprsts));
     /* Time goes on while the driver polls */
     fake_us_tick_step = 1;
     fake_regs_set(USB_STS, USB_STS_INRST);
@@ -457,6 +529,7 @@ static void test_a_bus_reset_between_transfers_is_kept(void **state)
 
     bus_event(ISTS_U2RESI);
     assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_int_equal(cdns3_udc_core_init(), PB_OK);
     assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
     cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
 
@@ -663,9 +736,148 @@ static void test_init_again(void **state)
     assert_int_equal(dma_host_in_open(), 2);
 }
 
+/* drivers.md 2.3: a stop before init is no error, and touches nothing. First
+ * in the run, before any init */
+static void test_stop_before_init(void **state)
+{
+    (void)state;
+
+    fake_regs_reset();
+    cdns3_udc_core_set_base(CDNS3_BASE);
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_int_equal(fake_reg_log_len, 0);
+}
+
+/*
+ * F-204, drivers.md 2.3, usb.md 4.2: stop was empty, and the device stayed
+ * enumerated with endpoint 0 armed at the setup packet, so a SETUP after the
+ * handover was written into the next stage's memory. After stop the device
+ * has left the bus before an endpoint is reset (the host sees it go), every
+ * endpoint pb enabled is disabled and reset, none of the driver's memory is
+ * the controller's, and the interrupts are off. A second stop does nothing,
+ * the operations are refused until init, and init after it works (the
+ * transport's restart, usb.md 2.5)
+ */
+static void test_stop(void **state)
+{
+    static const usb_ep_t eps[] = { USB_EP0_OUT, USB_EP0_IN, USB_EP1_IN, USB_EP2_OUT };
+    uint8_t *buf = arena + LINE;
+    struct usb_setup_packet pkt;
+    uint8_t reply[18];
+    size_t start;
+    size_t devds = SIZE_MAX;
+    size_t eprst = SIZE_MAX;
+    size_t writes;
+    (void)state;
+
+    configure();
+    fill(reply, sizeof(reply), 7);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP0_IN, reply, sizeof(reply)), PB_OK);
+    assert_true(armed[USB_EP0_OUT]);
+    assert_int_equal(dma_host_in_open(), 5);
+
+    start = fake_reg_log_len;
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_stopped();
+
+    for (size_t i = 0; i < ARRAY_SIZE(eps); i++)
+        assert_int_equal(eprsts[eps[i]], 1);
+
+    for (size_t n = start; n < fake_reg_log_len; n++) {
+        if (devds == SIZE_MAX && fake_reg_log[n].addr == USB_CONF &&
+            fake_reg_log[n].value == CONF_DEVDS)
+            devds = n;
+        if (eprst == SIZE_MAX && fake_reg_log[n].addr == EP_CMD &&
+            (fake_reg_log[n].value & EP_CMD_EPRST))
+            eprst = n;
+    }
+
+    assert_true(devds < eprst);
+    assert_true(eprst < fake_reg_log_len);
+
+    /* Again, and the operations: nothing is written, nothing armed */
+    writes = fake_reg_log_len;
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), -PB_ERR_STATE);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP0_IN, reply, sizeof(reply)), -PB_ERR_STATE);
+    assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), -PB_ERR_STATE);
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+    /* A configuration reset, on which the driver arms endpoint 0 */
+    fake_regs_set(USB_ISTS, ISTS_CFGRESI);
+    assert_int_equal(cdns3_udc_core_poll_setup_pkt(&pkt), -PB_ERR_STATE);
+    assert_int_equal(cdns3_udc_core_set_address(5), -PB_ERR_STATE);
+    assert_int_equal(cdns3_udc_core_xfer_zlp(USB_EP0_IN), -PB_ERR_STATE);
+    assert_int_equal(fake_reg_log_len, writes);
+    fake_regs_set(USB_ISTS, 0);
+    assert_stopped();
+
+    /* The transport is restarted: the setup packet's ring is armed, the
+     * device is on the bus, and a transfer runs */
+    assert_int_equal(cdns3_udc_core_init(), PB_OK);
+    assert_true(armed[USB_EP0_OUT]);
+    assert_int_equal(fake_regs_get(USB_CONF), CONF_DEV_EN);
+    assert_int_equal(dma_host_in_open(), 2);
+
+    configure();
+    fill(host, 512, 9);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    assert_int_equal(controller_run(USB_EP2_OUT, host, 512), 512);
+    fake_regs_set(EP_STS, EP_STS_IOC);
+    assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(buf, host, 512);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
+/* drivers.md 3: an endpoint's reset that doesn't end is -PB_ERR_TIMEOUT.
+ * The device left the bus and its interrupts are off all the same; what the
+ * controller has stays its own and the next transfer is refused; a second
+ * stop tries again, and init works after it */
+static void test_the_endpoint_reset_wait_times_out(void **state)
+{
+    uint8_t *buf = arena + LINE;
+    (void)state;
+
+    configure();
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+
+    eprst_hangs = true;
+    assert_int_equal(cdns3_udc_core_stop(), -PB_ERR_TIMEOUT);
+    assert_int_equal(fake_regs_get(USB_CONF), CONF_DEVDS);
+    assert_int_equal(fake_regs_get(USB_IEN), 0);
+    assert_int_equal(fake_regs_get(EP_IEN), 0);
+    assert_int_equal(dma_host_in_open(), 4);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), -PB_ERR_TIMEOUT);
+
+    eprst_hangs = false;
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_stopped();
+
+    assert_int_equal(cdns3_udc_core_init(), PB_OK);
+    assert_int_equal(dma_host_in_open(), 2);
+    configure();
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
+/* An endpoint that stays busy past its 10 us is reset all the same, as Linux
+ * 6.1's cdns3_gadget_ep_disable() does: the reset's own wait is the bound */
+static void test_a_busy_endpoint_is_reset(void **state)
+{
+    (void)state;
+
+    dbusy_hangs = true;
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_int_equal(eprsts[USB_EP0_OUT], 1);
+    assert_int_equal(eprsts[USB_EP0_IN], 1);
+    assert_stopped();
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_stop_before_init),
         cmocka_unit_test_setup(test_the_terminating_trb_is_cleaned, setup),
         cmocka_unit_test_setup(test_bulk_transfers, setup),
         cmocka_unit_test_setup(test_in_and_out_have_their_own_rings, setup),
@@ -681,6 +893,9 @@ int main(void)
         cmocka_unit_test_setup(test_the_power_on_ready_wait_times_out, setup),
         cmocka_unit_test_setup(test_a_bus_reset_of_a_configured_device_is_lost, setup),
         cmocka_unit_test_setup(test_a_bus_reset_between_transfers_is_kept, setup),
+        cmocka_unit_test_setup(test_stop, setup),
+        cmocka_unit_test_setup(test_the_endpoint_reset_wait_times_out, setup),
+        cmocka_unit_test_setup(test_a_busy_endpoint_is_reset, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);
