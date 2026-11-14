@@ -9,7 +9,9 @@
  *
  * Hand over the memory system (include/pb/arch.h): interrupts masked, the
  * MPU off, the D-cache cleaned and off, and empty. pb runs with the D-cache
- * on (write-through, src/arch/armv7m/entry.c).
+ * on (write-through, src/arch/armv7m/entry.c); CACR.FORCEWT is cleared
+ * again, as at reset, so the next stage's D-cache is what its MPU
+ * attributes say when it turns it on.
  *
  * As on ARMv8-A (src/arch/armv8a/cache-ops.S): the clean runs with the
  * D-cache on, and nothing writes normal memory until the invalidate after
@@ -29,6 +31,8 @@
 #define MPU_CTRL   0xe000ed94
 #define SCB_DCISW  0xe000ef60 /* D-cache invalidate by set/way */
 #define SCB_DCCISW 0xe000ef74 /* D-cache clean and invalidate by set/way */
+#define SCB_CACR   0xe000ef9c /* Cortex-M7 L1 cache control */
+#define CACR_FORCEWT (1 << 2)
 
 /* Every set and way of the L1 D-cache through the register at r7.
  * r2: log2 of the line size, r3: the way's shift, r5: sets - 1,
@@ -98,6 +102,14 @@ arch_disable_mmu:
     dcache_all_sw
 
     /* ===== End of the window ===== */
+
+    /* Write-back again where the MPU says so: pb set FORCEWT, the next
+     * stage doesn't expect it. Changed with the D-cache off and empty */
+    ldr     r0, =SCB_CACR
+    ldr     r1, [r0]
+    bic     r1, r1, #CACR_FORCEWT
+    str     r1, [r0]
+    dsb
 
     isb
     pop     {r4-r7, pc}
