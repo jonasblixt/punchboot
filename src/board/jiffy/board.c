@@ -10,6 +10,7 @@
 #include <boot/ab_state.h>
 #include <boot/boot.h>
 #include <boot/image.h>
+#include <boot/optee.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
@@ -156,6 +157,16 @@ static const struct boot_handover_image_config boot_image = {
     .set_dtb_boot_arg = true,
 };
 
+#ifdef CONFIG_BOOT_OPTEE
+/* OP-TEE before Linux (boot.md 5.7): its tee-raw.bin in the part "tee", the
+ * zImage in "kernel". OP-TEE's mx6ulevk build grows the device tree to
+ * 128 KiB (CFG_DTB_MAX_SIZE). An image without "tee" boots Linux directly */
+static const struct boot_delivery_optee_config boot_optee = {
+    .bl32_bpak_id = 0x76aacab9, /* bpak_id("tee") */
+    .dtb_max_size = 0x20000,
+};
+#endif
+
 static const struct gpt_part_table default_gpt_tbl[] = {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
@@ -273,5 +284,8 @@ const struct board board = {
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+#ifdef CONFIG_BOOT_OPTEE
+    .boot_delivery = BOOT_DELIVERY_OPTEE(&boot_optee),
+#endif
     .image_regions = image_regions,
 };

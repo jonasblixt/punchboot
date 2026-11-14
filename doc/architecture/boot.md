@@ -422,7 +422,9 @@ attribute of the image (4.4) that chooses can come later, opt in.
 In the code (`boot/handover.h`): a handover's `prepare` fills `struct boot_handover_entry`, the
 entry and the four arguments, and says which device tree it prepared, if any. Without a delivery
 the core jumps with it; a delivery gets it in its own `prepare`, after the handover's, and in
-its `jump`. Both prepares are part of a candidate's attempt (2).
+its `jump`. Both prepares are part of a candidate's attempt (2). A delivery that takes only
+some handovers says so in its `takes`, and the core refuses a board whose two don't go together
+when the boot is set up (OP-TEE, 5.7).
 
 ### 5.2 Handover : image (Linux, Xen) [optional, CONFIG_BOOT_LINUX]
 
@@ -615,7 +617,8 @@ ARMv7-A only, with pb in the secure world: there is no EL3 firmware, and
 OP-TEE is its own secure monitor. pb loads and verifies OP-TEE and the normal world's image as
 any parts (4.2), and enters OP-TEE in place of the next stage. OP-TEE sets itself up and enters
 the normal world at the handover's entry. The board gives: BL32's part, OP-TEE's raw image
-(`tee-raw.bin`), whose load address is its entry. **Not yet in the code (F-441).**
+(`tee-raw.bin`), whose load address is its entry, and OP-TEE's `CFG_DTB_MAX_SIZE`
+(`boot/optee.h`).
 
 Only with the image handover (5.2). OP-TEE takes a transfer list on AArch32, but not the normal
 world's entry with it (OP-TEE 4.9.0, `boot_save_args()`): Firmware Handoff (5.4) through OP-TEE
@@ -698,4 +701,4 @@ Like the wire (D-008, `compatibility.md`):
 | ------- | ---------------------------------------------------------------------------- |
 | F-259   | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
 | F-180   | The A/B review's fixes, `pbstate`                                            |
-| F-441   | The delivery through OP-TEE on ARMv7-A (5.7), new in D-085                   |
+| F-441   | The delivery through OP-TEE (5.7): run on jiffy, from the test bench         |

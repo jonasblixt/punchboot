@@ -6,6 +6,8 @@ src-$(CONFIG_BOOT_POLICY_AB) += src/boot/ab_state.c
 src-y  += src/boot/image_helpers.c
 src-$(CONFIG_BOOT_LINUX) += src/boot/image.c
 src-$(CONFIG_BOOT_ATF) += src/boot/atf.c
+src-$(CONFIG_BOOT_OPTEE) += src/boot/optee.c
+asm-$(CONFIG_BOOT_OPTEE) += src/boot/optee_a32.S
 src-$(CONFIG_BOOT_DTB) += src/boot/dtb.c
 src-$(CONFIG_BOOT_FH) += src/boot/fh.c
 

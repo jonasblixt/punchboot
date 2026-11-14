@@ -88,28 +88,16 @@ static int dtb_size(const void *fdt, size_t part_size, size_t *size)
     return PB_OK;
 }
 
-int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt)
+int boot_dtb_check_room(struct bpak_header *hdr, bpak_id_t dtb_id, uintptr_t addr, size_t room)
 {
-    int rc;
     uint64_t p_load_addr;
-    uintptr_t addr;
-    size_t part_size;
-    size_t size;
 
-    rc = dtb_part(hdr, dtb_id, &addr, &part_size);
-
-    if (rc != PB_OK)
-        return rc;
-
-    size_t room = part_size + headroom;
-
-    if (room < part_size || room > INT_MAX || addr + room < addr) {
+    if (room > INT_MAX || addr + room < addr) {
         LOG_ERR("Device tree headroom too large");
         return -PB_ERR_MEM;
     }
 
-    /* Before the device tree is read: the part was placed without the room
-     * it grows by (boot.md 4.3) */
+    /* The part was placed without the room it grows by (boot.md 4.3) */
     if (!boot_image_in_regions(addr, room)) {
         LOG_ERR("Device tree with headroom isn't inside an image data region");
         return -PB_ERR_MEM;
@@ -129,6 +117,34 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
             return -PB_ERR_MEM;
         }
     }
+
+    return PB_OK;
+}
+
+int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt)
+{
+    int rc;
+    uintptr_t addr;
+    size_t part_size;
+    size_t size;
+
+    rc = dtb_part(hdr, dtb_id, &addr, &part_size);
+
+    if (rc != PB_OK)
+        return rc;
+
+    size_t room = part_size + headroom;
+
+    if (room < part_size) {
+        LOG_ERR("Device tree headroom too large");
+        return -PB_ERR_MEM;
+    }
+
+    /* Before the device tree is read */
+    rc = boot_dtb_check_room(hdr, dtb_id, addr, room);
+
+    if (rc != PB_OK)
+        return rc;
 
     *fdt = (void *)addr;
     rc = dtb_size(*fdt, part_size, &size);

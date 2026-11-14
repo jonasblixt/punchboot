@@ -279,6 +279,9 @@ Unit tests, by module under test:
 | `test_tfa_image.c`                            | `image.c`, `dtb.c`, `atf.c`: | as `test_image.c` and            |
 |                                               | the 8MP EVK's and the MEK's  | `test_tfa.c`                     |
 |                                               | boot                         |                                  |
+| `test_optee.c`                                | `image.c`, `dtb.c`,          | as `test_image.c`, OP-TEE's      |
+|                                               | `optee.c`: jiffy's boot      | entry; AArch32's registers       |
+|                                               | through OP-TEE               | (`CONFIG_ARCH_ARMV7`)            |
 | `test_image_helpers.c`,                       | `image_helpers.c`; again     | hash, DSA, root of trust (memory |
 | `test_image_helpers_handover`                 | with the handover's regions  | regions via `--defsym`)          |
 | `test_image.c`, `test_image_armv7`            | `image.c`; again with        | arch, SLC, root of trust, device |
