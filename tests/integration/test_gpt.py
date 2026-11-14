@@ -286,20 +286,21 @@ def test_another_table_replaces_the_partitions_at_once(
         assert blocks(listing(s)) == blocks(var2)
 
 
-def test_a_board_s_handle_of_a_partition_that_is_gone_fails(device: Device) -> None:
-    """bio.md 4, item 3: no hook of the board's runs again.
+def test_the_fuses_stay_when_their_old_partition_goes(device: Device) -> None:
+    """bio.md 4, item 3: no hook of the board's runs again, and none needs to.
 
-    The host board looked "Fuse array" up in late_init(). After an install
-    that removes it, its fuses fail until the reset, where they were read
-    and written at the old blocks, now inside another partition.
+    The host board's fuses were on "Fuse array", looked up in late_init(),
+    and an install that removed it left them failing until the reset. They
+    are a file of their own now (F-217): the life cycle commands work, and
+    the old blocks, now inside another partition, aren't written.
     """
     with device.session() as s:
         assert s.slc_get_lifecycle() == punchboot.SLC.SLC_CONFIGURATION
         s.part_table_install(DISK_UUID, 2)
         assert FUSE_ARRAY_UUID not in listing(s)
         fuses = device.read_blocks(READABLE_LBA - 1)
-        with pytest.raises(punchboot.Error):
-            s.slc_set_configuration()
+        s.slc_set_configuration()
+        assert s.slc_get_lifecycle() == punchboot.SLC.SLC_CONFIGURATION
     assert device.read_blocks(READABLE_LBA - 1) == fuses
 
 

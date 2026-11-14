@@ -61,6 +61,16 @@ def device(blank_device: Device) -> Device:
 
 
 @pytest.fixture
+def no_disk_device(
+    pb_host_binary: pathlib.Path, tmp_path: pathlib.Path, request: pytest.FixtureRequest
+) -> Iterator[Device]:
+    """Start a device whose disk can't be opened: the board's init() fails (board.md 2.1)."""
+    dev = Device(pb_host_binary, tmp_path)
+    dev.disk.mkdir()  # A directory: open() fails
+    yield from _run_device(dev, request)
+
+
+@pytest.fixture
 def nor_device(
     pb_host_binary: pathlib.Path, tmp_path: pathlib.Path, request: pytest.FixtureRequest
 ) -> Iterator[Device]:

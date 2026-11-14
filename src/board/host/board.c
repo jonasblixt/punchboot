@@ -63,6 +63,8 @@ static const struct gpt_part_table gpt_tbl_default[] = {
         .size = 512,
     },
     {
+        /* Where the fuses were until F-217, kept so that the layout stays:
+         * they are a file of their own now (the host platform's) */
         .uu = UUID_44acdcbe_dcb0_4d89_b0ad_8f96967f8c95,
         .description = "Fuse array",
         .size = 512,
@@ -338,21 +340,27 @@ static int nor_init(void)
     return PB_OK;
 }
 
+/*
+ * The crypto first, as the real boards set up their crypto engine before
+ * their storage: a failed init() leaves what verifies a RAM boot (board.md
+ * 2.1, F-394)
+ */
 static int board_hw_init(void)
 {
+    int rc = mbedtls_pb_init();
+
+    if (rc != PB_OK)
+        return rc;
+
     bio_dev_t disk = host_disk_init(host_opts.disk_path, SZ_MiB(32), PART_disk, "Host disk");
 
     if (disk < 0)
         return disk;
 
-    if (host_opts.nor_path != NULL) {
-        int rc = nor_init();
+    if (host_opts.nor_path != NULL)
+        return nor_init();
 
-        if (rc != PB_OK)
-            return rc;
-    }
-
-    return mbedtls_pb_init();
+    return PB_OK;
 }
 
 static int board_late_init(void)
@@ -362,18 +370,6 @@ static int board_late_init(void)
 
     if (readable_part >= 0)
         (void)bio_clear_set_flags(readable_part, 0, BIO_FLAG_READABLE);
-
-    bio_dev_t fusebox_dev = bio_get_part_by_uu(PART_fusebox);
-
-    if (fusebox_dev < 0)
-        return fusebox_dev;
-
-    rc = test_fuse_init(fusebox_dev);
-
-    if (rc != PB_OK) {
-        LOG_ERR("Fusebox init failed");
-        return rc;
-    }
 
     // For 'test_board_regs'
     // If bit 0 in register 0 is set, we should set bit 0 in register 3
@@ -389,6 +385,16 @@ static int board_late_init(void)
     return PB_OK;
 }
 
+/* snprintf() returns the length of the whole text, also when only room - 1
+ * bytes of it and the NUL fit: the size is what it wrote */
+static size_t written(int n, size_t room)
+{
+    if (n < 0)
+        return 0;
+
+    return ((size_t)n < room) ? (size_t)n : room;
+}
+
 static int board_command(uint32_t command,
                          uint8_t *bfr,
                          size_t size,
@@ -401,16 +407,21 @@ static int board_command(uint32_t command,
     LOG_DBG("%x, %p, %zu", command, bfr, size);
 
     if (command == 0xc72b6e9e) { /* test-command */
-        char *arg = (char *)bfr;
-        arg[size] = 0;
+        /* The request isn't terminated: at most its size, up to a NUL. The
+         * core refuses one larger than 1024 bytes */
+        const char *arg = (const char *)bfr;
+        int arg_length = (int)size;
 
-        LOG_DBG("test-command (%s)", arg);
+        LOG_DBG("test-command (%.*s)", arg_length, arg);
 
-        (*response_size) = snprintf(response, resp_buf_size, "Hello test-command: %s\n", arg);
+        (*response_size) = written(
+            snprintf(response, resp_buf_size, "Hello test-command: %.*s\n", arg_length, arg),
+            resp_buf_size);
 
         return PB_OK;
     } else if (command == 0xdfa7c4ad) {
-        (*response_size) = snprintf(response, resp_buf_size, "Should return error code -128\n");
+        (*response_size) = written(
+            snprintf(response, resp_buf_size, "Should return error code -128\n"), resp_buf_size);
         return -128;
     } else if (command == 0x70c3e5f7) { /* test-boot-stop */
         (*response_size) = 0;

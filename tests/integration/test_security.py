@@ -15,6 +15,7 @@ import pytest
 from .pbtest import (
     AUTH_TOKEN,
     DEV_KEY_ID,
+    DISK_BLOCKS,
     NULL_UUID,
     PB_CMD_BOARD_COMMAND,
     PB_CMD_STREAM_PREPARE_BUFFER,
@@ -215,3 +216,30 @@ def test_revoked_key_can_not_authenticate(device: Device) -> None:
 
         with pytest.raises(punchboot.KeyRevokedError):
             s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+
+
+def test_locked_device_with_a_bad_partition_table_stays_locked(locked_device: Device) -> None:
+    """The life cycle doesn't depend on the partition table (board.md 2, D-026, F-217).
+
+    The RoT and the SLC come before the table: with neither copy of the GPT
+    valid, board_setup() fails at the table and command mode starts, and the
+    device is locked all the same. The host's fuses were on a partition of the
+    table, and with a bad one a locked device read as open.
+    """
+    with locked_device.session() as s:
+        s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        s.device_reset()
+    assert locked_device.wait_exit() == 0
+
+    # Both GPTs: the primary from LBA 1, the backup at the disk's end
+    locked_device.write_blocks(1, bytes(33 * 512))
+    locked_device.write_blocks(DISK_BLOCKS - 33, bytes(33 * 512))
+    locked_device.start()
+
+    with locked_device.session() as s:
+        with pytest.raises(punchboot.NotAuthenticatedError):
+            s.part_get_partitions()
+        s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
+        assert s.slc_get_lifecycle() == punchboot.SLC.SLC_CONFIGURATION_LOCKED
+        # The table failed: the disk has none of its partitions
+        assert SYSTEM_A_UUID not in [p.uuid for p in s.part_get_partitions()]

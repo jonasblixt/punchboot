@@ -14,13 +14,24 @@ import punchboot
 import pytest
 
 from .pbtest import (
+    BLOCK_SIZE,
     DISK_BLOCKS,
     DISK_UUID,
     NULL_UUID,
     PB_CMD_BOARD_COMMAND,
     PB_CMD_BOOTLOADER_VERSION_READ,
+    READABLE_UUID,
     SYSTEM_A_UUID,
     make_bpak,
+)
+from .test_stream import (
+    BUFFER_SIZE as STREAM_BUFFER_SIZE,
+)
+from .test_stream import (
+    READABLE_LBA,
+    stream_init,
+    stream_prepare,
+    stream_write,
 )
 
 if TYPE_CHECKING:
@@ -53,7 +64,7 @@ def test_failing_board_command(device: Device) -> None:
 @pytest.mark.parametrize("request_size", [1025, 0xFFFFFFFF])
 def test_board_command_request_too_large(device: Device, request_size: int) -> None:
     # F-063: the punchboot package never sends more than 1024 bytes. The host
-    # board's test-command terminates the request at request_size.
+    # board's test-command reads the request up to request_size.
     with device.wire() as wire:
         wire.send_command(PB_CMD_BOARD_COMMAND, struct.pack("<III", TEST_COMMAND, request_size, 0))
         assert wire.result() == 0
@@ -75,6 +86,31 @@ def test_board_response_fits_the_hosts_buffer(device: Device) -> None:
         assert wire.recv(size) == b"Hello t\0"
         assert wire.result() == 0
         assert wire.command(PB_CMD_BOOTLOADER_VERSION_READ) == 0
+
+
+def test_board_command_writes_nothing_past_its_request(device: Device) -> None:
+    # board.md 4.4 (F-413): the request is the host's, read into the command
+    # buffer, the stream's buffer 0. The host board's test-command put a NUL
+    # after the request, a byte past a 1024-byte one: what the buffer held
+    # there was gone
+    data = b"\xa5" * STREAM_BUFFER_SIZE
+    request = b"x" * 1024
+    with device.wire() as wire:
+        assert stream_init(wire, READABLE_UUID) == 0
+        assert stream_prepare(wire, 0, data) == 0
+        wire.send_command(
+            PB_CMD_BOARD_COMMAND, struct.pack("<III", TEST_COMMAND, len(request), 4096)
+        )
+        assert wire.result() == 0
+        wire.send(request)
+        _, code, size = struct.unpack_from("<Ib3xI", wire.recv(512))
+        assert code == 0
+        assert wire.recv(size) == b"Hello test-command: " + request + b"\n"
+        assert wire.result() == 0
+        assert stream_write(wire, 0, 0, len(data)) == 0
+
+    written = device.read_blocks(READABLE_LBA, len(data) // BLOCK_SIZE)
+    assert written == request + data[len(request) :]
 
 
 def test_board_status(device: Device) -> None:
@@ -125,3 +161,25 @@ def test_boot_activate_after_a_failed_policy_init_writes_no_state(
                 s.boot_set_boot_part(part)
 
     assert no_policy_device.read_blocks(0, DISK_BLOCKS) == before
+
+
+def test_boot_from_ram_after_a_failed_init(
+    no_disk_device: Device, tmp_path: pathlib.Path
+) -> None:
+    """board.md 2.1 and 2.3 (F-394): a failed init() leaves what a RAM boot needs.
+
+    The board's disk can't be opened, so its init() fails and pb stops in
+    command mode. The host board sets up Mbed TLS before the disk, as the
+    real boards set up their crypto engine before their storage, so the image
+    from RAM verifies.
+    """
+    img = make_bpak(tmp_path / "img.bpak", os.urandom(16 * 1024))
+
+    with no_disk_device.session() as s:
+        # No disk, so no partitions: the host's library answers that with an error
+        with pytest.raises(punchboot.GenericError):
+            s.part_get_partitions()
+        s.boot_bpak(img, NULL_UUID)
+
+    assert no_disk_device.wait_exit() == 0
+    assert no_disk_device.boot_status == "?"
