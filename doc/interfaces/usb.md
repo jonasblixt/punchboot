@@ -396,8 +396,8 @@ what the code doesn't settle without the hardware.
 | reported                         | unplug where VBUS  |                     | speed, kept     | F-363   |
 |                                  | reaches it         |                     |                 |         |
 | OUT: nothing past `length`       | yes; an overflow   | no: rounded up to a | unverified      | F-205,  |
-|                                  | isn't seen         | packet              |                 | F-137   |
-| OUT: a short packet is an error  | no                 | no                  | no              | F-137,  |
+|                                  | is an error        | packet              |                 | F-137   |
+| OUT: a short packet is an error  | yes                | no                  | no              | F-137,  |
 |                                  |                    |                     |                 | F-287   |
 | A read of whole packets ends at  | yes (jiffy)        | yes (8MP EVK)       | unverified      | F-280   |
 | its length                       |                    |                     |                 |         |
@@ -407,7 +407,7 @@ what the code doesn't settle without the hardware.
 |                                  |                    | refused             | refused         |         |
 | A length it can't queue is       | yes                | yes                 | yes             |         |
 | refused                          |                    |                     |                 |         |
-| `xfer_complete` reads the        | no                 | no                  | partly          | F-137,  |
+| `xfer_complete` reads the        | yes                | no                  | partly          | F-137,  |
 | controller's result              |                    |                     |                 | F-287   |
 | Endpoint 0 independent of a bulk | yes                | yes                 | yes             |         |
 | transfer                         |                    |                     |                 |         |

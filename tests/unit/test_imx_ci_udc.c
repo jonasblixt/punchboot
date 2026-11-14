@@ -13,9 +13,12 @@
  *  - The controller's side of a transfer (i.MX 6UL RM 54.4.5, 54.4.6.6): it
  *    follows the endpoint's queue head to the transfer descriptors and moves
  *    each one's bytes through its five pages, page 0 from its offset up to
- *    the page's end, the others from their start, and retires it. Nothing
- *    of the bus, of endpoint 0's setup or of the registers' timing: that is
- *    the bench's (usb.md 8).
+ *    the page's end, the others from their start, and retires it; or the
+ *    host's transfer ends early, with a short packet or a descriptor error.
+ *    ENDPTSTAT follows the primes, flushes and retires, and a test can make
+ *    a prime fail or a flush be refused (RT1060 RM 42.5.6.4, 42.5.6.6).
+ *    Nothing of the bus, of endpoint 0's setup or of the registers' timing:
+ *    that is the bench's (usb.md 8).
  *  - A data cache (drivers.md 4.2, fakes/dcache.h). The controller reads and
  *    writes RAM, the driver the cache. A clean that is missing gives the
  *    controller old bytes, an invalidate that is missing or late gives them
@@ -219,12 +222,35 @@ static const struct imx_ci_udc_transfer_head *first_dtd(usb_ep_t ep)
     return (const void *)(uintptr_t)qh[ep].next;
 }
 
+/* How the host's transfer goes on after 'limit' bytes, in controller_exec() */
+enum host_end {
+    /* It sends nothing more for now, at a descriptor's start: that one
+     * stays active, and the endpoint primed */
+    HOST_PAUSE,
+    /* A short or empty packet: the controller retires the descriptor with
+     * the bytes left in Total Bytes, "a successful transfer completion", and
+     * goes on to the next one, which stays active (RM 42.5.6.4.1) */
+    HOST_SHORT,
+    /* The descriptor gets 'status' (an overflow's Data Buffer Error, RM
+     * 42.5.6.4.1; Halted; a Transaction Error), Active only when 'status'
+     * has it, and the controller flushes the endpoint */
+    HOST_ERROR,
+};
+
 /*
  * The controller executes what was primed on 'ep': 'stream' is what the host
- * sends on an OUT endpoint, and what it receives on an IN endpoint. Returns
- * the number of bytes that moved.
+ * sends on an OUT endpoint, and what it receives on an IN endpoint, 'size'
+ * its room. The host's transfer goes on as 'end' says after 'limit' bytes.
+ * 'resume' goes on after a pause, past the descriptors retired before it.
+ * Returns the number of bytes that moved.
  */
-static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
+static size_t controller_exec(usb_ep_t ep,
+                              uint8_t *stream,
+                              size_t size,
+                              size_t limit,
+                              enum host_end end,
+                              uint32_t status,
+                              bool resume)
 {
     struct imx_ci_udc_queue_head qh;
     struct imx_ci_udc_transfer_head dtd;
@@ -238,20 +264,33 @@ static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
 
     for (unsigned int count = 0;; count++) {
         size_t total;
+        size_t left;
 
         assert_true(count < NO_OF_DTDS);
         assert_int_equal(dtd_addr & 0x1f, 0);
         ram_read(dtd_addr, &dtd, sizeof(dtd));
+
+        if (resume && !(dtd.token & DTD_TOKEN_STATUS_ACTIVE)) {
+            assert_false(dtd.next & DTD_NEXT_T);
+            dtd_addr = dtd.next;
+            continue;
+        }
+
+        resume = false;
         assert_true(dtd.token & DTD_TOKEN_STATUS_ACTIVE);
         total = (dtd.token & DTD_TOKEN_TOTAL_BYTES_MASK) >> DTD_TOKEN_TOTAL_BYTES_SHIFT;
+        left = total;
 
-        for (int n = 0; n < DTD_NO_OF_PAGES && total > 0; n++) {
+        for (int n = 0; n < DTD_NO_OF_PAGES && left > 0 && pos < limit; n++) {
             /* Only page 0 has an offset */
             uintptr_t addr = (n == 0) ? dtd.page[n] : (dtd.page[n] & ~DTD_PAGE_OFFSET_MASK);
             size_t chunk = PAGE - (addr & DTD_PAGE_OFFSET_MASK);
 
-            if (chunk > total)
-                chunk = total;
+            if (chunk > left)
+                chunk = left;
+
+            if (chunk > limit - pos)
+                chunk = limit - pos;
 
             assert_true(pos + chunk <= size);
 
@@ -261,11 +300,34 @@ static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
                 ram_write(addr, stream + pos, chunk);
 
             pos += chunk;
-            total -= chunk;
+            left -= chunk;
         }
 
-        if (total > 0)
-            fail_msg("A transfer descriptor with %zu bytes more than its pages hold", total);
+        if (left > 0 && pos < limit)
+            fail_msg("A transfer descriptor with %zu bytes more than its pages hold", left);
+
+        /* The host's transfer goes on as 'end' says */
+        if (left > 0) {
+            if (end == HOST_PAUSE) {
+                assert_int_equal(left, total);
+                return pos;
+            }
+
+            dtd.token &= ~(DTD_TOKEN_STATUS_ACTIVE | DTD_TOKEN_TOTAL_BYTES_MASK);
+            dtd.token |= DTD_TOKEN_TOTAL_BYTES(left);
+
+            if (end == HOST_ERROR)
+                dtd.token |= status;
+
+            ram_write(dtd_addr + offsetof(struct imx_ci_udc_transfer_head, token),
+                      &dtd.token,
+                      sizeof(dtd.token));
+
+            if (end == HOST_ERROR || (dtd.next & DTD_NEXT_T))
+                set_primed(primed & ~ep_bit(ep));
+
+            return pos;
+        }
 
         /* Retired: not active, and no bytes left */
         dtd.token &= ~(DTD_TOKEN_STATUS_ACTIVE | DTD_TOKEN_TOTAL_BYTES_MASK);
@@ -282,6 +344,12 @@ static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
     /* The last descriptor is retired: the endpoint isn't primed */
     set_primed(primed & ~ep_bit(ep));
     return pos;
+}
+
+/* The whole transfer that was primed on 'ep' */
+static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
+{
+    return controller_exec(ep, stream, size, SIZE_MAX, HOST_PAUSE, 0, false);
 }
 
 /*
@@ -1362,6 +1430,187 @@ static void test_resets_are_bounded(void **state)
     transfer_out(0x200, 512);
 }
 
+/* RM 42.5.6.4.1, 42.5.6.6.4, usb.md 4.3: a descriptor that halted, or has
+ * a Data Buffer Error or a Transaction Error, fails the transfer with
+ * -PB_ERR_IO, also while it is still active. The endpoint is flushed, the
+ * buffer is the caller's, the result is given once and the next transfer
+ * works (F-137: only the last descriptor's Active bit was read, so an
+ * overflow returned PB_OK and an error before the last descriptor left the
+ * transfer waiting) */
+static void test_descriptor_error(void **state)
+{
+    size_t start;
+    (void)state;
+
+    /* An overflow, a packet longer than what is left: the controller sets
+     * Data Buffer Error and flushes the endpoint */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 3 * PAGE), PB_OK);
+    assert_int_equal(controller_exec(USB_EP2_OUT,
+                                     host,
+                                     sizeof(host),
+                                     PAGE + 64,
+                                     HOST_ERROR,
+                                     DTD_TOKEN_STATUS_DATA_BUFFER_ERR,
+                                     false),
+                     PAGE + 64);
+    start = fake_reg_log_len;
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(flushes_since(start), 1);
+    assert_int_equal(primed, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_STATE);
+
+    /* Halted and still active, on an endpoint the controller left primed:
+     * the driver flushes it */
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), PB_OK);
+    controller_exec(USB_EP1_IN,
+                    host,
+                    sizeof(host),
+                    0,
+                    HOST_ERROR,
+                    DTD_TOKEN_STATUS_HALTED | DTD_TOKEN_STATUS_ACTIVE,
+                    false);
+    set_primed(primed | ep_bit(USB_EP1_IN));
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_IO);
+    assert_int_equal(primed, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+
+    /* A Transaction Error in the second of three descriptors, the last
+     * still active */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 3 * DTD_MAX_BYTES), PB_OK);
+    controller_exec(USB_EP2_OUT,
+                    host,
+                    sizeof(host),
+                    DTD_MAX_BYTES + 512,
+                    HOST_ERROR,
+                    DTD_TOKEN_STATUS_TRANSACTION_ERR,
+                    false);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+
+    /* An overflow seen in the queue head's overlay only, Halted (RM Table
+     * 42-74), the descriptor in memory still active: not polled as
+     * -PB_ERR_AGAIN for ever */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 512), PB_OK);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+    {
+        uintptr_t qh = (uintptr_t)fake_regs_get(BASE + CI_ENDPTLISTADDR) +
+                       USB_EP2_OUT * sizeof(struct imx_ci_udc_queue_head);
+        uint32_t token = DTD_TOKEN_STATUS_HALTED | DTD_TOKEN_STATUS_DATA_BUFFER_ERR;
+
+        ram_write(qh + offsetof(struct imx_ci_udc_queue_head, token), &token, sizeof(token));
+        set_primed(primed & ~ep_bit(USB_EP2_OUT));
+    }
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_STATE);
+
+    transfer_out(0x200, 3 * PAGE);
+    transfer_in(0x40, 512);
+
+    /* The flush after the error fails: the memory stays the controller's
+     * and nothing is started until init */
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), PB_OK);
+    controller_exec(USB_EP1_IN,
+                    host,
+                    sizeof(host),
+                    0,
+                    HOST_ERROR,
+                    DTD_TOKEN_STATUS_HALTED | DTD_TOKEN_STATUS_ACTIVE,
+                    false);
+    set_primed(primed | ep_bit(USB_EP1_IN));
+    flush_refusals = UINT32_MAX;
+    fake_us_tick_step = 100;
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_IO);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS + 1);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), -PB_ERR_IO);
+
+    flush_refusals = 0;
+    fake_us_tick_step = 0;
+    set_primed(0);
+    assert_int_equal(ops->init(), PB_OK);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    transfer_in(0x40, 512);
+}
+
+/* usb.md 2.3, 4.3: a read is done at exactly its length, and a short packet
+ * before it is -PB_ERR_IO, the endpoint flushed: in the only descriptor, in
+ * the first of several (the controller goes on to the next, which stays
+ * active and primed), in the last, and an empty packet where a descriptor
+ * starts. A read of whole packets that ends at its length is done, as
+ * before (F-137: the short descriptor was retired and PB_OK returned, or,
+ * before the last, the transfer waited and the host's next transfer went
+ * into it) */
+static void test_short_packet_is_an_error(void **state)
+{
+    static const struct {
+        size_t length;
+        size_t limit;
+    } cases[] = {
+        { 512, 100 },
+        { 3 * DTD_MAX_BYTES, DTD_MAX_BYTES - 100 },
+        { 3 * DTD_MAX_BYTES, 2 * DTD_MAX_BYTES + 1000 },
+        { 3 * DTD_MAX_BYTES, DTD_MAX_BYTES },
+        { 3 * PAGE, PAGE + 1 },
+    };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+        uint8_t *bfr = (i == 4) ? arena + PAGE + 0x200 : arena + PAGE;
+        size_t start;
+
+        assert_int_equal(ops->xfer_start(USB_EP2_OUT, bfr, cases[i].length), PB_OK);
+        assert_int_equal(
+            controller_exec(USB_EP2_OUT, host, sizeof(host), cases[i].limit, HOST_SHORT, 0, false),
+            cases[i].limit);
+        start = fake_reg_log_len;
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+        assert_int_equal(flushes_since(start), 1);
+        assert_int_equal(primed, 0);
+        assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_STATE);
+    }
+
+    transfer_out(0, 2 * DTD_MAX_BYTES);
+    transfer_out(0x200, 3 * PAGE);
+}
+
+/* A transfer polled while the controller is between its descriptors isn't
+ * done, and then is, with every byte. The driver reads the descriptors from
+ * the first it hasn't seen retired, and the lines of the ones before are
+ * its own again */
+static void test_poll_between_descriptors(void **state)
+{
+    const size_t length = 3 * DTD_MAX_BYTES + 512;
+    uint8_t *bfr = arena + PAGE;
+    size_t pos = 0;
+    (void)state;
+
+    memset(arena, 0xee, sizeof(arena));
+    fill(host, length, 11);
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, bfr, length), PB_OK);
+
+    for (int i = 0; i < 3; i++) {
+        pos += controller_exec(
+            USB_EP2_OUT, host + pos, sizeof(host) - pos, DTD_MAX_BYTES, HOST_PAUSE, 0, i > 0);
+        assert_int_equal(pos, (size_t)(i + 1) * DTD_MAX_BYTES);
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+        assert_true(primed & ep_bit(USB_EP2_OUT));
+    }
+
+    /* Two descriptors to a line: the first line is retired */
+    assert_false(dma_host_in_begun(first_dtd(USB_EP2_OUT)));
+
+    pos +=
+        controller_exec(USB_EP2_OUT, host + pos, sizeof(host) - pos, SIZE_MAX, HOST_PAUSE, 0, true);
+    assert_int_equal(pos, length);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(bfr, host, length);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -1393,6 +1642,9 @@ int main(void)
         cmocka_unit_test_setup(test_bus_reset_sequence, setup),
         cmocka_unit_test_setup(test_status_written_back_as_read, setup),
         cmocka_unit_test_setup(test_resets_are_bounded, setup),
+        cmocka_unit_test_setup(test_descriptor_error, setup),
+        cmocka_unit_test_setup(test_short_packet_is_an_error, setup),
+        cmocka_unit_test_setup(test_poll_between_descriptors, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

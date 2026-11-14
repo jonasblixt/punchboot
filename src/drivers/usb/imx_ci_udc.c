@@ -133,9 +133,13 @@ struct imx_ci_udc_xfer {
     /* The last descriptor, which xfer_complete polls. NULL when no transfer
      * was started, or its result was given, or it was given up */
     struct imx_ci_udc_transfer_head *head;
+    /* The first descriptor the driver hasn't seen retired: xfer_complete
+     * reads the descriptors from here, and the ones before are done */
+    struct imx_ci_udc_transfer_head *next;
     usb_ep_t ep;
-    /* The transfer's descriptors, and an OUT transfer's buffer and the
-     * bounce buffer, are the controller's: begun, and not ended yet */
+    /* The transfer's descriptors from 'next' on, and an OUT transfer's
+     * buffer and the bounce buffer, are the controller's: begun, and not
+     * ended yet */
     bool dma;
 };
 
@@ -253,16 +257,22 @@ static struct imx_ci_udc_xfer *xfer_of(usb_ep_t ep)
     return (EP_USB_NUMBER(ep) == 0) ? &ep0_xfer : &bulk_xfer;
 }
 
-/* The cache line of the transfer's last descriptor, which xfer_complete
- * polls, and the descriptors before that line */
+/* The cache line of the transfer's last descriptor, and the descriptors the
+ * controller may still write before that line: from the line of the first
+ * one that isn't seen retired */
 static void *xfer_head_line(const struct imx_ci_udc_xfer *x)
 {
     return (void *)((uintptr_t)x->head & ~((uintptr_t)PB_DMA_ALIGN - 1));
 }
 
+static void *xfer_next_line(const struct imx_ci_udc_xfer *x)
+{
+    return (void *)((uintptr_t)x->next & ~((uintptr_t)PB_DMA_ALIGN - 1));
+}
+
 static size_t xfer_dtds_before_head(const struct imx_ci_udc_xfer *x)
 {
-    return (uintptr_t)xfer_head_line(x) - (uintptr_t)x->dtds;
+    return (uintptr_t)xfer_head_line(x) - (uintptr_t)xfer_next_line(x);
 }
 
 static bool xfer_is_out(const struct imx_ci_udc_xfer *x)
@@ -275,13 +285,13 @@ static bool xfer_is_out(const struct imx_ci_udc_xfer *x)
  * bounce buffer for a head that isn't on a page */
 static void xfer_dtds_begin(struct imx_ci_udc_xfer *x)
 {
-    dma_in_begin(x->dtds, xfer_dtds_before_head(x));
+    dma_in_begin(xfer_next_line(x), xfer_dtds_before_head(x));
     dma_in_begin(xfer_head_line(x), PB_DMA_ALIGN);
 }
 
 static void xfer_dtds_end(struct imx_ci_udc_xfer *x)
 {
-    dma_in_end(x->dtds, xfer_dtds_before_head(x));
+    dma_in_end(xfer_next_line(x), xfer_dtds_before_head(x));
     dma_in_end(xfer_head_line(x), PB_DMA_ALIGN);
 }
 
@@ -301,16 +311,14 @@ static void xfer_dma_begin(struct imx_ci_udc_xfer *x)
 
 /* The transfer is done, given up, or the controller is stopped: its memory
  * is the driver's and the caller's again, and read from RAM (drivers.md
- * 4.2). 'head' is false when the last descriptor's line was ended already */
-static void xfer_dma_end(struct imx_ci_udc_xfer *x, bool head)
+ * 4.2). 'descriptors' is false when they were ended already */
+static void xfer_dma_end(struct imx_ci_udc_xfer *x, bool descriptors)
 {
     if (!x->dma)
         return;
 
-    dma_in_end(x->dtds, xfer_dtds_before_head(x));
-
-    if (head)
-        dma_in_end(xfer_head_line(x), PB_DMA_ALIGN);
+    if (descriptors)
+        xfer_dtds_end(x);
 
     if (xfer_is_out(x)) {
         dma_in_end((void *)x->bfr, x->length);
@@ -731,6 +739,7 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     x->bfr = (uintptr_t)bfr;
     x->length = length;
     x->head = dtd;
+    x->next = x->dtds;
     x->ep = ep;
 
     /* The transfer's descriptors are cleaned, and are the controller's with
@@ -739,6 +748,85 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     xfer_dma_begin(x);
 
     return imx_ci_udc_prime(x);
+}
+
+/*
+ * The transfer's result, from its descriptors, which the driver has ended
+ * (RT1060 RM 42.5.6.6.4 and 42.5.6.4.1; the 6UL's 54.4.6.6.4, 54.4.6.4.1).
+ * Read from the first one not seen retired, in order, as the controller
+ * retires them:
+ *
+ *  - Halted, Data Buffer Error or Transaction Error is the transfer's
+ *    error, also on a descriptor still active: an OUT packet longer than
+ *    what is left (an overflow) sets Data Buffer Error and the controller
+ *    flushes the endpoint (42.5.6.4.1). Linux's chipidea reads the same
+ *    bits (_hardware_dequeue()), its Freescale driver before Active
+ *    (process_ep_req(), drivers/usb/gadget/udc/fsl_udc_core.c).
+ *  - Active: not done.
+ *  - Retired with bytes left in Total Bytes: the controller retires an OUT
+ *    descriptor at a short packet, "a successful transfer completion"
+ *    (42.5.6.4.1), and goes on to the next one, which stays active. A read
+ *    is done at exactly its length and fewer bytes is an error (usb.md
+ *    2.3, 4.3); an IN descriptor with bytes left is one too.
+ *
+ * A read of whole packets that ends at its length retires every descriptor
+ * with nothing left, as before: what the host sends after it waits for the
+ * next read (usb.md 2.3).
+ */
+static int xfer_result(struct imx_ci_udc_xfer *x)
+{
+    for (;;) {
+        uint32_t token = x->next->token;
+        uint32_t left = (token & DTD_TOKEN_TOTAL_BYTES_MASK) >> DTD_TOKEN_TOTAL_BYTES_SHIFT;
+        unsigned int n = (unsigned int)(x->next - x->dtds);
+
+        if (token & DTD_TOKEN_STATUS_ERRORS) {
+            LOG_ERR("EP%u %s: descriptor %u, status 0x%02" PRIx32,
+                    (unsigned int)EP_USB_NUMBER(x->ep),
+                    EP_IS_IN(x->ep) ? "IN" : "OUT",
+                    n,
+                    token & DTD_TOKEN_STATUS_MASK);
+            return -PB_ERR_IO;
+        }
+
+        if (token & DTD_TOKEN_STATUS_ACTIVE) {
+            struct imx_ci_udc_queue_head *qh = &dqhs[x->ep];
+            uint32_t overlay;
+
+            /* The controller works in the queue head's overlay, and an
+             * overflow sets the Halt bit there (RT1060 RM Table 42-74),
+             * whether it wrote the descriptor back or not. xfer_start
+             * cleared the overlay's status */
+            qh_take(qh);
+            overlay = qh->token;
+            qh_give(qh);
+
+            if (overlay & DTD_TOKEN_STATUS_ERRORS) {
+                LOG_ERR("EP%u %s: descriptor %u, queue head status 0x%02" PRIx32,
+                        (unsigned int)EP_USB_NUMBER(x->ep),
+                        EP_IS_IN(x->ep) ? "IN" : "OUT",
+                        n,
+                        overlay & DTD_TOKEN_STATUS_MASK);
+                return -PB_ERR_IO;
+            }
+
+            return -PB_ERR_AGAIN;
+        }
+
+        if (left != 0) {
+            LOG_ERR("EP%u %s: a short packet, %" PRIu32 " bytes of descriptor %u not moved",
+                    (unsigned int)EP_USB_NUMBER(x->ep),
+                    EP_IS_IN(x->ep) ? "IN" : "OUT",
+                    left,
+                    n);
+            return -PB_ERR_IO;
+        }
+
+        if (x->next == x->head)
+            return PB_OK;
+
+        x->next++;
+    }
 }
 
 static int imx_ci_udc_xfer_complete(usb_ep_t ep)
@@ -766,17 +854,24 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     if (x->head == NULL || x->ep != ep)
         return -PB_ERR_STATE;
 
-    /* The last descriptor is read, and is the controller's again while the
+    /* The descriptors are read, and are the controller's again while the
      * transfer runs */
     if (x->dma)
-        dma_in_end(xfer_head_line(x), PB_DMA_ALIGN);
+        xfer_dtds_end(x);
 
-    // TODO: We should look at the error bit's as well
+    rc = xfer_result(x);
 
-    if (x->head->token & DTD_TOKEN_STATUS_ACTIVE) {
+    if (rc != PB_OK) {
         if (x->dma)
-            dma_in_begin(xfer_head_line(x), PB_DMA_ALIGN);
-        return -PB_ERR_AGAIN;
+            xfer_dtds_begin(x);
+
+        /* A transfer that failed is given up, its endpoint flushed:
+         * nothing of it completes later (usb.md 4.3, drivers.md 3) */
+        if (rc != -PB_ERR_AGAIN) {
+            xfer_abandon(x, imx_ci_udc_flush(ep_bit(ep)));
+        }
+
+        return rc;
     }
 
     /* Output from host, invalidate cache: the caller's buffer and the
