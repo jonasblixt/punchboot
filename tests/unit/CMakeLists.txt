@@ -1007,6 +1007,20 @@ target_include_directories(test_imx_ocotp BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
 )
 
+# The virtio block driver against a model of a legacy virtio-mmio device,
+# without PIE: the driver hands the device 32-bit addresses
+pb_unit_test(test_virtio_block SOURCES
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/virtio/virtio_block.c
+)
+target_include_directories(test_virtio_block BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/cdefs
+)
+target_compile_options(test_virtio_block PRIVATE -fno-pie)
+target_link_options(test_virtio_block PRIVATE -no-pie)
+
 # pb's own snprintf(), as pb_snprintf(): the host's C library has one (F-089)
 pb_unit_test(test_snprintf SOURCES
     ${PROJECT_SOURCE_DIR}/src/lib/libc/snprintf.c

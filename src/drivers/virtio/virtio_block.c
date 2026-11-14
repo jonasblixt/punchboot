@@ -12,8 +12,10 @@
 #include <arch/arch.h>
 #include <drivers/virtio/virtio_block.h>
 #include <inttypes.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
+#include <string.h>
 
 struct virtio_blk_config {
     uint64_t capacity;
@@ -53,7 +55,16 @@ struct virtio_blk_req {
     uint32_t sector_hi;
 };
 
-#define VIRTIO_BLK_QUEUE_SZ 4
+#define VIRTIO_BLK_QUEUE_SZ   4
+
+/*
+ * The bound on a request's completion (drivers.md 3). VIRTIO 1.1 gives the
+ * device no time for a request (5.2.6); the device is an emulator's, with a
+ * file on the host behind it. A bound, not a measurement: one second, as
+ * MMC_XFER_END_TIMEOUT_ms, far above the host's I/O for the requests the
+ * core asks for
+ */
+#define VIRTIO_BLK_TIMEOUT_us (1000 * 1000)
 
 static uint8_t status __aligned(64);
 static uint8_t queue_data[VIRTIO_QUEUE_SZ(VIRTIO_BLK_QUEUE_SZ, 64)] __aligned(4096);
@@ -61,9 +72,44 @@ static struct virtq queue;
 static struct virtio_blk_req request __aligned(64);
 static uintptr_t base;
 
+/*
+ * The device from reset to DRIVER_OK, with an empty queue (VIRTIO 1.1
+ * 4.2.4, legacy): writing 0 to STATUS resets the device, which forgets the
+ * queue and the requests in it
+ */
+static void virtio_block_setup(void)
+{
+    mmio_write_32(base + VIRTIO_MMIO_STATUS, 0);
+    mmio_write_32(base + VIRTIO_MMIO_STATUS, VIRTIO_STATUS_ACKNOWLEDGE | VIRTIO_STATUS_DRIVER);
+
+    mmio_write_32(base + VIRTIO_MMIO_GUEST_PAGE_SIZE, 4096);
+
+    LOG_DBG("Maximum queue length = %u", mmio_read_32(base + VIRTIO_MMIO_QUEUE_NUM_MAX));
+    /* Initiailze queue */
+    memset(queue_data, 0, sizeof(queue_data));
+    arch_clean_cache_range((uintptr_t)queue_data, sizeof(queue_data));
+    queue.num = VIRTIO_BLK_QUEUE_SZ;
+    queue.desc = (struct virtq_desc *)queue_data;
+    queue.avail = (struct virtq_avail *)(queue_data + VIRTIO_QUEUE_AVAIL_OFFSET(queue.num, 64));
+    queue.used = (struct virtq_used *)(queue_data + VIRTIO_QUEUE_USED_OFFSET(queue.num, 64));
+
+    LOG_DBG("Q: avail=%lu, used=%lu",
+            (uintptr_t)(queue.avail) - (uintptr_t)queue_data,
+            (uintptr_t)(queue.used) - (uintptr_t)queue_data);
+    mmio_write_32(base + VIRTIO_MMIO_QUEUE_SEL, 0);
+    mmio_write_32(base + VIRTIO_MMIO_QUEUE_NUM, queue.num);
+    mmio_write_32(base + VIRTIO_MMIO_QUEUE_ALIGN, 64);
+    mmio_write_32(base + VIRTIO_MMIO_QUEUE_PFN, (uint32_t)((uintptr_t)queue_data >> 12));
+
+    mmio_clrsetbits_32(base + VIRTIO_MMIO_STATUS, 0, VIRTIO_STATUS_DRIVER_OK);
+}
+
 static int virtio_xfer(bio_dev_t dev, bool read, lba_t lba, size_t length, uintptr_t buf)
 {
     uint16_t idx = (queue.avail->idx % queue.num);
+    struct pb_timeout to;
+
+    (void)dev;
     status = VIRTIO_BLK_S_UNSUPP;
 
     request.type = read ? VIRTIO_BLK_T_IN : VIRTIO_BLK_T_OUT;
@@ -96,7 +142,16 @@ static int virtio_xfer(bio_dev_t dev, bool read, lba_t lba, size_t length, uintp
 
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_NOTIFY, 0);
 
+    pb_timeout_init_us(&to, VIRTIO_BLK_TIMEOUT_us);
+
     while (queue.avail->idx != queue.used->idx) {
+        if (pb_timeout_has_expired(&to)) {
+            /* The device is reset, so nothing of this request completes
+             * later, and set up again for the next one (drivers.md 3) */
+            LOG_ERR("Timeout, request %u", idx);
+            virtio_block_setup();
+            return -PB_ERR_TIMEOUT;
+        }
         arch_invalidate_cache_range((uintptr_t)queue.used, sizeof(*queue.used));
     }
 
@@ -135,30 +190,10 @@ bio_dev_t virtio_block_init(uintptr_t base_, const uuid_t uu)
 
     LOG_INFO("Detected virtio disk @%" PRIxPTR ", capacity = %llu blocks, bs = %u",
              base,
-             cfg->capacity,
+             (unsigned long long)cfg->capacity,
              cfg->blk_size);
 
-    mmio_write_32(base + VIRTIO_MMIO_STATUS, 0); // TODO: Do we need this?
-    mmio_write_32(base + VIRTIO_MMIO_STATUS, VIRTIO_STATUS_ACKNOWLEDGE | VIRTIO_STATUS_DRIVER);
-
-    mmio_write_32(base + VIRTIO_MMIO_GUEST_PAGE_SIZE, 4096);
-
-    LOG_DBG("Maximum queue length = %u", mmio_read_32(base + VIRTIO_MMIO_QUEUE_NUM_MAX));
-    /* Initiailze queue */
-    queue.num = VIRTIO_BLK_QUEUE_SZ;
-    queue.desc = (struct virtq_desc *)queue_data;
-    queue.avail = (struct virtq_avail *)(queue_data + VIRTIO_QUEUE_AVAIL_OFFSET(queue.num, 64));
-    queue.used = (struct virtq_used *)(queue_data + VIRTIO_QUEUE_USED_OFFSET(queue.num, 64));
-
-    LOG_DBG("Q: avail=%lu, used=%lu",
-            (uintptr_t)(queue.avail) - (uintptr_t)queue_data,
-            (uintptr_t)(queue.used) - (uintptr_t)queue_data);
-    mmio_write_32(base + VIRTIO_MMIO_QUEUE_SEL, 0);
-    mmio_write_32(base + VIRTIO_MMIO_QUEUE_NUM, queue.num);
-    mmio_write_32(base + VIRTIO_MMIO_QUEUE_ALIGN, 64);
-    mmio_write_32(base + VIRTIO_MMIO_QUEUE_PFN, (uint32_t)((uintptr_t)queue_data >> 12));
-
-    mmio_clrsetbits_32(base + VIRTIO_MMIO_STATUS, 0, VIRTIO_STATUS_DRIVER_OK);
+    virtio_block_setup();
 
     bio_dev_t dev = bio_allocate(0, cfg->capacity - 1, cfg->blk_size, uu, "Virtio disk");
 
