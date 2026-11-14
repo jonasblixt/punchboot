@@ -15,14 +15,12 @@
  *  - EP0 has an in-transfer alignment buffer, but out transfers require
  *  the buffer argument to be aligned
  *  - Transfers on other endpoints must supply DMA aligned buffers
- *  - TRB amount is hard coded. This means that it's possbile to configure
- *  a too large xfer buffer for command mode, so that there is not enough
- *  trb's.
+ *  - TRB amount is hard coded: a transfer longer than the ring holds is
+ *  refused (-PB_ERR_PARAM), and command mode's buffer must fit it.
  *  - EP burst size is hardcoded to 64byte (512b endpoint max pkt length)
  *  - Support for super speed
  *  - Occationally we get TRBERR irq's. It's not clear why, but re-starting
  *  the DMA transfer works and there seems to be no dropped packets.
- *  - A few places that wait for a status bit change should have timeout's
  *
  */
 
@@ -142,6 +140,8 @@ static uintptr_t base;
 PB_DMA_BUFFER(struct usb_setup_packet, setup_pkt);
 PB_DMA_ARRAY(struct cdns_trb, ep0_in_trb, 2);
 PB_DMA_ARRAY(struct cdns_trb, ep0_out_trb, 2);
+/* Endpoint 0's IN data stage goes through it: a longer reply is refused
+ * (F-205). The longest the stack sends is a string descriptor, 255 bytes */
 PB_DMA_ARRAY(uint8_t, align_buffer, 512);
 #define CDNS_TRB_COUNT 128
 /*
@@ -152,6 +152,11 @@ PB_DMA_ARRAY(uint8_t, align_buffer, 512);
  */
 PB_DMA_ARRAY(struct cdns_trb, trb_in, CDNS_TRB_COUNT);
 PB_DMA_ARRAY(struct cdns_trb, trb_out, CDNS_TRB_COUNT);
+/* The longest bulk transfer: the ring's TRBs but the last, which is the
+ * stop gap behind the transfer's. A transfer of CDNS_TRB_COUNT TRBs wrote
+ * its stop gap past the ring (F-205). 15.75 MiB, above command mode's
+ * buffer and the boot's piece (usb.md 2.3, 4.3; 4 MiB each on the MEK) */
+#define CDNS_XFER_MAX  ((size_t)TRB_MAX_LENGTH * (CDNS_TRB_COUNT - 1))
 
 /* EP0's max packet size at high speed, the descriptor's bMaxPacketSize0. 512
  * is SuperSpeed's, which pb doesn't support: at high speed a longer reply,
@@ -173,6 +178,42 @@ static bool ep0_in_dma;
 static bool ep0_out_dma;
 static void *ep0_out_buf;
 static size_t ep0_out_length;
+/* A flush that didn't end: the bulk transfer may still be the
+ * controller's, and the next one is refused until init (drivers.md 3) */
+static bool xfer_flush_failed;
+
+/*
+ * The bounds of the driver's waits (drivers.md 3). There is no manual for
+ * the controller here: each is the reference that comes closest.
+ *
+ * A flush: Linux 6.1's cdns3-gadget.c waits up to 1 ms for EP_CMD_DFLUSH to
+ * clear (readl_poll_timeout_atomic(..., 1, 1000) in cdns3_ep_stall_flush()
+ * and cdns3_gadget_ep_dequeue()).
+ */
+#define CDNS_FLUSH_TIMEOUT_us        1000
+/* The status stage of a request without a data stage: USB 2.0 9.2.6.4, the
+ * request and its status stage are done within 50 ms of the SETUP */
+#define CDNS_STATUS_STAGE_TIMEOUT_us 50000
+/* The controller's internal reset (USB_STS's IN_RST, "controller is fully
+ * operational" in Linux 6.1's cdns3-gadget.h, which doesn't wait for it): as
+ * the waits on the same block's status bits in Linux 6.1's cdns3-imx.c,
+ * readl_poll_timeout(..., 10, 100000), 100 ms */
+#define CDNS_RESET_TIMEOUT_us        100000
+
+/* Polls 'reg' until its bits in 'mask' are 'value', at most 'timeout_us' */
+static int wait_for(uintptr_t reg, uint32_t mask, uint32_t value, uint32_t timeout_us)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, timeout_us);
+
+    while ((mmio_read_32(base + reg) & mask) != value) {
+        if (pb_timeout_has_expired(&to))
+            return -PB_ERR_TIMEOUT;
+    }
+
+    return PB_OK;
+}
 
 static int select_ep(usb_ep_t ep)
 {
@@ -230,6 +271,10 @@ static int ep0_xfer_start(void *buf, size_t length, bool in_xfer)
     struct cdns_trb *trb_p = in_xfer ? ep0_in_trb : ep0_out_trb;
 
     if (length > TRB_MAX_LENGTH)
+        return -PB_ERR_PARAM;
+
+    /* IN goes through the bounce buffer, which it must fit (F-205) */
+    if (in_xfer && length > sizeof(align_buffer))
         return -PB_ERR_PARAM;
 
     /* The transfer before this one in the same direction */
@@ -301,8 +346,11 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
         return ep0_xfer_start(buf, length, in_xfer);
     }
 
-    if (length > (TRB_MAX_LENGTH * CDNS_TRB_COUNT))
+    if (length > CDNS_XFER_MAX)
         return -PB_ERR_PARAM;
+
+    if (xfer_flush_failed)
+        return -PB_ERR_TIMEOUT;
 
     /* One bulk transfer at a time: one that wasn't completed or cancelled
      * ends here, and the ring is the driver's to write */
@@ -432,8 +480,13 @@ void cdns3_udc_core_xfer_cancel(usb_ep_t ep)
 
     mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DFLUSH);
 
-    while (mmio_read_32(base + CDNS_USB_EP_CMD) & EP_CMD_DFLUSH)
-        ;
+    if (wait_for(CDNS_USB_EP_CMD, EP_CMD_DFLUSH, 0, CDNS_FLUSH_TIMEOUT_us) != PB_OK) {
+        /* The endpoint may still run: its transfer stays the controller's,
+         * and the next is refused until init resets the controller */
+        LOG_ERR("%s: flush timeout", ep_to_str(ep));
+        xfer_flush_failed = true;
+        return;
+    }
 
     /* The endpoint is idle: its transfer's buffer is the caller's again
      * (usb.md 4.3) */
@@ -562,9 +615,10 @@ int cdns3_udc_core_xfer_zlp(usb_ep_t ep)
     if (ep == USB_EP0_IN) {
         mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_ERDY | EP_CMD_REQ_CMPL);
 
-        // TODO: Timeout?
-        while (mmio_read_32(base + CDNS_USB_EP_CMD) & EP_CMD_REQ_CMPL)
-            ;
+        if (wait_for(CDNS_USB_EP_CMD, EP_CMD_REQ_CMPL, 0, CDNS_STATUS_STAGE_TIMEOUT_us) != PB_OK) {
+            LOG_ERR("Status stage timeout");
+            return -PB_ERR_TIMEOUT;
+        }
     } else if (ep == USB_EP0_OUT) {
         mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_ERDY);
     }
@@ -587,10 +641,13 @@ int cdns3_udc_core_init(void)
     xfer_dma_end();
     ep0_dma_end(true);
     ep0_dma_end(false);
+    xfer_flush_failed = false;
 
     /* Wait for controller to come out of reset */
-    while (!(mmio_read_32(base + CDNS_USB_STS) & STS_INRST))
-        ;
+    if (wait_for(CDNS_USB_STS, STS_INRST, STS_INRST, CDNS_RESET_TIMEOUT_us) != PB_OK) {
+        LOG_ERR("Controller reset timeout");
+        return -PB_ERR_TIMEOUT;
+    }
 
     /* Configure and enable EP0 */
     // TODO: Hardcoded values for SS

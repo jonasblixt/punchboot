@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include "fakes/dcache.h"
+#include "fakes/plat.h"
 #include "fakes/regs.h"
 
 /* The MEK's controller */
@@ -51,6 +52,8 @@
 #define TRB_SIZE        12
 #define TRB_MAX_LENGTH  (127 * 1024)
 #define TRB_COUNT       128
+/* The longest transfer: the ring's TRBs but its stop gap */
+#define XFER_MAX        ((TRB_COUNT - 1) * TRB_MAX_LENGTH)
 #define TRB_FLAG_CYCLE  BIT(0)
 
 #define LINE            PB_DMA_ALIGN
@@ -74,11 +77,17 @@ const char *ep_to_str(usb_ep_t ep)
 /* EP_TRADDR is the selected endpoint's: an index for each direction */
 static uint32_t traddr[32];
 static unsigned int selected;
+/* A flush, or a status stage, that doesn't end */
+static bool flush_hangs;
+static bool status_stage_hangs;
 
 /* What the registers do with a write: the status registers are written to
- * clear, and a flush ends at once */
+ * clear, and a flush and a status stage end at once */
 static uint64_t on_write(uintptr_t addr, uint64_t value)
 {
+    uint64_t sticky = (flush_hangs ? EP_CMD_DFLUSH : 0) |
+                      (status_stage_hangs ? EP_CMD_REQ_CMPL : 0);
+
     switch (addr) {
     case EP_SEL:
         selected = (unsigned int)(((value & 0xf) << 1) | ((value >> 7) & 1));
@@ -91,7 +100,7 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
     case EP_STS:
         return 0;
     case EP_CMD:
-        return value & ~(uint64_t)(EP_CMD_DFLUSH | EP_CMD_REQ_CMPL);
+        return value & ~(uint64_t)((EP_CMD_DFLUSH | EP_CMD_REQ_CMPL) & ~sticky);
     default:
         return value;
     }
@@ -158,6 +167,10 @@ static int setup(void **state)
 
     fake_regs_reset();
     fake_regs_on_write = on_write;
+    flush_hangs = false;
+    status_stage_hangs = false;
+    /* Time goes on while the driver polls */
+    fake_us_tick_step = 1;
     fake_regs_set(USB_STS, USB_STS_INRST);
     cdns3_udc_core_set_base(CDNS3_BASE);
     assert_int_equal(cdns3_udc_core_init(), PB_OK);
@@ -202,6 +215,102 @@ static void test_the_terminating_trb_is_cleaned(void **state)
         assert_int_equal(trb[2], 0);
     }
 
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
+/* usb.md 4.3: a length above what the driver can queue is -PB_ERR_PARAM,
+ * and nothing is written. A transfer of 128 TRBs wrote its stop gap past
+ * the 128 of the ring (F-205): the longest is a TRB shorter, with the stop
+ * gap the ring's last */
+static void test_a_transfer_longer_than_the_ring_is_refused(void **state)
+{
+    uint32_t trb[3];
+    uintptr_t ring;
+    size_t writes;
+    (void)state;
+
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, NO_BUF, XFER_MAX), PB_OK);
+    ring = traddr[USB_EP2_OUT];
+    dcache_dev_read(ring + (TRB_COUNT - 2) * TRB_SIZE, trb, sizeof(trb));
+    assert_true(trb[2] & TRB_FLAG_CYCLE);
+    dcache_dev_read(ring + (TRB_COUNT - 1) * TRB_SIZE, trb, sizeof(trb));
+    assert_int_equal(trb[2], 0);
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+
+    writes = fake_reg_log_len;
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, NO_BUF, XFER_MAX + 1), -PB_ERR_PARAM);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP1_IN, NO_BUF, TRB_COUNT * TRB_MAX_LENGTH),
+                     -PB_ERR_PARAM);
+    assert_int_equal(fake_reg_log_len, writes);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
+/* Endpoint 0's reply goes through the driver's bounce buffer of 512 bytes,
+ * which a longer one overflowed (F-205): it is refused, -PB_ERR_PARAM */
+static void test_an_ep0_reply_longer_than_the_bounce_buffer_is_refused(void **state)
+{
+    static uint8_t reply[513];
+    (void)state;
+
+    fill(reply, sizeof(reply), 3);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP0_IN, reply, sizeof(reply)), -PB_ERR_PARAM);
+    assert_int_equal(dma_host_in_open(), 2);
+
+    memset(host, 0, 512);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP0_IN, reply, 512), PB_OK);
+    assert_int_equal(controller_run(USB_EP0_IN, host, 512), 512);
+    fake_regs_set(EP_STS, EP_STS_IOC);
+    assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP0_IN), PB_OK);
+    assert_memory_equal(host, reply, 512);
+}
+
+/* drivers.md 3: every wait is bounded and returns -PB_ERR_TIMEOUT. The
+ * controller's reset that doesn't end fails init; init again when it does */
+static void test_the_reset_wait_times_out(void **state)
+{
+    (void)state;
+
+    fake_regs_set(USB_STS, 0);
+    assert_int_equal(cdns3_udc_core_init(), -PB_ERR_TIMEOUT);
+
+    fake_regs_set(USB_STS, USB_STS_INRST);
+    assert_int_equal(cdns3_udc_core_init(), PB_OK);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
+/* The status stage that the host never takes: -PB_ERR_TIMEOUT */
+static void test_the_status_stage_wait_times_out(void **state)
+{
+    (void)state;
+
+    status_stage_hangs = true;
+    assert_int_equal(cdns3_udc_core_xfer_zlp(USB_EP0_IN), -PB_ERR_TIMEOUT);
+
+    status_stage_hangs = false;
+    assert_int_equal(cdns3_udc_core_xfer_zlp(USB_EP0_IN), PB_OK);
+}
+
+/* A flush that doesn't end: the cancel can't return it, so the transfer
+ * stays the controller's and the next one is -PB_ERR_TIMEOUT, until init
+ * resets the controller (drivers.md 3: nothing of the failed one completes
+ * later) */
+static void test_the_flush_wait_times_out(void **state)
+{
+    uint8_t *buf = arena + LINE;
+    (void)state;
+
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    flush_hangs = true;
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+    assert_int_equal(dma_host_in_open(), 4);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), -PB_ERR_TIMEOUT);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP1_IN, buf, 512), -PB_ERR_TIMEOUT);
+
+    flush_hangs = false;
+    assert_int_equal(cdns3_udc_core_init(), PB_OK);
+    assert_int_equal(dma_host_in_open(), 2);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
     cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
     assert_int_equal(dma_host_in_open(), 2);
 }
@@ -370,6 +479,11 @@ int main(void)
         cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
         cmocka_unit_test_setup(test_setup_packet, setup),
         cmocka_unit_test_setup(test_init_again, setup),
+        cmocka_unit_test_setup(test_a_transfer_longer_than_the_ring_is_refused, setup),
+        cmocka_unit_test_setup(test_an_ep0_reply_longer_than_the_bounce_buffer_is_refused, setup),
+        cmocka_unit_test_setup(test_the_reset_wait_times_out, setup),
+        cmocka_unit_test_setup(test_the_status_stage_wait_times_out, setup),
+        cmocka_unit_test_setup(test_the_flush_wait_times_out, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

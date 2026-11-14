@@ -762,6 +762,7 @@ pb_unit_test(test_usbd SOURCES
 pb_unit_test(test_cdns3_udc SOURCES
     ${PB_DMA_MODEL}
     fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/cdns3_udc_core.c
 )
 target_include_directories(test_cdns3_udc BEFORE PRIVATE
