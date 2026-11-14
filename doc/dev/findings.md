@@ -279,6 +279,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14, D-084 (Jonas: yes): `plat_init()` writes MPR 0x77777777 and every OPACR 0 on | | |
 | | | AIPS-1 and AIPS-2, as `init_aips()`. Built, unit tested, not run on jiffy. A 6ULL's AIPS-3 | | |
 | | | isn't set (no board; reserved space on the 6UL) | | |
+| | | 2026-11-14 on jiffy from BOOT0 (`0715d30a`): `devmem` of the IOMUXC (0x020E0000, 0x020E4000) | | |
+| | | from Linux's user mode reads; the AIPS-TZ's own registers still abort. The OCOTP read hung | | |
+| | | (its clock, likely gated). Left: the SDMA's peripheral access, unchecked; a 6ULL | | |
 | F-247 | `src/board/*/board.c` | The boards wire the SoC's RoT and SLC functions | Verified (code) | open |
 | | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
 | | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |

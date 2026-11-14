@@ -342,7 +342,7 @@ Where each port is (2026-11-14).
 | TrustZone filter                     | partly       | partly            | n/a (BL31) | n/a       | F-241, F-261  |
 | `plat_lockdown()`                    | yes          | no (HAB first,    | unchecked  | unchecked | F-244, D-084  |
 |                                      |              | D-084)            |            |           |               |
-| Bus access control                   | yes (unrun)  | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
+| Bus access control                   | yes (jiffy)  | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
 | `plat_rot`, `plat_slc`               | yes          | yes (no HAB; the  | yes        | yes       |               |
 |                                      |              | 8MQ can't read a  |            |           |               |
 |                                      |              | key's status)     |            |           |               |
