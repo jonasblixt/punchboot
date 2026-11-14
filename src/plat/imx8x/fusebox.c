@@ -62,6 +62,7 @@ int imx8x_fuse_read(uint32_t addr, uint32_t *result)
 
 int imx8x_fuse_write_srk(const uint32_t *srk, size_t words)
 {
+    uint32_t fused[IMX8X_SRK_HASH_WORDS];
     int rc;
     LOG_INFO("Fusing SRK fuses");
 
@@ -77,6 +78,27 @@ int imx8x_fuse_write_srk(const uint32_t *srk, size_t words)
     }
 
     for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
+        rc = imx8x_fuse_read(IMX8X_FUSE_SRK0 + n, &fused[n]);
+
+        if (rc != PB_OK)
+            return rc;
+
+        /* A word with some of the hash's bits, from a write that failed
+         * half way, is completed (command-mode.md 5.2). One with a bit the
+         * hash doesn't have can never become it: nothing is written */
+        if ((fused[n] & ~srk[n]) != 0) {
+            LOG_ERR("Trying to change already fused SRK%u from 0x%x to 0x%x", n, fused[n], srk[n]);
+            return -PB_ERR_MEM;
+        }
+    }
+
+    for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
+        /* What the SCFW does with a word written again isn't known */
+        if (fused[n] == srk[n]) {
+            LOG_INFO("SRK%u already fused to 0x%x", n, srk[n]);
+            continue;
+        }
+
         LOG_INFO("Fusing SRK%i, value=0x%x", n, srk[n]);
         rc = imx8x_fuse_write(IMX8X_FUSE_SRK0 + n, srk[n]);
 
