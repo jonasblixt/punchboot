@@ -9,6 +9,9 @@
  * (doc/interfaces/platform.md), with the SoC's registers in a register file
  * (fakes/regs.h). The GPT's and the WDOG's drivers are the real ones; the
  * fuses, the HAB and Mbed TLS are fakes.
+ *
+ * Built twice: with CONFIG_DRIVERS_CRYPTO_MBEDTLS, as the RT1060 EVK has
+ * it, and without (test_plat_imxrt_no_mbedtls).
  */
 
 #include <setjmp.h>
@@ -52,6 +55,9 @@
 static struct {
     int mbedtls_rc;
     int hab_log_rc;
+    unsigned int mbedtls_inits;
+    /* The register log's length when mbedtls_pb_init() was called */
+    size_t mbedtls_at;
     uint32_t speed_grade;
     unsigned int log_time_starts;
     /* The register log's length when log_time_start() was called */
@@ -70,6 +76,8 @@ static jmp_buf soc_reset;
 
 int mbedtls_pb_init(void)
 {
+    f.mbedtls_inits++;
+    f.mbedtls_at = fake_reg_log_len;
     return f.mbedtls_rc;
 }
 
@@ -188,10 +196,12 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     assert_int_equal(plat_init(), PB_OK);
     assert_false(status_now().crypto_engine);
 
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
     /* And it is the state of this plat_init(), not of an earlier one */
     f.mbedtls_rc = PB_OK;
     assert_int_equal(plat_init(), PB_OK);
     assert_true(status_now().crypto_engine);
+#endif
 }
 
 /* platform.md 3.8: what plat_init() recorded. The Cortex-M7 has no
@@ -208,7 +218,12 @@ static void test_status(void **state)
 
     assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_NONE);
     assert_true(status.wdog_armed);
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
     assert_true(status.crypto_engine);
+#else
+    /* A build without a backend has none that works (platform.md 3.8) */
+    assert_false(status.crypto_engine);
+#endif
     assert_true(status.rom_log);
 }
 
@@ -229,6 +244,26 @@ static void test_plat_init(void **state)
 
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
+}
+
+/* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
+ * crypto backend behind its driver's option: Mbed TLS with
+ * CONFIG_DRIVERS_CRYPTO_MBEDTLS, once and as its last step, and nothing of
+ * it in a build without the option */
+static void test_crypto_backend_behind_its_option(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(f.mbedtls_inits, 0);
+    assert_int_equal(plat_init(), PB_OK);
+
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    assert_int_equal(f.mbedtls_inits, 1);
+    assert_int_equal(f.mbedtls_at, fake_reg_log_len);
+#else
+    assert_int_equal(f.mbedtls_inits, 0);
+#endif
 }
 
 /* platform.md 2.1, 3.2: when plat_early_init() returns the tick counts and
@@ -544,6 +579,7 @@ int main(void)
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_rom_log_missing, setup),
         cmocka_unit_test_setup(test_boot_source, setup),
+        cmocka_unit_test_setup(test_crypto_backend_behind_its_option, setup),
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),

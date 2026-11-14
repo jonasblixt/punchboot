@@ -564,6 +564,27 @@ pb_plat_test(test_plat_imxrt
     DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
 )
 
+# The same without CONFIG_DRIVERS_CRYPTO_MBEDTLS: the platform sets a crypto
+# backend up behind its option (platform.md 2.2, F-247). The build without it
+# is the host's configuration less that line, first on the include path
+string(REPLACE "#define CONFIG_DRIVERS_CRYPTO_MBEDTLS 1\n" ""
+    PB_CONFIG_H_NO_MBEDTLS "${PB_CONFIG_H}")
+if(PB_CONFIG_H_NO_MBEDTLS STREQUAL PB_CONFIG_H)
+    message(FATAL_ERROR "configs/host_defconfig: CONFIG_DRIVERS_CRYPTO_MBEDTLS is not set")
+endif()
+set(PB_NO_MBEDTLS_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_mbedtls)
+file(CONFIGURE OUTPUT ${PB_NO_MBEDTLS_DIR}/config.h CONTENT "${PB_CONFIG_H_NO_MBEDTLS}" @ONLY)
+
+pb_plat_test(test_plat_imxrt_no_mbedtls
+    TEST test_plat_imxrt.c
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/plat/imxrt/plat.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
+    DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+    INCLUDES ${PB_NO_MBEDTLS_DIR}
+)
+
 # The i.MX8QXP, with the port's SCFW client: the test is the SCFW. xlat.h
 # declares the ARMv8-A enable of the MMU for plat.c
 set(PB_IMX8X_SCI ${PROJECT_SOURCE_DIR}/src/plat/imx8x/sci)
