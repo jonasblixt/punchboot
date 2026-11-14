@@ -58,6 +58,13 @@ int boot_init(const struct boot_driver *cfg)
     if (cfg->delivery != NULL && (cfg->delivery->ops == NULL || cfg->delivery->ops->jump == NULL))
         return -PB_ERR_PARAM;
 
+    /* E.g. OP-TEE, which takes the image handover only (boot.md 5.7) */
+    if (cfg->delivery != NULL && cfg->delivery->ops->takes != NULL &&
+        !cfg->delivery->ops->takes(cfg->handover->ops)) {
+        LOG_ERR("The board's delivery can't deliver its handover");
+        return -PB_ERR_PARAM;
+    }
+
     boot_cfg = cfg;
     boot_policy_set(cfg->policy);
     boot_device = -1;

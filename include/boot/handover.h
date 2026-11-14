@@ -19,13 +19,15 @@
  * A delivery brings them to the next stage. Without one the core does it
  * directly: arch_jump(entry, a0..a3), at the exception level pb runs at.
  * BOOT_DELIVERY_TFA() (boot/atf.h) goes through TF-A's BL31, which gets
- * them as BL33's entry point.
+ * them as BL33's entry point. BOOT_DELIVERY_OPTEE() (boot/optee.h) goes
+ * through OP-TEE on ARMv7-A, which enters the normal world at the entry.
  */
 
 #ifndef INCLUDE_BOOT_HANDOVER_H
 #define INCLUDE_BOOT_HANDOVER_H
 
 #include <boot/policy.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <uuid.h>
@@ -108,6 +110,10 @@ struct boot_handover {
 
 struct boot_delivery_ops {
     int (*init)(const void *config);
+    /** Optional: whether it can deliver what 'handover' prepares. The core
+     * asks when the boot is set up, and refuses a board whose two don't go
+     * together (-PB_ERR_PARAM). NULL: any handover */
+    bool (*takes)(const struct boot_handover_ops *handover);
     /** After the handover's prepare: what the delivery itself needs of the image */
     int (*prepare)(struct bpak_header *hdr, const struct boot_handover_entry *next);
     /** Start the next stage with 'next'. Returns only when that failed */

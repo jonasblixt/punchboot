@@ -57,6 +57,22 @@ struct boot_dtb_chosen {
 int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt);
 
 /**
+ * Whether a device tree may grow in place to 'room' bytes from 'addr'
+ * (boot.md 4.3): the room is inside the board's image data regions and no
+ * part of the image but the device tree's own is in it. For boot_dtb_grow()
+ * and for a stage after pb that grows the device tree further (OP-TEE,
+ * boot.md 5.7).
+ *
+ * @param[in] hdr The verified image header
+ * @param[in] dtb_id bpak id of the device tree part, which may be in it
+ * @param[in] addr The device tree's load address
+ * @param[in] room Bytes from 'addr'
+ *
+ * @return PB_OK, or -PB_ERR_MEM
+ */
+int boot_dtb_check_room(struct bpak_header *hdr, bpak_id_t dtb_id, uintptr_t addr, size_t room);
+
+/**
  * Open a loaded device tree into memory the handover gives, with room for
  * what the boot drivers add to it
  *

@@ -137,7 +137,7 @@ config BOOT_DTB_HEADROOM
         that doesn't fit fails the boot, as it always did.
 
 comment "Delivery: how pb starts the next stage"
-    depends on ARCH_ARMV8
+    depends on ARCH_ARMV8 || ARCH_ARMV7
 
 config BOOT_ATF
     bool "TF-A (ARMv8-A)"
@@ -152,6 +152,21 @@ config BOOT_ATF
         code. A board names it next to its handover and enables that
         too, e.g. the image handover (BOOT_LINUX). Before 3.0.0 this
         option was the whole TF-A boot driver.
+
+config BOOT_OPTEE
+    bool "OP-TEE (ARMv7-A)"
+    depends on ARCH_ARMV7
+    depends on BOOT_LINUX
+    help
+        The delivery through OP-TEE (boot/optee.h, BOOT_DELIVERY_OPTEE()),
+        for pb in the secure world on ARMv7-A: pb enters OP-TEE, its own
+        secure monitor, with the image handover's entry as the normal
+        world's (lr) and its r1 and r2 relayed. OP-TEE grows the device
+        tree in place to its CFG_DTB_MAX_SIZE, which the board gives.
+
+        With the image handover (BOOT_LINUX) only. An image without
+        OP-TEE's part is started directly, so an image with OP-TEE in the
+        kernel's part (CFG_NS_ENTRY_ADDR) keeps booting.
 
 comment "Loading"
 
