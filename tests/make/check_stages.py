@@ -9,17 +9,27 @@ of its own, and checks what its build makes:
 
   check_stages.py <source dir> <work dir>
 
-The cases, each in a build directory of its own:
+The cases, each in a build directory of its own, at the levels at which a
+board overrides the platform's stages (platform.md 6.2):
 
-- Level 3 of platform.md 6.2: the platform's stages off in the defconfig, and
-  the board's own stage from pb.bin in image-y, with its FINAL_OUTPUT.
+- Level 0: the board's makefile.mk has its sources, the defconfig turns the
+  i.MX6UL's stages on: pb.imx, the two descriptions and the signed images.
+- Level 1: its own signing tool (CST_TOOL in its makefile.mk), which gets
+  the descriptions and writes the signatures.
+- Level 2: signing off in the defconfig, its own stage after imx6ul_image in
+  image-y, with its FINAL_OUTPUT.
+- Level 3: the platform's stages off in the defconfig, and the board's own
+  stage from pb.bin in image-y, with its FINAL_OUTPUT.
 - A board that still fills plat-y, the list's name before 3.0.0, is refused:
   it would build without its image.
 - Each board in the tree names the last file of its stages as the final
   output (make -n).
+- No recipe in the Makefile or a makefile.mk has an $(eval): what a recipe
+  works out is the shell's, and FINAL_OUTPUT is set when the makefiles are
+  read.
 
-It needs the firmware's tools (arm-none-eabi-gcc and the bpak CLI, both in the
-dev container) and is skipped without them.
+It needs the firmware's tools (arm-none-eabi-gcc, the bpak CLI, U-Boot's
+mkimage and NXP's cst, all in the dev container) and is skipped without them.
 """
 
 from __future__ import annotations
@@ -33,7 +43,7 @@ import sys
 
 SKIP = 77
 CROSS_COMPILE = "arm-none-eabi-"
-TOOLS = ("make", f"{CROSS_COMPILE}gcc", "bpak")
+TOOLS = ("make", f"{CROSS_COMPILE}gcc", "bpak", "mkimage", "cst")
 # The board in the tree whose sources and defconfig the board is made from
 FROM = "jiffy"
 # The board's data: its sources, and nothing of the in-tree board's makefile.mk
@@ -51,6 +61,26 @@ SIGN_INPUTS = (
 
 # A board's makefile.mk: its sources, and nothing else
 SOURCES = "src-y += $(BOARD)/board.c\n"
+
+# Level 1: the board's own signing tool, called as cst is
+OWN_TOOL = """
+CST_TOOL ?= $(BOARD)/sign
+"""
+
+# The tool: it signs with a line before the description
+SIGN_TOOL = """#!/bin/sh
+# sign --o <signature> --i <description>
+(echo "SIGNED"; cat "$4") > "$2"
+"""
+
+# Level 2: signing off, the board's own stage after the platform's pb.imx
+OWN_SIGNING = """
+image-y += oot_sign
+FINAL_OUTPUT = $(BUILD_DIR)/oot_signed.imx
+
+oot_sign: imx6ul_image
+\t$(Q)(echo SIGNED; cat $(BUILD_DIR)/pb.imx) > $(BUILD_DIR)/oot_signed.imx
+"""
 
 # Level 3: the board's own tooling from pb.bin, here a header before it
 OWN_IMAGE = """
@@ -130,7 +160,11 @@ class Case:
     def made(self) -> set[str]:
         """Return the images in the build directory."""
         names = {path.name for path in self.build.iterdir() if path.is_file()}
-        return {name for name in names if name.endswith((".imx", ".img", ".csf", "_csf.bin"))}
+        return {
+            name
+            for name in names
+            if name.endswith((".imx", ".img", ".csf")) or name.startswith("pb_csf")
+        }
 
     def line(self, what: str, problems: list[str]) -> str:
         """Return the case's line of the report."""
@@ -144,6 +178,112 @@ class Case:
         said = f"Success, final output: {self.build / name}"
         assert self.result is not None
         return [] if said in self.result.stdout else [f"all didn't say '{said}'"]
+
+
+# What the i.MX6UL's stages make with signing on
+SIGNED = {
+    "pb.imx",
+    "pb.csf",
+    "pb_uuu.csf",
+    "pb_csf.bin",
+    "pb_csf_uuu.bin",
+    "pb_signed.imx",
+    "pb_signed_uuu.imx",
+}
+
+
+def check_signed(case: Case) -> list[str]:
+    """Check the i.MX6UL's descriptions and signed images against pb.imx.
+
+    pb.csf signs pb.imx from the IVT at PB_ENTRY - 0xC00 to its end,
+    pb_uuu.csf also the DCD at the serial downloader's 0x00910000, as long as
+    its header says. pb_signed.imx is two blocks of zeros, pb.imx and its
+    signature, padded to a block; pb_signed_uuu.imx pb.imx and its signature.
+    """
+    problems = []
+    imx = case.read("pb.imx")
+    path = case.build / "pb.imx"
+    blocks = f'Blocks = 0x80000400 0x000 0x{len(imx):X} "{path}"'
+    uuu = f'Blocks = 0x00910000 0x02c 0x{imx[45:47].hex()} "{path}"'
+    csf = case.read("pb.csf").decode()
+    csf_uuu = case.read("pb_uuu.csf").decode()
+    if blocks not in csf.splitlines():
+        problems.append(f"pb.csf hasn't '{blocks}'")
+    if blocks not in csf_uuu.splitlines() or uuu not in csf_uuu.splitlines():
+        problems.append(f"pb_uuu.csf hasn't '{blocks}' and '{uuu}'")
+    keys = (
+        "pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin",
+        "pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem",
+        "pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem",
+    )
+    for text, name in ((csf, "pb.csf"), (csf_uuu, "pb_uuu.csf")):
+        missing = [key for key in keys if f'"{key}"' not in text]
+        if missing or "__" in text:
+            problems.append(f"{name}: the keys {missing} or a placeholder left")
+    signed = bytes(1024) + imx + case.read("pb_csf.bin")
+    signed += bytes(-len(signed) % 512)
+    if case.read("pb_signed.imx") != signed:
+        problems.append("pb_signed.imx is not the zeros, pb.imx and pb_csf.bin, padded")
+    if case.read("pb_signed_uuu.imx") != imx + case.read("pb_csf_uuu.bin"):
+        problems.append("pb_signed_uuu.imx is not pb.imx and pb_csf_uuu.bin")
+    return problems
+
+
+def check_platform(root: pathlib.Path, work: pathlib.Path) -> str:
+    """Level 0: the platform's stages, the board gives its sources."""
+    case = Case(root, work, "level0")
+    case.defconfig()
+    result = case.make(SOURCES)
+    if result.returncode != 0:
+        return case.line("the platform's stages", [f"make: exit {result.returncode}"])
+    problems = []
+    if case.made() != SIGNED:
+        problems.append(f"the build made {sorted(case.made())}, expected {sorted(SIGNED)}")
+    else:
+        problems += check_signed(case)
+        # A HABv4 CSF starts with its header's tag, 0xd4
+        if not case.read("pb_csf.bin").startswith(b"\xd4"):
+            problems.append("pb_csf.bin is not a CSF (cst's)")
+    problems += case.final_output("pb_signed.imx")
+    return case.line("the platform's stages make pb.imx and sign it", problems)
+
+
+def check_own_signing_tool(root: pathlib.Path, work: pathlib.Path) -> str:
+    """Level 1: the board's own signing tool, the platform's descriptions."""
+    case = Case(root, work, "level1")
+    tool = case.board / "sign"
+    tool.write_text(SIGN_TOOL)
+    tool.chmod(0o755)
+    case.defconfig()
+    result = case.make(SOURCES + OWN_TOOL)
+    if result.returncode != 0:
+        return case.line("the board's signing tool", [f"make: exit {result.returncode}"])
+    problems = []
+    if case.made() != SIGNED:
+        problems.append(f"the build made {sorted(case.made())}, expected {sorted(SIGNED)}")
+    else:
+        problems += check_signed(case)
+        for csf, signature in (("pb.csf", "pb_csf.bin"), ("pb_uuu.csf", "pb_csf_uuu.bin")):
+            if case.read(signature) != b"SIGNED\n" + case.read(csf):
+                problems.append(f"{signature} is not the tool's signature of {csf}")
+    problems += case.final_output("pb_signed.imx")
+    return case.line("the board's signing tool signs the platform's descriptions", problems)
+
+
+def check_own_signing(root: pathlib.Path, work: pathlib.Path) -> str:
+    """Level 2: signing off, the board's own stage after the platform's image."""
+    case = Case(root, work, "level2")
+    case.defconfig(off=(SIGN, *SIGN_INPUTS))
+    result = case.make(SOURCES + OWN_SIGNING)
+    if result.returncode != 0:
+        return case.line("the board's signing", [f"make: exit {result.returncode}"])
+    problems = []
+    if case.made() != {"pb.imx", "oot_signed.imx"}:
+        problems.append(f"the build made {sorted(case.made())}, expected oot_signed.imx")
+    elif case.read("oot_signed.imx") != b"SIGNED\n" + case.read("pb.imx"):
+        problems.append("oot_signed.imx is not the board's signature and pb.imx")
+    problems += case.final_output("oot_signed.imx")
+    return case.line("signing off, the board's own stage after imx6ul_image", problems)
 
 
 def check_own_tooling(root: pathlib.Path, work: pathlib.Path) -> str:
@@ -220,7 +360,27 @@ def check_in_tree(root: pathlib.Path, work: pathlib.Path) -> str:
     return "ok: in-tree: every board's final output is the last file of its stages"
 
 
-CHECKS = (check_own_tooling, check_old_list, check_in_tree)
+def check_no_eval(root: pathlib.Path, work: pathlib.Path) -> str:  # noqa: ARG001
+    """Check that no recipe of the Makefile or a makefile.mk has an $(eval)."""
+    found = []
+    for path in [root / "Makefile", *sorted(root.glob("src/**/makefile.mk"))]:
+        for number, line in enumerate(path.read_text().splitlines(), 1):
+            if line.startswith("\t") and "$(eval" in line:
+                found.append(f"{path.relative_to(root)}:{number}")
+    if found:
+        return f"FAILED: no-eval: $(eval) in a recipe: {', '.join(found)}"
+    return "ok: no-eval: no recipe has an $(eval)"
+
+
+CHECKS = (
+    check_platform,
+    check_own_signing_tool,
+    check_own_signing,
+    check_own_tooling,
+    check_old_list,
+    check_in_tree,
+    check_no_eval,
+)
 
 
 def main() -> int:
