@@ -636,13 +636,13 @@ OK means "loaded and verified", not "booted".
 
 A board directory holds:
 
-| File          | What                                                                                    |
-| ------------- | --------------------------------------------------------------------------------------- |
-| `board.c`     | `const struct board board`, the hooks                                                   |
-| `makefile.mk` | `src-y` for its sources, image stage overrides (`platform.md` 6.2), included before the |
-|               | platform's makefile                                                                     |
-| `Kconfig`     | Optional, the board's options (`osource "$(BOARD)/Kconfig"` in `src/Kconfig`)           |
-| `include/`    | Optional, on the include path                                                           |
+| File          | What                                                                           |
+| ------------- | ------------------------------------------------------------------------------ |
+| `board.c`     | `const struct board board`, the hooks                                          |
+| `makefile.mk` | `src-y` for its sources, its memory (`platform.md` 5.1), image stage overrides |
+|               | (`platform.md` 6.2), included before the platform's makefile                   |
+| `Kconfig`     | Optional, the board's options (`osource "$(BOARD)/Kconfig"` in `src/Kconfig`)  |
+| `include/`    | Optional, on the include path                                                  |
 
 The defconfig selects the arch, the platform and the keys: `configs/<b>_defconfig` in the tree,
 any file out of it, passed as `KCONFIG_CONFIG` (`build-and-test.md`). The build directory is
@@ -656,8 +656,7 @@ aren't the board's data (`system.md` 6):
 | The modules the board names | `BOOT_POLICY_FIXED`, `_CHAIN` or `_AB`; `BOOT_LINUX` or `BOOT_FH`; `BOOT_ATF`; |
 |                             | the partition table's driver                                                   |
 | Speculative mode            | `BOOT_AB_SPECULATIVE` (`boot.md` 3.6)                                          |
-| Addresses the build needs   | `BOOT_FH_REGION_BASE` and `_SIZE` (`boot.md` 5.4); the board's DRAM and entry  |
-|                             | (`platform.md` 5.1)                                                            |
+| Addresses the build needs   | `BOOT_FH_REGION_BASE` and `_SIZE` (`boot.md` 5.4)                              |
 | Command mode                | The USB port (4.1); `CM_ON_SERIAL_DOWNLOAD` (5.1); the authentication methods, |
 |                             | `CM_AUTH_TOKEN` and `CM_AUTH_PASSWORD`                                         |
 | The keys and the life cycle | `KEYSTORE_SLOTS` (D-027); EOL, off by default (`system.md` 4)                  |

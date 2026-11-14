@@ -513,12 +513,15 @@ the ROM set up) and the board's DRAM (where images are loaded). Their names say 
 
 | Value                                 | From                  | What                   | Used by                  |
 | ------------------------------------- | --------------------- | ---------------------- | ------------------------ |
-| `CONFIG_PB_ENTRY`                     | Board defconfig       | Where pb is loaded and | Linker, image stages     |
+| `PB_ENTRY`                            | Board `makefile.mk`   | Where pb is loaded and | Linker, image stages     |
 |                                       |                       | linked                 |                          |
-| `CONFIG_BOARD_DRAM_BASE`, `_SIZE`     | Board defconfig, with | The board's DRAM       | MMU layer 1, linker      |
-|                                       | DRAM                  |                        | checks                   |
-| `CONFIG_PB_BUFFERS_BASE`, `_SIZE`     | Board, default from   | The `buffers` region   | Linker                   |
-|                                       | the platform          |                        |                          |
+| `PB_SIZE`                             | Board `makefile.mk`,  | Where `pb` ends, for a | Linker                   |
+|                                       | default 0 (derived)   | region after it        |                          |
+| `BOARD_DRAM_BASE`, `_SIZE`            | Board `makefile.mk`;  | The board's DRAM       | MMU layer 1, linker      |
+|                                       | 0 without DRAM        |                        | checks                   |
+| `PB_BUFFERS_BASE`, `_SIZE`            | Board `makefile.mk`,  | The `buffers` region   | Linker                   |
+|                                       | default from the      |                        |                          |
+|                                       | platform's            |                        |                          |
 | `CONFIG_BOOT_FH_REGION_BASE`, `_SIZE` | Board defconfig, with | The transfer list's    | Placement, linker checks |
 |                                       | Firmware Handoff      | region (`boot.md` 5.4) |                          |
 | The ROM's load windows                | Platform              | Where the ROM may load | Linker checks, `pb` size |
@@ -530,8 +533,15 @@ the ROM set up) and the board's DRAM (where images are loaded). Their names say 
 
 Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
 
+The board's memory is a fact of its hardware, not a choice of the product, so it is make
+variables in the board's `makefile.mk`, not Kconfig values (D-079). The platform's
+`makefile.mk`, read after the board's, gives the buffers' default with `?=`. The build stops,
+naming the value, when one is missing; `BOARD_DRAM_BASE` and `_SIZE` are 0 on a board without
+DRAM. A value given on make's command line reaches the linker and C alike.
+
 - The `pb` region runs from `PB_ENTRY` to the end of the ROM's load window it is in (or to the
-  start of `buffers`): its length is derived, not set.
+  start of `buffers`): its length is derived, unless the board sets `PB_SIZE` where an image
+  data region starts after pb.
 - The platform's `link.lds` defines `MEMORY` from these values, with no addresses of its own except
   the SoC's regions (a DRAM controller's save area, a reset stub). It `ASSERT`s that `pb` is in a
   load window, that `buffers` is in memory that works after `plat_init()` (the board's DRAM or the

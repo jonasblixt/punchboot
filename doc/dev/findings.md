@@ -802,9 +802,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `late_init()`, and a comment in `tests/unit/CMakeLists.txt` that the host has no watchdog. The | | |
 | | | RT's `.ARM.exidx`, `.iplt` and `.rel.dyn` are orphan sections. `src/link_flash.lds` names a | | |
 | | | `flash` region no platform defines and has none of F-239's checks. The DXL's DRAM is 3 GiB in | | |
-| | | its configuration and 1 GiB on the board. The six defconfigs aren't what `olddefconfig` writes. | | |
-| | | `CONFIG_PB_SIZE` isn't in `platform.md` 5.1's table, and 5.3's "everything pb links is in one | | |
-| | | of the two" doesn't hold for the 8X's stub, by design | | |
+| | | its `makefile.mk` and 1 GiB on the board. The six defconfigs aren't what `olddefconfig` writes. | | |
+| | | `platform.md` 5.3's "everything pb links is in one of the two" doesn't hold for the 8X's stub, | | |
+| | | by design. (`PB_SIZE` is in 5.1's table since D-079.) | | |
 | F-429 | `src/plat/imx8x/{fusebox,rot_helpers}.c` | The 8X's fuse helpers, found by the tests | Verified (test) | open |
 | | | written for them. `imx8x_is_srk_fused()` ignores a failed fuse read and tests an uninitialised | | |
 | | | value; the SLC's status and a key's revocation rest on it. `imx8x_fuse_write_srk()` doesn't | | |

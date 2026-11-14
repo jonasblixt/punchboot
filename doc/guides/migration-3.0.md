@@ -30,7 +30,7 @@ neither has the code, another board's or the header's, and the section says whic
 | 12      | The serial download stop                              | D-031, `board.md` 5.1 |
 | 13      | The keys, the life cycle and the fuses                | D-027                 |
 | 14      | What a board includes and asks the platform           | D-056, `board.md` 6   |
-| 15      | Kconfig and the defconfig, with the board's addresses | `board.md` 7          |
+| 15      | Kconfig and the defconfig; the board's memory         | `board.md` 7          |
 | 16      | The image stages are the platform's                   | `platform.md` 6.2     |
 | 17      | An out-of-tree driver                                 | `drivers.md`          |
 | 18      | An out-of-tree platform                               | D-030, `platform.md`  |
@@ -389,12 +389,12 @@ Rests on: D-035, D-048, `board.md` 2.4, `boot.md` 4.1.
 a board without a list loads nothing. jiffy:
 
 ```c
-#define BOARD_PB_END      ((uint64_t)CONFIG_PB_ENTRY + CONFIG_PB_SIZE)
-#define BOARD_BUFFERS_END ((uint64_t)CONFIG_PB_BUFFERS_BASE + CONFIG_PB_BUFFERS_SIZE)
+#define BOARD_PB_END      ((uint64_t)PB_ENTRY + PB_SIZE)
+#define BOARD_BUFFERS_END ((uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE)
 ...
 static const struct boot_image_region image_regions[] = {
     /* Between pb and its buffers */
-    BOOT_IMAGE_REGION(BOARD_PB_END, CONFIG_PB_BUFFERS_BASE - BOARD_PB_END),
+    BOOT_IMAGE_REGION(BOARD_PB_END, PB_BUFFERS_BASE - BOARD_PB_END),
     BOOT_IMAGE_REGION(BOARD_BUFFERS_END, BOARD_RAM_END - BOARD_BUFFERS_END),
     BOOT_IMAGE_REGION_END,
 };
@@ -406,8 +406,8 @@ static const struct boot_image_region image_regions[] = {
   before any image is read. A list that fails is a failed step with `-PB_ERR_PARAM`
   (`board.md` 3).
 - Where pb runs in DRAM the regions go round it, as above. A region starts where pb's region
-  or its buffers' ends, from the defconfig's values (section 15), which the link uses too: the
-  link fails when pb or its buffers grow into a region.
+  or its buffers' ends, from the values in `makefile.mk` (section 15), which the link uses too:
+  the link fails when pb or its buffers grow into a region.
 - SoC memory that a part is linked for is named in the platform header: the MEK lists BL31's
   place as `IMX8X_ATF_BASE` and `IMX8X_ATF_SIZE` (`platform.md` 5.3).
 - The list covers every load address of the product's images in the field, and is only made
@@ -794,7 +794,7 @@ void board_report_degraded(void);
 
 Rests on: D-050, D-056, `board.md` 6, `platform.md` 7.
 
-## 15. Kconfig and the defconfig
+## 15. Kconfig and the defconfig; the board's memory
 
 A name that is gone drops out of a defconfig without an error, and what it switched is then at
 its default (`platform.md` 6.2). Compare the defconfig with the closest one in `configs/`.
@@ -816,14 +816,6 @@ its default (`platform.md` 6.2). Compare the defconfig with the closest one in `
 |                                        | doesn't complete ends the session                 |
 |                                        | (`command-mode.md` 4.6)                           |
 | None                                   | `BOOT_AB_SPECULATIVE`, default n (section 2)      |
-| `PB_ENTRY` in `makefile.mk`            | `PB_ENTRY`, with no default: the build stops      |
-|                                        | without it                                        |
-| `-DBOARD_RAM_BASE`, `-DBOARD_RAM_END`  | `BOARD_DRAM_BASE` and `BOARD_DRAM_SIZE`           |
-| in `makefile.mk`                       |                                                   |
-| None                                   | `PB_SIZE`: where pb's region ends, for a board    |
-|                                        | with an image data region after pb                |
-| None                                   | `PB_BUFFERS_BASE` and `_SIZE`, with the           |
-|                                        | platform's default                                |
 | `CM_AUTH_PASSWORD` without a function  | Off (section 11)                                  |
 | `BIO_CORE`, `CRYPTO`, `DEVICE_UUID`,   | Gone: always built                                |
 | `BOOT_CORE`, `BOOT_BPAK_IMAGE_HELPERS` |                                                   |
@@ -841,9 +833,9 @@ its default (`platform.md` 6.2). Compare the defconfig with the closest one in `
 - A board's own `Kconfig` is read from its directory (`board.md` 7). The MEK's `choice BOARD`
   is gone: `BOARD=<path>` on the make command line selects the board, as before.
 
-**The board's addresses** were make variables and `-D` flags in the board's `makefile.mk`, and
-the link scripts repeated them. They are Kconfig values in the defconfig, with one source for
-the linker, the image recipes and C. jiffy:
+**The board's memory** was make variables and `-D` flags in the board's `makefile.mk`, and the
+link scripts repeated them. It is still the board's `makefile.mk`, as make variables only, with
+one source for the linker, the image recipes and C (`platform.md` 5.1, D-079). jiffy:
 
 2.x, `makefile.mk`:
 
@@ -854,21 +846,26 @@ cflags-y += -DBOARD_RAM_BASE=0x80000000
 cflags-y += -DBOARD_RAM_END=0xc0000000
 ```
 
-3.0.0, `configs/jiffy_defconfig`:
+3.0.0, `makefile.mk`:
 
 ```
-CONFIG_PB_ENTRY=0x80001000
-CONFIG_PB_SIZE=0x100000
-CONFIG_BOARD_DRAM_BASE=0x80000000
-CONFIG_BOARD_DRAM_SIZE=0x40000000
-CONFIG_PB_BUFFERS_BASE=0x81021000
-CONFIG_PB_BUFFERS_SIZE=0xfdf000
+PB_ENTRY        = 0x80001000
+PB_SIZE         = 0x100000
+BOARD_DRAM_BASE = 0x80000000
+BOARD_DRAM_SIZE = 0x40000000
+PB_BUFFERS_BASE = 0x81021000
+PB_BUFFERS_SIZE = 0xfdf000
 ```
 
-- The three lines leave `makefile.mk`. Its recipes leave it too: they are the platform's
-  (section 16).
-- `BOARD_RAM_BASE` and `BOARD_RAM_END` are still defined for C, by the Makefile, from the two
-  DRAM values.
+- `PB_ENTRY` stays. The two `-D` flags become `BOARD_DRAM_BASE` and `BOARD_DRAM_SIZE`: the
+  build stops on a board that still has them. The recipes leave `makefile.mk`: they are the
+  platform's (section 16).
+- New: `PB_SIZE`, where pb's region ends, for a board with an image data region after pb
+  (default 0, the region derived), and `PB_BUFFERS_BASE` and `_SIZE`, with the platform's
+  default. The build stops, naming it, when a value without a default is missing; a board
+  without DRAM sets both DRAM values to 0.
+- C has the six values under the same names, and `BOARD_RAM_BASE` and `BOARD_RAM_END` as
+  before, made by the Makefile from the two DRAM values.
 - The platform's link script checks the values: pb is where the ROM may load it, its buffers
   are in the board's DRAM or the SoC's on-chip RAM, and the two don't overlap. A board with a
   wrong address doesn't link, where 2.x built it.
@@ -1185,7 +1182,7 @@ PB_DMA_ARRAY(usdhc_adma2_tbl, tbls, USDHC_MAX_INSTANCES);
 - **An image**: nothing. A part whose load address doesn't start on a line is read a chunk at
   a time into the boot's own buffer and copied to its address, with the same reads as
   before; one that does is read straight to its address, as in 2.x. The buffer is one
-  `CONFIG_BOOT_LOAD_CHUNK_kB` in `.no_init`, which `CONFIG_PB_BUFFERS_SIZE` holds.
+  `CONFIG_BOOT_LOAD_CHUNK_kB` in `.no_init`, which `PB_BUFFERS_SIZE` holds.
 
 Rests on: D-065, D-066, `drivers.md` 4, `bio.md` 3.1, `usb.md` 2.3.
 
