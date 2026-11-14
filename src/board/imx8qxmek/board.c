@@ -12,7 +12,6 @@
 #include <boot/atf.h>
 #include <boot/boot.h>
 #include <boot/image.h>
-#include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
@@ -177,17 +176,6 @@ static void board_console_init(void)
 static int board_hw_init(void)
 {
     int rc;
-
-    /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
-    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
-
-    rc = imx_caam_init(IMX_CAAM_JR2_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("CAAM init failed (%i)", rc);
-        return rc;
-    }
 
     rc = usdhc_emmc_setup();
 

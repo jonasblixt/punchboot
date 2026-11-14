@@ -7,6 +7,8 @@
  *
  */
 
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/crypto/mbedtls.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/uart/imx_lpuart.h>
 #include <drivers/usb/imx_cdns3_udc.h>
@@ -392,6 +394,42 @@ void plat_get_status(struct plat_status *status)
     status->rom_log = false;
 }
 
+/*
+ * The build's crypto backends (platform.md 2.2, crypto.md 2), each behind
+ * its driver's option: the CAAM on job ring 2, which the SCFW powers (job
+ * rings 0 and 1 are the SECO's), and Mbed TLS. A board that needs the
+ * software implementation turns the CAAM's option off and Mbed TLS's on in
+ * its defconfig. The RNG isn't pb's here (plat-imx.md 4.4).
+ *
+ * Command mode can start without a backend, so a failure isn't plat_init()'s
+ * error: main() would reset. A backend that failed isn't registered, no
+ * image verifies and the boot stops with that. To be recorded in
+ * plat_get_status() (F-248)
+ */
+static void crypto_init(void)
+{
+    int rc = PB_OK;
+
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
+
+    rc = imx_caam_init(IMX_CAAM_JR2_BASE);
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM init failed (%i)", rc);
+#endif
+
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    rc = mbedtls_pb_init();
+
+    if (rc != PB_OK)
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+#endif
+
+    (void)rc;
+}
+
 int plat_init(void)
 {
     if (wdog_rc != 0) {
@@ -408,6 +446,9 @@ int plat_init(void)
     imx8x_fuse_init(plat.ipc);
     imx8x_rot_helpers_init(plat.ipc);
     imx8x_slc_helpers_init(plat.ipc);
+
+    /* Last: until F-247 the board's init() did it, as its first step */
+    crypto_init();
 
     return PB_OK;
 }

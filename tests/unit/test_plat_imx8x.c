@@ -10,7 +10,8 @@
  * (fakes/regs.h). The SCFW is a model behind its messaging unit: it takes
  * the RPC messages that the port's SCFW client (src/plat/imx8x/sci) writes
  * and answers them. The GPT's driver is the real one; the fuses, the RoT
- * and the SLC helpers and the MMU are fakes.
+ * and the SLC helpers, the MMU and the crypto backends (the CAAM and Mbed
+ * TLS: the test's build has both options) are fakes.
  *
  * The port keeps the SCFW's handle in a static: the tests of the time before
  * plat_early_init() run first.
@@ -23,6 +24,8 @@
 
 #include <cmocka.h>
 
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/crypto/mbedtls.h>
 #include <pb/command.h>
 #include <pb/console.h>
 #include <pb/pb.h>
@@ -46,6 +49,7 @@
 #define MU_ASR_RF_ALL           (0xfu << 24)
 
 /* The functions' indexes (src/plat/imx8x/sci/svc/pm/rpc.h) */
+#define PM_FUNC_SET_POWER_MODE  3
 #define PM_FUNC_SET_CLOCK_RATE  5
 #define PM_FUNC_RESET_REASON    10
 #define PM_FUNC_RESET           13
@@ -86,6 +90,34 @@ static struct {
 
 /* A reset leaves the code under test through here */
 static jmp_buf soc_reset;
+
+/* The crypto backends: what their set up returns and how often it was
+ * called, what the CAAM's got, and the number of the SCFW's calls, the
+ * register log's length and the MMU's state when it was called */
+static struct {
+    int caam_rc, mbedtls_rc;
+    unsigned int caam_inits, mbedtls_inits;
+    uintptr_t caam_base;
+    size_t caam_scfw_calls, caam_at, mbedtls_at;
+    unsigned int caam_mmu_enables;
+} crypto;
+
+int imx_caam_init(uintptr_t base)
+{
+    crypto.caam_inits++;
+    crypto.caam_base = base;
+    crypto.caam_scfw_calls = scfw.n_calls;
+    crypto.caam_at = fake_reg_log_len;
+    crypto.caam_mmu_enables = fake_mmu_enables;
+    return crypto.caam_rc;
+}
+
+int mbedtls_pb_init(void)
+{
+    crypto.mbedtls_inits++;
+    crypto.mbedtls_at = fake_reg_log_len;
+    return crypto.mbedtls_rc;
+}
 
 void imx8x_fuse_init(sc_ipc_t ipc)
 {
@@ -178,6 +210,7 @@ static int setup(void **state)
 {
     (void)state;
     memset(&scfw, 0, sizeof(scfw));
+    memset(&crypto, 0, sizeof(crypto));
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
     /* The unit can always send, and an answer is always there */
@@ -494,6 +527,62 @@ static void test_info_command(void **state)
     assert_int_equal(response[8], 0xa5);
 }
 
+/* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
+ * crypto backends, each behind its driver's option: the CAAM on job ring 2,
+ * which the SCFW powers first (the ring and its output), and Mbed TLS.
+ *
+ * Until F-247 the boards' init() did the SCFW's two calls and the CAAM's as
+ * its first step, which was the first thing after plat_init(): they are
+ * plat_init()'s last now, with the MMU on, and neither the SCFW nor a
+ * register of the platform's hears anything after them. So the SoC sees the
+ * same calls and writes in the same order */
+static void test_crypto_set_up_last_in_plat_init(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(crypto.caam_inits, 0);
+    assert_int_equal(crypto.mbedtls_inits, 0);
+
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(crypto.caam_inits, 1);
+    assert_int_equal(crypto.mbedtls_inits, 1);
+    assert_int_equal(crypto.caam_base, IMX_CAAM_JR2_BASE);
+    assert_int_equal(crypto.caam_mmu_enables, 1);
+
+    /* The SCFW's last two calls, before the CAAM is touched */
+    assert_true(scfw.n_calls >= 2);
+    assert_int_equal(crypto.caam_scfw_calls, scfw.n_calls);
+
+    for (size_t i = 0; i < 2; i++) {
+        static const uint32_t resources[] = { SC_R_CAAM_JR2, SC_R_CAAM_JR2_OUT };
+        size_t n = scfw.n_calls - 2 + i;
+
+        assert_int_equal(scfw.calls[n].svc, SC_RPC_SVC_PM);
+        assert_int_equal(scfw.calls[n].func, PM_FUNC_SET_POWER_MODE);
+        assert_int_equal(scfw.calls[n].arg & 0xffff, resources[i]);
+        assert_int_equal((scfw.calls[n].arg >> 16) & 0xff, SC_PM_PW_MODE_ON);
+    }
+
+    /* Nothing is written after it, and Mbed TLS comes after the CAAM */
+    assert_int_equal(crypto.caam_at, fake_reg_log_len);
+    assert_int_equal(crypto.mbedtls_at, fake_reg_log_len);
+}
+
+/* platform.md 2.2: a crypto engine that fails isn't plat_init()'s error:
+ * command mode can start without it, and main() would reset */
+static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
+{
+    (void)state;
+
+    crypto.caam_rc = -PB_ERR_IO;
+    crypto.mbedtls_rc = -PB_ERR_PARAM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(crypto.caam_inits, 1);
+    assert_int_equal(crypto.mbedtls_inits, 1);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -509,6 +598,8 @@ int main(void)
         cmocka_unit_test_setup(test_boot_source_scfw_error, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
         cmocka_unit_test_setup(test_info_command, setup),
+        cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
+        cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
