@@ -124,6 +124,49 @@ config RAMLOG_SYNC
         from outside (JTAG, FEL, a RAM dump after a warm reset). This costs
         two cache line cleans per character.
 
+menuconfig BOOT_LINUX_RAMOOPS
+    bool "Linux's ramoops records as the log 'linux'"
+    help
+        Linux's pstore/ramoops saves the kernel log in a reserved RAM region
+        that survives a warm reset: a dmesg record at an oops or a panic,
+        and at a reboot with max-reason = <4> in its device tree node. With
+        this, 'punchboot log linux' reads the newest record, with its
+        "====<sec>.<usec>-D" header (the time Linux saved it), e.g. after a
+        panic and a watchdog reset into command mode. Records must not be
+        compressed (CONFIG_PSTORE_COMPRESS off in Linux). pb only reads the
+        region, before anything is loaded into it, and the values must
+        match the ramoops node in the device tree (reserved-memory,
+        ecc-size 0). A cold reset (power, or a PMIC that power cycles the
+        DRAM) loses it. The log is only read through command mode, so
+        command mode sets it up, not the boot.
+
+config BOOT_LINUX_RAMOOPS_ADDR
+    hex "Region address (reg)"
+    depends on BOOT_LINUX_RAMOOPS
+
+config BOOT_LINUX_RAMOOPS_SIZE
+    hex "Region size (reg)"
+    depends on BOOT_LINUX_RAMOOPS
+
+config BOOT_LINUX_RAMOOPS_RECORD_SIZE
+    hex "record-size"
+    depends on BOOT_LINUX_RAMOOPS
+
+config BOOT_LINUX_RAMOOPS_CONSOLE_SIZE
+    hex "console-size"
+    depends on BOOT_LINUX_RAMOOPS
+    default 0x0
+
+config BOOT_LINUX_RAMOOPS_FTRACE_SIZE
+    hex "ftrace-size"
+    depends on BOOT_LINUX_RAMOOPS
+    default 0x0
+
+config BOOT_LINUX_RAMOOPS_PMSG_SIZE
+    hex "pmsg-size"
+    depends on BOOT_LINUX_RAMOOPS
+    default 0x0
+
 endmenu
 
 menu "Core"
