@@ -36,14 +36,14 @@ next: `board_setup()` stops at a step that fails, and pb enters command mode wit
 `board.md` 7 has the files of a board directory, in the tree or out of it, and what the
 defconfig holds. jiffy's:
 
-| File            | What                                                                       |
-| --------------- | -------------------------------------------------------------------------- |
-| `board.c`       | `const struct board board` and its hooks                                   |
-| `partitions.h`  | The partitions' UUIDs                                                      |
-| `makefile.mk`   | `src-y`: the platform packages and signs pb for the ROM                    |
-| `imximage.cfg`  | The DCD: the register writes the i.MX6UL's ROM does before it loads pb,    |
-|                 | the DRAM's set up among them                                               |
-| `openocd.cfg`   | For `scripts/pbdebug`                                                      |
+| File           | What                                                                    |
+| -------------- | ----------------------------------------------------------------------- |
+| `board.c`      | `const struct board board` and its hooks                                |
+| `partitions.h` | The partitions' UUIDs                                                   |
+| `makefile.mk`  | `src-y`: the platform packages and signs pb for the ROM                 |
+| `imximage.cfg` | The DCD: the register writes the i.MX6UL's ROM does before it loads pb, |
+|                | the DRAM's set up among them                                            |
+| `openocd.cfg`  | For `scripts/pbdebug`                                                   |
 
 1. Copy the closest defconfig in `configs/` and the closest board's `makefile.mk`. Select the
    arch, the platform, the keystore, the modules the board will name, the platform's USB port
@@ -149,12 +149,12 @@ The A/B state is shared with the OS, which confirms an update with `pbstate`
 
 `boot_handover` and `boot_delivery`: `board.md` 2.7. Which one:
 
-| The next stage                         | Handover and delivery                 | Read          |
-| -------------------------------------- | ------------------------------------- | ------------- |
-| Linux or Xen, started by pb            | `BOOT_HANDOVER_IMAGE()`               | `boot.md` 5.2 |
-| The same behind TF-A's BL31 (ARMv8-A,  | `BOOT_HANDOVER_IMAGE()` with          | `boot.md` 5.3 |
-| where pb runs at EL3)                  | `BOOT_DELIVERY_TFA()`                 |               |
-| An RTOS, an application, anything else | `BOOT_HANDOVER_FH()`                  | `boot.md` 5.4 |
+| The next stage                         | Handover and delivery        | Read          |
+| -------------------------------------- | ---------------------------- | ------------- |
+| Linux or Xen, started by pb            | `BOOT_HANDOVER_IMAGE()`      | `boot.md` 5.2 |
+| The same behind TF-A's BL31 (ARMv8-A,  | `BOOT_HANDOVER_IMAGE()` with | `boot.md` 5.3 |
+| where pb runs at EL3)                  | `BOOT_DELIVERY_TFA()`        |               |
+| An RTOS, an application, anything else | `BOOT_HANDOVER_FH()`         | `boot.md` 5.4 |
 
 jiffy: the image handover, with the parts `kernel`, `dt` and `ramdisk`, the device tree's
 address in r2, and the kernel command line as the handover's `bootargs` and `bootargs_verbose`
@@ -182,17 +182,17 @@ neither the partition table nor the policy (`board.md` 2.1). `part write` and
 
 All optional. jiffy has `status()` and one named command, and none of the others.
 
-| What                                    | Read                                    |
-| --------------------------------------- | --------------------------------------- |
-| `early_boot()`, `late_boot()`: stop a   | `board.md` 5.2 to 5.4                   |
-| boot, start what is slow                |                                         |
-| The stop after a serial download        | `board.md` 5.1: the core's, an option   |
-| `late_init()`                           | `board.md` 2.6                          |
-| `status()`                              | `board.md` 4.3                          |
-| `password_auth()`                       | `board.md` 4.4, `security.md` 4.10      |
-| A named command                         | `command-mode.md` 5.6                   |
-| A task                                  | `board.md` 4.5                          |
-| Hardware the platform didn't map        | `board.md` 2.8 (F-269: not in the code) |
+| What                                  | Read                                    |
+| ------------------------------------- | --------------------------------------- |
+| `early_boot()`, `late_boot()`: stop a | `board.md` 5.2 to 5.4                   |
+| boot, start what is slow              |                                         |
+| The stop after a serial download      | `board.md` 5.1: the core's, an option   |
+| `late_init()`                         | `board.md` 2.6                          |
+| `status()`                            | `board.md` 4.3                          |
+| `password_auth()`                     | `board.md` 4.4, `security.md` 4.10      |
+| A named command                       | `command-mode.md` 5.6                   |
+| A task                                | `board.md` 4.5                          |
+| Hardware the platform didn't map      | `board.md` 2.8 (F-269: not in the code) |
 
 What a board may include and touch: `board.md` 6.
 
@@ -225,18 +225,18 @@ D-063): the contract already says what it must do. The order:
    writes reaches it on a cache line: the class's core refuses one that isn't (4.3).
 5. **The class's contract**:
 
-| Class                 | Contract    | Start at                                             |
-| --------------------- | ----------- | ---------------------------------------------------- |
-| A block device        | `bio.md`    | 2.1 (registration), 3 (the operations), 5 (what the  |
-|                       |             | driver leaves behind)                                |
-| A partition table     | `bio.md`    | 4                                                    |
-| A crypto backend      | `crypto.md` | 2 (registration), 3 and 4 (the operations), 6 (the   |
-|                       |             | engine at the jump)                                  |
-| A USB device          | `usb.md`    | 4 (the controller's operations), 5 (buffers)         |
-| controller            |             |                                                      |
-| Anything else (a      | None        | `drivers.md`, and its header's comments. What the    |
-| UART, a fuse          |             | core needs of it, it asks the platform for           |
-| controller, a timer)  |             | (`platform.md` 3 and 4)                              |
+| Class                | Contract    | Start at                                            |
+| -------------------- | ----------- | --------------------------------------------------- |
+| A block device       | `bio.md`    | 2.1 (registration), 3 (the operations), 5 (what the |
+|                      |             | driver leaves behind)                               |
+| A partition table    | `bio.md`    | 4                                                   |
+| A crypto backend     | `crypto.md` | 2 (registration), 3 and 4 (the operations), 6 (the  |
+|                      |             | engine at the jump)                                 |
+| A USB device         | `usb.md`    | 4 (the controller's operations), 5 (buffers)        |
+| controller           |             |                                                     |
+| Anything else (a     | None        | `drivers.md`, and its header's comments. What the   |
+| UART, a fuse         |             | core needs of it, it asks the platform for          |
+| controller, a timer) |             | (`platform.md` 3 and 4)                             |
 
 6. **Tests** on the host, against a model of the device where one can be written:
    `testing.md`. A block device and a crypto backend also run the class's conformance suite

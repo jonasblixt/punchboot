@@ -13,30 +13,30 @@ images it booted. Section 20 lists what to check for that.
 neither has the code, another board's or the header's, and the section says which.
 `git show v2.7.1:src/board/jiffy/board.c` has the whole file.
 
-| Section | Change                                                  | Rests on               |
-| ------- | ------------------------------------------------------- | ---------------------- |
-| 1       | The board is `const struct board board`                 | D-026, `board.md` 2    |
-| 2       | The partition table, the policy and the handover are    | D-046, `board.md` 1    |
-|         | objects                                                 |                        |
-| 3       | TF-A is a delivery                                      | `boot.md` 5.3          |
-| 4       | The generic handover is Firmware Handoff                | D-039, `boot.md` 5.4   |
-| 5       | `late_boot()` gets no header                            | D-047, `board.md` 5.3  |
-| 6       | In place replaces the in memory and the custom source   | D-048, D-035           |
-| 7       | Image data regions                                      | D-055, `board.md` 2.9  |
-| 8       | Command mode: no `cm_board_init()`, no transport        | D-049, `board.md` 4.1  |
-| 9       | Named commands                                          | D-076                  |
-| 10      | Tasks                                                   | D-051, `board.md` 4.5  |
-| 11      | `status()` and `password_auth()`                        | `board.md` 4.3, 4.4    |
-| 12      | The serial download stop                                | D-031, `board.md` 5.1  |
-| 13      | The keys, the life cycle and the fuses                  | D-027                  |
-| 14      | What a board includes and asks the platform             | D-056, `board.md` 6    |
-| 15      | Kconfig and the defconfig, with the board's addresses   | `board.md` 7           |
-| 16      | The image stages are the platform's                     | `platform.md` 6.2      |
-| 17      | An out-of-tree driver                                   | `drivers.md`           |
-| 18      | An out-of-tree platform                                 | D-030, `platform.md`   |
-| 19      | `pb/dma.h`, and not in the code yet: one change that    | D-066, F-247, F-269    |
-|         | changes a board again, and one that is added            |                        |
-| 20      | Before the ported pb goes to a device in the field      | `board.md` 8           |
+| Section | Change                                                | Rests on              |
+| ------- | ----------------------------------------------------- | --------------------- |
+| 1       | The board is `const struct board board`               | D-026, `board.md` 2   |
+| 2       | The partition table, the policy and the handover are  | D-046, `board.md` 1   |
+|         | objects                                               |                       |
+| 3       | TF-A is a delivery                                    | `boot.md` 5.3         |
+| 4       | The generic handover is Firmware Handoff              | D-039, `boot.md` 5.4  |
+| 5       | `late_boot()` gets no header                          | D-047, `board.md` 5.3 |
+| 6       | In place replaces the in memory and the custom source | D-048, D-035          |
+| 7       | Image data regions                                    | D-055, `board.md` 2.9 |
+| 8       | Command mode: no `cm_board_init()`, no transport      | D-049, `board.md` 4.1 |
+| 9       | Named commands                                        | D-076                 |
+| 10      | Tasks                                                 | D-051, `board.md` 4.5 |
+| 11      | `status()` and `password_auth()`                      | `board.md` 4.3, 4.4   |
+| 12      | The serial download stop                              | D-031, `board.md` 5.1 |
+| 13      | The keys, the life cycle and the fuses                | D-027                 |
+| 14      | What a board includes and asks the platform           | D-056, `board.md` 6   |
+| 15      | Kconfig and the defconfig, with the board's addresses | `board.md` 7          |
+| 16      | The image stages are the platform's                   | `platform.md` 6.2     |
+| 17      | An out-of-tree driver                                 | `drivers.md`          |
+| 18      | An out-of-tree platform                               | D-030, `platform.md`  |
+| 19      | `pb/dma.h`, and not in the code yet: one change that  | D-066, F-247, F-269   |
+|         | changes a board again, and one that is added          |                       |
+| 20      | Before the ported pb goes to a device in the field    | `board.md` 8          |
 
 ## 1. The board is `const struct board board`
 
@@ -165,23 +165,23 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
 ```
 
-| 2.x                                        | 3.0.0                                               |
-| ------------------------------------------ | --------------------------------------------------- |
-| `gpt_ptbl_init()` from `board_init()`      | `.ptbl = PTBL_GPT(device, tables)`                  |
-| `static_ptbl_init()` from `board_init()`   | `.ptbl = PTBL_STATIC(device, table)`                |
-| `boot_ab_state_init()`, the three A/B      | `.boot_policy = BOOT_POLICY_AB(&config)`            |
-| callbacks in `struct boot_driver`          |                                                     |
-| `boot_driver_linux_init()`, `prepare` and  | `.boot_handover = BOOT_HANDOVER_IMAGE(&config)`     |
-| `jump` in `struct boot_driver`             |                                                     |
-| `struct boot_driver_linux_config`,         | `struct boot_handover_image_config`,                |
-| `<boot/linux.h>`                           | `<boot/image.h>`                                    |
-| `early_boot_cb`, `late_boot_cb`            | `.early_boot`, `.late_boot` (section 5)             |
-| `rollback_mode`                            | Gone: `CONFIG_BOOT_AB_SPECULATIVE` is the only      |
-|                                            | switch for speculative mode (D-040, `boot.md` 3.6)  |
-| `resolve_part_name`                        | Gone: the system's name is the policy's             |
-|                                            | (`board.md` 2.7)                                    |
-| A DT hook that sets `bootargs`             | `.bootargs`, `.bootargs_verbose` in the handover's  |
-| (`fdt_setprop_string()`)                   | configuration (`board.md` 2.7, D-078)               |
+| 2.x                                       | 3.0.0                                              |
+| ----------------------------------------- | -------------------------------------------------- |
+| `gpt_ptbl_init()` from `board_init()`     | `.ptbl = PTBL_GPT(device, tables)`                 |
+| `static_ptbl_init()` from `board_init()`  | `.ptbl = PTBL_STATIC(device, table)`               |
+| `boot_ab_state_init()`, the three A/B     | `.boot_policy = BOOT_POLICY_AB(&config)`           |
+| callbacks in `struct boot_driver`         |                                                    |
+| `boot_driver_linux_init()`, `prepare` and | `.boot_handover = BOOT_HANDOVER_IMAGE(&config)`    |
+| `jump` in `struct boot_driver`            |                                                    |
+| `struct boot_driver_linux_config`,        | `struct boot_handover_image_config`,               |
+| `<boot/linux.h>`                          | `<boot/image.h>`                                   |
+| `early_boot_cb`, `late_boot_cb`           | `.early_boot`, `.late_boot` (section 5)            |
+| `rollback_mode`                           | Gone: `CONFIG_BOOT_AB_SPECULATIVE` is the only     |
+|                                           | switch for speculative mode (D-040, `boot.md` 3.6) |
+| `resolve_part_name`                       | Gone: the system's name is the policy's            |
+|                                           | (`board.md` 2.7)                                   |
+| A DT hook that sets `bootargs`            | `.bootargs`, `.bootargs_verbose` in the handover's |
+| (`fdt_setprop_string()`)                  | configuration (`board.md` 2.7, D-078)              |
 
 - The board doesn't take `WRITABLE` from the device its table is on: the core does
   (`board.md` 2.4). It doesn't set `BIO_FLAG_BOOTABLE` either: the policy marks its candidates
@@ -769,22 +769,22 @@ USB drivers.
 
 What a board asks the platform changed too:
 
-| 2.x                                         | 3.0.0                                             |
-| ------------------------------------------- | ------------------------------------------------- |
-| `plat_boot_reason()`,                       | `plat_get_boot_reason(struct pb_boot_reason *)`:  |
-| `plat_boot_reason_str()`                    | a kind that is the same on every platform, the    |
-|                                             | SoC's raw value, a name (`platform.md` 3.4)       |
-| `unsigned int plat_get_us_tick()`           | `uint32_t`; use differences only                  |
-|                                             | (`platform.md` 3.2)                               |
-| `struct pb_timeout` with `ts_end` and       | `ts_start` and `timeout_us`; code that only calls |
-| `rollover`                                  | `pb_timeout_init_us()` and                        |
-|                                             | `pb_timeout_has_expired()` doesn't change         |
-| The platform's struct as an argument        | `imx6ul_plat()`, `imx8x_plat()`, `imx8x_ipc()`    |
-| Nothing                                     | `plat_get_status()`: what `plat_init()` couldn't  |
-|                                             | do (`platform.md` 3.8)                            |
-| Nothing                                     | `board_report_degraded()`: the board's own, for   |
-|                                             | what `init()` logged and didn't fail on           |
-|                                             | (`board.md` 2.3)                                  |
+| 2.x                                   | 3.0.0                                             |
+| ------------------------------------- | ------------------------------------------------- |
+| `plat_boot_reason()`,                 | `plat_get_boot_reason(struct pb_boot_reason *)`:  |
+| `plat_boot_reason_str()`              | a kind that is the same on every platform, the    |
+|                                       | SoC's raw value, a name (`platform.md` 3.4)       |
+| `unsigned int plat_get_us_tick()`     | `uint32_t`; use differences only                  |
+|                                       | (`platform.md` 3.2)                               |
+| `struct pb_timeout` with `ts_end` and | `ts_start` and `timeout_us`; code that only calls |
+| `rollover`                            | `pb_timeout_init_us()` and                        |
+|                                       | `pb_timeout_has_expired()` doesn't change         |
+| The platform's struct as an argument  | `imx6ul_plat()`, `imx8x_plat()`, `imx8x_ipc()`    |
+| Nothing                               | `plat_get_status()`: what `plat_init()` couldn't  |
+|                                       | do (`platform.md` 3.8)                            |
+| Nothing                               | `board_report_degraded()`: the board's own, for   |
+|                                       | what `init()` logged and didn't fail on           |
+|                                       | (`board.md` 2.3)                                  |
 
 `board_report_degraded()` has no caller in the tree yet. Its declaration (`<pb/board.h>`):
 
@@ -1045,27 +1045,27 @@ Rests on: D-018, D-064 to D-073, `drivers.md`, `bio.md`, `crypto.md`, `usb.md`.
 (`platform.md` 8); `plat-imx.md` shows how the i.MX ports meet it. `<pb/plat.h>` from 2.x to
 3.0.0:
 
-| 2.x                                 | 3.0.0                                                 |
-| ----------------------------------- | ----------------------------------------------------- |
-| `plat_init()`                       | `plat_early_init()` and `plat_init()`, with the       |
-|                                     | board's console between them (`platform.md` 2)        |
-| `plat_board_init()`                 | Gone: the core sets the board up (section 1)          |
-| `plat_boot_reason()`,               | `plat_get_boot_reason()` (`platform.md` 3.4)          |
-| `plat_boot_reason_str()`            |                                                       |
-| `unsigned int plat_get_us_tick()`   | `uint32_t plat_get_us_tick()`, valid from             |
-|                                     | `plat_early_init()`                                   |
-| `void plat_reset()`                 | `noreturn`, and it works before `plat_early_init()`   |
-|                                     | (`platform.md` 3.1)                                   |
-| None                                | `plat_get_status()` (`platform.md` 3.8)               |
-| None                                | `plat_get_info()`: the SoC, its revision and clocks   |
-|                                     | for the boot log and `info` (`platform.md` 3.11)      |
-| None                                | `plat_cm_init()` with `CONFIG_CM` (`platform.md`      |
-|                                     | 3.10), and a Kconfig choice for the port              |
-| None                                | `plat_lockdown()` (`platform.md` 4.4)                 |
-| `plat_get_boot_source()`, optional  | Mandatory where the ROM has a serial downloader       |
-|                                     | (`platform.md` 3.9)                                   |
-| `plat_get_unique_id()`              | The same. A failed read returns its error and writes  |
-|                                     | nothing (`platform.md` 3.5)                           |
+| 2.x                                | 3.0.0                                                |
+| ---------------------------------- | ---------------------------------------------------- |
+| `plat_init()`                      | `plat_early_init()` and `plat_init()`, with the      |
+|                                    | board's console between them (`platform.md` 2)       |
+| `plat_board_init()`                | Gone: the core sets the board up (section 1)         |
+| `plat_boot_reason()`,              | `plat_get_boot_reason()` (`platform.md` 3.4)         |
+| `plat_boot_reason_str()`           |                                                      |
+| `unsigned int plat_get_us_tick()`  | `uint32_t plat_get_us_tick()`, valid from            |
+|                                    | `plat_early_init()`                                  |
+| `void plat_reset()`                | `noreturn`, and it works before `plat_early_init()`  |
+|                                    | (`platform.md` 3.1)                                  |
+| None                               | `plat_get_status()` (`platform.md` 3.8)              |
+| None                               | `plat_get_info()`: the SoC, its revision and clocks  |
+|                                    | for the boot log and `info` (`platform.md` 3.11)     |
+| None                               | `plat_cm_init()` with `CONFIG_CM` (`platform.md`     |
+|                                    | 3.10), and a Kconfig choice for the port             |
+| None                               | `plat_lockdown()` (`platform.md` 4.4)                |
+| `plat_get_boot_source()`, optional | Mandatory where the ROM has a serial downloader      |
+|                                    | (`platform.md` 3.9)                                  |
+| `plat_get_unique_id()`             | The same. A failed read returns its error and writes |
+|                                    | nothing (`platform.md` 3.5)                          |
 
 - A failed `plat_early_init()` or `plat_init()` resets. `plat_init()` returns an error only
   for what command mode needs and records the rest in `plat_get_status()` (`platform.md` 2.2).
