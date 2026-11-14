@@ -856,11 +856,21 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`boot.md` 5.7, D-085) doesn't exist: OP-TEE is booted as the kernel's part, with a fixed | | |
 | | | `CFG_NS_ENTRY_ADDR`. Left, after the review: the delivery, its host test, jiffy's board, a | | |
 | | | test bench add-on with OP-TEE (13.1 of 2026-11-14), and F-241's check from Linux on it | | |
+| | | 2026-11-14 (`f6eb8eae`, `ffc9a813`): the delivery (`boot/optee.h`, `CONFIG_BOOT_OPTEE`, `takes()` | | |
+| | | in the delivery's ops), jiffy's board data behind the option, `test_optee`; the test bench's | | |
+| | | add-ons, `make BOARD=jiffy ADDON=optee`. Left: the bench (OP-TEE 4.9.0 to Linux on jiffy, xtest, | | |
+| | | the plain `boot.bpak` directly), then F-241's check from Linux | | |
 | F-442 | `src/plat/*/plat.c`, `src/main.c`, `src/boot/boot.c` | Every platform sets up Mbed TLS | Verified | open |
 | | | in its `plat_init()`, and `plat_status.crypto_engine` says whether the build's backends all | | |
 | | | came up, Mbed TLS among them. D-086: the core sets the software backend up, the field is | | |
 | | | the engine's alone (none, ok, failed), the boot's check the core's (`crypto.md` 2, | | |
 | | | `platform.md` 2.2, 2.3, 3.8). Left, after the review: the code and its host tests | | |
+| F-443 | `src/boot/optee.c`, OP-TEE | Xen through the OP-TEE delivery | Verified (source) | open |
+| | | (Jonas: "op-tee+xen+linux"). pb's side has it: Xen follows the image handover (`boot.md` 5.2), dom0's kernel and ramdisk | | |
+| | | are module nodes in the image's DT. OP-TEE 4.9.0 enters the normal world in SVC, always | | |
+| | | (`core/arch/arm/kernel/boot.c:152`: `mon_spsr` is `CPSR_MODE_SVC` and `CPSR_I`); Xen | | |
+| | | on AArch32 is entered in Hyp. Needs OP-TEE to return to Non-secure Hyp (the A7 has the virtualization | | |
+| | | extensions), then a Xen build for the 6UL and OP-TEE's virtualization for its guests | | |
 
 ## Dependencies / vendored code
 

@@ -89,7 +89,7 @@ make BOARD=jiffy ADDON=optee   # jiffy with OP-TEE, in output/jiffy-optee
   `tee-raw.bin` at its load address; punchboot enters it with the zImage's entry, and OP-TEE
   adds its nodes to the device tree (128 KiB, `CFG_DTB_MAX_SIZE`) and enters Linux. Linux has
   the TEE driver (`board/jiffy/linux-optee.fragment`), the root file system tee-supplicant and
-  xtest. punchboot's pb from it boots the plain `boot.bpak` too, directly.
+  xtest (the add-on's toolchain has C++ for it). punchboot's pb from it boots the plain `boot.bpak` too, directly.
 
 ## Output (`output/<board>/images/`)
 
