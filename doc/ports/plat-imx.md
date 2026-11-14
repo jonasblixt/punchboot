@@ -87,9 +87,24 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   - The 8X's `plat_reset()` opens the SCFW's channel itself when `plat_early_init()` hasn't
     yet. When the SCFW refuses the reset, `sc_pm_reset()` returns (SCFW API 13.4.3.19: an
     invalid type, or no access to `SC_R_SYSTEM`) and `plat_reset()` waits for the watchdog.
-- **The firmware in the log**: the 8X's `plat_init()` logs the SCFW's and the SECO's builds,
-  the SoC id and revision and the temperature (~40 µs on the MEK); the boards have no status.
-  The named command `info` answers the same, read again.
+- **What the SoC is** (`plat_get_info()`, `platform.md` 3.11, D-077):
+
+| Port   | Variant, revision                  | CPU clock                  | DRAM clock                  |
+| ------ | ---------------------------------- | -------------------------- | --------------------------- |
+| imx6ul | USB_ANALOG_DIGPROG (RM 55.4.11):   | PLL1, ARM_PODF             | mmdc_clk_root: periph2,     |
+|        | 0x64 6UL, 0x65 6ULL (Linux's)      | (RM 18.7.1, 18.6.4)        | FABRIC_MMDC_PODF (RM 18.6)  |
+| imx8m  | The build; DIGPROG's MINOR (0x6C   | The ARM PLL (8MP: as the   | Half the board's first      |
+|        | on the 8MQ, 0x800 on the 8MP)      | ROM left it)               | trained rate                |
+| imx8x  | SC_C_ID: the SoC id, A0 + rev      | SC_R_A35's CPU clock       | Twice SC_R_DRC_0's bus      |
+|        |                                    |                            | clock (the DFI's)           |
+| imxrt  | "i.MX RT1060"; DIGPROG             | AHB_CLK_ROOT               | None set up                 |
+|        | (RM 43.5.13)                       | (RM 14.5)                  |                             |
+
+  The specifics: the 6UL's speed grade and boot configuration (SBMR1, SBMR2, the BOOT_CFG fuse),
+  the RT's speed grade, the 8X's SCFW and SECO builds and temperature; none on the 8M. On the
+  MEK: `SoC i.MX8QXP rev B0, CPU 1200 MHz, memory 1200 MHz`, ~70 µs of the boot. jiffy: i.MX6UL
+  1.2, 528 MHz, 396 MHz; the 8MP EVK: 1.1, 1000 MHz, 2000 MHz; the RT1060: 1.0, 600 MHz. The boards
+  have no status (D-077). F-432, F-433 for what isn't checked.
 - **Unique id**: OCOTP words (6UL, 8M, RT; the 8M's are words 1 and 2, F-169), `sc_misc_unique_id()`
   on the 8X. 8 bytes each.
 - **Boot source**: the 6UL, from the ROM log (AN12853 Table 7) and the eMMC's boot partition
@@ -332,3 +347,4 @@ Where each port is (2026-11-11).
 | Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
 | Image stages                         | yes          | yes               | yes        | yes       | F-240         |
 | `<p>_plat()` accessor                | yes          | no                | yes        | no        |               |
+| `plat_get_info()`                    | yes (jiffy)  | 8MP EVK; 8MQ not  | yes (MEK)  | yes       | F-432, F-433  |

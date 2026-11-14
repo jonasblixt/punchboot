@@ -832,6 +832,20 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | signed image changes; both certificates are issued by SRK1), the 8M boards don't relink `pb` on | | |
 | | | every `make`, and their final output is the image. Left: the 8X boards' password, | | |
 | | | `board/password.h`, the FlexSPI's INTR check after a read or write | | |
+| F-432 | `src/plat/imx8m/plat_imx8mq.c`, `plat_imx8mp.c` | `plat_get_info()` (`platform.md` 3.11) on the | Verified (code) | open |
+| | | 8M, by the manuals only, run on no board. 8MQ: DIGPROG alone, so the B0 and B1 read the | | |
+| | | same (U-Boot also reads a ROM word and an OCOTP magic); the core's rate is the ARM PLL's by the | | |
+| | | RM's figure, with DIVQ = 2 (OUTPUT_DIV + 1) inferred and the fraction left out. 8MP: the core's | | |
+| | | rate is the ARM PLL's, the A53 root's mux (CORE_SEL) isn't read; the RM's DIGPROG reset value | | |
+| | | (0x824010) contradicts its own "0x3 = Plus". `mm.h`'s `CCM_ANALOG_DIGPROG` is the 8MQ's | | |
+| | | address, wrong on the 8MP (unused). 2026-11-14 on the 8MP EVK: 1.1 (A1, DIGPROG at 0x800 | | |
+| | | read), 1000 MHz, 2000 MHz; the CORE_SEL question stays. The 8MQ isn't run (imx8mevk builds) | | |
+| F-433 | `src/plat/imx6ul/plat.c`, `src/plat/imxrt/plat.c` | `plat_get_info()` on the 6UL and the | Verified (code) | open |
+| | | RT. 6UL: the 6ULL's DIGPROG (0x65) is Linux's and U-Boot's, not in the 6UL RM, and the 6ULZ | | |
+| | | reads the same; an MMDC on PLL4 is "none set up". RT: the RM gives DIGPROG 0x006C0000 (1.0) | | |
+| | | alone, so the revision's split into major and minor is the other i.MX's. 2026-11-14 on the | | |
+| | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
+| | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
 
 ## Dependencies / vendored code
 
