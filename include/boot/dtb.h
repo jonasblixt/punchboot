@@ -17,14 +17,20 @@
 #include <uuid.h>
 
 /**
- * A board's device tree hook, e.g. board_patch_bootargs() (board.md 2.7).
- * It gets the whole tree, and 'offset' is /chosen. It runs before pb writes
- * its own properties: what it sets of them is overwritten.
+ * A board's device tree hook (board.md 2.7). It gets the whole tree, and
+ * 'offset' is /chosen. It runs after the handover's kernel command line is
+ * written and before pb writes its own properties: what it sets of them is
+ * overwritten.
  */
 typedef int (*boot_patch_dtb_cb_t)(void *fdt, int offset);
 
 /** What a handover puts in the device tree, besides pb's own properties */
 struct boot_dtb_chosen {
+    /** Optional: the kernel command line, /chosen/bootargs. NULL: what the
+     * image's tree has stays */
+    const char *bootargs;
+    /** Optional: the one with BOOT_FLAG_VERBOSE. NULL: 'bootargs' */
+    const char *bootargs_verbose;
     boot_patch_dtb_cb_t patch_cb; /*!< Optional, the board's hook */
     bpak_id_t ramdisk_id; /*!< Optional: linux,initrd-start and -end */
     uintptr_t ramdisk_addr; /*!< Its load address */
@@ -81,9 +87,12 @@ int boot_dtb_open_into(struct bpak_header *hdr,
                        size_t dest_size);
 
 /**
- * The board's hook, then pb's properties in /chosen, which is added if
- * there is none (boot.md 5.5). pb's values win: a property the hook or the
- * image's tree has under a name pb writes is overwritten.
+ * The handover's kernel command line, the board's hook, then pb's
+ * properties in /chosen, which is added if there is none (boot.md 5.5).
+ * pb's values win: a property the hook or the image's tree has under a name
+ * pb writes is overwritten. The command line is the board's, not pb's: the
+ * hook may change it, and without one the image's 'bootargs' stays. No room
+ * for it fails, as it did when the board's hook set it.
  *
  * | Property              | Encoding                    | Not written         |
  * | --------------------- | --------------------------- | ------------------- |
