@@ -30,6 +30,8 @@ No open items. The draft's seventeen, as decided and written into the text:
 | 16   | `linux,initrd-*` stay 32 bits where both addresses fit (5.2)                            | Level 1, D-038 |
 | 17   | The preconditions are checked before `early_boot()` (2)                                 | D-039          |
 
+**Open (1), for Jonas's review (D-085):** 5.7, the delivery through OP-TEE on ARMv7-A, new.
+
 From Jonas's final read: pb's status stays and pb's version joins pb's information (5.6, D-043);
 the flow is written for any image format, and names bpak only in 4.4 (D-044). After the review
 (D-046): the policy, the handover and the delivery are objects the board names in its data, no
@@ -399,21 +401,24 @@ by a build that has bpak; a product's build may leave it out (D-061).
 
 A handover turns the verified header and pb's information (5.6) into an entry, four arguments and
 what it wrote in memory (a DT's `/chosen`, a transfer list). There are two, image (5.2) and
-Firmware Handoff (5.4), and two deliveries:
+Firmware Handoff (5.4), and three deliveries:
 
 - **Directly**: `arch_jump(entry, a0..a3)`, at the exception level pb runs at, in the arch's
   handover state (D-028).
 - **Through TF-A** (5.3): the same entry and arguments become BL33's entry point in `bl_params`,
   and BL31 passes them on.
+- **Through OP-TEE** (5.7, ARMv7-A): pb enters OP-TEE, the secure world's first stage after
+  pb and its own monitor, with the handover's entry as the normal world's, and OP-TEE passes
+  the arguments on.
 
 One handover and one delivery per board, chosen by the board's data (D-046, `board.md` 2.7):
 `board.boot_handover` is the handover's object with the board's configuration for it
 (`BOOT_HANDOVER_IMAGE(&config)`, `BOOT_HANDOVER_FH(&config)`), `board.boot_delivery` the delivery's
-(`BOOT_DELIVERY_TFA(&config)`; absent: directly). Each section below says what the board gives. Not
-by the image: the same parts have meant different things on different boards (the DXL's `atf`
-was started directly, as an image, the MEK's goes through `bl_params`), so letting the image
-choose would change what old images do (D-008). A signed attribute of the image (4.4) that
-chooses can come later, opt in.
+(`BOOT_DELIVERY_TFA(&config)`, `BOOT_DELIVERY_OPTEE(&config)`; absent: directly). Each section
+below says what the board gives. Not by the image: the same parts have meant different things
+on different boards (the DXL's `atf` was started directly, as an image, the MEK's goes through
+`bl_params`), so letting the image choose would change what old images do (D-008). A signed
+attribute of the image (4.4) that chooses can come later, opt in.
 
 In the code (`boot/handover.h`): a handover's `prepare` fills `struct boot_handover_entry`, the
 entry and the four arguments, and says which device tree it prepared, if any. Without a delivery
@@ -605,6 +610,44 @@ A boot command mode started keeps today's values (`compatibility.md`):
 - New: `pb,boot-partition` is absent, and `boot_partition_uuid` all zero, when `boot bpak` names
   no partition.
 
+### 5.7 Delivery : OP-TEE, ARMv7-A [optional, CONFIG_BOOT_OPTEE]
+
+**Open (1), D-085.** ARMv7-A only, with pb in the secure world: there is no EL3 firmware, and
+OP-TEE is its own secure monitor. pb loads and verifies OP-TEE and the normal world's image as
+any parts (4.2), and enters OP-TEE in place of the next stage. OP-TEE sets itself up and enters
+the normal world at the handover's entry. The board gives: BL32's part, OP-TEE's raw image
+(`tee-raw.bin`), whose load address is its entry. **Not yet in the code (F-438).**
+
+Only with the image handover (5.2). OP-TEE takes a transfer list on AArch32, but not the normal
+world's entry with it (OP-TEE 4.9.0, `boot_save_args()`): Firmware Handoff (5.4) through OP-TEE
+waits for that, and a board with both is refused when the handover is set up (`-PB_ERR_PARAM`).
+
+| Register | At OP-TEE's entry (secure SVC, the arch's handover state, D-028)  | In the normal world |
+| -------- | ----------------------------------------------------------------- | ------------------- |
+| r0       | 0: no pageable part                                               | 0                   |
+| r1       | The handover's r1: 0xffffffff                                     | The same            |
+| r2       | The handover's r2: the DT                                         | The same DT         |
+| r3       | 0                                                                 |                     |
+| lr       | The handover's entry: the kernel's load address                   | The entry           |
+
+OP-TEE's convention without TF-A (`entry_a32.S`, `boot_save_args()`): lr at the entry is the
+normal world's entry, r1 and r2 are relayed to it, r0 is the pageable part. An OP-TEE built
+with `CFG_NS_ENTRY_ADDR` or `CFG_DT_ADDR` takes those instead of lr and r2: the image's author
+then keeps them equal to the parts', and pb passes its values anyway.
+
+- **The DT**: OP-TEE adds its own nodes (reserved memory, `/firmware/optee`) to the DT in place,
+  growing it up to its `CFG_DTB_MAX_SIZE`. The board gives that size as the DT's headroom, which
+  placement checks at the DT's load address (4.3). pb's `/chosen` (5.5) and the board's hook are
+  written before, as with a direct jump.
+- **The image**: a part is loaded at BL32's address and one at the handover's entry. Without
+  BL32's part the image is jumped to directly, as the image handover alone: what a board's
+  released images did, an OP-TEE in the kernel's part with `CFG_NS_ENTRY_ADDR`, keeps booting
+  when the board turns this delivery on (D-008, section 7).
+- **What stays pb's**: verifying every part, the preconditions (2), `plat_lockdown()` before the
+  jump. **What becomes OP-TEE's**: the TrustZone filter's regions for its own memory (pb leaves
+  the board's DRAM open, `platform.md` 4.3), the bus and peripheral access control and the
+  crypto engine's handover (`platform.md` 4.5), and PSCI.
+
 ## 6. Command mode's boot commands
 
 - `boot part <uuid>`: one candidate, the partition the host names, which must be one of the
@@ -630,8 +673,8 @@ Like the wire (D-008, `compatibility.md`):
 - The `/chosen` properties, their encoding and their meaning (5.6, the README's table): only added
   to. The same for the status' strings and bits.
 - `boot activate` and `boot status` as the wire has them (3.4, 3.5).
-- Each handover's register convention and entry (5.2 to 5.4), and pb's structure (append only) and
-  its tag once allocated.
+- Each handover's and delivery's register convention and entry (5.2 to 5.4, 5.7), and pb's
+  structure (append only) and its tag once allocated.
 - What an image that a released pb booted gets: its parts, entry and arguments under the same board
   configuration.
 
@@ -656,3 +699,4 @@ Like the wire (D-008, `compatibility.md`):
 | ------- | ---------------------------------------------------------------------------- |
 | F-259   | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
 | F-180   | The A/B review's fixes, `pbstate`                                            |
+| F-438   | The delivery through OP-TEE on ARMv7-A (5.7), new in D-085                   |

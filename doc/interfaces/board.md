@@ -143,8 +143,8 @@ driver, then `console_init()` with the UART's ops.
 
 Valid from: what `plat_early_init()` provides (`platform.md` 2.1): the tick, the watchdog, the RAM
 log, and what the platform header says works from early init (a system controller's handle,
-`imx8x_ipc()`). Not yet: DRAM the ROM didn't set up, the MMU, `.no_init`, the fields of
-`<p>_plat()` that `plat_init()` sets.
+`imx8x_ipc()`). Not yet: DRAM the ROM didn't set up, the MMU, `.no_init`, what the platform
+header's functions say is valid from `plat_init()` (`platform.md` 7).
 
 Failure: it can't fail. A UART that doesn't work leaves the RAM log (`CONFIG_RAMLOG`), which keeps
 everything printed before and after.
@@ -159,7 +159,7 @@ Return   : int, PB_OK or -PB_ERR_*
 ```
 
 Called once by `board_setup()`, after the RoT and the SLC. Valid from: what `plat_init()` provides
-(`platform.md` 2.2): DRAM, the MMU, fuses, `<p>_plat()`. It sets up the hardware the boot needs:
+(`platform.md` 2.2): DRAM, the MMU, fuses, the platform header's functions. It sets up the hardware the boot needs:
 the storage the boot loads from (its bio devices and their partition UUIDs). What only command
 mode needs isn't the board's (4.1, D-023).
 
@@ -273,6 +273,9 @@ and never by the image.
 |                 |                                | DT's, the kernel command line, the DT hook              |
 | `boot_delivery` | `BOOT_DELIVERY_TFA(&config)`   | Through TF-A (`boot.md` 5.3): BL31's part and BL32's.   |
 |                 |                                | BL33 is the handover's entry. Absent: directly          |
+|                 | `BOOT_DELIVERY_OPTEE(&config)` | Through OP-TEE, ARMv7-A (`boot.md` 5.7): BL32's part    |
+|                 |                                | and the DT's headroom for OP-TEE. With the image        |
+|                 |                                | handover only                                           |
 
 - `BOOT_HANDOVER_FH()` replaces `boot_simple` (`boot.md` 5.4, D-039). Its region is an address
   the build needs, so it is Kconfig's (`BOOT_FH_REGION_BASE` and `_SIZE`), like the board's DRAM.

@@ -404,12 +404,19 @@ right after `plat_init()` returns PB_OK, and answers the named command `info` wi
 ### 4.1 Data : plat_rot [mandatory]
 
 ```c
-extern const struct rot_config plat_rot; /* revoke_key, read_key_status */
+extern const struct rot_config plat_rot; /* revoke_key, read_key_status, revoke_slots */
 ```
 
 The SoC's key revocation (D-027): the revoke bit of key slot n, shared with the ROM. A SoC whose
 revocation pb doesn't support yet still implements `read_key_status`, without it no key can be
 used; `revoke_key` returns -PB_ERR_NOT_SUPPORTED.
+
+`revoke_slots` is how many slots, from 0, the SoC has a revoke bit for: 3 on HABv4
+(SRK_REVOKE[2:0]), 4 on the i.MX8X's AHAB. A key in a slot from `revoke_slots` up can't be
+revoked: `revoke_key` returns -PB_ERR_NOT_SUPPORTED, `read_key_status` its state as it reads,
+and command mode reports it (`command-mode.md` 5.2, D-085). The build warns for a board key
+(`board.md` 7) in such a slot. Zero: every slot has a bit (a SoC whose revocation pb doesn't
+support yet revokes none anyway). **Not yet in the code (F-436).**
 
 ### 4.2 Data : plat_slc [mandatory]
 
@@ -754,11 +761,20 @@ The platform header documents:
 
 - Base addresses, and the pin macros (`<P>_PIN()`, D-026).
 - The fuse index macro, for `board.slc_fuses`.
-- One accessor, `<p>_plat()`, with documented fields: the SoC revision, the speed grade, the
-  clock rates boards need, a system controller's handle. Its fields are set by `plat_init()`,
-  except those the header marks as valid from `plat_early_init()`: `board.console_init()` runs
-  between the two (`board.md` 2.2) and may need a system controller's handle for its clock and
-  pads.
+- Functions, not a structure, for what a board reads from the platform (D-085). Each says from
+  when it may be called: from `plat_early_init()` or from `plat_init()`; `board.console_init()`
+  runs between the two (`board.md` 2.2) and may need a system controller's handle for its
+  clock and pads.
+  - The SoC, its variant and revision: `plat_get_info()` (3.11), for boards as for the core.
+  - A clock's rate: `uint32_t <p>_clk_rate(enum <p>_clk clk)`, in Hz, read from the clock
+    controller when it is called, so that it is the rate the SoC runs. Only the clocks a board
+    needs; a platform without such a clock has no function.
+  - What else a board needs, one function each: a speed grade (`<p>_speed_grade()`), a system
+    controller's handle (`imx8x_ipc()`).
+
+  `<p>_plat()` and its structure stay through 3.x where they exist (`imx6ul_plat()`,
+  `imx8x_plat()`), deprecated: boards out of the tree may read them. **Not yet in the code
+  (F-437)**: jiffy reads uSDHC1's rate from `imx6ul_plat()`.
 - Helpers for boards (pad setup through a system controller), and which of a system
   controller's services the header gives a board.
 - The SoC memory a board may list as an image data region, and `bl_params`' region (5.3).

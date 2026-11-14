@@ -449,7 +449,8 @@ host tools ask before they send one; the device doesn't, the command is the deci
 | Command                      | Means                                         | Refused                         |
 | ---------------------------- | --------------------------------------------- | ------------------------------- |
 | `SLC_READ`                   | The life cycle, and each keystore key's id as | The life cycle is unknown       |
-|                              | active or revoked (16 at most)                |                                 |
+|                              | active or revoked (16 at most), and which     |                                 |
+|                              | active keys the device can't revoke           |                                 |
 | `SLC_SET_CONFIGURATION`      | Writes the key hash and the board's           | When locked, or in EOL          |
 |                              | configuration fuses (`board.md` 8): the bits  |                                 |
 |                              | that aren't set yet                           |                                 |
@@ -463,6 +464,13 @@ host tools ask before they send one; the device doesn't, the command is the deci
   locked and EOL nothing is written.
 - **A failure** leaves the fuses that were written. The life cycle is read again after each of
   these commands, also a failed one, and the gate follows what the fuses say (3.2).
+- **A key the device can't revoke** (D-085): one the SoC has no revoke bit for (`platform.md`
+  4.1). It is in the active list, with its bit set in the SLC result's `unrevocable` (bit n:
+  the list's key n). The host shows it as active and not revocable. A key whose bit is set
+  in the fuses is revoked, whether or not this build could revoke it: released pb revoked
+  such keys (F-165). `SLC_REVOKE_KEY` on a key the device can't revoke answers
+  `NOT_SUPPORTED`. A 0, an old device's, says nothing: the host shows the keys as before.
+  **Not yet in the code (F-436).**
 - **A key whose status can't be read** is in neither of `SLC_READ`'s lists, and the last result
   carries the error.
 - **Revoking the key of the session's token** doesn't end the session: the token was verified

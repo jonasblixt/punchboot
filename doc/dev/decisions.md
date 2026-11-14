@@ -104,6 +104,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-082 | The RAM log has every level, unsynchronized      | In force                                           |
 | D-083 | The board's keys are its `makefile.mk`'s         | In force                                           |
 | D-084 | The platform's open questions, answered          | In force                                           |
+| D-085 | Unrevocable keys, board functions, OP-TEE        | In force; `boot.md` 5.7 waits for Jonas's review   |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2029,3 +2030,31 @@ Jonas's answers to the platform level's list (log 2026-11-14, "The platform's qu
 Open from the same list: the i.MX8X's key slots 4 to 31 (F-429), the `<p>_plat()` accessor on
 the 8M and the RT (`platform.md` 7), the 6UL's AIPS-TZ (F-246), the bench work for F-241 and
 F-294. No 6ULL board for now (F-433); an 8MQ can be borrowed (F-432).
+
+## D-085: Unrevocable keys reported, functions for boards, OP-TEE as a delivery (2026-11-14)
+
+Jonas's answers to the follow ups of D-084 (log 2026-11-14, "The platform's questions").
+
+- **A key the device can't revoke is reported as such** (F-436): "it would make sense here to
+  report N/A". A board has 16 key slots (D-083); the SoC has a revoke bit for fewer (HABv4 3,
+  the i.MX8X's AHAB 4). `plat_rot.revoke_slots` says how many (`platform.md` 4.1). `SLC_READ`'s
+  first result takes `uint16_t unrevocable` from its `rz`: bit n set, the list's key n is active
+  and can't be revoked (`command-mode.md` 5.2). Zero is an old device's and says nothing, so
+  nothing changes for released hosts or devices (`compatibility.md`, a new field). A key whose
+  bit is set reads as revoked, also from a slot this build can't revoke: released pb revoked
+  such keys (F-165), and they stay refused (D-008). `SLC_REVOKE_KEY` on such a key answers
+  `NOT_SUPPORTED` on every platform (the 8X answered PARAM). The build warns for a board key in
+  such a slot ("sure"). The boot and the token don't change.
+- **Functions, not `<p>_plat()`** (`platform.md` 7, F-437): the SoC through `plat_get_info()`,
+  a clock's rate through `<p>_clk_rate()`, read when called; a speed grade or a system
+  controller's handle a function each. `imx6ul_plat()` and `imx8x_plat()` stay through 3.x,
+  deprecated, for boards out of the tree.
+- **OP-TEE on ARMv7-A is a delivery** (`boot.md` 5.7, F-438), "the proper handover", not
+  OP-TEE as the kernel's part with `CFG_NS_ENTRY_ADDR`: that ties each OP-TEE build to one
+  kernel address that pb can't check. pb enters OP-TEE with OP-TEE's own convention without TF-A
+  (lr the normal world's entry, r1 and r2 relayed to it; OP-TEE 4.9.0's `entry_a32.S` and
+  `boot_save_args()`), with the image handover. Firmware Handoff through OP-TEE waits: OP-TEE
+  takes a transfer list on AArch32 without the normal world's entry. An image without BL32's
+  part is jumped to directly, so a released OP-TEE-as-kernel image keeps booting (D-008). Not
+  TF-A's SP_MIN, which wants `bl_params`: it can be added the same way.
+- **No UART transport for command mode for now** (D-084's ports are USB's).
