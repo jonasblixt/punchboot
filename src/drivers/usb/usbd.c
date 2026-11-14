@@ -32,6 +32,9 @@ static bool hal_one_xfer;
 static usb_ep_t cur_xfer_ep;
 static void *cur_xfer_buf;
 static size_t cur_xfer_length;
+/* A transfer was started and its result not given yet: one at a time
+ * (usb.md 2.3, 2.4) */
+static bool cur_xfer_running;
 
 /* Microsoft OS Descriptor
  *
@@ -260,6 +263,7 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
 {
     hal_ops = NULL;
     hal_one_xfer = false;
+    cur_xfer_running = false;
 
     /* Every operation is mandatory, and none is called that wasn't checked
      * here (usb.md 4): a driver that leaves one out isn't registered */
@@ -297,6 +301,7 @@ int usbd_init(void)
     /* The controller starts with nothing configured (usb.md 4.1), and so
      * does the stack: ready is when the host has configured the device */
     enumerated = false;
+    cur_xfer_running = false;
 
     return hal_ops->init();
 }
@@ -339,6 +344,8 @@ int usbd_disconnect(void)
         return -PB_ERR_IO;
 
     enumerated = false;
+    /* A transfer that ran is given up: its buffer is the caller's (2.5) */
+    cur_xfer_running = false;
 
     if (hal_ops->stop)
         return hal_ops->stop();
@@ -348,8 +355,17 @@ int usbd_disconnect(void)
 
 int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length)
 {
+    int rc;
+
     if (hal_ops == NULL)
         return -PB_ERR_IO;
+
+    /* One transfer at a time: the next is started when the last is done
+     * (usb.md 2.3) */
+    if (cur_xfer_running) {
+        LOG_ERR("%s: a transfer on %s runs", ep_to_str(ep), ep_to_str(cur_xfer_ep));
+        return -PB_ERR_STATE;
+    }
 
     /* What the controller writes owns its cache lines (usb.md 2.3, 4.3,
      * drivers.md 4.3): an OUT transfer into a buffer that doesn't start on
@@ -364,7 +380,12 @@ int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length)
     cur_xfer_buf = buf;
     cur_xfer_length = length;
 
-    return hal_ops->xfer_start(ep, buf, length);
+    rc = hal_ops->xfer_start(ep, buf, length);
+
+    if (rc == PB_OK)
+        cur_xfer_running = true;
+
+    return rc;
 }
 
 int usbd_xfer_cancel(void)
@@ -373,6 +394,7 @@ int usbd_xfer_cancel(void)
         return -PB_ERR_IO;
 
     hal_ops->xfer_cancel(cur_xfer_ep);
+    cur_xfer_running = false;
     return PB_OK;
 }
 
@@ -483,7 +505,15 @@ int usbd_xfer_complete(void)
     if (hal_ops == NULL)
         return -PB_ERR_IO;
 
+    /* With no transfer started there is nothing to complete (usb.md 2.4) */
+    if (!cur_xfer_running)
+        return -PB_ERR_STATE;
+
     rc = usbd_xfer_poll();
+
+    /* The result is given once: done or lost, the transfer is over */
+    if (rc != -PB_ERR_AGAIN)
+        cur_xfer_running = false;
 
     /* Every error is "lost" (usb.md 2.4): the bus was reset or the host is
      * gone. Nothing is configured after it (usb.md 3.2) */
