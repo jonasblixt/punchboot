@@ -61,4 +61,76 @@ cflags-y += -DMAX_MMAP_REGIONS=32
 ldflags-y += -Tsrc/plat/imx8m/link.lds
 
 src-y  += src/drivers/pinctrl/imx_iomuxc.c
+
+# The image stages (platform.md 6.2, plat-imx.md 6). The inputs are set with
+# ?=: the board's makefile.mk, read before this one, or the command line may
+# give its own.
+ifdef CONFIG_PLAT_IMX8MQ
+# NXP's mkimage_imx8m (imx-mkimage)
+MKIMAGE ?= mkimage_imx8m
+else
+# U-Boot's mkimage
+MKIMAGE ?= mkimage
+endif
+CST_TOOL ?= cst
+# The i.MX8M Plus: the boot device in the image's header
+IMX8M_BOOT_FROM ?= sd
+# The keys, from the defconfig
+IMX8M_SRK_TABLE ?= $(call unquote,$(CONFIG_IMX8M_SRK_TABLE))
+IMX8M_KEY_INDEX ?= $(CONFIG_IMX8M_KEY_INDEX)
+IMX8M_SIGN_CERT ?= $(call unquote,$(CONFIG_IMX8M_SIGN_CERT))
+IMX8M_IMAGE_SIGN_CERT ?= $(call unquote,$(CONFIG_IMX8M_IMAGE_SIGN_CERT))
+
+IMX8M_CSF_TEMPLATE = src/plat/imx8m/pb.csf.template
+
+.PHONY: imx8m_image imx8m_sign_desc imx8m_sign_image
+
+ifdef CONFIG_PLAT_IMX8MQ
+# pb.imx: pb.bin padded to 512 bytes (pb_pad.bin), the loader of an image
+# made with mkimage_imx8m. pb_pad.imx: pb.imx padded to 4 bytes, the image
+# that is signed. The ROM reads the IVT at PB_ENTRY - 0x40.
+imx8m_image: $(BUILD_DIR)/pb.bin
+	@echo Generating $(BUILD_DIR)/pb.imx
+	@dd if=$(BUILD_DIR)/pb.bin of=$(BUILD_DIR)/pb_pad.bin bs=512 conv=sync,noerror
+	@$(MKIMAGE) -loader $(BUILD_DIR)/pb_pad.bin $(CONFIG_PB_ENTRY) -out $(BUILD_DIR)/pb.imx
+	@dd if=$(BUILD_DIR)/pb.imx of=$(BUILD_DIR)/pb_pad.imx bs=4 conv=sync,noerror
+	@echo "$(BUILD_DIR)/pb_pad.imx ready"
+
+# pb.csf, the HABv4 description of pb_pad.imx: its first 0x200 bytes more
+# than pb_pad.bin, from the IVT at PB_ENTRY - 0x40
+imx8m_sign_desc: imx8m_image
+	$(Q)blocks=$$(printf 'Blocks = 0x%X 0x0 0x%X' $$(( $(CONFIG_PB_ENTRY) - 0x40 )) \
+	                $$(( $$(stat -c%s $(BUILD_DIR)/pb_pad.bin) + 0x200 ))); \
+	 sed -e "s#__BLOCKS__#$$blocks \"$(BUILD_DIR)/pb_pad.imx\"#g" \
+	     -e 's#__KEY_INDEX__#$(IMX8M_KEY_INDEX)#g' \
+	     -e 's#__SRK_TBL__#$(IMX8M_SRK_TABLE)#g' \
+	     -e 's#__CSFK_PEM__#$(IMX8M_SIGN_CERT)#g' \
+	     -e 's#__IMG_PEM__#$(IMX8M_IMAGE_SIGN_CERT)#g' \
+	     $(IMX8M_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
+
+# pb_signed.imx: pb_pad.imx with the signature in its last 0x2000 bytes,
+# which mkimage_imx8m leaves for it
+imx8m_sign_image: imx8m_sign_desc
+	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/pb_csf.bin
+	@cp $(BUILD_DIR)/pb_pad.imx $(BUILD_DIR)/pb_signed.imx
+	$(Q)dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/pb_signed.imx bs=1 conv=notrunc \
+	       seek=$$(( $$(stat -c%s $(BUILD_DIR)/pb_pad.imx) - 0x2000 ))
+else
+# pb.imx: pb.bin with the header of the i.MX8M Plus ROM (ROM_VERSION v2), for
+# the boot media or the serial downloader (uuu)
+imx8m_image: $(BUILD_DIR)/pb.bin
+	@echo Generating $(BUILD_DIR)/pb.imx
+	@printf 'ROM_VERSION v2\nBOOT_FROM $(IMX8M_BOOT_FROM)\nLOADER $(BUILD_DIR)/pb.bin $(CONFIG_PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
+	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(CONFIG_PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
+endif
+
+image-$(CONFIG_IMX8M_CREATE_IMX_IMAGE) += imx8m_image
+image-$(CONFIG_IMX8M_SIGN_IMAGE) += imx8m_sign_desc imx8m_sign_image
+
+# What `all` names as the build's output, unless the board names its own
+ifdef CONFIG_IMX8M_SIGN_IMAGE
+FINAL_OUTPUT ?= $(BUILD_DIR)/pb_signed.imx
+else ifdef CONFIG_IMX8M_CREATE_IMX_IMAGE
+FINAL_OUTPUT ?= $(BUILD_DIR)/pb.imx
+endif
 endif

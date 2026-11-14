@@ -308,11 +308,11 @@ UART2, the FT4232H's third port (`/dev/serial/by-id/usb-FTDI_Quad_RS232-HS-if02-
 ```sh
 mkdir -p build-imx8mpevk/fw-202006    # inside the repo, the container only mounts that
 cp <firmware-imx>/firmware/ddr/synopsys/lpddr4_pmu_train_*_202006.bin build-imx8mpevk/fw-202006/
-IMX8M_FW_DIR=build-imx8mpevk/fw-202006 scripts/pbdev firmware imx8mpevk imx8mp_image
+IMX8M_FW_DIR=build-imx8mpevk/fw-202006 scripts/pbdev firmware imx8mpevk imx8m_image
 uuu SDPS: boot -f build-imx8mpevk/pb.imx
 ```
 
-`imx8mp_image` wraps `pb.bin` with `mkimage -T imx8mimage` (ROM_VERSION v2, loader at 0x920000,
+`imx8m_image` wraps `pb.bin` with `mkimage -T imx8mimage` (ROM_VERSION v2, loader at 0x920000,
 the start of the OCRAM free area after the ROM's 0x900000-0x917fff, RM Figure 6-2). pb runs from
 OCRAM (384 KiB up to 0x97ffff); `.no_init` and the MMU tables are in DRAM from 0x40060000.
 

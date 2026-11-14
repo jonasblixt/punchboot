@@ -7,8 +7,6 @@
 #
 # i.MX8M Plus EVK. pb runs from OCRAM at 0x920000, after the ROM's part of it.
 
-MKIMAGE ?= mkimage
-
 src-y += $(BOARD)/board.c
 src-y += $(BOARD)/lpddr4_timing.c
 
@@ -25,18 +23,5 @@ blobs-y  = $(IMX8M_UMCTL_TRAIN_1D_D) \
 		   $(IMX8M_UMCTL_TRAIN_2D_D) \
 		   $(IMX8M_UMCTL_TRAIN_2D_I)
 
-.PHONY: imx8mp_image
-
-# Boot image for the ROM (ROM_VERSION v2), for SD/eMMC or USB serial
-# download (uuu)
-imx8mp_image: $(BUILD_DIR)/pb.bin
-	@echo Generating $(BUILD_DIR)/pb.imx
-	@printf 'ROM_VERSION v2\nBOOT_FROM sd\nLOADER $(BUILD_DIR)/pb.bin $(CONFIG_PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
-	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(CONFIG_PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
-
-image-$(CONFIG_IMX8M_CREATE_IMX_IMAGE) += imx8mp_image
-
-# What `all` names as the build's output, set here and not by a recipe
-ifdef CONFIG_IMX8M_CREATE_IMX_IMAGE
-FINAL_OUTPUT = $(BUILD_DIR)/pb.imx
-endif
+# The image stages are the i.MX8M's (src/plat/imx8m/makefile.mk), turned on
+# in the defconfig: pb.imx for SD/eMMC or the serial downloader (uuu)
