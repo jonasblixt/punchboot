@@ -32,13 +32,32 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/slc.h>
 #include <plat/imx8m/dram.h>
+#include <plat/imx8m/fusebox.h>
 #include <plat/imx8m/imx8m.h>
 #include <stdbool.h>
 #include <stdio.h>
 
 #include "lpddr4_timing.h"
 #include "partitions.h"
+
+/*
+ * The boot configuration fused with the life cycle's (slc configure, board.md
+ * 3): the eMMC on USDHC1, 8 bits DDR at normal speed, its IO at 3.3 V
+ * (fusebox.h). What the pico8ml fused before 3.0.0, 0x2060. The boot mode
+ * stays the pins' (no BT_FUSE_SEL): the board has boot switches
+ */
+#define PICO8ML_BOOT_CFG                                                              \
+    (IMX8MQ_BOOT_CFG_DEVICE(IMX8MQ_BOOT_DEVICE_MMC) | IMX8MQ_BOOT_CFG_USDHC_PORT(0) | \
+     IMX8MQ_BOOT_CFG_MMC_BUS_WIDTH(IMX8MQ_BOOT_MMC_BUS_8BIT_DDR) |                    \
+     IMX8MQ_BOOT_CFG_MMC_SPEED(IMX8MQ_BOOT_MMC_SPEED_NORMAL))
+
+_Static_assert(PICO8ML_BOOT_CFG == 0x2060, "the pico8ml's boot configuration before 3.0.0");
+
+static const struct slc_fuse config_fuses[] = {
+    { IMX8M_FUSE(IMX8MQ_FUSE_BOOT_CFG_BANK, IMX8MQ_FUSE_BOOT_CFG_WORD), PICO8ML_BOOT_CFG },
+};
 
 /* DRAM: both set points of the timings, for DDR frequency scaling in Linux */
 static const unsigned int pico8ml_dram_mts[] = { 3200, 667 };
@@ -327,6 +346,8 @@ static const struct boot_image_region image_regions[] = {
 
 const struct board board = {
     .name = "pico8ml",
+    .slc_fuses = config_fuses,
+    .slc_fuses_length = ARRAY_SIZE(config_fuses),
     .console_init = board_console_init,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),

@@ -20,6 +20,7 @@
 #define HAB_TAG_EVT       0xdb
 #define HAB_STS_ANY       0x00
 #define HAB_SUCCESS       0xf0
+#define HAB_FAILURE       0x33
 
 /* RVT: a 4 byte header, then pointers; on AArch64 they start 8 bytes in */
 #define RVT_REPORT_EVENT  7
@@ -247,6 +248,31 @@ static size_t hab_read(size_t offset, void *buf, size_t length)
     length = MIN(length, size - offset);
     memcpy(buf, &hab_text[offset], length);
     return length;
+}
+
+int imx_hab_no_failure(void)
+{
+    imx_hab_report_status_t *report_status;
+    imx_hab_report_event_t *report_event;
+    static uint8_t event[EVENT_MAX];
+    size_t bytes = sizeof(event);
+    uint32_t config = 0;
+    uint32_t state = 0;
+    uint32_t status;
+
+    if (hab_cfg == NULL)
+        return -PB_ERR_NOT_FOUND;
+
+    report_status = (imx_hab_report_status_t *)rvt_entry(RVT_REPORT_STATUS);
+    report_event = (imx_hab_report_event_t *)rvt_entry(RVT_REPORT_EVENT);
+    status = report_status(&config, &state);
+
+    if (status == HAB_FAILURE || report_event(HAB_FAILURE, 0, event, &bytes) == HAB_SUCCESS) {
+        LOG_ERR("HAB reports a failure (status 0x%x): see the log 'hab'", status);
+        return -PB_ERR_STATE;
+    }
+
+    return PB_OK;
 }
 
 static const struct log_source hab_log = {

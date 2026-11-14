@@ -19,6 +19,12 @@
 # Whole line comment
 
 [Unlock]
+    # HAB locks SRK_REVOKE unless the image unlocks it: pb revokes keys in
+    # command mode (plat-imx.md 4.1), as the 6UL's CSF has it
+    Engine = OCOTP
+    Features = SRKREVOKE
+
+[Unlock]
     # Leave Job Ring and DECO master ID registers Unlocked
     Engine = CAAM
     Features = MID

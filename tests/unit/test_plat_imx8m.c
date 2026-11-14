@@ -23,6 +23,7 @@
 #include <arch/arch_helpers.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/crypto/mbedtls.h>
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
@@ -59,6 +60,9 @@ static struct {
     /* The ids of the events in the ROM's log, 0 ends them */
     uint32_t rom_events[8];
     int hab_log_rc;
+    /* HAB's verdict on this boot (imx_hab_no_failure()), and the locks */
+    int hab_no_failure_rc;
+    unsigned int hab_locks;
     int tzc_init_rc;
     int tzc_region_rc;
     /* GPR10's bits that don't take a write */
@@ -82,7 +86,9 @@ static void call(const char *name)
 /* The crypto backends: what their set up returns, what it got, and the
  * register log's length and the MMU's state when the first was called */
 static struct {
-    int caam_rc, rng_rc, mbedtls_rc, stop_rc;
+    int caam_rc, rng_rc, mbedtls_rc, stop_rc, lock_rc;
+    uint32_t lock_sticky; /* What imx_ocotp_lock() was asked to lock */
+    bool lock_scs;
     uintptr_t caam_base, rng_base;
     size_t caam_at;
     unsigned int caam_mmu_enables;
@@ -156,6 +162,56 @@ int imx_hab_log_init(const struct imx_hab_log_config *cfg)
 {
     (void)cfg;
     return f.hab_log_rc;
+}
+
+int imx_hab_no_failure(void)
+{
+    return f.hab_no_failure_rc;
+}
+
+void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
+{
+    (void)cfg;
+}
+
+/* The HAB's fuses and the OCOTP's access by index: the port only names them, in plat_rot and
+ * plat_slc */
+slc_t imx_hab_slc_read_status(void)
+{
+    return SLC_NOT_CONFIGURED;
+}
+
+int imx_hab_slc_set_configuration(void)
+{
+    return PB_OK;
+}
+
+int imx_hab_slc_set_configuration_locked(void)
+{
+    f.hab_locks++;
+    return PB_OK;
+}
+
+int imx_ocotp_fuse_read(uint32_t index, uint32_t *value)
+{
+    (void)index;
+    *value = 0;
+    return PB_OK;
+}
+
+int imx_ocotp_fuse_write(uint32_t index, uint32_t value)
+{
+    (void)index;
+    (void)value;
+    return PB_OK;
+}
+
+int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs)
+{
+    crypto.lock_sticky = sw_sticky;
+    crypto.lock_scs = lock_scs;
+    call("lock");
+    return crypto.lock_rc;
 }
 
 /* The ipg_clk rate plat_init() gave the OCOTP, for its fuse timing */
@@ -704,31 +760,44 @@ static void test_lockdown_stops_the_crypto_engine(void **state)
 {
     (void)state;
 
+    /* D-084: SRK revocation and field return locked in SW_STICKY, and SCS,
+     * as on the 6UL, then the CAAM stopped */
     assert_int_equal(plat_lockdown(), PB_OK);
-    assert_string_equal(calls, "stop ");
+    assert_string_equal(calls, "lock stop ");
+    assert_int_equal(crypto.lock_sticky,
+                     OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK);
+    assert_true(crypto.lock_scs);
     assert_int_equal(fake_reg_log_len, 0);
 
     /* A second lockdown before a reset (platform.md 4.4) */
     assert_int_equal(plat_lockdown(), PB_OK);
-    assert_string_equal(calls, "stop stop ");
+    assert_string_equal(calls, "lock stop lock stop ");
+
+    /* A lock that didn't hold is a failed lockdown: the CAAM stays up for
+     * command mode */
+    setup(NULL);
+    crypto.lock_rc = -PB_ERR_IO;
+    assert_int_equal(plat_lockdown(), -PB_ERR_IO);
+    assert_string_equal(calls, "lock ");
 
     setup(NULL);
     crypto.stop_rc = -PB_ERR_TIMEOUT;
     assert_int_equal(plat_lockdown(), -PB_ERR_TIMEOUT);
-    assert_string_equal(calls, "stop ");
+    assert_string_equal(calls, "lock stop ");
 }
 
-/* platform.md 4.1, 4.2 (F-247): the root of trust and the life cycle are the
- * platform's. pb doesn't support the 8M's HAB: what the 8MP EVK wired itself
- * until then, unchanged. Every key can be used and none is revoked; there is
- * no life cycle (command mode is open) and no fuse is written */
+/* platform.md 4.1, 4.2: the root of trust and the life cycle are the
+ * platform's, HABv4's fuses (fusebox.h). Nothing is read or written when
+ * they are named */
 static void test_plat_rot_and_slc(void **state)
 {
-    static const struct slc_ops none;
     (void)state;
 
+    /* The 8M Plus (this test's SoC): its SRK_REVOKE isn't public, no key is
+     * revoked and every key reads as active */
     assert_null(plat_rot.revoke_key);
     assert_non_null(plat_rot.read_key_status);
+    assert_int_equal(plat_rot.revoke_slots, 3);
 
     for (unsigned int slot = 0; slot < 8; slot++) {
         const struct rot_key key = { .id = 0xa90f9680, .slot = slot };
@@ -736,7 +805,14 @@ static void test_plat_rot_and_slc(void **state)
         assert_int_equal(plat_rot.read_key_status(&key), PB_OK);
     }
 
-    assert_memory_equal(&plat_slc, &none, sizeof(none));
+    /* The life cycle: HABv4's SEC_CONFIG and SRK hash, the fuses by index,
+     * no EOL (F-263) */
+    assert_ptr_equal(plat_slc.read_status, imx_hab_slc_read_status);
+    assert_ptr_equal(plat_slc.set_configuration, imx_hab_slc_set_configuration);
+    assert_non_null(plat_slc.set_configuration_locked);
+    assert_null(plat_slc.set_eol);
+    assert_ptr_equal(plat_slc.fuse_read, imx_ocotp_fuse_read);
+    assert_ptr_equal(plat_slc.fuse_write, imx_ocotp_fuse_write);
     assert_int_equal(fake_reg_log_len, 0);
 }
 
@@ -763,6 +839,25 @@ static void test_ocotp_ipg_rate(void **state)
     fake_regs_set(0x30388000 + 0x80 * 32, 0x15000000); /* SYSTEM_PLL3: not fixed */
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(ocotp_ipg_hz, 0);
+}
+
+/* Closing a device whose image HAB doesn't accept leaves one that doesn't
+ * boot: the lock is refused on a HAB failure, and nothing is fused */
+static void test_lock_waits_for_hab(void **state)
+{
+    (void)state;
+
+    f.hab_no_failure_rc = -PB_ERR_STATE;
+    assert_int_equal(plat_slc.set_configuration_locked(), -PB_ERR_STATE);
+    assert_int_equal(f.hab_locks, 0);
+
+    f.hab_no_failure_rc = -PB_ERR_NOT_FOUND;
+    assert_int_equal(plat_slc.set_configuration_locked(), -PB_ERR_NOT_FOUND);
+    assert_int_equal(f.hab_locks, 0);
+
+    f.hab_no_failure_rc = PB_OK;
+    assert_int_equal(plat_slc.set_configuration_locked(), PB_OK);
+    assert_int_equal(f.hab_locks, 1);
 }
 
 /* platform.md 3.11: the variant's name and clock, DIGPROG's MINOR as the
@@ -868,6 +963,7 @@ int main(void)
         cmocka_unit_test_setup(test_unique_id_read_fails, setup),
         cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
         cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
+        cmocka_unit_test_setup(test_lock_waits_for_hab, setup),
         cmocka_unit_test_setup(test_ocotp_ipg_rate, setup),
         cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),

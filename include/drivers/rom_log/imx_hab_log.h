@@ -40,6 +40,17 @@ imx_hab_report_event_t(uint32_t status, uint32_t index, uint8_t *event, size_t *
 int imx_hab_log_init(const struct imx_hab_log_config *cfg);
 
 /**
+ * Whether HAB checked this boot's image without a failure: its status isn't
+ * HAB_FAILURE and it has no failure event. Warnings pass (the i.MX8MQ's ROM
+ * reports a CAAM engine failure as one). For what a failure would turn into
+ * a device that doesn't boot once fused: closing it, revoking a key.
+ *
+ * @return PB_OK, -PB_ERR_STATE on a failure, -PB_ERR_NOT_FOUND without the
+ *         HAB API (imx_hab_log_init() found no RVT)
+ */
+int imx_hab_no_failure(void);
+
+/**
  * The HAB status and events as text
  *
  * @param[in] report_status The ROM's report_status
