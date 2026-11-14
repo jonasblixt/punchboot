@@ -316,19 +316,26 @@ const struct slc_ops plat_slc = {
  * and Mbed TLS's on in its defconfig.
  *
  * Command mode can start without a backend, so a failure isn't plat_init()'s
- * error: main() would reset. A backend that failed isn't registered, no
- * image verifies and the boot stops with that. To be recorded in
- * plat_get_status() (F-248)
+ * error: main() would reset. A backend that failed isn't registered and no
+ * image verifies: it is recorded (plat_get_status()), and the boot's
+ * preconditions refuse the boot before anything is loaded (platform.md 2.3).
+ *
+ * Returns whether the build's backends all came up. A build without one has
+ * none that works.
  */
-static void crypto_init(void)
+static bool crypto_init(void)
 {
+    unsigned int backends = 0;
+    bool failed = false;
     int rc = PB_OK;
 
 #ifdef CONFIG_DRIVERS_IMX_CAAM
     rc = imx_caam_init(IMX6UL_CAAM_JR0_BASE);
+    backends++;
 
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
+        failed = true;
     } else {
         /* Linux can't instantiate the RNG when it runs in the normal world
          * (platform.md 4.5). Without it Linux has no hardware RNG, which is
@@ -342,12 +349,16 @@ static void crypto_init(void)
 
 #ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
     rc = mbedtls_pb_init();
+    backends++;
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
         LOG_ERR("Mbed TLS init failed (%i)", rc);
+        failed = true;
+    }
 #endif
 
     (void)rc;
+    return backends > 0 && !failed;
 }
 
 int plat_early_init(void)
@@ -484,7 +495,7 @@ int plat_init(void)
     status.tz_dram_filter = (rc == PB_OK) ? PLAT_TZ_DRAM_ACTIVE : PLAT_TZ_DRAM_BYPASSED;
 
     /* Last: until F-247 the board's init() did it, as its first step */
-    crypto_init();
+    status.crypto_engine = crypto_init();
 
     return PB_OK;
 }

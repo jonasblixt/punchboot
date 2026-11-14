@@ -4,11 +4,11 @@ config SOC_FAMILY_IMX
 	bool "NXP i.MX SoC's"
     default n
 
-# The platform sets a crypto engine up in plat_init(), the one the boot
-# verifies with (platform.md 2.2). A boot is refused when it failed: the
+# The platform sets the build's crypto backends up in plat_init(), what the
+# boot verifies with (platform.md 2.2). A boot is refused when one failed: the
 # boot's preconditions check plat_get_status()'s crypto_engine in a build
-# that has this (platform.md 2.3). A platform whose boards set the engine up
-# doesn't select it (F-247).
+# that has this (platform.md 2.3). Every platform in the tree selects it
+# (F-247); one that doesn't reports no engine, and the core doesn't ask.
 config PLAT_CRYPTO_ENGINE
     bool
     default n
@@ -16,11 +16,13 @@ config PLAT_CRYPTO_ENGINE
 config PLAT_IMX8X_COMMON
     bool
     default n
+    select PLAT_CRYPTO_ENGINE
 
 # Shared by the i.MX8M SoCs: platform code in src/plat/imx8m, DDR drivers
 config PLAT_IMX8M_COMMON
     bool
     default n
+    select PLAT_CRYPTO_ENGINE
     select DRIVERS_DDR_UMCTL2
     select DRIVERS_DDR_DWC_PHY
     select DRIVERS_TZC380
@@ -53,6 +55,7 @@ config PLAT_IMX6UL
     bool "NXP IMX6UL"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7
+    select PLAT_CRYPTO_ENGINE
     select DRIVERS_TZC380
     select DRIVERS_IMX_ROM_LOG
     select DRIVERS_IMX_HAB_LOG
@@ -66,6 +69,7 @@ config PLAT_IMXRT
 config PLAT_HOST
     bool "Host (native Linux process, for testing)"
     depends on ARCH_HOST
+    select PLAT_CRYPTO_ENGINE
 endchoice
 
 source "src/plat/*/Kconfig"

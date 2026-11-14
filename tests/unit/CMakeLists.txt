@@ -250,9 +250,9 @@ pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
 )
 
-# The same with what pb-host is built without: a watchdog, and a platform
-# that sets the crypto engine up. The boot's preconditions check both
-# (platform.md 2.3)
+# The same with a watchdog, which pb-host is built without. The boot's
+# preconditions check it, and the crypto engine of a platform that sets one
+# up, which the host is (platform.md 2.3)
 add_executable(test_boot_preconditions test_boot.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
@@ -267,6 +267,29 @@ target_include_directories(test_boot_preconditions PRIVATE ${CMAKE_CURRENT_SOURC
 target_link_libraries(test_boot_preconditions PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
 add_test(NAME unit.test_boot_preconditions COMMAND test_boot_preconditions)
 set_tests_properties(unit.test_boot_preconditions PROPERTIES LABELS unit TIMEOUT 60)
+
+# And for a platform that sets no crypto engine up, which no platform in the
+# tree is since F-247: the core doesn't ask for one (platform.md 2.3). The
+# build is the host's configuration less CONFIG_PLAT_CRYPTO_ENGINE
+string(REPLACE "#define CONFIG_PLAT_CRYPTO_ENGINE 1\n" ""
+    PB_CONFIG_H_NO_CRYPTO_ENGINE "${PB_CONFIG_H}")
+if(PB_CONFIG_H_NO_CRYPTO_ENGINE STREQUAL PB_CONFIG_H)
+    message(FATAL_ERROR "The host platform doesn't select PLAT_CRYPTO_ENGINE")
+endif()
+set(PB_NO_CRYPTO_ENGINE_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_crypto_engine)
+file(CONFIGURE OUTPUT ${PB_NO_CRYPTO_ENGINE_DIR}/config.h
+    CONTENT "${PB_CONFIG_H_NO_CRYPTO_ENGINE}" @ONLY)
+add_executable(test_boot_no_crypto_engine test_boot.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/boot/boot.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
+)
+target_include_directories(test_boot_no_crypto_engine BEFORE PRIVATE ${PB_NO_CRYPTO_ENGINE_DIR})
+target_include_directories(test_boot_no_crypto_engine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_boot_no_crypto_engine PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_boot_no_crypto_engine COMMAND test_boot_no_crypto_engine)
+set_tests_properties(unit.test_boot_no_crypto_engine PROPERTIES LABELS unit TIMEOUT 60)
 
 pb_unit_test(test_image_helpers SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c

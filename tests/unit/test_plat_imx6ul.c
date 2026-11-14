@@ -426,7 +426,7 @@ static struct plat_status status_now(void)
 /* platform.md 3.8: what plat_init() recorded. The TZASC is out of bypass and
  * DRAM is open in region 1, the watchdog is armed when the option is on and
  * reported as not armed without it, the ROM's logs were found, and the
- * platform sets no crypto engine up (the board does, F-247) */
+ * crypto backends the platform set up work */
 static void test_status(void **state)
 {
     struct plat_status status;
@@ -443,7 +443,7 @@ static void test_status(void **state)
 #else
     assert_false(status.wdog_armed);
 #endif
-    assert_false(status.crypto_engine);
+    assert_true(status.crypto_engine);
     assert_true(status.rom_log);
 }
 
@@ -738,6 +738,47 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     assert_string_equal(calls, "tzasc caam rng mbedtls ");
 }
 
+/* platform.md 2.3, 3.8 (F-247, F-248): the platform sets the build's crypto
+ * backends up, so their result is the platform's status, and the boot's
+ * preconditions refuse the boot when it is false, before a candidate is
+ * tried (test_boot.c). A failed RNG
+ * doesn't make it false */
+static void test_status_crypto_engine(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+
+    /* The CAAM, which the boards verify with */
+    setup(NULL);
+    crypto.caam_rc = -PB_ERR_IO;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* Each algorithm has one backend (crypto.md 2): a build with two needs
+     * both */
+    setup(NULL);
+    crypto.mbedtls_rc = -PB_ERR_MEM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* The RNG is Linux's loss, not the boot's: the engine verifies */
+    setup(NULL);
+    crypto.rng_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+
+    /* It is the state of this plat_init(), not of an earlier one */
+    setup(NULL);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+}
+
 /* platform.md 4.1, 4.2 (F-247): the root of trust and the life cycle are the
  * platform's, HABv4's state in the OCOTP. What jiffy wired itself until
  * then, unchanged: SRK revocation, the SRK hash and the closed bit, the
@@ -780,6 +821,7 @@ int main(void)
         cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
         cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_status_crypto_engine, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -146,6 +146,9 @@ int plat_early_init(void)
     return PB_OK;
 }
 
+/* Whether plat_init() set the crypto backend up */
+static bool crypto_engine;
+
 /*
  * Fuses can be read from here on (platform.md 2.2), as a SoC's are: a file of
  * their own, not on the disk, so that they don't depend on its partition
@@ -179,11 +182,13 @@ int plat_init(void)
 #ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
     /* The crypto backend, behind its option (platform.md 2.2, crypto.md 2).
      * Command mode can start without it, so it isn't plat_init()'s error:
-     * without a backend no image verifies, and the boot stops with that */
+     * it is recorded, and the boot's preconditions refuse the boot (2.3) */
     rc = mbedtls_pb_init();
 
     if (rc != PB_OK)
         LOG_ERR("Mbed TLS init failed (%i)", rc);
+
+    crypto_engine = (rc == PB_OK);
 #endif
 
     return PB_OK;
@@ -317,15 +322,15 @@ int plat_get_boot_source(struct pb_boot_source *src)
     return PB_OK;
 }
 
-/* A process has no TrustZone, no watchdog and no ROM, and the crypto backend
- * is the board's: everything is absent (platform.md 3.8). A test of the
- * boot's preconditions asks for a DRAM filter that is bypassed */
+/* A process has no TrustZone, no watchdog and no ROM: they are absent
+ * (platform.md 3.8). The crypto backend is what plat_init() set up. A test of
+ * the boot's preconditions asks for a DRAM filter that is bypassed */
 void plat_get_status(struct plat_status *status)
 {
     status->tz_dram_filter = host_opts.dram_filter_bypassed ? PLAT_TZ_DRAM_BYPASSED
                                                             : PLAT_TZ_DRAM_NONE;
     status->wdog_armed = false;
-    status->crypto_engine = false;
+    status->crypto_engine = crypto_engine;
     status->rom_log = false;
 }
 

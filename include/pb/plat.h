@@ -72,8 +72,8 @@ enum plat_tz_dram_filter {
 struct plat_status {
     enum plat_tz_dram_filter tz_dram_filter;
     bool wdog_armed; /*!< false also without CONFIG_ENABLE_WATCHDOG */
-    bool crypto_engine; /*!< The engine plat_init() sets up works; false when
-                             the platform sets none up */
+    bool crypto_engine; /*!< The crypto backends plat_init() sets up work;
+                             false when the build has none */
     bool rom_log; /*!< The ROM's logs were found */
 };
 

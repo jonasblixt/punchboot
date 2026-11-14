@@ -1956,9 +1956,9 @@ static void test_status_of_the_board_is_not_asked_for_a_refused_boot(void **stat
 }
 
 /* platform.md 2.3: a crypto engine that failed refuses the boot, where the
- * platform is the one that sets it up (CONFIG_PLAT_CRYPTO_ENGINE): nothing
- * verifies the image. Without the option the platform reports none, the
- * board sets the engine up (F-247), and the boot goes on */
+ * platform is the one that sets it up (CONFIG_PLAT_CRYPTO_ENGINE, every
+ * platform in the tree since F-247): nothing verifies the image. Without the
+ * option the platform reports none, and the boot goes on */
 static void test_precondition_crypto_engine(void **state)
 {
     (void)state;
@@ -1970,6 +1970,43 @@ static void test_precondition_crypto_engine(void **state)
     assert_int_equal(boot_load(NULL), PB_OK);
     assert_int_equal(fake.prepare_calls, 1);
     assert_int_equal(fake.last_info.status, 0);
+#endif
+}
+
+/* platform.md 2.3 (F-247): a crypto engine that didn't come up is known before
+ * the boot, so the boot is refused before the policy is asked for a
+ * candidate: an A/B trial spends no attempt on a boot that can verify
+ * nothing, and the policy hears no result. The same in a boot command mode
+ * started, and checked in every boot: the next one, with an engine, goes on */
+static void test_precondition_crypto_engine_spends_no_attempt(void **state)
+{
+#ifdef CONFIG_PLAT_CRYPTO_ENGINE
+    struct fixture *f = *state;
+
+    fake_plat_status.crypto_engine = false;
+    assert_refused_before_anything(boot(NULL));
+    assert_int_equal(fake.next_calls, 0);
+    assert_int_equal(fake.report_calls, 0);
+
+    reset_fakes(f);
+    fake_plat_status.crypto_engine = false;
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    assert_refused_before_anything(boot_load((unsigned char *)UU_SYS_A));
+
+    reset_fakes(f);
+    fake_plat_status.crypto_engine = false;
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    assert_refused_before_anything(boot_load(NULL));
+    assert_int_equal(fake.result_cb_calls, 0);
+
+    reset_fakes(f);
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.next_calls, 1);
+    assert_int_equal(fake.prepare_calls, 1);
+#else
+    (void)state;
 #endif
 }
 
@@ -2913,6 +2950,7 @@ int main(void)
         BOOT_TEST(test_status_without_a_board_to_ask),
         BOOT_TEST(test_status_of_the_board_is_not_asked_for_a_refused_boot),
         BOOT_TEST(test_precondition_crypto_engine),
+        BOOT_TEST(test_precondition_crypto_engine_spends_no_attempt),
         BOOT_TEST(test_precondition_rom_log),
         BOOT_TEST(test_early_boot_abort),
         BOOT_TEST(test_late_boot_error),

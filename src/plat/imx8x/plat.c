@@ -377,10 +377,13 @@ int plat_early_init(void)
     return PB_OK;
 }
 
+/* Whether plat_init() set the build's crypto backends up */
+static bool crypto_engine;
+
 /*
- * What plat_early_init() recorded (platform.md 3.8). The DRAM filter is a
- * later stage's: BL31 partitions the memory through the SCFW. The crypto
- * engine is the board's (F-247), and the ROM's logs aren't saved.
+ * What plat_early_init() and plat_init() recorded (platform.md 3.8). The
+ * DRAM filter is a later stage's: BL31 partitions the memory through the
+ * SCFW. The ROM's logs aren't saved.
  */
 void plat_get_status(struct plat_status *status)
 {
@@ -390,7 +393,7 @@ void plat_get_status(struct plat_status *status)
 #else
     status->wdog_armed = false;
 #endif
-    status->crypto_engine = false;
+    status->crypto_engine = crypto_engine;
     status->rom_log = false;
 }
 
@@ -402,12 +405,17 @@ void plat_get_status(struct plat_status *status)
  * its defconfig. The RNG isn't pb's here (plat-imx.md 4.4).
  *
  * Command mode can start without a backend, so a failure isn't plat_init()'s
- * error: main() would reset. A backend that failed isn't registered, no
- * image verifies and the boot stops with that. To be recorded in
- * plat_get_status() (F-248)
+ * error: main() would reset. A backend that failed isn't registered and no
+ * image verifies: it is recorded (plat_get_status()), and the boot's
+ * preconditions refuse the boot before anything is loaded (platform.md 2.3).
+ *
+ * Returns whether the build's backends all came up. A build without one has
+ * none that works.
  */
-static void crypto_init(void)
+static bool crypto_init(void)
 {
+    unsigned int backends = 0;
+    bool failed = false;
     int rc = PB_OK;
 
 #ifdef CONFIG_DRIVERS_IMX_CAAM
@@ -415,19 +423,26 @@ static void crypto_init(void)
     sc_pm_set_resource_power_mode(plat.ipc, SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
 
     rc = imx_caam_init(IMX_CAAM_JR2_BASE);
+    backends++;
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
+        failed = true;
+    }
 #endif
 
 #ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
     rc = mbedtls_pb_init();
+    backends++;
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
         LOG_ERR("Mbed TLS init failed (%i)", rc);
+        failed = true;
+    }
 #endif
 
     (void)rc;
+    return backends > 0 && !failed;
 }
 
 int plat_init(void)
@@ -448,7 +463,7 @@ int plat_init(void)
     imx8x_slc_helpers_init(plat.ipc);
 
     /* Last: until F-247 the board's init() did it, as its first step */
-    crypto_init();
+    crypto_engine = crypto_init();
 
     return PB_OK;
 }

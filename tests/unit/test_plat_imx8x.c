@@ -362,8 +362,8 @@ static struct plat_status status_now(void)
 
 /* platform.md 3.8: what the port recorded. The DRAM filter is a later
  * stage's (BL31, through the SCFW), the watchdog is armed (the test is built
- * with the option), the platform sets no crypto engine up (the board does,
- * F-247) and saves none of the ROM's logs */
+ * with the option), the crypto backends the platform set up work, and it
+ * saves none of the ROM's logs */
 static void test_status(void **state)
 {
     struct plat_status status;
@@ -375,7 +375,7 @@ static void test_status(void **state)
 
     assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_LATER_STAGE);
     assert_true(status.wdog_armed);
-    assert_false(status.crypto_engine);
+    assert_true(status.crypto_engine);
     assert_false(status.rom_log);
 }
 
@@ -583,6 +583,39 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     assert_int_equal(crypto.mbedtls_inits, 1);
 }
 
+/* platform.md 2.3, 3.8 (F-247, F-248): the platform sets the build's crypto
+ * backends up, so their result is the platform's status, and the boot's
+ * preconditions refuse the boot when it is false, before a candidate is
+ * tried (test_boot.c) */
+static void test_status_crypto_engine(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+
+    /* The CAAM, which the boards verify with */
+    setup(NULL);
+    crypto.caam_rc = -PB_ERR_IO;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* Each algorithm has one backend (crypto.md 2): a build with two needs
+     * both */
+    setup(NULL);
+    crypto.mbedtls_rc = -PB_ERR_MEM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* It is the state of this plat_init(), not of an earlier one */
+    setup(NULL);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -600,6 +633,7 @@ int main(void)
         cmocka_unit_test_setup(test_info_command, setup),
         cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_status_crypto_engine, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
