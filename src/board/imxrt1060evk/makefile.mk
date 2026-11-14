@@ -24,7 +24,12 @@ imxrt_flash_image: imxrt_image $(BUILD_DIR)/fcb.bin
 	$(Q)truncate -s 4096 $(BUILD_DIR)/$(TARGET)_flash.bin
 	$(Q)cat $(BUILD_DIR)/$(TARGET).imx >> $(BUILD_DIR)/$(TARGET)_flash.bin
 
-image-y += imxrt_image imxrt_flash_image
+image-$(CONFIG_IMXRT_CREATE_IMX_IMAGE) += imxrt_image
+image-$(CONFIG_IMXRT_CREATE_FLASH_IMAGE) += imxrt_flash_image
 
 # What `all` names as the build's output, set here and not by a recipe
+ifdef CONFIG_IMXRT_CREATE_FLASH_IMAGE
 FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET)_flash.bin
+else ifdef CONFIG_IMXRT_CREATE_IMX_IMAGE
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).imx
+endif

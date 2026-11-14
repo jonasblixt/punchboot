@@ -13,3 +13,22 @@ config IMXRT_CM_USB_OTG1
     select DRIVER_IMX_USB2_PHY
     select DRIVER_IMX_CI_UDC
 endchoice
+
+menu "Output image"
+    depends on PLAT_IMXRT
+
+config IMXRT_CREATE_IMX_IMAGE
+    bool "Create imx-image"
+    default y
+    help
+        pb.imx, pb.bin with the image header the boot ROM reads
+        (plat-imx.md 6).
+
+config IMXRT_CREATE_FLASH_IMAGE
+    bool "Create flash image"
+    default y
+    depends on IMXRT_CREATE_IMX_IMAGE
+    help
+        pb_flash.bin, what goes in the FlexSPI NOR from offset 0: the
+        board's FlexSPI configuration block, then pb.imx at 4 KiB.
+endmenu

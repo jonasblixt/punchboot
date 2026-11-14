@@ -25,3 +25,41 @@ config IMX_OCOTP_DEBUG
     default n
 
 endmenu
+
+menu "Output image"
+    depends on PLAT_IMX8M_COMMON
+
+config IMX8M_CREATE_IMX_IMAGE
+    bool "Create imx-image"
+    default y
+    help
+        pb.imx, the image the boot ROM loads (plat-imx.md 6).
+
+config IMX8M_SIGN_IMAGE
+    bool "Sign image"
+    default n
+    depends on IMX8M_CREATE_IMX_IMAGE && PLAT_IMX8MQ
+    help
+        pb_signed.imx, signed for HABv4 with NXP's cst. The i.MX8M Quad
+        only: where the image header sits is the 8MQ's (plat-imx.md 6).
+
+config IMX8M_SRK_TABLE
+    string "SRK Table binary"
+    default "pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
+    depends on IMX8M_SIGN_IMAGE
+
+config IMX8M_KEY_INDEX
+    int "Key index (0-3)"
+    default 0
+    depends on IMX8M_SIGN_IMAGE
+
+config IMX8M_SIGN_CERT
+    string "CSF signing certificate"
+    default "pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
+    depends on IMX8M_SIGN_IMAGE
+
+config IMX8M_IMAGE_SIGN_CERT
+    string "Image signing certificate"
+    default "pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
+    depends on IMX8M_SIGN_IMAGE
+endmenu

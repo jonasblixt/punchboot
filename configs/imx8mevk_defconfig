@@ -26,6 +26,17 @@ CONFIG_IMX8M_CM_USB1=y
 # end of imx8m configuration
 
 #
+# Output image
+#
+CONFIG_IMX8M_CREATE_IMX_IMAGE=y
+CONFIG_IMX8M_SIGN_IMAGE=y
+CONFIG_IMX8M_SRK_TABLE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
+CONFIG_IMX8M_KEY_INDEX=0
+CONFIG_IMX8M_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
+CONFIG_IMX8M_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
+# end of Output image
+
+#
 # Memory
 #
 CONFIG_PB_ENTRY=0x7E1000

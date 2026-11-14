@@ -13,10 +13,11 @@ IMX8M_UMCTL_TRAIN_1D_I ?= lpddr4_pmu_train_1d_imem.bin
 IMX8M_UMCTL_TRAIN_2D_D ?= lpddr4_pmu_train_2d_dmem.bin
 IMX8M_UMCTL_TRAIN_2D_I ?= lpddr4_pmu_train_2d_imem.bin
 
-IMX8M_SRK_TABLE ?= pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin
-IMX8M_KEY_INDEX ?= 0
-IMX8M_SIGN_CERT ?= pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem
-IMX8M_IMAGE_SIGN_CERT ?= pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem
+# The signing inputs, from the defconfig unless the command line gives them
+IMX8M_SRK_TABLE ?= $(call unquote,$(CONFIG_IMX8M_SRK_TABLE))
+IMX8M_KEY_INDEX ?= $(CONFIG_IMX8M_KEY_INDEX)
+IMX8M_SIGN_CERT ?= $(call unquote,$(CONFIG_IMX8M_SIGN_CERT))
+IMX8M_IMAGE_SIGN_CERT ?= $(call unquote,$(CONFIG_IMX8M_IMAGE_SIGN_CERT))
 
 blobs-y  = $(IMX8M_UMCTL_TRAIN_1D_D) \
 		   $(IMX8M_UMCTL_TRAIN_1D_I)\
@@ -54,8 +55,12 @@ imx8m_sign_image: imx8m_image
 	@echo "Writing signature block at offset $(shell echo "obase=16; $(PB_FILESIZE_IMX2)" | bc	)"
 	@dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/$(TARGET)_signed.imx seek=$(PB_FILESIZE_IMX2) bs=1 conv=notrunc
 
-image-y += imx8m_image
-image-y += imx8m_sign_image
+image-$(CONFIG_IMX8M_CREATE_IMX_IMAGE) += imx8m_image
+image-$(CONFIG_IMX8M_SIGN_IMAGE) += imx8m_sign_image
 
 # What `all` names as the build's output, set here and not by a recipe
+ifdef CONFIG_IMX8M_SIGN_IMAGE
 FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET)_signed.imx
+else ifdef CONFIG_IMX8M_CREATE_IMX_IMAGE
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).imx
+endif

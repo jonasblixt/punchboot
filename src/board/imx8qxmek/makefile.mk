@@ -2,10 +2,11 @@ CST_TOOL ?= cst
 IMX8X_MKIMAGE ?= mkimage_imx8
 IMX8X_AHAB_IMAGE ?= mx8qx-ahab-container.img
 IMX8X_SCFW_IMAGE ?= mx8qx-mek-scfw-tcm.bin
-IMX8X_SRK_TABLE ?= pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin
-IMX8X_SIGN_CERT ?= pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem
-IMX8X_KEY_INDEX ?= 0
-IMX8X_KEY_REVOKE_MASK ?= 0
+# The signing inputs, from the defconfig unless the command line gives them
+IMX8X_SRK_TABLE ?= $(call unquote,$(CONFIG_IMX8X_SRK_TABLE))
+IMX8X_SIGN_CERT ?= $(call unquote,$(CONFIG_IMX8X_SIGN_CERT))
+IMX8X_KEY_INDEX ?= $(CONFIG_IMX8X_KEY_INDEX)
+IMX8X_KEY_REVOKE_MASK ?= $(CONFIG_IMX8X_KEY_REVOKE_MASK)
 PB_CSF_TEMPLATE = src/plat/imx8x/pb.csf.template
 
 SED = $(shell which sed)

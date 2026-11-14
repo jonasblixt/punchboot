@@ -34,7 +34,9 @@ imx8mp_image: $(BUILD_DIR)/pb.bin
 	@printf 'ROM_VERSION v2\nBOOT_FROM sd\nLOADER $(BUILD_DIR)/pb.bin $(CONFIG_PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
 	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(CONFIG_PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
 
-image-y += imx8mp_image
+image-$(CONFIG_IMX8M_CREATE_IMX_IMAGE) += imx8mp_image
 
 # What `all` names as the build's output, set here and not by a recipe
+ifdef CONFIG_IMX8M_CREATE_IMX_IMAGE
 FINAL_OUTPUT = $(BUILD_DIR)/pb.imx
+endif
