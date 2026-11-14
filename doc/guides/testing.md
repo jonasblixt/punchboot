@@ -18,6 +18,8 @@ CI runs these tests (D-006).
 | `src/board/host/`         | Test board (partitions, keys, named commands, the fuses' layout)                       |
 | `tests/unit/`             | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`,            |
 |                           | `fakes/plat.c`)                                                                        |
+|                           | `python/`: pytest unit tests of the host tools (`tools/punchboot`) without a device:   |
+|                           | wire packing, the exceptions, bpak detection, the CLI on a fake session (F-041)        |
 | `tests/integration/`      | pytest tests that drive `pb-host` through the `punchboot` Python package               |
 | `tests/compat/`           | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in        |
 |                           | `bpak/`, wire transcripts in `transcripts/`. See `compatibility.md`                    |
@@ -34,28 +36,37 @@ CI runs these tests (D-006).
 scripts/pbdev test                           # build + all tests (~1 min cold, ~10 s warm)
 scripts/pbdev test -DPB_SANITIZE=ON          # ASan + UBSan
 BUILD_DIR=build-host-cov scripts/pbdev test -DPB_COVERAGE=ON
-scripts/pbdev run gcovr -r . build-host-cov --filter src/
-CTEST_ARGS="-L unit" scripts/pbdev test      # only unit tests
+CTEST_ARGS="-L unit" scripts/pbdev test      # only unit tests (C, and the host tools' Python)
+CTEST_ARGS="-L python" scripts/pbdev test    # only the host tools' Python unit tests
 CTEST_ARGS="-L compat" scripts/pbdev test    # only the frozen layout check (compatibility.md)
 CTEST_ARGS="-L doc" scripts/pbdev test       # only the document lint (process.md 7)
 CTEST_ARGS="-L make" scripts/pbdev test      # only the firmware build's checks
 python3 tests/doc/check_docs.py              # the same, without the container
 ```
 
-Coverage (2026-10-22, all host tests): 99.2% of lines (2337/2356), 100% of functions and 96.3% of
-branches in `src/`, excluding vendored libs and the host platform. It was 59% before the unit tests
-below. After `jiffy-fixes` 18 lines are left, unreachable or behind a known bug:
+Coverage (2026-11-14, at `63249d59` with F-230's tests, all 98 ctest tests), measured as CI does
+it (`.github/workflows/build.yml`): the coverage build above, then
 
-- Unreachable: `gpt.c`'s lines then (after recovery the primary is valid; that code is gone with
-  the GPT's repair, F-195), `cm_main.c` 663 and
-  the `default:` case (every command id is handled), `boot.c` 96 (the boot device is valid), `rot.c` 114 (`rot_init` checks the key ids) and
-  126-127 (the keystore has only EC keys), `main.c` 51, `mbedtls_pb.c` 252 (needs a full DSA table
-  with room for a hash provider; both tables hold one entry).
-- Behind a bug: `image.c` 175-176 (F-071).
-- `main.c` 29: `plat_init()` failing on the host.
+```sh
+scripts/pbdev run gcovr -r . build-host-cov --filter src/ \
+    --exclude src/lib/fdt --exclude src/lib/uuid \
+    --exclude src/arch/host --exclude src/plat/host --exclude src/board/host --print-summary
+```
 
-The coverage counts only what the host build compiles: the drivers and platform code for the
-targets are not in it.
+77.4% of lines (7921/10237), 77.6% of functions (652/840) and 82.5% of branches (3731/4522) of
+the files a host test compiles. 1833 of those lines are NXP's SCFW clients (`src/plat/imx8x/sci`),
+of which `test_plat_imx8x` calls a few; without them (`--exclude src/plat/imx8x/sci`) 91.8% of
+lines (7718/8404), 93.9% of functions and 86.4% of branches. At `63249d59` it was 77.0%
+(7837/10178). The 99.2% of 2026-10-22 counted the files pb-host itself compiles, before the
+drivers' and the ports' tests (F-230).
+
+A file no host test compiles isn't in the figure at all. Of what the boards build these are: the
+arch code (`src/arch/armv7a`, `armv7m`, `armv8a`), the boards (`src/board/*`), the UARTs, the GPIO,
+the DWC3 and i.MX cdns3 glue, the USB PHYs and `imx_usbdcd.c`, the libc but `snprintf.c`, TF-A's
+translation tables (`src/lib/xlat_tables_v2`), `plat_imx8mp.c`, `plat_imx8mq.c` and the SCFW's IRQ
+client. No board builds the virtio drivers. The least covered of the rest: `cdns3_udc_core.c`
+25%, `usbd.c` 71%, `plat/imx8x/plat.c` 75%, `plat/imx6ul/plat.c` 77%, `mmc_sd.c` 80%,
+`imx_ci_udc.c` 81%.
 
 A single integration test, inside `scripts/pbdev shell`:
 `pip install --no-build-isolation --no-deps . && pytest tests/integration -k install`.
@@ -132,6 +143,9 @@ A single integration test, inside `scripts/pbdev shell`:
     `fake_regs_on_write` is what the hardware does with a write (a bit that clears itself, a
     reset: it may leave with a `longjmp`). The ports' tests (`test_plat_*.c`) use it:
     `pb_plat_test()` in `CMakeLists.txt` builds a port's `plat.c` for the host.
+  - A header that reads a fixed address the host can't map (the 6UL's HAB vector table at 0x100):
+    a header of the same name under `fakes/` wraps it with `#include_next` and sends the read to
+    the test (`fakes/imx6ul_hab`, `test_imx6ul_hab.c`).
 - **MMC/SD test bench** (`tests/unit/models/`, D-017). Card models behind a bus interface
   (`mmc_bus.h`): `emmc_model.c` from JESD84-B51 and `sd_model.c` from the SD Physical Layer
   spec (written from memory, it wasn't at hand: violations name the command, not a section).
@@ -154,6 +168,8 @@ A single integration test, inside `scripts/pbdev shell`:
   sampling), boot operation, erase, write protection, RPMB authentication, CQE.
   Where the silicon differs from the RM, the model follows the silicon and says so (F-126: no
   TC at the end of busy without data).
+- **Host tools' unit tests** (`tests/unit/python`, F-041): pytest on the installed `punchboot`
+  package, no device and no pb-host. `test_cli.py` puts a fake in place of the CLI's `Session`.
 - **Integration tests.** Helpers live in `pbtest.py`: the `Device` class, `make_bpak()` (bpak CLI)
   and `sgdisk_verify()`. Fixtures:
   - `blank_device` starts in command mode on a blank disk.
@@ -210,6 +226,10 @@ and `configs/test_defconfig` were then removed.
 | `test_in_place.py`    | new: the in place source on the host's flash: boot, placement, verification (F-253)     |
 | `test_pbstate.py`     | new: the pbstate tool's command line on pb-host's disk, its library's symbols, a build  |
 |                       | with default partitions (F-221, F-222, F-010)                                           |
+
+ctest runs 98 tests (2026-11-14): 91 labelled `unit` (72 CMocka programs, 16 compile checks, 2
+Kconfig checks and `unit.python`), the pytest suite `integration`, 4 `make`, 1 `compat`, 1 `doc`.
+The unit tests take about 4 s, the integration suite about 80 s with coverage.
 
 Unit tests, by module under test:
 
@@ -274,6 +294,72 @@ Unit tests, by module under test:
 | `test_mmc_sd.c`                               | `mmc_core.c`, `mmc_sd.c`     | SD card model, `hal_model`       |
 | `test_imx_usdhc.c`                            | `imx_usdhc.c`, `mmc_core.c`  | uSDHC model, e.MMC and SD models |
 | `test_mmc_models.c`                           | the card models              | scripted host                    |
+| `test_bio_conformance.c`                      | the block device conformance | the RAM disk (512 B, 4 KiB, a    |
+|                                               | tests (`bio.md` 8)           | partition), the host's disk and  |
+|                                               |                              | flash                            |
+| `test_board.c`, `test_board_password`         | `board.c`, `password.c`: the | RoT, SLC, bio, boot, command     |
+|                                               | board's set up, with and     | mode; records the order          |
+|                                               | without the password method  |                                  |
+| `test_console.c`, `test_ramlog.c`             | `console.c`, `ramlog.c`      | the UART (fopencookie)           |
+| `test_linux_ramoops.c`                        | `linux_ramoops.c`: the log   | regions laid out as Linux 6.18's |
+|                                               | "linux"                      |                                  |
+| `test_imx_rom_log.c`, `test_imx_hab_log.c`    | `imx_rom_log.c`,             | the ROM's log; the HAB API in a  |
+|                                               | `imx_hab_log.c`              | fake RVT                         |
+| `test_imx8x_seco_log.c`                       | `plat/imx8x`'s SECO log      | the SCFW's two calls             |
+| `test_rot_slots.c`, `test_slc_no_eol.c`       | `rot.c`'s revoke slots;      | keystore, board callbacks        |
+|                                               | `slc.c` without              |                                  |
+|                                               | `CONFIG_SLC_EOL`             |                                  |
+| `test_snprintf.c`                             | pb's `snprintf()`,           | none                             |
+|                                               | `vsnprintf()` (as `pb_*`)    |                                  |
+| `test_tzc380.c`                               | `tzc380.c`                   | a register file in RAM           |
+| `test_imx_iomuxc.c`                           | `imx_iomuxc.c`: the pin      | `fakes/mmio`, records writes     |
+|                                               | tables                       |                                  |
+| `test_imx_ocotp.c`                            | `imx_ocotp.c`                | a model of the OCOTP (6UL RM 35) |
+| `test_imx_hab_fuses.c`                        | `imx_hab_fuses.c`: HABv4's   | OCOTP with the 6UL's layout      |
+|                                               | life cycle and revocation    |                                  |
+| `test_imx6ul_hab.c`                           | `plat/imx6ul/hab.c` with     | OCOTP; the ROM's vector table    |
+|                                               | `imx_hab_fuses.c` and the    | (`fakes/imx6ul_hab`, `-no-pie`)  |
+|                                               | 6UL's fuse map: the life     |                                  |
+|                                               | cycle, the key state, a      |                                  |
+|                                               | revocation HAB's status      |                                  |
+|                                               | refuses                      |                                  |
+| `test_imx8x_helpers.c`                        | `plat/imx8x`'s fuse, RoT and | the SCFW's fuse and SECO calls,  |
+|                                               | SLC helpers as the boards    | each can fail                    |
+|                                               | build them (no dry run)      |                                  |
+| `test_imx_caam.c`                             | `imx_caam.c`: RNG4's         | a model of the controller page   |
+|                                               | instantiation                | and one job ring                 |
+| `test_caam_crypto.c`                          | `imx_caam.c`'s hash and      | the CAAM model                   |
+|                                               | verify through the crypto    | (`models/caam_model.c`)          |
+|                                               | API, the conformance tests   |                                  |
+|                                               | (`crypto.md` 9)              |                                  |
+| `test_caam_lp256.c`                           | `imx_caam.c` on a CAAM with  | the CAAM model                   |
+|                                               | MDHA LP256 before era 10: no |                                  |
+|                                               | SHA-384/512                  |                                  |
+| `test_imx_flexspi.c`                          | `imx_flexspi.c` and bio      | a NOR flash behind the           |
+|                                               | against `bio.md` 3           | controller's registers           |
+| `test_imx8mp_ddr.c`                           | the i.MX8M Plus's DRAM init  | as `test_imx8m_ddr.c`: golden    |
+|                                               | (`ddr_imx8mp.c`)             | trace                            |
+| `test_plat_imx6ul.c`,                         | `plat/imx6ul/plat.c`,        | register file; the fuses, ROM    |
+| `test_plat_imx6ul_no_wdog`                    | `imx_gpt.c`, `imx_wdog.c`:   | logs, HAB, TZASC, MMU            |
+|                                               | the port against             |                                  |
+|                                               | `platform.md`, with and      |                                  |
+|                                               | without the watchdog         |                                  |
+| `test_plat_imx8m.c`                           | `plat/imx8m/plat.c` (the 8M  | register file, `fakes/armv8a`;   |
+|                                               | Plus), `imx_gpt.c`,          | the fuses, ROM logs, TZASC,      |
+|                                               | `imx_wdog.c`                 | clocks, DRAM training, MMU       |
+| `test_imx_wdog.c`                             | `imx_wdog.c` with the        | register file                    |
+|                                               | boards' values               |                                  |
+| `test_usbd.c`                                 | `usbd.c`, `pb_dev_cls.c`     | `fakes/usb_host.c`, a controller |
+|                                               | with a host on the bus:      | that plays the host              |
+|                                               | endpoint 0 (`usb.md` 3, 6),  |                                  |
+|                                               | transfers, bus reset, replug |                                  |
+| `test_imx_ci_udc.c`                           | `imx_ci_udc.c`: what it      | register file; models of the     |
+|                                               | queues and what the caller   | controller's side of a transfer  |
+|                                               | gets back                    | and of the cache                 |
+| `test_cdns3_udc.c`                            | `cdns3_udc_core.c`: the TRBs | register file                    |
+|                                               | of a bulk transfer and what  |                                  |
+|                                               | is cleaned from the cache    |                                  |
+|                                               | (`drivers.md` 4.2)           |                                  |
 
 Where the ports differ from the bash tests:
 - **Self-contained.** The bash tests depended on disk state and on the `/tmp/pb_force_command_mode`
