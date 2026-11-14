@@ -142,8 +142,15 @@ static const struct rom_log_event events_v2[] = {
     EV0(0xa1, "IVT header not valid"),
     EV2(0xc0, "Jump to boot image", P_HEX, P_TICK),
     EV0(0xd0, "Serial download"),
+    EV2(0xd1, "Jump to the serial download image", P_HEX, P_TICK),
     EV0(0xe0, "Internal use"),
     EV0(0xf0, "ROM exception handler"),
+};
+
+/* The i.MX8MQ's ROM, where it isn't the 8M Plus's (read on the pico8ml):
+ * authentication's result without a tick */
+static const struct rom_log_event events_v2_8mq[] = {
+    EV1(0xa0, "Authentication", P_AUTH),
 };
 
 struct rom_log_defs {
@@ -152,6 +159,12 @@ struct rom_log_defs {
     unsigned int id_shift;
     const struct rom_log_event *events;
     size_t n_events;
+    const struct rom_log_event *overrides; /* Looked up before 'events' */
+    size_t n_overrides;
+    /* A zero word inside the log: it ends at its last word that isn't
+     * zero. Else at its first zero word, after which a buffer may hold an
+     * earlier boot's events */
+    bool zero_inside;
 };
 
 static const struct rom_log_defs rom_log_defs[] = {
@@ -168,6 +181,16 @@ static const struct rom_log_defs rom_log_defs[] = {
         .id_shift = 24,
         .events = events_v2,
         .n_events = ARRAY_SIZE(events_v2),
+    },
+    {
+        .version = IMX_ROM_LOG_DEFS_V2_8MQ,
+        .id_mask = GENMASK_32(31, 24),
+        .id_shift = 24,
+        .events = events_v2,
+        .n_events = ARRAY_SIZE(events_v2),
+        .overrides = events_v2_8mq,
+        .n_overrides = ARRAY_SIZE(events_v2_8mq),
+        .zero_inside = true,
     },
 };
 
@@ -200,6 +223,11 @@ static uint32_t event_id(const struct rom_log_defs *defs, uint32_t word)
 static const struct rom_log_event *find_event(const struct rom_log_defs *defs, uint32_t word)
 {
     uint32_t id = event_id(defs, word);
+
+    for (size_t i = 0; i < defs->n_overrides; i++) {
+        if (defs->overrides[i].id == id)
+            return &defs->overrides[i];
+    }
 
     for (size_t i = 0; i < defs->n_events; i++) {
         if (defs->events[i].id == id)
@@ -301,6 +329,24 @@ static size_t print_event(char *line,
     return 1 + n_params;
 }
 
+/* The log's words where the ROM writes a zero inside it: up to its last
+ * word that isn't zero. Else all of them: the log ends at an event word that
+ * is zero (struct rom_log_defs), a parameter may be */
+static size_t log_end(const struct rom_log_defs *defs, const uint32_t *log, size_t n_words)
+{
+    if (defs->zero_inside) {
+        while (n_words > 0 && log[n_words - 1] == 0)
+            n_words--;
+    }
+    return n_words;
+}
+
+/* Whether the word at an event's place ends the log */
+static bool log_ends_at(const struct rom_log_defs *defs, uint32_t word)
+{
+    return word == 0 && !defs->zero_inside;
+}
+
 int imx_rom_log_decode(unsigned int version,
                        const uint32_t *log,
                        size_t n_words,
@@ -321,7 +367,9 @@ int imx_rom_log_decode(unsigned int version,
 
     pos += snprintf(out, out_size, "ROM log at 0x%08x\n", (unsigned int)log_addr);
 
-    for (size_t i = 0; i < n_words && log[i] != 0;) {
+    n_words = log_end(defs, log, n_words);
+
+    for (size_t i = 0; i < n_words && !log_ends_at(defs, log[i]);) {
         size_t len;
 
         if (out_size - pos < ROM_LOG_LINE_MAX) {
@@ -410,7 +458,9 @@ bool imx_rom_log_find(unsigned int version, const uint32_t *log, size_t n_words,
     if (defs == NULL)
         return false;
 
-    for (size_t i = 0; i < n_words && log[i] != 0; i++) {
+    n_words = log_end(defs, log, n_words);
+
+    for (size_t i = 0; i < n_words && !log_ends_at(defs, log[i]); i++) {
         const struct rom_log_event *ev = find_event(defs, log[i]);
 
         if (event_id(defs, log[i]) == event)

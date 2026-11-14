@@ -1565,6 +1565,18 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | scratchpad and the test bench's `cst` | | |
 | | | 2026-11-14: the dev container builds `mkimage_imx8m` from imx-mkimage `lf-6.6.23-2.0.0` (the test | | |
 | | | bench's version and hash); `make all` makes the pico8ml's `pb_signed.imx`, run on the board | | |
+| F-445 | `src/plat/imx8m/plat.c` | The i.MX8MQ's ROM log isn't found on the pico8ml | Seen (board) | fixed |
+| | | (`log rom`: not found, status "ROM logs none"). AN12853 Rev 2.0 has the mSCALE series' pointer | | |
+| | | at 0x9e0, which pb reads; the buffer is checked against the OCRAM at 0x900000, and the 8MQ's ROM | | |
+| | | may keep it in OCRAM_S or the TCM. Read the pointer on the board | | |
+| | | 2026-11-14, read on the pico8ml (its RAM log): "No ROM log (pointer 0xaa0003f8)", the word at | | |
+| | | 0x9e0 is no address. The 8MQ's ROM seems to keep no event log there: the platform should | | |
+| | | report none for the 8MQ rather than look | | |
+| | | 2026-11-15, the ROM dumped with a temporary command (`IMX8M_DEBUG_MEMDUMP`): the 8MQ's ROM has | | |
+| | | the log's pointer at 0x960 and its boot information's (Boot_SW_Info, RM 6.1.13, which says | | |
+| | | 0x1e8) at 0x968; the log is 64 words, in OCRAM, with a zero word inside it and authentication | | |
+| | | without a tick (`IMX_ROM_LOG_DEFS_V2_8MQ`), and event 0xd1, "Jump to the SDP boot image", | | |
+| | | AN12853 has. `log rom` on the pico8ml reads it whole | | |
 
 ## Dependencies / vendored code
 

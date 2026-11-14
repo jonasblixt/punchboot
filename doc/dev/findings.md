@@ -884,13 +884,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | where the RM has the controller's local addresses; OP-TEE's own TZC-380 and CSU set up after | | |
 | | | pb's; what jiffy's own test bench sets and this add-on doesn't (`CFG_NXP_CAAM`, | | |
 | | | `CFG_IMX_SNVS_NS_ACCESS`) | | |
-| F-445 | `src/plat/imx8m/plat.c` | The i.MX8MQ's ROM log isn't found on the pico8ml | Seen (board) | open |
-| | | (`log rom`: not found, status "ROM logs none"). AN12853 Rev 2.0 has the mSCALE series' pointer | | |
-| | | at 0x9e0, which pb reads; the buffer is checked against the OCRAM at 0x900000, and the 8MQ's ROM | | |
-| | | may keep it in OCRAM_S or the TCM. Read the pointer on the board | | |
-| | | 2026-11-14, read on the pico8ml (its RAM log): "No ROM log (pointer 0xaa0003f8)", the word at | | |
-| | | 0x9e0 is no address. The 8MQ's ROM seems to keep no event log there: the platform should | | |
-| | | report none for the 8MQ rather than look | | |
 | F-447 | `include/plat/imx8m/fusebox.h` | The i.MX8M's SLC (2026-11-14) rests on public sources | Reported | open |
 | | | that don't all agree: the 8MQ's SRK_REVOKE at bank 9 word 3 is its RM's OCOTP register, while its | | |
 | | | fuse map calls 0x670 reserved; the 8M Plus's SEC_CONFIG and SRK_HASH are NXP's U-Boot's, its | | |

@@ -64,6 +64,7 @@ uint8_t plat_bl_params[PLAT_BL_PARAMS_SIZE] __section(".data") __aligned(PLAT_BL
 
 const char *platform_ns_uuid = "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
 
+
 static const mmap_region_t imx_mmap[] = {
     /* UMCTL2 state, at the start of the DRAM */
     MAP_REGION_FLAT(DDR_CSD1_BASE_ADDR, (128 * 1024), MT_MEMORY | MT_RW),
@@ -170,13 +171,20 @@ void plat_wdog_kick(void)
     imx_wdog_kick(IMX8M_WDOG1_BASE);
 }
 
-/* The ROM log, AN12853 Tables 11 and 13. It's in the ROM's part of the OCRAM, below pb */
+/* The ROM log, AN12853 Tables 11 and 13. It's in the ROM's part of the OCRAM,
+ * below pb. The 8MQ's is 64 words: its boot information (Boot_SW_Info) is
+ * 0x100 bytes after it (the pointers at ROM 0x960 and 0x968, mm.h) */
 static const struct imx_rom_log_config rom_log_cfg = {
     .pointer = IMX8M_ROM_LOG_POINTER,
     .ram_start = IMX8M_OCRAM_BASE,
     .ram_end = IMX8M_OCRAM_BASE + IMX8M_OCRAM_SIZE,
+#ifdef CONFIG_PLAT_IMX8MQ
+    .words = 64,
+    .defs = IMX_ROM_LOG_DEFS_V2_8MQ,
+#else
     .words = 128,
     .defs = IMX_ROM_LOG_DEFS_V2,
+#endif
 };
 
 /* The HAB API. 64-bit pointers; the address is U-Boot's (the RMs don't have
@@ -604,3 +612,4 @@ int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size)
 
     return PB_OK;
 }
+
