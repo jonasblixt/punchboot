@@ -1,31 +1,3 @@
-choice IMX8X_CM_USB
-    bool "Command mode's USB port"
-    depends on PLAT_IMX8X_COMMON && CM
-    help
-        The USB device port command mode uses. plat_cm_init() sets up its
-        power, its clocks, its PHY and its controller when command mode
-        starts (platform.md 3.10).
-
-config IMX8X_CM_USB3
-    bool "USB 3.0 (i.MX8QXP)"
-    depends on PLAT_IMX8X
-    select DRIVER_USB_DEVICE
-    select DRIVER_USB_PB_CLS
-    select DRIVER_IMX_CDNS3_UDC
-    help
-        The Cadence USB3 controller with its PHY, the SCFW's SC_R_USB_2.
-
-config IMX8X_CM_USB_OTG2
-    bool "USB OTG2 (i.MX8DXL)"
-    depends on PLAT_IMX8XL
-    select DRIVER_USB_DEVICE
-    select DRIVER_USB_PB_CLS
-    select DRIVER_IMX_USB2_PHY
-    select DRIVER_IMX_CI_UDC
-    help
-        The second ChipIdea controller with its PHY, the SCFW's SC_R_USB_1.
-endchoice
-
 menu "imx8x configuration"
     depends on PLAT_IMX8X_COMMON
     comment "imx8x configuration"

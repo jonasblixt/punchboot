@@ -68,18 +68,3 @@ config CM_AUTH_PASSWORD
     depends on CM_AUTH
     help
         Authenticate using a password. This requires a board level implementation.
-
-config SLC_EOL
-    bool "End of life (EOL) as a life cycle state the device can enter"
-    default n
-    depends on CM
-    help
-        The product's choice (system.md 4). On: SLC_SET_EOL moves the device
-        to the SoC's end of life state through the port's set_eol, where the
-        port has one. It can't be undone, and command mode is open again in
-        that state (D-011).
-
-        Off, the default: the device can't enter EOL. SLC_SET_EOL answers
-        NOT_SUPPORTED and slc_set_eol() calls nothing of the port's
-        (command-mode.md 4.5, 5.2). A device that is in EOL already still
-        reads as that.

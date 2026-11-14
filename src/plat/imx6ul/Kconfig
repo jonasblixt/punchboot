@@ -1,21 +1,3 @@
-choice IMX6UL_CM_USB
-    bool "Command mode's USB port"
-    depends on PLAT_IMX6UL && CM
-    help
-        The USB device port command mode uses. plat_cm_init() sets up its
-        clocks, its PHY and its controller when command mode starts
-        (platform.md 3.10).
-
-config IMX6UL_CM_USB_OTG1
-    bool "USB OTG1"
-    select DRIVER_USB_DEVICE
-    select DRIVER_USB_PB_CLS
-    select DRIVER_IMX_USB2_PHY
-    select DRIVER_IMX_CI_UDC
-    help
-        USB OTG1, the port of the ROM's serial downloader.
-endchoice
-
 menu "Output image"
     depends on PLAT_IMX6UL
 

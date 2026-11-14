@@ -678,6 +678,8 @@ Not the platform's to declare:
   (`ARCH_ARMV7`, `ARCH_ARMV8`, `ARCH_ARMV7M`) and the vendor's `SOC_FAMILY_*`; a family's common
   symbol selects its drivers.
 - `src/plat/<p>/Kconfig`: the platform's options, among them the image stages' (6.2).
+- `src/plat/<p>/Kconfig.cm`: the choice of command mode's USB port (3.10), shown in the Command
+  mode menu.
 
 ### 6.2 Image stages
 

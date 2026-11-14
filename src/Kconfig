@@ -1,12 +1,26 @@
 mainmenu "Punchboot configuration"
 
+menu "Architecture"
 source "src/arch/Kconfig"
+source "src/arch/*/Kconfig"
+endmenu
+
 source "src/plat/Kconfig"
+
 # The board being built (BOARD, see the Makefile), if it has options
 osource "$(BOARD)/Kconfig"
-source "src/arch/*/Kconfig"
 
-menu "Generic options"
+menu "Boot"
+source "src/boot/Kconfig"
+endmenu
+
+menu "Command mode"
+source "src/cm/Kconfig"
+# The platform's choice of the USB port (platform.md 3.10)
+osource "src/plat/*/Kconfig.cm"
+endmenu
+
+menu "Keys and life cycle"
 
 config KEYSTORE
 	string "Key-store source"
@@ -31,6 +45,25 @@ config SRK_FUSE
         signed with, for a board that fuses the SRK hash in
         slc_set_configuration() (include/pb/srk_fuse.h).
 
+config SLC_EOL
+    bool "End of life (EOL) as a life cycle state the device can enter"
+    default n
+    depends on CM
+    help
+        The product's choice (system.md 4). On: SLC_SET_EOL moves the device
+        to the SoC's end of life state through the port's set_eol, where the
+        port has one. It can't be undone, and command mode is open again in
+        that state (D-011).
+
+        Off, the default: the device can't enter EOL. SLC_SET_EOL answers
+        NOT_SUPPORTED and slc_set_eol() calls nothing of the port's
+        (command-mode.md 4.5, 5.2). A device that is in EOL already still
+        reads as that.
+
+endmenu
+
+menu "Logging"
+
 config LOGLEVEL
 	int "loglevel"
     default 0
@@ -39,18 +72,9 @@ config LOGLEVEL
         warnings and info, 3 also debug. With CONFIG_RAMLOG the RAM log has
         the levels up to CONFIG_RAMLOG_LOGLEVEL (include/pb/log_def.h).
 
-config ENABLE_WATCHDOG
-	bool "Enable watchdog"
-    default y
-
 config PRINT_BOOT_BANNER
     bool "Print boot banner"
     default y
-
-config WATCHDOG_TIMEOUT
-    int "Watchdog timeout (s)"
-    default 5
-    depends on ENABLE_WATCHDOG
 
 config RAMLOG
     bool "Keep a copy of the console output in RAM"
@@ -98,6 +122,23 @@ config RAMLOG_SYNC
         from outside (JTAG, FEL, a RAM dump after a warm reset). This costs
         two cache line cleans per character.
 
+endmenu
+
+menu "Core"
+
+comment "Watchdog"
+
+config ENABLE_WATCHDOG
+	bool "Enable watchdog"
+    default y
+
+config WATCHDOG_TIMEOUT
+    int "Watchdog timeout (s)"
+    default 5
+    depends on ENABLE_WATCHDOG
+
+comment "Limits"
+
 config CRYPTO_MAX_HASH_OPS
     int "Maximum number of hash drivers"
     default 1
@@ -117,6 +158,16 @@ config BIO_MAX_BLOCK_SIZE
         A block device with larger blocks is refused when it is registered
         (bio.md 2.3).
 
+endmenu
+
+menu "Drivers"
+source "src/drivers/*/Kconfig"
+endmenu
+
+source "src/lib/Kconfig"
+
+menu "Build"
+
 choice EXECUTE
     bool "Execute from"
 config EXECUTE_IN_RAM
@@ -124,10 +175,6 @@ config EXECUTE_IN_RAM
 config EXECUTE_IN_FLASH
     bool "FLASH (XIP)"
 endchoice
-
-endmenu
-
-menu "Build configuration"
 
 config OPTIMIZE
     string "Optimize level"
@@ -145,17 +192,3 @@ config LINK_FILE
     default "src/link_flash.lds" if EXECUTE_IN_FLASH
 
 endmenu
-
-menu "Boot"
-source "src/boot/Kconfig"
-endmenu
-
-menu "Drivers"
-source "src/drivers/*/Kconfig"
-endmenu
-
-menu "Command mode"
-source "src/cm/Kconfig"
-endmenu
-
-source "src/lib/Kconfig"
