@@ -296,8 +296,8 @@ device with no table on it (`board.md` 2.4).
 - **A table that is installed is in effect at once** (Jonas, D-070). `command-mode.md` 5.3 asks
   it: the commands that follow the install see the new partitions. A partition's handle is
   kept where `bio` can't see it: command mode's stream, the boot source policy, a board's own
-  variables (the host board's fuse box keeps one from `late_init()`). So the rule starts
-  with the handle:
+  variables (no board in the tree keeps one now; the host board's fuse box, which did, is a
+  device of the host platform's own since F-217). So the rule starts with the handle:
   1. **A handle never comes to mean another partition.** A partition that the new table
      leaves unchanged, with the same UUID and the same blocks, keeps its handle and its
      flags. One that changed or is gone is released: its handle is dead, `-PB_ERR_PARAM` for

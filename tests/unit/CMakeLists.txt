@@ -196,10 +196,11 @@ pb_unit_test(test_ab_state SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
 )
 
-# A/B's speculative mode (boot.md 3.6) isn't in pb-host: the host has no
-# watchdog, which CONFIG_BOOT_AB_SPECULATIVE depends on. Its test is the same
-# file and module built with the symbol, which changes nothing else in the
-# build; what A/B does with a viable candidate runs in both
+# A/B's speculative mode (boot.md 3.6) isn't in pb-host: host_defconfig has no
+# watchdog, which CONFIG_BOOT_AB_SPECULATIVE depends on (pb-host-speculative,
+# from host_speculative_defconfig, has the host's watchdog fake and the mode).
+# Its test is the same file and module built with the symbol, which changes
+# nothing else in the build; what A/B does with a viable candidate runs in both
 add_executable(test_ab_state_speculative test_ab_state.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
