@@ -12,9 +12,11 @@
 
 #include <getopt.h>
 #include <plat/host/host.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/prctl.h>
 
 void pb_main(void);
 
@@ -74,6 +76,19 @@ static void usage(const char *name)
            "                           usb, uart or debugger (default: not supported)\n"
            "  -h, --help               Show this help\n",
            name);
+}
+
+/*
+ * pb-host ends with the process that started it: the tests that drive it
+ * can be killed (a timeout, an interrupt), and nothing else stops a pb-host
+ * that waits for a host (F-067)
+ */
+static void end_with_the_parent(void)
+{
+    if (prctl(PR_SET_PDEATHSIG, SIGKILL) != 0) {
+        perror("prctl");
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main(int argc, char **argv)
@@ -138,6 +153,7 @@ int main(int argc, char **argv)
         }
     }
 
+    end_with_the_parent();
     pb_main();
 
     /* pb_main ends with plat_reset(), which exits */
