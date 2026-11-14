@@ -48,6 +48,7 @@ bump is for the porting API. Each item's history is in `log/`.
      configuration): the 8MP EVK runs it from BOOT0, normal and verbose command lines seen.
      D-079 (`5c55b9ff`): the board's memory left Kconfig for its `makefile.mk`, the six
      `pb.bin` unchanged. D-080: the Kconfig menus by subject, drivers by what the SoC has.
+     D-081: `BOOT_AB_DRIVER` gone. D-082: the RAM log always at debug, no sync mode.
    - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,

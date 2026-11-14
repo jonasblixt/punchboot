@@ -100,6 +100,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 |       |                                                  | use                                                |
 | D-080 | Kconfig by subject; drivers by what the SoC has  | In force                                           |
 | D-081 | `BOOT_AB_DRIVER` is gone                         | In force                                           |
+| D-082 | The RAM log has every level, unsynchronized      | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -1940,3 +1941,21 @@ defconfig with `BOOT_AB_DRIVER` still gets A/B".
 Why: the tree's boards used a name that existed only for old configurations, and `porting.md`
 tells a port to copy the closest defconfig. A 2.x board's `board.c` is ported anyway, and
 without the option the failure is a link error, not a silent difference.
+
+## D-082: The RAM log has every level, and no synchronized mode (2026-11-14)
+
+Jonas: Linux's ramoops belongs in Logging, not Boot; remove the "Synchronized RAM log", "we
+already have that with the normal log prints"; remove the RAM log level, "it should always print
+on debug level so we have all the info in the ram log".
+
+- **`RAMLOG_LOGLEVEL` is gone**: with `CONFIG_RAMLOG` every level up to debug is compiled in
+  (`LOG_MAX_LEVEL` 3, `pb/log_def.h`), and the levels above `LOGLEVEL` go to the RAM log alone.
+  Every in-tree defconfig with the RAM log had 3. The cost stays what it was for them: debug
+  adds about 8 KiB over info on jiffy, and the debug messages are formatted on every boot.
+- **`RAMLOG_SYNC` is gone**, with `ramlog_sync()`: the RAM log writes no cache line clean. A
+  reader from outside (JTAG, FEL, a RAM dump) reads what has reached RAM; the UART has the same
+  lines as they are written. The header still starts a cache line, the data follows it.
+- **The ramoops options move to the Logging menu**, under their names.
+
+Why: one RAM log configuration that always has the whole story; two options fewer that no board
+in the tree used other than as the default.
