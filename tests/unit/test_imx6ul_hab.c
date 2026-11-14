@@ -198,32 +198,6 @@ static void test_fuse_map(void **state)
 #undef FUSE_ADDR
 }
 
-/* hab_secureboot_active() reads SEC_CONFIG's closed bit. Nothing in the
- * tree calls it: the SLC's state is imx_hab_slc_read_status()'s */
-static void test_secureboot_active(void **state)
-{
-    bool closed = true;
-    (void)state;
-
-    assert_int_equal(hab_secureboot_active(&closed), PB_OK);
-    assert_false(closed);
-
-    /* BT_FUSE_SEL is in the same word and isn't the closed bit */
-    SEC_CONFIG = IMX6UL_FUSE_BT_FUSE_SEL;
-    assert_int_equal(hab_secureboot_active(&closed), PB_OK);
-    assert_false(closed);
-
-    SEC_CONFIG |= IMX6UL_FUSE_SEC_CONFIG_CLOSED;
-    assert_int_equal(hab_secureboot_active(&closed), PB_OK);
-    assert_true(closed);
-
-    /* A failed read: not closed, and an error */
-    read_rc = -PB_ERR_TIMEOUT;
-    closed = true;
-    assert_int_equal(hab_secureboot_active(&closed), -PB_ERR_IO);
-    assert_false(closed);
-}
-
 /* What the ROM's status gives: only HAB_SUCCESS is no error, whatever the
  * part's configuration and state */
 static void test_status(void **state)
@@ -392,7 +366,6 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_fuse_map, setup),
-        cmocka_unit_test_setup(test_secureboot_active, setup),
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_events, setup),
         cmocka_unit_test_setup(test_life_cycle, setup),

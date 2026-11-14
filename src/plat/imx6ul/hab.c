@@ -7,58 +7,11 @@
  *
  */
 
-#include <drivers/fuse/imx_ocotp.h>
 #include <pb/pb.h>
-#include <plat/imx6ul/fusebox.h>
 #include <plat/imx6ul/hab.h>
-#include <stdbool.h>
 #include <stdio.h>
 
 static uint8_t _event_data[128];
-
-#define MAX_RECORD_BYTES (8 * 1024) /* 4 kbytes */
-
-struct record {
-    uint8_t tag; /* Tag */
-    uint8_t len[2]; /* Length */
-    uint8_t par; /* Version */
-    uint8_t contents[MAX_RECORD_BYTES]; /* Record Data */
-    bool any_rec_flag;
-};
-
-static inline uint8_t get_idx(uint8_t *list, uint8_t tgt)
-{
-    uint8_t idx = 0;
-    int8_t element = list[idx];
-
-    while (element != -1) {
-        if (element == tgt)
-            return idx;
-        element = list[++idx];
-    }
-    return -1;
-}
-
-int hab_secureboot_active(bool *result)
-{
-    uint32_t reg;
-    int ret;
-
-    (*result) = false;
-
-    ret = imx_ocotp_read(IMX6UL_FUSE_SEC_CONFIG_BANK, IMX6UL_FUSE_SEC_CONFIG_WORD, &reg);
-
-    if (ret != PB_OK) {
-        LOG_ERR("Secure boot fuse read error");
-        return -PB_ERR_IO;
-    }
-
-    if (reg & IMX6UL_FUSE_SEC_CONFIG_CLOSED) {
-        (*result) = true;
-    }
-
-    return PB_OK;
-}
 
 int hab_has_no_errors(void)
 {

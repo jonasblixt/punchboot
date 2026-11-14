@@ -190,7 +190,6 @@ typedef void hapi_clock_init_t(void);
 #define IVT_SIZE        0x20
 #define CSF_PAD_SIZE    0x2000
 
-int hab_secureboot_active(bool *result);
 int hab_has_no_errors(void);
 
 #endif
