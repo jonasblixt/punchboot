@@ -891,10 +891,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14, read on the pico8ml (its RAM log): "No ROM log (pointer 0xaa0003f8)", the word at | | |
 | | | 0x9e0 is no address. The 8MQ's ROM seems to keep no event log there: the platform should | | |
 | | | report none for the 8MQ rather than look | | |
-| F-446 | `src/plat/imx8m/makefile.mk`, the dev container | The i.MX8MQ's image is made with NXP's | Reported | open |
-| | | `mkimage_imx8m` (imx-mkimage `iMX8M/`), which neither the host nor the container has: CI builds | | |
-| | | `pb.bin` only. The pico8ml's image was made and signed by hand with a build of it in the | | |
-| | | scratchpad and the test bench's `cst` | | |
 
 ## Dependencies / vendored code
 

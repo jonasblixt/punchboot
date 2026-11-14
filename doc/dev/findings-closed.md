@@ -1559,6 +1559,12 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-14 (`3b65ac38`): `revoke_slots` 3 on the 6UL, the 8M and the RT, 4 on the 8X; `unrevocable` | | |
 | | | at offset 1 of the SLC result; NOT_SUPPORTED from `rot_revoke_key()`; the build warns. Host tests only: | | |
 | | | no board in the tree has a key above its slots, and the MEK runs no SLC command | | |
+| F-446 | `src/plat/imx8m/makefile.mk`, the dev container | The i.MX8MQ's image is made with NXP's | Reported | fixed |
+| | | `mkimage_imx8m` (imx-mkimage `iMX8M/`), which neither the host nor the container has: CI builds | | |
+| | | `pb.bin` only. The pico8ml's image was made and signed by hand with a build of it in the | | |
+| | | scratchpad and the test bench's `cst` | | |
+| | | 2026-11-14: the dev container builds `mkimage_imx8m` from imx-mkimage `lf-6.6.23-2.0.0` (the test | | |
+| | | bench's version and hash); `make all` makes the pico8ml's `pb_signed.imx`, run on the board | | |
 
 ## Dependencies / vendored code
 
