@@ -1,0 +1,5 @@
+# The OP-TEE add-on (configs/jiffy-optee.fragment): the TEE subsystem and
+# OP-TEE's driver, which finds OP-TEE through the /firmware/optee node
+# OP-TEE adds to the device tree
+CONFIG_TEE=y
+CONFIG_OPTEE=y

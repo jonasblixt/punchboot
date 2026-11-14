@@ -17,12 +17,26 @@ PUNCHBOOT_DEPENDENCIES = host-bpak host-python3 host-python-cryptography host-ub
 PUNCHBOOT_BOARD = $(call qstrip,$(BR2_TARGET_PUNCHBOOT_BOARD))
 PUNCHBOOT_CONFIG_FILE = $(or $(call qstrip,$(BR2_TARGET_PUNCHBOOT_CONFIG_FILE)),configs/$(PUNCHBOOT_BOARD)_defconfig)
 PUNCHBOOT_BUILD_DIR = build-$(PUNCHBOOT_BOARD)
+PUNCHBOOT_CONFIG_FRAGMENTS = $(call qstrip,$(BR2_TARGET_PUNCHBOOT_CONFIG_FRAGMENT_FILES))
+
+# A test bench add-on's fragments, after the configuration: the build reads
+# the two together, from the build directory
+ifneq ($(PUNCHBOOT_CONFIG_FRAGMENTS),)
+PUNCHBOOT_KCONFIG = $(PUNCHBOOT_BUILD_DIR)/testbench_defconfig
+define PUNCHBOOT_MERGE_CONFIG
+	mkdir -p $(@D)/$(PUNCHBOOT_BUILD_DIR)
+	cat $(@D)/$(PUNCHBOOT_CONFIG_FILE) $(PUNCHBOOT_CONFIG_FRAGMENTS) > $(@D)/$(PUNCHBOOT_KCONFIG)
+endef
+PUNCHBOOT_PRE_BUILD_HOOKS += PUNCHBOOT_MERGE_CONFIG
+else
+PUNCHBOOT_KCONFIG = $(PUNCHBOOT_CONFIG_FILE)
+endif
 
 # The keys come from the board's makefile.mk and the HAB keys from the
 # punchboot configuration, by default the test keys in pki/ of the sources.
 PUNCHBOOT_MAKE_OPTS = \
 	BOARD=src/board/$(PUNCHBOOT_BOARD) \
-	KCONFIG_CONFIG=$(PUNCHBOOT_CONFIG_FILE) \
+	KCONFIG_CONFIG=$(PUNCHBOOT_KCONFIG) \
 	CROSS_COMPILE=$(TARGET_CROSS) \
 	PYTHON=$(HOST_DIR)/bin/python3 \
 	BPAK=$(HOST_DIR)/bin/bpak \

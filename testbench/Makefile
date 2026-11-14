@@ -3,6 +3,10 @@
 #
 #   make                      imx8mpevk, in output/imx8mpevk
 #   make BOARD=jiffy          configs/jiffy_defconfig, in output/jiffy
+#   make BOARD=jiffy ADDON=optee
+#                             an add-on: configs/jiffy_defconfig and
+#                             configs/jiffy-optee.fragment, in
+#                             output/jiffy-optee
 #
 # Other targets are passed to Buildroot, e.g.
 # `make BOARD=jiffy menuconfig`, `make BOARD=jiffy savedefconfig`.
@@ -16,7 +20,8 @@ BR_URL = https://buildroot.org/downloads/$(BR_TARBALL)
 TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 BR_DIR = $(TOP)/buildroot-$(BR_VERSION)
 BOARD ?= imx8mpevk
-O ?= $(TOP)/output/$(BOARD)
+ADDON ?=
+O ?= $(TOP)/output/$(BOARD)$(if $(ADDON),-$(ADDON))
 DEFCONFIG ?= $(BOARD)_defconfig
 
 # Shared between Buildroot versions and boards
@@ -27,8 +32,18 @@ BR_MAKE = $(MAKE) -C $(BR_DIR) O=$(O) BR2_EXTERNAL=$(TOP)
 all: $(O)/.config
 	$(BR_MAKE)
 
+ifeq ($(ADDON),)
 $(O)/.config: | $(BR_DIR)/Makefile
 	$(BR_MAKE) $(DEFCONFIG)
+else
+# The board's defconfig with the add-on's fragment after it: a later value
+# wins
+ADDON_DEFCONFIG = $(O)/addon_defconfig
+$(O)/.config: $(TOP)/configs/$(DEFCONFIG) $(TOP)/configs/$(BOARD)-$(ADDON).fragment | $(BR_DIR)/Makefile
+	mkdir -p $(O)
+	cat $^ > $(ADDON_DEFCONFIG)
+	$(BR_MAKE) BR2_DEFCONFIG=$(ADDON_DEFCONFIG) defconfig
+endif
 
 $(DEFCONFIG): | $(BR_DIR)/Makefile
 	$(BR_MAKE) $(DEFCONFIG)

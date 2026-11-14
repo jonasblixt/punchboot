@@ -10,6 +10,9 @@
 #
 #     atf      TF-A BL31 (aarch64 boards). punchboot starts it with the
 #              kernel as BL33 (src/boot/atf.c)
+#     tee      OP-TEE's tee-raw.bin (jiffy with the OP-TEE add-on,
+#              configs/jiffy-optee.fragment). punchboot enters it with the
+#              kernel's entry as the normal world's (src/boot/optee.c)
 #     kernel   Linux
 #     dt       the device tree
 #     ramdisk  kickstart.cpio.gz, the initramfs with kickstart as /init
@@ -117,6 +120,14 @@ add_part() {
 
 if [ -n "${ATF}" ]; then
     add_part atf "${ATF_ADDR}" "${ATF}"
+fi
+# OP-TEE, when the build has it: its load address is init_load_addr_lo in
+# the tee.bin (v1) header
+if [ -f "${BINARIES_DIR}/tee-raw.bin" ]; then
+    [ "$(od -An -tx4 -N4 "${BINARIES_DIR}/tee.bin" | tr -d ' ')" = "4554504f" ] ||
+        die "tee.bin has no OP-TEE header"
+    TEE_ADDR=0x$(od -An -tx4 -j16 -N4 "${BINARIES_DIR}/tee.bin" | tr -d ' ')
+    add_part tee "${TEE_ADDR}" "${BINARIES_DIR}/tee-raw.bin"
 fi
 add_part kernel "${KERNEL_ADDR}" "${KERNEL}"
 add_part dt "${DT_ADDR}" "${DT}"

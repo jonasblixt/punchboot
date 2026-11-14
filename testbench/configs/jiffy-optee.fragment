@@ -1,0 +1,23 @@
+# The OP-TEE add-on for jiffy: `make BOARD=jiffy ADDON=optee`, in
+# output/jiffy-optee. OP-TEE before Linux through punchboot's OP-TEE
+# delivery (boot.md 5.7, BOOT_DELIVERY_OPTEE in src/board/jiffy/board.c):
+# punchboot enters tee-raw.bin, the part "tee", with the zImage's entry in lr,
+# and OP-TEE enters Linux there. No CFG_NS_ENTRY_ADDR: the entry is
+# punchboot's. OP-TEE grows the device tree in place to CFG_DTB_MAX_SIZE,
+# which board.c gives punchboot (128 KiB).
+
+BR2_TARGET_OPTEE_OS=y
+BR2_TARGET_OPTEE_OS_PLATFORM="imx"
+BR2_TARGET_OPTEE_OS_PLATFORM_FLAVOR="mx6ulevk"
+BR2_TARGET_OPTEE_OS_ADDITIONAL_VARIABLES="CFG_DDR_SIZE=0x40000000 CFG_UART_BASE=UART2_BASE CFG_DTB_MAX_SIZE=0x20000"
+BR2_TARGET_OPTEE_OS_CORE_IMAGES="tee.bin tee-raw.bin"
+
+# The normal world's side: tee-supplicant and xtest
+BR2_PACKAGE_OPTEE_CLIENT=y
+BR2_PACKAGE_OPTEE_TEST=y
+
+# The kernel's TEE driver, on top of jiffy's fragments
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/linux.fragment $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/jiffy/linux.fragment $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/jiffy/linux-optee.fragment"
+
+# punchboot with the delivery
+BR2_TARGET_PUNCHBOOT_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/jiffy/punchboot-optee.fragment"

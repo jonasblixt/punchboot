@@ -74,6 +74,23 @@ After a new commit of bpak, rebuild what used the host tool:
 Building imx8mpevk extracts firmware-imx and accepts NXP's EULA, imx8qxmek the same for
 imx-sc-firmware and imx-seco.
 
+### Add-ons
+
+An add-on is a board's defconfig with a fragment after it, `configs/<board>-<addon>.fragment`,
+built in `output/<board>-<addon>`:
+
+```sh
+make BOARD=jiffy ADDON=optee   # jiffy with OP-TEE, in output/jiffy-optee
+```
+
+- **`optee`** (jiffy): OP-TEE 4.9.0 (mx6ulevk, jiffy's 1 GiB, UART2) before Linux, through
+  punchboot's OP-TEE delivery (`boot.md` 5.7, `CONFIG_BOOT_OPTEE` from
+  `board/jiffy/punchboot-optee.fragment`). `boot.bpak` gets the part `tee`, OP-TEE's
+  `tee-raw.bin` at its load address; punchboot enters it with the zImage's entry, and OP-TEE
+  adds its nodes to the device tree (128 KiB, `CFG_DTB_MAX_SIZE`) and enters Linux. Linux has
+  the TEE driver (`board/jiffy/linux-optee.fragment`), the root file system tee-supplicant and
+  xtest. punchboot's pb from it boots the plain `boot.bpak` too, directly.
+
 ## Output (`output/<board>/images/`)
 
 | File                                  |                                                                             |
@@ -476,7 +493,7 @@ Everything is signed with punchboot's **test** keys (`pki/`):
 
 ```
 Makefile                 fetches Buildroot, builds output/<board>
-configs/                 <board>_defconfig
+configs/                 <board>_defconfig, <board>-<addon>.fragment (add-ons)
 board/common/
   linux.fragment         kickstart's kernel options (initramfs, dm-verity, squashfs)
   patches/               BR2_GLOBAL_PATCH_DIR: kernel hashes
@@ -489,6 +506,8 @@ board/imx8mpevk/
 board/jiffy/
   dts/                   imx6ul-jiffy.dts (from jiffy's test bench)
   linux.fragment         on top of imx_v6_v7_defconfig
+  linux-optee.fragment   the OP-TEE add-on: the TEE driver
+  punchboot-optee.fragment  the OP-TEE add-on: CONFIG_BOOT_OPTEE
   patches/linux/         FAN5355 regulator support
 boot/punchboot/          punchboot from this tree (BR2_TARGET_PUNCHBOOT)
 package/

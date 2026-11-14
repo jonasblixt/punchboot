@@ -22,6 +22,14 @@ config BR2_TARGET_PUNCHBOOT_CONFIG_FILE
 	  Path to a punchboot Kconfig file. Leave empty to use
 	  configs/<board>_defconfig from the punchboot sources.
 
+config BR2_TARGET_PUNCHBOOT_CONFIG_FRAGMENT_FILES
+	string "punchboot configuration fragments"
+	help
+	  Space separated punchboot Kconfig fragments, appended to the
+	  configuration file in this order: a later value wins. For a
+	  test bench add-on, e.g. the OP-TEE delivery on jiffy
+	  (configs/jiffy-optee.fragment).
+
 config BR2_TARGET_PUNCHBOOT_IMX_HAB
 	bool "HAB/AHAB signed image (NXP CST)"
 	select BR2_PACKAGE_HOST_IMX_CST
