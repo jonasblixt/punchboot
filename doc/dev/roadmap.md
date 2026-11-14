@@ -211,7 +211,7 @@ To discuss (Jonas):
   build accepts (`command-mode.md` 5.9).
 - PyPI trusted publishing (F-228).
 - bpak format extensions. Only backward compatible ones (D-008).
-- Low prio: move the whole repo to `jonas@blxt.se`. Simple part: the copyright headers that still
-  say `jonpe960@gmail.com` (one commit). Rewriting the history of the ~1000 old commits would
-  change every hash and tag (the PyPI releases point at tags), so decide that separately. The
-  Coverity upload in `build.yml` also uses the old email and the `jonpe960/punchboot` project.
+- Low prio: move the whole repo to `jonas@blxt.se`. The files are moved (2026-11-14: the
+  copyright headers, the licenses, the Coverity upload's email). Left: rewriting the history of
+  the ~1000 old commits would change every hash and tag (the PyPI releases point at tags), so
+  decide that separately; the Coverity project is still `jonpe960/punchboot`.

@@ -105,7 +105,7 @@ jobs:
           curl \
             --form project=jonpe960%2Fpunchboot \
             --form token=$TOKEN \
-            --form email=jonpe960@gmail.com \
+            --form email=jonas@blxt.se \
             --form file=@pb.tgz \
             --form version=master \
             --form description="punchboot" \

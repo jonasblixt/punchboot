@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonas@blxt.se>
  * Copyright (C) 2023 Marten Svanfeldt <marten.svanfeldt@actia.se>
  *
  * SPDX-License-Identifier: BSD-3-Clause

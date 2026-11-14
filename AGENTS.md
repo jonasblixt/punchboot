@@ -69,8 +69,7 @@ Skip unless the task is about them: `pki/` (test keys), vendored code
 - Tests: `scripts/pbdev test` (~10 s once built). Firmware: `scripts/pbdev firmware jiffy`.
 - Release: bump `version.txt`, then tag `vX.Y.Z` on master. The tag publishes to PyPI.
 - Author email is `jonas@blxt.se`: commits and the copyright header of new files
-  (`Copyright (C) <year> Jonas Blixt <jonas@blxt.se>`). Don't copy the old `jonpe960@gmail.com`
-  from existing headers.
+  (`Copyright (C) <year> Jonas Blixt <jonas@blxt.se>`).
 - A new board that runs Linux (or a Linux board new to the test bench) gets a test bench defconfig,
   and both lists in `testbench/README.md`, "Adding a board", are done for it without being asked:
   bring-up, then boot time (measure, slim kernel and DTS, `initcall_debug`, compression), each step measured

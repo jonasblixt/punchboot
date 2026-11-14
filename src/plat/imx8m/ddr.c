@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonas@blxt.se>
  * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
  * Copyright 2018-2023 NXP
  *
