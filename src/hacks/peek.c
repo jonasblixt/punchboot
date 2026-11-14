@@ -71,7 +71,8 @@ static int parse_number(const char **p, const char *end, uint64_t *out)
     return PB_OK;
 }
 
-static int peek(const uint8_t *request, size_t request_size, uint8_t *response, size_t *response_size)
+static int
+peek(const uint8_t *request, size_t request_size, uint8_t *response, size_t *response_size)
 {
     const char *p = (const char *)request;
     const char *end = p + request_size;
