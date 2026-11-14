@@ -897,3 +897,18 @@ pb_unit_test(test_snprintf SOURCES
     ${PROJECT_SOURCE_DIR}/src/lib/libc/snprintf.c
 )
 target_compile_definitions(test_snprintf PRIVATE snprintf=pb_snprintf vsnprintf=pb_vsnprintf)
+
+# --- Coverage of what a board builds and no host test reached (F-230) ---
+
+# The i.MX6UL's HAB helpers with the 6UL's fuse map and the HABv4 driver. The
+# ROM's vector table is the test's (fakes/imx6ul_hab): its functions are
+# called through 32 bit pointers, so -no-pie
+pb_unit_test(test_imx6ul_hab SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/hab.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_hab_fuses.c
+)
+target_include_directories(test_imx6ul_hab BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/imx6ul_hab
+)
+target_compile_options(test_imx6ul_hab PRIVATE -fno-pie)
+target_link_options(test_imx6ul_hab PRIVATE -no-pie)
