@@ -211,3 +211,78 @@ def test_named_command_request(tmp_path: pathlib.Path) -> None:
     assert result.exit_code == 2
     assert "at most 1024" in result.output
     assert FakeSession.calls == []
+
+
+TWO_DEVICES = [str(uuid.UUID(int=1)), str(uuid.UUID(int=2))]
+SLC_WRITES = [
+    ("slc", "configure", "--force"),
+    ("slc", "lock", "--force"),
+    ("slc", "eol", "--force"),
+    ("slc", "revoke-key", "0x1234", "--force"),
+]
+
+
+@pytest.fixture
+def two_devices(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli_main, "list_usb_devices", lambda: list(TWO_DEVICES))
+
+
+@pytest.mark.usefixtures("two_devices")
+@pytest.mark.parametrize("args", SLC_WRITES, ids=lambda a: a[1])
+def test_slc_write_with_two_devices_and_no_uuid_is_refused(args: tuple[str, ...]) -> None:
+    # F-227: the first device was used, for a write that can't be undone
+    result = run(*args)
+
+    assert result.exit_code == 1
+    assert "More than one device is attached" in result.output
+    for uu in TWO_DEVICES:
+        assert uu in result.output
+    assert "-u" in result.output
+    assert FakeSession.opened == []
+    assert FakeSession.calls == []
+
+
+@pytest.mark.usefixtures("two_devices")
+@pytest.mark.parametrize("args", SLC_WRITES, ids=lambda a: a[1])
+def test_slc_write_with_two_devices_and_a_uuid(
+    monkeypatch: pytest.MonkeyPatch, args: tuple[str, ...]
+) -> None:
+    result = run("-u", TWO_DEVICES[1], *args)
+
+    assert result.exit_code == 0, result.output
+    assert FakeSession.opened == [{"device_uuid": uuid.UUID(TWO_DEVICES[1])}]
+    assert len(FakeSession.calls) == 1
+
+    # PB_DEVICE_UUID names it too
+    FakeSession.opened = []
+    monkeypatch.setenv("PB_DEVICE_UUID", TWO_DEVICES[0])
+    result = run(*args)
+    assert result.exit_code == 0, result.output
+    assert FakeSession.opened == [{"device_uuid": uuid.UUID(TWO_DEVICES[0])}]
+
+
+@pytest.mark.parametrize("args", SLC_WRITES, ids=lambda a: a[1])
+def test_slc_write_with_one_device_uses_it(
+    monkeypatch: pytest.MonkeyPatch, args: tuple[str, ...]
+) -> None:
+    monkeypatch.setattr(cli_main, "list_usb_devices", lambda: TWO_DEVICES[:1])
+    result = run(*args)
+
+    assert result.exit_code == 0, result.output
+    assert "More than one" not in result.output
+    assert FakeSession.opened == [{"device_uuid": None}]
+    assert len(FakeSession.calls) == 1
+
+
+@pytest.mark.usefixtures("two_devices")
+@pytest.mark.parametrize(
+    "args", [("slc", "show"), ("dev", "show"), ("part", "list"), ("dev", "reset")]
+)
+def test_other_commands_with_two_devices_use_the_first(args: tuple[str, ...]) -> None:
+    # As they did: a warning, and the first device
+    FakeSession.result = []
+    result = run(*args)
+
+    assert f"Warning: More than one device is attached, using: {TWO_DEVICES[0]}" in result.output
+    assert FakeSession.opened == [{"device_uuid": None}]
+    assert FakeSession.calls

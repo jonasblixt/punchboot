@@ -142,7 +142,19 @@ def _open_session(**kwargs: Any) -> Session:  # noqa: ANN401
 
 def pb_session(f: TFunc) -> TFunc:
     """Punchboot Session setup decorator."""
+    return _session(f, irreversible=False)
 
+
+def pb_session_irreversible(f: TFunc) -> TFunc:
+    """Session setup for a command that can't be undone: the slc writes.
+
+    With more than one device attached and none named, the CLI doesn't pick
+    the first: it lists them and asks for -u (F-227).
+    """
+    return _session(f, irreversible=True)
+
+
+def _session(f: TFunc, *, irreversible: bool) -> TFunc:
     @click.pass_context
     def new_func(ctx: click.Context, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         device_uuid: uuid.UUID | None = ctx.obj["device-uuid"]
@@ -153,6 +165,13 @@ def pb_session(f: TFunc) -> TFunc:
                 logger.debug("Using USB transport")
                 if device_uuid is None:
                     attached = list_usb_devices()
+                    if len(attached) > 1 and irreversible:
+                        devices = "".join(f"\n  {uu}" for uu in attached)
+                        msg = (
+                            f"More than one device is attached:{devices}\n"
+                            "This can't be undone: name the device with -u"
+                        )
+                        raise click.ClickException(msg)
                     if len(attached) > 1:
                         click.echo(
                             f"Warning: More than one device is attached, using: {attached[0]}"
@@ -736,7 +755,7 @@ def slc_show(_ctx: click.Context, s: Session) -> None:
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
-@pb_session
+@pb_session_irreversible
 @click.pass_context
 def slc_configure(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC configure."""
@@ -748,7 +767,7 @@ def slc_configure(_ctx: click.Context, s: Session, force: bool) -> None:
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
-@pb_session
+@pb_session_irreversible
 @click.pass_context
 def slc_lock(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC configuration lock."""
@@ -760,7 +779,7 @@ def slc_lock(_ctx: click.Context, s: Session, force: bool) -> None:
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
-@pb_session
+@pb_session_irreversible
 @click.pass_context
 def slc_eol(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC end of life."""
@@ -773,7 +792,7 @@ def slc_eol(_ctx: click.Context, s: Session, force: bool) -> None:
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
-@pb_session
+@pb_session_irreversible
 @click.pass_context
 def slc_revoke_key(_ctx: click.Context, s: Session, key_id: str, force: bool) -> None:
     """Revoke a key."""
