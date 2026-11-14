@@ -244,20 +244,54 @@ keys, and CAAM's MID for OP-TEE.
 
 ## 6. Image stages
 
-| Port   | Container                           | Image header           | Signing                   | Today in        |
-| ------ | ----------------------------------- | ---------------------- | ------------------------- | --------------- |
-| imx6ul | `mkimage -T imximage`, the board's  | IVT at                 | HABv4 CSF, CST; a serial  | jiffy           |
-|        | DCD                                 | `PB_ENTRY - 0xC00`     | download CSF (0x00910000) |                 |
-| imx8m  | `mkimage -T imx8mimage`             | 8MQ: `PB_ENTRY - 0x40` | HABv4 CSF (8MQ)           | the boards      |
-| imx8x  | `mkimage_imx8`, the SCFW, the AHAB  | -                      | AHAB CSF, CST             | MEK, DXL (same) |
-|        | container                           |                        |                           |                 |
-| imxrt  | `mkimage -T imximage`, a flash      | -                      | -                         | the board       |
-|        | image: FCB at 0, the image at 4 KiB |                        |                           |                 |
-|        | (FCB from the board's NOR)          |                        |                           |                 |
+| Port   | Container                           | Image header           | Signing                   |
+| ------ | ----------------------------------- | ---------------------- | ------------------------- |
+| imx6ul | `mkimage -T imximage`, the board's  | IVT at                 | HABv4 CSF, CST; a serial  |
+|        | DCD                                 | `PB_ENTRY - 0xC00`     | download CSF (0x00910000) |
+| imx8m  | 8MQ: NXP's `mkimage_imx8m`; 8MP:    | 8MQ: `PB_ENTRY - 0x40` | HABv4 CSF (8MQ)           |
+|        | `mkimage -T imx8mimage`             |                        |                           |
+| imx8x  | `mkimage_imx8`, the SCFW, the AHAB  | -                      | AHAB CSF, CST (8QXP)      |
+|        | container                           |                        |                           |
+| imxrt  | `mkimage -T imximage`, a flash      | -                      | -                         |
+|        | image: FCB at 0, the image at 4 KiB |                        |                           |
+|        | (FCB from the board's NOR)          |                        |                           |
 
-Outputs today: `pb.imx`, `pb.csf`, `pb_signed.imx` (`pb_signed_uuu.imx` on the 6UL), the RT's
-`pb_flash.bin`. Kconfig: `IMX6UL_CREATE_IMX_IMAGE`, `IMX6UL_SIGN_IMAGE`, `IMX8X_*`. Signing inputs
-are Kconfig strings on the 6UL, make variables on the 8X (F-240).
+The stages are in `src/plat/<p>/makefile.mk` (`platform.md` 6.2), their files in `$(BUILD_DIR)`:
+
+| Stage               | Kconfig                    | Makes                                                   |
+| ------------------- | -------------------------- | ------------------------------------------------------- |
+| `imx6ul_image`      | `IMX6UL_CREATE_IMX_IMAGE`  | `pb.imx`                                                |
+| `imx6ul_sign_desc`  | `IMX6UL_SIGN_IMAGE`        | `pb.csf`; `pb_uuu.csf` for the serial downloader        |
+| `imx6ul_sign_image` | `IMX6UL_SIGN_IMAGE`        | `pb_csf.bin`, `pb_signed.imx` (two zero blocks before); |
+|                     |                            | `pb_csf_uuu.bin`, `pb_signed_uuu.imx`                   |
+| `imx8m_image`       | `IMX8M_CREATE_IMX_IMAGE`   | `pb.imx`; 8MQ: `pb_pad.bin`, `pb_pad.imx`               |
+| `imx8m_sign_desc`   | `IMX8M_SIGN_IMAGE` (8MQ)   | `pb.csf`                                                |
+| `imx8m_sign_image`  | `IMX8M_SIGN_IMAGE` (8MQ)   | `pb_csf.bin`, `pb_signed.imx`                           |
+| `imx8x_image`       | `IMX8X_CREATE_IMX_IMAGE`   | `pb.imx`                                                |
+| `imx8x_sign_desc`   | `IMX8X_SIGN_IMAGE`         | `pb.csf`; on the DXL it stops the build (not supported) |
+| `imx8x_sign_image`  | `IMX8X_SIGN_IMAGE`         | `pb_signed.imx`                                         |
+| `imxrt_image`       | `IMXRT_CREATE_IMX_IMAGE`   | `pb.imx`                                                |
+| `imxrt_flash_image` | `IMXRT_CREATE_FLASH_IMAGE` | `fcb.bin`, `pb_flash.bin`                               |
+
+`FINAL_OUTPUT` is the signed image, else `pb.imx` (the RT: `pb_flash.bin`). The inputs, make
+variables set with `?=`:
+
+| Port   | Inputs                                                                                    |
+| ------ | ----------------------------------------------------------------------------------------- |
+| all    | `CST_TOOL` (`cst`): the 6UL calls it `--o <out> --i <description>`, the 8M and 8X         |
+|        | `-i <description> -o <out>`                                                               |
+| imx6ul | `MKIMAGE`; `IMX6UL_IMAGE_CFG`, the board's `imximage.cfg` (the DCD); `IMX6UL_SRK_TABLE`,  |
+|        | `IMX6UL_KEY_INDEX`, `IMX6UL_SIGN_CERT`, `IMX6UL_IMAGE_SIGN_CERT`                          |
+| imx8m  | `MKIMAGE` (8MQ: `mkimage_imx8m`); `IMX8M_BOOT_FROM` (8MP, `sd`); `IMX8M_SRK_TABLE`,       |
+|        | `IMX8M_KEY_INDEX`, `IMX8M_SIGN_CERT`, `IMX8M_IMAGE_SIGN_CERT`                             |
+| imx8x  | `IMX8X_MKIMAGE`; `IMX8X_AHAB_IMAGE` (the SECO firmware, per variant); `IMX8X_SCFW_IMAGE`, |
+|        | the board's; `IMX8X_BOOT_DEVICE` (`emmc_fast`); `IMX8X_SRK_TABLE`, `IMX8X_SIGN_CERT`,     |
+|        | `IMX8X_KEY_INDEX`, `IMX8X_KEY_REVOKE_MASK`                                                |
+| imxrt  | `MKIMAGE`; `IMXRT_IMAGE_CFG`, the board's `imximage.cfg`; `IMXRT_FCB_SRC`, the board's    |
+|        | FCB: a C file with its 512 bytes in `.fcb`                                                |
+
+The keys default to the Kconfig strings of the same names. A board at level 3 starts from `pb.bin`,
+linked at `PB_ENTRY` and entered at its first byte, and puts around it what the first table says.
 
 ## 7. Conformance
 
@@ -296,5 +330,5 @@ Where each port is (2026-11-11).
 | `plat_init()`                        |              |                   | RNG)       | TLS)      |               |
 | MMU from `pb_mmu_init()`             | no           | no                | no         | n/a       | F-158         |
 | Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
-| Image stages                         | no           | no                | no         | no        | F-240         |
+| Image stages                         | yes          | yes               | yes        | yes       | F-240         |
 | `<p>_plat()` accessor                | yes          | no                | yes        | no        |               |

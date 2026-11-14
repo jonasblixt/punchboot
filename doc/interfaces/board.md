@@ -664,9 +664,6 @@ aren't the board's data (`system.md` 6):
 selected the device tree code: a board that is ported sets the handover's option with it, or it
 doesn't link.
 
-**Not yet in the code (F-240)**: the boards hold the SoC's image recipes; `platform.md` 6.2
-moves them to the platform.
-
 ## 8. Fixed once a product ships
 
 A board's product in the field relies on these like on the wire (D-008, `system.md` 5.1). A board

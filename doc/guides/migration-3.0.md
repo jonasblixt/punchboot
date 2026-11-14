@@ -6,7 +6,7 @@ change in a board of the tree, and names the decision or the contract's section 
 
 3.0.0 is a major release for the porting API (D-018). The wire protocol and the bpak format
 didn't change (D-008): a board that is ported answers the hosts it answered and boots the
-images it booted. Section 19 lists what to check for that.
+images it booted. Section 20 lists what to check for that.
 
 "2.x" is the tag `v2.7.1`, the last release. The excerpts are jiffy's and the MEK's
 (`src/board/jiffy/board.c`, `src/board/imx8qxmek/board.c`) at that tag and now, shortened; where
@@ -31,11 +31,12 @@ neither has the code, another board's or the header's, and the section says whic
 | 13      | The keys, the life cycle and the fuses                  | D-027                  |
 | 14      | What a board includes and asks the platform             | D-056, `board.md` 6    |
 | 15      | Kconfig and the defconfig, with the board's addresses   | `board.md` 7           |
-| 16      | An out-of-tree driver                                   | `drivers.md`           |
-| 17      | An out-of-tree platform                                 | D-030, `platform.md`   |
-| 18      | `pb/dma.h`, and not in the code yet: two changes that   | D-066, F-247, F-240,   |
-|         | change a board again, and one that is added             | F-269                  |
-| 19      | Before the ported pb goes to a device in the field      | `board.md` 8           |
+| 16      | The image stages are the platform's                     | `platform.md` 6.2      |
+| 17      | An out-of-tree driver                                   | `drivers.md`           |
+| 18      | An out-of-tree platform                                 | D-030, `platform.md`   |
+| 19      | `pb/dma.h`, and not in the code yet: one change that    | D-066, F-247, F-269    |
+|         | changes a board again, and one that is added            |                        |
+| 20      | Before the ported pb goes to a device in the field      | `board.md` 8           |
 
 ## 1. The board is `const struct board board`
 
@@ -86,7 +87,7 @@ const struct board board = {
 ```
 
 - `init()` keeps the hardware the boot needs: the storage, and for now the crypto engine
-  (section 18.1). It returns an error only for what the boot can't go on without; the rest is
+  (section 19.1). It returns an error only for what the boot can't go on without; the rest is
   logged and reported with `board_report_degraded()` (`board.md` 2.3).
 - A step that fails stops the boot and not command mode (`board.md` 2.1). In 2.x a failed
   `board_init()` left command mode without a boot driver.
@@ -370,7 +371,7 @@ the tree has one; the host board's table (`src/board/host/board.c`):
 - The custom source has no replacement: it was the one way around the core's verification
   (D-035).
 - Where the arch has an MMU the mapped range must be in the map: the platform's, or the board's
-  `mmap` (section 18.4).
+  `mmap` (section 19.3).
 
 Rests on: D-035, D-048, `board.md` 2.4, `boot.md` 4.1.
 
@@ -519,7 +520,7 @@ DEFINE_COMMAND("test", "Answers with a greeting", cmd_test);
 - `cm_board_cmd_request_reboot_on_success()` is `cm_request_reset_on_success()`. A command
   that returns `-PB_ERR_ABORT` no longer resets the device: the error is the host's answer.
 - jiffy's `dump-rom-log` isn't a command any more: the ROM's log is a log (`punchboot log rom`).
-- A link script of the board's own keeps the section `pb_commands` (section 17).
+- A link script of the board's own keeps the section `pb_commands` (section 18).
 - A released command's name, id and bytes are fixed (`board.md` 8).
 
 Rests on: D-076, `command-mode.md` 5.6.
@@ -542,7 +543,7 @@ DEFINE_TASK(cm_main, cm_main_task);
 
 - `run` returns `PB_OK` to be called again. An error ends the loop, and pb resets.
 - A task returns quickly, takes no input from the host and relies on no order (`board.md` 4.5).
-- A link script of the board's own keeps the section `pb_tasks` (section 17).
+- A link script of the board's own keeps the section `pb_tasks` (section 18).
 
 Rests on: D-051, `board.md` 4.5.
 
@@ -711,7 +712,7 @@ CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
   through a pointer: `int rot_no_of_keys(size_t *count)`,
   `int rot_key_idx_to_id(unsigned int index, key_id_t *id)`.
 
-This wiring changes once more: section 18.1.
+This wiring changes once more: section 19.1.
 
 Rests on: D-027, `board.md` 3, 6 and 8.
 
@@ -827,6 +828,8 @@ its default (`platform.md` 6.2). Compare the defconfig with the closest one in `
 | `LITTLE_FS`, `STACK_USAGE`,            |                                                   |
 | `IMX_USDHC_XTRA_DEBUG`,                |                                                   |
 | `IMX6UL_MKIMAGE_TOOL`, `IMXRT_FLASH`   |                                                   |
+| None                                   | The image stages' options and keys of the 8M, the |
+|                                        | 8X and the RT (section 16)                        |
 
 - The build stops when `KCONFIG_CONFIG` names no file. 2.x built the Kconfig defaults.
 - A board's own `Kconfig` is read from its directory (`board.md` 7). The MEK's `choice BOARD`
@@ -856,8 +859,8 @@ CONFIG_PB_BUFFERS_BASE=0x81021000
 CONFIG_PB_BUFFERS_SIZE=0xfdf000
 ```
 
-- The three lines leave `makefile.mk`, and its recipes read `$(CONFIG_PB_ENTRY)`. The rest of
-  the file is as in 2.x, for now (section 18.2).
+- The three lines leave `makefile.mk`. Its recipes leave it too: they are the platform's
+  (section 16).
 - `BOARD_RAM_BASE` and `BOARD_RAM_END` are still defined for C, by the Makefile, from the two
   DRAM values.
 - The platform's link script checks the values: pb is where the ROM may load it, its buffers
@@ -866,7 +869,84 @@ CONFIG_PB_BUFFERS_SIZE=0xfdf000
 
 Rests on: `board.md` 7, `platform.md` 5.1.
 
-## 16. An out-of-tree driver
+## 16. The image stages are the platform's
+
+**Was.** The board's `makefile.mk` held the SoC's recipes: the container for the ROM, the
+signing description and the signing, each a target in `plat-y`. The MEK and the DXL EVK each had
+a copy of the 8X's. `FINAL_OUTPUT` was set with `$(eval)` in the recipes. The keys were Kconfig
+strings on the 6UL and make variables in the boards on the 8M and the 8X.
+
+**Is.** The platform's `makefile.mk` has the stages, `<p>_image`, `<p>_sign_desc` and
+`<p>_sign_image`, each behind a Kconfig option, in `image-y`, and sets `FINAL_OUTPUT` when it is
+read. The board's `makefile.mk` is read first and gives what is the board's: on the i.MX ports
+the DCD or the system controller's firmware. The defconfig turns the stages on and names the
+keys. jiffy:
+
+2.x, `makefile.mk` (the recipes shortened):
+
+```
+CST_TOOL ?= cst
+MKIMAGE ?= mkimage
+
+PB_CSF_TEMPLATE = src/plat/imx6ul/pb.csf.template
+PB_UUU_CSF_TEMPLATE = src/plat/imx6ul/pb_uuu.csf.template
+PB_SRK_TABLE = $(patsubst "%",%,$(CONFIG_IMX6UL_SRK_TABLE))
+...
+src-y += $(BOARD)/board.c
+
+imx6ul_image: $(BUILD_DIR)/$(TARGET).bin
+	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
+				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx
+	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
+
+imx6ul_sign_image: imx6ul_image
+	$(eval PB_FILESIZE=$(shell stat -c%s "${BUILD_DIR}/pb.imx"))
+	...
+	@$(CST_TOOL) --o $(BUILD_DIR)/pb_csf.bin --i $(BUILD_DIR)/pb.csf
+	...
+	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET)_signed.imx)
+
+plat-$(CONFIG_IMX6UL_CREATE_IMX_IMAGE) += imx6ul_image
+plat-$(CONFIG_IMX6UL_SIGN_IMAGE) += imx6ul_sign_image
+```
+
+3.0.0, `makefile.mk`:
+
+```
+src-y += $(BOARD)/board.c
+```
+
+The defconfig's lines are those of 2.x, but `CONFIG_IMX6UL_MKIMAGE_TOOL`, which is gone
+(section 15):
+
+```
+CONFIG_IMX6UL_CREATE_IMX_IMAGE=y
+CONFIG_IMX6UL_SIGN_IMAGE=y
+CONFIG_IMX6UL_SRK_TABLE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
+CONFIG_IMX6UL_KEY_INDEX=0
+CONFIG_IMX6UL_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
+CONFIG_IMX6UL_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
+```
+
+- The recipes leave `makefile.mk`. A board that keeps one of the platform's target names
+  gets the platform's recipe and a warning from make; one that still fills `plat-y` stops the
+  build, which names `image-y`.
+- The stages make the files of 2.x's recipes, with the same names (`plat-imx.md` 6). The DXL
+  EVK's stages are `imx8x_*`, where they were `imx8xl_*`.
+- New options in the defconfig: the 8M's `IMX8M_CREATE_IMX_IMAGE` (default y),
+  `IMX8M_SIGN_IMAGE` (the 8MQ, default n) and its keys; the 8X's keys, `IMX8X_SRK_TABLE`,
+  `IMX8X_SIGN_CERT`, `IMX8X_KEY_INDEX` and `IMX8X_KEY_REVOKE_MASK`; the RT's
+  `IMXRT_CREATE_IMX_IMAGE` and `IMXRT_CREATE_FLASH_IMAGE` (default y). The make variables of the
+  keys' names still win, from the command line or the board's `makefile.mk`.
+- What the board gives on each i.MX port, and the stages' other inputs, the tools among them:
+  `plat-imx.md` 6. The MEK sets `IMX8X_SCFW_IMAGE`, the RT1060 EVK `IMXRT_FCB_SRC`.
+- A product that signs elsewhere overrides at one of `platform.md` 6.2's levels, in its own
+  files: its own `CST_TOOL`; signing off and its own target after `<p>_image` in `image-y`,
+  with its `FINAL_OUTPUT`; or both options off and its own tooling from `pb.bin`.
+
+Rests on: D-018, `platform.md` 6.2, `board.md` 7.
+
+## 17. An out-of-tree driver
 
 `drivers.md` is what every driver does; `bio.md`, `crypto.md` and `usb.md` are the three
 classes with a contract. A driver that was written for 2.x is read against their checklists
@@ -949,11 +1029,11 @@ checked five of the nine. A driver with one transfer for all its endpoints says 
   past it.
 
 Each of them that does DMA goes through `pb/dma.h`, and the cores refuse a buffer a device
-writes that doesn't start on a cache line: section 18.3.
+writes that doesn't start on a cache line: section 19.2.
 
 Rests on: D-018, D-064 to D-073, `drivers.md`, `bio.md`, `crypto.md`, `usb.md`.
 
-## 17. An out-of-tree platform
+## 18. An out-of-tree platform
 
 2.x had no platform contract. `platform.md` is one, and a port is read against its checklist
 (`platform.md` 8); `plat-imx.md` shows how the i.MX ports meet it. `<pb/plat.h>` from 2.x to
@@ -998,14 +1078,14 @@ Rests on: D-018, D-064 to D-073, `drivers.md`, `bio.md`, `crypto.md`, `usb.md`.
 
 Rests on: D-030, D-053, `platform.md`.
 
-## 18. `pb/dma.h`, and not in the code yet
+## 19. `pb/dma.h`, and not in the code yet
 
-`pb/dma.h` (18.3) came into the code last, and is written as the sections above are. The other
-three are changes that the contracts decided and the code doesn't have yet: 18.1 and 18.2 change
-a board's files again, 18.4 is new and optional. What each of them will ask is the contract's
+`pb/dma.h` (19.2) came into the code last, and is written as the sections above are. The other
+two are changes that the contracts decided and the code doesn't have yet: 19.1 changes a
+board's files again, 19.3 is new and optional. What each of them will ask is the contract's
 text today; the names can still move with the code.
 
-### 18.1 The RoT, the SLC and the crypto engine move to the platform
+### 19.1 The RoT, the SLC and the crypto engine move to the platform
 
 **Not yet in the code (F-247)**: the board sets `rot` and `slc` to the SoC's functions, and
 its `init()` sets up the crypto engine and its RNG (section 13, jiffy's `board_hw_init()`).
@@ -1021,16 +1101,7 @@ What `platform.md` 2.2, 4.1 and 4.2 ask of a board, and the branch does:
   the SoC's crypto engine and RNG behind a Kconfig option. A board that needs the software
   implementation turns the option off in its defconfig.
 
-### 18.2 The build's stages
-
-**Not yet in the code (F-240)**: the boards hold the SoC's image recipes.
-
-What `platform.md` 6.2 will ask of a board: the recipes that package and sign pb leave its
-`makefile.mk`. The platform provides the stages (`<p>_image`, `<p>_sign_desc`,
-`<p>_sign_image`), each behind a Kconfig option. The board sets their inputs, and overrides a
-stage at one of three levels.
-
-### 18.3 `pb/dma.h`
+### 19.2 `pb/dma.h`
 
 **Was.** A driver whose device reads or writes memory included its arch's header
 (`<arch/arch.h>`) and called `arch_clean_cache_range()` and `arch_invalidate_cache_range()`
@@ -1110,7 +1181,7 @@ PB_DMA_ARRAY(usdhc_adma2_tbl, tbls, USDHC_MAX_INSTANCES);
 
 Rests on: D-065, D-066, `drivers.md` 4, `bio.md` 3.1, `usb.md` 2.3.
 
-### 18.4 The board's `mmap`
+### 19.3 The board's `mmap`
 
 **Not yet in the code (F-269)**: `struct board` has no `mmap`.
 
@@ -1119,7 +1190,7 @@ didn't map (a device on an external bus, a memory mapped flash) lists it as data
 `PB_MAP_DEVICE()`, `PB_MAP_MEMORY_RO()` and `PB_MAP_MEMORY_RW()` from `<pb/mmu.h>`. A board that
 needs no such memory doesn't change.
 
-## 19. Before the ported pb goes to a device in the field
+## 20. Before the ported pb goes to a device in the field
 
 The port is done when the board passes `board.md` 9. A product in the field also keeps what
 `board.md` 8 fixes. What the sections above can change by mistake:
@@ -1135,4 +1206,4 @@ The port is done when the board passes `board.md` 9. A product in the field also
 - Whether the factory's flow relies on a boot from storage after a serial download
   (section 12).
 - On a SoC with a TrustZone DRAM filter: that the filter is out of bypass when pb's
-  preconditions are checked, or pb refuses every boot (section 17).
+  preconditions are checked, or pb refuses every boot (section 18).

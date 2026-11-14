@@ -21,7 +21,8 @@ make BOARD=src/board/<x> KCONFIG_CONFIG=configs/<x>_defconfig CROSS_COMPILE=<arm
 - `keystore.c` is generated with the host `bpak` CLI (`$(BPAK) generate keystore`) from `CONFIG_KEYSTORE`,
   default `pki/internal_keystore.bpak`. It can be overridden on the make command line (`CONFIG_KEYSTORE=...`).
 - Outputs go to `build-<board>/`: `pb`, `pb.bin` and `pb.map`.
-- The default `all` target also builds the platform images (`.imx`, signed with NXP `cst`).
+- The default `all` target also makes the platform's image stages that the defconfig turns on
+  (`.imx`, signed with NXP `cst`; `platform.md` 6.2, the i.MX ports' in `plat-imx.md` 6).
   `mkimage` (u-boot-tools) and `cst` (imx-code-signing-tool 3.4.1) are in the container. jiffy
   builds and signs with the HAB test keys in `pki/`. The other boards also need vendor blobs that
   aren't in the container.

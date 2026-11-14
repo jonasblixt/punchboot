@@ -642,8 +642,6 @@ Not the platform's to declare:
 
 ### 6.2 Image stages
 
-**Not yet in the code (F-240)**: the boards hold the recipes.
-
 `src/plat/<p>/makefile.mk` provides the SoC's stages, in `$(BUILD_DIR)`:
 
 | Stage               | Target           | In, out                               | Kconfig            |

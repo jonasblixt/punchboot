@@ -40,7 +40,7 @@ defconfig holds. jiffy's:
 | --------------- | -------------------------------------------------------------------------- |
 | `board.c`       | `const struct board board` and its hooks                                   |
 | `partitions.h`  | The partitions' UUIDs                                                      |
-| `makefile.mk`   | `src-y`, and the recipes that package and sign pb for the ROM              |
+| `makefile.mk`   | `src-y`: the platform packages and signs pb for the ROM                    |
 | `imximage.cfg`  | The DCD: the register writes the i.MX6UL's ROM does before it loads pb,    |
 |                 | the DRAM's set up among them                                               |
 | `openocd.cfg`   | For `scripts/pbdebug`                                                      |
@@ -53,9 +53,11 @@ defconfig holds. jiffy's:
    platform's default doesn't fit (`platform.md` 5.1; the load windows of the i.MX ports are
    `plat-imx.md` 5). jiffy: pb at 0x80001000 with 1 MiB, and 1 GiB of DRAM from 0x80000000.
    The link fails when pb or its buffers aren't where they may be.
-3. Get the SoC's container around `pb.bin`, so that the ROM loads it (`platform.md` 6.2,
-   `plat-imx.md` 6). The recipes are in the boards today (F-240): jiffy's `makefile.mk` has the
-   i.MX6UL's.
+3. Get the SoC's container around `pb.bin`, so that the ROM loads it: the platform's stages,
+   turned on in the defconfig with the keys, and their inputs from the board (`platform.md` 6.2,
+   `plat-imx.md` 6). jiffy's are the options `IMX6UL_CREATE_IMX_IMAGE` and `IMX6UL_SIGN_IMAGE`
+   with the HAB keys, and its DCD, `imximage.cfg`, which the stage finds in the board's
+   directory.
 4. Build: `make BOARD=<path> KCONFIG_CONFIG=<defconfig> CROSS_COMPILE=<prefix>`
    (`build-and-test.md`).
 
@@ -287,8 +289,7 @@ The order, with what shows that each step works:
   the core (D-027).
 - What a failure of the platform means, and why it resets where a board's failure doesn't:
   `platform.md` 2.
-- The build's stages and what a board may override: `platform.md` 6.2. The recipes are in the
-  boards today (F-240).
+- The build's stages and what a board may override: `platform.md` 6.2.
 
 Then:
 
