@@ -60,11 +60,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | partly fixed |
 | | | revoke one, although HAB has `SRK_REVOKE` there too. `work-3.0.0-plat`: it | | |
 | | | reads `SRK_REVOKE` (`imx_hab_fuses.c`); the EVK board doesn't revoke or lock. | | |
-| F-171 | `testbench/simple/src/main.c` | The boot time test reported one boot of 3262 s (it fails | Plausible | open |
-| | | over 1 s) and passed when run again. The time is the clock at entry minus the | | |
-| | | reset time kept in the RT1060's persistent words. A series that didn't end (no | | |
-| | | magic cleared) leaves them set: the next series' first boot takes the old reset | | |
-| | | time. 3262 s is about the time since the previous boot time run. Not verified. | | |
 | F-172 | `src/drivers/usb/cdns3_udc_core.c` (the MEK) | Writes reset the MEK now and then: a | Verified | open |
 | | | small `part write` after a large one, or the first write right after the board | | |
 | | | comes up ("Generic error", then the board resets, a watchdog reset into the ROM | | |
@@ -144,6 +139,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-209 | `src/link.lds:60-67` | The stack is directly above `.keystore_key`; on the RT1060 (no | Reported | open |
 | | | MPU region, 4 KiB stack, software ECDSA) an overflow rewrites a root-of-trust key silently. | | |
 | | | `.vector_handlers` is an orphan section placed after `_code_end`, outside the overlap check (F-157). | | |
+| | | 2026-11-14 (`eac22242`, `6ec60648`): `.vector_handlers` is an output section of the link script's, | | |
+| | | and an assert keeps the stack directly above `.ro_data` where an MMU maps that read only. Left: the | | |
+| | | RT1060, where a guard needs an MPU region (code in `src/arch/armv7m`, 32 bytes of stack) or a | | |
+| | | reorder that moves every symbol after the stack | | |
 | F-210 | arch/plat, low | v7m: CACR.FORCEWT never cleared at the handover, VTOR never set to pb's | Reported | open |
 | | | table. 6UL: PLL1 raised without writing CACRR.ARM_PODF (F-148 class), SRSR never cleared (stale reset | | |
 | | | reason). Exception policy differs per arch, v8 handlers run on the faulting stack and hang by default. | | |
@@ -157,9 +156,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | time. | | |
 | F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
-| F-217 | `src/board/host/board.c`, `test_fuse_bio.c` | The host board's fuses are on a GPT | Reported | open |
-| | | partition and load in `late_init`: with a bad GPT a locked host device reads as open, the opposite of | | |
-| | | real boards, so the D-026 order can't be tested end to end. | | |
 | F-218 | boards, low | `IMX8X_FUSE_DRY_RUN` doesn't gate | Reported | open |
 | | | `sc_seco_commit()`/`forward_lifecycle()`. The shared `default_command` changed the 8X boards' answer | | |
 | | | from OK to NOT_SUPPORTED (`board.md` 8: fixed for a product in the field). Board data isn't | | |
@@ -205,18 +201,15 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | a changelog, SECURITY.md. Nothing on storage, USB or exceptions (the overview that lacked them is | | |
 | | | removed, D-062); `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
 | | | step 4. | | |
-| F-239 | link scripts | `PB_ENTRY` repeated as a constant in | Verified (code) | open |
-| | | `src/plat/{imx6ul,imx8x}/link.lds` and `src/board/imxrt1060evk/link.lds` (0x80001000, 0x80020000, | | |
-| | | 0x20249000); the RT's `MEMORY` is in its board. `buffers` fixed in the platforms, `BOARD_RAM_*` only `-D` | | |
-| | | flags, `PB_RAM_LENGTH` set by hand although it follows from the ROM's load window and `PB_ENTRY`. Nothing | | |
-| | | checks at link time that pb is where the ROM may load it, `buffers` in working memory, or that they don't | | |
-| | | overlap. `platform.md` 5.1: Kconfig values, `BOARD_DRAM_*`, the `pb` region, `ASSERT`s | | |
-| | | 2026-11-13, from F-259: the Firmware Handoff region is checked at link time against `ram` and | | |
-| | | `buffers` only; that it lies in working memory needs the board's DRAM here too | | |
 | F-240 | `src/board/*/makefile.mk` | The SoC's packaging and signing are in the boards: | Verified (code) | open |
 | | | jiffy holds the 6UL CSF recipe (IVT at `PB_ENTRY - 0xC00`, uuu's 0x00910000), the MEK and DXL repeat the 8X | | |
 | | | recipe. `FINAL_OUTPUT` is set with `$(eval)` in recipes. Signing inputs are Kconfig on the 6UL, make | | |
 | | | variables on the 8X. `platform.md` 6.2 | | |
+| | | 2026-11-14: not started. The plan from F-239's package: create and sign options per platform that | | |
+| | | default to what is built today (the 8X's inputs as Kconfig strings), the recipes in | | |
+| | | `src/plat/<p>/makefile.mk`, `image-y` with `FINAL_OUTPUT` at parse time, an out-of-tree board in | | |
+| | | `make.*`; bytes compared for jiffy, the RT and the 8MP (the container has `mkimage` and `cst`), | | |
+| | | `make -n` for the MEK, the DXL and imx8mevk | | |
 | F-241 | `plat/imx6ul/plat.c` | `tzasc_init()`: A failure is only logged: nothing tells | Verified (code, RM) | open |
 | | | the boot driver that the TZASC is bypassed. Region 1 gets the physical DDR base, while 6UL RM 52.3 says the | | |
 | | | TZASC sees the DDR controller's "local addresses": check with OP-TEE that its memory is protected. GPR9 has | | |
@@ -284,21 +277,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the ROM log's event 0xd0 as USB (from AN12853, never seen in a board's log), the RT SBMR2's BMOD | | |
 | | | 0b01. Left: the RT's blank IVT at the NOR's start, which needs an AHB read of the FlexSPI window in | | |
 | | | every boot and a bench first. Not run on a board | | |
-| F-390 | `src/plat/imx8m/link.lds`, `src/plat/imx8x/link.lds` | Not everything pb links is in | Verified (code) | open |
-| | | `pb` or `buffers`, which `platform.md` 5.3 rests the check of a board's image data regions on | | |
-| | | (F-254): the i.MX8M's DDR controller state (`.umctl2`, 128 KiB at the start of the DRAM, 0x40000000) | | |
-| | | and the 8X's reset stub (0x80000000, BL31's place once it ran) have regions of their own. A board | | |
-| | | of the 8M that lists the DRAM from its start passes the check, and an image is loaded over the | | |
-| | | controller's state. The boards in the tree start above it (0x41060000). Link it inside `buffers`, | | |
-| | | or give the check the platform's regions. With F-239 | | |
-| F-391 | `src/plat/{imx6ul,imx8x}/link.lds`, `src/board/*/board.c` | Low. The lengths the link | Verified (code) | open |
-| | | scripts give `pb` and `buffers` reach into memory the boards' images use: jiffy's `buffers` are 16 MiB | | |
-| | | to 0x82021000 and its kernel is at 0x82000000; the 8X's `pb` is 16 MiB to 0x81020000 and the MEK's | | |
-| | | kernel is at 0x80200000. So the boards' image data regions (F-254) start inside those lengths, above | | |
-| | | what is linked today (8 MiB, 200 KiB), and a pb that grows past a region's start is found by | | |
-| | | `board_setup()` on the board, not by the linker. The regions also repeat the link scripts' numbers | | |
-| | | (D-055 names the cost). One source for both, and lengths that end where the board's first region | | |
-| | | starts. With F-239 | | |
 | F-392 | `src/board/{jiffy,imx8qxmek,imx8dxlevk,imx8mpevk,imx8mevk}/board.c` | The boards' image | Verified (code) | open |
 | | | data regions (F-254) leave out DRAM that nothing of pb's is in and that every release loaded into: | | |
 | | | jiffy 0x80038000 to 0x80101000 and 0x81847000 to 0x82000000; the MEK and the DXL 0x80053000 to | | |
@@ -510,6 +488,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | region of its own means cutting `pb`'s: not done without a board. New with F-258: `link.lds` fails the | | |
 | | | build when the object ends above the limit. The i.MX8M Quad's limit isn't known (no board of it has | | |
 | | | TF-A). With F-239 | | |
+| | | 2026-11-14: not done with F-239: on the 8MP pb ends at 0x961000, so no byte below 0x960000 is | | |
+| | | outside pb or the ROM's part, and a region of its own moves pb | | |
 | F-295 | `src/board/imx8dxlevk/board.c` | The DXL EVK moved to the TF-A delivery | Reported | open |
 | | | (F-258, `boot.md` 5.3). The board has only been built: no DXL is at hand, and this tree builds no image | | |
 | | | for it (the test bench has jiffy, imx8mpevk and imx8qxmek). Before, pb started the part `atf` directly | | |
@@ -538,6 +518,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | that can carry candidates it never hands out, or a second policy per board. Since F-256 the | | |
 | | | marks are in the policy's init, which `board_setup()` skips when the table fails: on a blank | | |
 | | | disk the flash's partitions aren't bootable until a table is installed and pb restarts | | |
+| | | 2026-11-14: not done, `board.md` 2.5 doesn't settle it. Proposed by the host test package: an | | |
+| | | optional list of extra bootable partitions in the policy object (a `BOOT_POLICY_AB_EXTRA(&cfg, | | |
+| | | parts)`), marked by the core after the policy's init, which keeps one policy per board. For Jonas | | |
 | F-335 | `src/board.c` | `boot_policy` and `boot_handover` are checked when their step | Verified (code) | open |
 | | | comes, after the partition table, not at the start of `board_setup()` with `rot` and `slc` | | |
 | | | (`board.md` 2 and 3, F-249). A step before them that fails hides the check: a board without a | | |
@@ -551,12 +534,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | policies end (fixed, chain, A/B). A board's own policy whose `next` never ends would loop, and | | |
 | | | since F-243 the loads in it kick the watchdog, where it reset before. A bound in the core, or | | |
 | | | a sentence in `boot.md` 3.2 that a policy hands out each candidate once per boot | | |
-| F-341 | `tests/`, `configs/host_defconfig` | Speculative mode (`boot.md` 3.6) has unit | Verified (code) | open |
-| | | tests only. pb-host can't have `CONFIG_BOOT_AB_SPECULATIVE`: the host has no watchdog, which | | |
-| | | the symbol depends on, and `test_ab_state_speculative` builds `ab_state.c` with the symbol | | |
-| | | outside Kconfig. Not tested together: the core's loop with it (both slots fail: command | | |
-| | | mode), the real `pbstate` confirming a slot, the handover's mode (F-260). A second pb-host | | |
-| | | configuration with a watchdog on the host, and cases in `test_ab_state.py` | | |
 | F-342 | `doc/architecture/boot.md` 3.6 | Speculative mode's text is silent where | Verified (code) | open |
 | | | F-257 had to choose. (1) What the alternation writes besides `enable`: nothing, but | | |
 | | | `remaining_boot_attempts = 0`, which changes only a counter left behind with nothing enabled; | | |
@@ -634,9 +611,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | Its time is the driver's per block (`bio.md` 3, from the driver's header) times the blocks a host | | |
 | | | names. To decide: what the field means (a whole partition, a block, the largest erase pb takes in | | |
 | | | one command), then fill it. Released hosts ignore it (F-226) | | |
-| F-394 | `src/board/host/board.c` | Low. The host board sets up its disk before Mbed TLS, | Verified (code) | open |
-| | | the real boards their crypto engine first: a failed `init()` on the host leaves no crypto, so the | | |
-| | | RAM boot after a failed `init()` (F-216, `board.md` 2.1) has no end-to-end test | | |
 | F-402 | `src/plat/*/Kconfig`, `platform.md` 3.10 | `platform.md` 3.10 has one option per | Verified (code) | open |
 | | | port of the SoC that can be a device; each platform's choice has only the port a board in the tree | | |
 | | | uses. Without an option: the 6UL's USB OTG2, the 8MQ's and the 8MP's USB2, the 8QXP's USB OTG1, the | | |
@@ -666,6 +640,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | card of another size or without a partition at a second init is `-PB_ERR_IO`. Left: devices | | |
 | | | registered before the bio pool filled up stay (bio has no release), `host_disk_init()` twice, | | |
 | | | `pb_boot_state_write()` with a bad handle | | |
+| | | 2026-11-14 (`7a5c73b9`): a second `host_disk_init()` closes the first one's file | | |
 | F-410 | `src/drivers/crypto/caam/imx_caam.c` | From F-181's package and its review. Every buffer | Reported | open |
 | | | address is cut to 32 bits (`drivers.md` 4.2: refuse). `imx_caam_init()` empties the output ring and | | |
 | | | doesn't reset the job ring (`drivers.md` 2.1; a reset can't be tried from here). The key parser | | |
@@ -775,6 +750,15 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `imx_wdog_init()` always returns `PB_OK`, so `wdog_armed` can only be false on the 8X. | | |
 | | | `imx_rom_log` has no "was a log found" call. The 8M's serial download event, 0xd0, is from | | |
 | | | AN12853 Table 9 and the EVK's one known log already differs from that table in two places | | |
+| F-428 | tests, link scripts, defconfigs | Low, from the host test and the link packages. A | Reported | open |
+| | | `-m32` host job needs `gcc-multilib` and the 32-bit cmocka in `docker/` (the emulated addresses | | |
+| | | fit in 32 bits). `bio.md` 4 still says the host board's fuse box keeps a handle from | | |
+| | | `late_init()`, and a comment in `tests/unit/CMakeLists.txt` that the host has no watchdog. The | | |
+| | | RT's `.ARM.exidx`, `.iplt` and `.rel.dyn` are orphan sections. `src/link_flash.lds` names a | | |
+| | | `flash` region no platform defines and has none of F-239's checks. The DXL's DRAM is 3 GiB in | | |
+| | | its configuration and 1 GiB on the board. The six defconfigs aren't what `olddefconfig` writes. | | |
+| | | `CONFIG_PB_SIZE` isn't in `platform.md` 5.1's table, and 5.3's "everything pb links is in one | | |
+| | | of the two" doesn't hold for the 8X's stub, by design | | |
 
 ## Dependencies / vendored code
 
@@ -809,5 +793,3 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-043 | No `ruff-format` hook despite the format config. mypy only runs through pre-commit.ci. There is no `_punchboot.pyi`. | open (`_punchboot.pyi` is moot since D-021) |
 | F-044 | Sphinx docs are mostly stubs, with version 1.0.0 in `conf.py`, broken header paths, and `sphinx<7`. The README test instructions are wrong (no `BOARD`). `doc/guides/release-checklist.txt` is stale. | partly fixed: Sphinx/RTD removed (D-020); README and the checklist still open |
 | F-052 | `src/drivers/virtio/*` has no user since `plat/qemu` was removed. Verified. | open: keep for a QEMU smoke tier, or remove |
-| F-067 | Host test infra: `pbtest.py` `stop()` ignores pb-host's exit code, so sanitizer/LeakSanitizer failures at teardown are lost. The socket file appears at `bind()`, before `listen()` (startup race). No client timeouts, no pytest-timeout/ctest `TIMEOUT`. pb-host `write()` can die from SIGPIPE. Orphaned pb-host if pytest is killed. `fakes/ramdisk.c` computes `lba * 512` in 32 bits. 64-bit host hides 32-bit overflows (F-054); consider a `-m32` job. Verified (read). | partly fixed (claude-work): teardown fails on non-zero exit and sanitizer reports; ramdisk overflow fixed; the socket path appears only after `listen()`; ctest `TIMEOUT` (60 s per unit test, 600 s for the integration suite). Client timeouts in the C library, SIGPIPE, orphans and `-m32` open |
-| F-347 | The host board has no device tree part, so no integration test reads what a handover wrote: `/chosen` and pb's information in it are reached by the unit tests only (`test_image.c`, `test_tfa_image.c`), and `late_boot` reports the partition's name alone. F-260's `test_boot_mode` reads the boot's mode from a debug line of `boot.c` in pb-host's log (`Device.boot_mode`, `pbtest.py`), which a change of the log's text breaks. A device tree part in the host's images and a dump of it (or of `struct boot_info`) next to `--boot-status` would let the tests read the handover itself | open |

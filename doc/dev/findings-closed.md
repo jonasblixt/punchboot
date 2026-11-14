@@ -1210,6 +1210,70 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `board_report_degraded()` is bit 1 (D-050). The status is `pb,status` in `/chosen` (a string list, | | |
 | | | left out with a warning when the tree has no room) and the handover's `status`; command mode logs | | |
 | | | one line at its set-up. Not run on a board | | |
+| F-217 | `src/board/host/board.c`, `test_fuse_bio.c` | The host board's fuses are on a GPT | Reported | fixed (`2de977cf`) |
+| | | partition and load in `late_init`: with a bad GPT a locked host device reads as open, the opposite of | | |
+| | | real boards, so the D-026 order can't be tested end to end. | | |
+| | | The host's fuses are a file of their own (`--fuses`), read in `plat_init()`; when they can't be read | | |
+| | | pb resets. A locked host device with both GPT copies bad still asks for authentication and reads as | | |
+| | | locked. The old "Fuse array" partition stays in the table, unused | | |
+| F-394 | `src/board/host/board.c` | Low. The host board sets up its disk before Mbed TLS, | Verified (code) | fixed (`29a148f3`) |
+| | | the real boards their crypto engine first: a failed `init()` on the host leaves no crypto, so the | | |
+| | | RAM boot after a failed `init()` (F-216, `board.md` 2.1) has no end-to-end test | | |
+| | | The host board sets up Mbed TLS before its disk; a device whose disk can't be opened stops in | | |
+| | | command mode and boots an image from RAM, end to end | | |
+| F-341 | `tests/`, `configs/host_defconfig` | Speculative mode (`boot.md` 3.6) has unit | Verified (code) | fixed (`fbd47e0d`) |
+| | | tests only. pb-host can't have `CONFIG_BOOT_AB_SPECULATIVE`: the host has no watchdog, which | | |
+| | | the symbol depends on, and `test_ab_state_speculative` builds `ab_state.c` with the symbol | | |
+| | | outside Kconfig. Not tested together: the core's loop with it (both slots fail: command | | |
+| | | mode), the real `pbstate` confirming a slot, the handover's mode (F-260). A second pb-host | | |
+| | | configuration with a watchdog on the host, and cases in `test_ab_state.py` | | |
+| | | `configs/host_speculative_defconfig` builds `pb-host-speculative`, pb-host with a watchdog fake | | |
+| | | (armed, counts kicks, never resets) and speculative mode; `test_ab_state.py` has the alternation | | |
+| | | until the real `pbstate` confirms a slot, a trial out of attempts, a confirmed slot that fails, and | | |
+| | | both slots corrupt | | |
+| F-171 | `testbench/simple/src/main.c` | The boot time test reported one boot of 3262 s (it fails | Plausible | fixed (`6f8ff400`) |
+| | | over 1 s) and passed when run again. The time is the clock at entry minus the | | |
+| | | reset time kept in the RT1060's persistent words. A series that didn't end (no | | |
+| | | magic cleared) leaves them set: the next series' first boot takes the old reset | | |
+| | | time. 3262 s is about the time since the previous boot time run. Not verified. | | |
+| | | Confirmed by reading: a series that didn't end left its persistent words set. The app reads and | | |
+| | | clears them on entry and takes a time above the watchdog's for stale; the test checks each time | | |
+| | | against a reset the series asked for. Built for the RT, not run | | |
+| F-239 | link scripts | `PB_ENTRY` repeated as a constant in | Verified (code) | fixed (`bbbf7760`..`a6897dd9`) |
+| | | `src/plat/{imx6ul,imx8x}/link.lds` and `src/board/imxrt1060evk/link.lds` (0x80001000, 0x80020000, | | |
+| | | 0x20249000); the RT's `MEMORY` is in its board. `buffers` fixed in the platforms, `BOARD_RAM_*` only `-D` | | |
+| | | flags, `PB_RAM_LENGTH` set by hand although it follows from the ROM's load window and `PB_ENTRY`. Nothing | | |
+| | | checks at link time that pb is where the ROM may load it, `buffers` in working memory, or that they don't | | |
+| | | overlap. `platform.md` 5.1: Kconfig values, `BOARD_DRAM_*`, the `pb` region, `ASSERT`s | | |
+| | | 2026-11-13, from F-259: the Firmware Handoff region is checked at link time against `ram` and | | |
+| | | `buffers` only; that it lies in working memory needs the board's DRAM here too | | |
+| | | `CONFIG_PB_ENTRY` (no default), `CONFIG_BOARD_DRAM_BASE` and `_SIZE`, `CONFIG_PB_BUFFERS_BASE` and | | |
+| | | `_SIZE` and `CONFIG_PB_SIZE` in the board's defconfig; the RT's `MEMORY` is its platform's; pb's | | |
+| | | length is derived. The link asserts that pb is in the ROM's load window, that the buffers and the | | |
+| | | Firmware Handoff region are in working memory, and that nothing overlaps (`make.link`, 75 cases that | | |
+| | | break each). Every board's `pb.bin` is byte for byte the same | | |
+| F-390 | `src/plat/imx8m/link.lds`, `src/plat/imx8x/link.lds` | Not everything pb links is in | Verified (code) | fixed (`df54bdbe`) |
+| | | `pb` or `buffers`, which `platform.md` 5.3 rests the check of a board's image data regions on | | |
+| | | (F-254): the i.MX8M's DDR controller state (`.umctl2`, 128 KiB at the start of the DRAM, 0x40000000) | | |
+| | | and the 8X's reset stub (0x80000000, BL31's place once it ran) have regions of their own. A board | | |
+| | | of the 8M that lists the DRAM from its start passes the check, and an image is loaded over the | | |
+| | | controller's state. The boards in the tree start above it (0x41060000). Link it inside `buffers`, | | |
+| | | or give the check the platform's regions. With F-239 | | |
+| | | The 8M's `.umctl2` is linked at the start of `buffers`: `_buffers_start` is 0x40000000 on both 8M | | |
+| | | boards (one byte of `pb.bin` differs), and an 8M board that lists DRAM below 0x40060000 is refused. | | |
+| | | The 8X's stub stays where it is: BL31's load address, which the MEK and the DXL list. Not run on the | | |
+| | | 8MP EVK | | |
+| F-391 | `src/plat/{imx6ul,imx8x}/link.lds`, `src/board/*/board.c` | Low. The lengths the link | Verified (code) | fixed (`8fdf96c7`, `65be5f26`) |
+| | | scripts give `pb` and `buffers` reach into memory the boards' images use: jiffy's `buffers` are 16 MiB | | |
+| | | to 0x82021000 and its kernel is at 0x82000000; the 8X's `pb` is 16 MiB to 0x81020000 and the MEK's | | |
+| | | kernel is at 0x80200000. So the boards' image data regions (F-254) start inside those lengths, above | | |
+| | | what is linked today (8 MiB, 200 KiB), and a pb that grows past a region's start is found by | | |
+| | | `board_setup()` on the board, not by the linker. The regions also repeat the link scripts' numbers | | |
+| | | (D-055 names the cost). One source for both, and lengths that end where the board's first region | | |
+| | | starts. With F-239 | | |
+| | | pb's and the buffers' regions end where the board's first image data region starts, and the boards' | | |
+| | | regions are computed from the Kconfig values; no region an image may be loaded to changed (F-392 is | | |
+| | | open). The 8MP EVK's pb region ends at 0x970000, where BL31's RAM starts | | |
 
 ## Dependencies / vendored code
 
@@ -1248,3 +1312,11 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-051 | Most boards don't build: imx8qxmek uses an old SCI API (`sci_seco_api.h`, `sc_pm_*`, `sc_pad_set`); imx8dxlevk needs a `keystore.bpak` that isn't in the repo (it builds with the internal keystore); imx8mevk needs proprietary DDR blobs; imxrt1060evk had an implicit `ts_print` (gone with the timestamps, 2026-10-29: it builds, with four unused-code warnings in `board.c`, and runs on the EVK). Only the QEMU board was ever built in CI. Verified. | fixed: all six boards build (the MEK since `259d1564`), and `build.yml` builds each of them. Which boards to keep is F-033 |
 | F-109 | `include/pb/log_def.h`: a disabled LOG macro expands to nothing, so `else LOG_DBG(...);` is an empty body and warns (`-Wempty-body`) at `CONFIG_LOGLEVEL=1` (seen in `src/self_test.c`, since removed). Expanding to `do { } while (0)` fixes it. Verified (build). | fixed (`f1287f69`) |
 | F-147 | `Makefile` `menuconfig oldconfig:` runs `scripts/$@.py`, but `scripts/oldconfig.py` doesn't exist (there is `olddefconfig.py`, unreachable); `.PHONY` names `olddefconfig` and `keystore`, which have no rules. `README.md:208` puts `createtoken.sh` in "the tools folder" (it's `scripts/`) and passes `-sha256` (the script adds the `-`). `build.yml:75` gives `upload-artifact` a `fail_ci_if_error` left from Codecov. | fixed (`aac1cc22`): `make olddefconfig` runs its script; `make oldconfig` still has none, for Jonas |
+| F-347 | The host board has no device tree part, so no integration test reads what a handover wrote: `/chosen` and pb's information in it are reached by the unit tests only (`test_image.c`, `test_tfa_image.c`), and `late_boot` reports the partition's name alone. F-260's `test_boot_mode` reads the boot's mode from a debug line of `boot.c` in pb-host's log (`Device.boot_mode`, `pbtest.py`), which a change of the log's text breaks. A device tree part in the host's images and a dump of it (or of `struct boot_info`) next to `--boot-status` would let the tests read the handover itself | fixed (`419c3b69`) |
+| | `pb-host --dt PATH`: the handover expects a device tree part and writes the tree it prepared. | |
+| | `test_handover.py` reads pb's properties after a boot, the released ones byte for byte; | |
+| | `test_boot_mode` reads `pb,boot-mode` from the tree | |
+| F-067 | Host test infra: `pbtest.py` `stop()` ignores pb-host's exit code, so sanitizer/LeakSanitizer failures at teardown are lost. The socket file appears at `bind()`, before `listen()` (startup race). No client timeouts, no pytest-timeout/ctest `TIMEOUT`. pb-host `write()` can die from SIGPIPE. Orphaned pb-host if pytest is killed. `fakes/ramdisk.c` computes `lba * 512` in 32 bits. 64-bit host hides 32-bit overflows (F-054); consider a `-m32` job. Verified (read). | fixed (claude-work, `fe77af4e`, `f9c16b03`, `b2af6fe6`) |
+| | 2026-11-14: pb-host no longer dies from SIGPIPE, ends with the process that started it, and the | |
+| | transcript recorder's answers time out (the library's socket had 60 s already). A `-m32` job is | |
+| | F-428's | |
