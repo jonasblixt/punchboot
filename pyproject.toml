@@ -53,6 +53,7 @@ extend-exclude = [
     "pki",
     "doc",
     "scripts/**",
+    "testbench/scripts/**",
 ]
 target-version = "py310"
 
@@ -80,6 +81,13 @@ pylint.max-args = 8
     "D104",
     "PLR2004",  # expected values in tests are fine inline
 ]
+"testbench/simple/tests/**" = [
+    "S101",     # pytest uses plain asserts
+    "D103",     # test functions are documented by their names
+    "D104",
+    "PLR2004",  # expected values in tests are fine inline
+    "INP001",   # pytest's rootdir conftest, not a package
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
@@ -95,6 +103,8 @@ warn_return_any = true
 exclude = [
     "^build.*",
     "^doc.*",
+    # The test bench's Buildroot, downloads and output: thousands of other projects' files
+    "^testbench/",
     "^scripts/menuconfig\\.py$",
     "^scripts/olddefconfig\\.py$"
 ]
