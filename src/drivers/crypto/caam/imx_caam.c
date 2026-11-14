@@ -135,7 +135,7 @@ static void caam_shedule_job_async(void)
 {
     caam.input = (uint32_t)(uintptr_t)caam.desc;
     arch_clean_cache_range((uintptr_t)&caam.input, sizeof(caam.input));
-    arch_clean_cache_range((uintptr_t)caam.desc, sizeof(caam.desc[0]) * membersof(caam.desc));
+    arch_clean_cache_range((uintptr_t)caam.desc, sizeof(caam.desc[0]) * ARRAY_SIZE(caam.desc));
     mmio_write_32(caam.base + CAAM_IRJAR_JR, 1);
 }
 

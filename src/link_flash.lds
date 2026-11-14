@@ -64,9 +64,6 @@ SECTIONS
         *(.gcc_except_table)
         *(.gnu.linkonce.r.*)
         . = ALIGN(16);
-        PROVIDE (_self_test_fn_start = .);
-        *(.self_test_fn .self_test_fn.*)
-        PROVIDE (_self_test_fn_end = .);
         . = ALIGN(1024);
         _erodata = .;
         *(.keystore_header)

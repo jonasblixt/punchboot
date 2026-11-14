@@ -460,15 +460,6 @@ int mmc_read(struct mmc_device *dev, unsigned int lba, size_t length, uintptr_t 
 int mmc_write(struct mmc_device *dev, unsigned int lba, size_t length, const uintptr_t buf);
 
 /**
- * Switch hardware partition (e.MMC)
- *
- * @param[in] part Hardware partition to switch to
- *
- * @return PB_OK on success
- */
-int mmc_part_switch(struct mmc_device *dev, enum mmc_part part);
-
-/**
  * Get the partition BOOT_PARTITION_ENABLE (EXT_CSD[179]) pointed to when the
  * first e.MMC was first initialized, before pb switched partitions
  *
@@ -481,13 +472,6 @@ int mmc_part_switch(struct mmc_device *dev, enum mmc_part part);
  *         -PB_ERR_STATE if no e.MMC is initialized or the value is reserved
  */
 int mmc_get_boot_part_config(uuid_t part_uu);
-
-/**
- * Re-reads the extended CSD structure and updates the internal cache (e.MMC).
- *
- * @return PB_OK on success or a negative number
- */
-int mmc_extcsd_reload(struct mmc_device *dev);
 
 /**
  * Read extended CSD (e.MMC)

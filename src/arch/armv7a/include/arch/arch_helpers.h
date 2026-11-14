@@ -173,11 +173,7 @@ void clean_dcache_range(uintptr_t addr, size_t size);
 void inv_dcache_range(uintptr_t addr, size_t size);
 bool is_dcache_enabled(void);
 
-void dcsw_op_louis(u_register_t op_type);
-void dcsw_op_all(u_register_t op_type);
-
 void disable_mmu_secure(void);
-void disable_mmu_icache_secure(void);
 
 DEFINE_SYSOP_FUNC(wfi)
 DEFINE_SYSOP_FUNC(wfe)
@@ -196,15 +192,6 @@ DEFINE_SYSOP_TYPE_FUNC(dsb, ishst)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ish)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ishst)
 DEFINE_SYSOP_FUNC(isb)
-
-void __dead2 smc(uint32_t r0,
-                 uint32_t r1,
-                 uint32_t r2,
-                 uint32_t r3,
-                 uint32_t r4,
-                 uint32_t r5,
-                 uint32_t r6,
-                 uint32_t r7);
 
 DEFINE_SYSREG_RW_FUNCS(spsr)
 DEFINE_SYSREG_RW_FUNCS(cpsr)

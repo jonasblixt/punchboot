@@ -60,9 +60,4 @@ config IMX_USDHC_MAX_INSTANCES
         How many uSDHC controllers the board uses. Each has a 4 KiB ADMA2
         descriptor table.
 
-config IMX_USDHC_XTRA_DEBUG
-    depends on IMX_USDHC
-    bool "Extra debug output"
-    default n
-
 endmenu

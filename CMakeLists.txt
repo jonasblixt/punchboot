@@ -64,7 +64,6 @@ target_compile_options(pb_host_flags INTERFACE
 target_compile_definitions(pb_host_flags INTERFACE
     PB_VERSION="${PB_VERSION}"
     LOGLEVEL=3
-    TIMING_REPORT=0
     MBEDTLS_CONFIG_FILE="${CMAKE_CURRENT_SOURCE_DIR}/src/drivers/crypto/mbedtls/mbedtls_config.h"
 )
 

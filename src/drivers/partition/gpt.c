@@ -162,7 +162,7 @@ static int gpt_init_tbl(bio_dev_t dev)
     hdr->entries_start_lba = primary.hdr.current_lba + 1;
     hdr->part_entry_sz = sizeof(struct gpt_part_hdr);
 
-    for (uint32_t i = 0; i < membersof(hdr->disk_uuid); i++)
+    for (uint32_t i = 0; i < ARRAY_SIZE(hdr->disk_uuid); i++)
         hdr->disk_uuid[i] = gpt_prng();
 
     return PB_OK;

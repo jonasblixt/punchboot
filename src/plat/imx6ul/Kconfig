@@ -5,11 +5,6 @@ config IMX6UL_CREATE_IMX_IMAGE
     bool "Create imx-image"
     default n
 
-config IMX6UL_MKIMAGE_TOOL
-    string "mkimage tool"
-    default "mkimage_imx8"
-    depends on IMX6UL_CREATE_IMX_IMAGE
-
 config IMX6UL_SIGN_IMAGE
     bool "Sign image"
     default n

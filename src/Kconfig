@@ -59,42 +59,17 @@ config RAMLOG_SIZE_KiB
     depends on RAMLOG
 
     default n
-config DEVICE_UUID
-    bool "Enable device UUID"
-    default y
-    help
-        This enables the 'device_uuid' api, which uses some platform unique data
-        together with a platform namespace UUID to generate a unique device UUID.
-
-config CRYPTO
-    bool "Cryptographic API"
-    default y
-
 config CRYPTO_MAX_HASH_OPS
     int "Maximum number of hash drivers"
     default 1
-    depends on CRYPTO
 
 config CRYPTO_MAX_DSA_OPS
     int "Maximum number of dsa drivers"
     default 1
-    depends on CRYPTO
-
-config BIO_CORE
-    bool "Enable support for block devices"
-    default y
 
 config BIO_MAX_DEVS
     int "Maxmum number of block devices"
     default 32
-    depends on BIO_CORE
-
-config SELF_TEST
-    bool "Run build in self tests on boot"
-    default n
-    help
-        Warning: This will add significant boot time and is only for testing
-        purposes.
 
 choice EXECUTE
     bool "Execute from"
@@ -113,9 +88,6 @@ config OPTIMIZE
 
 config DEBUG_SYMBOLS
     bool "Enable debug symbols"
-
-config STACK_USAGE
-    bool "Generate stack usage information"
 
 config STACK_SIZE_KiB
     int "Stack size in KiB"
