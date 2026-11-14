@@ -922,3 +922,18 @@ pb_unit_test(test_imx8x_helpers SOURCES
 )
 target_compile_definitions(test_imx8x_helpers PRIVATE CONFIG_PLAT_IMX8X=1)
 target_include_directories(test_imx8x_helpers PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
+
+# The CAAM with the low power MDHA before era 10: no SHA-384/512. The rings
+# and the descriptors hold 32 bit addresses
+pb_unit_test(test_caam_lp256
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/crypto.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
+    LIBS pb_caam_model
+)
+target_include_directories(test_caam_lp256 BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_caam_lp256 PRIVATE -fno-pie)
+target_link_options(test_caam_lp256 PRIVATE -no-pie)

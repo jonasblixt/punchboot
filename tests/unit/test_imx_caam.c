@@ -414,6 +414,20 @@ static void test_era10(void **state)
     assert_int_equal(REG(RDSTA), RDSTA_ALL);
 }
 
+/* A CAAM that reports no RNG state handle, or more than the RNG has: not
+ * a CAAM the driver knows, nothing is sent to it */
+static void test_unexpected_state_handles(void **state)
+{
+    (void)state;
+
+    REG(CTPR_MS) = 0;
+    assert_int_equal(imx_caam_rng_init((uintptr_t)regs), -PB_ERR_NOT_SUPPORTED);
+    REG(CTPR_MS) = 3 << 8;
+    assert_int_equal(imx_caam_rng_init((uintptr_t)regs), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(model.jobs, 0);
+    assert_int_equal(model.kicks, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -429,6 +443,7 @@ int main(void)
         cmocka_unit_test_setup(test_one_state_handle, setup),
         cmocka_unit_test_setup(test_no_rng4, setup),
         cmocka_unit_test_setup(test_era10, setup),
+        cmocka_unit_test_setup(test_unexpected_state_handles, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
