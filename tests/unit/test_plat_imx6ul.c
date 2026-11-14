@@ -420,6 +420,22 @@ static void test_wdog_armed_by_the_option(void **state)
     assert_int_equal(fake_regs_writes_in(0, 0x1000), 0);
 }
 
+/* platform.md 2.1 (F-416): GPT1's bus and serial gates (CCGR1's CG10 and
+ * CG11, Linux's clk-imx6ul.c) are opened before the timer is started,
+ * whatever the ROM left them at, and no other gate is changed */
+static void test_gpt1_gates_opened_before_the_timer(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMX6UL_CCM_CCGR1, CG0);
+    assert_int_equal(plat_early_init(), PB_OK);
+
+    assert_int_equal(fake_regs_get(IMX6UL_CCM_CCGR1),
+                     CG0 | CCM_CCGR1_GPT1_BUS | CCM_CCGR1_GPT1_SERIAL);
+    assert_true(fake_regs_first_write(IMX6UL_CCM_CCGR1) <
+                fake_regs_first_write(IMX6UL_GPT1_BASE + GPT_CR));
+}
+
 /* What plat_get_status() answers, every field set by the port */
 static struct plat_status status_now(void)
 {
@@ -853,6 +869,7 @@ int main(void)
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
+        cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_tzasc_bypassed, setup),
         cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),

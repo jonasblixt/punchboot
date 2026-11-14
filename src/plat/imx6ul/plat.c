@@ -433,7 +433,9 @@ int plat_early_init(void)
     status.wdog_armed = (imx_wdog_init(IMX6UL_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT) == PB_OK);
 #endif
 
-    /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal */
+    /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal.
+     * GPT1's gates are open out of the ROM, opened here so nothing rests on it (F-416) */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR1, 0, CCM_CCGR1_GPT1_BUS | CCM_CCGR1_GPT1_SERIAL);
     imx_gpt_init_24m(IMX6UL_GPT1_BASE);
     log_time_start();
     return PB_OK;
