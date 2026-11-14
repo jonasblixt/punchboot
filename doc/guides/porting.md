@@ -40,8 +40,7 @@ defconfig holds. jiffy's:
 | --------------- | -------------------------------------------------------------------------- |
 | `board.c`       | `const struct board board` and its hooks                                   |
 | `partitions.h`  | The partitions' UUIDs                                                      |
-| `makefile.mk`   | `src-y`, the board's addresses, the recipes that package and sign pb for   |
-|                 | the ROM                                                                    |
+| `makefile.mk`   | `src-y`, and the recipes that package and sign pb for the ROM              |
 | `imximage.cfg`  | The DCD: the register writes the i.MX6UL's ROM does before it loads pb,    |
 |                 | the DRAM's set up among them                                               |
 | `openocd.cfg`   | For `scripts/pbdebug`                                                      |
@@ -49,10 +48,11 @@ defconfig holds. jiffy's:
 1. Copy the closest defconfig in `configs/` and the closest board's `makefile.mk`. Select the
    arch, the platform, the keystore, the modules the board will name, the platform's USB port
    for command mode and the authentication methods (`board.md` 7's table).
-2. Set where pb is linked and the board's DRAM (`platform.md` 5.1; the load windows of the
-   i.MX ports are `plat-imx.md` 5). jiffy: `PB_ENTRY = 0x80001000`, DRAM from 0x80000000 to
-   0xc0000000. They are make variables in `makefile.mk` today and become Kconfig values
-   (F-239).
+2. Set where pb is linked and the board's DRAM, in the defconfig: `CONFIG_PB_ENTRY`,
+   `CONFIG_PB_SIZE`, `CONFIG_BOARD_DRAM_BASE` and `_SIZE`, and the buffers' place where the
+   platform's default doesn't fit (`platform.md` 5.1; the load windows of the i.MX ports are
+   `plat-imx.md` 5). jiffy: pb at 0x80001000 with 1 MiB, and 1 GiB of DRAM from 0x80000000.
+   The link fails when pb or its buffers aren't where they may be.
 3. Get the SoC's container around `pb.bin`, so that the ROM loads it (`platform.md` 6.2,
    `plat-imx.md` 6). The recipes are in the boards today (F-240): jiffy's `makefile.mk` has the
    i.MX6UL's.
@@ -168,8 +168,8 @@ address in r2, and the kernel command line as `bootargs` and `bootargs_verbose`.
 SoC memory a board may list. Without the list nothing is loaded.
 
 jiffy runs in its DRAM, so its two regions go round pb: from the end of pb's 1 MiB to its
-buffers, and from 0x82000000 to the end of the DRAM. The comment above the list in
-`board.c` says where the numbers come from.
+buffers, and from the end of the buffers to the end of the DRAM. They are computed from the
+defconfig's values, which the link uses too; the comment above the list in `board.c` says how.
 
 Now an image boots. `punchboot boot bpak <file>` loads one from the host into RAM and needs
 neither the partition table nor the policy (`board.md` 2.1). `part write` and
