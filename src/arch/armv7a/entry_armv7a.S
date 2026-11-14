@@ -33,6 +33,15 @@ pb_entry:
     bic r1, r1, #SCTLR_M_BIT
     mcr p15, 0, r1, c1, c0, 0
 
+    /* Empty the data and unified caches first, by set/way to the level of
+     * coherency (F-207). Their contents are UNKNOWN until invalidated (Arm
+     * ARM), and the 6UL's ROM used them and only turned them off before it
+     * left (RM 8.4.4): a valid line it left would answer for memory written
+     * since. With the MMU off pb's data accesses are Strongly-ordered and
+     * allocate nothing, so nothing of pb's is in them until the MMU is on
+     * (plat_mmu_init()). Uses r0-r6 and r9-r11, no stack */
+    bl      invalidate_cache_v7
+
     /* Enable I$ and D$ */
     mrc     p15, 0, r12, c1, c0, 0
     orr     r12, r12, #SCTLR_I_BIT

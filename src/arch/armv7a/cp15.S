@@ -161,7 +161,9 @@ flush_invalidate_cache_v7:
 
     bx      lr
 
-// invalidate cache routine, trashes r0-r6, r9-r11
+// invalidate cache routine, trashes r0-r6, r9-r11, no stack: pb_entry
+// calls it before the D-cache is on (entry_armv7a.S)
+.global invalidate_cache_v7
 invalidate_cache_v7:
     /* from ARMv7 manual, B2-17 */
     dmb
