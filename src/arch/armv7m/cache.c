@@ -22,6 +22,15 @@
 
 #define CCSIDR_LSSHIFT(n)          (((n) & NVIC_CCSIDR_LINESIZE_MASK) >> NVIC_CCSIDR_LINESIZE_SHIFT)
 
+size_t armv7m_dcache_line_size(void)
+{
+    /* Get the characteristics of the D-Cache */
+    uint32_t ccsidr = mmio_read_32(NVIC_CCSIDR);
+    uint32_t sshift = CCSIDR_LSSHIFT(ccsidr) + 4; /* log2(cache-line-size-in-bytes) */
+
+    return (size_t)1 << sshift;
+}
+
 /*
  * Writes the address of every line that [start, start + len) touches to
  * 'reg', one of the cache maintenance registers that take an address: the
@@ -33,16 +42,8 @@
 static void dcache_range_op(uint32_t reg, uintptr_t start, size_t len)
 {
     uintptr_t end = start + len;
-    uint32_t ccsidr;
-    uint32_t sshift;
-    uint32_t ssize;
+    uint32_t ssize = armv7m_dcache_line_size();
 
-    /* Get the characteristics of the D-Cache */
-
-    ccsidr = mmio_read_32(NVIC_CCSIDR);
-    sshift = CCSIDR_LSSHIFT(ccsidr) + 4; /* log2(cache-line-size-in-bytes) */
-
-    ssize = (1 << sshift);
     start &= ~(ssize - 1);
     ARM_DSB();
 

@@ -17,6 +17,9 @@
 /* The D-cache by range: arch_clean_cache_range() and the two others */
 #include <pb/arch.h>
 
+/* The D-cache's line in bytes, which the range functions step by */
+size_t armv7m_dcache_line_size(void);
+
 /* The system control block */
 #define ARMV7M_SCB_VTOR     0xe000ed08 /* Vector table offset */
 #define ARMV7M_SCB_CCR      0xe000ed14 /* Configuration and control */
