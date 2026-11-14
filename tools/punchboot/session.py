@@ -701,7 +701,8 @@ class Session:
         NotSupportedError     -- If not supported
         NotAuthenticatedError -- Authentication required
         ArgumentError         -- A chunk would start past LBA 2^32 - 1, which the command
-                                 can't carry
+                                 can't carry, or the partition's last block is below
+                                 its first
         """
         uu: uuid.UUID = _partuuid_to_uuid(part_uu)
         try:
@@ -711,6 +712,10 @@ class Session:
 
         blocks_remaining: int = part.last_block - part.first_block + 1
         block_offset: int = part.first_block
+
+        # Fewer than none: the loop below would never end (F-421)
+        if blocks_remaining < 0:
+            raise ArgumentError
 
         # The first block of every chunk fits the command, or nothing is
         # erased: masked, it erased blocks near the start of the device
