@@ -81,6 +81,12 @@ ldflags-y += --defsym=PLAT_BL_PARAMS_LIMIT=$(PLAT_BL_PARAMS_LIMIT)
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000
 ldflags-y += -Tsrc/plat/imx8m/link.lds
+# The 8MQ's RAM log in the OCRAM (ramlog_ocram.lds): its TCM is full
+ifdef CONFIG_PLAT_IMX8MQ
+ifdef CONFIG_RAMLOG
+ldflags-y += -Tsrc/plat/imx8m/ramlog_ocram.lds
+endif
+endif
 
 src-y  += src/drivers/pinctrl/imx_iomuxc.c
 
