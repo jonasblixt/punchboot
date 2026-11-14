@@ -34,7 +34,6 @@ def say(text: str) -> None:
     sys.stdout.write(text + "\n")
 
 
-
 Make = Callable[..., subprocess.CompletedProcess[str]]
 
 

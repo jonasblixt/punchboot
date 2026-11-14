@@ -66,7 +66,6 @@ def _read(s: punchboot.Session, tmp: pathlib.Path, part: str | object) -> bytes:
     return out.read_bytes()
 
 
-
 @dataclasses.dataclass
 class Scenario:
     """Session calls on one connection, recorded from 'device' after 'setup'."""

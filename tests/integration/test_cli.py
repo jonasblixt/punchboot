@@ -133,9 +133,7 @@ def test_command_with_two_requests_is_an_error(device: Device, tmp_path: pathlib
     request = tmp_path / "request"
     request.write_bytes(b"x")
 
-    result = punchboot_cli(
-        device, "cmd", "test-command", "abc", "--args-from-file", str(request)
-    )
+    result = punchboot_cli(device, "cmd", "test-command", "abc", "--args-from-file", str(request))
 
     assert result.returncode == 2
     assert "Use either ARGS or --args-from-file" in result.stderr
