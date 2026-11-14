@@ -937,3 +937,12 @@ target_include_directories(test_caam_lp256 BEFORE PRIVATE
 )
 target_compile_options(test_caam_lp256 PRIVATE -fno-pie)
 target_link_options(test_caam_lp256 PRIVATE -no-pie)
+
+# The host tools' pure parts, without a device (F-041): pytest on the
+# punchboot package, which must be installed as for the integration tests
+add_test(
+    NAME unit.python
+    COMMAND ${Python3_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}/python -q
+            -p no:cacheprovider
+)
+set_tests_properties(unit.python PROPERTIES LABELS "unit;python" TIMEOUT 120)
