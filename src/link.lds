@@ -78,9 +78,11 @@ SECTIONS
         *(.rel.dyn .rel.iplt)
     } > ram
 
+    /* .rela.data: what an object's -Os .data needs relocated. Like the rest,
+     * nothing of it may reach pb (the ASSERT below) */
     .rela.dyn :
     {
-        *(.rela.dyn .rela.iplt .rela.got)
+        *(.rela.dyn .rela.iplt .rela.got .rela.data .rela.data.*)
     } > ram
 
     .data :
