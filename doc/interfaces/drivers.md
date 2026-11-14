@@ -172,7 +172,8 @@ What a driver returns:
 | `-PB_ERR_STATE`         | Called out of order: before `init`, or while another operation runs      |
 
 - The code is part of the interface: callers branch on it (F-199: an SD card's version is told
-  by a timeout, and the uSDHC returns `-PB_ERR_IO` for one).
+  by a timeout, and the uSDHC returned `-PB_ERR_IO` for one; a command without a response and
+  every wait of the uSDHC's are `-PB_ERR_TIMEOUT` now).
 - A driver logs the cause once, with `LOG_ERR`, where it is detected. It never logs a secret
   (`security.md` 4.10).
 - After an error the driver is usable: the next call starts from a known state, and nothing of
