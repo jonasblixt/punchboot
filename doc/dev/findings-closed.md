@@ -1502,6 +1502,31 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | in reset (`ALL_SW_RESET`), power and clocks left for the next stage, whose glue resets it itself. | |
 | | | Only command mode's path reaches it. Not run on a board: on the MEK a boot from command mode to | |
 | | | Linux, Linux's USB after it, `dev reset`, a restart of the transport. Done but the bench | |
+| F-269 | `include/pb/board.h`, `src/plat/*/plat.c`, `src/plat/*/makefile.mk` | A board | Verified (code) | fixed (`a825cc17..fa599d5b`) |
+| | | can't map hardware the platform didn't: the tables are built by each platform's | | |
+| | | `plat_mmu_init()` from its own `imx_mmap[]`, and `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` are | | |
+| | | `-D` flags of the platform's (32 each). D-054, `platform.md` 5.2, `board.md` 2.8: `mmap` in | | |
+| | | `struct board`, a list of `PB_MAP_DEVICE`, `PB_MAP_MEMORY_RO` and `PB_MAP_MEMORY_RW` regions | | |
+| | | (`include/pb/mmu.h`), mapped by `pb_mmu_init()`, which refuses a region that overlaps pb, the | | |
+| | | board's DRAM or a region of the platform's; the two numbers become Kconfig values. With F-158 | | |
+| | | 2026-11-14: since F-158 the three `plat_mmu_init()` copies map layer 1 (the DRAM) and layer 4 alike: | |
+| | | what `pb_mmu_init()` takes over | |
+| | | 2026-11-14 (`a825cc17..fa599d5b`): in the code. `pb_mmu_init()` (`src/mmu.c`) maps the four layers | |
+| | | for the 6UL, the 8M and the 8X and returns its error to `plat_init()`; the board's `mmap` is layer | |
+| | | 3, each region checked (whole pages, no overlap with pb, its buffers, the DRAM, the platform's or | |
+| | | another board region) before anything is mapped; `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` are | |
+| | | Kconfig values (32, the platforms' default). Each board's tables are byte for byte `ec043c92`'s (a | |
+| | | host harness over xlat_tables with each build's regions). Running out of tables is still | |
+| | | xlat_tables' assert, not a refusal with a log line (vendored code). Not run on a board | |
+| F-158 | `src/plat/{imx6ul,imx8m,imx8x}/plat.c` `plat_mmu_init` | `rw_nox` maps `[_zero_region_start, _no_init_end)` as one RW Normal region, which assumes `ram` and `buffers` are next to each other. On the 8MP that's 0x944000..0x40885000, about 1 GiB: unpopulated address space as Normal memory (speculative accesses allowed), the AIPS/GIC/DDRC windows (they still get Device attributes only because the innermost region wins) and a partial overlap with the static OCRAM entry, which `mmap_add_region` would reject with `ENABLE_ASSERTIONS`. On jiffy and the 8X the gap is DRAM. | Verified (code, 8MP map) | fixed (`c799ee6a..ec043c92`, `a825cc17..3db1af44`) |
+| | | 2026-11-14 (`c799ee6a`, `be241586`, `37876434`, `ec043c92`): the 6UL, 8M and 8X map the rest of pb | |
+| | | (`[_zero_region_start, _pb_end)`) and the buffers as two regions and the board's DRAM as one, where | |
+| | | the span and "the rest of the RAM" were. The 8MP's map no longer has the address space from the | |
+| | | OCRAM to the DRAM (its old map trips xlat_tables' partial overlap assertion on the host); jiffy maps | |
+| | | the DRAM's first page; the 8X's effective map is the same. AIPS4 on the 8M is mapped whole (only the | |
+| | | 8MP's HSIO was). 5 to 10 tables of 32, 10 to 15 regions of 32. Reviewed; not run on a board. Left: | |
+| | | `pb_mmu_init()` (5.2's marker), with F-269. New from the review: F-437 | |
+| | | 2026-11-14: closed with F-269 (`a825cc17..3db1af44`): the ports no longer copy the MMU set up | |
 
 ## Dependencies / vendored code
 

@@ -67,14 +67,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-153 | Linux 6.18 + TF-A v2.12 on the i.MX8M Plus | Linux powers the audio mix through the GPC itself, which leaves its AIPS5 bridge at the reset defaults (TF-A configures AIPS5 only when its own SiP call powers the domain): the first access (audio mix clock driver, MU2) takes an SError. Not pb; U-Boot doesn't set AIPS5 either. Newer kernels have `drivers/bus/imx-aipstz.c` (MPR0 = 0x77777777 on probe and runtime resume) with a node in `imx8mp.dtsi`. | Verified (EVK) | worked around: the test bench's DTS disables AIPS5 (`59569a10`) |
 | F-155 | i.MX8M Plus EVK, `30be0000.ethernet` (FEC) | The FEC's PHY (address 1, reset `gpio4 2`) doesn't answer on MDIO (`MDIO device at address 1 is missing`, `Unable to connect to phy`), with the upstream DTS. The EQOS port probes. No cable was attached. | Seen on the board | open |
 | F-156 | Linux 6.18 on the i.MX8M Plus EVK, `drivers/regulator/pca9450-regulator.c` | The PCA9450 driver registers a restart handler at priority 130, above PSCI's 129, that sends the PMIC SW_RST 0x14 (a cold reset). Every `reboot` and every panic restart (`panic=5`) power cycles the DRAM and loses ramoops, whatever `reboot=` says; pb's `log linux` then shows an older record. Only a watchdog reset (WDOG_B, warm with `nxp,wdog_b-warm-reset` in the test bench DTS) keeps it: a hang, which panics Linux on the watchdog pretimeout 2 s before the reset. Not pb. jiffy has no PMIC handler and keeps it on every path. | Verified (EVK, pb fill/check and Linux pstore) | open: a test bench kernel patch that lowers the handler below PSCI, or a product DTS/board that doesn't need it |
-| F-158 | `src/plat/{imx6ul,imx8m,imx8x}/plat.c` `plat_mmu_init` | `rw_nox` maps `[_zero_region_start, _no_init_end)` as one RW Normal region, which assumes `ram` and `buffers` are next to each other. On the 8MP that's 0x944000..0x40885000, about 1 GiB: unpopulated address space as Normal memory (speculative accesses allowed), the AIPS/GIC/DDRC windows (they still get Device attributes only because the innermost region wins) and a partial overlap with the static OCRAM entry, which `mmap_add_region` would reject with `ENABLE_ASSERTIONS`. On jiffy and the 8X the gap is DRAM. | Verified (code, 8MP map) | open: map `ram` and `buffers` as two regions |
-| | | 2026-11-14 (`c799ee6a`, `be241586`, `37876434`, `ec043c92`): the 6UL, 8M and 8X map the rest of pb | |
-| | | (`[_zero_region_start, _pb_end)`) and the buffers as two regions and the board's DRAM as one, where | |
-| | | the span and "the rest of the RAM" were. The 8MP's map no longer has the address space from the | |
-| | | OCRAM to the DRAM (its old map trips xlat_tables' partial overlap assertion on the host); jiffy maps | |
-| | | the DRAM's first page; the 8X's effective map is the same. AIPS4 on the 8M is mapped whole (only the | |
-| | | 8MP's HSIO was). 5 to 10 tables of 32, 10 to 15 regions of 32. Reviewed; not run on a board. Left: | |
-| | | `pb_mmu_init()` (5.2's marker), with F-269. New from the review: F-437 | |
 | F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | partly fixed |
 | | | platform: the 6UL locks only from CONFIGURATION, the 8X from any state. No | | |
 | | | platform reads the fuses back after writing them. The rules belong in | | |
@@ -365,15 +357,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | candidate that failed later in prepare points at unverified bytes while the next one is | | |
 | | | loaded. For the contract: say (1) to (4) in 5.3 | | |
 | | | From the review of F-266: the header handed out has its signature cleared (`signature` zero, `signature_sz` 0): those are the bytes that were signed, and the text should say so | | |
-| F-269 | `include/pb/board.h`, `src/plat/*/plat.c`, `src/plat/*/makefile.mk` | A board | Verified (code) | open |
-| | | can't map hardware the platform didn't: the tables are built by each platform's | | |
-| | | `plat_mmu_init()` from its own `imx_mmap[]`, and `MAX_MMAP_REGIONS` and `MAX_XLAT_TABLES` are | | |
-| | | `-D` flags of the platform's (32 each). D-054, `platform.md` 5.2, `board.md` 2.8: `mmap` in | | |
-| | | `struct board`, a list of `PB_MAP_DEVICE`, `PB_MAP_MEMORY_RO` and `PB_MAP_MEMORY_RW` regions | | |
-| | | (`include/pb/mmu.h`), mapped by `pb_mmu_init()`, which refuses a region that overlaps pb, the | | |
-| | | board's DRAM or a region of the platform's; the two numbers become Kconfig values. With F-158 | | |
-| | | 2026-11-14: since F-158 the three `plat_mmu_init()` copies map layer 1 (the DRAM) and layer 4 alike: | |
-| | | what `pb_mmu_init()` takes over | |
 | F-280 | `src/boot/image_helpers.c` `boot_image_load_and_hash()`, the USB drivers | `boot | Reported | open |
 | | | bpak`: the device reads a part `CONFIG_BOOT_LOAD_CHUNK_kB` at a time (1 MiB on the imx8mpevk | | |
 | | | and jiffy, 4 KiB on the RT1060 with a 32 KiB buffer, 4 MiB elsewhere), hosts send it in | | |

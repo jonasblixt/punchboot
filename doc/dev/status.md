@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-14 (a fresh batch of findings, `PB_JOBS`, F-436)_
+_Last updated: 2026-11-14 (the batch's rounds pushed, `pkg-b3-ci2` for the bench)_
 
 ## Current focus
 
@@ -37,22 +37,19 @@ bump is for the porting API. Each item's history is in `log/`.
 
 ## Next steps
 
-0. **Resume here (2026-11-14): `log/2026-11-14.md`, "A fresh batch of findings"**: six
-   packages landed, verified at `bb91c1da`, a second round (tidy, the conformance suite, the transport, the MMU's two regions) at `ec043c92`, a third (the arch's entry and handover, the ChipIdea's endpoint 0, the GPT1 gates) at `59f5bda7`, nothing of it on a board; its bench order is in the
-   entry (USB on all four first, the MEK with 2 GiB mapped, F-436). Builds and tests run one at a
-   time with `PB_JOBS=6` (load under 8, Jonas). Before it, "The wrap-up" and "The parked
-   branches", verified at `1b212d0e`. First:
-   - The bench, in this order: the DMA rule (F-282) and USB on all four, the preconditions
-     (the TrustZone filter), F-247 and the CAAM's stop, the 8MP EVK through TF-A. All four
-     run `246bd897` and reach command mode with the preconditions met; boot time measured
-     (log), jiffy and the 8MP EVK boot Linux. F-434 fixed (`af6e7060`); the MEK
-     to init 1069 ms (log). D-078 (`3e7399c6`, the command line in the handover's
-     configuration): the 8MP EVK runs it from BOOT0, normal and verbose command lines seen.
-     D-079 (`5c55b9ff`): the board's memory left Kconfig for its `makefile.mk`, the six
-     `pb.bin` unchanged. D-080: the Kconfig menus by subject, drivers by what the SoC has.
-     D-081: `BOOT_AB_DRIVER` gone. D-082: the RAM log always at debug, no sync mode.
-     D-083: the keys are the board's `VERIFY_KEY<n>`, no bpak keystore; `pki/` tidied;
-     `gen-keystore.py` writes pb's key list `pb_keys` (`pb/keys.h`), read with `cryptography`.
+0. **Resume here (2026-11-14): `log/2026-11-14.md`, "A fresh batch of findings"** and its
+   rounds: verified and pushed at `bb91c1da`, `ec043c92`, `59f5bda7`, `1c7001b4` and the last
+   one, F-269's `pb_mmu_init()` (see the log's end). Nothing of it ran on a board. Builds and
+   tests run one at a time with `PB_JOBS=6` (load under 8, Jonas). First:
+   - **`pkg-b3-ci2`, pushed, not landed** (F-136, F-137, F-140: the ChipIdea's prime, flush and
+     bus reset, the dTDs' status, the init's order, with its review's fixes): bench it on jiffy
+     and the RT1060 (enumeration, a boot from command mode, a replug, `usbreset`, a 4 MiB
+     stream, no "prime failed" or "Flush ... timeout" in the log), then rebase and land it.
+   - The bench of the landed rounds, in the log's order: USB on all four (the cdns3's `stop`,
+     the ChipIdea's endpoint 0, the DWC3's and the cdns3's reset reporting), the new MMU maps
+     and the MEK's 2 GiB (F-436), the RT1060's VTOR/FORCEWT/D-cache at its entry (F-210,
+     F-207), then the older list: the DMA rule (F-282), the preconditions, F-247 and the
+     CAAM's stop, the 8MP EVK through TF-A.
    - Held for Jonas: `bec794b7` on `pkg-plat` (the watchdog half a second shorter, F-206).
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
@@ -61,7 +58,7 @@ bump is for the porting API. Each item's history is in `log/`.
    Handoff tag (Jonas, upstream), the bench run, the review of the guides and the notes.
 2. Jonas's review of the board work's code (D-026, D-027, D-046). Clocks stay code (2026-11-09).
 3. The rest is `findings.md`: by board (the 8MP EVK F-100 to F-110, F-155, F-156; the MEK
-   F-172, F-204; imx8mevk F-106, F-107), JTAG (F-078 to F-090), boot time, Coverity on master.
+   F-172; imx8mevk F-106, F-107), JTAG (F-078 to F-090), boot time, Coverity on master.
 
 ## Open questions (for Jonas)
 
