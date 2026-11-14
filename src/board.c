@@ -21,10 +21,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef CONFIG_BOOT_DTB
-#include <libfdt.h>
-#endif
-
 /* The board reported a failure the boot goes on without (board.md 2.3).
  * It holds until the reset: nothing takes it back */
 static bool degraded;
@@ -225,21 +221,6 @@ int board_setup(void)
 /* The length is what was written: snprintf() returns the whole text's,
  * also when only size - 1 bytes of it fit (F-413). cm_board_status() never
  * calls it with a size of 0 */
-#ifdef CONFIG_BOOT_DTB
-int board_patch_bootargs(void *fdt, int offset)
-{
-    const char *bootargs = board.bootargs;
-
-    if ((boot_get_flags() & BOOT_FLAG_VERBOSE) && board.bootargs_verbose)
-        bootargs = board.bootargs_verbose;
-
-    if (bootargs == NULL)
-        return PB_OK;
-
-    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
-}
-#endif
-
 static int default_status(uint8_t *buf, size_t *length)
 {
     size_t size = *length;

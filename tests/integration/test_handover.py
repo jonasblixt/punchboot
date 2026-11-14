@@ -71,9 +71,9 @@ def test_pb_s_information(dt_device: Device, img: pathlib.Path) -> None:
 
 
 def test_the_board_s_hook_runs_first(dt_device: Device, img: pathlib.Path) -> None:
-    # boot.md 5.5: the board's hook, then pb's properties. The host's hook
-    # writes bootargs, which is the board's, and a pb,version, which pb's
-    # own replaces
+    # boot.md 5.5: the board's command line, its hook, then pb's
+    # properties. The host's handover has the command line, and its hook
+    # writes a pb,version, which pb's own replaces
     chosen = boot_a(dt_device, img)
 
     assert chosen["bootargs"] == b"console=pb-host\0"
