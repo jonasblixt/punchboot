@@ -2,6 +2,7 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/ramlog.h>
+#include <stdio.h>
 
 static const struct console_ops *ops;
 static uintptr_t base;

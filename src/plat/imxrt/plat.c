@@ -3,6 +3,7 @@
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
+#include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -115,6 +116,7 @@ int plat_init(void)
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
     imx_gpt_init(IMXRT_GPT1_BASE, MHz(plat.per_root_clk_MHz));
+    log_time_start();
 
     rc = mbedtls_pb_init();
 

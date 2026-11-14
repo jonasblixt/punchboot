@@ -14,7 +14,6 @@
 #include <pb/bio.h>
 #include <pb/delay.h>
 #include <pb/pb.h>
-#include <pb/timestamp.h>
 #include <string.h>
 
 #include "mmc_core_private.h"
@@ -250,7 +249,7 @@ int mmc_sd_setup(struct mmc_device *dev)
     bool v2;
     int rc;
 
-    ts("sd enum start");
+    LOG_DBG("SD init");
     dev->info.block_size = MMC_BLOCK_SIZE;
     dev->info.width = MMC_BUS_WIDTH_1BIT;
 
@@ -345,6 +344,5 @@ int mmc_sd_setup(struct mmc_device *dev)
              dev->info.width == MMC_BUS_WIDTH_4BIT ? 4 : 1);
 
     rc = sd_add_bio(dev);
-    ts("sd enum done");
     return rc;
 }
