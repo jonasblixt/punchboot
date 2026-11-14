@@ -69,7 +69,45 @@ static void ram_write(uintptr_t addr, const void *src, size_t length)
  */
 
 static const struct usbd_hal_ops *ops;
+
+/* The endpoints that are primed: what ENDPTSTAT reads (RT1060 RM 42.7.37) */
 static uint32_t primed;
+/* USBSTS, write one to clear */
+static uint32_t usbsts;
+
+/* USBSTS's USB interrupt: a transfer completed */
+#define USBSTS_UI BIT_32(0)
+
+/*
+ * How the controller misbehaves, for a test: endpoints whose prime fails
+ * (ENDPTPRIME clears and ENDPTSTAT stays clear, RM 42.5.6.4.2.2) or never
+ * clears; flushes it refuses (ENDPTSTAT stays set, RM 42.5.6.6.5) or never
+ * ends; a reset that never ends; prime bits that the controller holds for a
+ * number of reads (its own prime of the next descriptor, RM 42.7.35); a
+ * tripwire that trips on every read; a transfer the host takes at once,
+ * when the endpoint is primed; what happens on a read of ENDPTCOMPLETE,
+ * between the driver's read of USBSTS and its write; ENDPTSTAT bits that
+ * the controller sets only after a number of reads (a slow prime); and
+ * bits of endpoints that were never enabled, which stay set in ENDPTPRIME,
+ * ENDPTFLUSH and ENDPTSTAT.
+ */
+static uint32_t stat_late;
+static unsigned int stat_late_reads;
+static uint32_t phantom;
+static uint32_t prime_fails;
+static uint32_t prime_stuck;
+static unsigned int flush_refusals;
+static uint32_t flush_stuck;
+static bool reset_stuck;
+static uint32_t prime_busy;
+static unsigned int prime_busy_reads;
+static bool sutw_trips;
+static int run_on_prime = -1;
+static void (*on_complete_read)(void);
+/* A test's own hook on a read, after the model's */
+static uint64_t (*test_on_read)(uintptr_t addr, uint64_t value);
+
+static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size);
 
 int usbd_init_hal_ops(const struct usbd_hal_ops *ops_)
 {
@@ -77,27 +115,93 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops_)
     return PB_OK;
 }
 
+static void set_primed(uint32_t value)
+{
+    primed = value;
+    fake_regs_set(BASE + CI_ENDPTSTAT, primed);
+}
+
+static void set_usbsts(uint32_t value)
+{
+    usbsts = value;
+    fake_regs_set(BASE + CI_USBSTS, usbsts);
+}
+
 /* What the registers do with a write: the bits that clear themselves, and
- * the status registers, which are written to clear. A flush ends what was
- * primed on its endpoints */
+ * the status registers, which are written to clear. A prime sets the
+ * endpoint's ENDPTSTAT bit, a flush clears it */
 static uint64_t on_write(uintptr_t addr, uint64_t value)
 {
+    uint32_t bits = (uint32_t)value;
+
     switch (addr - BASE) {
     case CI_USBCMD:
-        return value & ~(uint64_t)USBCMD_RST;
+        return reset_stuck ? value : (value & ~(uint64_t)USBCMD_RST);
     case CI_ENDPTPRIME:
-        primed |= (uint32_t)value;
-        return 0;
+        set_primed(primed | (bits & ~prime_fails & ~prime_stuck));
+
+        if (run_on_prime >= 0 && (primed & bits))
+            assert_int_equal(controller_run((usb_ep_t)run_on_prime, NULL, 0), 0);
+
+        return bits & prime_stuck;
     case CI_ENDPTFLUSH:
-        primed &= ~(uint32_t)value;
-        return 0;
+        if (flush_refusals > 0 && (primed & bits))
+            flush_refusals--;
+        else
+            set_primed(primed & ~bits);
+
+        return bits & flush_stuck;
     case CI_USBSTS:
+        usbsts &= ~bits;
+        return usbsts;
     case CI_ENDPTCOMPLETE:
     case CI_ENDPTSETUPSTAT:
         return 0;
     default:
         return value;
     }
+}
+
+static uint64_t on_read(uintptr_t addr, uint64_t value)
+{
+    switch (addr - BASE) {
+    case CI_ENDPTPRIME:
+        if (prime_busy_reads > 0) {
+            prime_busy_reads--;
+            value |= prime_busy;
+        } else {
+            value &= ~(uint64_t)prime_busy;
+            prime_busy = 0;
+        }
+        value |= phantom;
+        break;
+    case CI_ENDPTFLUSH:
+        value |= phantom;
+        break;
+    case CI_ENDPTSTAT:
+        value = primed | phantom;
+
+        if (stat_late_reads > 0) {
+            stat_late_reads--;
+            value &= ~(uint64_t)stat_late;
+        }
+        break;
+    case CI_USBCMD:
+        if (sutw_trips)
+            value &= ~(uint64_t)USBCMD_SUTW;
+        break;
+    case CI_ENDPTCOMPLETE:
+        if (on_complete_read != NULL)
+            on_complete_read();
+        break;
+    default:
+        break;
+    }
+
+    if (test_on_read != NULL)
+        value = test_on_read(addr, value);
+
+    return value;
 }
 
 static uint32_t ep_bit(usb_ep_t ep)
@@ -128,7 +232,6 @@ static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
     size_t pos = 0;
 
     assert_true(primed & ep_bit(ep));
-    primed &= ~ep_bit(ep);
 
     ram_read(fake_regs_get(BASE + CI_ENDPTLISTADDR) + ep * sizeof(qh), &qh, sizeof(qh));
     dtd_addr = qh.next;
@@ -176,6 +279,8 @@ static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
         dtd_addr = dtd.next;
     }
 
+    /* The last descriptor is retired: the endpoint isn't primed */
+    set_primed(primed & ~ep_bit(ep));
     return pos;
 }
 
@@ -193,7 +298,24 @@ static int setup(void **state)
 
     fake_regs_reset();
     fake_regs_on_write = on_write;
-    primed = 0;
+    fake_regs_on_read = on_read;
+    set_primed(0);
+    set_usbsts(0);
+    prime_fails = 0;
+    prime_stuck = 0;
+    flush_refusals = 0;
+    flush_stuck = 0;
+    reset_stuck = false;
+    prime_busy = 0;
+    prime_busy_reads = 0;
+    sutw_trips = false;
+    stat_late = 0;
+    stat_late_reads = 0;
+    phantom = 0;
+    run_on_prime = -1;
+    on_complete_read = NULL;
+    test_on_read = NULL;
+    fake_us_tick_step = 0;
     ops = NULL;
 
     assert_int_equal(imx_ci_udc_init(BASE), PB_OK);
@@ -514,7 +636,7 @@ static const struct usb_endpoint_descriptor bulk_eps[] = {
  * clears at its next poll */
 static void bus_reset(void)
 {
-    fake_regs_set(BASE + CI_USBSTS, USBSTS_URI);
+    set_usbsts(usbsts | USBSTS_URI);
 }
 
 /* usb.md 2.2, 2.4, 4.3: a bus reset of a device that was configured ends the
@@ -595,10 +717,10 @@ static void test_status_stage_is_bounded(void **state)
     fake_us_tick_step = 10000;
 
     /* Taken */
-    fake_regs_on_read = host_takes_the_status_stage;
+    test_on_read = host_takes_the_status_stage;
     assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_IN), PB_OK);
     assert_int_equal(primed, 0);
-    fake_regs_on_read = NULL;
+    test_on_read = NULL;
 
     /* Not taken: given up after the bound, and not before */
     unsigned int start = fake_us_tick;
@@ -851,6 +973,395 @@ static void test_unplug_is_reported(void **state)
     assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
 }
 
+/* The ENDPTFLUSH writes in the log from 'start' */
+static size_t flushes_since(size_t start)
+{
+    size_t n = 0;
+
+    for (size_t i = start; i < fake_reg_log_len; i++) {
+        if (fake_reg_log[i].addr == BASE + CI_ENDPTFLUSH)
+            n++;
+    }
+
+    return n;
+}
+
+/* RT1060 RM 42.5.6.4.2.2: a prime is done when ENDPTPRIME's bit is clear
+ * and ENDPTSTAT's set. A failed prime (ENDPTSTAT stays clear for the
+ * bound, the descriptor active) gives the transfer up with -PB_ERR_IO, and
+ * the next transfer works (F-136: the driver didn't look at ENDPTSTAT, and
+ * the transfer waited for ever, F-130's symptom) */
+static void test_failed_prime(void **state)
+{
+    unsigned int start;
+    (void)state;
+
+    fake_us_tick_step = 100;
+    prime_fails = ep_bit(USB_EP2_OUT);
+    start = fake_us_tick;
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 3 * PAGE), -PB_ERR_IO);
+    assert_true(fake_us_tick - start >= 10000);
+    assert_true(fake_us_tick - start < 20000);
+    assert_int_equal(primed, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_STATE);
+
+    prime_fails = 0;
+    transfer_out(0x200, 3 * PAGE);
+    transfer_in(0x40, 512);
+}
+
+/* The same on endpoint 0: with a SETUP or a bus reset waiting, the host
+ * left the control transfer (RM 42.5.6.4.2.2), which the stack takes as a
+ * host that started over: -PB_ERR_TIMEOUT, as the stage's bound. With
+ * neither the controller failed, after the bound: -PB_ERR_IO. A SETUP or a
+ * bus reset ends the wait at once */
+static void test_failed_prime_on_endpoint_0(void **state)
+{
+    struct usb_setup_packet pkt;
+    unsigned int start;
+    (void)state;
+
+    fake_us_tick_step = 100;
+    prime_fails = ep_bit(USB_EP0_IN) | ep_bit(USB_EP0_OUT);
+
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_IN), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, arena, 18), -PB_ERR_IO);
+
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+    start = fake_us_tick;
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, arena, 18), -PB_ERR_TIMEOUT);
+    assert_true(fake_us_tick - start < 1000);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), -PB_ERR_STATE);
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, 0);
+
+    bus_reset();
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_OUT), -PB_ERR_TIMEOUT);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(usbsts, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+
+    prime_fails = 0;
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, arena, 18), PB_OK);
+    assert_int_equal(controller_run(USB_EP0_IN, host, 18), 18);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
+}
+
+/* A transfer the controller has done before the driver reads ENDPTSTAT: a
+ * status stage the host takes at once. ENDPTSTAT is clear, and the prime
+ * didn't fail: the descriptor is retired */
+static void test_prime_done_at_once(void **state)
+{
+    (void)state;
+
+    run_on_prime = USB_EP0_IN;
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_IN), PB_OK);
+    assert_int_equal(primed, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+}
+
+/* drivers.md 3: a prime that doesn't end is given up after the bound,
+ * -PB_ERR_TIMEOUT, and the next transfer works */
+static void test_prime_is_bounded(void **state)
+{
+    unsigned int start;
+    (void)state;
+
+    size_t writes;
+
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    fake_us_tick_step = 100;
+    prime_stuck = ep_bit(USB_EP1_IN);
+    start = fake_us_tick;
+    writes = fake_reg_log_len;
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), -PB_ERR_TIMEOUT);
+    assert_true(fake_us_tick - start >= 10000);
+    assert_true(fake_us_tick - start < 30000);
+
+    /* The flush is written all the same, and can't be seen done while
+     * ENDPTPRIME stays set: the descriptors stay the controller's, the
+     * session is lost and nothing is started until init */
+    assert_true(flushes_since(writes) >= 1);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS + 1);
+    assert_int_equal(ops->xfer_complete(USB_EP1_IN), -PB_ERR_IO);
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, arena, 18), -PB_ERR_IO);
+
+    prime_stuck = 0;
+    fake_regs_set(BASE + CI_ENDPTPRIME, 0);
+    fake_us_tick_step = 0;
+    assert_int_equal(ops->init(), PB_OK);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    transfer_in(0, 512);
+}
+
+/* RM 42.7.37: ENDPTSTAT can be set some time after ENDPTPRIME clears. It is
+ * polled within the bound, and a prime isn't failed on one read of it
+ * (Linux's hw_ep_prime() doesn't trust it at all) */
+static void test_prime_status_late(void **state)
+{
+    (void)state;
+
+    stat_late = ep_bit(USB_EP2_OUT);
+    stat_late_reads = 5;
+    transfer_out(0x200, 512);
+    assert_int_equal(stat_late_reads, 0);
+}
+
+/* RM 42.7.35, 42.7.37: a flush isn't done while ENDPTPRIME shows the
+ * controller priming the endpoint's next descriptor, when ENDPTSTAT is
+ * clear for the moment: the flush is written again */
+static void test_flush_sees_a_prime(void **state)
+{
+    size_t start;
+    (void)state;
+
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 3 * DTD_MAX_BYTES), PB_OK);
+    prime_busy = ep_bit(USB_EP2_OUT);
+    prime_busy_reads = 1;
+    start = fake_reg_log_len;
+    ops->xfer_cancel(USB_EP2_OUT);
+    assert_int_equal(flushes_since(start), 2);
+    assert_int_equal(primed, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    transfer_out(0x200, 512);
+}
+
+/* The flushes wait for the endpoints that were enabled only: bits of others
+ * that stay set (an endpoint the controller doesn't have) fail neither
+ * init, a cancel, a bus reset nor stop. Stop doesn't wait for its flush:
+ * the controller's reset after it ends everything, and is the only wait (a
+ * failed stop fails the boot) */
+static void test_unused_endpoints_and_stop(void **state)
+{
+    struct usb_setup_packet pkt;
+    unsigned int start;
+    (void)state;
+
+    phantom = ENDPT_TX(5) | ENDPT_RX(5) | ENDPT_TX(7);
+    assert_int_equal(ops->init(), PB_OK);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    transfer_out(0x200, 512);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena, 512), PB_OK);
+    ops->xfer_cancel(USB_EP1_IN);
+    assert_int_equal(primed, 0);
+    transfer_in(0x40, 512);
+
+    bus_reset();
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
+    flush_stuck = ENDPT_ALL;
+    fake_us_tick_step = 100;
+    start = fake_us_tick;
+    assert_int_equal(ops->stop(), PB_OK);
+    assert_true(fake_us_tick - start < 1000);
+    assert_int_equal(dma_host_in_open(), 0);
+}
+
+/* RM 42.5.6.6.5: a flush the controller refuses (ENDPTSTAT stays set, a
+ * packet was in progress) is written again until the endpoint is idle, in
+ * a cancel, in a transfer started over one that wasn't completed, and in
+ * the flush of endpoint 0 at a SETUP (F-136: one write, and on to the next
+ * prime) */
+static void test_refused_flush_is_repeated(void **state)
+{
+    static const struct usb_setup_packet set_address = {
+        .bRequestType = 0x00,
+        .bRequest = 5,
+        .wValue = 7,
+    };
+    uintptr_t qh = (uintptr_t)fake_regs_get(BASE + CI_ENDPTLISTADDR) +
+                   USB_EP0_OUT * sizeof(struct imx_ci_udc_queue_head);
+    struct usb_setup_packet pkt;
+    size_t start;
+    (void)state;
+
+    /* A cancel */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 3 * PAGE), PB_OK);
+    flush_refusals = 2;
+    start = fake_reg_log_len;
+    ops->xfer_cancel(USB_EP2_OUT);
+    assert_int_equal(flushes_since(start), 3);
+    assert_int_equal(primed, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    transfer_out(0x200, 512);
+
+    /* A transfer started over one that is primed: flushed first */
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 512), PB_OK);
+    flush_refusals = 1;
+    start = fake_reg_log_len;
+    transfer_out(0, 3 * PAGE);
+    assert_int_equal(flushes_since(start), 2);
+
+    /* A SETUP while endpoint 0's status stage of the request before is
+     * primed: the stage is flushed before the SETUP is handed on */
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, NULL, 0), PB_OK);
+    assert_true(primed & ep_bit(USB_EP0_IN));
+    ram_write(
+        qh + offsetof(struct imx_ci_udc_queue_head, setup), &set_address, sizeof(set_address));
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+    flush_refusals = 1;
+    start = fake_reg_log_len;
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+    assert_memory_equal(&pkt, &set_address, sizeof(pkt));
+    assert_int_equal(flushes_since(start), 2);
+    assert_int_equal(primed, 0);
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), -PB_ERR_STATE);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+}
+
+/* drivers.md 3: a flush that the controller never does is given up after
+ * the bound. A cancel can't return it: the bulk transfers fail until the
+ * device is configured or started again, and endpoint 0's flush at a SETUP
+ * returns -PB_ERR_TIMEOUT */
+static void test_flush_is_bounded(void **state)
+{
+    struct usb_setup_packet pkt;
+    unsigned int start;
+    (void)state;
+
+    fake_us_tick_step = 100;
+
+    /* Refused for ever */
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
+    flush_refusals = UINT32_MAX;
+    start = fake_us_tick;
+    ops->xfer_cancel(USB_EP2_OUT);
+    assert_true(fake_us_tick - start >= 10000);
+    assert_true(fake_us_tick - start < 20000);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), -PB_ERR_IO);
+    /* Its descriptors' line and its buffer stay the controller's */
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS + 2);
+
+    /* Never ends */
+    flush_refusals = 0;
+    set_primed(0);
+    flush_stuck = ENDPT_TX(0) | ENDPT_RX(0);
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+    start = fake_us_tick;
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_TIMEOUT);
+    assert_true(fake_us_tick - start >= 10000);
+    assert_true(fake_us_tick - start < 20000);
+
+    /* Started again: the controller is reset */
+    flush_stuck = 0;
+    fake_regs_set(BASE + CI_ENDPTFLUSH, 0);
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, 0);
+    fake_us_tick_step = 0;
+    assert_int_equal(ops->init(), PB_OK);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    transfer_out(0x200, 512);
+}
+
+/* A bus reset as RM 42.5.6.2.1: the setup and complete status cleared,
+ * then every prime waited for (here the controller's own prime of a next
+ * descriptor) and every endpoint flushed once, not waited for: the
+ * controller cancels every prime at a bus reset, and Linux's
+ * hw_usb_reset() doesn't wait either (F-136: flushed with a prime running,
+ * and the wait ended when the first bit cleared) */
+static void test_bus_reset_sequence(void **state)
+{
+    struct usb_setup_packet pkt;
+    size_t start;
+    size_t setupstat = SIZE_MAX;
+    size_t complete = SIZE_MAX;
+    size_t flush = SIZE_MAX;
+    (void)state;
+
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 0x200, 3 * PAGE), PB_OK);
+    prime_busy = ep_bit(USB_EP2_OUT);
+    prime_busy_reads = 3;
+    start = fake_reg_log_len;
+    bus_reset();
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+
+    for (size_t i = fake_reg_log_len; i-- > start;) {
+        if (fake_reg_log[i].addr == BASE + CI_ENDPTSETUPSTAT)
+            setupstat = i;
+        else if (fake_reg_log[i].addr == BASE + CI_ENDPTCOMPLETE)
+            complete = i;
+        else if (fake_reg_log[i].addr == BASE + CI_ENDPTFLUSH)
+            flush = i;
+    }
+
+    assert_true(setupstat < complete);
+    assert_true(complete < flush);
+    assert_int_equal(fake_reg_log[flush].value, ENDPT_ALL);
+    assert_int_equal(flushes_since(start), 1);
+    assert_int_equal(prime_busy_reads, 0);
+    assert_int_equal(primed, 0);
+    assert_int_equal(usbsts, 0);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
+}
+
+/* USBSTS is cleared with the value read: a bus reset that comes between the
+ * driver's read and its write is seen at the next poll (F-136: the write of
+ * all ones cleared it unread, and a configured device's session went on) */
+static void reset_between_read_and_write(void)
+{
+    set_usbsts(usbsts | USBSTS_URI);
+    on_complete_read = NULL;
+}
+
+static void test_status_written_back_as_read(void **state)
+{
+    (void)state;
+
+    assert_int_equal(ops->set_configuration(bulk_eps, ARRAY_SIZE(bulk_eps)), PB_OK);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, 512), PB_OK);
+
+    set_usbsts(USBSTS_UI);
+    on_complete_read = reset_between_read_and_write;
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+    assert_int_equal(usbsts, USBSTS_URI);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(usbsts, 0);
+}
+
+/* drivers.md 3: the controller's reset, the port's reset and the setup
+ * tripwire are waited for with a bound (F-136: for ever) */
+static void test_resets_are_bounded(void **state)
+{
+    struct usb_setup_packet pkt;
+    unsigned int start;
+    (void)state;
+
+    fake_us_tick_step = 1000;
+
+    reset_stuck = true;
+    start = fake_us_tick;
+    assert_int_equal(ops->init(), -PB_ERR_TIMEOUT);
+    assert_true(fake_us_tick - start >= 250000);
+    assert_true(fake_us_tick - start < 300000);
+    start = fake_us_tick;
+    assert_int_equal(ops->stop(), -PB_ERR_TIMEOUT);
+    assert_true(fake_us_tick - start < 300000);
+    reset_stuck = false;
+    fake_regs_set(BASE + CI_USBCMD, 0);
+
+    fake_regs_set(BASE + CI_PORTSC1, PORTSC1_PR);
+    start = fake_us_tick;
+    assert_int_equal(ops->init(), -PB_ERR_TIMEOUT);
+    assert_true(fake_us_tick - start >= 100000);
+    assert_true(fake_us_tick - start < 150000);
+    fake_regs_set(BASE + CI_PORTSC1, 0);
+    assert_int_equal(ops->init(), PB_OK);
+
+    sutw_trips = true;
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_TIMEOUT);
+    sutw_trips = false;
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+
+    fake_us_tick_step = 0;
+    transfer_out(0x200, 512);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -870,6 +1381,18 @@ int main(void)
         cmocka_unit_test_setup(test_result_once, setup),
         cmocka_unit_test_setup(test_ep0_length, setup),
         cmocka_unit_test_setup(test_unplug_is_reported, setup),
+        cmocka_unit_test_setup(test_failed_prime, setup),
+        cmocka_unit_test_setup(test_failed_prime_on_endpoint_0, setup),
+        cmocka_unit_test_setup(test_prime_status_late, setup),
+        cmocka_unit_test_setup(test_flush_sees_a_prime, setup),
+        cmocka_unit_test_setup(test_unused_endpoints_and_stop, setup),
+        cmocka_unit_test_setup(test_prime_done_at_once, setup),
+        cmocka_unit_test_setup(test_prime_is_bounded, setup),
+        cmocka_unit_test_setup(test_refused_flush_is_repeated, setup),
+        cmocka_unit_test_setup(test_flush_is_bounded, setup),
+        cmocka_unit_test_setup(test_bus_reset_sequence, setup),
+        cmocka_unit_test_setup(test_status_written_back_as_read, setup),
+        cmocka_unit_test_setup(test_resets_are_bounded, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

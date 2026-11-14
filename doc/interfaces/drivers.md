@@ -380,7 +380,7 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 | CAAM                    | yes: 1 s              | yes                     | yes              | F-286        |
 |                         |                       | (`test_caam_crypto`)    |                  |              |
 | Mbed TLS                | n/a                   | n/a                     | n/a              |              |
-| ChipIdea                | no                    | yes (`test_imx_ci_udc`) | yes, unbounded   | F-136        |
+| ChipIdea                | yes                   | yes (`test_imx_ci_udc`) | yes              |              |
 | DWC3                    | yes                   | yes (`test_dwc3_udc`)   | yes              |              |
 | Cadence USB3            | yes                   | yes (`test_cdns3_udc`)  | yes, not run     | F-204        |
 | The DRAM controller and | no                    | n/a                     | n/a              | F-102        |

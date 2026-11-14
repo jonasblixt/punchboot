@@ -60,20 +60,42 @@ PB_STATIC_ASSERT((unsigned long long)CONFIG_BOOT_LOAD_CHUNK_kB * 1024 <= IMX_CI_
 /* Endpoint 0's transfers: what the stack sends there is a descriptor or a
  * status, the longest a string descriptor, 255 bytes (usbd.c). Its bounce
  * buffer is aligned to its size, so it is inside one page */
-#define IMX_CI_UDC_EP0_MAX_BYTES  512
+#define IMX_CI_UDC_EP0_MAX_BYTES         512
 
 /* A status stage the host hasn't taken in this time it has left: USB 2.0
  * 9.2.6.4 gives the device 500 ms for each packet of a data stage and 50 ms
  * for the status stage after it, and the host polls for that stage at once.
  * The DWC3's driver waits as long (DWC3_EP0_TIMEOUT_us) */
-#define IMX_CI_UDC_EP0_TIMEOUT_us 500000
+#define IMX_CI_UDC_EP0_TIMEOUT_us        500000
 
-#define EP_IS_IN(ep)              ((ep) & 1)
-#define EP_USB_NUMBER(ep)         ((ep) >> 1)
+/*
+ * A prime or a flush of an endpoint. The RM gives no time: a prime's
+ * "varies based upon the current USB traffic" (i.MX RT1060 RM rev. 3
+ * 42.7.37, the 6UL's 54.6.37), and a flush waits for the packet in progress
+ * on the endpoint (42.5.6.6.5). A packet takes 50 us at most at full speed
+ * (64 bytes) and 10 us at high speed (512 bytes); 10 ms is ten full speed
+ * frames. Linux's chipidea waits for both without a bound (hw_ep_prime(),
+ * hw_ep_flush(), drivers/usb/chipidea/udc.c); the DWC3's driver gives its
+ * endpoint commands 10 ms (DWC3_CMD_TIMEOUT_us)
+ */
+#define IMX_CI_UDC_ENDPT_TIMEOUT_us      10000
+
+/* The controller's reset, USBCMD.RST. The RM gives no time (42.7.18).
+ * Linux's chipidea gives it 10 ms (hw_controller_reset(),
+ * drivers/usb/chipidea/core.c), U-Boot's EHCI 250 ms (ehci_reset()); the
+ * longer */
+#define IMX_CI_UDC_RESET_TIMEOUT_us      250000
+
+/* A bus reset the host drives, PORTSC1.PR: 50 ms at most from a root port
+ * (USB 2.0 7.1.7.5, TDRSTR), and twice that */
+#define IMX_CI_UDC_PORT_RESET_TIMEOUT_us 100000
+
+#define EP_IS_IN(ep)                     ((ep) & 1)
+#define EP_USB_NUMBER(ep)                ((ep) >> 1)
 
 /* bEndpointAddress in an endpoint descriptor */
-#define USB_EP_ADDR_NUMBER_MASK   0x0f
-#define USB_EP_ADDR_DIR_IN        0x80
+#define USB_EP_ADDR_NUMBER_MASK          0x0f
+#define USB_EP_ADDR_DIR_IN               0x80
 
 /*
  * What the controller reads and writes of the driver's own (drivers.md 4.2,
@@ -142,6 +164,15 @@ static bool lost;
 /* The controller had VBUS when the host configured the device: its loss is
  * an unplug */
 static bool vbus_seen;
+/* The endpoints that were enabled, endpoint 0, the configured ones and any
+ * the driver primed: a flush waits for their bits only. Another endpoint is
+ * never primed, and the bits of one the controller doesn't have may never
+ * clear */
+static uint32_t endpoints_enabled;
+/* A flush of an endpoint with a transfer failed: the controller may still
+ * write the transfer's memory, which stays its own, and no transfer is
+ * started until init or stop reset the controller (drivers.md 3, 4.2) */
+static bool held;
 
 /* The bit of an endpoint in ENDPTPRIME, ENDPTFLUSH, ENDPTSTAT and ENDPTCOMPLETE */
 static uint32_t ep_bit(usb_ep_t ep)
@@ -150,6 +181,70 @@ static uint32_t ep_bit(usb_ep_t ep)
         return ENDPT_TX(EP_USB_NUMBER(ep));
     else
         return ENDPT_RX(EP_USB_NUMBER(ep));
+}
+
+/* Waits until the register's 'mask' bits are clear, bounded (drivers.md 3) */
+static int ci_wait_clear(uint32_t reg, uint32_t mask, uint32_t timeout_us)
+{
+    struct pb_timeout to;
+    int rc;
+
+    rc = pb_timeout_init_us(&to, timeout_us);
+
+    if (rc != PB_OK)
+        return rc;
+
+    while (mmio_read_32(imx_ci_udc_base + reg) & mask) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Timeout: 0x%03" PRIx32 " & 0x%08" PRIx32, reg, mask);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
+}
+
+/*
+ * The enabled endpoints of 'bits' are flushed (RT1060 RM 42.5.6.6.5, the
+ * 6UL's 54.4.6.6.5): written to ENDPTFLUSH, waited for, and written again
+ * while ENDPTSTAT shows one still primed: the controller refuses the flush
+ * of an endpoint with a packet in progress. Linux's hw_ep_flush() is the same
+ * loop. Done also needs ENDPTPRIME clear: the controller primes a transfer's
+ * next descriptor by itself, and ENDPTSTAT is clear for that moment
+ * (42.7.35, 42.7.37). The first write isn't held back by a prime that runs,
+ * or by one that never ends. One bound for all of it.
+ */
+static int imx_ci_udc_flush(uint32_t bits)
+{
+    struct pb_timeout to;
+    int rc;
+
+    bits &= endpoints_enabled;
+
+    rc = pb_timeout_init_us(&to, IMX_CI_UDC_ENDPT_TIMEOUT_us);
+
+    if (rc != PB_OK)
+        return rc;
+
+    for (;;) {
+        mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, bits);
+
+        while (mmio_read_32(imx_ci_udc_base + CI_ENDPTFLUSH) & bits) {
+            if (pb_timeout_has_expired(&to))
+                goto timeout;
+        }
+
+        if (!(mmio_read_32(imx_ci_udc_base + CI_ENDPTSTAT) & bits) &&
+            !(mmio_read_32(imx_ci_udc_base + CI_ENDPTPRIME) & bits))
+            return PB_OK;
+
+        if (pb_timeout_has_expired(&to))
+            goto timeout;
+    }
+
+timeout:
+    LOG_ERR("Flush of 0x%08" PRIx32 ": timeout", bits);
+    return -PB_ERR_TIMEOUT;
 }
 
 /* Endpoint 0's transfer, or the bulk endpoints' */
@@ -178,10 +273,21 @@ static bool xfer_is_out(const struct imx_ci_udc_xfer *x)
 /* The controller gets the transfer's descriptors, and what an OUT transfer
  * writes: the caller's buffer, which owns its lines (usb.md 4.3), and the
  * bounce buffer for a head that isn't on a page */
-static void xfer_dma_begin(struct imx_ci_udc_xfer *x)
+static void xfer_dtds_begin(struct imx_ci_udc_xfer *x)
 {
     dma_in_begin(x->dtds, xfer_dtds_before_head(x));
     dma_in_begin(xfer_head_line(x), PB_DMA_ALIGN);
+}
+
+static void xfer_dtds_end(struct imx_ci_udc_xfer *x)
+{
+    dma_in_end(x->dtds, xfer_dtds_before_head(x));
+    dma_in_end(xfer_head_line(x), PB_DMA_ALIGN);
+}
+
+static void xfer_dma_begin(struct imx_ci_udc_xfer *x)
+{
+    xfer_dtds_begin(x);
 
     if (xfer_is_out(x)) {
         dma_in_begin((void *)x->bfr, x->length);
@@ -224,6 +330,21 @@ static void xfer_give_up(struct imx_ci_udc_xfer *x)
     x->head = NULL;
 }
 
+/* The transfer is given up after its endpoint's flush, 'flush_rc'. A flush
+ * that failed leaves the transfer's memory the controller's, as it was
+ * begun: the session is lost, and every transfer fails until init or stop
+ * take it back */
+static void xfer_abandon(struct imx_ci_udc_xfer *x, int flush_rc)
+{
+    if (flush_rc == PB_OK) {
+        xfer_give_up(x);
+        return;
+    }
+
+    held = true;
+    lost = true;
+}
+
 /* The driver reads or changes a queue head: taken back from the controller,
  * which may have written it, and given again */
 static void qh_take(struct imx_ci_udc_queue_head *qh)
@@ -249,6 +370,7 @@ static void imx_ci_udc_dma_take_back(void)
         dma_in_end(&dqhs[i], sizeof(dqhs[i]));
 
     queues_dma = false;
+    held = false;
 }
 
 static void imx_ci_udc_reset_queues(void)
@@ -265,22 +387,25 @@ static void imx_ci_udc_reset_queues(void)
     configured = false;
     lost = false;
     vbus_seen = false;
+    endpoints_enabled = ENDPT_TX(0) | ENDPT_RX(0);
 }
 
-static void imx_ci_udc_reset(void)
+/* Every status is cleared and endpoint 0 flushed, after the controller's
+ * reset, and a reset of the port is waited for */
+static int imx_ci_udc_reset(void)
 {
+    int rc;
+
     mmio_write_32(imx_ci_udc_base + CI_USBSTS, USBSTS_ALL);
     mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_ALL);
     mmio_write_32(imx_ci_udc_base + CI_ENDPTCOMPLETE, ENDPT_ALL);
 
-    while (mmio_read_32(imx_ci_udc_base + CI_ENDPTPRIME)) {
-    };
+    rc = imx_ci_udc_flush(ENDPT_ALL);
 
-    mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_ALL);
+    if (rc != PB_OK)
+        return rc;
 
-    /* Wait for port to come out of reset */
-    while (mmio_read_32(imx_ci_udc_base + CI_PORTSC1) & PORTSC1_PR) {
-    };
+    return ci_wait_clear(CI_PORTSC1, PORTSC1_PR, IMX_CI_UDC_PORT_RESET_TIMEOUT_us);
 }
 
 static void imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
@@ -292,17 +417,25 @@ static void imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
     qh_give(qh);
 }
 
-/* Every endpoint is flushed: a transfer's buffer is the caller's again
- * (usb.md 4.3) */
+/*
+ * At a bus reset or an unplug every endpoint is flushed, and a transfer's
+ * buffer is the caller's again (usb.md 4.3). The flush isn't waited for, as
+ * Linux's hw_usb_reset() (drivers/usb/chipidea/udc.c): at a bus reset the
+ * controller has cancelled every prime itself (RT1060 RM 42.5.6.2.1), and
+ * after an unplug there is no host to move a packet. The RM's wait for
+ * ENDPTPRIME to clear before it is kept, bounded, for the enabled
+ * endpoints; at its end the flush is written anyway. Memory a failed flush
+ * left the controller's stays so.
+ */
 static void imx_ci_udc_flush_all(void)
 {
+    (void)ci_wait_clear(CI_ENDPTPRIME, endpoints_enabled, IMX_CI_UDC_ENDPT_TIMEOUT_us);
     mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_ALL);
 
-    while (mmio_read_32(imx_ci_udc_base + CI_ENDPTFLUSH) == ENDPT_ALL) {
-    };
-
-    xfer_dma_end(&ep0_xfer, true);
-    xfer_dma_end(&bulk_xfer, true);
+    if (!held) {
+        xfer_dma_end(&ep0_xfer, true);
+        xfer_dma_end(&bulk_xfer, true);
+    }
 }
 
 static int imx_ci_udc_irq_process(void)
@@ -311,18 +444,33 @@ static int imx_ci_udc_irq_process(void)
     uint32_t sts = mmio_read_32(imx_ci_udc_base + CI_USBSTS);
     uint32_t epc = mmio_read_32(imx_ci_udc_base + CI_ENDPTCOMPLETE);
 
-    mmio_write_32(imx_ci_udc_base + CI_USBSTS, USBSTS_ALL);
-    mmio_write_32(imx_ci_udc_base + CI_ENDPTCOMPLETE, epc);
+    /* Write one to clear: what was read, and nothing that came after the
+     * read (a bus reset there is seen at the next poll) */
+    if (sts != 0)
+        mmio_write_32(imx_ci_udc_base + CI_USBSTS, sts);
 
-    /* Check for USB reset */
+    if (epc != 0)
+        mmio_write_32(imx_ci_udc_base + CI_ENDPTCOMPLETE, epc);
+
+    /*
+     * A bus reset, as the RM's sequence (RT1060 RM 42.5.6.2.1, the 6UL's
+     * 54.4.6.2.1): the setup and the complete status cleared with what is
+     * read, the primes waited for and every endpoint flushed, the flush
+     * not waited for (imx_ci_udc_flush_all()). Not done:
+     * the RM's check that PORTSC1.PR is still set, with a reset of the
+     * controller when it isn't, which needs the driver at the reset within
+     * its 3 ms. A polling driver often isn't, and a reset of the controller
+     * detaches the device. Linux's chipidea doesn't check it either
+     * (hw_usb_reset(), drivers/usb/chipidea/udc.c).
+     */
     if (sts & USBSTS_URI) {
-        imx_ci_udc_flush_all();
-
         tmp = mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT);
         mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, tmp);
 
         tmp = mmio_read_32(imx_ci_udc_base + CI_ENDPTCOMPLETE);
         mmio_write_32(imx_ci_udc_base + CI_ENDPTCOMPLETE, tmp);
+
+        imx_ci_udc_flush_all();
 
         mmio_write_32(imx_ci_udc_base + CI_DEVICEADDR, 0);
 
@@ -353,12 +501,90 @@ static int imx_ci_udc_irq_process(void)
         lost = true;
     }
 
-    if (sts & USBSTS_UEI) {
-        mmio_write_32(imx_ci_udc_base + CI_USBSTS, USBSTS_UEI);
-        LOG_ERR("IMX_CI_UDC: Error %x", sts);
-    }
+    if (sts & USBSTS_UEI)
+        LOG_ERR("IMX_CI_UDC: Error %" PRIx32, sts);
 
     return PB_OK;
+}
+
+/*
+ * The transfer's endpoint is primed (RT1060 RM 42.5.6.6.3, case 1, and
+ * 42.5.6.4.2.2; the 6UL's 54.4.6.6.3, 54.4.6.4.2.2). The prime is done when
+ * ENDPTPRIME's bit is clear and ENDPTSTAT's is set, or when the controller
+ * has retired the first descriptor already: a short IN transfer or a status
+ * stage the host took at once, or the controller priming the next
+ * descriptor itself, when ENDPTSTAT is clear for a moment (42.7.37's note).
+ * Linux's hw_ep_prime() doesn't look at ENDPTSTAT, its comment says because
+ * it "doesn't work": so it is polled, and a prime fails only when none of
+ * that came within the bound. The RM's causes of a failed prime: the queue
+ * head or a descriptor set up wrong (F-130 was), or a SETUP during the
+ * prime; and a bus reset cancels every prime (42.5.6.2.1). A SETUP or a bus
+ * reset that is waiting ends the poll at once. A failed prime's descriptor
+ * stays active for ever, so the transfer is given up, its endpoint flushed.
+ *
+ * On endpoint 0 a failed prime with a SETUP or a bus reset waiting is the
+ * host that left the control transfer (42.5.6.4.2.2: "the transfer
+ * descriptor can be freed and the DCD must reinterpret the setup packet"):
+ * -PB_ERR_TIMEOUT, what the stage's bound would have returned, and which
+ * the stack takes as a host that started over (usbd_connect(), usb.md 2.2).
+ * A prime that never ends is -PB_ERR_TIMEOUT too, any other failure
+ * -PB_ERR_IO.
+ */
+static int imx_ci_udc_prime(struct imx_ci_udc_xfer *x)
+{
+    uint32_t bit = ep_bit(x->ep);
+    bool ep0 = EP_USB_NUMBER(x->ep) == 0;
+    struct pb_timeout to;
+    int rc;
+
+    rc = pb_timeout_init_us(&to, IMX_CI_UDC_ENDPT_TIMEOUT_us);
+
+    if (rc != PB_OK)
+        return rc;
+
+    endpoints_enabled |= bit;
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTPRIME, bit);
+
+    for (;;) {
+        if (!(mmio_read_32(imx_ci_udc_base + CI_ENDPTPRIME) & bit)) {
+            uint32_t token;
+
+            if (mmio_read_32(imx_ci_udc_base + CI_ENDPTSTAT) & bit)
+                return PB_OK;
+
+            xfer_dtds_end(x);
+            token = x->dtds[0].token;
+            xfer_dtds_begin(x);
+
+            if (!(token & DTD_TOKEN_STATUS_ACTIVE))
+                return PB_OK;
+
+            if (mmio_read_32(imx_ci_udc_base + CI_USBSTS) & USBSTS_URI) {
+                rc = ep0 ? -PB_ERR_TIMEOUT : -PB_ERR_IO;
+                break;
+            }
+
+            if (ep0 && (mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT) & ENDPTSETUPSTAT_EP(0))) {
+                rc = -PB_ERR_TIMEOUT;
+                break;
+            }
+        }
+
+        if (pb_timeout_has_expired(&to)) {
+            rc = (mmio_read_32(imx_ci_udc_base + CI_ENDPTPRIME) & bit) ? -PB_ERR_TIMEOUT
+                                                                       : -PB_ERR_IO;
+            break;
+        }
+    }
+
+    LOG_ERR("EP%u %s: the prime failed (%i)",
+            (unsigned int)EP_USB_NUMBER(x->ep),
+            EP_IS_IN(x->ep) ? "IN" : "OUT",
+            rc);
+
+    /* Nothing of it completes later (drivers.md 3) */
+    xfer_abandon(x, imx_ci_udc_flush(bit));
+    return rc;
 }
 
 /**
@@ -370,7 +596,6 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     struct imx_ci_udc_xfer *x;
     struct imx_ci_udc_queue_head *qh;
     struct imx_ci_udc_transfer_head *dtd;
-    uint32_t epreg = 0;
     size_t bytes_to_tx = length;
     size_t align_length = 0;
     size_t align_offset = 0;
@@ -384,6 +609,10 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     qh = &dqhs[ep];
     dtd = x->dtds;
 
+    /* A flush failed: the memory is the controller's until init or stop */
+    if (held)
+        return -PB_ERR_IO;
+
     /* A bus reset or an unplug while no transfer ran is the error of the
      * next one. Endpoint 0 goes on: the host enumerates */
     if (lost && ep >= USB_EP1_OUT)
@@ -395,8 +624,18 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         return -PB_ERR_PARAM;
 
     /* The endpoint's transfer that wasn't completed or cancelled ends here,
-     * and its descriptors are the driver's to write. The other transfer
-     * isn't touched */
+     * and its descriptors are the driver's to write. Its endpoint is flushed
+     * first: the queue head is changed only on an endpoint that isn't primed
+     * (RT1060 RM 42.5.6.5.1). The other transfer isn't touched */
+    if (x->head != NULL) {
+        int rc = imx_ci_udc_flush(ep_bit(x->ep));
+
+        if (rc != PB_OK) {
+            xfer_abandon(x, rc);
+            return rc;
+        }
+    }
+
     xfer_dma_end(x, true);
     x->head = NULL;
 
@@ -499,14 +738,7 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     dma_out(x->dtds, (size_t)(dtd + 1 - x->dtds) * sizeof(*dtd));
     xfer_dma_begin(x);
 
-    epreg = ep_bit(ep);
-
-    mmio_write_32(imx_ci_udc_base + CI_ENDPTPRIME, epreg);
-
-    while (mmio_read_32(imx_ci_udc_base + CI_ENDPTPRIME) & epreg) {
-    };
-
-    return PB_OK;
+    return imx_ci_udc_prime(x);
 }
 
 static int imx_ci_udc_xfer_complete(usb_ep_t ep)
@@ -522,8 +754,9 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     if (rc != PB_OK)
         return rc;
 
-    /* A bus reset or an unplug ends a bulk transfer: lost */
-    if (lost && ep >= USB_EP1_OUT)
+    /* A bus reset or an unplug ends a bulk transfer: lost. A flush that
+     * failed ends every transfer until init or stop */
+    if ((lost && ep >= USB_EP1_OUT) || held)
         return -PB_ERR_IO;
 
     x = xfer_of(ep);
@@ -575,23 +808,25 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
 static void imx_ci_udc_flush_ep(usb_ep_t ep)
 {
     struct imx_ci_udc_xfer *x;
+    int rc;
 
     if (ep >= USB_EP_END)
         return;
 
-    uint32_t flush_cmd = ENDPT_TX(EP_USB_NUMBER(ep)) | ENDPT_RX(EP_USB_NUMBER(ep));
-
-    mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, flush_cmd);
-
-    while ((mmio_read_32(imx_ci_udc_base + CI_ENDPTFLUSH) & flush_cmd) != 0) {
-    };
+    rc = imx_ci_udc_flush(ENDPT_TX(EP_USB_NUMBER(ep)) | ENDPT_RX(EP_USB_NUMBER(ep)));
 
     /* The endpoint is idle: its transfer is given up and its buffer is the
-     * caller's again (usb.md 4.3) */
+     * caller's again (usb.md 4.3). A flush the controller didn't do within
+     * the bound: the controller failed, the memory stays its own and the
+     * transfers fail until init, which resets it */
     x = xfer_of(ep);
 
-    if (x->head != NULL && EP_USB_NUMBER(x->ep) == EP_USB_NUMBER(ep))
-        xfer_give_up(x);
+    if (x->head != NULL && EP_USB_NUMBER(x->ep) == EP_USB_NUMBER(ep)) {
+        xfer_abandon(x, rc);
+    } else if (rc != PB_OK) {
+        held = true;
+        lost = true;
+    }
 }
 
 static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_t no_of_eps)
@@ -655,6 +890,7 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
         LOG_DBG("EP config: reg=0x%lx, val=0x%x", epctrl, ep_reg);
         mmio_write_32(imx_ci_udc_base + epctrl, ep_reg);
         imx_ci_udc_config_ep(ep, max_pkt_sz, 0);
+        endpoints_enabled |= ep_bit(ep);
     }
 
     configured = true;
@@ -666,11 +902,26 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
 
 static int imx_ci_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
 {
+    int rc;
+
     /* EP0 Process setup packets */
     if (mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT) & ENDPTSETUPSTAT_EP(0)) {
         struct imx_ci_udc_queue_head *qh = &dqhs[USB_EP0_OUT];
+        struct pb_timeout to;
+
+        /* The tripwire trips when a SETUP arrives during the copy, which
+         * is made again: bounded, for a controller that keeps it tripped */
+        rc = pb_timeout_init_us(&to, IMX_CI_UDC_ENDPT_TIMEOUT_us);
+
+        if (rc != PB_OK)
+            return rc;
 
         do {
+            if (pb_timeout_has_expired(&to)) {
+                LOG_ERR("Setup tripwire: timeout");
+                return -PB_ERR_TIMEOUT;
+            }
+
             mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, 0, USBCMD_SUTW);
             qh_take(qh);
             memcpy(pkt, qh->setup, sizeof(struct usb_setup_packet));
@@ -680,32 +931,45 @@ static int imx_ci_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
         mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
         mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, USBCMD_SUTW, 0);
 
-        /* Do we really need to flush transmitt buffer here? */
-        mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_TX(0) | ENDPT_RX(0));
-
-        while (mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT) & ENDPTSETUPSTAT_EP(0)) {
-        };
+        /*
+         * A data or status stage of the control transfer before is flushed
+         * before endpoint 0 is primed for this one (RT1060 RM 42.5.6.5.2,
+         * step 3, with the flush of 42.5.6.6.5). Its setup status isn't
+         * waited for: the write clears it, and a bit set again is the next
+         * SETUP, which the next poll reads (42.5.6.4.2.1)
+         */
+        rc = imx_ci_udc_flush(ENDPT_TX(0) | ENDPT_RX(0));
 
         /* A control transfer the SETUP ended is given up: endpoint 0's
          * alone, a bulk transfer goes on */
-        xfer_give_up(&ep0_xfer);
+        xfer_abandon(&ep0_xfer, rc);
+
+        if (rc != PB_OK)
+            return rc;
 
         return PB_OK;
     }
 
-    imx_ci_udc_irq_process();
+    rc = imx_ci_udc_irq_process();
+
+    if (rc != PB_OK)
+        return rc;
 
     return -PB_ERR_AGAIN;
 }
 
 static int imx_ci_udc_init_internal(void)
 {
+    int rc;
+
     LOG_DBG("Init base: 0x%" PRIxPTR, imx_ci_udc_base);
 
     mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, 0, USBCMD_RST);
 
-    while (mmio_read_32(imx_ci_udc_base + CI_USBCMD) & USBCMD_RST) {
-    };
+    rc = ci_wait_clear(CI_USBCMD, USBCMD_RST, IMX_CI_UDC_RESET_TIMEOUT_us);
+
+    if (rc != PB_OK)
+        return rc;
 
     /* In reset the controller writes nothing: what an init before this one
      * gave it is taken back, the queue heads are written, and they are the
@@ -732,9 +996,7 @@ static int imx_ci_udc_init_internal(void)
     /* Interrupt threshold 0 (immediate), the driver polls */
     mmio_write_32(imx_ci_udc_base + CI_USBCMD, USBCMD_ITC(0) | USBCMD_RS);
 
-    imx_ci_udc_reset();
-
-    return PB_OK;
+    return imx_ci_udc_reset();
 }
 
 static int imx_ci_udc_set_address(uint16_t addr)
@@ -743,21 +1005,26 @@ static int imx_ci_udc_set_address(uint16_t addr)
     return PB_OK;
 }
 
+/*
+ * Off the bus (Run/Stop clear), every endpoint flushed and the controller
+ * reset, which ends whatever it did: the flush isn't waited for, and the
+ * reset is the only wait (a failed stop fails the boot, drivers.md 2.3).
+ * Reset, it writes pb's memory no more, which is the driver's again.
+ */
 static int imx_ci_udc_stop(void)
 {
-    mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, USBCMD_RS, 0);
-    /* Stopped: it writes pb's memory no more (drivers.md 2.3) */
-    imx_ci_udc_dma_take_back();
-    imx_ci_udc_reset_queues();
-    imx_ci_udc_reset();
-    mmio_write_32(imx_ci_udc_base + CI_DEVICEADDR, 0);
+    int rc;
 
+    mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, USBCMD_RS, 0);
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_ALL);
     mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, 0, USBCMD_RST);
 
-    while (mmio_read_32(imx_ci_udc_base + CI_USBCMD) & USBCMD_RST) {
-    };
+    rc = ci_wait_clear(CI_USBCMD, USBCMD_RST, IMX_CI_UDC_RESET_TIMEOUT_us);
 
-    return PB_OK;
+    imx_ci_udc_dma_take_back();
+    imx_ci_udc_reset_queues();
+
+    return rc;
 }
 
 /* The status stage of a control transfer, bounded (usb.md 4.4, drivers.md 3) */

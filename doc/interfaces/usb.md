@@ -390,7 +390,7 @@ what the code doesn't settle without the hardware.
 | Requirement                      | ChipIdea           | DWC3                | Cadence USB3    | Finding |
 | -------------------------------- | ------------------ | ------------------- | --------------- | ------- |
 | `init` on a running controller   | yes                | yes                 | yes, not run    |         |
-| Every wait bounded               | no                 | yes                 | yes             | F-136   |
+| Every wait bounded               | yes                | yes                 | yes             |         |
 | High speed, or not ready         | no                 | asks, doesn't act   | no              | F-287   |
 | A bus reset and an unplug are    | yes, kept; an      | yes, kept           | yes, at high    | F-287,  |
 | reported                         | unplug where VBUS  |                     | speed, kept     | F-363   |
@@ -416,7 +416,7 @@ what the code doesn't settle without the hardware.
 | their lines                      | `ci_udc`)          | `udc`)              | `cdns3_udc`)    |         |
 | The order of clean, invalidate   | yes                | unverified          | yes             |         |
 | and copy                         |                    |                     |                 |         |
-| `stop`                           | yes, unbounded     | yes                 | yes, not run    | F-204   |
+| `stop`                           | yes                | yes                 | yes, not run    | F-204   |
 | The serial number is read        | yes                | yes                 | yes (the MEK,   |         |
 |                                  |                    |                     | 2026-11-09)     |         |
 | Runs on the bench                | jiffy, the RT1060  | the 8MP EVK         | the MEK; resets | F-172   |
