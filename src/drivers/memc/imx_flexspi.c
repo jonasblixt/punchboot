@@ -14,6 +14,7 @@
 #include <pb/errors.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
+#include <string.h>
 
 #include <drivers/memc/imx_flexspi.h>
 
@@ -21,11 +22,56 @@
 
 static const struct flexspi_core_config *cfg;
 
+/*
+ * The bound on a wait for the controller (drivers.md 3): its reset, a
+ * sequence's end, a FIFO's watermark. Each is one sequence of at most 64 KiB
+ * or one watermark of 8 bytes, microseconds at the serial clocks a board
+ * sets; the controller's own sequence timeout (MCR1.SEQWAIT, the largest
+ * value) ends a sequence that hangs before this. A bound, not a measurement.
+ * The flash's own times are the board's (struct flexspi_nor_config).
+ */
+#define FLEXSPI_TIMEOUT_us (1000 * 1000)
+
+/* The longest read in one IP command: IPCR1.IDATSZ is 16 bits */
+#define FLEXSPI_READ_CHUNK (32 * 1024)
+
 static inline bool imx_flexspi_getbusidle(void)
 {
     static const uint32_t mask = FLEXSPI_STS0_SEQIDLE | FLEXSPI_STS0_ARBIDLE;
     uint32_t val = mmio_read_32(cfg->base + FLEXSPI_STS0);
     return (val & mask) == mask;
+}
+
+static int imx_flexspi_wait_idle(void)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, FLEXSPI_TIMEOUT_us);
+
+    while (!imx_flexspi_getbusidle()) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Timeout, the controller is busy");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
+}
+
+static int imx_flexspi_wait_reset(void)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, FLEXSPI_TIMEOUT_us);
+
+    while (mmio_read_32(cfg->base + FLEXSPI_MCR0) & FLEXSPI_MCR0_SWRESET) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Timeout, reset");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
 }
 
 static int imx_flexspi_checkandclearerror(uint32_t status)
@@ -65,6 +111,7 @@ static int imx_flexspi_writeblocking(uint8_t *buffer, size_t size)
     uint32_t status;
     int rc = 0;
     uint32_t i = 0;
+    struct pb_timeout to;
 
     txWatermark = mmio_read_32(cfg->base + FLEXSPI_IPTXFCR);
     txWatermark &= FLEXSPI_IPTXFCR_TXWMRK_MASK;
@@ -74,9 +121,14 @@ static int imx_flexspi_writeblocking(uint8_t *buffer, size_t size)
     /* Send data buffer */
     while (size) {
         /* Wait until there is room in the fifo. This also checks for errors. */
-        do {
-            status = mmio_read_32(cfg->base + FLEXSPI_INTR);
-        } while (!(status & FLEXSPI_INT_IPTXWEEN));
+        pb_timeout_init_us(&to, FLEXSPI_TIMEOUT_us);
+
+        while (!((status = mmio_read_32(cfg->base + FLEXSPI_INTR)) & FLEXSPI_INT_IPTXWEEN)) {
+            if (pb_timeout_has_expired(&to)) {
+                LOG_ERR("Timeout, TX FIFO");
+                return -PB_ERR_TIMEOUT;
+            }
+        }
 
         rc = imx_flexspi_checkandclearerror(status);
 
@@ -88,21 +140,32 @@ static int imx_flexspi_writeblocking(uint8_t *buffer, size_t size)
         /* Write watermark level data into tx fifo . */
         if (size >= 8 * txWatermark) {
             for (i = 0; i < 2 * txWatermark; i++) {
-                mmio_write_32(cfg->base + FLEXSPI_TFDR0 + i * 4, *((uint32_t *)buffer));
+                uint32_t word;
+
+                /* The caller's buffer has any alignment */
+                memcpy(&word, buffer, sizeof(word));
+                mmio_write_32(cfg->base + FLEXSPI_TFDR0 + i * 4, word);
                 buffer += 4;
             }
 
             size = size - 8 * txWatermark;
         } else {
-            for (i = 0; i < (size / 4 + 1); i++) {
-                mmio_write_32(cfg->base + FLEXSPI_TFDR0 + i * 4, *((uint32_t *)buffer));
-                buffer += 4;
+            /* The last piece: whole words, the last one padded, and not
+             * a byte past the buffer. IDATSZ says how many go out */
+            for (i = 0; size > 0; i++) {
+                uint32_t word = 0;
+                size_t n = (size < 4) ? size : 4;
+
+                memcpy(&word, buffer, n);
+                mmio_write_32(cfg->base + FLEXSPI_TFDR0 + i * 4, word);
+                buffer += n;
+                size -= n;
             }
-            size = 0;
         }
 
-        /* Push a watermark level datas into IP TX FIFO. */
-        mmio_clrsetbits_32(cfg->base + FLEXSPI_INTR, 0, FLEXSPI_INT_IPTXWEEN);
+        /* Push a watermark level datas into IP TX FIFO. INTR is write 1 to
+         * clear: a flag set now must not be written back */
+        mmio_write_32(cfg->base + FLEXSPI_INTR, FLEXSPI_INT_IPTXWEEN);
     }
 
     return rc;
@@ -114,6 +177,7 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
     uint32_t status;
     int rc = 0;
     uint32_t i = 0;
+    struct pb_timeout to;
 
     rxWatermark = mmio_read_32(cfg->base + FLEXSPI_IPRXFCR);
     rxWatermark &= FLEXSPI_IPRXFCR_RXWMRK_MASK;
@@ -122,6 +186,8 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
 
     /* Send data buffer */
     while (size) {
+        pb_timeout_init_us(&to, FLEXSPI_TIMEOUT_us);
+
         if (size >= 8 * rxWatermark) {
             /* Wait until there is room in the fifo. This also checks for errors. */
             while (!((status = mmio_read_32(cfg->base + FLEXSPI_INTR)) & FLEXSPI_INT_IPRXWAEN)) {
@@ -129,6 +195,11 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
 
                 if (rc != 0)
                     return rc;
+
+                if (pb_timeout_has_expired(&to)) {
+                    LOG_ERR("Timeout, RX FIFO");
+                    return -PB_ERR_TIMEOUT;
+                }
             }
         } else {
             /* Wait fill level. This also checks for errors. */
@@ -140,6 +211,11 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
 
                 if (rc != 0)
                     return rc;
+
+                if (pb_timeout_has_expired(&to)) {
+                    LOG_ERR("Timeout, RX FIFO");
+                    return -PB_ERR_TIMEOUT;
+                }
             }
         }
 
@@ -151,22 +227,29 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
         /* Read watermark level data from rx fifo . */
         if (size >= 8 * rxWatermark) {
             for (i = 0; i < 2 * rxWatermark; i++) {
-                *((uint32_t *)buffer) = mmio_read_32(cfg->base + FLEXSPI_RFDR0 + i * 4);
+                uint32_t word = mmio_read_32(cfg->base + FLEXSPI_RFDR0 + i * 4);
+
+                /* The caller's buffer has any alignment */
+                memcpy(buffer, &word, sizeof(word));
                 buffer += 4;
             }
 
             size = size - 8 * rxWatermark;
         } else {
-            // size has to be dividable by 4 (is checked in transferblocking)
-            for (i = 0; i < (size / 4); i++) {
-                *((uint32_t *)buffer) = mmio_read_32(cfg->base + FLEXSPI_RFDR0 + i * 4);
-                buffer += 4;
+            /* The last piece: the bytes asked for, not one more */
+            for (i = 0; size > 0; i++) {
+                uint32_t word = mmio_read_32(cfg->base + FLEXSPI_RFDR0 + i * 4);
+                size_t n = (size < 4) ? size : 4;
+
+                memcpy(buffer, &word, n);
+                buffer += n;
+                size -= n;
             }
-            size = 0;
         }
 
-        /* Pop out a watermark level datas from IP RX FIFO. */
-        mmio_clrsetbits_32(cfg->base + FLEXSPI_INTR, 0, FLEXSPI_INT_IPRXWAEN);
+        /* Pop out a watermark level datas from IP RX FIFO. INTR is write 1
+         * to clear: a flag set now must not be written back */
+        mmio_write_32(cfg->base + FLEXSPI_INTR, FLEXSPI_INT_IPRXWAEN);
     }
 
     return rc;
@@ -182,6 +265,11 @@ static int imx_flexspi_xfer(enum flexspi_port port,
     uintptr_t port_off = 0;
     uint32_t configValue = 0;
     int rc = 0;
+    int rc_idle;
+
+    /* IDATSZ is 16 bits: a longer transfer would be truncated */
+    if (data_length > FLEXSPI_IPCR1_IDATSZ_MASK)
+        return -PB_ERR_PARAM;
 
     /* Clear sequence pointer before sending data to external devices. */
     switch (port) {
@@ -198,7 +286,7 @@ static int imx_flexspi_xfer(enum flexspi_port port,
         port_off = FLEXSPI_FLSHB2CR2;
         break;
     default:
-        return -PB_ERR_INVALID_ARGUMENT;
+        return -PB_ERR_PARAM;
     }
 
     mmio_clrsetbits_32(cfg->base + port_off, 0, FLEXSPI_FLSHCR2_CLRINSTRPTR_MASK);
@@ -232,29 +320,35 @@ static int imx_flexspi_xfer(enum flexspi_port port,
     if ((command_type == FLEXSPI_WRITE) || (command_type == FLEXSPI_CONFIG)) {
         rc = imx_flexspi_writeblocking(data, data_length);
     } else if (command_type == FLEXSPI_READ) {
-        if ((data_length % 4) != 0) {
-            LOG_ERR("Size must be divisible by 4");
-            return -PB_ERR_INVALID_ARGUMENT;
-        }
         rc = imx_flexspi_readblocking(data, data_length);
     }
 
     /* Wait for bus idle. */
-    while (!imx_flexspi_getbusidle())
-        ;
+    rc_idle = imx_flexspi_wait_idle();
 
-    if (command_type == FLEXSPI_COMMAND) {
-        rc = imx_flexspi_checkandclearerror(mmio_read_32(cfg->base + FLEXSPI_INTR));
-    }
+    if (rc != PB_OK)
+        return rc;
 
-    return rc;
+    if (rc_idle != PB_OK)
+        return rc_idle;
+
+    /* After every command: an error during a read's or a write's last pop
+     * or push comes after the FIFO's last check, and the next command's
+     * start would clear it unseen */
+    return imx_flexspi_checkandclearerror(mmio_read_32(cfg->base + FLEXSPI_INTR));
 }
 
-// TODO: Timeout?
-static int imx_flexspi_busy_wait(struct flexspi_nor_config *cfg_nor, int polling_time_us)
+/* Polls the flash's status until it isn't busy, for timeout_ms at most: the
+ * board's time for the operation (struct flexspi_nor_config) */
+static int imx_flexspi_busy_wait(struct flexspi_nor_config *cfg_nor,
+                                 int polling_time_us,
+                                 uint32_t timeout_ms)
 {
     int rc;
     uint8_t sts[4];
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, timeout_ms * 1000);
 
     do {
         rc = imx_flexspi_xfer(
@@ -262,8 +356,14 @@ static int imx_flexspi_busy_wait(struct flexspi_nor_config *cfg_nor, int polling
         if (rc != 0)
             return rc;
 
-        if (sts[0] & 1)
+        if (sts[0] & 1) {
+            if (pb_timeout_has_expired(&to)) {
+                LOG_ERR("Timeout, the flash is busy");
+                return -PB_ERR_TIMEOUT;
+            }
+
             pb_delay_us(polling_time_us);
+        }
 
     } while (sts[0] & 1);
 
@@ -279,7 +379,7 @@ imx_flexspi_pp(struct flexspi_nor_config *cfg_nor, uint32_t address, uint8_t *da
 
     if ((size > bytes_to_next_page_boundry) || (size > cfg_nor->page_size)) {
         LOG_ERR("Page program failed at address 0x%x, page boundry crossed", address);
-        return -PB_ERR_IO;
+        return -PB_ERR_PARAM;
     }
 
     /* Write enable */
@@ -301,7 +401,8 @@ imx_flexspi_pp(struct flexspi_nor_config *cfg_nor, uint32_t address, uint8_t *da
         return rc;
     }
 
-    return imx_flexspi_busy_wait(cfg_nor, cfg_nor->time_page_program_ms);
+    return imx_flexspi_busy_wait(
+        cfg_nor, cfg_nor->time_page_program_ms, cfg_nor->time_page_program_ms);
 }
 
 static int imx_flexspi_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
@@ -309,11 +410,30 @@ static int imx_flexspi_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     uint8_t *buffer = (uint8_t *)buf;
     uint32_t address = lba * bio_block_size(dev);
     struct flexspi_nor_config *cfg_nor = (struct flexspi_nor_config *)bio_get_private(dev);
+    int rc;
 
-    imx_flexspi_busy_wait(cfg_nor, 100);
+    /* Bounded by the longest operation, an erase of the largest block */
+    rc = imx_flexspi_busy_wait(cfg_nor, 100, cfg_nor->erase_cmds[0].erase_time_ms);
 
-    return imx_flexspi_xfer(
-        cfg_nor->port, cfg_nor->lut_id_read, address, FLEXSPI_READ, buffer, length);
+    if (rc != PB_OK)
+        return rc;
+
+    /* In pieces that IDATSZ, 16 bits, holds */
+    while (length > 0) {
+        size_t chunk = length > FLEXSPI_READ_CHUNK ? FLEXSPI_READ_CHUNK : length;
+
+        rc = imx_flexspi_xfer(
+            cfg_nor->port, cfg_nor->lut_id_read, address, FLEXSPI_READ, buffer, chunk);
+
+        if (rc != PB_OK)
+            return rc;
+
+        buffer += chunk;
+        address += chunk;
+        length -= chunk;
+    }
+
+    return PB_OK;
 }
 
 static int imx_flexspi_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
@@ -325,7 +445,13 @@ static int imx_flexspi_write(bio_dev_t dev, lba_t lba, size_t length, const void
     uint32_t bytes_to_next_page_boundry =
         (uint32_t)cfg_nor->page_size - (address & (uint32_t)(cfg_nor->page_size - 1));
 
-    LOG_DBG("Write buffer to flash at address: 0x%x, size: 0x%x", address, length);
+    LOG_DBG("Write buffer to flash at address: 0x%x, size: 0x%zx", address, length);
+
+    /* A flash still busy ignores the write enable: bounded as a read's */
+    rc = imx_flexspi_busy_wait(cfg_nor, 100, cfg_nor->erase_cmds[0].erase_time_ms);
+
+    if (rc != PB_OK)
+        return rc;
 
     if ((bytes_to_next_page_boundry < cfg_nor->page_size) &&
         (length > bytes_to_next_page_boundry)) {
@@ -355,64 +481,105 @@ static int imx_flexspi_write(bio_dev_t dev, lba_t lba, size_t length, const void
     return rc;
 }
 
+/*
+ * The board's erase commands are sorted largest first and end at a block
+ * size of 0. This is the largest erase unit that starts at addr and that
+ * the left bytes cover whole: a NOR erases the unit its address is in, so
+ * a unit is only used where it starts (bio.md 3.3: exactly the blocks asked
+ * for). NULL when none fits
+ */
+static const struct flexspi_nor_erase_cmds *
+imx_flexspi_erase_cmd(const struct flexspi_nor_config *cfg_nor, uint32_t addr, size_t left)
+{
+    for (unsigned int i = 0; i < ARRAY_SIZE(cfg_nor->erase_cmds); i++) {
+        const struct flexspi_nor_erase_cmds *cmd = &cfg_nor->erase_cmds[i];
+
+        if (cmd->block_size == 0)
+            break;
+
+        if (cmd->block_size <= left && (addr % cmd->block_size) == 0)
+            return cmd;
+    }
+
+    return NULL;
+}
+
 static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
 {
     int rc;
     struct flexspi_nor_config *cfg_nor = (struct flexspi_nor_config *)bio_get_private(dev);
-    uint32_t addr;
-    uint32_t part_start_addr = (uint32_t)first_lba * bio_block_size(dev);
+    const struct flexspi_nor_erase_cmds *cmd;
+    uint32_t addr = (uint32_t)first_lba * bio_block_size(dev);
     size_t bytes_to_erase = count * bio_block_size(dev);
-    size_t bytes_erased = 0;
-    /* We select the largest erase block to begin with */
-    uint8_t lut_id = cfg_nor->erase_cmds[0].lut_id;
-    size_t erase_block_sz = cfg_nor->erase_cmds[0].block_size;
-    unsigned int erase_time_ms = cfg_nor->erase_cmds[0].erase_time_ms;
+    size_t smallest = 0;
 
-    if (!erase_block_sz) {
-        return -PB_ERR_IO;
+    for (unsigned int i = 0; i < ARRAY_SIZE(cfg_nor->erase_cmds); i++) {
+        if (cfg_nor->erase_cmds[i].block_size == 0)
+            break;
+
+        smallest = cfg_nor->erase_cmds[i].block_size;
     }
 
+    if (smallest == 0)
+        return -PB_ERR_NOT_SUPPORTED;
+
+    /* The smallest unit has to cover the range whole: a short tail isn't
+     * rounded up to it, nothing is erased */
+    if ((addr % smallest) != 0 || (bytes_to_erase % smallest) != 0) {
+        LOG_ERR(
+            "0x%08x, %zu bytes, isn't whole erase units of %zu", addr, bytes_to_erase, smallest);
+        return -PB_ERR_PARAM;
+    }
+
+    /* A flash still busy ignores the write enable: bounded as a read's */
+    rc = imx_flexspi_busy_wait(cfg_nor, 100, cfg_nor->erase_cmds[0].erase_time_ms);
+
+    if (rc != PB_OK)
+        return rc;
+
     while (bytes_to_erase) {
-        /* The current erase block size is larger than the remaining bytes
-         * we want to erase, search for a smaller erase block
-         */
-        if (bytes_to_erase < erase_block_sz) {
-            LOG_DBG("Switching to smaller erase block");
-            for (unsigned int i = 0; cfg_nor->erase_cmds[i].lut_id; i++) {
-                if (bytes_to_erase >= cfg_nor->erase_cmds[i].block_size) {
-                    lut_id = cfg_nor->erase_cmds[i].lut_id;
-                    erase_block_sz = cfg_nor->erase_cmds[i].block_size;
-                    erase_time_ms = cfg_nor->erase_cmds[i].erase_time_ms;
-                    break;
-                }
-            }
+        cmd = imx_flexspi_erase_cmd(cfg_nor, addr, bytes_to_erase);
+
+        if (cmd == NULL) {
+            LOG_ERR("No erase unit at 0x%08x", addr);
+            return -PB_ERR_PARAM;
         }
 
-        addr = part_start_addr + bytes_erased;
-        LOG_DBG("Erasing addr=0x%08x, block_sz=%u, lut_id=%u", addr, erase_block_sz, lut_id);
+        LOG_DBG("Erasing addr=0x%08x, block_sz=%zu, lut_id=%u", addr, cmd->block_size, cmd->lut_id);
 
         /* Write enable */
-        imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_enable, 0, FLEXSPI_COMMAND, NULL, 0);
-
-        rc = imx_flexspi_xfer(cfg_nor->port, lut_id, addr, FLEXSPI_COMMAND, NULL, 0);
+        rc =
+            imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_enable, 0, FLEXSPI_COMMAND, NULL, 0);
 
         if (rc != 0)
             return rc;
 
-        imx_flexspi_busy_wait(cfg_nor, erase_time_ms);
+        rc = imx_flexspi_xfer(cfg_nor->port, cmd->lut_id, addr, FLEXSPI_COMMAND, NULL, 0);
 
-        bytes_erased += erase_block_sz;
-        bytes_to_erase -= (erase_block_sz > bytes_to_erase) ? bytes_to_erase : erase_block_sz;
+        if (rc != 0)
+            return rc;
+
+        rc = imx_flexspi_busy_wait(cfg_nor, cmd->erase_time_ms, cmd->erase_time_ms);
+
+        if (rc != 0)
+            return rc;
+
+        addr += cmd->block_size;
+        bytes_to_erase -= cmd->block_size;
     }
 
     return imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_disable, 0, FLEXSPI_COMMAND, NULL, 0);
 }
 
-static void imx_flexspi_config_lut(void)
+static int imx_flexspi_config_lut(void)
 {
+    int rc;
+
     /* Wait for bus idle before change flash configuration. */
-    while (!imx_flexspi_getbusidle())
-        ;
+    rc = imx_flexspi_wait_idle();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Unlock LUT for update. */
     mmio_write_32(cfg->base + FLEXSPI_LUTKEY, FLEXSPI_LUT_KEY_VAL);
@@ -425,13 +592,18 @@ static void imx_flexspi_config_lut(void)
     /* Lock LUT. */
     mmio_write_32(cfg->base + FLEXSPI_LUTKEY, FLEXSPI_LUT_KEY_VAL);
     mmio_write_32(cfg->base + FLEXSPI_LUTCR, FLEXSPI_LUTCR_LOCK);
+    return PB_OK;
 }
 
 static int imx_flexspi_mem_config(const struct flexspi_nor_config *nor_config)
 {
+    int rc;
+
     /* Wait for bus idle before change flash configuration. */
-    while (!imx_flexspi_getbusidle())
-        ;
+    rc = imx_flexspi_wait_idle();
+
+    if (rc != PB_OK)
+        return rc;
 
     mmio_write_32(cfg->base + FLEXSPI_FLSHCR0(nor_config->port), nor_config->capacity / 1024);
 
@@ -517,8 +689,10 @@ int imx_flexspi_init(const struct flexspi_core_config *config)
     mmio_setbits_32(cfg->base + FLEXSPI_MCR0, FLEXSPI_MCR0_SWRESET);
 
     /* Wait for reset */
-    while ((mmio_read_32(cfg->base + FLEXSPI_MCR0) & FLEXSPI_MCR0_SWRESET))
-        ;
+    rc = imx_flexspi_wait_reset();
+
+    if (rc != PB_OK)
+        return rc;
 
     /*
      * Configure flexspi block. There are a bunch of hard coded things here
@@ -584,14 +758,19 @@ int imx_flexspi_init(const struct flexspi_core_config *config)
         cfg->base + FLEXSPI_IPTXFCR, FLEXSPI_IPTXFCR_TXWMRK_MASK, FLEXSPI_IPTXFCR_TXWMRK(8));
 
     /* Update LUT */
-    imx_flexspi_config_lut();
+    rc = imx_flexspi_config_lut();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Reset again, a SW Reset does not reset any registers */
     mmio_setbits_32(cfg->base + FLEXSPI_MCR0, FLEXSPI_MCR0_SWRESET);
 
     /* Wait for reset */
-    while ((mmio_read_32(cfg->base + FLEXSPI_MCR0) & FLEXSPI_MCR0_SWRESET))
-        ;
+    rc = imx_flexspi_wait_reset();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Probe memories */
     for (unsigned int i = 0; i < cfg->mem_length; i++) {

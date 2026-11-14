@@ -32,8 +32,12 @@ extern size_t fake_reg_log_len;
  * reads from then on (a bit that clears itself, a lock bit that sets). It may
  * leave with a longjmp: a write that resets the SoC */
 extern uint64_t (*fake_regs_on_write)(uintptr_t addr, uint64_t value);
+/* What the hardware does on a read, NULL for nothing: called with what the
+ * register holds, and returns the value the read gets (a flag that the
+ * device sets between two accesses of the code under test) */
+extern uint64_t (*fake_regs_on_read)(uintptr_t addr, uint64_t value);
 
-/* Every register reads 0, the log is empty, no fake_regs_on_write */
+/* Every register reads 0, the log is empty, no hooks */
 void fake_regs_reset(void);
 /* What a register reads, without a write in the log */
 void fake_regs_set(uintptr_t addr, uint64_t value);
