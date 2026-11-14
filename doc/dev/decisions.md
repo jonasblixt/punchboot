@@ -104,7 +104,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-082 | The RAM log has every level, unsynchronized      | In force                                           |
 | D-083 | The board's keys are its `makefile.mk`'s         | In force                                           |
 | D-084 | The platform's open questions, answered          | In force                                           |
-| D-085 | Unrevocable keys, board functions, OP-TEE        | In force; `boot.md` 5.7 waits for Jonas's review   |
+| D-085 | Unrevocable keys, board functions, OP-TEE        | In force; Jonas reviewed it                        |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 

@@ -29,8 +29,7 @@ No open items. The draft's seventeen, as decided and written into the text:
 | 15   | pb's structure isn't released before its tag is allocated (5.4)                         | Level 1, D-038 |
 | 16   | `linux,initrd-*` stay 32 bits where both addresses fit (5.2)                            | Level 1, D-038 |
 | 17   | The preconditions are checked before `early_boot()` (2)                                 | D-039          |
-
-**Open (1), for Jonas's review (D-085):** 5.7, the delivery through OP-TEE on ARMv7-A, new.
+| 18   | The delivery through OP-TEE on ARMv7-A (5.7)                                            | Jonas, D-085   |
 
 From Jonas's final read: pb's status stays and pb's version joins pb's information (5.6, D-043);
 the flow is written for any image format, and names bpak only in 4.4 (D-044). After the review
@@ -612,7 +611,7 @@ A boot command mode started keeps today's values (`compatibility.md`):
 
 ### 5.7 Delivery : OP-TEE, ARMv7-A [optional, CONFIG_BOOT_OPTEE]
 
-**Open (1), D-085.** ARMv7-A only, with pb in the secure world: there is no EL3 firmware, and
+ARMv7-A only, with pb in the secure world: there is no EL3 firmware, and
 OP-TEE is its own secure monitor. pb loads and verifies OP-TEE and the normal world's image as
 any parts (4.2), and enters OP-TEE in place of the next stage. OP-TEE sets itself up and enters
 the normal world at the handover's entry. The board gives: BL32's part, OP-TEE's raw image
