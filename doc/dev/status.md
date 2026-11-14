@@ -55,13 +55,14 @@ bump is for the porting API. Each item's history is in `log/`.
      and the MEK's 2 GiB (F-436), the RT1060's VTOR/FORCEWT/D-cache at its entry (F-210,
      F-207), then the older list: the DMA rule (F-282), the preconditions, F-247 and the
      CAAM's stop, the 8MP EVK through TF-A.
-   - D-084 (the platform's questions): F-206 landed (`9bffc006`). To do: command mode on every
+   - D-084 (the platform's questions): F-206 landed (`9628fdf9`). To do: command mode on every
      ROM boot port (F-402), a kick per candidate (F-320), the 8M's HAB and its locks, EOL with
-     data (F-263, PR #51), the SCU kick on the MEK (F-322). Still open: F-429, the accessor on
-     the 8M and RT, F-246, the bench for F-241 and F-294.
+     data (F-263, PR #51), the SCU kick on the MEK (F-322). F-246 is in (`2a209705`, seen on
+     jiffy). Left: the bench for F-241 and F-294.
    - D-085 for Jonas's review: `boot.md` 5.7 (OP-TEE, Open (1)), `platform.md` 4.1 and 7,
-     `command-mode.md` 5.2, `board.md` 2.2, 2.3, 2.7. Then F-438, F-439, F-440. F-246 is in
-     (`54a19104`), not run on jiffy.
+     `command-mode.md` 5.2, `board.md` 2.2, 2.3, 2.7. Then F-439, F-440, F-441.
+   - For Jonas: the 8MP EVK's test bench pb overflows its OCRAM by a page (the log's "All four
+     at `ba9f717e`"): the RAM log's header inside its 16 KiB, a 12 KiB log, or room above BL31.
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,
      F-433.

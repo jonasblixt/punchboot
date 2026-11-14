@@ -470,7 +470,7 @@ host tools ask before they send one; the device doesn't, the command is the deci
   in the fuses is revoked, whether or not this build could revoke it: released pb revoked
   such keys (F-165). `SLC_REVOKE_KEY` on a key the device can't revoke answers
   `NOT_SUPPORTED`. A 0, an old device's, says nothing: the host shows the keys as before.
-  **Not yet in the code (F-438).**
+  **Not yet in the code (F-439).**
 - **A key whose status can't be read** is in neither of `SLC_READ`'s lists, and the last result
   carries the error.
 - **Revoking the key of the session's token** doesn't end the session: the token was verified
