@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import struct
+import uuid
 from typing import TYPE_CHECKING
 
 import punchboot
@@ -19,6 +20,7 @@ from .pbtest import (
     BACKUP_STATE_LBA,
     NULL_UUID,
     PRIMARY_STATE_LBA,
+    READABLE_UUID,
     SYSTEM_A_LBA,
     SYSTEM_A_UUID,
     SYSTEM_B_LBA,
@@ -250,3 +252,22 @@ def test_boot_mode(ab_device: Device, tmp_path: pathlib.Path) -> None:
         s.boot_bpak(img, SYSTEM_B_UUID)
     assert ab_device.wait_exit() == 0
     assert (ab_device.boot_status, ab_device.boot_mode) == ("B", "normal")
+
+
+def test_activate_of_a_partition_that_is_no_system_changes_nothing(ab_device: Device) -> None:
+    """`boot activate` with a UUID that isn't a slot's (boot.md 3.4, F-175)."""
+    with ab_device.session() as s:
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+
+        # A partition that is no system, and a UUID that is no partition: refused
+        for other in (READABLE_UUID, uuid.UUID(int=1)):
+            with pytest.raises(punchboot.PartNotBootableError):
+                s.boot_set_boot_part(other)
+
+        # For the rest of command mode A is still the enabled system, and
+        # the policy's boot finds it
+        assert s.boot_status()[0] == SYSTEM_A_UUID
+        s.boot_partition(NULL_UUID)
+    assert ab_device.wait_exit() == 0
+    assert ab_device.boot_status == "A"
+    assert _state(ab_device) == (STATE_A, STATE_A, 0, 0)

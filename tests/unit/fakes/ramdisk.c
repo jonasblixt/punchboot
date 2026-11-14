@@ -56,6 +56,10 @@ static int ramdisk_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
 
     memcpy(ramdisk_block(disk, lba), buf, length);
     disk->writes++;
+
+    for (size_t i = 0; i < length / disk->block_size; i++)
+        disk->block_writes[(size_t)lba + i]++;
+
     return PB_OK;
 }
 
@@ -67,8 +71,11 @@ struct ramdisk *ramdisk_new(size_t blocks)
         return NULL;
 
     disk->data = calloc(blocks, RAMDISK_BLOCK_SIZE);
+    disk->block_writes = calloc(blocks, sizeof(*disk->block_writes));
 
-    if (disk->data == NULL) {
+    if (disk->data == NULL || disk->block_writes == NULL) {
+        free(disk->data);
+        free(disk->block_writes);
         free(disk);
         return NULL;
     }
@@ -84,6 +91,7 @@ void ramdisk_free(struct ramdisk *disk)
     if (disk == NULL)
         return;
     free(disk->data);
+    free(disk->block_writes);
     free(disk);
 }
 

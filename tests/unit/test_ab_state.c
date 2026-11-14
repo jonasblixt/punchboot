@@ -136,6 +136,25 @@ static void write_state(struct fixture *f,
     memcpy(state_at(f, BACKUP_LBA), &s, sizeof(s));
 }
 
+/* Write a valid state to one copy: the other one's write was cut */
+static void write_copy(struct fixture *f,
+                       lba_t lba,
+                       uint32_t enable,
+                       uint32_t verified,
+                       uint32_t attempts,
+                       uint32_t error)
+{
+    struct pb_boot_state s = { 0 };
+
+    s.magic = PB_STATE_MAGIC;
+    s.enable = enable;
+    s.verified = verified;
+    s.remaining_boot_attempts = attempts;
+    s.error = error;
+    s.crc = crc32(0, (const uint8_t *)&s, sizeof(s));
+    memcpy(state_at(f, lba), &s, sizeof(s));
+}
+
 static void reboot(struct fixture *f, const struct boot_ab_state_config *cfg)
 {
     attach(f, true, true);
@@ -257,15 +276,224 @@ static void test_init_requires_system_partitions(void **state)
     assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
 }
 
+/* The partitions of attach(), but the one with the UUID 'missing' */
+static void attach_without(struct fixture *f, const unsigned char *missing)
+{
+    static const struct {
+        const unsigned char *uu;
+        lba_t first;
+        lba_t last;
+        const char *name;
+    } parts[] = {
+        { UU_SYS_A, 10, 19, "System A" },
+        { UU_SYS_B, 20, 29, "System B" },
+        { UU_PRIMARY, PRIMARY_LBA, PRIMARY_LBA, "Primary" },
+        { UU_BACKUP, BACKUP_LBA, BACKUP_LBA, "Backup" },
+    };
+
+    bio_reset();
+    bio_dev_t disk = ramdisk_attach(f->disk, UU_DISK);
+    assert_true(disk >= 0);
+
+    for (unsigned int i = 0; i < 4; i++) {
+        if (missing != NULL && memcmp(parts[i].uu, missing, 16) == 0)
+            continue;
+        assert_true(bio_allocate_parent(disk,
+                                        parts[i].first,
+                                        parts[i].last,
+                                        RAMDISK_BLOCK_SIZE,
+                                        parts[i].uu,
+                                        parts[i].name) >= 0);
+    }
+}
+
+/*
+ * A state partition that isn't in the table (board.md 2.5): init fails with
+ * the lookup's error, and reads and writes nothing (F-007). It used to go on
+ * with the handle that isn't one, which bio refused, and with one of the two
+ * missing it read the other and could write the primary before it failed.
+ */
 static void test_init_without_state_partitions_fails(void **state)
 {
     struct fixture *f = *state;
 
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+
     attach(f, true, false);
-    assert_int_not_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
     /* System A and B are bootable anyway */
     assert_true(bio_get_flags(f->sys_a) & BIO_FLAG_BOOTABLE);
     assert_true(bio_get_flags(f->sys_b) & BIO_FLAG_BOOTABLE);
+
+    /* Only the backup is missing, and the primary is good */
+    attach_without(f, UU_BACKUP);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
+
+    /* Only the primary */
+    attach_without(f, UU_PRIMARY);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
+
+    assert_int_equal(f->disk->reads, 0);
+    assert_int_equal(f->disk->writes, 0);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+}
+
+/* Every function of the module that could read or write, after an init
+ * that failed without the state partitions: an error or an empty answer,
+ * and the disk isn't touched */
+static void assert_safe_without_the_state_partitions(struct fixture *f, const uint8_t *disk_before)
+{
+    uuid_t uu;
+    uint32_t value = 0xffffffff;
+
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_SYS_A), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_SYS_B), -PB_ERR_STATE);
+    uuid_clear(uu);
+    assert_int_equal(boot_policy_ab_ops.activate(uu), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_OTHER), -PB_ERR_STATE);
+
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_STATE);
+    boot_policy_ab_ops.report((unsigned char *)UU_SYS_A, PB_OK);
+    boot_policy_ab_ops.report((unsigned char *)UU_SYS_A, -PB_ERR_BAD_PAYLOAD);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+
+    for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++) {
+        assert_int_equal(boot_ab_state_write_board_reg(i, 0xb0a4d000 + i), -PB_ERR_STATE);
+        /* Nor is the register changed in memory, for a later write */
+        assert_int_equal(boot_ab_state_read_board_reg(i, &value), PB_OK);
+        assert_int_equal(value, 0);
+    }
+
+    /* 'boot status': nothing is enabled, also not what an init before had */
+    memset(uu, 0xff, sizeof(uu));
+    boot_policy_ab_ops.status(uu);
+    assert_true(uuid_is_null(uu));
+
+    assert_int_equal(f->disk->reads, 0);
+    assert_int_equal(f->disk->writes, 0);
+    assert_memory_equal(f->disk->data, disk_before, DISK_BLOCKS * RAMDISK_BLOCK_SIZE);
+}
+
+/*
+ * A/B's functions after an init that failed at one of its early returns
+ * (F-393): no configuration, or a partition the configuration names isn't
+ * in the table. init returned with the module's configuration set and its
+ * two handles not: they were 0, the first block device, or those of an init
+ * before. 'boot activate' then answered OK and wrote the state over LBA 0 of
+ * the disk, and a board register's write did the same.
+ *
+ * Runs second, while the handles are still the zeroes of a module that
+ * never found its state partitions.
+ */
+static void test_failed_init_leaves_the_functions_safe(void **state)
+{
+    static const unsigned char *const missing[] = { UU_SYS_A, UU_SYS_B, UU_PRIMARY, UU_BACKUP };
+    struct fixture *f = *state;
+    size_t disk_size = DISK_BLOCKS * RAMDISK_BLOCK_SIZE;
+    uint8_t *disk_before = malloc(disk_size);
+
+    assert_non_null(disk_before);
+
+    /* A good state, and something in every other block: LBA 0 is where a
+     * disk has its partition table */
+    for (size_t i = 0; i < disk_size; i++)
+        f->disk->data[i] = (uint8_t)(i * 7 + (i >> 9));
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    memcpy(disk_before, f->disk->data, disk_size);
+
+    for (unsigned int i = 0; i < 4; i++) {
+        attach_without(f, missing[i]);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
+        assert_safe_without_the_state_partitions(f, disk_before);
+    }
+
+    /* The same after an init that worked, when the next one fails: no
+     * handle, state or register of the first is left to use */
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(f->disk->writes, 0);
+    f->disk->reads = 0;
+
+    for (unsigned int i = 0; i < 4; i++) {
+        attach_without(f, missing[i]);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_NOT_FOUND);
+        assert_safe_without_the_state_partitions(f, disk_before);
+    }
+
+    /* And without a configuration */
+    attach(f, true, true);
+    assert_int_equal(boot_ab_state_init(NULL), -PB_ERR_PARAM);
+    assert_safe_without_the_state_partitions(f, disk_before);
+    assert_int_equal(boot_policy_ab_ops.init(&no_config), -PB_ERR_PARAM);
+    assert_safe_without_the_state_partitions(f, disk_before);
+
+    free(disk_before);
+}
+
+/*
+ * The state partitions are there and the state couldn't be read (F-173):
+ * init failed, and the host repairs the state with 'boot activate'
+ * (board.md 2.1). Until it has, the state isn't known: no candidate is
+ * handed out from what memory holds, and nothing of it is written over the
+ * copies on the disk, which may be good (F-393).
+ */
+static void test_failed_state_read_is_repaired_by_activate(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+    uint32_t value = 0;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_ab_state_write_board_reg(1, 0xb0a4d001), PB_OK);
+    f->disk->writes = 0;
+
+    attach(f, true, true);
+    f->disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+
+    /* No boot, with and without speculative mode, which would enable A and
+     * write that; no register's write; a UUID that is no slot's is refused
+     * as ever */
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(boot_ab_state_write_board_reg(0, 0xb0a4d000), -PB_ERR_STATE);
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_OTHER),
+                     -PB_ERR_PART_NOT_BOOTABLE);
+    boot_policy_ab_ops.status(uu);
+    assert_true(uuid_is_null(uu));
+    assert_int_equal(f->disk->writes, 0);
+
+    /* A repair that can't be written repairs nothing */
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_SYS_A), -PB_ERR_IO);
+    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_STATE);
+    assert_int_equal(boot_ab_state_write_board_reg(0, 0xb0a4d000), -PB_ERR_STATE);
+    f->disk->fail_writes_after = -1;
+    assert_int_equal(f->disk->writes, 0);
+
+    /* 'boot activate A': a new state in both copies, A enabled and
+     * verified and the rest the defaults. From here it is the state */
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_SYS_A), PB_OK);
+    assert_int_equal(f->disk->writes, 2);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    boot_policy_ab_ops.status(uu);
+    assert_memory_equal(uu, UU_SYS_A, 16);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(boot_ab_state_write_board_reg(0, 0xb0a4d000), PB_OK);
+    assert_int_equal(boot_ab_state_read_board_reg(0, &value), PB_OK);
+    assert_int_equal(value, 0xb0a4d000);
+
+    /* The null UUID repairs it too: a state with nothing enabled */
+    attach(f, true, true);
+    f->disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    uuid_clear(uu);
+    assert_int_equal(boot_policy_ab_ops.activate(uu), PB_OK);
+    assert_disk_state(f, 0, 0, 0, 0);
+    assert_int_equal(boot_ab_state_write_board_reg(0, 1), PB_OK);
 }
 
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
@@ -294,6 +522,225 @@ static void test_init_bad_crc_is_repaired(void **state)
     assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
 }
 
+/*
+ * init reads the state (boot.md 3.1), and a copy that can't be read isn't a
+ * corrupt one (F-173). The defaults are for a state that was read and is bad
+ * in both copies. With a copy that wasn't read and no good one, init fails
+ * with the read's error and writes nothing: the copy may be a good one.
+ */
+static void test_init_read_error_writes_no_defaults(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* Neither copy can be read */
+    attach(f, true, true);
+    f->disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    assert_int_equal(f->disk->writes, 0);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+
+    /* Nothing of a failed read is used (bio.md 3.1), nor what the init
+     * before it had: in memory nothing is enabled */
+    memset(uu, 0xff, sizeof(uu));
+    boot_ab_state_get_boot_partition(uu);
+    assert_true(uuid_is_null(uu));
+
+    /* The fault passes: the state is what it was */
+    f->disk->fail_reads_after = -1;
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(f->disk->writes, 0);
+
+    /* The primary is corrupt and the backup can't be read: the same. The
+     * backup is the good copy here */
+    state_at(f, PRIMARY_LBA)->crc ^= 1;
+    attach(f, true, true);
+    f->disk->fail_reads_after = 1;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    assert_int_equal(f->disk->writes, 0);
+    assert_false(state_valid(f, PRIMARY_LBA));
+    boot_ab_state_get_boot_partition(uu);
+    assert_true(uuid_is_null(uu));
+
+    /* Read again, the primary is repaired from it */
+    f->disk->fail_reads_after = -1;
+    reboot(f, &cfg_normal);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(boot_once(), f->sys_b);
+}
+
+/* Partitions as attach() has them, but the primary state on a disk of its
+ * own, so that it alone can fail */
+static void attach_primary_apart(struct fixture *f, struct ramdisk *primary_disk)
+{
+    bio_dev_t other;
+
+    attach(f, true, false);
+    other = ramdisk_attach(primary_disk, UU_OTHER);
+    assert_true(other >= 0);
+    assert_true(bio_allocate_parent(other, 0, 0, RAMDISK_BLOCK_SIZE, UU_PRIMARY, "Primary") >= 0);
+    assert_true(bio_allocate_parent(bio_get_part_by_uu(UU_DISK),
+                                    BACKUP_LBA,
+                                    BACKUP_LBA,
+                                    RAMDISK_BLOCK_SIZE,
+                                    UU_BACKUP,
+                                    "Backup") >= 0);
+}
+
+/* The same when it is the primary that can't be read */
+static void test_init_primary_read_error(void **state)
+{
+    struct fixture *f = *state;
+    struct ramdisk *primary_disk = ramdisk_new(1);
+    uuid_t uu;
+
+    assert_non_null(primary_disk);
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    memcpy(ramdisk_block(primary_disk, 0), state_at(f, BACKUP_LBA), RAMDISK_BLOCK_SIZE);
+
+    /* The backup is corrupt: no defaults over a primary that wasn't read */
+    state_at(f, BACKUP_LBA)->crc ^= 1;
+    attach_primary_apart(f, primary_disk);
+    primary_disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    assert_int_equal(primary_disk->writes, 0);
+    assert_int_equal(f->disk->writes, 0);
+    boot_ab_state_get_boot_partition(uu);
+    assert_true(uuid_is_null(uu));
+
+    /* Read again, it repairs the backup */
+    primary_disk->fail_reads_after = -1;
+    attach_primary_apart(f, primary_disk);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_memory_equal(
+        state_at(f, BACKUP_LBA), ramdisk_block(primary_disk, 0), RAMDISK_BLOCK_SIZE);
+    assert_true(state_valid(f, BACKUP_LBA));
+    assert_int_equal(boot_once(), f->sys_b);
+
+    ramdisk_free(primary_disk);
+}
+
+/* One copy is good and the other can't be read: the state is the good
+ * copy's, and the other is repaired as one that is corrupt is. A backup
+ * alone is written (F-404), a primary goes through the commit */
+static void test_init_read_error_with_a_good_copy(void **state)
+{
+    struct fixture *f = *state;
+    struct ramdisk *primary_disk = ramdisk_new(1);
+
+    assert_non_null(primary_disk);
+
+    /* The backup can't be read */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    f->disk->fail_reads_after = 1;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(f->disk->writes, 1);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* The primary can't be read: the backup's state, not what the primary's
+     * buffer holds from the init above */
+    f->disk->fail_reads_after = -1;
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    attach_primary_apart(f, primary_disk);
+    primary_disk->fail_reads_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(primary_disk->writes, 1);
+    assert_memory_equal(
+        ramdisk_block(primary_disk, 0), state_at(f, BACKUP_LBA), RAMDISK_BLOCK_SIZE);
+    assert_true(state_valid(f, BACKUP_LBA));
+    assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_A_ENABLED);
+    assert_int_equal(boot_once(), f->sys_a);
+
+    ramdisk_free(primary_disk);
+}
+
+/*
+ * Two valid copies that differ (boot.md 3.7, F-176): a commit, pb's or
+ * pbstate's, was cut between its two writes. The primary is written first,
+ * so its state is the newer one, and init writes it to the backup (the
+ * backup alone, F-404). A backup that stays behind would come back when the
+ * primary goes bad.
+ */
+static void test_init_copies_that_differ_get_the_primarys_state(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t old_backup[RAMDISK_BLOCK_SIZE];
+    unsigned int writes;
+    uint32_t value = 0;
+
+    /* The OS confirmed B and only the primary got it. The backup has B's
+     * trial without attempts left, which rolls back to A */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    write_copy(f, PRIMARY_LBA, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+
+    reboot(f, &cfg_normal);
+    assert_int_equal(f->disk->writes, 1);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(f->disk->writes, 1);
+
+    /* The primary goes bad: what comes back is the confirmed B, and no
+     * rollback to A */
+    state_at(f, PRIMARY_LBA)->crc ^= 1;
+    reboot(f, &cfg_normal);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* Copies that agree: nothing is written */
+    writes = f->disk->writes;
+    reboot(f, &cfg_normal);
+    assert_int_equal(f->disk->writes, writes);
+
+    /* The board's registers are part of the state: a difference in one
+     * of them alone */
+    assert_int_equal(boot_ab_state_write_board_reg(2, 0x1234), PB_OK);
+    memcpy(old_backup, state_at(f, BACKUP_LBA), sizeof(old_backup));
+    assert_int_equal(boot_ab_state_write_board_reg(2, 0x5678), PB_OK);
+    memcpy(state_at(f, BACKUP_LBA), old_backup, sizeof(old_backup));
+    assert_true(state_valid(f, BACKUP_LBA));
+
+    writes = f->disk->writes;
+    reboot(f, &cfg_normal);
+    assert_int_equal(f->disk->writes, writes + 1);
+    assert_memory_equal(state_at(f, BACKUP_LBA), state_at(f, PRIMARY_LBA), RAMDISK_BLOCK_SIZE);
+    assert_true(state_valid(f, BACKUP_LBA));
+    assert_int_equal(boot_ab_state_read_board_reg(2, &value), PB_OK);
+    assert_int_equal(value, 0x5678);
+}
+
+/* The backup can't be brought up to date: the state is the primary's and
+ * init's result is what it was with two valid copies before F-176, PB_OK.
+ * Whether a device with a good primary should stop here is not decided */
+static void test_init_copies_that_differ_and_no_write(void **state)
+{
+    struct fixture *f = *state;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    write_copy(f, PRIMARY_LBA, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+
+    /* The backup takes no write, which is the only one init tries (F-404) */
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED);
+    assert_true(state_valid(f, PRIMARY_LBA));
+    assert_int_equal(state_at(f, BACKUP_LBA)->verified, PB_STATE_A_VERIFIED);
+
+    /* And again on the next boot */
+    attach(f, true, true);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(f->disk->writes, 0);
+    assert_int_equal(state_at(f, BACKUP_LBA)->verified, PB_STATE_A_VERIFIED);
+}
+
 static void test_commit_write_errors(void **state)
 {
     struct fixture *f = *state;
@@ -315,19 +762,21 @@ static void test_commit_write_errors(void **state)
 /* NOR flash: the state partitions are erased before they are written */
 static struct ramdisk *erase_disk;
 static lba_t erased[4];
+static size_t erased_blocks[4];
 static unsigned int erase_calls;
 static int erase_rc;
 
 static int fake_nor_erase(bio_dev_t dev, lba_t first_lba, size_t count)
 {
     (void)dev;
-    assert_int_equal(count, 1);
-    if (erase_calls < 4)
+    if (erase_calls < 4) {
         erased[erase_calls] = first_lba;
+        erased_blocks[erase_calls] = count;
+    }
     erase_calls++;
     if (erase_rc != PB_OK)
         return erase_rc;
-    memset(ramdisk_block(erase_disk, first_lba), 0xff, RAMDISK_BLOCK_SIZE);
+    memset(ramdisk_block(erase_disk, first_lba), 0xff, count * erase_disk->block_size);
     return PB_OK;
 }
 
@@ -359,6 +808,8 @@ static void test_commit_erases_first(void **state)
     assert_int_equal(erase_calls, 2);
     assert_int_equal(erased[0], PRIMARY_LBA);
     assert_int_equal(erased[1], BACKUP_LBA);
+    assert_int_equal(erased_blocks[0], 1);
+    assert_int_equal(erased_blocks[1], 1);
     assert_true(state_valid(f, PRIMARY_LBA));
     assert_true(state_valid(f, BACKUP_LBA));
 
@@ -369,6 +820,178 @@ static void test_commit_erases_first(void **state)
     assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
     assert_int_equal(erase_calls, 1);
     assert_false(state_valid(f, PRIMARY_LBA));
+}
+
+/* F-406: a state partition whose handle isn't one any more (bio.md 2.6:
+ * every getter answers -PB_ERR_PARAM for it): the commit is that error, it
+ * doesn't take the error for flags, and nothing is erased or written */
+static void test_commit_with_a_handle_that_isnt_one(void **state)
+{
+    struct fixture *f = *state;
+    unsigned int writes;
+
+    attach_nor(f);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    erase_calls = 0;
+    writes = f->disk->writes;
+
+    bio_reset();
+    assert_int_equal(boot_ab_state_write_board_reg(0, 1), -PB_ERR_PARAM);
+    assert_int_equal(erase_calls, 0);
+    assert_int_equal(f->disk->writes, writes);
+}
+
+/* What init wrote, per block: 'primary' and 'backup' writes of the two
+ * copies, and none anywhere else on the disk */
+static void assert_writes(struct fixture *f, unsigned int primary, unsigned int backup)
+{
+    for (size_t lba = 0; lba < DISK_BLOCKS; lba++) {
+        unsigned int expected = (lba == PRIMARY_LBA) ? primary : (lba == BACKUP_LBA) ? backup : 0;
+
+        assert_int_equal(f->disk->block_writes[lba], expected);
+    }
+}
+
+/* A boot whose init finds what the test put on the disk. The writes are
+ * counted from here */
+static int init_counting_writes(struct fixture *f)
+{
+    attach(f, true, true);
+    memset(f->disk->block_writes, 0, DISK_BLOCKS * sizeof(*f->disk->block_writes));
+    return boot_ab_state_init(&cfg_normal);
+}
+
+/*
+ * F-404: a repair of the backup alone writes the backup alone. It went
+ * through the commit, which writes the primary first: power lost in that
+ * write tore the one good copy, beside a backup that was bad (the state is
+ * gone) or older (an older state is back). The three ways a backup alone is
+ * repaired: it is corrupt, it can't be read, and it is valid and differs
+ * from the primary (F-176).
+ */
+static void test_backup_repair_writes_the_backup_only(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t primary[RAMDISK_BLOCK_SIZE];
+
+    /* Corrupt */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    state_at(f, BACKUP_LBA)->crc ^= 1;
+    memcpy(primary, state_at(f, PRIMARY_LBA), sizeof(primary));
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 0, 1);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* It can't be read: the second read of init */
+    f->disk->fail_reads_after = 1;
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    f->disk->fail_reads_after = -1;
+    assert_writes(f, 0, 1);
+    assert_memory_equal(state_at(f, BACKUP_LBA), primary, sizeof(primary));
+
+    /* Valid and older: the primary has the OS's confirmation of A too */
+    write_copy(f, PRIMARY_LBA, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 0, 1);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+
+    /* The repair's write fails, as when power is lost in it: the primary is
+     * as it was, and the next boot has its state and repairs again */
+    memcpy(primary, state_at(f, PRIMARY_LBA), sizeof(primary));
+    memset(state_at(f, BACKUP_LBA), 0xa5, RAMDISK_BLOCK_SIZE);
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(init_counting_writes(f), -PB_ERR_IO);
+    f->disk->fail_writes_after = -1;
+    assert_writes(f, 0, 0);
+    assert_memory_equal(state_at(f, PRIMARY_LBA), primary, sizeof(primary));
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 0, 1);
+    assert_int_equal(boot_once(), f->sys_b);
+
+    /* Two copies that agree: nothing is written */
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 0, 0);
+
+    /* The other way round goes through the commit: a primary that is
+     * repaired is written first, then the backup (boot.md 3.7) */
+    state_at(f, PRIMARY_LBA)->crc ^= 1;
+    assert_int_equal(init_counting_writes(f), PB_OK);
+    assert_writes(f, 1, 1);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED | PB_STATE_B_VERIFIED, 0, 0);
+}
+
+/* F-404 on a NOR, where the write starts with an erase: the good primary's
+ * block isn't erased for a repair of the backup */
+static void test_backup_repair_erases_the_backup_only(void **state)
+{
+    struct fixture *f = *state;
+
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    state_at(f, BACKUP_LBA)->crc ^= 1;
+    attach_nor(f);
+    memset(f->disk->block_writes, 0, DISK_BLOCKS * sizeof(*f->disk->block_writes));
+
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(erase_calls, 1);
+    assert_int_equal(erased[0], BACKUP_LBA);
+    assert_int_equal(erased_blocks[0], 1);
+    assert_writes(f, 0, 1);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+}
+
+/* bio.md 2.3 (F-283): the state asks the device's block size and assumes
+ * none. Its 512 bytes are two blocks of 256 and a part of one of 4 KiB:
+ * every block it is in is erased before it is written, the state is written
+ * and found again, and the rest of a larger block is zeros (bio.md 3.2) */
+static void test_state_in_blocks_of_another_size(void **state)
+{
+    static const size_t block_sizes[] = { 256, 4096 };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(block_sizes); i++) {
+        const size_t bs = block_sizes[i];
+        const size_t blocks = (sizeof(struct pb_boot_state) + bs - 1) / bs;
+        const lba_t primary = 30;
+        const lba_t backup = 34;
+        struct fixture nor = { .disk = ramdisk_new_block_size(64, bs) };
+
+        assert_non_null(nor.disk);
+
+        /* Boots twice: a blank device, then the one the first boot left */
+        for (int boot = 0; boot < 2; boot++) {
+            bio_reset();
+            bio_dev_t disk = ramdisk_attach(nor.disk, UU_DISK);
+            assert_true(disk >= 0);
+            assert_int_equal(bio_set_ios_erase(disk, fake_nor_erase), PB_OK);
+            assert_int_equal(bio_clear_set_flags(disk, 0, BIO_FLAG_ERASE_BEFORE_WRITE), PB_OK);
+            assert_true(bio_allocate_parent(disk, 10, 19, bs, UU_SYS_A, "System A") >= 0);
+            assert_true(bio_allocate_parent(disk, 20, 29, bs, UU_SYS_B, "System B") >= 0);
+            assert_true(bio_allocate_parent(disk, primary, primary + 3, bs, UU_PRIMARY, "P") >= 0);
+            assert_true(bio_allocate_parent(disk, backup, backup + 3, bs, UU_BACKUP, "B") >= 0);
+            erase_disk = nor.disk;
+            erase_calls = 0;
+            erase_rc = PB_OK;
+
+            assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+
+            /* The second boot finds both copies and writes nothing */
+            assert_int_equal(erase_calls, boot == 0 ? 2 : 0);
+            assert_true(state_valid(&nor, primary));
+            assert_true(state_valid(&nor, backup));
+        }
+
+        assert_int_equal(erased[0], primary);
+        assert_int_equal(erased[1], backup);
+        assert_int_equal(erased_blocks[0], blocks);
+        assert_int_equal(erased_blocks[1], blocks);
+
+        /* What follows the state in its last block was written as zeros */
+        for (size_t n = sizeof(struct pb_boot_state); n < blocks * bs; n++)
+            assert_int_equal(ramdisk_block(nor.disk, primary)[n], 0);
+
+        ramdisk_free(nor.disk);
+    }
 }
 
 static void test_verified_system_boots(void **state)
@@ -423,15 +1046,179 @@ static void test_no_rollback_to_unverified_system(void **state)
 }
 #endif
 
-static void test_get_commit_error(void **state)
+/*
+ * boot.md 3.2 (D-040, F-179): the state write of a decision that fails
+ * decides only where skipping it would be unsafe. One test per case.
+ *
+ * A rollback that can't be written: the verified slot is handed out, and
+ * the next boot decides the same again.
+ */
+static void assert_rollback_without_a_write(struct fixture *f,
+                                            uint32_t enable,
+                                            uint32_t verified,
+                                            bio_dev_t target,
+                                            uint32_t enable_after,
+                                            uint32_t error_after)
+{
+    uuid_t uu;
+
+    write_state(f, enable, verified, 0, 0);
+    reboot(f, &cfg_normal);
+
+    /* Nothing can be written, as on an eMMC that went read only */
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(hand_out(uu), target);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    boot_policy_ab_ops.report(uu, PB_OK);
+    assert_disk_state(f, enable, verified, 0, 0);
+
+    /* The next boots, with the fault: the same */
+    for (unsigned int boot = 0; boot < 2; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(boot_once(), target);
+        assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+        assert_disk_state(f, enable, verified, 0, 0);
+    }
+
+    /* The fault passes: the rollback is written */
+    f->disk->fail_writes_after = -1;
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), target);
+    assert_disk_state(f, enable_after, verified, 0, error_after);
+}
+
+static void test_rollback_that_cannot_be_written_is_handed_out(void **state)
 {
     struct fixture *f = *state;
+    uuid_t uu;
+
+    assert_rollback_without_a_write(f,
+                                    PB_STATE_B_ENABLED,
+                                    PB_STATE_A_VERIFIED,
+                                    f->sys_a,
+                                    PB_STATE_A_ENABLED,
+                                    PB_STATE_ERROR_B_ROLLBACK);
+    assert_rollback_without_a_write(f,
+                                    PB_STATE_A_ENABLED,
+                                    PB_STATE_B_VERIFIED,
+                                    f->sys_b,
+                                    PB_STATE_B_ENABLED,
+                                    PB_STATE_ERROR_A_ROLLBACK);
+
+    /* Only the backup can't be written: the same, and the next boot finds
+     * the rollback in the primary */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    f->disk->fail_writes_after = 1;
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
+    assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_B_ENABLED);
+
+    attach(f, true, true);
+    f->disk->fail_writes_after = 1;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_B_ROLLBACK);
+}
+
+/*
+ * A trial's attempt that can't be written, while the other slot is
+ * verified: that slot is handed out instead, mode fallback (3.5, rule 3).
+ * pb makes this choice again on every boot with the fault, so an image that
+ * verifies and hangs isn't started for ever beside a confirmed system. The
+ * trial that wasn't started spent no attempt.
+ */
+static void assert_no_trial_without_a_write(struct fixture *f,
+                                            uint32_t enable,
+                                            uint32_t verified,
+                                            bio_dev_t trial,
+                                            bio_dev_t other)
+{
+    uuid_t uu;
+
+    write_state(f, enable, verified, 2, 0);
+    reboot(f, &cfg_normal);
+
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(hand_out(uu), other);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+    boot_policy_ab_ops.report(uu, PB_OK);
+    assert_disk_state(f, enable, verified, 2, 0);
+
+    /* 'boot status' is the enabled slot (boot.md 3.4): the trial's */
+    boot_policy_ab_ops.status(uu);
+    assert_int_equal(bio_get_part_by_uu(uu), trial);
+
+    /* Every boot with the fault, more of them than the trial has attempts */
+    for (unsigned int boot = 0; boot < 4; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(boot_once(), other);
+        assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+        assert_disk_state(f, enable, verified, 2, 0);
+    }
+
+    /* The fault passes: the trial is started, with the attempts it had */
+    f->disk->fail_writes_after = -1;
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), trial);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_disk_state(f, enable, verified, 1, 0);
+}
+
+static void test_trial_attempt_that_cannot_be_written_boots_the_verified_slot(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    assert_no_trial_without_a_write(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, f->sys_b, f->sys_a);
+    assert_no_trial_without_a_write(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, f->sys_a, f->sys_b);
+
+    /* Only the backup can't be written: the same */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, 0);
+    reboot(f, &cfg_normal);
+    f->disk->fail_writes_after = 1;
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_FALLBACK);
+    assert_int_equal(state_at(f, BACKUP_LBA)->remaining_boot_attempts, 2);
+}
+
+/* A trial's attempt that can't be written, and nothing else to boot: the
+ * trial is handed out uncounted */
+static void test_trial_attempt_that_cannot_be_written_and_no_verified_slot(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
 
     write_state(f, PB_STATE_A_ENABLED, 0, 3, 0);
     reboot(f, &cfg_normal);
 
     f->disk->fail_writes_after = 0;
-    assert_int_equal(boot_once(), -PB_ERR_IO);
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    boot_policy_ab_ops.report(uu, PB_OK);
+    assert_disk_state(f, PB_STATE_A_ENABLED, 0, 3, 0);
+
+    /* More boots with the fault than it has attempts: the trial each time */
+    for (unsigned int boot = 0; boot < 5; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(boot_once(), f->sys_a);
+        assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+        assert_disk_state(f, PB_STATE_A_ENABLED, 0, 3, 0);
+    }
+
+    /* The same from B, on its last attempt */
+    f->disk->fail_writes_after = -1;
+    write_state(f, PB_STATE_B_ENABLED, 0, 1, 0);
+    reboot(f, &cfg_normal);
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_disk_state(f, PB_STATE_B_ENABLED, 0, 1, 0);
 }
 
 static void test_set_boot_partition(void **state)
@@ -449,14 +1236,53 @@ static void test_set_boot_partition(void **state)
     assert_int_equal(boot_ab_state_set_boot_partition((unsigned char *)UU_SYS_A), PB_OK);
     boot_ab_state_get_boot_partition(uu);
     assert_memory_equal(uu, UU_SYS_A, 16);
+}
 
-    /* An unknown partition disables boot, but isn't committed */
+/*
+ * 'boot activate' with a UUID that isn't a slot's changes nothing (boot.md
+ * 3.4, F-175): not the state in memory, which 'boot status', the next boot
+ * and the next write would act on, nor the state on the disk.
+ */
+static void test_activate_unknown_uuid_changes_nothing(void **state)
+{
+    struct fixture *f = *state;
+    struct pb_boot_state before;
+    uuid_t uu;
+
+    /* A state with every field set: B on trial, A confirmed, an error bit */
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, PB_STATE_ERROR_A_ROLLBACK);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_ab_state_write_board_reg(1, 0xb0a4d001), PB_OK);
+    memcpy(&before, state_at(f, PRIMARY_LBA), sizeof(before));
     unsigned int writes = f->disk->writes;
-    assert_int_equal(boot_ab_state_set_boot_partition((unsigned char *)UU_OTHER),
+
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_OTHER),
+                     -PB_ERR_PART_NOT_BOOTABLE);
+    /* A state partition is no slot either */
+    assert_int_equal(boot_policy_ab_ops.activate((unsigned char *)UU_PRIMARY),
                      -PB_ERR_PART_NOT_BOOTABLE);
     assert_int_equal(f->disk->writes, writes);
-    boot_ab_state_get_boot_partition(uu);
-    assert_true(uuid_is_null(uu));
+
+    /* 'boot status' still names the enabled slot */
+    boot_policy_ab_ops.status(uu);
+    assert_memory_equal(uu, UU_SYS_B, 16);
+
+    /* The next write of the state has what was there: all 512 bytes, but
+     * the register it writes and the CRC */
+    assert_int_equal(boot_ab_state_write_board_reg(0, 0xb0a4d000), PB_OK);
+    before.board_regs[PB_STATE_NO_OF_BOARD_REGS - 1] = 0xb0a4d000;
+    before.crc = 0;
+    before.crc = crc32(0, (const uint8_t *)&before, sizeof(before));
+    assert_memory_equal(state_at(f, PRIMARY_LBA), &before, sizeof(before));
+    assert_memory_equal(state_at(f, BACKUP_LBA), &before, sizeof(before));
+
+    /* And the next boot is the trial's, counted */
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_A_VERIFIED);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 1);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->error, PB_STATE_ERROR_A_ROLLBACK);
 }
 
 static void test_part_names(void **state)
@@ -526,10 +1352,11 @@ static void test_policy_object(void **state)
     assert_memory_equal(uu, UU_SYS_B, 16);
     assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_A_VERIFIED);
 
-    /* A partition that isn't a system: nothing is active */
+    /* A partition that isn't a system: refused, and System B stays active
+     * (boot.md 3.4) */
     assert_int_equal(policy.ops->activate((unsigned char *)UU_OTHER), -PB_ERR_PART_NOT_BOOTABLE);
     policy.ops->status(uu);
-    assert_true(uuid_is_null(uu));
+    assert_memory_equal(uu, UU_SYS_B, 16);
 }
 
 /* init marks the policy's candidates, the two slots, and nothing else: only
@@ -772,25 +1599,6 @@ static void test_no_speculative_mode_without_the_symbol(void **state)
 }
 #endif
 
-/* A state write that fails ends the candidates (F-179 changes that): the
- * next boot starts over */
-static void test_next_starts_over_after_an_error(void **state)
-{
-    struct fixture *f = *state;
-    uuid_t uu;
-
-    write_state(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, 3, 0);
-    reboot(f, &cfg_normal);
-
-    f->disk->fail_writes_after = 0;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
-    f->disk->fail_writes_after = -1;
-
-    /* Not B as a fallback: A, as the first candidate of a new boot */
-    assert_int_equal(boot_once(), f->sys_a);
-    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
-}
-
 /*
  * What A/B writes where it has a viable candidate, byte for byte, the same
  * with and without speculative mode: the defaults, a trial's attempt, a
@@ -850,6 +1658,87 @@ static void test_writes_with_a_viable_candidate(void **state)
     assert_disk_state(f, 0, 0, 0, 0);
 }
 
+/*
+ * A rollback with the other slot's bit already set (boot.md 3.5, rule 2, F-340):
+ * the rolled back slot's bit is set and the other one's stays. All 512 bytes
+ * of both copies: the state before with the other slot enabled and the bit
+ * set, the board's registers kept, the CRC over that.
+ */
+static void assert_rollback_keeps_the_bit(struct fixture *f,
+                                          uint32_t enable,
+                                          uint32_t verified,
+                                          uint32_t error_before,
+                                          bio_dev_t target,
+                                          uint32_t enable_after,
+                                          uint32_t error_after)
+{
+    struct pb_boot_state expected;
+    uuid_t uu;
+
+    write_state(f, enable, verified, 0, error_before);
+    reboot(f, &cfg_normal);
+    for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++)
+        assert_int_equal(boot_ab_state_write_board_reg(i, 0xb0a4d000 + i), PB_OK);
+    memcpy(&expected, state_at(f, PRIMARY_LBA), sizeof(expected));
+    reboot(f, &cfg_normal);
+
+    assert_int_equal(hand_out(uu), target);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    boot_policy_ab_ops.report(uu, PB_OK);
+
+    expected.enable = enable_after;
+    expected.error = error_after;
+    expected.crc = 0;
+    expected.crc = crc32(0, (const uint8_t *)&expected, sizeof(expected));
+    assert_memory_equal(state_at(f, PRIMARY_LBA), &expected, sizeof(expected));
+    assert_memory_equal(state_at(f, BACKUP_LBA), &expected, sizeof(expected));
+}
+
+static void test_rollback_keeps_the_other_slots_bit(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    /* From A, with B's bit set: both bits */
+    assert_rollback_keeps_the_bit(f,
+                                  PB_STATE_A_ENABLED,
+                                  PB_STATE_B_VERIFIED,
+                                  PB_STATE_ERROR_B_ROLLBACK,
+                                  f->sys_b,
+                                  PB_STATE_B_ENABLED,
+                                  PB_STATE_ERROR_A_ROLLBACK | PB_STATE_ERROR_B_ROLLBACK);
+
+    /* The mirror: from B, with A's bit set */
+    assert_rollback_keeps_the_bit(f,
+                                  PB_STATE_B_ENABLED,
+                                  PB_STATE_A_VERIFIED,
+                                  PB_STATE_ERROR_A_ROLLBACK,
+                                  f->sys_a,
+                                  PB_STATE_A_ENABLED,
+                                  PB_STATE_ERROR_A_ROLLBACK | PB_STATE_ERROR_B_ROLLBACK);
+
+    /* The rolled back slot's own bit already set: it stays, alone */
+    assert_rollback_keeps_the_bit(f,
+                                  PB_STATE_A_ENABLED,
+                                  PB_STATE_B_VERIFIED,
+                                  PB_STATE_ERROR_A_ROLLBACK,
+                                  f->sys_b,
+                                  PB_STATE_B_ENABLED,
+                                  PB_STATE_ERROR_A_ROLLBACK);
+
+    /* No bit set: the bytes every released pb wrote (D-008), its own bit
+     * alone, the rest zero */
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(hand_out(uu), f->sys_b);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, PB_STATE_ERROR_A_ROLLBACK);
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, PB_STATE_ERROR_B_ROLLBACK);
+}
+
 #ifdef CONFIG_BOOT_AB_SPECULATIVE
 /*
  * Speculative mode (boot.md 3.6), with CONFIG_BOOT_AB_SPECULATIVE. One test
@@ -870,6 +1759,24 @@ static void pbstate_confirms(struct fixture *f, uint32_t verified_bit)
     memcpy(&s, state_at(f, PRIMARY_LBA), sizeof(s));
     s.verified |= verified_bit;
     s.remaining_boot_attempts = 0;
+    s.crc = 0;
+    s.crc = crc32(0, (const uint8_t *)&s, sizeof(s));
+    memcpy(state_at(f, PRIMARY_LBA), &s, sizeof(s));
+    memcpy(state_at(f, BACKUP_LBA), &s, sizeof(s));
+}
+
+/*
+ * The OS invalidates a slot, as pbstate does (pbstate_invalidate_system()):
+ * the slot's enable and verified bits are cleared. The error bits stay.
+ */
+static void pbstate_invalidates(struct fixture *f, uint32_t enable_bit, uint32_t verified_bit)
+{
+    struct pb_boot_state s;
+
+    assert_true(state_valid(f, PRIMARY_LBA));
+    memcpy(&s, state_at(f, PRIMARY_LBA), sizeof(s));
+    s.enable &= ~enable_bit;
+    s.verified &= ~verified_bit;
     s.crc = 0;
     s.crc = crc32(0, (const uint8_t *)&s, sizeof(s));
     memcpy(state_at(f, PRIMARY_LBA), &s, sizeof(s));
@@ -1385,6 +2292,43 @@ static void test_speculative_mode_is_reported(void **state)
 }
 
 /*
+ * The history that reaches a rollback with the other slot's bit set (F-340):
+ * B's trial rolls back to A (B's bit), the OS confirms B and invalidates A,
+ * speculative mode boots A, which isn't confirmed, and the next boot rolls
+ * back to B. A's bit is set and B's stays (boot.md 3.5, rule 2).
+ */
+static void test_speculative_then_rollback_keeps_both_bits(void **state)
+{
+    struct fixture *f = *state;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 1, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_mode(NORMAL);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, PB_STATE_ERROR_B_ROLLBACK);
+
+    pbstate_confirms(f, PB_STATE_B_VERIFIED);
+    pbstate_invalidates(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED);
+    assert_disk_state(f, 0, PB_STATE_B_VERIFIED, 0, PB_STATE_ERROR_B_ROLLBACK);
+
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_mode(SPECULATIVE);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, 0, PB_STATE_ERROR_B_ROLLBACK);
+
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_mode(NORMAL);
+    assert_disk_state(f,
+                      PB_STATE_B_ENABLED,
+                      PB_STATE_B_VERIFIED,
+                      0,
+                      PB_STATE_ERROR_A_ROLLBACK | PB_STATE_ERROR_B_ROLLBACK);
+}
+
+/*
  * What the mode's write must leave, all 512 bytes of both copies: the state
  * 'before' with 'enable', the attempts zero and the CRC over that.
  */
@@ -1458,66 +2402,102 @@ static void test_speculative_writes_only_enable(void **state)
     assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_B_VERIFIED);
 }
 
-/* The alternation's write fails: that ends the boot today, like any state
- * write that fails. boot.md 3.2 hands the slot out anyway (F-179) */
-static void test_speculative_write_error(void **state)
+/*
+ * boot.md 3.2 (D-040, F-179): speculative mode's alternation that can't be
+ * written: the slot is handed out. A hang then comes back to the same
+ * slot, which is still better than no system.
+ */
+static void test_speculative_alternation_that_cannot_be_written_is_handed_out(void **state)
 {
     struct fixture *f = *state;
     uuid_t uu;
 
+    /* From the state */
     write_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
     reboot(f, &cfg_normal);
 
     f->disk->fail_writes_after = 0;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
-    assert_mode(NORMAL);
+    assert_int_equal(hand_out(uu), f->sys_b);
+    assert_mode(SPECULATIVE);
     assert_disk_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
+
+    /* It hangs: the reset finds the state as it was, and B again */
+    for (unsigned int boot = 0; boot < 3; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(hand_out(uu), f->sys_b);
+        assert_mode(SPECULATIVE);
+        assert_disk_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
+    }
+
+    /* In the same boot, when its slot fails, the other is tried (3.6, rule
+     * 3), which needs no write */
+    boot_policy_ab_ops.report(uu, -PB_ERR_BAD_PAYLOAD);
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_mode(SPECULATIVE);
+    boot_policy_ab_ops.report(uu, PB_OK);
+
+    /* Nothing enabled: A, and A again */
+    f->disk->fail_writes_after = -1;
+    write_state(f, 0, 0, 0, 0);
+    reboot(f, &cfg_normal);
+    f->disk->fail_writes_after = 0;
+
+    for (unsigned int boot = 0; boot < 2; boot++) {
+        attach(f, true, true);
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+        assert_int_equal(hand_out(uu), f->sys_a);
+        assert_mode(SPECULATIVE);
+        assert_disk_state(f, 0, 0, 0, 0);
+    }
+
+    /* The fault passes: the alternation is written again */
+    f->disk->fail_writes_after = -1;
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_disk_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_disk_state(f, PB_STATE_B_ENABLED, 0, 0, 0);
 }
 
 /*
- * The alternation's second write fails: the primary has the other slot, the
- * backup can't be written. The boot ends, as above, with the other slot
- * already enabled in memory. With a backup that never takes a write, the
- * primary wins at each init and is flipped again by each boot, and nothing
- * boots. This pins what the code does: boot.md 3.2 hands the slot out
- * (F-179).
+ * A backup that takes no write, for good: the alternation's second write
+ * fails on every boot, and init can't bring the backup up to date either.
+ * Each boot hands its slot out all the same (boot.md 3.2), and since the
+ * primary takes the write the slots still alternate. Before F-179 the
+ * primary alternated and nothing booted.
  */
-static void test_speculative_backup_write_error(void **state)
+static void test_speculative_backup_that_cannot_be_written(void **state)
 {
     struct fixture *f = *state;
     uuid_t uu;
 
     write_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
-    reboot(f, &cfg_normal);
 
-    f->disk->fail_writes_after = 1;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
-    assert_mode(NORMAL);
-    assert_true(state_valid(f, PRIMARY_LBA));
-    assert_true(state_valid(f, BACKUP_LBA));
-    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_B_ENABLED);
-    assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_A_ENABLED);
+    for (unsigned int boot = 0; boot < 6; boot++) {
+        bool b_turn = (boot % 2 == 0);
 
-    /* In memory the other slot is enabled, though no boot got it */
-    boot_policy_ab_ops.status(uu);
-    assert_memory_equal(uu, UU_SYS_B, 16);
+        /* Init writes the backup alone (F-404), the commit the primary first */
+        attach(f, true, true);
+        f->disk->fail_writes_after = 0;
+        assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
 
-    /* A boot that command mode starts flips it back, and fails the same */
-    f->disk->fail_writes_after = 1;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
-    assert_int_equal(state_at(f, PRIMARY_LBA)->enable, PB_STATE_A_ENABLED);
-    assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_A_ENABLED);
-
-    /* The next boots: the primary alternates, the backup stays, none boots */
-    for (unsigned int boot = 0; boot < 4; boot++) {
-        f->disk->fail_writes_after = -1;
-        reboot(f, &cfg_normal);
         f->disk->fail_writes_after = 1;
-        assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
+        assert_int_equal(hand_out(uu), b_turn ? f->sys_b : f->sys_a);
+        assert_mode(SPECULATIVE);
+        boot_policy_ab_ops.report(uu, PB_OK);
+
+        assert_true(state_valid(f, PRIMARY_LBA));
+        assert_true(state_valid(f, BACKUP_LBA));
         assert_int_equal(state_at(f, PRIMARY_LBA)->enable,
-                         (boot % 2 == 0) ? PB_STATE_B_ENABLED : PB_STATE_A_ENABLED);
+                         b_turn ? PB_STATE_B_ENABLED : PB_STATE_A_ENABLED);
         assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_A_ENABLED);
         assert_int_equal(state_at(f, PRIMARY_LBA)->remaining_boot_attempts, 0);
+
+        /* 'boot status': the enabled slot, the one that booted */
+        boot_policy_ab_ops.status(uu);
+        assert_int_equal(bio_get_part_by_uu(uu), b_turn ? f->sys_b : f->sys_a);
     }
 }
 
@@ -1539,10 +2519,11 @@ static void test_speculative_power_loss_between_the_copies(void **state)
     assert_disk_state(f, PB_STATE_B_ENABLED, 0, 0, 0);
 
     /* The next boot enables A, and power is lost after the primary's
-     * write: the backup still has B, and A was never loaded */
+     * write: the backup still has B, and A was never loaded. Here the
+     * backup's write fails and the candidate is never loaded or reported */
     reboot(f, &cfg_normal);
     f->disk->fail_writes_after = 1;
-    assert_int_equal(boot_policy_ab_ops.next(uu), -PB_ERR_IO);
+    assert_int_equal(hand_out(uu), f->sys_a);
     f->disk->fail_writes_after = -1;
     assert_true(state_valid(f, PRIMARY_LBA));
     assert_true(state_valid(f, BACKUP_LBA));
@@ -1550,11 +2531,11 @@ static void test_speculative_power_loss_between_the_copies(void **state)
     assert_int_equal(state_at(f, BACKUP_LBA)->enable, PB_STATE_B_ENABLED);
 
     /* Both copies are valid and differ: the primary wins at init, which
-     * writes nothing (the backup stays behind until the next write, F-176).
-     * A's turn was cut, so this boot is B's, and both copies agree again */
+     * writes it to the backup (F-176). A's turn was cut, so this boot is B's */
     writes = f->disk->writes;
     reboot(f, &cfg_normal);
-    assert_int_equal(f->disk->writes, writes);
+    assert_int_equal(f->disk->writes, writes + 1);
+    assert_disk_state(f, PB_STATE_A_ENABLED, 0, 0, 0);
     assert_int_equal(hand_out(uu), f->sys_b);
     assert_mode(SPECULATIVE);
     assert_disk_state(f, PB_STATE_B_ENABLED, 0, 0, 0);
@@ -1600,21 +2581,35 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         AB_TEST(test_not_initialized),
+        AB_TEST(test_failed_init_leaves_the_functions_safe),
         AB_TEST(test_init_requires_system_partitions),
         AB_TEST(test_init_without_state_partitions_fails),
+        AB_TEST(test_failed_state_read_is_repaired_by_activate),
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
         AB_TEST(test_init_blank_installs_defaults),
 #endif
         AB_TEST(test_init_bad_crc_is_repaired),
+        AB_TEST(test_init_read_error_writes_no_defaults),
+        AB_TEST(test_init_primary_read_error),
+        AB_TEST(test_init_read_error_with_a_good_copy),
+        AB_TEST(test_init_copies_that_differ_get_the_primarys_state),
+        AB_TEST(test_init_copies_that_differ_and_no_write),
         AB_TEST(test_commit_write_errors),
         AB_TEST(test_commit_erases_first),
+        AB_TEST(test_commit_with_a_handle_that_isnt_one),
+        AB_TEST(test_backup_repair_writes_the_backup_only),
+        AB_TEST(test_backup_repair_erases_the_backup_only),
+        AB_TEST(test_state_in_blocks_of_another_size),
         AB_TEST(test_verified_system_boots),
         AB_TEST(test_b_boot_attempts),
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
         AB_TEST(test_no_rollback_to_unverified_system),
 #endif
-        AB_TEST(test_get_commit_error),
+        AB_TEST(test_rollback_that_cannot_be_written_is_handed_out),
+        AB_TEST(test_trial_attempt_that_cannot_be_written_boots_the_verified_slot),
+        AB_TEST(test_trial_attempt_that_cannot_be_written_and_no_verified_slot),
         AB_TEST(test_set_boot_partition),
+        AB_TEST(test_activate_unknown_uuid_changes_nothing),
         AB_TEST(test_part_names),
         AB_TEST(test_board_regs),
         AB_TEST(test_policy_object),
@@ -1622,8 +2617,8 @@ int main(void)
         AB_TEST(test_fallback_to_the_verified_slot),
         AB_TEST(test_fallback_fails_too),
         AB_TEST(test_trial_that_fails_falls_back),
-        AB_TEST(test_next_starts_over_after_an_error),
         AB_TEST(test_writes_with_a_viable_candidate),
+        AB_TEST(test_rollback_keeps_the_other_slots_bit),
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
         /* Without a viable candidate there is none */
         AB_TEST(test_no_fallback_to_unverified_slot),
@@ -1642,9 +2637,10 @@ int main(void)
         AB_TEST(test_speculative_counts_no_attempts),
         AB_TEST(test_speculative_ends_when_the_os_confirms),
         AB_TEST(test_speculative_mode_is_reported),
+        AB_TEST(test_speculative_then_rollback_keeps_both_bits),
         AB_TEST(test_speculative_writes_only_enable),
-        AB_TEST(test_speculative_write_error),
-        AB_TEST(test_speculative_backup_write_error),
+        AB_TEST(test_speculative_alternation_that_cannot_be_written_is_handed_out),
+        AB_TEST(test_speculative_backup_that_cannot_be_written),
         AB_TEST(test_speculative_power_loss_between_the_copies),
 #endif
     };
