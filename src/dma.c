@@ -19,12 +19,11 @@
  * What a driver got wrong, not what a device or a host did: checked on the
  * host, where a test fails on it (drivers.md 4.4).
  *
- * Not in the firmware yet, also not in a debug build: pb's own callers still
- * hand drivers a buffer that doesn't start on a line (the GPT's protective
- * MBR, the A/B state, an image part with such a load address), and such a
- * buffer gets the cache operations it got before, on the lines it touches.
- * The assertion comes to a debug build with the cores' refusal and the
- * boot's bounce (drivers.md 4.3, F-282), which leave no such caller.
+ * No caller hands a driver such a buffer any more: bio_read() and the USB
+ * transport refuse one, and the boot bounces an image part whose load
+ * address isn't on a line (drivers.md 4.3). Not in the firmware: pb has no
+ * debug build to put it in (drivers.md 4.4, F-282), and the firmware's
+ * assert() stops the board where it is.
  */
 #ifdef CONFIG_ARCH_HOST
 #define dma_assert(e) assert(e)

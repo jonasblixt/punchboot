@@ -335,8 +335,6 @@ ep0_stall(void)
 | endpoint 0                    |                                   | no alignment, and isn't changed |
 |                               |                                   | until it is sent                |
 
-**Not yet in the code (F-282)**: the controllers' objects are aligned each in its own way.
-
 The caps tell a host the buffer's size and the largest transfer (`command-mode.md` 5.1); both
 are `CONFIG_CM_BUF_SIZE_KiB` today.
 
@@ -420,8 +418,8 @@ what the code doesn't settle without the hardware.
 | Endpoint 0 independent of a bulk | no: one transfer    | yes                 | yes               | F-203   |
 | transfer                         | for the driver      |                     |                   |         |
 | An unknown request is stalled    | no                  | no                  | no                | F-138   |
-| The driver's DMA objects own     | yes                 | partly: aligned,    | no                | F-205,  |
-| their lines                      |                     | not padded          |                   | F-282   |
+| The driver's DMA objects own     | yes (`test_imx_`    | yes (`test_dwc3_`   | yes (`test_`      |         |
+| their lines                      | `ci_udc`)           | `udc`)              | `cdns3_udc`)      |         |
 | The order of clean, invalidate   | yes                 | unverified          | yes               |         |
 | and copy                         |                     |                     |                   |         |
 | `stop`                           | yes, unbounded      | yes                 | no                | F-204   |
@@ -465,6 +463,5 @@ checklist's last item.
 | F-138, F-203        | Endpoint 0: stall, bounds, no effect on a bulk transfer (3.2)                |
 | F-204               | Every controller has a `stop` (4.2)                                          |
 | F-136, F-205        | Every wait is bounded (4)                                                    |
-| F-282               | The controllers' DMA objects own their lines (5)                             |
 | F-139, F-140        | The ChipIdea's set up against its reference manual                           |
 | F-172               | Writes that reset the MEK                                                    |

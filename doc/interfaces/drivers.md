@@ -209,7 +209,6 @@ translation has somewhere to go.
 `PB_DMA_ALIGN` is a constant, 64, and `arch_init()` checks that the core's line isn't larger
 (Jonas, D-065). An alignment must be known when a buffer is declared, so it can't be read from
 the core at run time; the functions of 4.4 use the core's own line size for their stride.
-**Not yet in the code (F-282).**
 
 ### 4.2 The rule
 
@@ -235,9 +234,6 @@ the core at run time; the functions of 4.4 use the core's own line size for thei
 7. **A bus master the SoC treats as non-secure** needs its memory open in the TrustZone filter.
    That is the platform's (`platform.md` 4.3), and a driver assumes nothing about it.
 8. **Nothing is in flight at the jump**: 2.3.
-
-**Not yet in the code (F-282)**: each driver calls the arch's cache functions itself, with its
-own alignment (64, 4096, or none) and its own order.
 
 ### 4.3 The caller's buffer
 
@@ -285,7 +281,8 @@ Who makes it so depends on whose buffer it is:
 
 ### 4.4 In the code
 
-**Not yet in the code (F-282).**
+**Not yet in the code (F-282)**: the start is asserted on the host only. pb has no debug build
+to assert it in.
 
 `include/pb/dma.h`, built on the arch's cache functions. A driver includes it and no arch
 header:
@@ -308,9 +305,7 @@ header:
 - **The arch gives** clean, invalidate, and clean and invalidate, by range, with the start
   rounded down to a line and the end up, each ending with the barrier the architecture
   requires; and a D-cache with nothing valid in it when it is enabled. **Not yet in the code
-  (F-282, F-207)**: the three are declared in each arch's own header, which the drivers include
-  by its path; clean and invalidate exists on ARMv8-A only; the D-cache is enabled without
-  being invalidated first.
+  (F-207)**: the D-cache is enabled without being invalidated first.
 - On the host the arch's three do nothing, so no host test sees a missing clean or
   invalidate. The functions above can still check what doesn't need a cache: that a range a
   device writes owns its lines, and that every `dma_in_begin()` has its `dma_in_end()`. The
@@ -380,21 +375,19 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 
 | Driver                  | Every wait bounded    | DMA memory owns lines   | `stop`              | Finding       |
 | ----------------------- | --------------------- | ----------------------- | ------------------- | ------------- |
-| MMC, SD and the uSDHC   | yes (`test_mmc_emmc`) | partly: aligned, in     | n/a: synchronous    |               |
-|                         |                       | `.no_init`, next to the |                     |               |
-|                         |                       | driver's state          |                     |               |
+| MMC, SD and the uSDHC   | yes (`test_mmc_emmc`) | yes (`test_imx_usdhc`)  | n/a: synchronous    |               |
 | FlexSPI                 | yes                   | n/a: no DMA             | n/a: synchronous    |               |
-| CAAM                    | yes: 1 s              | no                      | yes                 | F-081, F-286  |
+| CAAM                    | yes: 1 s              | yes                     | yes                 | F-286         |
+|                         |                       | (`test_caam_crypto`)    |                     |               |
 | Mbed TLS                | n/a                   | n/a                     | n/a                 |               |
-| ChipIdea                | no                    | yes                     | yes, unbounded      | F-136         |
-| DWC3                    | yes                   | partly: aligned, not    | yes                 | F-282         |
-|                         |                       | padded                  |                     |               |
-| Cadence USB3            | no                    | no                      | empty               | F-205, F-204  |
+| ChipIdea                | no                    | yes (`test_imx_ci_udc`) | yes, unbounded      | F-136         |
+| DWC3                    | yes                   | yes (`test_dwc3_udc`)   | yes                 |               |
+| Cadence USB3            | no                    | yes (`test_cdns3_udc`)  | empty               | F-205, F-204  |
 | The DRAM controller and | no                    | n/a                     | n/a                 | F-102         |
 | PHY                     |                       |                         |                     |               |
 | virtio (in no build)    | no                    | partly                  | none                | F-052, F-281  |
 
-Every driver with DMA calls the arch's cache functions itself, through the arch's own header
-(F-282). The other single drivers (the fuse controller, GPIO, the pin controller, the timer,
-the watchdog, the UARTs, the TrustZone filter's, the ROM's logs) do no DMA; their waits are
-unchecked here, and F-197 and F-206 are what is known of them.
+Every driver with DMA goes through `pb/dma.h` and includes no arch header, but virtio, which is
+in no build (F-052). The other single drivers (the fuse controller, GPIO, the pin controller, the
+timer, the watchdog, the UARTs, the TrustZone filter's, the ROM's logs) do no DMA; their waits
+are unchecked here, and F-197 and F-206 are what is known of them.

@@ -33,8 +33,8 @@ neither has the code, another board's or the header's, and the section says whic
 | 15      | Kconfig and the defconfig, with the board's addresses   | `board.md` 7           |
 | 16      | An out-of-tree driver                                   | `drivers.md`           |
 | 17      | An out-of-tree platform                                 | D-030, `platform.md`   |
-| 18      | Not in the code yet: three changes that change a board  | F-247, F-240, F-282,   |
-|         | again, and one that is added                            | F-269                  |
+| 18      | `pb/dma.h`, and not in the code yet: two changes that   | D-066, F-247, F-240,   |
+|         | change a board again, and one that is added             | F-269                  |
 | 19      | Before the ported pb goes to a device in the field      | `board.md` 8           |
 
 ## 1. The board is `const struct board board`
@@ -948,7 +948,8 @@ checked five of the nine. A driver with one transfer for all its endpoints says 
 - `der_ec_public_key_data()` takes the key's length as its second argument and reads nothing
   past it.
 
-All of them will change for `pb/dma.h`: section 18.3.
+Each of them that does DMA goes through `pb/dma.h`, and the cores refuse a buffer a device
+writes that doesn't start on a cache line: section 18.3.
 
 Rests on: D-018, D-064 to D-073, `drivers.md`, `bio.md`, `crypto.md`, `usb.md`.
 
@@ -997,11 +998,12 @@ Rests on: D-018, D-064 to D-073, `drivers.md`, `bio.md`, `crypto.md`, `usb.md`.
 
 Rests on: D-030, D-053, `platform.md`.
 
-## 18. Not in the code yet
+## 18. `pb/dma.h`, and not in the code yet
 
-Three changes that the contracts decided and the code doesn't have yet. Each changes a board's
-files again. The fourth is new and optional. What each will ask is the contract's text today;
-the names can still move with the code.
+`pb/dma.h` (18.3) came into the code last, and is written as the sections above are. The other
+three are changes that the contracts decided and the code doesn't have yet: 18.1 and 18.2 change
+a board's files again, 18.4 is new and optional. What each of them will ask is the contract's
+text today; the names can still move with the code.
 
 ### 18.1 The RoT, the SLC and the crypto engine move to the platform
 
@@ -1030,19 +1032,83 @@ stage at one of three levels.
 
 ### 18.3 `pb/dma.h`
 
-**Not yet in the code (F-282)**: each driver calls the arch's cache functions itself, and no
-buffer is checked.
+**Was.** A driver whose device reads or writes memory included its arch's header
+(`<arch/arch.h>`) and called `arch_clean_cache_range()` and `arch_invalidate_cache_range()`
+itself, each with its own alignment (64, 4096, or none) and its own order. Its descriptors and
+buffers were aligned each in its own way, some next to other data. Nothing checked a caller's
+buffer: a block read or a USB transfer into one that shared a cache line with other data
+cleaned and invalidated the neighbour's bytes with it (F-081, F-205).
 
-What `drivers.md` 4 will ask:
+**Is.** The rule is `drivers.md` 4, and `<pb/dma.h>` is its home:
 
-- Of a driver: `<pb/dma.h>` in place of the arch's header. `dma_out()`, `dma_in_begin()` and
-  `dma_in_end()` in place of the cache functions, and its own DMA memory declared with
-  `PB_DMA_BUFFER()` or `PB_DMA_ARRAY()` (`drivers.md` 4.4). The header is being written on the
-  branch `pkg-dma`, with these names.
-- Of a board: a buffer that a device fills is declared with the same macro. The class's core
-  refuses one that doesn't start on a cache line, with `-PB_ERR_ALIGN` (`drivers.md` 4.3).
-- Of an image: nothing. A part whose load address doesn't start on a line is bounced in the
-  boot's load loop (`drivers.md` 4.3).
+- `PB_DMA_ALIGN`, 64: the line that buffers are declared and checked with. `arch_init()` logs
+  an error on a core whose D-cache line is longer.
+- `PB_DMA_BUFFER(type, name)`, `PB_DMA_ARRAY(type, name, n)` and `PB_DMA_ARRAY_ALIGNED()`
+  declare an object that starts on a line and is padded to whole lines, in `.no_init`: not
+  initialised, and usable after `plat_init()`.
+- `dma_out()` before the device reads; `dma_in_begin()` before it writes and `dma_in_end()`
+  after, before the CPU reads. `dma_owns_lines()` checks a range.
+- The arch's clean, invalidate, and clean and invalidate by range are declared in
+  `<pb/arch.h>` on every arch, for `pb/dma.h`; a driver calls none of them.
+
+2.x (`src/drivers/mmc/imx_usdhc.c`, a transfer through ADMA2):
+
+```c
+#include <arch/arch.h>
+...
+static struct usdhc_adma2_desc tbl[512] __section(".no_init") __aligned(64);
+...
+    if (buf && length) {
+        arch_clean_cache_range(buf, length);
+    }
+...
+    arch_clean_cache_range((uintptr_t)tbl, sizeof(struct usdhc_adma2_desc) * n_descriptors);
+...
+static int imx_usdhc_read(unsigned int lba, size_t length, uintptr_t buf)
+{
+    /* All transfers are performed with ADMA2 */
+    if (length && buf) {
+        arch_invalidate_cache_range(buf, length);
+    }
+```
+
+3.0.0:
+
+```c
+#include <pb/dma.h>
+...
+typedef struct usdhc_adma2_desc usdhc_adma2_tbl[ADMA2_DESCS];
+PB_DMA_ARRAY(usdhc_adma2_tbl, tbls, USDHC_MAX_INSTANCES);
+...
+    /* The caller's buffer: a read's owns its lines (bio.md 3.1) */
+    if (write)
+        dma_out(buf, length);
+    else
+        dma_in_begin(buf, length);
+...
+    dma_out(u->tbl, sizeof(u->tbl[0]) * n);
+...
+    /* The controller is done with a read's buffer, or was reset */
+    if (data && !cmd->write)
+        dma_in_end(cmd->buf, cmd->block_size * cmd->blocks);
+```
+
+- **A driver** includes `<pb/dma.h>` and no arch header, and declares its own DMA memory with
+  the macros. What its device writes is begun before the device starts and ended on every
+  path that ends the transfer (done, an error, a timeout, a cancel, a stop), and a copy out of
+  a bounce buffer comes after the end (`drivers.md` 4.2, the checklist in 7).
+- **A board**: a buffer that a device fills, a `bio_read()` or a USB OUT transfer of its own,
+  starts on a cache line and owns its lines: declared with `PB_DMA_BUFFER()` or
+  `PB_DMA_ARRAY()`, or with `__aligned(PB_DMA_ALIGN)` and whole lines long where it must stay
+  initialised. A buffer on the stack never owns its lines. The class's core refuses one that
+  doesn't start on a line with `-PB_ERR_ALIGN`, on its first read, where 2.x read into it and
+  shared the line without a word. The boards of the tree read into nothing of their own.
+- **An image**: nothing. A part whose load address doesn't start on a line is read a chunk at
+  a time into the boot's own buffer and copied to its address, with the same reads as
+  before; one that does is read straight to its address, as in 2.x. The buffer is one
+  `CONFIG_BOOT_LOAD_CHUNK_kB` in `.no_init`, which `CONFIG_PB_BUFFERS_SIZE` holds.
+
+Rests on: D-065, D-066, `drivers.md` 4, `bio.md` 3.1, `usb.md` 2.3.
 
 ### 18.4 The board's `mmap`
 

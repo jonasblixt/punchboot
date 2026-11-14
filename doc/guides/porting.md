@@ -216,8 +216,10 @@ D-063): the contract already says what it must do. The order:
 2. **Set up and stop**: `drivers.md` 2. A device that acts without being asked has a `stop`
    (`drivers.md` 2.3).
 3. **Waits and return codes**: `drivers.md` 3. Every wait has a bound, with its source.
-4. **DMA and caches**: `drivers.md` 4. The header it describes isn't there yet (F-282): until
-   then follow 4.2's order with the arch's functions, as the drivers in the tree do.
+4. **DMA and caches**: `drivers.md` 4. The driver includes `<pb/dma.h>` and no arch header,
+   declares its own DMA memory with `PB_DMA_BUFFER()` or `PB_DMA_ARRAY()`, and follows 4.2's
+   order with `dma_out()`, `dma_in_begin()` and `dma_in_end()`. A caller's buffer that a device
+   writes reaches it on a cache line: the class's core refuses one that isn't (4.3).
 5. **The class's contract**:
 
 | Class                 | Contract    | Start at                                             |
