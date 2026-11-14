@@ -22,6 +22,7 @@
 #include <inttypes.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
+#include <pb/mmu.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/rot.h>
@@ -34,20 +35,6 @@
 #include <plat/imx8m/dram.h>
 
 #include "plat.h"
-
-IMPORT_SYM(uintptr_t, _code_start, code_start);
-IMPORT_SYM(uintptr_t, _code_end, code_end);
-IMPORT_SYM(uintptr_t, _data_region_start, data_start);
-IMPORT_SYM(uintptr_t, _data_region_end, data_end);
-IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
-IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
-IMPORT_SYM(uintptr_t, _stack_start, stack_start);
-IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-/* The rest of pb, .bss and the RAM log, and the buffers (platform.md 5.1) */
-IMPORT_SYM(uintptr_t, _zero_region_start, pb_rw_start);
-IMPORT_SYM(uintptr_t, _pb_end, pb_rw_end);
-IMPORT_SYM(uintptr_t, _buffers_start, buffers_start);
-IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
 
 /* System counter control frame */
 #define SCTR_CNTCR      0x00
@@ -197,51 +184,6 @@ uint32_t plat_get_us_tick(void)
 void plat_wdog_kick(void)
 {
     imx_wdog_kick(IMX8M_WDOG1_BASE);
-}
-
-static int plat_mmu_init(void)
-{
-    /* Configure MMU */
-    reset_xlat_tables();
-
-    mmap_add_region(code_start, code_start, code_end - code_start, MT_RO | MT_MEMORY | MT_EXECUTE);
-
-    mmap_add_region(
-        data_start, data_start, data_end - data_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(ro_data_start,
-                    ro_data_start,
-                    ro_data_end - ro_data_start,
-                    MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(
-        stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    /* The rest of pb and the buffers, each a region of its own: one span
-     * from pb to the buffers mapped what is between them as memory, on the
-     * i.MX8M Plus 1 GiB of the address space and its devices (F-158) */
-    mmap_add_region(
-        pb_rw_start, pb_rw_start, pb_rw_end - pb_rw_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(buffers_start,
-                    buffers_start,
-                    buffers_end - buffers_start,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    /* The board's DRAM, where the images are loaded. What of pb is in it
-     * is a region inside it, and the innermost region wins */
-    mmap_add_region(BOARD_RAM_BASE,
-                    BOARD_RAM_BASE,
-                    BOARD_RAM_END - BOARD_RAM_BASE,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add(imx_mmap);
-
-    init_xlat_tables();
-
-    enable_mmu_el3(0);
-
-    return PB_OK;
 }
 
 /* The ROM log, AN12853 Tables 11 and 13. It's in the ROM's part of the OCRAM, below pb */
@@ -521,7 +463,15 @@ int plat_init(void)
                                                                : PLAT_TZ_DRAM_BYPASSED;
 
     imx_wdog_kick(IMX8M_WDOG1_BASE);
-    plat_mmu_init();
+
+    /* The memory map, imx_mmap[] as its layer 2 (platform.md 5.2). Without
+     * it command mode doesn't run: plat_init()'s error (2.2) */
+    rc = pb_mmu_init(imx_mmap);
+
+    if (rc != PB_OK) {
+        LOG_ERR("MMU setup failed (%i)", rc);
+        return rc;
+    }
 
     /* Last: until F-247 the board's init() did it, as its first step */
     status.crypto_engine = crypto_init();

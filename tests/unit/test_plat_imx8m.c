@@ -37,6 +37,8 @@
 #include <plat/imx8m/imx8m.h>
 #include <string.h>
 
+#include <xlat_tables.h>
+
 #include "fakes/regs.h"
 #include "fakes/xlat.h"
 
@@ -774,6 +776,52 @@ static void test_mmu_map(void **state)
     fake_mmu_check_pb_map(BOARD_RAM_BASE, BOARD_RAM_END);
 }
 
+/* platform.md 5.2: the whole map, the same since F-158 (ec043c92): layer 1
+ * the board's DRAM, layer 2 the uMCTL2's state at the DRAM's start, the DDRC
+ * and its PHY, the ROM (its API, executable), AIPS1..3 (and the 8MP's AIPS5),
+ * the OCRAM, the GPV, the USB and AIPS4, layer 4 pb. Each region once:
+ * xlat_tables sorts them, so the order they are added in doesn't change the
+ * tables. The enable is ARMv8-A's */
+static void test_mmu_map_regions(void **state)
+{
+    const unsigned int rw_nox = MT_RW | MT_MEMORY | MT_EXECUTE_NEVER;
+    struct fake_mmap_region expected[24] = {
+        { BOARD_RAM_BASE, BOARD_RAM_END - BOARD_RAM_BASE, rw_nox },
+        { DDR_CSD1_BASE_ADDR, 128 * 1024, MT_MEMORY | MT_RW },
+        { IMX8M_DDRPHY_BASE, 22 * 1024 * 1024, MT_DEVICE | MT_RW },
+        { IMX8M_ROM_BASE, IMX8M_ROM_SIZE, MT_MEMORY | MT_RO | MT_EXECUTE },
+        { IMX8M_AIPS_BASE, IMX8M_AIPS_SIZE, MT_DEVICE | MT_RW },
+        { IMX8M_OCRAM_BASE, IMX8M_OCRAM_SIZE, MT_MEMORY | MT_RW },
+        { IMX8M_GPV_BASE, IMX8M_GPV_SIZE, MT_DEVICE | MT_RW },
+        { IMX8M_USB1_BASE, IMX8M_USB_SIZE, MT_DEVICE | MT_RW },
+        { IMX8M_AIPS4_BASE, IMX8M_AIPS4_SIZE, MT_DEVICE | MT_RW },
+    };
+    size_t n = 9;
+    (void)state;
+
+    n += fake_mmap_pb_regions(&expected[n]);
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    fake_mmap_check_equal(expected, n);
+    assert_int_equal(fake_mmu_enables, 1);
+    assert_string_equal(fake_mmu_enabled_by, "el3");
+}
+
+/* platform.md 2.2, 5.2, board.md 2.8: a board region over one of
+ * imx_mmap[]'s (AIPS4) fails pb_mmu_init() before anything is mapped, and
+ * with it plat_init(): main() resets */
+static void test_mmu_board_region_refused(void **state)
+{
+    (void)state;
+
+    fake_board_mmap[0] = (struct pb_mmap_region)PB_MAP_DEVICE(IMX8M_AIPS4_BASE + 0x1000, 0x1000);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), -PB_ERR_PARAM);
+    assert_int_equal(fake_mmu_enables, 0);
+    fake_board_mmap[0] = (struct pb_mmap_region)PB_MAP_END;
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -797,6 +845,8 @@ int main(void)
         cmocka_unit_test_setup(test_status_crypto_engine, setup),
         cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_mmu_map, setup),
+        cmocka_unit_test_setup(test_mmu_map_regions, setup),
+        cmocka_unit_test_setup(test_mmu_board_region_refused, setup),
         cmocka_unit_test_setup(test_get_info, setup),
     };
 

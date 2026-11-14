@@ -651,6 +651,8 @@ set(PB_IMX8X_SCI ${PROJECT_SOURCE_DIR}/src/plat/imx8x/sci)
 pb_plat_test(test_plat_imx8x
     SOURCES
         fakes/xlat.c
+        fakes/board.c
+        ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx8x/plat.c
         ${PB_IMX8X_SCI}/ipc.c
         ${PB_IMX8X_SCI}/imx8_mu.c
@@ -663,8 +665,9 @@ pb_plat_test(test_plat_imx8x
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
     DEFINITIONS
         CONFIG_PLAT_IMX8X=1 CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
-        CONFIG_DRIVERS_IMX_CAAM=1
-        BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+        CONFIG_DRIVERS_IMX_CAAM=1 CONFIG_LIB_XLAT_TBLS_ARMV8=1
+        BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000 MAX_MMAP_REGIONS=32
+        PLAT_VIRT_ADDR_SPACE_SIZE=0x200000000
     INCLUDES ${PROJECT_SOURCE_DIR}/include/plat/imx8x
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
@@ -711,12 +714,15 @@ pb_plat_test(test_imx_wdog
 pb_plat_test(test_plat_imx6ul
     SOURCES
         fakes/xlat.c
+        fakes/board.c
+        ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/plat.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
         CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5 CONFIG_DRIVERS_IMX_CAAM=1
-        BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+        BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000 MAX_MMAP_REGIONS=32
+        PLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 )
 
 # The same without CONFIG_ENABLE_WATCHDOG, which every defconfig has on: the
@@ -725,11 +731,14 @@ pb_plat_test(test_plat_imx6ul_no_wdog
     TEST test_plat_imx6ul.c
     SOURCES
         fakes/xlat.c
+        fakes/board.c
+        ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/plat.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
         CONFIG_DRIVERS_IMX_CAAM=1 BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+        MAX_MMAP_REGIONS=32 PLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 )
 
 # The i.MX8M Plus. The arch's system registers are the test's
@@ -737,17 +746,63 @@ pb_plat_test(test_plat_imx6ul_no_wdog
 pb_plat_test(test_plat_imx8m
     SOURCES
         fakes/xlat.c
+        fakes/board.c
+        ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx8m/plat.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
         CONFIG_PLAT_IMX8MP=1 CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
-        CONFIG_DRIVERS_IMX_CAAM=1
+        CONFIG_DRIVERS_IMX_CAAM=1 CONFIG_LIB_XLAT_TBLS_ARMV8=1
         IMX8M_OCRAM_SIZE=0x90000 IMX8M_ROM_SIZE=0x3f000
-        BOARD_RAM_BASE=0x40000000 BOARD_RAM_END=0x80000000
+        BOARD_RAM_BASE=0x40000000 BOARD_RAM_END=0x80000000 MAX_MMAP_REGIONS=32
+        PLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/fakes/armv8a
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
 )
+
+# The memory map (platform.md 5.2): pb_mmu_init() over the fake xlat_tables,
+# with room for 16 regions and the fake board's mmap (board.md 2.8). Built
+# for ARMv7-A and for ARMv8-A, whose enables differ, and with a board whose
+# mmap is NULL
+foreach(variant ARMV7 ARMV8 NO_BOARD_MMAP)
+    if(variant STREQUAL ARMV7)
+        set(name test_mmu)
+        set(defs CONFIG_LIB_XLAT_TBLS_ARMV7=1)
+    elseif(variant STREQUAL ARMV8)
+        set(name test_mmu_armv8)
+        set(defs CONFIG_LIB_XLAT_TBLS_ARMV8=1)
+    else()
+        set(name test_mmu_no_board_mmap)
+        set(defs CONFIG_LIB_XLAT_TBLS_ARMV7=1 FAKE_BOARD_NO_MMAP=1)
+    endif()
+    pb_plat_test(${name}
+        TEST test_mmu.c
+        SOURCES
+            fakes/xlat.c
+            fakes/board.c
+            ${PROJECT_SOURCE_DIR}/src/mmu.c
+        DEFINITIONS
+            ${defs} MAX_MMAP_REGIONS=16
+            PLAT_VIRT_ADDR_SPACE_SIZE=0x1000000000000
+            BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+        OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
+    )
+endforeach()
+
+# A board region is whole pages, checked in the build by pb/mmu.h's macros
+# (platform.md 5.2): a list of whole pages compiles, one with a base, a size
+# that isn't, or an empty region doesn't
+foreach(variant OK BAD_BASE BAD_SIZE EMPTY)
+    add_test(NAME unit.mmap_whole_pages_${variant}
+        COMMAND ${CMAKE_C_COMPILER} -fsyntax-only -Wall -Wextra -Werror -D${variant}
+                -I${PROJECT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/mmap_whole_pages.c
+    )
+    set_tests_properties(unit.mmap_whole_pages_${variant} PROPERTIES LABELS unit TIMEOUT 60)
+    if(NOT variant STREQUAL OK)
+        set_tests_properties(unit.mmap_whole_pages_${variant} PROPERTIES WILL_FAIL TRUE)
+    endif()
+endforeach()
 
 # The transport that pb-host links (usb.md 2.6): the unix socket, with a
 # client of the test's own
