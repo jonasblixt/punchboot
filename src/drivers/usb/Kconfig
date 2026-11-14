@@ -30,7 +30,8 @@ config DRIVER_IMX_CI_UDC
     bool "i.MX ChipIdea device controller"
     depends on HAVE_IMX_CI_UDC
     depends on DRIVER_USB_DEVICE
-    # Command mode's transport: its descriptors are sized by CM_BUF_SIZE_KiB
+    # Command mode's transport: its longest transfer is checked against
+    # CM_BUF_SIZE_KiB at build time
     depends on CM
     default y
 

@@ -73,8 +73,8 @@ def check_board(kconfiglib, root: pathlib.Path, board: str, port: str, drivers: 
     if kconf.syms[port].str_value != "n":
         say(f"{board}: {port} without command mode")
         problems += 1
-    # The ChipIdea driver sizes its descriptors by CM_BUF_SIZE_KiB, which
-    # only command mode has: with it, such a build doesn't compile (F-407)
+    # The ChipIdea driver checks its longest transfer against CM_BUF_SIZE_KiB,
+    # command mode's: it is command mode's transport and nothing else (F-407)
     if kconf.syms["DRIVER_IMX_CI_UDC"].str_value != "n":
         say(f"{board}: DRIVER_IMX_CI_UDC without command mode")
         problems += 1

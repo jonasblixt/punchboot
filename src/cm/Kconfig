@@ -27,7 +27,7 @@ config CM_BUF_SIZE_KiB
         The buffer the data of a command goes through, a partition write
         or an image to boot, in pb's buffers (PB_BUFFERS_SIZE holds it).
         The host reads its size from the caps and sends its data in chunks
-        of it; the USB controller's transfer descriptors are sized by it.
+        of it; the USB controller's driver takes a transfer of it.
 
 config CM_TRANSPORT_READY_TIMEOUT
     int "Wait for a host (s)"

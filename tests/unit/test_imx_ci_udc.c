@@ -47,8 +47,9 @@
 #define PAGE         DTD_PAGE_SIZE
 #define EP_IS_IN(ep) ((ep) & 1)
 
-/* The driver's transfer descriptors with fakes/imx_ci_udc/config.h */
-#define NO_OF_DTDS   (1 + CONFIG_CM_BUF_SIZE_KiB / 20)
+/* The driver's longest transfer and its transfer descriptors */
+#define MAX_LENGTH   (4 * 1024 * 1024)
+#define NO_OF_DTDS   ((MAX_LENGTH + PAGE + DTD_MAX_BYTES - 1) / DTD_MAX_BYTES)
 #define NO_OF_DQHS   16
 #define LINE         PB_DMA_ALIGN
 
@@ -183,8 +184,6 @@ static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
  */
 
 /* Buffers at any offset in a page, with room for the longest transfer */
-#define MAX_LENGTH (NO_OF_DTDS * DTD_MAX_BYTES)
-
 static uint8_t arena[MAX_LENGTH + 4 * PAGE] __attribute__((aligned(PAGE)));
 static uint8_t host[MAX_LENGTH + PAGE];
 
@@ -335,13 +334,17 @@ static void test_zero_length(void **state)
     assert_int_equal(ops->xfer_complete(USB_EP1_IN), PB_OK);
 }
 
-/* usb.md 4.3: a length the driver can't queue is refused, not shortened */
+/* usb.md 2.3, 4.3: a length above the driver's limit is refused, not
+ * shortened, whatever the buffer's start (F-287: the limit followed the
+ * descriptors' room for the buffer, -PB_ERR_MEM) */
 static void test_too_long(void **state)
 {
     (void)state;
 
-    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, MAX_LENGTH + 1), -PB_ERR_MEM);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena, MAX_LENGTH + 1), -PB_ERR_PARAM);
+    assert_int_equal(ops->xfer_start(USB_EP1_IN, arena + 0x200, MAX_LENGTH + 1), -PB_ERR_PARAM);
     assert_int_equal(ops->xfer_start(USB_EP_END, arena, 512), -PB_ERR_PARAM);
+    assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
 }
 
 /* A result, and every other write from a buffer that doesn't start on a
@@ -401,7 +404,7 @@ static void test_buffer_from_inside_a_page_over_several(void **state)
     static const size_t lengths[] = {
         PAGE + 1,          2 * PAGE,      2 * PAGE + 512,    DTD_MAX_BYTES - PAGE,
         DTD_MAX_BYTES - 1, DTD_MAX_BYTES, DTD_MAX_BYTES + 1, 2 * DTD_MAX_BYTES + 512,
-        MAX_LENGTH - PAGE,
+        MAX_LENGTH,
     };
     const struct imx_ci_udc_transfer_head *dtd;
     (void)state;
@@ -425,9 +428,11 @@ static void test_buffer_from_inside_a_page_over_several(void **state)
     assert_int_equal(dtd->page[2], (uint32_t)(uintptr_t)(arena + 3 * PAGE));
     assert_int_equal(dtd->page[3], (uint32_t)(uintptr_t)(arena + 4 * PAGE));
 
-    /* More than the descriptors hold when the first one's page 0 is short */
-    assert_int_equal(ops->xfer_start(USB_EP2_OUT, arena + 2 * PAGE - 0x200, MAX_LENGTH),
-                     -PB_ERR_MEM);
+    ops->xfer_cancel(USB_EP2_OUT);
+
+    /* The longest transfer when the first descriptor's page 0 is shortest:
+     * a write from a buffer that isn't on a line, one byte before a page */
+    transfer_in(PAGE - 1, MAX_LENGTH);
 }
 
 /* usb.md 4.3: a transfer that is given up, or that a bus reset ended, leaves

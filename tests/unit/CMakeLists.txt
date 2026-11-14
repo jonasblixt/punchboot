@@ -801,9 +801,7 @@ target_link_options(test_dwc3_udc PRIVATE -no-pie)
 
 # The ChipIdea controller's driver, with a model of the controller's side of
 # a transfer and of the cache (see the test). Its descriptors hold 32 bit
-# addresses: -no-pie keeps them and the buffers below 4 GiB. The driver's
-# number of descriptors follows the command mode buffer's size, which
-# fakes/imx_ci_udc/config.h sets
+# addresses: -no-pie keeps them and the buffers below 4 GiB
 pb_unit_test(test_imx_ci_udc SOURCES
     ${PB_DMA_MODEL}
     fakes/regs.c
@@ -812,7 +810,6 @@ pb_unit_test(test_imx_ci_udc SOURCES
 )
 target_include_directories(test_imx_ci_udc BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
-    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/imx_ci_udc
 )
 target_include_directories(test_imx_ci_udc PRIVATE
     ${PROJECT_SOURCE_DIR}/src/drivers/usb

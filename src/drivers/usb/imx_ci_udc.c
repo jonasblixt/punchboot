@@ -15,12 +15,9 @@
  *
  * - It only supports device mode.
  *
- * - The amount of transfer descriptors (dtds) set's an upper limit to xfer
- *   chunk size. One descriptor can address 5 * 4kByte. For now the config
- *   'CONFIG_CM_BUF_SIZE_KiB' is used both at driver level and in the cm
- *   code. The 'CONFIG_CM_BUF_SIZE_KiB' is exposed to the host through
- *   cm 'caps' structure and is used by the tooling to send properly sized
- *   chunks of data.
+ * - A bulk transfer is at most IMX_CI_UDC_MAX_XFER_BYTES, the driver's own
+ *   limit: what its transfer descriptors hold, five 4 KiB pages each. A
+ *   longer one is refused (usb.md 2.3, 4.3).
  *
  */
 
@@ -37,27 +34,46 @@
 #include "imx_ci_udc_private.h"
 
 /* Misc defines */
-#define IMX_CI_UDC_NO_OF_EPS         8
-#define IMX_CI_UDC_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KiB / 20))
-#define IMX_CI_UDC_SZ_64B            0x40
+#define IMX_CI_UDC_NO_OF_EPS      8
+#define IMX_CI_UDC_SZ_64B         0x40
+
+/*
+ * The longest bulk transfer, the driver's own limit (usb.md 2.3, 4.3):
+ * command mode's buffer and the boot's piece, 4 MiB on jiffy and the 8DXL
+ * EVK, 32 and 4 KiB on the RT1060 EVK. From any start: a buffer that
+ * doesn't start on a page has a first descriptor of at least four pages and
+ * a byte, so N descriptors of five pages hold N * 20 KiB - 4 KiB.
+ */
+#define IMX_CI_UDC_MAX_XFER_BYTES (4 * 1024 * 1024)
+#define IMX_CI_UDC_NO_OF_DESCRIPTORS \
+    ((IMX_CI_UDC_MAX_XFER_BYTES + DTD_PAGE_SIZE + DTD_MAX_BYTES - 1) / DTD_MAX_BYTES)
+
+#ifdef CONFIG_CM_BUF_SIZE_KiB
+PB_STATIC_ASSERT((unsigned long long)CONFIG_CM_BUF_SIZE_KiB * 1024 <= IMX_CI_UDC_MAX_XFER_BYTES,
+                 "CONFIG_CM_BUF_SIZE_KiB: above the ChipIdea's longest transfer");
+#endif
+#ifdef CONFIG_BOOT_LOAD_CHUNK_kB
+PB_STATIC_ASSERT((unsigned long long)CONFIG_BOOT_LOAD_CHUNK_kB * 1024 <= IMX_CI_UDC_MAX_XFER_BYTES,
+                 "CONFIG_BOOT_LOAD_CHUNK_kB: above the ChipIdea's longest transfer");
+#endif
 
 /* Endpoint 0's transfers: what the stack sends there is a descriptor or a
  * status, the longest a string descriptor, 255 bytes (usbd.c). Its bounce
  * buffer is aligned to its size, so it is inside one page */
-#define IMX_CI_UDC_EP0_MAX_BYTES     512
+#define IMX_CI_UDC_EP0_MAX_BYTES  512
 
 /* A status stage the host hasn't taken in this time it has left: USB 2.0
  * 9.2.6.4 gives the device 500 ms for each packet of a data stage and 50 ms
  * for the status stage after it, and the host polls for that stage at once.
  * The DWC3's driver waits as long (DWC3_EP0_TIMEOUT_us) */
-#define IMX_CI_UDC_EP0_TIMEOUT_us    500000
+#define IMX_CI_UDC_EP0_TIMEOUT_us 500000
 
-#define EP_IS_IN(ep)                 ((ep) & 1)
-#define EP_USB_NUMBER(ep)            ((ep) >> 1)
+#define EP_IS_IN(ep)              ((ep) & 1)
+#define EP_USB_NUMBER(ep)         ((ep) >> 1)
 
 /* bEndpointAddress in an endpoint descriptor */
-#define USB_EP_ADDR_NUMBER_MASK      0x0f
-#define USB_EP_ADDR_DIR_IN           0x80
+#define USB_EP_ADDR_NUMBER_MASK   0x0f
+#define USB_EP_ADDR_DIR_IN        0x80
 
 /*
  * What the controller reads and writes of the driver's own (drivers.md 4.2,
@@ -114,7 +130,7 @@ static struct imx_ci_udc_xfer bulk_xfer = {
     .no_of_dtds = IMX_CI_UDC_NO_OF_DESCRIPTORS,
     .bounce = align_buffer,
     .bounce_size = DTD_PAGE_SIZE,
-    .max_length = SIZE_MAX,
+    .max_length = IMX_CI_UDC_MAX_XFER_BYTES,
 };
 
 static uintptr_t imx_ci_udc_base;
@@ -345,6 +361,8 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     if (bus_reset_seen && ep >= USB_EP1_OUT)
         return -PB_ERR_IO;
 
+    /* Longer than the transfer's descriptors or endpoint 0's bounce buffer
+     * hold: refused, never shortened (usb.md 4.3) */
     if (length > x->max_length)
         return -PB_ERR_PARAM;
 
@@ -426,8 +444,9 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         if (bytes_to_tx) {
             struct imx_ci_udc_transfer_head *dtd_prev = dtd;
             dtd++;
+            /* Not reached: max_length fits the descriptors */
             if (dtd == &x->dtds[x->no_of_dtds])
-                return -PB_ERR_MEM;
+                return -PB_ERR_PARAM;
             dtd_prev->next = (uint32_t)(uintptr_t)dtd;
         }
     }
