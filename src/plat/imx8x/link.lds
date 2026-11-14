@@ -66,6 +66,12 @@ ASSERT(DEFINED(BOOT_FH_REGION_BASE) ?
        (BOOT_FH_REGION_BASE >= BOARD_DRAM_BASE && BOOT_FH_REGION_END <= BOARD_DRAM_END) : 1,
        "The Firmware Handoff region (CONFIG_BOOT_FH_REGION_BASE, _SIZE) is not in the board's DRAM")
 
+/* The reset stub's segment, before src/link.lds's (F-418) */
+PHDRS
+{
+    reset PT_LOAD;
+}
+
 SECTIONS
 {
     . = ORIGIN(reset);
@@ -76,6 +82,6 @@ SECTIONS
         KEEP(*(.text.imx8x_reset))
         . = ALIGN(8);
         PROVIDE (_imx8x_end = .);
-    } > reset
+    } > reset :reset
 
 }

@@ -92,3 +92,11 @@ if "${cross}readelf" -lW "build-$board/pb" | grep -E '^ +LOAD .* RWE '; then
     echo "build-$board/pb has a writable and executable LOAD segment" >&2
     exit 1
 fi
+
+# No LOAD segment holds the ELF's headers (F-418): a loader would write them
+# below the segment's first section, PB_ENTRY. Such a segment's contents start
+# at the file's offset 0.
+if "${cross}readelf" -lW "build-$board/pb" | awk '$1 == "LOAD" && $2 ~ /^0x0+$/ && $5 ~ /[1-9a-f]/' | grep .; then
+    echo "build-$board/pb has a LOAD segment with the ELF's headers" >&2
+    exit 1
+fi

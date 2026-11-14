@@ -15,8 +15,9 @@ ldflags-y += -L${shell dirname "`$(CROSS_COMPILE)gcc $(ARCHFLAGS) --print-libgcc
 ldflags-y += --defsym=PB_SECTION_ALIGNMENT=8
 # The sections are aligned to 8 bytes and .data follows .text in the same
 # 64 KiB page, ld's arm page: ld put .text to .stack in one RWX LOAD segment
-# (F-396). With 4 byte pages .text is an R E segment and .data an RW one.
-# The Cortex-M7 has no MMU; only the ELF's headers change, not pb.bin.
+# (F-396). src/link.lds names the segments since (F-418), and with 4 byte
+# pages the ELF isn't padded to ld's page either. The Cortex-M7 has no MMU;
+# only the ELF changes, not pb.bin.
 ldflags-y += -z max-page-size=4
 
 LIBS += -lgcc

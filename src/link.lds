@@ -7,6 +7,24 @@
  *
  */
 
+/* The ELF's segments, which a debugger or a loader loads pb by (pb.bin has
+ * no headers): the code, the data and the buffers. They are named so that the
+ * ELF's file and program headers are in none of them. ld put the headers in
+ * the first segment where they fit below its start, which with the ARMv7-M's
+ * 4 byte pages was always: the RT1060's began 216 bytes below PB_ENTRY, and
+ * a loader wrote the headers there (F-418).
+ *
+ * An output section without a segment is in the one of the section before
+ * it, and a NOLOAD one in none: a platform's own section names its segment
+ * (the i.MX8X's reset stub), or is in none, as the i.MX8M's DRAM controller
+ * data, which nothing loads. */
+PHDRS
+{
+    text PT_LOAD;
+    data PT_LOAD;
+    buffers PT_LOAD;
+}
+
 SECTIONS
 {
     . = PB_ENTRY;
@@ -25,7 +43,7 @@ SECTIONS
         . = ALIGN(PB_SECTION_ALIGNMENT);
         _etext = .;
         PROVIDE (_code_end = .);
-    } > ram
+    } > ram :text
 
     /* The ARMv7-M's entry and exception handlers (arch/armv7m/entry.c), which
      * the vectors point to. A section of the script's, between _pb_start and
@@ -73,7 +91,7 @@ SECTIONS
         . = ALIGN(PB_SECTION_ALIGNMENT);
         _edata = .;
         PROVIDE (_data_region_end = .);
-    } > ram
+    } > ram :data
 
     .ro_data :
     {
@@ -109,7 +127,7 @@ SECTIONS
         . = . + PB_STACK_SIZE_KiB*1024 ;
         . = ALIGN(PB_SECTION_ALIGNMENT);
         PROVIDE(_stack_end = .);
-    } > ram
+    } > ram :data
 
     .bss (NOLOAD):
     {
@@ -119,7 +137,7 @@ SECTIONS
         *(.bss .bss.*)
         . = ALIGN(PB_SECTION_ALIGNMENT);
         PROVIDE (_zero_region_end = .);
-    } > ram
+    } > ram :data
 
     /* The RAM log: not zeroed, and in the RAM pb runs from, which is usable
      * from the start (the i.MX8M's buffers are in DRAM, trained later) */
@@ -129,7 +147,7 @@ SECTIONS
         *(.ramlog)
         . = ALIGN(PB_SECTION_ALIGNMENT);
         PROVIDE(_pb_end = .);
-    } > ram
+    } > ram :data
 
     /* buffers: the platform's region, from its origin to the end of what is
      * linked there (platform.md 5.1). pb's own start at PB_BUFFERS_BASE,
@@ -146,7 +164,7 @@ SECTIONS
         . = ALIGN(PB_SECTION_ALIGNMENT);
         PROVIDE(_no_init_end = .);
         PROVIDE(_buffers_end = .);
-    } > buffers
+    } > buffers :buffers
 
     PROVIDE(end = .);
 
