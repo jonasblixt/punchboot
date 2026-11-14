@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-14 (D-083, the board's keys are its `makefile.mk`'s)_
+_Last updated: 2026-11-14 (a fresh batch of findings, `PB_JOBS`, F-436)_
 
 ## Current focus
 
@@ -37,9 +37,11 @@ bump is for the porting API. Each item's history is in `log/`.
 
 ## Next steps
 
-0. **Resume here (2026-11-14): `log/2026-11-14.md`, "The wrap-up" and "The parked
-   branches".** The unattended round and its parked branches are in, verified at `1b212d0e`.
-   Nothing of it ran on a board. First:
+0. **Resume here (2026-11-14): `log/2026-11-14.md`, "A fresh batch of findings"**: six
+   packages landed, verified at `bb91c1da`, nothing of it on a board; its bench order is in the
+   entry (USB on all four first, the MEK with 2 GiB mapped, F-436). Builds and tests run one at a
+   time with `PB_JOBS=6` (load under 8, Jonas). Before it, "The wrap-up" and "The parked
+   branches", verified at `1b212d0e`. First:
    - The bench, in this order: the DMA rule (F-282) and USB on all four, the preconditions
      (the TrustZone filter), F-247 and the CAAM's stop, the 8MP EVK through TF-A. All four
      run `246bd897` and reach command mode with the preconditions met; boot time measured
