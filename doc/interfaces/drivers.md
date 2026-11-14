@@ -7,13 +7,13 @@ whatever its class: when it is set up and stopped, how long it may wait, what it
 one rule for DMA and caches. The three classes with several implementations have a contract each,
 which builds on this one:
 
-| Class                      | Contract    | Implementations                                        |
-| -------------------------- | ----------- | ------------------------------------------------------ |
-| Block devices              | `bio.md`    | MMC and SD on the uSDHC, the FlexSPI's NOR, virtio     |
-|                            |             | block, the host's disk file, the tests' RAM disk       |
-| Crypto backends            | `crypto.md` | The CAAM, Mbed TLS                                     |
-| USB device controllers and | `usb.md`    | ChipIdea, DWC3, Cadence USB3; the host platform's      |
-| command mode's transport   |             | socket                                                 |
+| Class                      | Contract    | Implementations                                    |
+| -------------------------- | ----------- | -------------------------------------------------- |
+| Block devices              | `bio.md`    | MMC and SD on the uSDHC, the FlexSPI's NOR, virtio |
+|                            |             | block, the host's disk file, the tests' RAM disk   |
+| Crypto backends            | `crypto.md` | The CAAM, Mbed TLS                                 |
+| USB device controllers and | `usb.md`    | ChipIdea, DWC3, Cadence USB3; the host platform's  |
+| command mode's transport   |             | socket                                             |
 
 In the style of `platform.md`. Vendor neutral: no fact of one IP block is in a rule; where each
 driver stands is in the conformance tables (section 8 here, and each class's own).
@@ -247,18 +247,18 @@ image's load address, a transfer into command mode's buffer, the bytes to hash.
 
 Who makes it so depends on whose buffer it is:
 
-| Buffer                             | Whose          | Rule                                       |
-| ---------------------------------- | -------------- | ------------------------------------------ |
-| Command mode's command and its two | pb's           | Declared with the macro of 4.4. Nothing to |
-| buffers, the image header, the     |                | check at run time                          |
-| partition tables, the A/B state    |                |                                            |
-| What a board reads into            | The board's    | The same: declared with the macro. One     |
-|                                    |                | that isn't is refused, `-PB_ERR_ALIGN`     |
-| An image part's load address       | The image's    | Bounced in the boot's load loop when it    |
-|                                    |                | doesn't start on a line                    |
-| A digest, a status byte            | The caller's,  | The device writes the driver's own memory, |
-|                                    | often on the   | and the driver copies                      |
-|                                    | stack          |                                            |
+| Buffer                             | Whose         | Rule                                       |
+| ---------------------------------- | ------------- | ------------------------------------------ |
+| Command mode's command and its two | pb's          | Declared with the macro of 4.4. Nothing to |
+| buffers, the image header, the     |               | check at run time                          |
+| partition tables, the A/B state    |               |                                            |
+| What a board reads into            | The board's   | The same: declared with the macro. One     |
+|                                    |               | that isn't is refused, `-PB_ERR_ALIGN`     |
+| An image part's load address       | The image's   | Bounced in the boot's load loop when it    |
+|                                    |               | doesn't start on a line                    |
+| A digest, a status byte            | The caller's, | The device writes the driver's own memory, |
+|                                    | often on the  | and the driver copies                      |
+|                                    | stack         |                                            |
 
 - **The class's core checks, once.** `bio_read()` and the transport's read refuse a buffer
   that doesn't start on a line, before the driver is called. Whole blocks are whole lines, so
@@ -287,15 +287,15 @@ to assert it in.
 `include/pb/dma.h`, built on the arch's cache functions. A driver includes it and no arch
 header:
 
-| Name                         | Does                                                             |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `PB_DMA_ALIGN`               | The line size buffers are declared with (4.1)                    |
-| `PB_DMA_BUFFER(type, name)`, | Declares an object, or an array, that starts on a line and is    |
-| `PB_DMA_ARRAY(...)`          | padded to whole lines, in `.no_init`, so not initialised         |
-| `dma_out(addr, length)`      | Before the device reads: clean                                   |
-| `dma_in_begin(addr, length)` | Before the device writes: nothing dirty in the range             |
-| `dma_in_end(addr, length)`   | After the device wrote, before the CPU reads: invalidate         |
-| `dma_owns_lines(addr, len)`  | Whether a range starts on a line and is whole lines (4.3)        |
+| Name                         | Does                                                          |
+| ---------------------------- | ------------------------------------------------------------- |
+| `PB_DMA_ALIGN`               | The line size buffers are declared with (4.1)                 |
+| `PB_DMA_BUFFER(type, name)`, | Declares an object, or an array, that starts on a line and is |
+| `PB_DMA_ARRAY(...)`          | padded to whole lines, in `.no_init`, so not initialised      |
+| `dma_out(addr, length)`      | Before the device reads: clean                                |
+| `dma_in_begin(addr, length)` | Before the device writes: nothing dirty in the range          |
+| `dma_in_end(addr, length)`   | After the device wrote, before the CPU reads: invalidate      |
+| `dma_owns_lines(addr, len)`  | Whether a range starts on a line and is whole lines (4.3)     |
 
 - `dma_in_begin()` and `dma_in_end()` act on whole lines: the start is on a line, which they
   assert in a debug build, and the end is rounded up to one. That nothing else is in the last
@@ -373,19 +373,19 @@ For a new driver, and for a change to one:
 Where each driver is against sections 2 to 4 (2026-11-12). Read in the code, not run. What a
 class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 8).
 
-| Driver                  | Every wait bounded    | DMA memory owns lines   | `stop`              | Finding       |
-| ----------------------- | --------------------- | ----------------------- | ------------------- | ------------- |
-| MMC, SD and the uSDHC   | yes (`test_mmc_emmc`) | yes (`test_imx_usdhc`)  | n/a: synchronous    |               |
-| FlexSPI                 | yes                   | n/a: no DMA             | n/a: synchronous    |               |
-| CAAM                    | yes: 1 s              | yes                     | yes                 | F-286         |
-|                         |                       | (`test_caam_crypto`)    |                     |               |
-| Mbed TLS                | n/a                   | n/a                     | n/a                 |               |
-| ChipIdea                | no                    | yes (`test_imx_ci_udc`) | yes, unbounded      | F-136         |
-| DWC3                    | yes                   | yes (`test_dwc3_udc`)   | yes                 |               |
-| Cadence USB3            | no                    | yes (`test_cdns3_udc`)  | empty               | F-205, F-204  |
-| The DRAM controller and | no                    | n/a                     | n/a                 | F-102         |
-| PHY                     |                       |                         |                     |               |
-| virtio (in no build)    | no                    | partly                  | none                | F-052, F-281  |
+| Driver                  | Every wait bounded    | DMA memory owns lines   | `stop`           | Finding      |
+| ----------------------- | --------------------- | ----------------------- | ---------------- | ------------ |
+| MMC, SD and the uSDHC   | yes (`test_mmc_emmc`) | yes (`test_imx_usdhc`)  | n/a: synchronous |              |
+| FlexSPI                 | yes                   | n/a: no DMA             | n/a: synchronous |              |
+| CAAM                    | yes: 1 s              | yes                     | yes              | F-286        |
+|                         |                       | (`test_caam_crypto`)    |                  |              |
+| Mbed TLS                | n/a                   | n/a                     | n/a              |              |
+| ChipIdea                | no                    | yes (`test_imx_ci_udc`) | yes, unbounded   | F-136        |
+| DWC3                    | yes                   | yes (`test_dwc3_udc`)   | yes              |              |
+| Cadence USB3            | no                    | yes (`test_cdns3_udc`)  | empty            | F-205, F-204 |
+| The DRAM controller and | no                    | n/a                     | n/a              | F-102        |
+| PHY                     |                       |                         |                  |              |
+| virtio (in no build)    | no                    | partly                  | none             | F-052, F-281 |
 
 Every driver with DMA goes through `pb/dma.h` and includes no arch header, but virtio, which is
 in no build (F-052). The other single drivers (the fuse controller, GPIO, the pin controller, the

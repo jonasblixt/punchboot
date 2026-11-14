@@ -48,16 +48,16 @@ What it changed in the documents beside it:
 pb declares a command, and `COMMAND_LIST` lists them. The draft's items, as Jonas answered
 them:
 
-| Item | Rule                                                                                      | By    |
-| ---- | ----------------------------------------------------------------------------------------- | ----- |
-| 9    | A list entry is 128 bytes: a name of 1 to 31 characters, a help line of at most 79 (5.6)  | Jonas |
-| 10   | The list is checked in the set up (2.1): a name outside `[a-z0-9-]`, two names with one   | Jonas |
-|      | id, the name `list`, or a list larger than a buffer is a failure: no command mode         |       |
-| 11   | A list entry has the name, no id: the host computes `pb_id()` of it (5.6)                 | Jonas |
-| 12   | The board's `command()` is removed, an accepted break of the porting API in 3.0.0         | Jonas |
-|      | (D-031): every command is declared (5.6)                                                  |       |
-| 13   | The reset request is named for every command, `cm_request_reset_on_success()`, and works  | Jonas |
-|      | as before (5.6)                                                                           |       |
+| Item | Rule                                                                                     | By    |
+| ---- | ---------------------------------------------------------------------------------------- | ----- |
+| 9    | A list entry is 128 bytes: a name of 1 to 31 characters, a help line of at most 79 (5.6) | Jonas |
+| 10   | The list is checked in the set up (2.1): a name outside `[a-z0-9-]`, two names with one  | Jonas |
+|      | id, the name `list`, or a list larger than a buffer is a failure: no command mode        |       |
+| 11   | A list entry has the name, no id: the host computes `pb_id()` of it (5.6)                | Jonas |
+| 12   | The board's `command()` is removed, an accepted break of the porting API in 3.0.0        | Jonas |
+|      | (D-031): every command is declared (5.6)                                                 |       |
+| 13   | The reset request is named for every command, `cm_request_reset_on_success()`, and works | Jonas |
+|      | as before (5.6)                                                                          |       |
 
 ## 1. Words and scope
 
@@ -584,11 +584,11 @@ this becomes the common refusal.
 
 ### 5.6 Named commands and the board's status
 
-| Command             | Means                                                      |
-| ------------------- | ---------------------------------------------------------- |
-| `BOARD_COMMAND`     | Runs the named command whose id is `pb_id()` of its name   |
-| `COMMAND_LIST`      | The list of named commands: each one's name and help line  |
-| `BOARD_STATUS_READ` | The board's status, as text (`board.md` 4.3)               |
+| Command             | Means                                                     |
+| ------------------- | --------------------------------------------------------- |
+| `BOARD_COMMAND`     | Runs the named command whose id is `pb_id()` of its name  |
+| `COMMAND_LIST`      | The list of named commands: each one's name and help line |
+| `BOARD_STATUS_READ` | The board's status, as text (`board.md` 4.3)              |
 
 A named command is a function of pb's that a host calls by name, with bytes in and bytes out.
 The core, a platform, a driver and the board each declare their own, with no member in
@@ -790,9 +790,9 @@ For a change to command mode, a new command or a new method:
 
 ## 9. Not yet in the code
 
-| Finding             | What                                                                                 |
-| ------------------- | ------------------------------------------------------------------------------------ |
-| F-363               | The session ends with the transport: authentication and the stream are cleared (3.1) |
-| F-375               | The caps' erase timeout (4.6)                                                        |
-| F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
-| F-226               | The host uses the caps' timeouts (4.6)                                               |
+| Finding | What                                                                                 |
+| ------- | ------------------------------------------------------------------------------------ |
+| F-363   | The session ends with the transport: authentication and the stream are cleared (3.1) |
+| F-375   | The caps' erase timeout (4.6)                                                        |
+| F-280   | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
+| F-226   | The host uses the caps' timeouts (4.6)                                               |

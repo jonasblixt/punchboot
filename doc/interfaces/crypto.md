@@ -17,27 +17,27 @@ finding removes the marker and updates section 9.
 **No open items.** The draft's five, as decided in Jonas's review (D-071) and written into
 the text:
 
-| Item | Rule                                                                              | By    |
-| ---- | --------------------------------------------------------------------------------- | ----- |
-| 1    | No abort to call: `hash_init()` starts from an idle engine, whatever was left     | Jonas |
-|      | (3.1)                                                                             |       |
-| 2    | The verdict's two channels mean the same: PB_OK if and only if `*verified`. A     | Jonas |
-|      | signature that doesn't verify is `-PB_ERR_SIGNATURE` (4)                          |       |
-| 3    | `dsa_verify()` while a hash is open is refused, `-PB_ERR_STATE` (4)               | Jonas |
-| 4    | A build may have several backends, each algorithm from one of them: a hardware    | Jonas |
-|      | backend for the hashes and a software one for the signatures. No fallback at run  |       |
-|      | time (2)                                                                          |       |
-| 5    | `HASH_MD5_BROKEN` stays (5)                                                       | Jonas |
+| Item | Rule                                                                             | By    |
+| ---- | -------------------------------------------------------------------------------- | ----- |
+| 1    | No abort to call: `hash_init()` starts from an idle engine, whatever was left    | Jonas |
+|      | (3.1)                                                                            |       |
+| 2    | The verdict's two channels mean the same: PB_OK if and only if `*verified`. A    | Jonas |
+|      | signature that doesn't verify is `-PB_ERR_SIGNATURE` (4)                         |       |
+| 3    | `dsa_verify()` while a hash is open is refused, `-PB_ERR_STATE` (4)              | Jonas |
+| 4    | A build may have several backends, each algorithm from one of them: a hardware   | Jonas |
+|      | backend for the hashes and a software one for the signatures. No fallback at run |       |
+|      | time (2)                                                                         |       |
+| 5    | `HASH_MD5_BROKEN` stays (5)                                                      | Jonas |
 
 ## 1. Words and scope
 
-| Word    | Means                                                                                |
-| ------- | ------------------------------------------------------------------------------------ |
-| Backend | An implementation of the hash operations, of signature verification, or of both      |
-| Context | The one hash that is open, from `hash_init()` to `hash_final()`                      |
-| Verdict | Whether a signature verifies, for one key and one digest                             |
-| User    | Whoever calls `hash_*()` or `dsa_verify()`: the boot, command mode, the device's     |
-|         | identity                                                                             |
+| Word    | Means                                                                            |
+| ------- | -------------------------------------------------------------------------------- |
+| Backend | An implementation of the hash operations, of signature verification, or of both  |
+| Context | The one hash that is open, from `hash_init()` to `hash_final()`                  |
+| Verdict | Whether a signature verifies, for one key and one digest                         |
+| User    | Whoever calls `hash_*()` or `dsa_verify()`: the boot, command mode, the device's |
+|         | identity                                                                         |
 
 What pb uses it for:
 
@@ -214,16 +214,16 @@ The arguments:
 
 ## 5. Algorithms
 
-| Algorithm                   | For                               | Note                               |
-| --------------------------- | --------------------------------- | ---------------------------------- |
-| SHA-256, SHA-384, SHA-512   | Images, the token, `part verify`  | The image format's hash kinds      |
-|                             |                                   | (`boot.md` 4.4)                    |
-| ECDSA on P-256, P-384 and   | Images, the token                 | The keystore's key kinds           |
-| P-521                       |                                   |                                    |
-| MD5                         | The device's identity             | Not a security use: a UUID version |
-|                             | (`platform.md` 3.7)               | 3 is defined with it               |
-| `HASH_MD5_BROKEN`           | The identity of products in the   | Stays                              |
-|                             | field                             |                                    |
+| Algorithm                 | For                              | Note                               |
+| ------------------------- | -------------------------------- | ---------------------------------- |
+| SHA-256, SHA-384, SHA-512 | Images, the token, `part verify` | The image format's hash kinds      |
+|                           |                                  | (`boot.md` 4.4)                    |
+| ECDSA on P-256, P-384 and | Images, the token                | The keystore's key kinds           |
+| P-521                     |                                  |                                    |
+| MD5                       | The device's identity            | Not a security use: a UUID version |
+|                           | (`platform.md` 3.7)              | 3 is defined with it               |
+| `HASH_MD5_BROKEN`         | The identity of products in the  | Stays                              |
+|                           | field                            |                                    |
 
 - **MD5 is in every build**: the device's UUID is computed with it, and the UUID never changes
   (`system.md` 5.5). No verification uses it, and no image or key can ask for it: the image
@@ -285,44 +285,44 @@ For a new backend, and for a change to one, to `crypto.c` or to a user of it:
 
 Where each backend is (2026-11-12). Read in the code, not run, unless a test is named.
 
-| Requirement                          | CAAM                    | Mbed TLS             | Finding      |
-| ------------------------------------ | ----------------------- | -------------------- | ------------ |
-| Set up by the platform               | yes (`test_plat_*`)     | yes (`test_plat_*`)  |              |
-| `hash_init()` starts clean           | yes                     | yes                  |              |
-|                                      | (`test_caam_crypto`)    |                      |              |
-| Any length and split                 | yes (the suite)         | yes (the suite)      |              |
-| The asynchronous update is waited    | yes                     | n/a (none)           |              |
-| for                                  | (`test_caam_crypto`)    |                      |              |
-| `final` respects `length`            | yes                     | yes (`test_mbedtls`) |              |
-|                                      | (`test_caam_crypto`)    |                      |              |
-| The digest is copied to the user     | yes                     | yes (no DMA)         |              |
-|                                      | (`test_caam_crypto`)    |                      |              |
-| `*verified` false first              | yes                     | yes                  |              |
-| A bad signature is                   | yes                     | yes (`test_mbedtls`) |              |
-| `-PB_ERR_SIGNATURE`                  | (`test_caam_crypto`)    |                      |              |
-| The verdict is this call's           | yes                     | yes                  |              |
-|                                      | (`test_caam_crypto`)    |                      |              |
-| The signature's lengths checked      | partly: the outer       | yes (the library)    | F-286        |
-|                                      | length is ignored       |                      |              |
-| The key parsed inside its length     | yes (`test_der`)        | yes (the library)    |              |
-| The key's curve is `alg`             | no                      | no                   | F-286        |
-| Every wait bounded                   | yes (1 s)               | n/a                  |              |
-| Nothing left at the jump             | yes (`test_plat_*`),    | n/a                  | F-286        |
-|                                      | not run on a board      |                      |              |
-| The library's results checked        | n/a                     | yes                  |              |
-|                                      |                         | (`test_mbedtls`)     |              |
-| An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |
-| isn't registered                     |                         |                      |              |
-| Known answer tests                   | yes (the suite)         | yes (the suite)      |              |
+| Requirement                       | CAAM                   | Mbed TLS             | Finding |
+| --------------------------------- | ---------------------- | -------------------- | ------- |
+| Set up by the platform            | yes (`test_plat_*`)    | yes (`test_plat_*`)  |         |
+| `hash_init()` starts clean        | yes                    | yes                  |         |
+|                                   | (`test_caam_crypto`)   |                      |         |
+| Any length and split              | yes (the suite)        | yes (the suite)      |         |
+| The asynchronous update is waited | yes                    | n/a (none)           |         |
+| for                               | (`test_caam_crypto`)   |                      |         |
+| `final` respects `length`         | yes                    | yes (`test_mbedtls`) |         |
+|                                   | (`test_caam_crypto`)   |                      |         |
+| The digest is copied to the user  | yes                    | yes (no DMA)         |         |
+|                                   | (`test_caam_crypto`)   |                      |         |
+| `*verified` false first           | yes                    | yes                  |         |
+| A bad signature is                | yes                    | yes (`test_mbedtls`) |         |
+| `-PB_ERR_SIGNATURE`               | (`test_caam_crypto`)   |                      |         |
+| The verdict is this call's        | yes                    | yes                  |         |
+|                                   | (`test_caam_crypto`)   |                      |         |
+| The signature's lengths checked   | partly: the outer      | yes (the library)    | F-286   |
+|                                   | length is ignored      |                      |         |
+| The key parsed inside its length  | yes (`test_der`)       | yes (the library)    |         |
+| The key's curve is `alg`          | no                     | no                   | F-286   |
+| Every wait bounded                | yes (1 s)              | n/a                  |         |
+| Nothing left at the jump          | yes (`test_plat_*`),   | n/a                  | F-286   |
+|                                   | not run on a board     |                      |         |
+| The library's results checked     | n/a                    | yes                  |         |
+|                                   |                        | (`test_mbedtls`)     |         |
+| An algorithm the hardware lacks   | yes (the short engine) | yes (Kconfig)        |         |
+| isn't registered                  |                        |                      |         |
+| Known answer tests                | yes (the suite)        | yes (the suite)      |         |
 
 The core:
 
-| Requirement                                      | Today                             | Finding |
-| ------------------------------------------------ | --------------------------------- | ------- |
-| An algorithm is registered once                  | yes (`test_crypto`)               |         |
-| No context after a failed `hash_init()`          | yes (`test_crypto`)               |         |
-| `dsa_verify()` is refused while a hash is open   | yes (`test_crypto`)               |         |
-| `md_length` is the digest size of `md_alg`       | no: not checked                   | F-286   |
+| Requirement                                    | Today               | Finding |
+| ---------------------------------------------- | ------------------- | ------- |
+| An algorithm is registered once                | yes (`test_crypto`) |         |
+| No context after a failed `hash_init()`        | yes (`test_crypto`) |         |
+| `dsa_verify()` is refused while a hash is open | yes (`test_crypto`) |         |
+| `md_length` is the digest size of `md_alg`     | no: not checked     | F-286   |
 
 **The conformance suite** (`process.md` 7, `tests/unit/conformance/crypto_conformance.h`): one
 set of tests for sections 3 and 4, run against every backend: known answers for each algorithm (the
@@ -336,6 +336,6 @@ simple target (D-025): F-181 was found in such a model, not on hardware. **Not y
 
 ## 10. Not yet in the code
 
-| Finding      | What                                                                            |
-| ------------ | ------------------------------------------------------------------------------- |
-| F-286        | The core and the backends against sections 3, 4 and 6; the suite on the bench   |
+| Finding | What                                                                          |
+| ------- | ----------------------------------------------------------------------------- |
+| F-286   | The core and the backends against sections 3, 4 and 6; the suite on the bench |

@@ -19,34 +19,34 @@ finding removes the marker and updates section 8.
 **No open items.** The draft's five, as decided in Jonas's review (D-072) and written into
 the text:
 
-| Item | Rule                                                                              | By    |
-| ---- | --------------------------------------------------------------------------------- | ----- |
-| 1    | The transport's six functions: `cm_transport_init()`, `_connect()`, `_read()`,    | Jonas |
-|      | `_write()`, `_complete()`, `_disconnect()` (2)                                    |       |
-| 2    | Every error from `complete` is "lost". A controller reports a bus reset and an    | Jonas |
-|      | unplug as an error of the transfer (2.4)                                          |       |
-| 3    | A full speed bus isn't supported, for now: high speed, or not ready (4.1)         | Jonas |
-| 4    | A request the stack doesn't know is stalled: a new operation, `ep0_stall` (3.2)   | Jonas |
-| 5    | A request on endpoint 0 leaves a bulk transfer alone (3.2)                        | Jonas |
+| Item | Rule                                                                            | By    |
+| ---- | ------------------------------------------------------------------------------- | ----- |
+| 1    | The transport's six functions: `cm_transport_init()`, `_connect()`, `_read()`,  | Jonas |
+|      | `_write()`, `_complete()`, `_disconnect()` (2)                                  |       |
+| 2    | Every error from `complete` is "lost". A controller reports a bus reset and an  | Jonas |
+|      | unplug as an error of the transfer (2.4)                                        |       |
+| 3    | A full speed bus isn't supported, for now: high speed, or not ready (4.1)       | Jonas |
+| 4    | A request the stack doesn't know is stalled: a new operation, `ep0_stall` (3.2) | Jonas |
+| 5    | A request on endpoint 0 leaves a bulk transfer alone (3.2)                      | Jonas |
 
 ## 1. Words and scope
 
-| Layer      | Owns                                                 | Where                               |
-| ---------- | ---------------------------------------------------- | ----------------------------------- |
-| Transport  | What command mode calls: ready, whole transfers each | USB: `pb_dev_cls.c`. The host       |
-|            | way, lost, disconnect                                | platform: `src/plat/host/socket.c`  |
-| Class      | pb's USB device: the descriptors, the two bulk       | `pb_dev_cls.c`                      |
-|            | endpoints                                            |                                     |
-| Stack      | Endpoint 0: enumeration and the standard requests    | `usbd.c`                            |
-| Controller | One IP block: endpoints, transfers, the bus's events | `struct usbd_hal_ops`, one driver   |
-|            |                                                      | per block                           |
+| Layer      | Owns                                                 | Where                              |
+| ---------- | ---------------------------------------------------- | ---------------------------------- |
+| Transport  | What command mode calls: ready, whole transfers each | USB: `pb_dev_cls.c`. The host      |
+|            | way, lost, disconnect                                | platform: `src/plat/host/socket.c` |
+| Class      | pb's USB device: the descriptors, the two bulk       | `pb_dev_cls.c`                     |
+|            | endpoints                                            |                                    |
+| Stack      | Endpoint 0: enumeration and the standard requests    | `usbd.c`                           |
+| Controller | One IP block: endpoints, transfers, the bus's events | `struct usbd_hal_ops`, one driver  |
+|            |                                                      | per block                          |
 
-| Word     | Means                                                                              |
-| -------- | ---------------------------------------------------------------------------------- |
-| Transfer | `length` bytes in one direction, started by one call and polled until it is done   |
-| OUT, IN  | From the host, to the host (USB's words)                                           |
-| Packet   | The endpoint's largest packet: 512 bytes on the bulk endpoints at high speed       |
-| Lost     | The host is gone or started over: an unplug, a bus reset, a transfer that failed   |
+| Word     | Means                                                                            |
+| -------- | -------------------------------------------------------------------------------- |
+| Transfer | `length` bytes in one direction, started by one call and polled until it is done |
+| OUT, IN  | From the host, to the host (USB's words)                                         |
+| Packet   | The endpoint's largest packet: 512 bytes on the bulk endpoints at high speed     |
+| Lost     | The host is gone or started over: an unplug, a bus reset, a transfer that failed |
 
 One transport per build, linked (`board.md` 4.2, D-049), and one controller per build: the
 port is the platform's Kconfig choice, set up by `plat_cm_init()` (`platform.md` 3.10). Nothing
@@ -146,13 +146,13 @@ with its own timeout and the watchdog's kick inside a command (`command-mode.md`
 transport has no timeout of its own for a transfer. A request on endpoint 0 that it answers
 on the way (3.2) is bounded.
 
-| Return          | Means                                                                       |
-| --------------- | --------------------------------------------------------------------------- |
-| `PB_OK`         | The transfer is done: all of `length`, and for a read the bytes are in      |
-|                 | `buf`. Returned once; with no transfer started it is `-PB_ERR_STATE`        |
-| `-PB_ERR_AGAIN` | Not done yet                                                                |
-| Any other       | **Lost**: the session ends and command mode restarts the transport          |
-|                 | (`command-mode.md` 3.1)                                                     |
+| Return          | Means                                                                  |
+| --------------- | ---------------------------------------------------------------------- |
+| `PB_OK`         | The transfer is done: all of `length`, and for a read the bytes are in |
+|                 | `buf`. Returned once; with no transfer started it is `-PB_ERR_STATE`   |
+| `-PB_ERR_AGAIN` | Not done yet                                                           |
+| Any other       | **Lost**: the session ends and command mode restarts the transport     |
+|                 | (`command-mode.md` 3.1)                                                |
 
 - **Lost is every way the host goes away or starts over, once the device is configured**: an
   unplug, a bus reset, a transfer that failed, a host that deconfigured the device. The
@@ -208,14 +208,14 @@ interface, a bulk IN and a bulk OUT endpoint, the device's UUID as its serial nu
 
 The stack answers these requests and no others:
 
-| Request                             | Answer                                                    |
-| ----------------------------------- | --------------------------------------------------------- |
-| `GET_DESCRIPTOR`                    | Device, qualifier, configuration (with the interface and  |
-|                                     | the endpoints), the strings: the language, the product    |
-|                                     | and manufacturer, the serial number, Microsoft's (0xEE)   |
-| `SET_ADDRESS`, `SET_CONFIGURATION`  | Done; the device is ready after the second                |
-| `GET_STATUS` (device)               | Two zero bytes                                            |
-| Vendor request 1, index 4           | Microsoft's compatible id descriptor                      |
+| Request                            | Answer                                                   |
+| ---------------------------------- | -------------------------------------------------------- |
+| `GET_DESCRIPTOR`                   | Device, qualifier, configuration (with the interface and |
+|                                    | the endpoints), the strings: the language, the product   |
+|                                    | and manufacturer, the serial number, Microsoft's (0xEE)  |
+| `SET_ADDRESS`, `SET_CONFIGURATION` | Done; the device is ready after the second               |
+| `GET_STATUS` (device)              | Two zero bytes                                           |
+| Vendor request 1, index 4          | Microsoft's compatible id descriptor                     |
 
 - **Every length and index from the host is checked** (`command-mode.md` 4.2): a reply is at
   most `wLength` and at most the descriptor; a string index the class doesn't have is
@@ -323,17 +323,17 @@ ep0_stall(void)
 
 ## 5. Buffers and sizes
 
-| What                          | Size                              | Declared by                     |
-| ----------------------------- | --------------------------------- | ------------------------------- |
-| A command, a result           | 512 bytes, one packet             | Command mode, owns its lines    |
-| Command mode's two buffers    | `CONFIG_CM_BUF_SIZE_KiB`          | Command mode, owns its lines    |
-| A piece of a `BOOT_BPAK` part | `CONFIG_BOOT_LOAD_CHUNK_kB`,      | The image's load address, or    |
-|                               | whole packets but the last        | the boot's bounce buffer        |
-| The controller's own          | Descriptors, rings, a setup       | The driver, with the macro of   |
-|                               | packet, bounce buffers            | `drivers.md` 4.4                |
-| What the stack sends on       | Descriptors, a status             | The stack. Out only: it needs   |
-| endpoint 0                    |                                   | no alignment, and isn't changed |
-|                               |                                   | until it is sent                |
+| What                          | Size                         | Declared by                     |
+| ----------------------------- | ---------------------------- | ------------------------------- |
+| A command, a result           | 512 bytes, one packet        | Command mode, owns its lines    |
+| Command mode's two buffers    | `CONFIG_CM_BUF_SIZE_KiB`     | Command mode, owns its lines    |
+| A piece of a `BOOT_BPAK` part | `CONFIG_BOOT_LOAD_CHUNK_kB`, | The image's load address, or    |
+|                               | whole packets but the last   | the boot's bounce buffer        |
+| The controller's own          | Descriptors, rings, a setup  | The driver, with the macro of   |
+|                               | packet, bounce buffers       | `drivers.md` 4.4                |
+| What the stack sends on       | Descriptors, a status        | The stack. Out only: it needs   |
+| endpoint 0                    |                              | no alignment, and isn't changed |
+|                               |                              | until it is sent                |
 
 The caps tell a host the buffer's size and the largest transfer (`command-mode.md` 5.1); both
 are `CONFIG_CM_BUF_SIZE_KiB` today.
@@ -343,17 +343,17 @@ are `CONFIG_CM_BUF_SIZE_KiB` today.
 Like the wire (D-008, `command-mode.md` 7), what hosts and operating systems find the device
 by:
 
-| What                  | Value                                                             |
-| --------------------- | ----------------------------------------------------------------- |
-| Vendor and product id | `1209:2019`, unless the build sets its own                        |
-| Configuration         | One, with one interface: vendor specific class, subclass and      |
-|                       | protocol (0xFF)                                                   |
-| Endpoints             | Bulk IN 1 (to the host), bulk OUT 2 (from the host)               |
-| Serial number         | The device's UUID, as its 36 character string (string 2)          |
-| Product string        | `Punchboot` (string 1)                                            |
-| Microsoft's OS string | Index 0xEE, `MSFT100`, vendor code 1; the compatible id `WINUSB`  |
-| Transfers             | The sizes are the exchange's (`command-mode.md` 4.4); no empty    |
-|                       | packet follows a transfer of whole packets, either way            |
+| What                  | Value                                                            |
+| --------------------- | ---------------------------------------------------------------- |
+| Vendor and product id | `1209:2019`, unless the build sets its own                       |
+| Configuration         | One, with one interface: vendor specific class, subclass and     |
+|                       | protocol (0xFF)                                                  |
+| Endpoints             | Bulk IN 1 (to the host), bulk OUT 2 (from the host)              |
+| Serial number         | The device's UUID, as its 36 character string (string 2)         |
+| Product string        | `Punchboot` (string 1)                                           |
+| Microsoft's OS string | Index 0xEE, `MSFT100`, vendor code 1; the compatible id `WINUSB` |
+| Transfers             | The sizes are the exchange's (`command-mode.md` 4.4); no empty   |
+|                       | packet follows a transfer of whole packets, either way           |
 
 What 3.0.0 answers differently from a release (D-072, D-073). None is in the table above:
 
@@ -394,56 +394,56 @@ For a new controller driver, and for a change to one, to the stack or to the tra
 Where each controller's driver is (2026-11-12). Read in the code, not run; "unverified" is
 what the code doesn't settle without the hardware.
 
-| Requirement                      | ChipIdea            | DWC3                | Cadence USB3      | Finding |
-| -------------------------------- | ------------------- | ------------------- | ----------------- | ------- |
-| `init` on a running controller   | yes                 | yes                 | unverified        | F-204   |
-| Every wait bounded               | no                  | yes                 | no                | F-136,  |
-|                                  |                     |                     |                   | F-205   |
-| High speed, or not ready         | no                  | asks, doesn't act   | no                | F-287   |
-| A bus reset and an unplug are    | a reset, no unplug  | a reset during a    | no                | F-287,  |
-| reported                         |                     | bulk transfer only  |                   | F-363   |
-| OUT: nothing past `length`       | yes; an overflow    | no: rounded up to a | unverified        | F-205,  |
-|                                  | isn't seen          | packet              |                   | F-137   |
-| OUT: a short packet is an error  | no                  | no                  | no                | F-137,  |
-|                                  |                     |                     |                   | F-287   |
-| A read of whole packets ends at  | yes (jiffy)         | yes (8MP EVK)       | unverified        | F-280   |
-| its length                       |                     |                     |                   |         |
-| IN: no empty packet after whole  | yes                 | yes                 | yes               |         |
-| packets                          |                     |                     |                   |         |
-| A transfer of 0 bytes            | yes                 | IN yes              | no (unverified)   | F-287   |
-| A length it can't queue is       | yes                 | no: masked to 24    | partly            | F-287,  |
-| refused                          |                     | bits                |                   | F-205   |
-| `xfer_complete` reads the        | no                  | no                  | partly            | F-137,  |
-| controller's result              |                     |                     |                   | F-287   |
-| Endpoint 0 independent of a bulk | no: one transfer    | yes                 | yes               | F-203   |
-| transfer                         | for the driver      |                     |                   |         |
-| An unknown request is stalled    | no                  | no                  | no                | F-138   |
-| The driver's DMA objects own     | yes (`test_imx_`    | yes (`test_dwc3_`   | yes (`test_`      |         |
-| their lines                      | `ci_udc`)           | `udc`)              | `cdns3_udc`)      |         |
-| The order of clean, invalidate   | yes                 | unverified          | yes               |         |
-| and copy                         |                     |                     |                   |         |
-| `stop`                           | yes, unbounded      | yes                 | no                | F-204   |
-| The serial number is read        | yes                 | yes                 | yes (the MEK,     |         |
-|                                  |                     |                     | 2026-11-09)       |         |
-| Runs on the bench                | jiffy, the RT1060   | the 8MP EVK         | the MEK; resets   | F-172   |
-|                                  |                     |                     | on some writes    |         |
+| Requirement                      | ChipIdea           | DWC3                | Cadence USB3    | Finding |
+| -------------------------------- | ------------------ | ------------------- | --------------- | ------- |
+| `init` on a running controller   | yes                | yes                 | unverified      | F-204   |
+| Every wait bounded               | no                 | yes                 | no              | F-136,  |
+|                                  |                    |                     |                 | F-205   |
+| High speed, or not ready         | no                 | asks, doesn't act   | no              | F-287   |
+| A bus reset and an unplug are    | a reset, no unplug | a reset during a    | no              | F-287,  |
+| reported                         |                    | bulk transfer only  |                 | F-363   |
+| OUT: nothing past `length`       | yes; an overflow   | no: rounded up to a | unverified      | F-205,  |
+|                                  | isn't seen         | packet              |                 | F-137   |
+| OUT: a short packet is an error  | no                 | no                  | no              | F-137,  |
+|                                  |                    |                     |                 | F-287   |
+| A read of whole packets ends at  | yes (jiffy)        | yes (8MP EVK)       | unverified      | F-280   |
+| its length                       |                    |                     |                 |         |
+| IN: no empty packet after whole  | yes                | yes                 | yes             |         |
+| packets                          |                    |                     |                 |         |
+| A transfer of 0 bytes            | yes                | IN yes              | no (unverified) | F-287   |
+| A length it can't queue is       | yes                | no: masked to 24    | partly          | F-287,  |
+| refused                          |                    | bits                |                 | F-205   |
+| `xfer_complete` reads the        | no                 | no                  | partly          | F-137,  |
+| controller's result              |                    |                     |                 | F-287   |
+| Endpoint 0 independent of a bulk | no: one transfer   | yes                 | yes             | F-203   |
+| transfer                         | for the driver     |                     |                 |         |
+| An unknown request is stalled    | no                 | no                  | no              | F-138   |
+| The driver's DMA objects own     | yes (`test_imx_`   | yes (`test_dwc3_`   | yes (`test_`    |         |
+| their lines                      | `ci_udc`)          | `udc`)              | `cdns3_udc`)    |         |
+| The order of clean, invalidate   | yes                | unverified          | yes             |         |
+| and copy                         |                    |                     |                 |         |
+| `stop`                           | yes, unbounded     | yes                 | no              | F-204   |
+| The serial number is read        | yes                | yes                 | yes (the MEK,   |         |
+|                                  |                    |                     | 2026-11-09)     |         |
+| Runs on the bench                | jiffy, the RT1060  | the 8MP EVK         | the MEK; resets | F-172   |
+|                                  |                    |                     | on some writes  |         |
 
 The stack and the transport:
 
-| Requirement                                   | Today                                    | Finding      |
-| --------------------------------------------- | ---------------------------------------- | ------------ |
-| Lost ends the session                         | yes, when the controller reports it or   | F-363        |
-|                                               | the host sets an address or configures   |              |
-|                                               | the device again                         |              |
-| A restart disconnects first                   | no                                       | F-287        |
-| Unknown requests stalled, control transfers   | no                                       | F-138        |
-| bounded                                       |                                          |              |
-| A request leaves a bulk transfer alone        | yes; on the ChipIdea one of a packet is  | F-203        |
-|                                               | started again, a longer one fails        |              |
-| The socket's `connect` polls                  | no: `init` blocks in the accept          | F-287        |
-| Tested on the host                            | Command mode on the socket and on a fake | F-230        |
-|                                               | transport; the USB transport's functions |              |
-|                                               | on a fake controller, no controller      |              |
+| Requirement                                 | Today                                    | Finding |
+| ------------------------------------------- | ---------------------------------------- | ------- |
+| Lost ends the session                       | yes, when the controller reports it or   | F-363   |
+|                                             | the host sets an address or configures   |         |
+|                                             | the device again                         |         |
+| A restart disconnects first                 | no                                       | F-287   |
+| Unknown requests stalled, control transfers | no                                       | F-138   |
+| bounded                                     |                                          |         |
+| A request leaves a bulk transfer alone      | yes; on the ChipIdea one of a packet is  | F-203   |
+|                                             | started again, a longer one fails        |         |
+| The socket's `connect` polls                | no: `init` blocks in the accept          | F-287   |
+| Tested on the host                          | Command mode on the socket and on a fake | F-230   |
+|                                             | transport; the USB transport's functions |         |
+|                                             | on a fake controller, no controller      |         |
 
 **The conformance suite** (`process.md` 7). **Not yet in the code (F-287)**: the transport's
 rules (section 2) as one set of tests, run on the host against the socket and against the
@@ -454,14 +454,14 @@ checklist's last item.
 
 ## 9. Not yet in the code
 
-| Finding             | What                                                                         |
-| ------------------- | ---------------------------------------------------------------------------- |
-| F-287, F-363        | Lost is reported and ends the session; a restart disconnects first (2.4)     |
-| F-137, F-205        | An OUT transfer ends at `length`, writes nothing past it, and its result is  |
-|                     | the controller's (2.3, 4.3)                                                  |
-| F-280               | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)        |
-| F-138, F-203        | Endpoint 0: stall, bounds, no effect on a bulk transfer (3.2)                |
-| F-204               | Every controller has a `stop` (4.2)                                          |
-| F-136, F-205        | Every wait is bounded (4)                                                    |
-| F-139, F-140        | The ChipIdea's set up against its reference manual                           |
-| F-172               | Writes that reset the MEK                                                    |
+| Finding      | What                                                                        |
+| ------------ | --------------------------------------------------------------------------- |
+| F-287, F-363 | Lost is reported and ends the session; a restart disconnects first (2.4)    |
+| F-137, F-205 | An OUT transfer ends at `length`, writes nothing past it, and its result is |
+|              | the controller's (2.3, 4.3)                                                 |
+| F-280        | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)       |
+| F-138, F-203 | Endpoint 0: stall, bounds, no effect on a bulk transfer (3.2)               |
+| F-204        | Every controller has a `stop` (4.2)                                         |
+| F-136, F-205 | Every wait is bounded (4)                                                   |
+| F-139, F-140 | The ChipIdea's set up against its reference manual                          |
+| F-172        | Writes that reset the MEK                                                   |

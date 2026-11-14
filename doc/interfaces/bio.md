@@ -99,16 +99,16 @@ the RT1060 EVK's).
 Sixteen flags per device. Their meaning for a host is `command-mode.md` 5.3, and their low byte
 is on the wire (section 6).
 
-| Flag                 | Set by                                 | Means                                    |
-| -------------------- | -------------------------------------- | ---------------------------------------- |
-| `VISIBLE`            | The driver, for what a host may see;   | The device exists for a host             |
-|                      | the board hides what it may not        |                                          |
-| `WRITABLE`           | The driver; the core takes it away     | A host may write and erase it            |
-|                      | from the device a table is on          |                                          |
-| `READABLE`           | The board                              | A host may read it in bulk               |
-| `BOOTABLE`           | The boot source policy, never a board  | A candidate for a boot (`boot.md` 3)     |
-|                      | (`board.md` 6) or a driver             |                                          |
-| `ERASE_BEFORE_WRITE` | The driver                             | 3.3                                      |
+| Flag                 | Set by                                | Means                                |
+| -------------------- | ------------------------------------- | ------------------------------------ |
+| `VISIBLE`            | The driver, for what a host may see;  | The device exists for a host         |
+|                      | the board hides what it may not       |                                      |
+| `WRITABLE`           | The driver; the core takes it away    | A host may write and erase it        |
+|                      | from the device a table is on         |                                      |
+| `READABLE`           | The board                             | A host may read it in bulk           |
+| `BOOTABLE`           | The boot source policy, never a board | A candidate for a boot (`boot.md` 3) |
+|                      | (`board.md` 6) or a driver            |                                      |
+| `ERASE_BEFORE_WRITE` | The driver                            | 3.3                                  |
 
 - **The flags gate the host, not pb.** Inside pb every device can be read and written whatever
   its flags say; `BOOTABLE` is the one flag the core itself obeys.
@@ -379,62 +379,62 @@ For a new storage driver or partition table, and for a change to one or to `bio`
 
 Where each driver is (2026-11-12). Read in the code, not run, unless a test is named.
 
-| Requirement                  | MMC, SD (uSDHC)    | FlexSPI NOR       | Host disk, RAM disk | Finding |
-| ---------------------------- | ------------------ | ----------------- | ------------------- | ------- |
-| A second `init` adds no      | yes (`test_mmc_`   | yes: it fails,    | yes: it fails, the  |         |
-| devices                      | `emmc`, `_sd`)     | the UUID is taken | UUID is taken       |         |
-| The medium's size checked    | partly: a boot or  | n/a (the board's) | n/a                 | F-200   |
-|                              | RPMB size of 0 is  |                   |                     |         |
-|                              | no device; the     |                   |                     |         |
-|                              | user area's        |                   |                     |         |
-|                              | SEC_COUNT 0 isn't  |                   |                     |         |
-|                              | (`test_mmc_emmc`)  |                   |                     |         |
-| Exactly `length` bytes of    | yes                | yes (`test_imx_`  | yes                 |         |
-| the buffer                   |                    | `flexspi`)        |                     |         |
-| A length of 0                | yes: the core's    | yes               | yes                 |         |
-|                              | (`test_mmc_emmc`)  |                   |                     |         |
-| Any length in one call       | yes (chunks)       | yes (chunks)      | yes                 |         |
-| Addresses above 4 GiB        | yes (`test_imx_`   | n/a (no DMA)      | n/a                 |         |
-| refused                      | `usdhc`)           |                   |                     |         |
-| Every wait bounded           | yes (`test_mmc_`   | yes (`test_imx_`  | n/a                 |         |
-|                              | `emmc`)            | `flexspi`)        |                     |         |
-| The codes of `drivers.md` 3  | yes (`test_mmc_`   | yes               | yes                 |         |
-|                              | `emmc`, `test_`    |                   |                     |         |
-|                              | `imx_usdhc`)       |                   |                     |         |
-| Erase: exactly the blocks    | n/a (no erase)     | yes (`test_imx_`  | n/a (no erase)      |         |
-|                              |                    | `flexspi`)        |                     |         |
-| `write_done`                 | yes (`test_mmc_`   | n/a               | n/a                 |         |
-|                              | `core`)            |                   |                     |         |
-| Flags no wider than the      | yes                | yes               | yes                 |         |
-| medium                       |                    |                   |                     |         |
-| What it leaves behind, in    | yes (`mmc_core.h`, | no                | n/a                 |         |
-| its header                   | `imx_usdhc.h`)     |                   |                     |         |
+| Requirement                 | MMC, SD (uSDHC)    | FlexSPI NOR       | Host disk, RAM disk | Finding |
+| --------------------------- | ------------------ | ----------------- | ------------------- | ------- |
+| A second `init` adds no     | yes (`test_mmc_`   | yes: it fails,    | yes: it fails, the  |         |
+| devices                     | `emmc`, `_sd`)     | the UUID is taken | UUID is taken       |         |
+| The medium's size checked   | partly: a boot or  | n/a (the board's) | n/a                 | F-200   |
+|                             | RPMB size of 0 is  |                   |                     |         |
+|                             | no device; the     |                   |                     |         |
+|                             | user area's        |                   |                     |         |
+|                             | SEC_COUNT 0 isn't  |                   |                     |         |
+|                             | (`test_mmc_emmc`)  |                   |                     |         |
+| Exactly `length` bytes of   | yes                | yes (`test_imx_`  | yes                 |         |
+| the buffer                  |                    | `flexspi`)        |                     |         |
+| A length of 0               | yes: the core's    | yes               | yes                 |         |
+|                             | (`test_mmc_emmc`)  |                   |                     |         |
+| Any length in one call      | yes (chunks)       | yes (chunks)      | yes                 |         |
+| Addresses above 4 GiB       | yes (`test_imx_`   | n/a (no DMA)      | n/a                 |         |
+| refused                     | `usdhc`)           |                   |                     |         |
+| Every wait bounded          | yes (`test_mmc_`   | yes (`test_imx_`  | n/a                 |         |
+|                             | `emmc`)            | `flexspi`)        |                     |         |
+| The codes of `drivers.md` 3 | yes (`test_mmc_`   | yes               | yes                 |         |
+|                             | `emmc`, `test_`    |                   |                     |         |
+|                             | `imx_usdhc`)       |                   |                     |         |
+| Erase: exactly the blocks   | n/a (no erase)     | yes (`test_imx_`  | n/a (no erase)      |         |
+|                             |                    | `flexspi`)        |                     |         |
+| `write_done`                | yes (`test_mmc_`   | n/a               | n/a                 |         |
+|                             | `core`)            |                   |                     |         |
+| Flags no wider than the     | yes                | yes               | yes                 |         |
+| medium                      |                    |                   |                     |         |
+| What it leaves behind, in   | yes (`mmc_core.h`, | no                | n/a                 |         |
+| its header                  | `imx_usdhc.h`)     |                   |                     |         |
 
 The virtio block driver has no user and is in no build (F-052); it isn't in the table.
 
 The core:
 
-| Requirement                                         | Today                        | Finding |
-| --------------------------------------------------- | ---------------------------- | ------- |
-| A length that isn't whole blocks is the core's      | yes (the suite, below)       |         |
-| A length of 0 doesn't reach the driver              | yes (`test_bio`)             |         |
-| A buffer that doesn't start on a line is refused    | yes (`test_bio`)             |         |
-| A block larger than the block buffer is refused     | yes (`test_bio`)             |         |
-| A UUID that is taken is refused                     | yes (`test_bio`)             |         |
-| A partition lies inside its parent                  | yes (`test_bio`)             |         |
+| Requirement                                      | Today                  | Finding |
+| ------------------------------------------------ | ---------------------- | ------- |
+| A length that isn't whole blocks is the core's   | yes (the suite, below) |         |
+| A length of 0 doesn't reach the driver           | yes (`test_bio`)       |         |
+| A buffer that doesn't start on a line is refused | yes (`test_bio`)       |         |
+| A block larger than the block buffer is refused  | yes (`test_bio`)       |         |
+| A UUID that is taken is refused                  | yes (`test_bio`)       |         |
+| A partition lies inside its parent               | yes (`test_bio`)       |         |
 
 The partition tables:
 
-| Requirement                         | GPT                  | Static | Finding             |
-| ----------------------------------- | -------------------- | ------ | ------------------- |
-| Every entry checked                 | yes (`test_gpt`)     | partly |                     |
-| The device's block size             | no: 512 in four      | yes    | F-283               |
-|                                     | places               |        |                     |
-| Repair writes only the bad copy     | yes (`test_gpt`)     | n/a    |                     |
-| An installed table in effect        | yes (`test_gpt`,     | n/a    |                     |
-|                                     | `test_bio`)          |        |                     |
-| Tested on the host                  | yes (`test_gpt`,     | no     | F-230               |
-|                                     | `test_gpt.py`)       |        |                     |
+| Requirement                     | GPT              | Static | Finding |
+| ------------------------------- | ---------------- | ------ | ------- |
+| Every entry checked             | yes (`test_gpt`) | partly |         |
+| The device's block size         | no: 512 in four  | yes    | F-283   |
+|                                 | places           |        |         |
+| Repair writes only the bad copy | yes (`test_gpt`) | n/a    |         |
+| An installed table in effect    | yes (`test_gpt`, | n/a    |         |
+|                                 | `test_bio`)      |        |         |
+| Tested on the host              | yes (`test_gpt`, | no     | F-230   |
+|                                 | `test_gpt.py`)   |        |         |
 
 **The conformance suite** (`process.md` 7): one set of tests
 for section 3, run on the host against every device that can run there: the RAM disk, the host's
@@ -454,8 +454,8 @@ without a callback, a driver's errors and their codes, a write that fails half w
 
 ## 9. Not yet in the code
 
-| Finding             | What                                                                           |
-| ------------------- | ------------------------------------------------------------------------------ |
-| F-283               | The block size asked, not assumed; the rest of the conformance suite (2, 8)    |
-| F-200               | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                   |
-| F-078, F-079        | The ROM boots from the eMMC after a warm reset (5)                             |
+| Finding      | What                                                                        |
+| ------------ | --------------------------------------------------------------------------- |
+| F-283        | The block size asked, not assumed; the rest of the conformance suite (2, 8) |
+| F-200        | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                |
+| F-078, F-079 | The ROM boots from the eMMC after a warm reset (5)                          |
