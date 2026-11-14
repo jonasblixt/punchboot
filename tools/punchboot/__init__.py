@@ -1,6 +1,6 @@
 """Punchboot."""
 
-from _punchboot import (  # type: ignore[import-not-found] # noqa: F401
+from .errors import (  # noqa: F401
     ArgumentError,
     AuthenticationError,
     CommandError,
@@ -20,7 +20,6 @@ from _punchboot import (  # type: ignore[import-not-found] # noqa: F401
     TimeoutError,  # noqa: A004
     TransferError,
 )
-
 from .helpers import library_version, list_usb_devices, pb_id, wait_for_device
 from .partition import Partition, PartitionFlags
 from .session import Session

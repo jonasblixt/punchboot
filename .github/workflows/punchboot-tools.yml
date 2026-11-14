@@ -1,82 +1,54 @@
 name: Build punchboot-tools
 on: [pull_request, push, workflow_dispatch]
 
-# REMEMBER: If the libusb versions for macos are updated the 'macos deps',
-#  setup.py and pyproject.toml must also be updated since they have hard coded
-#  version information in path's.
-env:
-  PYTHON_VERSION: "3.12"
-  LIBUSB_MACOS_ARM64_URL: "https://ghcr.io/v2/homebrew/core/libusb/blobs/sha256:05c5363ff9f8a4aeaf65eb3f95fba3a4fc7f665d35a627a2d212c43fb7ad5838"
-  LIBUSB_MACOS_X86_64_URL: "https://ghcr.io/v2/homebrew/core/libusb/blobs/sha256:e02e54902348f1918adf758a6b2f4c5d113570f4c98e9f0a38b8d3b24c50c942"
+# The punchboot package is pure Python: one wheel for every platform. USB goes
+# through pyusb, with libusb from the libusb-package wheels.
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - if: startsWith(matrix.os, 'windows') == true
-        name: Windows deps
-        shell: cmd
-        run: |
-          vcpkg install
-
-      - if: startsWith(matrix.os, 'macos') == true
-        name: macos deps
-        run: |
-          # Here we download specfic version of libusb for both x86_64 and arm64.
-          # It's not possible to have multiple installations with different architectures installed
-          # through homebrew, so we do it like this instead to support cross compiling arm64
-          # wheels on an x86_64 host.
-          curl -L -H "Authorization: Bearer QQ==" -o libusb_arm64.tar.gz ${LIBUSB_MACOS_ARM64_URL}
-          curl -L -H "Authorization: Bearer QQ==" -o libusb_x86_64.tar.gz ${LIBUSB_MACOS_X86_64_URL}
-          mkdir libusb_x86_64 && tar xf libusb_x86_64.tar.gz -C libusb_x86_64 --strip-components 1
-          mkdir libusb_arm64 && tar xf libusb_arm64.tar.gz -C libusb_arm64 --strip-components 1
-          # The libusb binaries from homebrew comes with an id that starts with "@@HOMEBREW..."
-          # This confuses the 'delocate-wheel' tool used by 'cibuildwheel' to bundle dependencies
-          # in binary wheels.
-          #
-          # If we prefix it with "@rpath" it works better.
-          install_name_tool -id @rpath/libusb-1.0.0.dylib libusb_x86_64/1.0.27/lib/libusb-1.0.0.dylib
-          install_name_tool -id @rpath/libusb-1.0.0.dylib libusb_arm64/1.0.27/lib/libusb-1.0.0.dylib
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v4.3.3
-        with:
-           package-dir: .
-           output-dir: wheelhouse
-           config-file: "pyproject.toml"
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: punchboot-tools-${{ strategy.job-index }}
-          path: ./wheelhouse/*.whl
-
-  build_sdist:
-    name: Build source distribution
+  build:
+    name: Build wheel and source distribution
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build sdist
-        run: pipx run build --sdist
+      - name: Build
+        run: pipx run build
 
       - uses: actions/upload-artifact@v7
         with:
-          name: punchboot-tools-sdist
-          path: dist/*.tar.gz
+          name: punchboot-tools
+          path: dist/*
+
+  smoke_test:
+    name: Test the wheel on ${{ matrix.os }}, Python ${{ matrix.python }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.14"]
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: punchboot-tools
+          path: dist
+
+      - name: Install and run
+        shell: bash
+        run: |
+          python -m pip install dist/*.whl
+          punchboot --version
+          # libusb loads, and listing devices works without any attached
+          python -c "import libusb_package; assert libusb_package.get_libusb1_backend()"
+          python -c "import punchboot; assert punchboot.list_usb_devices() == []"
 
   upload_pypi_test:
     name: Upload to PyPi (Test)
-    needs: [build_wheels, build_sdist]
+    needs: [build, smoke_test]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -85,8 +57,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          pattern: punchboot-tools-*
-          merge-multiple: true
+          name: punchboot-tools
           path: dist
       - uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
@@ -98,7 +69,7 @@ jobs:
 
   upload_pypi:
     name: Upload to PyPi
-    needs: [build_wheels, build_sdist]
+    needs: [build, smoke_test]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -107,8 +78,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          pattern: punchboot-tools-*
-          merge-multiple: true
+          name: punchboot-tools
           path: dist
       - uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
