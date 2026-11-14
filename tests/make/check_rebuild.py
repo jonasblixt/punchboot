@@ -182,6 +182,14 @@ def check_flags(root: pathlib.Path, work: pathlib.Path) -> int:
     )
     b.check_up_to_date("and then nothing to make", targets=pb)
 
+    # A blob in a directory of its own, as the i.MX8M boards' DDR firmware:
+    # once it is linked, nothing to make (F-431)
+    blob = work / "fw" / "blob.bin"
+    blob.parent.mkdir()
+    blob.write_bytes(bytes(64))
+    b.make(f"blobs-y={blob}", targets=pb)
+    b.check_up_to_date("a blob: then nothing to make", f"blobs-y={blob}", targets=pb)
+
     return b.problems
 
 

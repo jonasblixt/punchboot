@@ -147,8 +147,9 @@ OBJS =
 OBJS += $(patsubst %.c, $(BUILD_DIR)/%.o, $(src-y))
 OBJS += $(patsubst %.S, $(BUILD_DIR)/%.o, $(asm-y))
 
-BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(blobs-y))
-BLOB_OBJS2 = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(notdir $(blobs-y)))
+# A blob's object is $(BUILD_DIR)/<its name>.bino, wherever the blob is: the
+# link reads it there (F-431)
+BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(notdir $(blobs-y)))
 
 DEPS      = $(OBJS:.o=.d)
 
@@ -170,7 +171,7 @@ $(OBJS): $(call value_file,PB_VERSION)
 # (CONFIG_OPTIMIZE on the command line, an edited makefile.mk), compiler or
 # list of objects makes them again, and so does a changed link script (F-398)
 compile_cmd = $(CC) $(cflags-y)
-link_cmd = $(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS2) $(LIBS)
+link_cmd = $(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS) $(LIBS)
 LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(ldflags-y))))
 
 $(OBJS): $(call value_file,compile_cmd)
@@ -206,13 +207,20 @@ $(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS) $(LINK_SCRI
 	@echo LD $@
 	$(Q)$(link_cmd) -o $@
 
-$(BUILD_DIR)/%.bino: %.bin
-	@mkdir -p $(@D)
+# A rule per blob, for the object the link reads: the pattern rule's target
+# was the blob's path under $(BUILD_DIR), a file nothing made, so pb was
+# linked again on every make (F-431). The copy in blobs/ gives the symbols a
+# name without the blob's directory.
+define blob_rule
+$(BUILD_DIR)/$(notdir $(1:.bin=.bino)): $(1)
+	@mkdir -p $$(@D)
 	@mkdir -p blobs/
-	@mkdir -p $(BUILD_DIR)/blobs
-	@cp $< blobs/
-	@echo BLOB $< $(notdir $<)
-	$(Q)$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) blobs/$(notdir $<) $(BUILD_DIR)/$(notdir $@)
+	@mkdir -p $$(BUILD_DIR)/blobs
+	@cp $$< blobs/
+	@echo BLOB $$< $$(notdir $$<)
+	$$(Q)$$(OBJCOPY) -I binary -O $$(ARCH_OUTPUT) -B $$(ARCH) blobs/$$(notdir $$<) $$@
+endef
+$(foreach blob,$(blobs-y),$(eval $(call blob_rule,$(blob))))
 
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(@D)
