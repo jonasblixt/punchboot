@@ -218,6 +218,14 @@ struct usbd_hal_ops {
 /* USB Device interface */
 const char *ep_to_str(usb_ep_t ep);
 int usbd_init_hal_ops(const struct usbd_hal_ops *ops);
+/* For a driver that has one transfer for all its endpoints, where one on
+ * endpoint 0 takes the place of the bulk transfer that runs (the ChipIdea's,
+ * usb.md 8). Called after usbd_init_hal_ops(). The stack then gives a bulk
+ * transfer up before it answers a request: one of a packet at most is
+ * started again, since nothing of it has moved; a longer one fails, which
+ * is "lost" (usb.md 2.4). Without it the endpoints are independent
+ * (usb.md 4.3) and a request leaves a bulk transfer alone */
+void usbd_hal_one_xfer(void);
 int usbd_init_cls(const struct usbd_cls_config *cfg);
 int usbd_init(void);
 int usbd_connect(void);

@@ -8,6 +8,7 @@
  */
 
 #include <drivers/usb/usbd.h>
+#include <pb/delay.h>
 #include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -27,9 +28,14 @@
 static const struct usbd_hal_ops *hal_ops;
 static const struct usbd_cls_config *cls_config;
 static bool enumerated;
+/* The controller has one transfer for all its endpoints (usbd_hal_one_xfer()) */
+static bool hal_one_xfer;
 static usb_ep_t cur_xfer_ep;
 static void *cur_xfer_buf;
 static size_t cur_xfer_length;
+/* A transfer was started and its result not given yet: one at a time
+ * (usb.md 2.3, 2.4) */
+static bool cur_xfer_running;
 
 /* Microsoft OS Descriptor
  *
@@ -110,15 +116,56 @@ const char *ep_to_str(usb_ep_t ep)
     };
 }
 
+/*
+ * Endpoint 0's data stage, a reply to the host (F-138, drivers.md 3). USB 2.0
+ * 9.2.6.4 gives a device 500 ms for each packet of a data stage; a host takes
+ * a reply at once, so one that hasn't in that time was reset or went away.
+ * The request is given up, -PB_ERR_TIMEOUT: before the device is configured
+ * the host starts over (usbd_connect()), in a session the transfer is lost
+ * and command mode starts the transport again, whose init resets the
+ * controller. An IN transfer only reads its buffer, which stays the stack's.
+ * The loop waited for ever, with nothing kicking the watchdog.
+ */
+#define EP0_DATA_STAGE_TIMEOUT_us 500000
+
 static int wait_for_completion(usb_ep_t ep)
 {
+    struct pb_timeout to;
     int rc;
+
+    rc = pb_timeout_init_us(&to, EP0_DATA_STAGE_TIMEOUT_us);
+
+    if (rc != PB_OK)
+        return rc;
 
     do {
         rc = hal_ops->xfer_complete(ep);
+
+        if (rc == -PB_ERR_AGAIN && pb_timeout_has_expired(&to)) {
+            LOG_ERR("%s: the host didn't take the reply", ep_to_str(ep));
+            return -PB_ERR_TIMEOUT;
+        }
     } while (rc == -PB_ERR_AGAIN);
 
     return rc;
+}
+
+/*
+ * A request the stack doesn't know is to be stalled, and the host then goes
+ * on at once (usb.md 3.2). No controller can stall yet (F-138): it is left
+ * unanswered, no data and no status stage, and the host waits out its
+ * timeout. It is no error: the device goes on enumerating, or with the
+ * transfer that runs.
+ */
+static int ep0_unknown(const struct usb_setup_packet *setup)
+{
+    LOG_ERR("EP0 unhandled request %x %x, value 0x%x, index 0x%x, %ub",
+            setup->bRequestType,
+            setup->bRequest,
+            setup->wValue,
+            setup->wIndex,
+            setup->wLength);
+    return PB_OK;
 }
 
 static int ep0_tx(const void *bfr, size_t length)
@@ -180,8 +227,7 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
                 rc = ep0_tx(str_desc, length);
             }
         } else {
-            LOG_ERR("Unhandled descriptor 0x%x", setup->wValue);
-            rc = -PB_ERR_IO;
+            rc = ep0_unknown(setup);
         }
     } break;
     case USB_SET_ADDRESS: {
@@ -194,6 +240,24 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
     } break;
     case USB_SET_CONFIGURATION: {
         LOG_DBG("Set configuration");
+
+        /* The one configuration there is, or 0 (usb.md 3.2) */
+        if (setup->wValue == 0) {
+            /* Deconfigured: not ready until the host configures the device */
+            enumerated = false;
+            hal_ops->ep0_xfer_zlp(USB_EP0_IN);
+            rc = PB_OK;
+            break;
+        }
+
+        if (setup->wValue != cls_config->desc->config.bConfigurationValue) {
+            /* Refused: nothing is set up and there is no status stage. It
+             * is to be stalled, which no controller can yet (F-138) */
+            LOG_ERR("No configuration %u", setup->wValue);
+            rc = PB_OK;
+            break;
+        }
+
         hal_ops->ep0_xfer_zlp(USB_EP0_IN);
 
         rc = hal_ops->set_configuration(cls_config->desc->eps,
@@ -207,9 +271,12 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         enumerated = true;
     } break;
     case USB_SET_IDLE: {
+        /* A request without a data stage: one status stage, IN (USB 2.0
+         * 8.5.3). Answered as it was; D-073 has it stalled, which no
+         * controller can yet (F-287) */
         LOG_DBG("Set idle");
         hal_ops->ep0_xfer_zlp(USB_EP0_IN);
-        hal_ops->ep0_xfer_zlp(USB_EP0_OUT);
+        rc = PB_OK;
     } break;
     case USB_GET_STATUS: {
         LOG_DBG("Get status");
@@ -220,16 +287,12 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         if (setup->wIndex == USB_MS_EXT_COMPAT_ID) {
             length = MIN(setup->wLength, (uint16_t)sizeof(msft_comp_id_feature));
             rc = ep0_tx(&msft_comp_id_feature, length);
+        } else {
+            rc = ep0_unknown(setup);
         }
     } break;
     default: {
-        LOG_ERR("EP0 Unhandled request %x", request);
-        LOG_ERR(" bRequestType = 0x%x", setup->bRequestType);
-        LOG_ERR(" bRequest = 0x%x", setup->bRequest);
-        LOG_ERR(" wValue = 0x%x", setup->wValue);
-        LOG_ERR(" wIndex = 0x%x", setup->wIndex);
-        LOG_ERR(" wLength = 0x%x", setup->wLength);
-        rc = -PB_ERR;
+        rc = ep0_unknown(setup);
     }
     }
 
@@ -238,14 +301,26 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
 
 int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
 {
-    hal_ops = ops;
+    hal_ops = NULL;
+    hal_one_xfer = false;
+    cur_xfer_running = false;
 
-    if (!hal_ops->xfer_start || !hal_ops->xfer_complete || !hal_ops->init ||
-        !hal_ops->set_configuration || !hal_ops->set_address) {
+    /* Every operation is mandatory, and none is called that wasn't checked
+     * here (usb.md 4): a driver that leaves one out isn't registered */
+    if (ops == NULL || !ops->init || !ops->stop || !ops->xfer_start || !ops->xfer_complete ||
+        !ops->xfer_cancel || !ops->poll_setup_pkt || !ops->set_configuration || !ops->set_address ||
+        !ops->ep0_xfer_zlp) {
         return -PB_ERR_PARAM;
     }
 
+    hal_ops = ops;
+
     return PB_OK;
+}
+
+void usbd_hal_one_xfer(void)
+{
+    hal_one_xfer = true;
 }
 
 int usbd_init_cls(const struct usbd_cls_config *cfg)
@@ -262,6 +337,11 @@ int usbd_init(void)
 {
     if (hal_ops == NULL)
         return -PB_ERR_IO;
+
+    /* The controller starts with nothing configured (usb.md 4.1), and so
+     * does the stack: ready is when the host has configured the device */
+    enumerated = false;
+    cur_xfer_running = false;
 
     return hal_ops->init();
 }
@@ -289,6 +369,15 @@ int usbd_connect(void)
 
     rc = usbd_enumerate(&pkt);
 
+    /* A host that left a control transfer (it reset the bus, was unplugged
+     * or gave up) starts over: before the device is configured there is no
+     * session to lose, and the stack goes on enumerating (usb.md 2.2). Any
+     * other error is the controller's */
+    if (rc == -PB_ERR_TIMEOUT) {
+        LOG_ERR("EP0 request %x %x given up", pkt.bRequestType, pkt.bRequest);
+        return -PB_ERR_AGAIN;
+    }
+
     if (rc != PB_OK)
         return rc;
 
@@ -303,6 +392,10 @@ int usbd_disconnect(void)
     if (hal_ops == NULL)
         return -PB_ERR_IO;
 
+    enumerated = false;
+    /* A transfer that ran is given up: its buffer is the caller's (2.5) */
+    cur_xfer_running = false;
+
     if (hal_ops->stop)
         return hal_ops->stop();
     else
@@ -311,8 +404,17 @@ int usbd_disconnect(void)
 
 int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length)
 {
+    int rc;
+
     if (hal_ops == NULL)
         return -PB_ERR_IO;
+
+    /* One transfer at a time: the next is started when the last is done
+     * (usb.md 2.3) */
+    if (cur_xfer_running) {
+        LOG_ERR("%s: a transfer on %s runs", ep_to_str(ep), ep_to_str(cur_xfer_ep));
+        return -PB_ERR_STATE;
+    }
 
     /* What the controller writes owns its cache lines (usb.md 2.3, 4.3,
      * drivers.md 4.3): an OUT transfer into a buffer that doesn't start on
@@ -327,7 +429,12 @@ int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length)
     cur_xfer_buf = buf;
     cur_xfer_length = length;
 
-    return hal_ops->xfer_start(ep, buf, length);
+    rc = hal_ops->xfer_start(ep, buf, length);
+
+    if (rc == PB_OK)
+        cur_xfer_running = true;
+
+    return rc;
 }
 
 int usbd_xfer_cancel(void)
@@ -336,31 +443,138 @@ int usbd_xfer_cancel(void)
         return -PB_ERR_IO;
 
     hal_ops->xfer_cancel(cur_xfer_ep);
+    cur_xfer_running = false;
     return PB_OK;
 }
 
-int usbd_xfer_complete(void)
+/* The two requests of an enumeration that change what the device is to the
+ * host: its address and its configuration */
+static bool usbd_host_starts_over(const struct usb_setup_packet *setup)
+{
+    uint16_t request = (setup->bRequestType << 8) | setup->bRequest;
+
+    return request == USB_SET_ADDRESS || request == USB_SET_CONFIGURATION;
+}
+
+/* The largest packet of one of the class's endpoints, 0 when it has no such */
+static size_t usbd_max_packet(usb_ep_t ep)
+{
+    uint8_t addr = (uint8_t)(ep >> 1) | ((ep & 1) ? USB_EP_ADDR_IN : 0);
+
+    for (unsigned int i = 0; i < cls_config->desc->interface.bNumEndpoints; i++) {
+        if (cls_config->desc->eps[i].bEndpointAddress == addr)
+            return cls_config->desc->eps[i].wMaxPacketSize;
+    }
+
+    return 0;
+}
+
+/*
+ * A request while a bulk transfer runs, on a controller with one transfer
+ * for all its endpoints: answering on endpoint 0 ends the bulk transfer, so
+ * it can't go on where it was (usb.md 3.2, 8).
+ *
+ *  - A transfer that is done isn't touched: its result is the caller's.
+ *  - One of a packet at most is given up and started again after the
+ *    answer. Nothing of it has moved: a packet arrives whole or not at all.
+ *    It is what the device waits in between two commands.
+ *  - A longer one fails. A part of it may have moved, and starting it again
+ *    from its first byte would lose that part without a word (F-203).
+ */
+static int usbd_xfer_poll_one_xfer(struct usb_setup_packet *pkt)
+{
+    int rc;
+
+    rc = hal_ops->xfer_complete(cur_xfer_ep);
+
+    if (rc == PB_OK)
+        return usbd_enumerate(pkt);
+
+    if (rc != -PB_ERR_AGAIN)
+        return rc;
+
+    if (cur_xfer_length > usbd_max_packet(cur_xfer_ep)) {
+        LOG_ERR("EP0 request during a transfer of %zu bytes on %s",
+                cur_xfer_length,
+                ep_to_str(cur_xfer_ep));
+        return -PB_ERR_IO;
+    }
+
+    hal_ops->xfer_cancel(cur_xfer_ep);
+
+    rc = usbd_enumerate(pkt);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = hal_ops->xfer_start(cur_xfer_ep, cur_xfer_buf, cur_xfer_length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    return hal_ops->xfer_complete(cur_xfer_ep);
+}
+
+static int usbd_xfer_poll(void)
 {
     int rc;
     struct usb_setup_packet pkt;
 
-    if (hal_ops == NULL)
-        return -PB_ERR_IO;
+    rc = hal_ops->poll_setup_pkt(&pkt);
 
-    if (hal_ops->poll_setup_pkt(&pkt) == PB_OK) {
-        hal_ops->xfer_cancel(cur_xfer_ep);
+    /* An error is a bus reset or an unplug of the device that was
+     * configured, or a controller that failed: lost (usb.md 2.4, 4.4) */
+    if (rc != PB_OK && rc != -PB_ERR_AGAIN)
+        return rc;
 
+    if (rc == PB_OK) {
+        /* A host that sets an address or a configuration inside a session
+         * enumerates the device again: it was plugged in again or the bus
+         * was reset, whether the controller reported that or not, or the
+         * host deconfigures it. The session is lost (usb.md 2.4, 3.2). The
+         * request gets no answer: the address and the configuration are the
+         * next session's, and the device leaves the bus when the transport
+         * is restarted (usb.md 2.1) */
+        if (usbd_host_starts_over(&pkt)) {
+            LOG_ERR("The host enumerates again (%x %x)", pkt.bRequest, pkt.wValue);
+            return -PB_ERR_IO;
+        }
+
+        if (hal_one_xfer)
+            return usbd_xfer_poll_one_xfer(&pkt);
+
+        /* A request doesn't disturb a bulk transfer (usb.md 3.2): it is
+         * answered on endpoint 0 and the transfer goes on where it was */
         rc = usbd_enumerate(&pkt);
-
-        if (rc != PB_OK)
-            return rc;
-
-        /* Restart current xfer */
-        rc = hal_ops->xfer_start(cur_xfer_ep, cur_xfer_buf, cur_xfer_length);
 
         if (rc != PB_OK)
             return rc;
     }
 
     return hal_ops->xfer_complete(cur_xfer_ep);
+}
+
+int usbd_xfer_complete(void)
+{
+    int rc;
+
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
+
+    /* With no transfer started there is nothing to complete (usb.md 2.4) */
+    if (!cur_xfer_running)
+        return -PB_ERR_STATE;
+
+    rc = usbd_xfer_poll();
+
+    /* The result is given once: done or lost, the transfer is over */
+    if (rc != -PB_ERR_AGAIN)
+        cur_xfer_running = false;
+
+    /* Every error is "lost" (usb.md 2.4): the bus was reset or the host is
+     * gone. Nothing is configured after it (usb.md 3.2) */
+    if (rc != PB_OK && rc != -PB_ERR_AGAIN)
+        enumerated = false;
+
+    return rc;
 }
