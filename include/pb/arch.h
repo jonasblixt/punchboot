@@ -9,7 +9,8 @@
  * with:
  *
  *  - the MMU (on ARMv7-M the MPU) and the D-cache off, and everything pb
- *    wrote in memory, not in the cache
+ *    wrote in memory, not in the cache; on ARMv7-M CACR.FORCEWT clear, its
+ *    reset value (pb sets it while it runs; F-210)
  *  - the I-cache invalidated (it may be on)
  *  - interrupts masked: IRQ and FIQ on ARMv7-A, D, A, I and F on ARMv8-A,
  *    PRIMASK on ARMv7-M
