@@ -119,7 +119,7 @@ A failure in 1, 3 or 5: no command mode. The task ends the loop and pb resets
 
 Command mode also runs after a failed `board_setup()` (`board.md` 2.1), so it relies on what
 `plat_init()` set up and on nothing of the board's that wasn't checked. It doesn't run after a
-platform failure: pb resets (`platform.md` 2, F-235).
+platform failure: pb resets (`platform.md` 2).
 
 ### 2.2 Waiting for a host
 
