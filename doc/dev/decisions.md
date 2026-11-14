@@ -1976,10 +1976,14 @@ release"; 16 slots. Narrows D-027: the slots are no longer a list of their own.
 - **The ids don't change** (D-008): images, tokens and `SLC_*` name them. An id is a name,
   hashed with bpak's id function as the keystore's part names were, or a hex number. The id
   function is pb's key ids' from now on, also in a build without bpak.
-- **`scripts/gen-keystore.py`** writes `keystore.c`, the same structures as `bpak generate
-  keystore` (`key.h`, `keystore.h`) and the slot of each key. The build no longer needs the bpak
-  CLI for the keys. It refuses a key that isn't P-256, P-384 or P-521: pb verifies ECDSA only
-  (`crypto.md`), where the bpak CLI let RSA 4096 keys in.
+- **`scripts/gen-keystore.py`** writes `keystore.c`, pb's own key list: `pb_keys[]`
+  (`pb/keys.h`), each key's id, curve (`dsa_t`), slot and DER, in slot order. Not a
+  `bpak_keystore` (Jonas, 2026-11-14: "The generated code should not be a bpak_keystore. Make
+  it a generic pb key list, the ID's must be the same tough"). It reads the keys with the
+  `cryptography` package, not a DER parser of its own, and writes each as a
+  `SubjectPublicKeyInfo` with the point uncompressed; the in-tree keys' bytes are unchanged. The
+  build no longer needs the bpak CLI for the keys. It refuses a key that isn't P-256, P-384 or
+  P-521: pb verifies ECDSA only (`crypto.md`), where the bpak CLI let RSA 4096 keys in.
 - **The development keys** are `pki/dev-keys.mk`, for a board that names no key at all. All or
   nothing: a board that names one key gets none of the others, so a product build can't pick up
   a test key in a slot it left empty. The build says when it uses them.
@@ -1989,5 +1993,5 @@ release"; 16 slots. Narrows D-027: the slots are no longer a list of their own.
   else read them.
 
 Why: the bpak file only carried the keys to `bpak generate keystore`; it is not signed and its
-id was never compared (`boot.md` 4.4). The format's own structures in pb, `struct bpak_key`,
-stay until a second format needs pb's own.
+id was never compared (`boot.md` 4.4). The keys are pb's, not the format's: `struct pb_key` has
+no bpak in it, and only the ids keep bpak's id function.
