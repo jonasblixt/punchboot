@@ -39,6 +39,8 @@ Beside the levels, not normative:
 |           | `firmware-handoff.md`   | A brief on Arm's Firmware Handoff, for `boot.md` 5.4     |
 |           | `migration-3.0.md`      | What an out-of-tree board, driver or platform changes    |
 |           |                         | from 2.x                                                 |
+|           | `porting.md`            | A new board, driver or platform: the order, and where    |
+|           |                         | each rule is                                             |
 |           | `release-checklist.txt` | The steps of a release                                   |
 | `dev/`    | `status.md`             | Where the work is: read first                            |
 |           | `roadmap.md`            | What comes next, and what is to be discussed             |
@@ -46,5 +48,3 @@ Beside the levels, not normative:
 |           | `findings.md`           | The gaps between the documents and the code: F-nnn, open |
 |           | `findings-closed.md`    | The fixed and rejected findings                          |
 |           | `log/`                  | What was done, per day                                   |
-
-Still to write: a porting guide (`guides/`).
