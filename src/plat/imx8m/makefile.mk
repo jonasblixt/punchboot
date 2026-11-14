@@ -53,7 +53,9 @@ IMX8M_LOAD_END = 0x819000
 # What the i.MX8M Quad's BL31 takes isn't known, and no board of it has TF-A
 PLAT_BL_PARAMS_LIMIT = 0xffffffff
 IMX8M_OCRAM_SIZE = 0x20000
-cflags-y += -DIMX8M_ROM_SIZE=0x20000
+# The ROM's 124 KiB; the 4 KiB after them fault, a protected page (read on
+# the pico8ml), as the 8M Plus's last 4 KiB
+cflags-y += -DIMX8M_ROM_SIZE=0x1f000
 endif
 # i.MX8M Plus: the OCRAM free area after the ROM's part (RM, Figure 6-2), up to 0x97ffff
 ifdef CONFIG_PLAT_IMX8MP
