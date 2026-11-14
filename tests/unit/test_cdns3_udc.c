@@ -5,9 +5,10 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * The Cadence USB3 device controller's driver (cdns3_udc_core.c), built for
- * the host: what it gives the controller for a transfer, and that the bytes
- * are the caller's when the controller has run it. The controller is a
+ * The Cadence USB3 device controller's driver (cdns3_udc_core.c) and its
+ * i.MX glue (imx_cdns3_udc.c), built for the host: what it gives the
+ * controller for a transfer, and that the bytes are the caller's when the
+ * controller has run it. The controller is a
  * register file and the few lines of a model below, which follow a ring from
  * EP_TRADDR and move each TRB's bytes; nothing of the bus or of the
  * registers' timing. It reads and writes RAM behind the model of the D-cache
@@ -24,6 +25,7 @@
 #include <cmocka.h>
 
 #include <drivers/usb/cdns3_udc_core.h>
+#include <drivers/usb/imx_cdns3_udc.h>
 #include <pb/dma.h>
 #include <pb/pb.h>
 #include <string.h>
@@ -33,7 +35,7 @@
 #include "fakes/regs.h"
 
 /* The MEK's controller */
-#define CDNS3_BASE      0x5b110000u
+#define CDNS3_BASE      0x5b120000u
 #define USB_STS         (CDNS3_BASE + 0x20004)
 #define USB_ISTS        (CDNS3_BASE + 0x20018)
 #define EP_SEL          (CDNS3_BASE + 0x2001c)
@@ -73,6 +75,27 @@ const char *ep_to_str(usb_ep_t ep)
     (void)ep;
     return "EP";
 }
+
+/* The glue's PHY, and the stack it registers with */
+int imx_salvo_phy_init(uintptr_t base)
+{
+    (void)base;
+    return PB_OK;
+}
+
+static const struct usbd_hal_ops *hal_ops;
+
+int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
+{
+    hal_ops = ops;
+    return PB_OK;
+}
+
+/* The MEK's glue, and its status bit */
+#define NON_CORE_BASE      0x5b110000u
+#define PHY_BASE           0x5b160000u
+#define USB3_CORE_STATUS   (NON_CORE_BASE + 0x0c)
+#define DEV_POWER_ON_READY BIT(13)
 
 /* EP_TRADDR is the selected endpoint's: an index for each direction */
 static uint32_t traddr[32];
@@ -315,6 +338,30 @@ static void test_the_flush_wait_times_out(void **state)
     assert_int_equal(dma_host_in_open(), 2);
 }
 
+/* F-281, drivers.md 3: the glue's wait for the core's power-on-ready is
+ * bounded, -PB_ERR_TIMEOUT from the operation init; when the bit comes, the
+ * core is set up */
+static void test_the_power_on_ready_wait_times_out(void **state)
+{
+    static const struct imx_cdns3_udc_config cfg = {
+        .base = CDNS3_BASE,
+        .non_core_base = NON_CORE_BASE,
+        .phy_base = PHY_BASE,
+    };
+    (void)state;
+
+    hal_ops = NULL;
+    assert_int_equal(imx_cdns3_udc_init(&cfg), PB_OK);
+    assert_non_null(hal_ops);
+
+    fake_regs_set(USB3_CORE_STATUS, 0);
+    assert_int_equal(hal_ops->init(), -PB_ERR_TIMEOUT);
+
+    fake_regs_set(USB3_CORE_STATUS, DEV_POWER_ON_READY);
+    assert_int_equal(hal_ops->init(), PB_OK);
+    assert_int_equal(dma_host_in_open(), 2);
+}
+
 /* usb.md 2.3, 4.3: a transfer from the host arrives in the caller's buffer,
  * all of it and nothing outside the buffer's lines, and a transfer to the
  * host is what the caller wrote. Over one TRB and over several */
@@ -484,6 +531,7 @@ int main(void)
         cmocka_unit_test_setup(test_the_reset_wait_times_out, setup),
         cmocka_unit_test_setup(test_the_status_stage_wait_times_out, setup),
         cmocka_unit_test_setup(test_the_flush_wait_times_out, setup),
+        cmocka_unit_test_setup(test_the_power_on_ready_wait_times_out, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

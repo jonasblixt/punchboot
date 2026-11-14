@@ -57,9 +57,16 @@
 
 static const struct imx_cdns3_udc_config *cfg;
 
+/* The core's power-on-ready after its resets are released (drivers.md 3).
+ * Neither the i.MX 8QXP RM here nor Linux gives a time: 100 ms, as Linux
+ * 6.1's cdns3-imx.c bounds its waits on this register (MDCTRL_CLK_STATUS,
+ * readl_poll_timeout(..., 10, 100000)) */
+#define POWER_ON_READY_TIMEOUT_us 100000
+
 static int imx_cdns3_udc_start(void)
 {
     int rc;
+    struct pb_timeout to;
     // NOTE: U-boot configures SSPHY_STATUS, but that reg is not documented
     // in imx8x datasheet...
 
@@ -79,8 +86,15 @@ static int imx_cdns3_udc_start(void)
 
     LOG_DBG("Waiting for core to come out of reset");
 
-    while (!(mmio_read_32(cfg->non_core_base + USB3_CORE_STATUS) & DEV_POWER_ON_READY))
-        ;
+    pb_timeout_init_us(&to, POWER_ON_READY_TIMEOUT_us);
+
+    while (!(mmio_read_32(cfg->non_core_base + USB3_CORE_STATUS) & DEV_POWER_ON_READY)) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Power-on-ready timeout");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
     LOG_DBG("Okay, let's go");
 
     return cdns3_udc_core_init();

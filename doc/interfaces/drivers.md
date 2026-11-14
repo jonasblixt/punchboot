@@ -383,7 +383,7 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 | Mbed TLS                | n/a                   | n/a                     | n/a              |              |
 | ChipIdea                | no                    | yes (`test_imx_ci_udc`) | yes, unbounded   | F-136        |
 | DWC3                    | yes                   | yes (`test_dwc3_udc`)   | yes              |              |
-| Cadence USB3            | no                    | yes (`test_cdns3_udc`)  | empty            | F-205, F-204 |
+| Cadence USB3            | yes                   | yes (`test_cdns3_udc`)  | empty            | F-204        |
 | The DRAM controller and | no                    | n/a                     | n/a              | F-102        |
 | PHY                     |                       |                         |                  |              |
 | virtio (in no build)    | no                    | partly                  | none             | F-052, F-281 |
