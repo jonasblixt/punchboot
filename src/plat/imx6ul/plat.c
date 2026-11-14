@@ -26,6 +26,7 @@
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx6ul/imx6ul.h>
+#include <stdio.h>
 #include <string.h>
 #include <uuid.h>
 #include <xlat_tables.h>
@@ -441,8 +442,6 @@ int plat_init(void)
                                         IMX6UL_FUSE_SPEED_GRADE_MASK,
                                         1);
 
-    LOG_INFO("IMX6UL: si_rev=%u, speed_grade=%u", plat.si_rev, plat.speed_grade);
-
     /* Configure ARM core clock
      *
      * Speed grade:
@@ -498,7 +497,6 @@ int plat_init(void)
     plat.usdhc1_clk_MHz = ((cscmr1 & CCM_CSCMR1_USDHC1_CLK_SEL) ? 352 : 400) / usdhc1_podf;
     plat.usdhc2_clk_MHz = ((cscmr1 & CCM_CSCMR1_USDHC2_CLK_SEL) ? 352 : 400) / usdhc2_podf;
 
-    LOG_INFO("CPU clk: %u MHz", plat.core_clk_MHz);
     LOG_INFO("uSDHC1 clk: %u MHz", plat.usdhc1_clk_MHz);
     LOG_INFO("uSDHC2 clk: %u MHz", plat.usdhc2_clk_MHz);
 
@@ -597,4 +595,151 @@ int plat_lockdown(void)
     /* Last, and only when the locks are set: a lockdown that fails ends in
      * command mode, where a locked device verifies its token with the CAAM */
     return crypto_stop();
+}
+
+/*
+ * The boot configuration the ROM used (RM 8.2, Table 8-15 for uSDHC): SRC
+ * SBMR1 is BOOT_CFG1..4 from the fuses or the boot pins, the BOOT_CFG fuse
+ * word is the shadow at 0x450. Only read.
+ */
+#define SRC_SBMR1       (IMX6UL_SRC_BASE + 0x04)
+#define SRC_SBMR2       (IMX6UL_SRC_BASE + 0x1c)
+#define OCOTP_BOOT_CFG0 (IMX6UL_OCOTP_CTRL_BASE + 0x450)
+
+static const char *boot_bus_width_str(uint32_t cfg)
+{
+    switch (IMX6UL_BOOT_CFG_BUS_WIDTH_OF(cfg)) {
+    case IMX6UL_BOOT_BUS_1BIT:
+        return "1-bit";
+    case IMX6UL_BOOT_BUS_4BIT:
+        return "4-bit";
+    case IMX6UL_BOOT_BUS_8BIT:
+        return "8-bit";
+    case IMX6UL_BOOT_BUS_4BIT_DDR:
+        return "4-bit DDR";
+    case IMX6UL_BOOT_BUS_8BIT_DDR:
+        return "8-bit DDR";
+    default:
+        return "reserved";
+    }
+}
+
+/* Add a line to the specifics when it fits whole (platform.md 3.11) */
+static void put_line(char *extra, size_t size, const char *line)
+{
+    size_t len = strlen(extra);
+
+    if (len + strlen(line) < size)
+        memcpy(&extra[len], line, strlen(line) + 1);
+}
+
+/* arm_clk_root: PLL1 = 24 MHz * DIV_SELECT / 2, then ARM_PODF (RM 18.7.1,
+ * 18.6.4), when PLL1 isn't bypassed and the core isn't on the step clock */
+static uint32_t cpu_hz(void)
+{
+    uint32_t pll = mmio_read_32(IMX6UL_CCM_ANALOG_PLL_ARM);
+    uint32_t podf = (mmio_read_32(IMX6UL_CCM_CACRR) & CCM_CACRR_AR_PODF_MASK) + 1;
+
+    if ((mmio_read_32(IMX6UL_CCM_CCSR) & CCM_CCSR_PLL1_SW_CLK_SEL) ||
+        (pll & CCM_ANALOG_PLL_ARM_BYPASS))
+        return 0;
+
+    /* At most 24 MHz * 127: 32 bits hold it */
+    return 24000000u * (pll & CCM_ANALOG_PLL_ARM_DIV_SELECT_MASK) / (2 * podf);
+}
+
+/* mmdc_clk_root (RM 18.6.5, 18.6.6, the clock tree in 18.3): periph2, from
+ * PLL2 or one of its PFDs, or from periph2_clk2; then FABRIC_MMDC_PODF. The
+ * ROM sets it (396 MHz, PLL2's PFD2, Table 8-43) and jiffy's DCD keeps it */
+static uint32_t mmdc_hz(void)
+{
+    uint32_t cbcdr = mmio_read_32(IMX6UL_CCM_CBCDR);
+    uint32_t cbcmr = mmio_read_32(IMX6UL_CCM_CBCMR);
+    uint32_t pll2 = (mmio_read_32(IMX6UL_CCM_ANALOG_PLL_SYS) & CCM_ANALOG_PLL_SYS_DIV_SELECT)
+                        ? 528000000
+                        : 480000000;
+    uint32_t pfd = mmio_read_32(IMX6UL_CCM_ANALOG_PFD_528);
+    uint32_t frac;
+    uint32_t src;
+
+    if (cbcdr & CCM_CBCDR_PERIPH2_CLK_SEL) {
+        src = (cbcmr & CCM_CBCMR_PERIPH2_CLK2_SEL) ? 24000000 : 480000000;
+        src /= CCM_CBCDR_PERIPH2_CLK2_PODF_OF(cbcdr) + 1;
+    } else {
+        switch (CCM_CBCMR_PRE_PERIPH2_CLK_SEL_OF(cbcmr)) {
+        case 0: /* PLL2 */
+            src = pll2;
+            break;
+        case 1: /* PLL2's PFD2 */
+        case 2: /* PLL2's PFD0 */
+            frac =
+                CCM_ANALOG_PFD_FRAC_OF(pfd, CCM_CBCMR_PRE_PERIPH2_CLK_SEL_OF(cbcmr) == 1 ? 2 : 0);
+            if (frac < 12)
+                return 0;
+            /* In kHz: 528 MHz * 18 doesn't fit in 32 bits */
+            src = 528000u * 18 / frac * 1000;
+            break;
+        default: /* PLL4, the audio PLL: not read */
+            return 0;
+        }
+    }
+
+    return src / (CCM_CBCDR_FABRIC_MMDC_PODF_OF(cbcdr) + 1);
+}
+
+int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size)
+{
+    static char rev[8];
+    uint32_t digprog = mmio_read_32(IMX6UL_USB_ANALOG_DIGPROG);
+    uint32_t sbmr1 = mmio_read_32(SRC_SBMR1);
+    char line[96];
+
+    if (extra_size == 0)
+        return -PB_ERR_BUF_TOO_SMALL;
+    extra[0] = '\0';
+
+    /* 0x64 is the 6UL (RM 55.4.11); the 6ULL and 6ULZ have 0x65, as Linux
+     * and U-Boot read it, and share this port */
+    switch (DIGPROG_MAJOR_UPPER_OF(digprog)) {
+    case 0x64:
+        info->soc = "i.MX6UL";
+        break;
+    case 0x65:
+        info->soc = "i.MX6ULL";
+        break;
+    default:
+        info->soc = "unknown";
+        break;
+    }
+
+    (void)snprintf(rev,
+                   sizeof(rev),
+                   "%u.%u",
+                   (unsigned int)DIGPROG_MAJOR_LOWER_OF(digprog) + 1,
+                   (unsigned int)DIGPROG_MINOR_OF(digprog));
+    info->rev = rev;
+    info->cpu_hz = cpu_hz();
+    info->mem_hz = mmdc_hz();
+
+    (void)snprintf(line, sizeof(line), "Speed grade %u\n", (unsigned int)plat.speed_grade);
+    put_line(extra, extra_size, line);
+
+    (void)snprintf(line,
+                   sizeof(line),
+                   "Boot config: SBMR1 0x%08x, SBMR2 0x%08x, fuses 0x450 0x%08x\n",
+                   (unsigned int)sbmr1,
+                   (unsigned int)mmio_read_32(SRC_SBMR2),
+                   (unsigned int)mmio_read_32(OCOTP_BOOT_CFG0));
+    put_line(extra, extra_size, line);
+
+    (void)snprintf(line,
+                   sizeof(line),
+                   "ROM eMMC boot: %s, %s, %s speed, %s boot\n",
+                   (sbmr1 & IMX6UL_BOOT_CFG_MMC) ? "MMC" : "SD",
+                   boot_bus_width_str(sbmr1),
+                   (sbmr1 & IMX6UL_BOOT_CFG_MMC_HIGH_SPEED) ? "high" : "normal",
+                   (sbmr1 & IMX6UL_BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
+    put_line(extra, extra_size, line);
+
+    return PB_OK;
 }

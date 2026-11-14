@@ -88,93 +88,115 @@
 #define CCM_ANALOG_PLL_ARM_DIV_SELECT(x) \
     ((x << CCM_ANALOG_PLL_ARM_DIV_SELECT_SHIFT) & CCM_ANALOG_PLL_ARM_DIV_SELECT_MASK)
 
-#define IMX6UL_CCM_ANALOG_PLL_USB1      (0x020C8010)
-#define CCM_ANALOG_PLL_USB1_LOCK        BIT(31)
-#define CCM_ANALOG_PLL_USB1_BYPASS      BIT(16)
-#define CCM_ANALOG_PLL_USB1_ENABLE      BIT(13)
-#define CCM_ANALOG_PLL_USB1_POWER       BIT(12)
-#define CCM_ANALOG_PLL_USB1_EN_USB_CLKS BIT(6)
+/* The clocks plat_get_info() reads (RM 18.6, 18.7). mmdc_clk_root is
+ * periph2's: CBCMR's PRE_PERIPH2_CLK_SEL or CBCDR's PERIPH2_CLK2, then
+ * FABRIC_MMDC_PODF */
+#define IMX6UL_CCM_CBCDR                    (0x020C4014)
+#define CCM_CBCDR_PERIPH2_CLK_SEL           BIT(26)
+#define CCM_CBCDR_FABRIC_MMDC_PODF_OF(r)    (((r) >> 3) & 0x7)
+#define CCM_CBCDR_PERIPH2_CLK2_PODF_OF(r)   ((r) & 0x7)
+#define IMX6UL_CCM_CBCMR                    (0x020C4018)
+#define CCM_CBCMR_PRE_PERIPH2_CLK_SEL_OF(r) (((r) >> 21) & 0x3)
+#define CCM_CBCMR_PERIPH2_CLK2_SEL          BIT(20)
+#define IMX6UL_CCM_ANALOG_PLL_SYS           (0x020C8030)
+#define CCM_ANALOG_PLL_SYS_DIV_SELECT       BIT(0) /* 0: 480 MHz, 1: 528 MHz */
+#define IMX6UL_CCM_ANALOG_PFD_528           (0x020C8100)
+#define CCM_ANALOG_PFD_FRAC_OF(r, n)        (((r) >> (8 * (n))) & 0x3f) /* 528 MHz * 18 / FRAC */
+
+/* The chip's type and revision (RM 55.4.11): MAJOR_UPPER 0x64 is the 6UL,
+ * MAJOR_LOWER the major revision less one, MINOR the minor one */
+#define IMX6UL_USB_ANALOG_DIGPROG           (0x020C8260)
+#define DIGPROG_MAJOR_UPPER_OF(r)           (((r) >> 16) & 0xff)
+#define DIGPROG_MAJOR_LOWER_OF(r)           (((r) >> 8) & 0xff)
+#define DIGPROG_MINOR_OF(r)                 ((r) & 0xff)
+
+#define IMX6UL_CCM_ANALOG_PLL_USB1          (0x020C8010)
+#define CCM_ANALOG_PLL_USB1_LOCK            BIT(31)
+#define CCM_ANALOG_PLL_USB1_BYPASS          BIT(16)
+#define CCM_ANALOG_PLL_USB1_ENABLE          BIT(13)
+#define CCM_ANALOG_PLL_USB1_POWER           BIT(12)
+#define CCM_ANALOG_PLL_USB1_EN_USB_CLKS     BIT(6)
 
 /* Clock gating */
-#define CG0                             (3 << 0)
-#define CG1                             (3 << 2)
-#define CG2                             (3 << 4)
-#define CG3                             (3 << 6)
-#define CG4                             (3 << 8)
-#define CG5                             (3 << 10)
-#define CG6                             (3 << 12)
-#define CG7                             (3 << 14)
-#define CG8                             (3 << 16)
-#define CG9                             (3 << 18)
-#define CG10                            (3 << 20)
-#define CG11                            (3 << 22)
-#define CG12                            (3 << 24)
-#define CG13                            (3 << 26)
-#define CG14                            (3 << 28)
-#define CG15                            (3 << 30)
+#define CG0                                 (3 << 0)
+#define CG1                                 (3 << 2)
+#define CG2                                 (3 << 4)
+#define CG3                                 (3 << 6)
+#define CG4                                 (3 << 8)
+#define CG5                                 (3 << 10)
+#define CG6                                 (3 << 12)
+#define CG7                                 (3 << 14)
+#define CG8                                 (3 << 16)
+#define CG9                                 (3 << 18)
+#define CG10                                (3 << 20)
+#define CG11                                (3 << 22)
+#define CG12                                (3 << 24)
+#define CG13                                (3 << 26)
+#define CG14                                (3 << 28)
+#define CG15                                (3 << 30)
 
-#define IMX6UL_CCM_CCGR0                (0x020C4068)
-#define CCM_CCGR0_GPIO2                 CG15
-#define CCM_CCGR0_UART2                 CG14
-#define CCM_CCGR0_GPT2                  CG13
-#define CCM_CCGR0_DCIC1                 CG12
-#define CCM_CCGR0_CPU_DEBUG             CG11
-#define CCM_CCGR0_CAN2_SERIAL           CG10
-#define CCM_CCGR0_CAN2                  CG9
-#define CCM_CCGR0_CAN1_SERIAL           CG8
-#define CCM_CCGR0_CAN1                  CG7
-#define CCM_CCGR0_CAAM_IPG              CG6
-#define CCM_CCGR0_CAAM_ACLK             CG5
-#define CCM_CCGR0_SMEM                  CG4
-#define CCM_CCGR0_APBHDMA_HCLK          CG2
-#define CCM_CCGR0_AIPS2_TZ2             CG1
-#define CCM_CCGR0_AIPS_TZ1              CG0
+#define IMX6UL_CCM_CCGR0                    (0x020C4068)
+#define CCM_CCGR0_GPIO2                     CG15
+#define CCM_CCGR0_UART2                     CG14
+#define CCM_CCGR0_GPT2                      CG13
+#define CCM_CCGR0_DCIC1                     CG12
+#define CCM_CCGR0_CPU_DEBUG                 CG11
+#define CCM_CCGR0_CAN2_SERIAL               CG10
+#define CCM_CCGR0_CAN2                      CG9
+#define CCM_CCGR0_CAN1_SERIAL               CG8
+#define CCM_CCGR0_CAN1                      CG7
+#define CCM_CCGR0_CAAM_IPG                  CG6
+#define CCM_CCGR0_CAAM_ACLK                 CG5
+#define CCM_CCGR0_SMEM                      CG4
+#define CCM_CCGR0_APBHDMA_HCLK              CG2
+#define CCM_CCGR0_AIPS2_TZ2                 CG1
+#define CCM_CCGR0_AIPS_TZ1                  CG0
 
-#define IMX6UL_CCM_CCGR1                (0x020C406C)
-#define IMX6UL_CCM_CCGR2                (0x020C4070)
+#define IMX6UL_CCM_CCGR1                    (0x020C406C)
+#define IMX6UL_CCM_CCGR2                    (0x020C4070)
 
-#define IMX6UL_CCM_CCGR3                (0x020C4074)
-#define CCM_CCGR3_AXI                   CG14
-#define CCM_CCGR3_MMDC_CORE_IPG_CLK_P1  CG13
-#define CCM_CCGR3_MMDC_CORE_IPG_CLK_P2  CG12
-#define CCM_CCGR3_MMDC_CORE_ACLK        CG10
-#define CCM_CCGR3_A7_DIVCLK_PATCH_CLK   CG9
-#define CCM_CCGR3_WDOG1                 CG8
-#define CCM_CCGR3_QSPI1                 CG7
-#define CCM_CCGR3_GPIO4                 CG6
-#define CCM_CCGR3_LCDIF_PIX_CLK         CG5
-#define CCM_CCGR3_CA7_CCM_DAP           CG4
-#define CCM_CCGR3_UART6                 CG3
-#define CCM_CCGR3_ENET                  CG2
-#define CCM_CCGR3_UART5                 CG1
+#define IMX6UL_CCM_CCGR3                    (0x020C4074)
+#define CCM_CCGR3_AXI                       CG14
+#define CCM_CCGR3_MMDC_CORE_IPG_CLK_P1      CG13
+#define CCM_CCGR3_MMDC_CORE_IPG_CLK_P2      CG12
+#define CCM_CCGR3_MMDC_CORE_ACLK            CG10
+#define CCM_CCGR3_A7_DIVCLK_PATCH_CLK       CG9
+#define CCM_CCGR3_WDOG1                     CG8
+#define CCM_CCGR3_QSPI1                     CG7
+#define CCM_CCGR3_GPIO4                     CG6
+#define CCM_CCGR3_LCDIF_PIX_CLK             CG5
+#define CCM_CCGR3_CA7_CCM_DAP               CG4
+#define CCM_CCGR3_UART6                     CG3
+#define CCM_CCGR3_ENET                      CG2
+#define CCM_CCGR3_UART5                     CG1
 
-#define IMX6UL_CCM_CCGR4                (0x020C4078)
-#define CCM_CCGR4_NAND_1                CG15
-#define CCM_CCGR4_NAND_2                CG14
-#define CCM_CCGR4_NAND_3                CG13
-#define CCM_CCGR4_NAND_4                CG12
-#define CCM_CCGR4_PWM4                  CG11
-#define CCM_CCGR4_PWM3                  CG10
-#define CCM_CCGR4_PWM2                  CG9
-#define CCM_CCGR4_PWM1                  CG8
+#define IMX6UL_CCM_CCGR4                    (0x020C4078)
+#define CCM_CCGR4_NAND_1                    CG15
+#define CCM_CCGR4_NAND_2                    CG14
+#define CCM_CCGR4_NAND_3                    CG13
+#define CCM_CCGR4_NAND_4                    CG12
+#define CCM_CCGR4_PWM4                      CG11
+#define CCM_CCGR4_PWM3                      CG10
+#define CCM_CCGR4_PWM2                      CG9
+#define CCM_CCGR4_PWM1                      CG8
 
-#define IMX6UL_CCM_CCGR5                (0x020C407C)
-#define CCM_CCGR5_WDOG2                 CG5
+#define IMX6UL_CCM_CCGR5                    (0x020C407C)
+#define CCM_CCGR5_WDOG2                     CG5
 
-#define IMX6UL_CCM_CCGR6                (0x020C4080)
-#define CCM_CCGR6_PWM7                  CG15
-#define CCM_CCGR6_PWM6                  CG14
-#define CCM_CCGR6_PWM5                  CG13
-#define CCM_CCGR6_I2C4                  CG12
-#define CCM_CCGR6_ANADIG                CG11
-#define CCM_CCGR6_WDOG3                 CG10
-#define CCM_CCGR6_PWM8                  CG8
-#define CCM_CCGR6_UART8                 CG7
-#define CCM_CCGR6_EIM_SLOW              CG5
-#define CCM_CCGR6_SIM2                  CG4
-#define CCM_CCGR6_SIM1                  CG3
-#define CCM_CCGR6_USDHC2                CG2
-#define CCM_CCGR6_USDHC1                CG1
-#define CCM_CCGR6_USBOH3                CG0
+#define IMX6UL_CCM_CCGR6                    (0x020C4080)
+#define CCM_CCGR6_PWM7                      CG15
+#define CCM_CCGR6_PWM6                      CG14
+#define CCM_CCGR6_PWM5                      CG13
+#define CCM_CCGR6_I2C4                      CG12
+#define CCM_CCGR6_ANADIG                    CG11
+#define CCM_CCGR6_WDOG3                     CG10
+#define CCM_CCGR6_PWM8                      CG8
+#define CCM_CCGR6_UART8                     CG7
+#define CCM_CCGR6_EIM_SLOW                  CG5
+#define CCM_CCGR6_SIM2                      CG4
+#define CCM_CCGR6_SIM1                      CG3
+#define CCM_CCGR6_USDHC2                    CG2
+#define CCM_CCGR6_USDHC1                    CG1
+#define CCM_CCGR6_USBOH3                    CG0
 
 #endif
