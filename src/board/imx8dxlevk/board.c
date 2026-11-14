@@ -9,6 +9,7 @@
 
 #include <arch/arch_helpers.h>
 #include <arch/armv8a/timer.h>
+#include <board/password.h>
 #include <boot/ab_state.h>
 #include <boot/atf.h>
 #include <boot/boot.h>
@@ -171,23 +172,23 @@ static int board_password_auth(const char *password, size_t length)
      * A real implementation should use some kind of OTP storage for a
      * device unique password that's not easily accesible.
      * For example RPMB if there is an eMMC present.
+     *
+     * The whole password is compared, in constant time, and not logged
+     * (board.md 4.5).
      */
-    LOG_DBG("Got password '%s', length = %zu", password, length);
+    static const char expected[] = "imx8qxpmek";
 
-    if (strncmp("imx8qxpmek", password, length) == 0 && length > 0)
-        return PB_OK;
-    else
-        return -PB_ERR_AUTHENTICATION_FAILED;
+    return board_password_check(expected, sizeof(expected) - 1, password, length);
 }
 
 /*
  * Warning: an example configuration. Be careful with the slc commands.
  * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
  * is signed with, then these: boot from the eMMC on uSDHC0, fast boot, high
- * speed, 8-bit DDR.
+ * speed, 8-bit DDR, also with the boot pins at "boot from fuses" (BT_FUSE_SEL).
  */
 static const struct slc_fuse config_fuses[] = {
-    { IMX8X_FUSE_BOOT0, IMX8X_BOOT0_EMMC0 },
+    { IMX8X_FUSE_BOOT0, IMX8X_BOOT0_FUSE_SEL | IMX8X_BOOT0_EMMC0 },
     { IMX8X_FUSE_BOOT1,
       IMX8X_BOOT1_FAST | IMX8X_BOOT1_MMC_HS | IMX8X_BOOT1_BUS(IMX8X_BUS_8BIT_DDR) },
 };
@@ -252,10 +253,14 @@ static const struct rot_config rot = {
     .read_key_status = imx8x_read_key_status,
 };
 
+/*
+ * No set_configuration_locked: the build can't sign pb yet (makefile.mk,
+ * imx8xl_sign_image), and a closed DXL would refuse the only image there
+ * is. 'slc lock' answers NOT_SUPPORTED until signing exists (F-212).
+ */
 static const struct slc_config slc = {
     .read_status = imx8x_slc_read_status,
     .set_configuration = imx8x_slc_set_configuration,
-    .set_configuration_locked = imx8x_slc_set_configuration_locked,
     .fuses = config_fuses,
     .fuses_length = ARRAY_SIZE(config_fuses),
     .fuse_read = imx8x_fuse_read,
