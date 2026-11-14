@@ -119,7 +119,12 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   on the bench) as unknown. Not read: a blank IVT at the NOR's start, the sign of a ROM that fell
   back to the serial downloader by itself (F-251).
 - **Tick**: GPT1 on the 6UL, 8M and RT, GPT0 through the SCFW on the 8X. The 6UL's and the RT's
-  run from the 24 MHz crystal (F-084, F-238).
+  run from the 24 MHz crystal (F-084, F-238). `plat_early_init()` opens GPT1's gates before it
+  starts the timer, on the 8M as on the 6UL and the RT (F-416). On the RT they are open out of
+  reset (CCGR1 resets to FFFF_FFFFh, RT RM 14.7.22) and the ROM leaves them open (Table 9-6 lists
+  neither CG10 nor CG11); on the 6UL they are CCGR1's CG10 and CG11 (Linux's `clk-imx6ul.c`), open
+  out of jiffy's ROM, the 6UL RM's reset value not checked here. The writes change nothing on such
+  a board.
 - **Command mode's USB** (`plat_cm_init()`, `platform.md` 3.10). The port is a Kconfig choice,
   `<P>_CM_USB`, in the port's `Kconfig`; an option selects the USB stack, pb's class and the
   drivers its set up calls. What `plat_cm_init()` does for each, in this order, as the boards'

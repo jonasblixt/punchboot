@@ -266,6 +266,21 @@ static void test_crypto_backend_behind_its_option(void **state)
 #endif
 }
 
+/* platform.md 2.1 (F-416): GPT1's bus and serial gates (CCGR1's CG10 and
+ * CG11, RM 14.7.22) are opened before the timer is started, whatever the
+ * ROM left them at, and no other gate is changed */
+static void test_gpt1_gates_opened_before_the_timer(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMXRT_CCM_CCGR1, CG0);
+    assert_int_equal(plat_early_init(), PB_OK);
+
+    assert_int_equal(fake_regs_get(IMXRT_CCM_CCGR1), CG0 | CCGR1_GPT_BUS | CCGR1_GPT1_SERIAL);
+    assert_true(fake_regs_first_write(IMXRT_CCM_CCGR1) <
+                fake_regs_first_write(IMXRT_GPT1_BASE + GPT_CR));
+}
+
 /* platform.md 2.1, 3.2: when plat_early_init() returns the tick counts and
  * log_time_start() has been called (F-238). The tick's clock is the 24 MHz
  * crystal, divided by 8 and by 3 (RM 52.3.3, 52.6.1.2, 52.6.1.3): perclk,
@@ -575,6 +590,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_init, setup),
+        cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_rom_log_missing, setup),

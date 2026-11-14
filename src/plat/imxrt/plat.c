@@ -105,7 +105,10 @@ int plat_early_init(void)
         IMXRT_CCM_CSCDR1, CSCDR1_UART_PODF_MASK | CSCDR1_UART_CLK_SEL, CSCDR1_UART_PODF(3));
 
     /* Configure systick. From the 24 MHz crystal: perclk, the GPT's other
-     * source, changes its rate when plat_init() sets the ARM PLL */
+     * source, changes its rate when plat_init() sets the ARM PLL. GPT1's
+     * gates are open out of reset and the ROM (RM 14.7.22, Table 9-6),
+     * opened here so nothing rests on it (F-416) */
+    mmio_clrsetbits_32(IMXRT_CCM_CCGR1, 0, CCGR1_GPT_BUS | CCGR1_GPT1_SERIAL);
     imx_gpt_init_24m(IMXRT_GPT1_BASE);
     log_time_start();
     return PB_OK;
