@@ -245,15 +245,23 @@ class Recorder:
             other.sendall(data)
         return True
 
+    def _reply(self) -> Any:  # noqa: ANN401
+        """Return the proxy's answer, or fail when it is stuck (F-067)."""
+        if not self._control.poll(TIMEOUT):
+            self._process.kill()
+            msg = "The recording proxy doesn't answer"
+            raise TimeoutError(msg)
+        return self._control.recv()
+
     def step(self, name: str) -> None:
         """Start a new step. Everything sent from now on belongs to it."""
         self._control.send(("step", name))
-        self._control.recv()
+        self._reply()
 
     def steps(self) -> list[Step]:
         """Stop recording and return the steps."""
         self._control.send(("done",))
-        steps: list[Step] = self._control.recv()
+        steps: list[Step] = self._reply()
         self._process.join(timeout=TIMEOUT)
         self._process.kill()
         return steps
