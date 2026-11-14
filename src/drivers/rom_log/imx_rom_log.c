@@ -27,6 +27,10 @@ enum rom_log_param {
     P_AUTH, /* A word, bits 7:0 are 0xf0 if the image passed */
     P_TICK, /* A word, the time (the unit isn't documented) */
     P_VERSION, /* No word: bits 7:0 of the event word are a version */
+    /* A tick the ROM logs only sometimes, last: a word whose bits 31:24,
+     * where an event has its ID, are 0. The 8MQ's authentication has one
+     * when it boots from a device, none in serial download */
+    P_TICK_OPT,
 };
 
 #define ROM_LOG_MAX_PARAMS 2
@@ -148,9 +152,10 @@ static const struct rom_log_event events_v2[] = {
 };
 
 /* The i.MX8MQ's ROM, where it isn't the 8M Plus's (read on the pico8ml):
- * authentication's result without a tick */
+ * authentication's tick only when it boots from a device, not in serial
+ * download */
 static const struct rom_log_event events_v2_8mq[] = {
-    EV1(0xa0, "Authentication", P_AUTH),
+    EV2(0xa0, "Authentication", P_AUTH, P_TICK_OPT),
 };
 
 struct rom_log_defs {
@@ -244,13 +249,21 @@ static const struct rom_log_event *find_event(const struct rom_log_defs *defs, u
 #define ROM_LOG_LINE_MAX 128
 
 /* Parameter words that follow an event */
-static size_t param_words(const struct rom_log_event *ev)
+/* The words of the event at log[idx]'s parameters */
+static size_t
+param_words(const struct rom_log_event *ev, const uint32_t *log, size_t idx, size_t n_words)
 {
     size_t n = 0;
 
     for (size_t i = 0; i < ROM_LOG_MAX_PARAMS; i++) {
-        if (ev->params[i] != P_NONE && ev->params[i] != P_VERSION)
+        if (ev->params[i] == P_TICK_OPT) {
+            size_t w = idx + 1 + n;
+
+            if (w < n_words && (log[w] & GENMASK_32(31, 24)) == 0)
+                n++;
+        } else if (ev->params[i] != P_NONE && ev->params[i] != P_VERSION) {
             n++;
+        }
     }
 
     return n;
@@ -268,6 +281,7 @@ static size_t print_param(char *out, enum rom_log_param p, uint32_t value, bool 
         return snprintf(
             out, ROM_LOG_LINE_MAX / 2, "%s%s", sep, ((value & 0xff) == 0xf0) ? "pass" : "fail");
     case P_TICK:
+    case P_TICK_OPT:
         return snprintf(out, ROM_LOG_LINE_MAX / 2, "%stick %u", sep, value);
     case P_VERSION:
         return snprintf(out, ROM_LOG_LINE_MAX / 2, "%s%u", sep, value & 0xff);
@@ -286,7 +300,7 @@ static size_t print_event(char *line,
 {
     /* No field widths in the firmware snprintf */
     const char *pad = (idx < 10) ? " " : "";
-    size_t n_params = (ev != NULL) ? param_words(ev) : 0;
+    size_t n_params = (ev != NULL) ? param_words(ev, log, idx, n_words) : 0;
     size_t pos;
 
     if (ev == NULL) {
@@ -318,6 +332,9 @@ static size_t print_event(char *line,
         &line[pos], ROM_LOG_LINE_MAX - pos, (n_params == 0) ? "           %s" : "  %s", ev->name);
 
     for (size_t i = 0, word = 1; i < ROM_LOG_MAX_PARAMS && ev->params[i] != P_NONE; i++) {
+        if (ev->params[i] == P_TICK_OPT && word > n_params)
+            break;
+
         uint32_t value = (ev->params[i] == P_VERSION) ? log[idx] : log[idx + word++];
 
         /* "name: value", or "name: state, value" when the name has a state */
@@ -466,7 +483,7 @@ bool imx_rom_log_find(unsigned int version, const uint32_t *log, size_t n_words,
         if (event_id(defs, log[i]) == event)
             return true;
         if (ev != NULL)
-            i += param_words(ev); /* Skip the parameters */
+            i += param_words(ev, log, i, n_words); /* Skip the parameters */
     }
 
     return false;

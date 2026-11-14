@@ -897,6 +897,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | started its "eMMC boot0" at block 66. 2026-11-15: the pico8ml's BOOT0 got 33 KiB of zeros and | | |
 | | | `pb_signed.imx` by hand. Fix: an 8MQ image with the offset, or the boards' boot partitions | | |
 | | | starting at 33 KiB | | |
+| | | 2026-11-15: so written, the closed pico8ml boots from its eMMC: the ROM reads at 0x40 and 0x50 | | |
+| | | of the image, authentication passes, the jump to 0x7e1000 | | |
 
 ## Dependencies / vendored code
 
