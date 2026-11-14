@@ -14,6 +14,9 @@ config PLAT_CRYPTO_ENGINE
 config PLAT_IMX8X_COMMON
     bool
     select PLAT_CRYPTO_ENGINE
+    select HAVE_IMX_CAAM
+    select HAVE_IMX_LPUART
+    select HAVE_IMX_CI_UDC
 
 # Shared by the i.MX8M SoCs: platform code in src/plat/imx8m, DDR drivers
 config PLAT_IMX8M_COMMON
@@ -24,6 +27,11 @@ config PLAT_IMX8M_COMMON
     select DRIVERS_TZC380
     select DRIVERS_IMX_ROM_LOG
     select DRIVERS_IMX_HAB_LOG
+    select HAVE_IMX_CAAM
+    select HAVE_IMX_OCOTP
+    select HAVE_IMX_UART
+    select HAVE_IMX_WDOG
+    select HAVE_IMX_DWC3_UDC
 
 choice PLAT
     bool "Platform"
@@ -32,6 +40,7 @@ config PLAT_IMX8X
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
     select PLAT_IMX8X_COMMON
+    select HAVE_IMX_CDNS3_UDC
 config PLAT_IMX8XL
     bool "NXP i.MX8DXL (i.MX8X)"
     depends on SOC_FAMILY_IMX
@@ -55,12 +64,21 @@ config PLAT_IMX6UL
     select DRIVERS_TZC380
     select DRIVERS_IMX_ROM_LOG
     select DRIVERS_IMX_HAB_LOG
+    select HAVE_IMX_CAAM
+    select HAVE_IMX_OCOTP
+    select HAVE_IMX_UART
+    select HAVE_IMX_WDOG
+    select HAVE_IMX_CI_UDC
 config PLAT_IMXRT
     bool "NXP i.MX RT"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7M
     select DRIVERS_IMX_HAB_LOG
     select PLAT_CRYPTO_ENGINE
+    select HAVE_IMX_OCOTP
+    select HAVE_IMX_LPUART
+    select HAVE_IMX_WDOG
+    select HAVE_IMX_CI_UDC
 
 config PLAT_HOST
     bool "Host (native Linux process, for testing)"

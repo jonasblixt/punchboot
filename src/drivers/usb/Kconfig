@@ -1,3 +1,15 @@
+# Selected by the platforms whose SoC has it (platform.md 6.1)
+# The ChipIdea controller, with the USB2 PHY and the charger detection
+config HAVE_IMX_CI_UDC
+    bool
+
+config HAVE_IMX_CDNS3_UDC
+    bool
+
+# The DWC3 controller with the i.MX8M's PHY
+config HAVE_IMX_DWC3_UDC
+    bool
+
 menu "USB"
 
 config DRIVER_USB_DEVICE
@@ -11,12 +23,12 @@ config DRIVER_USB_PB_CLS
 
 config DRIVER_IMX_USB2_PHY
     bool "i.MX USB2 PHY"
-    depends on SOC_FAMILY_IMX
+    depends on HAVE_IMX_CI_UDC
     default y
 
 config DRIVER_IMX_CI_UDC
     bool "i.MX ChipIdea device controller"
-    depends on SOC_FAMILY_IMX
+    depends on HAVE_IMX_CI_UDC
     depends on DRIVER_USB_DEVICE
     # Command mode's transport: its descriptors are sized by CM_BUF_SIZE_KiB
     depends on CM
@@ -24,19 +36,19 @@ config DRIVER_IMX_CI_UDC
 
 config DRIVER_IMX_USBDCD
     bool "i.MX USB charger detection"
-    depends on SOC_FAMILY_IMX
+    depends on HAVE_IMX_CI_UDC
     depends on DRIVER_USB_DEVICE
 
 config DRIVER_IMX_CDNS3_UDC
     bool "i.MX Cadence USB3 device controller"
-    depends on SOC_FAMILY_IMX
+    depends on HAVE_IMX_CDNS3_UDC
 
 config DRIVER_IMX_DWC3_UDC
     bool "i.MX DWC3 device controller"
-    depends on SOC_FAMILY_IMX
+    depends on HAVE_IMX_DWC3_UDC
 
 config DRIVER_IMX8M_PHY
     bool "i.MX8M USB PHY"
-    depends on SOC_FAMILY_IMX
+    depends on HAVE_IMX_DWC3_UDC
 
 endmenu

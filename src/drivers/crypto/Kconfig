@@ -1,9 +1,14 @@
+# Selected by the platforms whose SoC has it (platform.md 6.1)
+config HAVE_IMX_CAAM
+    bool
+
 menu "Crypto"
 
 config DRIVERS_IMX_CAAM
     bool "i.MX CAAM"
-    depends on SOC_FAMILY_IMX
+    depends on HAVE_IMX_CAAM
     default y
+    select LIB_DER_HELPERS
     help
         The i.MX crypto engine: hashes, signature verification and the
         RNG, set up in plat_init() (crypto.md).

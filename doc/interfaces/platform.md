@@ -677,6 +677,10 @@ Not the platform's to declare:
 - `choice PLAT` in `src/plat/Kconfig`: one symbol per platform or variant, depending on its arch
   (`ARCH_ARMV7`, `ARCH_ARMV8`, `ARCH_ARMV7M`) and the vendor's `SOC_FAMILY_*`; a family's common
   symbol selects its drivers.
+- What the SoC has: a platform selects a hidden `HAVE_<driver>` for each SoC block a driver
+  serves (`HAVE_IMX_CAAM`, `HAVE_IMX_CI_UDC`), and the driver's option depends on it, so
+  menuconfig offers only the drivers the SoC can use. The board's defconfig turns them on. A
+  driver that every SoC of the family has depends on `SOC_FAMILY_*` alone.
 - `src/plat/<p>/Kconfig`: the platform's options, among them the image stages' (6.2).
 - `src/plat/<p>/Kconfig.cm`: the choice of command mode's USB port (3.10), shown in the Command
   mode menu.

@@ -1,3 +1,7 @@
+# Selected by the platforms whose SoC has it (platform.md 6.1)
+config HAVE_IMX_OCOTP
+    bool
+
 menu "Fuses"
 
 config DRIVERS_FUSE_TEST
@@ -7,7 +11,7 @@ config DRIVERS_FUSE_TEST
 
 config DRIVERS_FUSE_IMX_OCOTP
     bool "i.MX OCOTP"
-    depends on SOC_FAMILY_IMX
+    depends on HAVE_IMX_OCOTP
 
 config IMX_OCOTP_DEBUG
     bool "Debug output"
