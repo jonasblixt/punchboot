@@ -38,7 +38,7 @@ bump is for the porting API. Each item's history is in `log/`.
 ## Next steps
 
 0. **Resume here (2026-11-14): `log/2026-11-14.md`, "A fresh batch of findings"**: six
-   packages landed, verified at `bb91c1da`, nothing of it on a board; its bench order is in the
+   packages landed, verified at `bb91c1da`, a second round (tidy, the conformance suite, the transport, the MMU's two regions) at `ec043c92`, nothing of it on a board; its bench order is in the
    entry (USB on all four first, the MEK with 2 GiB mapped, F-436). Builds and tests run one at a
    time with `PB_JOBS=6` (load under 8, Jonas). Before it, "The wrap-up" and "The parked
    branches", verified at `1b212d0e`. First:

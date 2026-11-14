@@ -64,6 +64,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-155 | i.MX8M Plus EVK, `30be0000.ethernet` (FEC) | The FEC's PHY (address 1, reset `gpio4 2`) doesn't answer on MDIO (`MDIO device at address 1 is missing`, `Unable to connect to phy`), with the upstream DTS. The EQOS port probes. No cable was attached. | Seen on the board | open |
 | F-156 | Linux 6.18 on the i.MX8M Plus EVK, `drivers/regulator/pca9450-regulator.c` | The PCA9450 driver registers a restart handler at priority 130, above PSCI's 129, that sends the PMIC SW_RST 0x14 (a cold reset). Every `reboot` and every panic restart (`panic=5`) power cycles the DRAM and loses ramoops, whatever `reboot=` says; pb's `log linux` then shows an older record. Only a watchdog reset (WDOG_B, warm with `nxp,wdog_b-warm-reset` in the test bench DTS) keeps it: a hang, which panics Linux on the watchdog pretimeout 2 s before the reset. Not pb. jiffy has no PMIC handler and keeps it on every path. | Verified (EVK, pb fill/check and Linux pstore) | open: a test bench kernel patch that lowers the handler below PSCI, or a product DTS/board that doesn't need it |
 | F-158 | `src/plat/{imx6ul,imx8m,imx8x}/plat.c` `plat_mmu_init` | `rw_nox` maps `[_zero_region_start, _no_init_end)` as one RW Normal region, which assumes `ram` and `buffers` are next to each other. On the 8MP that's 0x944000..0x40885000, about 1 GiB: unpopulated address space as Normal memory (speculative accesses allowed), the AIPS/GIC/DDRC windows (they still get Device attributes only because the innermost region wins) and a partial overlap with the static OCRAM entry, which `mmap_add_region` would reject with `ENABLE_ASSERTIONS`. On jiffy and the 8X the gap is DRAM. | Verified (code, 8MP map) | open: map `ram` and `buffers` as two regions |
+| | | 2026-11-14 (`c799ee6a`, `be241586`, `37876434`, `ec043c92`): the 6UL, 8M and 8X map the rest of pb | |
+| | | (`[_zero_region_start, _pb_end)`) and the buffers as two regions and the board's DRAM as one, where | |
+| | | the span and "the rest of the RAM" were. The 8MP's map no longer has the address space from the | |
+| | | OCRAM to the DRAM (its old map trips xlat_tables' partial overlap assertion on the host); jiffy maps | |
+| | | the DRAM's first page; the 8X's effective map is the same. AIPS4 on the 8M is mapped whole (only the | |
+| | | 8MP's HSIO was). 5 to 10 tables of 32, 10 to 15 regions of 32. Reviewed; not run on a board. Left: | |
+| | | `pb_mmu_init()` (5.2's marker), with F-269. New from the review: F-437 | |
 | F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | partly fixed |
 | | | platform: the 6UL locks only from CONFIGURATION, the 8X from any state. No | | |
 | | | platform reads the fuses back after writing them. The rules belong in | | |
@@ -187,6 +194,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | return OK without a call to the SECO (the MEK's defconfig has it on); `choice BOARD` and | | |
 | | | `IMXRT_FLASH` are gone. `ARMV8_EL3` stays, four defconfigs set it. Left: the 8X boards' answer to an | | |
 | | | unknown command, GPT tables that can't align partitions, the 8X `early_boot()` ignoring SCU results | | |
+| | | 2026-11-14 (`4f5b5dda`): the 8X's `plat_early_init()` checks the SCFW's answers for GPT0's power and | |
+| | | rate and resets on a refusal (a refused rate set GPT0 up with the answer's word); the channel's open | |
+| | | is checked (it can't fail). The boards' `early_boot()` has nothing left: the boot type is F-251's, | |
+| | | the button's status has no result. Left: the 8X boards' answer to an unknown command, GPT tables | |
+| | | that can't align partitions | |
 | F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
 | | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
 | | | command's. Several error paths leave transfers unread the same way. | | |
@@ -362,6 +374,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `struct board`, a list of `PB_MAP_DEVICE`, `PB_MAP_MEMORY_RO` and `PB_MAP_MEMORY_RW` regions | | |
 | | | (`include/pb/mmu.h`), mapped by `pb_mmu_init()`, which refuses a region that overlaps pb, the | | |
 | | | board's DRAM or a region of the platform's; the two numbers become Kconfig values. With F-158 | | |
+| | | 2026-11-14: since F-158 the three `plat_mmu_init()` copies map layer 1 (the DRAM) and layer 4 alike: | |
+| | | what `pb_mmu_init()` takes over | |
 | F-280 | `src/boot/image_helpers.c` `boot_image_load_and_hash()`, the USB drivers | `boot | Reported | open |
 | | | bpak`: the device reads a part `CONFIG_BOOT_LOAD_CHUNK_kB` at a time (1 MiB on the imx8mpevk | | |
 | | | and jiffy, 4 KiB on the RT1060 with a 32 KiB buffer, 4 MiB elsewhere), hosts send it in | | |
@@ -421,6 +435,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | fails half way, the FlexSPI) | | |
 | | | 2026-11-13 (`a95356ad`): one of the GPT's 512s went with the old repair path; `gpt_pmbr[512]` and | | |
 | | | three divisions (`gpt_init_tbl()` twice, `gpt_read_backup()`) are left | | |
+| | | 2026-11-14 (`b3f58c2a`): the conformance suite has an erase (exactly the blocks, 0, outside the | |
+| | | device, or `-PB_ERR_NOT_SUPPORTED`), `write_done` after a complete write, and a write that fails | |
+| | | half way (the error, nothing outside written, usable after), with a fault hook per device. It runs | |
+| | | on the RAM disk, the host's disk and flash, the e.MMC (user area and a boot partition), the SD, the | |
+| | | uSDHC and the FlexSPI model: every one conforms. Left: the GPT's `512`s (`gpt_pmbr[512]`, three | |
+| | | divisions; for Jonas) and a read that fails, in the suite | |
 | F-286 | `src/crypto.c`, `imx_caam.c`, `mbedtls_pb.c`, the users | Crypto against | Reported (read) | open |
 | | | `crypto.md`. (1) `hash_init()` keeps the backend selected when its `init` fails, and returns | | |
 | | | `-PB_ERR_NOT_SUPPORTED` where `crypto.h` says `-PB_ERR_PARAM`. (2) The CAAM's `init` neither | | |
@@ -491,6 +511,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14 (`5d517494`): of (5), `SET_IDLE` no longer returns an error after its answer; it is still | |
 | | | answered, not stalled. Command mode's branch that keeps polling after `-PB_ERR_TIMEOUT` | |
 | | | (`cm_main.c`) is dead since `21875660`: the next poll is `-PB_ERR_STATE` and the transport restarts | |
+| | | 2026-11-14 (`aaaeb9f5`, `5914751c`, `9e26bfe7`): of (8), the socket's `init` listens and returns, | |
+| | | `connect` accepts without blocking (`-PB_ERR_AGAIN`), so the ready timeout runs on the host | |
+| | | (`test_host_socket`); of (3), the DWC3 refuses a length above 16 MiB - 1 KiB (`-PB_ERR_PARAM`, | |
+| | | static asserts on command mode's buffer and the boot's piece), the cdns3 sends one empty packet for | |
+| | | a write of 0 bytes and refuses a read of 0; of (1), command mode treats `-PB_ERR_TIMEOUT` while | |
+| | | waiting for a command as lost, the dead branch is gone. Left: a restart without a disconnect, the | |
+| | | disconnect's ignored result, the DWC3's read of 0 bytes, (2), (4), the ChipIdea's (7) (in work). Not | |
+| | | run on a board | |
 | F-310 | `doc/interfaces/bio.md`, `include/pb/bio.h` | `bio.md` describes five | Verified (code) | open |
 | | | functions of `bio.h` and doesn't name them: `bio_set_ios()` and `bio_set_ios_erase()` ("then | | |
 | | | the callbacks", 2.1), `bio_get_hal_flags()` (2.5 names the setter), | | |
@@ -693,6 +721,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | registered before the bio pool filled up stay (bio has no release), `host_disk_init()` twice, | | |
 | | | `pb_boot_state_write()` with a bad handle | | |
 | | | 2026-11-14 (`7a5c73b9`): a second `host_disk_init()` closes the first one's file | | |
+| | | 2026-11-14 (`7a898c68`): `pb_boot_state_write()` returns a bad handle's error before it looks at | |
+| | | flags. Left, for Jonas: devices registered before the bio pool filled stay; `drivers.md` 2.1 says | |
+| | | nothing stays registered, `bio.md` has no release for a driver (a porting API change): either 2.1 | |
+| | | accepts devices that answer `-PB_ERR_STATE`, as the MMC's do, or `bio.md` gets a release | |
 | F-410 | `src/drivers/crypto/caam/imx_caam.c` | From F-181's package and its review. Every buffer | Reported | open |
 | | | address is cut to 32 bits (`drivers.md` 4.2: refuse). `imx_caam_init()` empties the output ring and | | |
 | | | doesn't reset the job ring (`drivers.md` 2.1; a reset can't be tried from here). The key parser | | |
@@ -743,20 +775,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | message and fails on an answer without the id's words (the id's bytes unchanged); `testing.md` names | |
 | | | every unit program. A zero or all-ones id is still taken (refusing it takes command mode from such a | |
 | | | device: for Jonas). Left: the GPT1 gates | |
-| F-420 | `imx_flexspi.c`, `imx_ocotp.c` | From the fuse and FlexSPI package. The FlexSPI's | Reported | open |
-| | | INTR (write 1 to clear) is read, modified and written: a FIFO push or pop clears an error flag | | |
-| | | that is set. `TXWMRK`/`RXWMRK` don't shift into their field (right for 8 bytes only). Erase and | | |
-| | | write don't wait for the flash before their first command. OCOTP reads and writes before | | |
-| | | `imx_ocotp_init()` aren't `-PB_ERR_STATE`. `bio.md` 8 still says the FlexSPI has no model | | |
-| | | 2026-11-14 (`81e1534b`, `521f3641`, `4358e8cc`): a FIFO push or pop writes its own INTR bit only, | | |
-| | | the watermark macros shift into their field (the value in use, 8 bytes, is the same), a write and an | | |
-| | | erase poll the flash's status before their first command. Left: OCOTP calls before | | |
-| | | `imx_ocotp_init()`; an error during the last push or pop of a read or write is still lost; `bio.md` | | |
-| | | 8's sentence | | |
-| | | 2026-11-14 (`23946d8d`, `b82afb8a`, `e4a809d4`): OCOTP reads and writes before an init that worked | |
-| | | are `-PB_ERR_STATE`, a failed init sets nothing up; the FlexSPI checks INTR's errors after every | |
-| | | command; `bio.md` 8 names the FlexSPI's model. Left: the conformance suite on the FlexSPI model (in | |
-| | | work) | |
 | F-422 | `src/drivers/usb/usbd.c`, `imx_ci_udc.c`, `usb.md` | From the USB package, read not | Reported (read) | open |
 | | | fixed. `usb.md` 2.3 and 2.4 have `-PB_ERR_STATE` for a start while a transfer runs and for a | | |
 | | | complete with none started; `usbd.c` does neither, and no marker says so. `usbd_xfer_complete()` | | |
@@ -851,6 +869,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | alone, so the revision's split into major and minor is the other i.MX's. 2026-11-14 on the | | |
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
+| F-437 | `src/plat/imx6ul/plat.c` `imx_mmap` | The 6UL maps the OCRAM as 256 KiB from 0x900000, while its link script | Reported (review) | open |
+| | | ends the OCRAM at 0x920000 (128 KiB, the 6UL's and the 6ULL's): the 128 KiB above are mapped as Normal | | |
+| | | memory, F-158's class. Found by the review of F-158's package, unverified against the RM: read the 6UL | | |
+| | | RM's memory map (an alias of the OCRAM, or reserved), then map 128 KiB | | |
 | F-434 | `src/drivers/usb/cdns3_udc_core.c`, the MEK | `part write` of the 15 MB `boot.bpak` | Verified | fixed |
 | | | fails at `246bd897` with "Bad result magic 0xf9401421", seven times out of seven, also after a | | |
 | | | `dev reset`: the host reads the image's own bytes (offset 0x1660) where the device's result | | |
@@ -885,7 +907,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-020 | Mbed TLS pinned to 3.4.0 (EOL). The file list in `src/drivers/crypto/mbedtls/makefile.mk` is tied to that release. `mbedtls_config.h` enables MD5/BASE64/PKCS1_V21, which are unused. Corrected 2026-11-12: MD5 is used, for the device's UUID (`uuid3.c`, `crypto.md` 5); BASE64 and PKCS1_V21 unchecked. | open |
 | | 2026-11-13 (`a1c5a80f`): BASE64 and PKCS1_V21 are off; neither was compiled into a build, the | |
 | | RT1060's `pb.bin` is the same with and without. Left: the pin to 3.4.0 | |
-| F-022 | Vendored code has no version record: Kconfiglib, libfdt, libuuid, TF-A xlat_tables_v2 + libc, NXP SCFW (littlefs was removed). | open |
+| | 2026-11-14 (`7e1e5ba9`): the record is `doc/guides/vendored.md`: each component's files, upstream, |
+| | version (inferred where no file says, with the evidence), licence and local changes, with the TF-A |
+| | export headers, Mbed TLS (fetched by the container, outside the tree) and the single files from |
+| | elsewhere. The row's "never synced" was wrong for the SCFW (`ba72c499`); the libc is TF-A v2.0 and a |
+| | later `inttypes.h`. libfdt, libuuid, the xlat tables and the libc stay inferred until compared with |
+| | upstream's tags. Done |
 | | 2026-11-14, what the files and the history say (the coverage package; upstream's dates from memory): | |
 | | Kconfiglib 14.1.0 (its `VERSION`, imported `e21a6592`, since reformatted); libfdt of dtc 1.4.1 or a | |
 | | snapshot before 1.4.2 (inferred: error codes to `BADNCELLS`, no overlay code; `03a97c91`); libuuid | |
@@ -921,6 +948,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 
 | ID | Finding | Status |
 |---|---|---|
-| F-043 | No `ruff-format` hook despite the format config. mypy only runs through pre-commit.ci. There is no `_punchboot.pyi`. | open (`_punchboot.pyi` is moot since D-021) |
-| F-044 | Sphinx docs are mostly stubs, with version 1.0.0 in `conf.py`, broken header paths, and `sphinx<7`. The README test instructions are wrong (no `BOARD`). `doc/guides/release-checklist.txt` is stale. | partly fixed: Sphinx/RTD removed (D-020); README and the checklist still open |
+| | 2026-11-14 (`65dbfd0a`, `43fa4ea4`, `683e86b5`): the `ruff-format` hook, the 13 files it changed in |
+| | a commit of their own; mypy already ran as a local hook; ruff's exclusion is the top level `doc/` |
+| | only, so `tests/doc/check_docs.py` is linted and formatted (its checks unchanged on all documents). |
+| | Done |
+| | 2026-11-14 (`8c83acc7`): the README's test instructions were right since `bd4ce676`, it lists every |
+| | kind of test now; `release-checklist.txt` follows D-003 and the publishing workflow (from master, |
+| | `version.txt` in a pull request, the tag equal to it, F-228, the test record), `build-and-test.md` |
+| | says how a release is made. Done |
 | F-052 | `src/drivers/virtio/*` has no user since `plat/qemu` was removed. Verified. | open: keep for a QEMU smoke tier, or remove |

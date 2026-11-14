@@ -1396,12 +1396,28 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 0x100000000 to 0x13fffffff as Normal memory. The MEK's third GiB is at 0x880000000 (`board.c`, the | | |
 | | | test bench's device tree). Found by the build package (F-428). 2026-11-14 (`2599f9d8`): the board's | | |
 | | | DRAM is its first 2 GiB, to 4 GiB, where the image data regions already ended. Not run on a board | | |
+| F-420 | `imx_flexspi.c`, `imx_ocotp.c` | From the fuse and FlexSPI package. The FlexSPI's | Reported | fixed (`23946d8d`, `b82afb8a`, `b3f58c2a`) |
+| | | INTR (write 1 to clear) is read, modified and written: a FIFO push or pop clears an error flag | | |
+| | | that is set. `TXWMRK`/`RXWMRK` don't shift into their field (right for 8 bytes only). Erase and | | |
+| | | write don't wait for the flash before their first command. OCOTP reads and writes before | | |
+| | | `imx_ocotp_init()` aren't `-PB_ERR_STATE`. `bio.md` 8 still says the FlexSPI has no model | | |
+| | | 2026-11-14 (`81e1534b`, `521f3641`, `4358e8cc`): a FIFO push or pop writes its own INTR bit only, | | |
+| | | the watermark macros shift into their field (the value in use, 8 bytes, is the same), a write and an | | |
+| | | erase poll the flash's status before their first command. Left: OCOTP calls before | | |
+| | | `imx_ocotp_init()`; an error during the last push or pop of a read or write is still lost; `bio.md` | | |
+| | | 8's sentence | | |
+| | | 2026-11-14 (`23946d8d`, `b82afb8a`, `e4a809d4`): OCOTP reads and writes before an init that worked | |
+| | | are `-PB_ERR_STATE`, a failed init sets nothing up; the FlexSPI checks INTR's errors after every | |
+| | | command; `bio.md` 8 names the FlexSPI's model. Left: the conformance suite on the FlexSPI model (in | |
+| | | work) | |
+| | | 2026-11-14 (`b3f58c2a`): the conformance suite runs on the FlexSPI model. Done | |
 
 ## Dependencies / vendored code
 
 | ID | Finding | Status |
 |---|---|---|
 | F-021 | Vendored bpak is ~v0.9.0, the CI CLI is v0.9.3, and there is no sync procedure. | fixed 2026-11-08: both 1.0.1, `scripts/sync-bpak` (D-024) |
+| F-022 | Vendored code has no version record: Kconfiglib, libfdt, libuuid, TF-A xlat_tables_v2 + libc, NXP SCFW (littlefs was removed). | fixed (`7e1e5ba9`) |
 
 ## Dead code / cleanup
 
@@ -1445,3 +1461,5 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-041 | Wheels are never tested (no cibuildwheel `test-command`, before D-021). There are no Python unit tests. | fixed (D-021, `22c077b3`) |
 | | 2026-11-14: `tests/unit/python`, 100 pytest cases of the host tools without a device (the wire's | |
 | | packing, the error mapping, bpak detection, the CLI on a fake session), in ctest as `unit.python` | |
+| F-044 | Sphinx docs are mostly stubs, with version 1.0.0 in `conf.py`, broken header paths, and `sphinx<7`. The README test instructions are wrong (no `BOARD`). `doc/guides/release-checklist.txt` is stale. | fixed (`8c83acc7`) |
+| F-043 | No `ruff-format` hook despite the format config. mypy only runs through pre-commit.ci. There is no `_punchboot.pyi`. | fixed (`43fa4ea4`) |
