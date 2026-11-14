@@ -28,11 +28,13 @@
 
 #include "conformance/crypto_conformance.h"
 #include "crypto_vectors.h"
+#include "fakes/dcache.h"
 #include "models/bench.h"
 #include "models/caam_model.h"
 #include <bpak/keystore.h>
 #include <drivers/crypto/imx_caam.h>
 #include <pb/crypto.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <stdio.h>
 #include <string.h>
@@ -120,18 +122,6 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
     caam_model_write(addr, (uint32_t)value);
 }
 
-void arch_invalidate_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
-}
-
-void arch_clean_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
-}
-
 static const struct bpak_key *find_key(uint32_t id)
 {
     for (int i = 0; i < keystore_pb.no_of_keys; i++) {
@@ -156,6 +146,7 @@ static int group_setup(void **state)
         chunk[i] = (uint8_t)(i * 13 + 1);
 
     bench_reset();
+    dcache_reset();
     caam_model_init(&cfg);
     caam_model_earlier_stage(earlier_ring, 0);
     caam_model_trace(init_events, ARRAY_SIZE(init_events));
@@ -198,6 +189,14 @@ static int teardown(void **state)
 
     if (!caam_model_idle()) {
         print_error("The engine isn't idle after the test\n");
+        return -1;
+    }
+
+    /* Of the driver's memory an idle engine has the output ring's entry,
+     * which it writes whenever a job ends, and nothing else (drivers.md
+     * 4.2) */
+    if (dma_host_in_open() != 1) {
+        print_error("%zu ranges are the engine's after the test\n", dma_host_in_open());
         return -1;
     }
 
@@ -1182,6 +1181,8 @@ static void test_stop(void **state)
     caam_model_hang(true);
     assert_int_equal(imx_caam_stop(), -PB_ERR_TIMEOUT);
     assert_int_not_equal(caam_model_read(CAAM_JR_BASE + 0x004), 0);
+    /* The job's running context and the output ring's entry */
+    assert_int_equal(dma_host_in_open(), 2);
 
     caam_model_hang(false);
     assert_int_equal(imx_caam_stop(), PB_OK);
@@ -1191,6 +1192,8 @@ static void test_stop(void **state)
     assert_int_equal(caam_model_read(CAAM_JR_BASE + 0x00c), 0); /* IRSR */
     assert_int_equal(caam_model_read(CAAM_JR_BASE + 0x02c), 0); /* ORSR */
     assert_bench_clean();
+    /* And the engine has nothing of the driver's memory */
+    assert_int_equal(dma_host_in_open(), 0);
 
     assert_int_equal(imx_caam_stop(), PB_OK);
 

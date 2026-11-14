@@ -870,6 +870,7 @@ target_compile_definitions(test_mmc_emmc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 # e.MMC model on its bus. DMA addresses are 32 bits: -no-pie keeps the
 # buffers below 4 GiB.
 pb_unit_test(test_imx_caam SOURCES
+    ${PB_DMA_MODEL}
     ${PROJECT_SOURCE_DIR}/src/crypto.c
     ${PROJECT_SOURCE_DIR}/src/delay.c
     ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
@@ -891,10 +892,12 @@ target_include_directories(pb_caam_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(pb_caam_model PUBLIC pb_lib pb_mbedtls PkgConfig::CMOCKA)
 
 # The CAAM driver's hash and verification through the crypto API, against
-# crypto.md and the model. The rings and the descriptors hold 32 bit addresses
+# crypto.md and the model, which reads and writes RAM behind the D-cache's
+# model (drivers.md 4). The rings and the descriptors hold 32 bit addresses
 pb_unit_test(test_caam_crypto
     SOURCES
         ${PB_CRYPTO_CONFORMANCE}
+        ${PB_DMA_MODEL}
         ${PROJECT_SOURCE_DIR}/src/crypto.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
@@ -998,6 +1001,7 @@ target_include_directories(test_imx8x_helpers PRIVATE ${PROJECT_SOURCE_DIR}/incl
 # and the descriptors hold 32 bit addresses
 pb_unit_test(test_caam_lp256
     SOURCES
+        ${PB_DMA_MODEL}
         ${PROJECT_SOURCE_DIR}/src/crypto.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c

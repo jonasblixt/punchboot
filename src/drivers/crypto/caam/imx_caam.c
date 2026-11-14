@@ -43,13 +43,13 @@
 
 #include "desc_defines.h"
 #include "desc_helper.h"
-#include <arch/arch.h>
 #include <bpak/keystore.h>
 #include <drivers/crypto/imx_caam.h>
 #include <inttypes.h>
 #include <pb/crypto.h>
 #include <pb/delay.h>
 #include <pb/der_helpers.h>
+#include <pb/dma.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/utils_def.h>
@@ -149,16 +149,6 @@ struct caam_out_entry {
 };
 
 struct caam {
-    uint8_t hash_align_buf[CAAM_HASH_BLOCK_MAX_SIZE]; /* Hash input alignment buffer */
-    /* The caam hash context register 'run_ctx' hold the running digest and
-     * a 64 bit counter.
-     */
-    uint8_t run_ctx[CAAM_HASH_RCTX_MAX_LENGTH]; /* Running context for hash algs */
-    uint32_t desc[CAAM_NO_OF_DESC]; /* CAAM descriptor buffer */
-    uint8_t ecdsa_tmp_buf[CAAM_KEY_MAX_LENGTH]; /* Working buffer used by ECDSA */
-    uint8_t ecdsa_key[CAAM_KEY_MAX_LENGTH]; /* EC public key */
-    uint8_t ecdsa_r[CAAM_SIG_MAX_LENGTH / 2]; /* First part of EC signature */
-    uint8_t ecdsa_s[CAAM_SIG_MAX_LENGTH / 2]; /* Second part of EC signature */
     size_t run_ctx_len; /* Length of hash running ctx */
     size_t hash_align_buf_len; /* Bytes available in alignment buffer */
     uint32_t alg; /* Hash alg that being used */
@@ -172,10 +162,35 @@ struct caam {
     bool caam_initialized;
     bool async_hashing;
     bool job_pending; /* A job is in the ring: added, its completion not taken out */
+    bool ring_set_up; /* The engine has the rings: it writes the output's entry */
+    void *job_in; /* What that job writes besides its output ring entry */
+    size_t job_in_length;
     int hash_rc; /* What failed the hash that is open, or PB_OK */
 };
 
 static struct caam caam;
+
+/*
+ * What the engine reads and writes of the driver's own. Each owns its cache
+ * lines (drivers.md 4.2, 3 and 5), apart from the driver's state above: a
+ * store of the CPU's to the state never makes a line dirty that the engine
+ * writes (F-424, F-081).
+ */
+
+/* Hash input alignment buffer */
+PB_DMA_ARRAY(uint8_t, caam_hash_align_buf, CAAM_HASH_BLOCK_MAX_SIZE);
+/* The caam hash context register 'run_ctx' hold the running digest and a 64
+ * bit counter. The engine loads it and stores it */
+PB_DMA_ARRAY(uint8_t, caam_run_ctx, CAAM_HASH_RCTX_MAX_LENGTH);
+/* CAAM descriptor buffer */
+PB_DMA_ARRAY(uint32_t, caam_desc, CAAM_NO_OF_DESC);
+/* Working buffer used by ECDSA, which the engine writes */
+PB_DMA_ARRAY(uint8_t, caam_ecdsa_tmp_buf, CAAM_KEY_MAX_LENGTH);
+/* EC public key */
+PB_DMA_ARRAY(uint8_t, caam_ecdsa_key, CAAM_KEY_MAX_LENGTH);
+/* The two parts of an EC signature */
+PB_DMA_ARRAY(uint8_t, caam_ecdsa_r, CAAM_SIG_MAX_LENGTH / 2);
+PB_DMA_ARRAY(uint8_t, caam_ecdsa_s, CAAM_SIG_MAX_LENGTH / 2);
 
 /* The status of the job the last wait ended, from its output ring entry */
 static uint32_t caam_job_status;
@@ -183,7 +198,7 @@ static uint32_t caam_job_status;
 /* The engine stores the digest here, in a line of the driver's own, and
  * hash_final() copies it to the caller, whose buffer is often on the stack
  * (crypto.md 3.5, drivers.md 4.2 and 4.3) */
-static uint8_t caam_digest[CRYPTO_MD_MAX_SZ] __aligned(64);
+PB_DMA_ARRAY(uint8_t, caam_digest, CRYPTO_MD_MAX_SZ);
 
 /* The engine's address of [p, p + length). The rings and the descriptors
  * hold 32 bits: memory that isn't all below 4 GiB is refused, not cut
@@ -202,10 +217,6 @@ static int caam_addr(const void *p, size_t length, uint32_t *addr)
     return PB_OK;
 }
 
-/* A cache line, no smaller than the line of any core pb runs on
- * (drivers.md 4.1, PB_DMA_ALIGN) */
-#define CAAM_RING_ALIGN 64
-
 /* Input/Output job "rings", since we only support one operation at the
  * time there is only one entry.
  *
@@ -213,17 +224,29 @@ static int caam_addr(const void *p, size_t length, uint32_t *addr)
  * be executed. The CAAM writes the output entry: each entry owns its lines
  * (drivers.md 4.2, 3 and 5), so that no store of the CPU's to the driver's
  * state makes the output's line dirty while the CAAM writes it. A dirty line
- * written back over the entry reads as a completion of another descriptor */
-static struct {
-    uint32_t input __aligned(CAAM_RING_ALIGN); /* Input job */
-    struct caam_out_entry output __aligned(CAAM_RING_ALIGN); /* Output job */
-} caam_ring __aligned(CAAM_RING_ALIGN);
+ * written back over the entry reads as a completion of another descriptor
+ * (F-424) */
+PB_DMA_BUFFER(uint32_t, caam_ring_input); /* Input job */
+PB_DMA_BUFFER(struct caam_out_entry, caam_ring_output); /* Output job */
 
-static void caam_shedule_job_async(void)
+/* Adds the job of caam_desc to the ring. 'in' is what the job writes of the
+ * driver's memory besides its output ring entry, NULL for nothing: the
+ * engine's from here until caam_wait_for_job() took the job's completion
+ * out (drivers.md 4.2, 2). What the job only reads was cleaned by its
+ * caller. The output ring's entry is the engine's for as long as the ring is
+ * set up: a job an earlier user left in the engine completes into it at any
+ * time */
+static void caam_shedule_job_async(void *in, size_t in_length)
 {
-    caam_ring.input = (uint32_t)(uintptr_t)caam.desc;
-    arch_clean_cache_range((uintptr_t)&caam_ring.input, sizeof(caam_ring.input));
-    arch_clean_cache_range((uintptr_t)caam.desc, sizeof(caam.desc[0]) * ARRAY_SIZE(caam.desc));
+    caam_ring_input = (uint32_t)(uintptr_t)caam_desc;
+    dma_out(&caam_ring_input, sizeof(caam_ring_input));
+    dma_out(caam_desc, sizeof(caam_desc));
+
+    if (in != NULL)
+        dma_in_begin(in, in_length);
+
+    caam.job_in = in;
+    caam.job_in_length = in_length;
     mmio_write_32(caam.base + CAAM_IRJAR_JR, 1);
     caam.job_pending = true;
 }
@@ -249,21 +272,24 @@ static int caam_wait_for_job(void)
             }
         }
 
-        arch_invalidate_cache_range((uintptr_t)&caam_ring.output, sizeof(caam_ring.output));
+        dma_in_end(&caam_ring_output, sizeof(caam_ring_output));
 
         /* The entry says whose it is, by its descriptor, and has the job's
          * status. JRSTAR has the status of whichever job completed last. The
          * entry is taken out of the ring whatever it says, or it would
          * answer the next wait */
-        desc = caam_ring.output.desc;
-        status = caam_ring.output.status;
+        desc = caam_ring_output.desc;
+        status = caam_ring_output.status;
 
+        /* The engine writes the next entry once this one is out of the
+         * ring: the entry is the engine's again before that */
+        dma_in_begin(&caam_ring_output, sizeof(caam_ring_output));
         mmio_write_32(caam.base + CAAM_ORJRR_JR, 1);
 
         /* An entry of another descriptor isn't this job's completion: an
          * earlier user of the job ring left it. The job is still in flight,
          * and its own entry is waited for within the same time */
-        caam.job_pending = (desc != (uint32_t)(uintptr_t)&caam.desc[0]);
+        caam.job_pending = (desc != (uint32_t)(uintptr_t)&caam_desc[0]);
 
         if (caam.job_pending) {
             LOG_ERR("Completion of another descriptor, %08" PRIx32 ", status = %08" PRIx32,
@@ -272,6 +298,11 @@ static int caam_wait_for_job(void)
         }
     } while (caam.job_pending);
 
+    /* The job is done: what it wrote is the driver's to read */
+    if (caam.job_in != NULL)
+        dma_in_end(caam.job_in, caam.job_in_length);
+
+    caam.job_in = NULL;
     caam_job_status = status;
 
     if (status) {
@@ -298,9 +329,9 @@ static int caam_idle(void)
     return PB_OK;
 }
 
-static int caam_shedule_job_sync(void)
+static int caam_shedule_job_sync(void *in, size_t in_length)
 {
-    caam_shedule_job_async();
+    caam_shedule_job_async(in, in_length);
     return caam_wait_for_job();
 }
 
@@ -337,10 +368,10 @@ static int caam_ecda_verify(const uint8_t *der_signature,
         return rc;
 
     /* Nothing of the key before: the engine reads the curve's length */
-    memset(caam.ecdsa_key, 0, sizeof(caam.ecdsa_key));
+    memset(caam_ecdsa_key, 0, sizeof(caam_ecdsa_key));
 
     rc = der_ec_public_key_data(
-        der_key, key_length, caam.ecdsa_key, sizeof(caam.ecdsa_key), &key_kind);
+        der_key, key_length, caam_ecdsa_key, sizeof(caam_ecdsa_key), &key_kind);
 
     /* A curve no backend has, or a key that can't be parsed (crypto.md 4) */
     if (rc == -PB_ERR_NOT_IMPLEMENTED)
@@ -348,9 +379,9 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     if (rc != PB_OK)
         return -PB_ERR_ASN1;
 
-    memset(caam.ecdsa_tmp_buf, 0, sizeof(caam.ecdsa_tmp_buf));
-    memset(caam.ecdsa_r, 0, CAAM_SIG_MAX_LENGTH / 2);
-    memset(caam.ecdsa_s, 0, CAAM_SIG_MAX_LENGTH / 2);
+    memset(caam_ecdsa_tmp_buf, 0, sizeof(caam_ecdsa_tmp_buf));
+    memset(caam_ecdsa_r, 0, sizeof(caam_ecdsa_r));
+    memset(caam_ecdsa_s, 0, sizeof(caam_ecdsa_s));
 
     switch (key_kind) {
     case DSA_EC_SECP256r1:
@@ -369,7 +400,7 @@ static int caam_ecda_verify(const uint8_t *der_signature,
         return -PB_ERR_NOT_SUPPORTED;
     };
 
-    rc = der_ecsig_to_rs(der_signature, sig_length, caam.ecdsa_r, caam.ecdsa_s, rs_length);
+    rc = der_ecsig_to_rs(der_signature, sig_length, caam_ecdsa_r, caam_ecdsa_s, rs_length);
 
     /* An r or s larger than the curve's order is no valid signature for this
      * key, as the software backend answers it; a signature that can't be
@@ -379,28 +410,28 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     if (rc != PB_OK)
         return rc;
 
-    arch_clean_cache_range((uintptr_t)caam.ecdsa_tmp_buf, sizeof(caam.ecdsa_tmp_buf));
-    arch_clean_cache_range((uintptr_t)caam.ecdsa_key, sizeof(caam.ecdsa_key));
-    arch_clean_cache_range((uintptr_t)caam.ecdsa_r, sizeof(caam.ecdsa_r));
-    arch_clean_cache_range((uintptr_t)caam.ecdsa_s, sizeof(caam.ecdsa_s));
-    arch_clean_cache_range((uintptr_t)md, md_length);
+    /* The engine works in the temporary buffer, which the job below begins */
+    dma_out(caam_ecdsa_key, sizeof(caam_ecdsa_key));
+    dma_out(caam_ecdsa_r, sizeof(caam_ecdsa_r));
+    dma_out(caam_ecdsa_s, sizeof(caam_ecdsa_s));
+    dma_out(md, md_length);
 
-    caam.desc[dc++] = DESC_HDR(0);
+    caam_desc[dc++] = DESC_HDR(0);
     /* The PDB, the curve is one of the built-in domains */
-    caam.desc[dc++] = PDB_DSA_PD | PDB_DSA_ECDSEL(ecdsel);
-    caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_key;
-    caam.desc[dc++] = md_addr;
-    caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_r;
-    caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_s;
-    caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_tmp_buf;
-    caam.desc[dc++] = md_length;
-    caam.desc[dc++] = CMD_OP_TYPE | OP_TYPE(UNI) | PROTID(DSAVERIFY) | PROT_PK_MES_REP(HASHED) |
+    caam_desc[dc++] = PDB_DSA_PD | PDB_DSA_ECDSEL(ecdsel);
+    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_ecdsa_key;
+    caam_desc[dc++] = md_addr;
+    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_ecdsa_r;
+    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_ecdsa_s;
+    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_ecdsa_tmp_buf;
+    caam_desc[dc++] = md_length;
+    caam_desc[dc++] = CMD_OP_TYPE | OP_TYPE(UNI) | PROTID(DSAVERIFY) | PROT_PK_MES_REP(HASHED) |
                       PROT_PK_ECC;
 
     /* Start at the OPERATION command, after the PDB */
-    caam.desc[0] = DESC_HEADER_IDX(dc, dc - 1);
+    caam_desc[0] = DESC_HEADER_IDX(dc, dc - 1);
 
-    rc = caam_shedule_job_sync();
+    rc = caam_shedule_job_sync(caam_ecdsa_tmp_buf, sizeof(caam_ecdsa_tmp_buf));
 
     if (rc == PB_OK) {
         *verified = true;
@@ -491,8 +522,8 @@ static int caam_hash_init(hash_t pb_alg)
         return -PB_ERR_PARAM;
     }
 
-    memset(caam.run_ctx, 0, caam.run_ctx_len);
-    arch_clean_cache_range((uintptr_t)caam.run_ctx, caam.run_ctx_len);
+    memset(caam_run_ctx, 0, caam.run_ctx_len);
+    dma_out(caam_run_ctx, caam.run_ctx_len);
 
     return PB_OK;
 }
@@ -518,31 +549,30 @@ static int _hash_update(uint8_t *buf, size_t length)
         return err;
     }
 
-    if (length) {
-        arch_clean_cache_range((uintptr_t)buf, length);
-    }
+    dma_out(buf, length);
 
-    caam.desc[dc++] = DESC_HDR(0);
-    caam.desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH);
+    caam_desc[dc++] = DESC_HDR(0);
+    caam_desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH);
 
     if (caam.init) {
-        caam.desc[1] |= ALGO_AS(INIT);
+        caam_desc[1] |= ALGO_AS(INIT);
     } else {
-        caam.desc[1] |= ALGO_AS(UPDATE);
-        caam.desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
-        caam.desc[dc++] = (uint32_t)(uintptr_t)caam.run_ctx;
+        caam_desc[1] |= ALGO_AS(UPDATE);
+        caam_desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
+        caam_desc[dc++] = (uint32_t)(uintptr_t)caam_run_ctx;
     }
 
     caam.init = false;
 
-    caam.desc[dc++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
-    caam.desc[dc++] = addr;
-    caam.desc[dc++] = (uint32_t)length;
-    caam.desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
-    caam.desc[dc++] = (uint32_t)(uintptr_t)caam.run_ctx;
+    caam_desc[dc++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
+    caam_desc[dc++] = addr;
+    caam_desc[dc++] = (uint32_t)length;
+    caam_desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
+    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_run_ctx;
 
-    caam.desc[0] |= HDR_JD_DESCLEN(dc);
-    caam_shedule_job_async();
+    caam_desc[0] |= HDR_JD_DESCLEN(dc);
+    /* The engine loads the running context and stores it */
+    caam_shedule_job_async(caam_run_ctx, caam.run_ctx_len);
 
     if (!caam.async_hashing)
         return caam_hash_join();
@@ -571,7 +601,7 @@ static int caam_hash_input(const void *buf, size_t length, bool async)
     /* We have less then 'block_size' bytes available, fill the buffer */
     if (caam.hash_align_buf_len + bytes_to_process < caam.block_size) {
         // LOG_DBG("Fill1 %zu, %zu", caam.hash_align_buf_len, bytes_to_process);
-        memcpy(&caam.hash_align_buf[caam.hash_align_buf_len], buf_p, bytes_to_process);
+        memcpy(&caam_hash_align_buf[caam.hash_align_buf_len], buf_p, bytes_to_process);
 
         caam.hash_align_buf_len += bytes_to_process;
     } else {
@@ -582,13 +612,13 @@ static int caam_hash_input(const void *buf, size_t length, bool async)
         if (caam.hash_align_buf_len > 0) {
             bytes_to_copy = caam.block_size - caam.hash_align_buf_len;
             // LOG_DBG("Fill2 %zu, %zu", caam.hash_align_buf_len, bytes_to_copy);
-            memcpy(&caam.hash_align_buf[caam.hash_align_buf_len], buf_p, bytes_to_copy);
+            memcpy(&caam_hash_align_buf[caam.hash_align_buf_len], buf_p, bytes_to_copy);
 
             caam.hash_align_buf_len += bytes_to_copy;
             buf_p += bytes_to_copy;
             bytes_to_process -= bytes_to_copy;
 
-            rc = _hash_update(caam.hash_align_buf, caam.hash_align_buf_len);
+            rc = _hash_update(caam_hash_align_buf, caam.hash_align_buf_len);
 
             if (rc != 0)
                 return rc;
@@ -624,7 +654,7 @@ static int caam_hash_input(const void *buf, size_t length, bool async)
              *  in the alignment buffer */
             if (bytes_to_process > 0) {
                 // LOG_DBG("Fill3 %zu, %zu", caam.hash_align_buf_len, bytes_to_process);
-                memcpy(&caam.hash_align_buf[caam.hash_align_buf_len], buf_p, bytes_to_process);
+                memcpy(&caam_hash_align_buf[caam.hash_align_buf_len], buf_p, bytes_to_process);
                 caam.hash_align_buf_len += bytes_to_process;
             }
         }
@@ -672,26 +702,24 @@ static int caam_hash_final(uint8_t *output, size_t size)
     if (err != PB_OK)
         return err;
 
-    arch_clean_cache_range((uintptr_t)caam_digest, sizeof(caam_digest));
-    arch_clean_cache_range((uintptr_t)caam.hash_align_buf, caam.hash_align_buf_len);
+    dma_out(caam_hash_align_buf, caam.hash_align_buf_len);
 
-    caam.desc[dc++] = DESC_HDR(0);
-    caam.desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH) |
+    caam_desc[dc++] = DESC_HDR(0);
+    caam_desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH) |
                       ALGO_AS(FINAL);
 
-    caam.desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
-    caam.desc[dc++] = (uint32_t)(uintptr_t)caam.run_ctx;
-    caam.desc[dc++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
-    caam.desc[dc++] = (uint32_t)(uintptr_t)caam.hash_align_buf;
-    caam.desc[dc++] = (uint32_t)caam.hash_align_buf_len;
-    caam.desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, caam.digest_size);
-    caam.desc[dc++] = (uint32_t)(uintptr_t)caam_digest;
+    caam_desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
+    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_run_ctx;
+    caam_desc[dc++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
+    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_hash_align_buf;
+    caam_desc[dc++] = (uint32_t)caam.hash_align_buf_len;
+    caam_desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, caam.digest_size);
+    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_digest;
 
-    caam.desc[0] |= HDR_JD_DESCLEN(dc);
+    caam_desc[0] |= HDR_JD_DESCLEN(dc);
 
-    err = caam_shedule_job_sync();
-
-    arch_invalidate_cache_range((uintptr_t)caam_digest, sizeof(caam_digest));
+    /* The wait ends the digest's range, before the copy below */
+    err = caam_shedule_job_sync(caam_digest, sizeof(caam_digest));
 
     caam.hash_align_buf_len = 0;
 
@@ -756,25 +784,25 @@ static int caam_rng_instantiate_sh(uint32_t sh, uint32_t rdsta)
         return rc;
 
     if (rdsta & CAAM_RDSTA_IF(sh)) {
-        caam.desc[dc++] = RNG_SH_UNINST(sh);
+        caam_desc[dc++] = RNG_SH_UNINST(sh);
         /* Wait for class 1 done, then clear it for the next operation */
-        caam.desc[dc++] = JUMP_C1_LOCAL(TST_ALL_COND_TRUE, JUMP_TST_COND(NONE), 1);
-        caam.desc[dc++] = LD_NOCLASS_IMM(REG_CLEAR_WRITTEN, sizeof(uint32_t));
-        caam.desc[dc++] = 1;
+        caam_desc[dc++] = JUMP_C1_LOCAL(TST_ALL_COND_TRUE, JUMP_TST_COND(NONE), 1);
+        caam_desc[dc++] = LD_NOCLASS_IMM(REG_CLEAR_WRITTEN, sizeof(uint32_t));
+        caam_desc[dc++] = 1;
     }
 
-    caam.desc[dc++] = RNG_SH_INST_PR(sh);
+    caam_desc[dc++] = RNG_SH_INST_PR(sh);
 
     if (sh == 0 && !(rdsta & CAAM_RDSTA_SKVN)) {
-        caam.desc[dc++] = JUMP_C1_LOCAL(TST_ALL_COND_TRUE, JUMP_TST_COND(NONE), 1);
-        caam.desc[dc++] = LD_NOCLASS_IMM(REG_CLEAR_WRITTEN, sizeof(uint32_t));
-        caam.desc[dc++] = 1;
-        caam.desc[dc++] = RNG_GEN_SECKEYS;
+        caam_desc[dc++] = JUMP_C1_LOCAL(TST_ALL_COND_TRUE, JUMP_TST_COND(NONE), 1);
+        caam_desc[dc++] = LD_NOCLASS_IMM(REG_CLEAR_WRITTEN, sizeof(uint32_t));
+        caam_desc[dc++] = 1;
+        caam_desc[dc++] = RNG_GEN_SECKEYS;
     }
 
-    caam.desc[0] = DESC_HEADER(dc);
+    caam_desc[0] = DESC_HEADER(dc);
 
-    return caam_shedule_job_sync();
+    return caam_shedule_job_sync(NULL, 0);
 }
 
 int imx_caam_rng_init(uintptr_t ctrl_base)
@@ -849,6 +877,20 @@ err_out:
     return rc;
 }
 
+/* What the engine was handed is the driver's again: the rings are gone, or
+ * are set up anew */
+static void caam_take_back(void)
+{
+    if (caam.job_in != NULL)
+        dma_in_end(caam.job_in, caam.job_in_length);
+
+    if (caam.ring_set_up)
+        dma_in_end(&caam_ring_output, sizeof(caam_ring_output));
+
+    caam.job_in = NULL;
+    caam.ring_set_up = false;
+}
+
 int imx_caam_stop(void)
 {
     int rc;
@@ -870,6 +912,7 @@ int imx_caam_stop(void)
     mmio_write_32(caam.base + CAAM_IRSR_JR, 0);
     mmio_write_32(caam.base + CAAM_ORSR_JR, 0);
 
+    caam_take_back();
     caam.caam_initialized = false;
     return PB_OK;
 }
@@ -878,17 +921,36 @@ int imx_caam_init(uintptr_t base)
 {
     int rc;
 
+    /* A second init, without a stop */
+    caam_take_back();
+
     memset(&caam, 0, sizeof(caam));
     caam.base = base;
 
-    /* The rings, the descriptor and every buffer of the driver's are in
-     * these three, and the engine takes 32-bit addresses (drivers.md 4.2) */
+    /* The rings, the descriptor and every buffer of the driver's: the engine
+     * takes 32-bit addresses (drivers.md 4.2) */
+    const struct {
+        const void *p;
+        size_t length;
+    } own[] = {
+        { caam_hash_align_buf, sizeof(caam_hash_align_buf) },
+        { caam_run_ctx, sizeof(caam_run_ctx) },
+        { caam_desc, sizeof(caam_desc) },
+        { caam_ecdsa_tmp_buf, sizeof(caam_ecdsa_tmp_buf) },
+        { caam_ecdsa_key, sizeof(caam_ecdsa_key) },
+        { caam_ecdsa_r, sizeof(caam_ecdsa_r) },
+        { caam_ecdsa_s, sizeof(caam_ecdsa_s) },
+        { caam_digest, sizeof(caam_digest) },
+        { &caam_ring_input, sizeof(caam_ring_input) },
+        { &caam_ring_output, sizeof(caam_ring_output) },
+    };
+
     uint32_t addr;
 
-    if (caam_addr(&caam, sizeof(caam), &addr) != PB_OK ||
-        caam_addr(&caam_ring, sizeof(caam_ring), &addr) != PB_OK ||
-        caam_addr(caam_digest, sizeof(caam_digest), &addr) != PB_OK)
-        return -PB_ERR_PARAM;
+    for (size_t i = 0; i < ARRAY_SIZE(own); i++) {
+        if (caam_addr(own[i].p, own[i].length, &addr) != PB_OK)
+            return -PB_ERR_PARAM;
+    }
 
     uint32_t caam_version = mmio_read_32(caam.base + CAAM_CAAMVID_MS);
     caam.id = CAAM_CAAMVID_MS_IP_ID(caam_version);
@@ -900,9 +962,6 @@ int imx_caam_init(uintptr_t base)
              caam.id,
              caam.ver_maj,
              caam.ver_min);
-
-    arch_clean_cache_range((uintptr_t)&caam_ring.input, sizeof(caam_ring.input));
-    arch_clean_cache_range((uintptr_t)&caam_ring.output, sizeof(caam_ring.output));
 
     /* What an earlier user of the job ring left in its output ring (the ROM,
      * a stage before pb) is taken out first: a ring's base and size are only
@@ -917,9 +976,12 @@ int imx_caam_init(uintptr_t base)
         mmio_write_32(caam.base + CAAM_ORJRR_JR, left);
     }
 
-    /* Initialize job rings, one entry each */
-    mmio_write_32(caam.base + CAAM_IRBAR_JR_LS, (uint32_t)(uintptr_t)&caam_ring.input);
-    mmio_write_32(caam.base + CAAM_ORBAR_JR_LS, (uint32_t)(uintptr_t)&caam_ring.output);
+    /* Initialize job rings, one entry each. From here on the engine writes
+     * the output's entry */
+    dma_in_begin(&caam_ring_output, sizeof(caam_ring_output));
+    caam.ring_set_up = true;
+    mmio_write_32(caam.base + CAAM_IRBAR_JR_LS, (uint32_t)(uintptr_t)&caam_ring_input);
+    mmio_write_32(caam.base + CAAM_ORBAR_JR_LS, (uint32_t)(uintptr_t)&caam_ring_output);
     mmio_write_32(caam.base + CAAM_IRSR_JR, 1);
     mmio_write_32(caam.base + CAAM_ORSR_JR, 1);
 

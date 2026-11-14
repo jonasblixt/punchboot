@@ -21,6 +21,7 @@
 #include <cmocka.h>
 
 #include "crypto_vectors.h"
+#include "fakes/dcache.h"
 #include "models/bench.h"
 #include "models/caam_model.h"
 #include <drivers/crypto/imx_caam.h>
@@ -49,18 +50,6 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
     caam_model_write(addr, (uint32_t)value);
 }
 
-void arch_invalidate_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
-}
-
-void arch_clean_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
-}
-
 static int group_setup(void **state)
 {
     static uint32_t earlier_ring[2];
@@ -72,6 +61,7 @@ static int group_setup(void **state)
     (void)state;
 
     bench_reset();
+    dcache_reset();
     caam_model_init(&cfg);
     caam_model_earlier_stage(earlier_ring, 0);
 

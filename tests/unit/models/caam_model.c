@@ -31,6 +31,7 @@
 
 #include "bench.h"
 #include "caam_model.h"
+#include "fakes/dcache.h"
 
 #define SRM               "CAAM SRM "
 #define DMA               "drivers.md 4.2"
@@ -197,6 +198,7 @@ static struct {
     struct caam_model_config cfg;
     uint32_t irbar, irsr, irsar;
     uint32_t orbar, orsr, orsfr;
+    bool earlier_ring; /* The output ring is the stage's before pb */
     uint32_t jrstar;
     uint32_t jrcfgr[2];
     uint32_t in_ring; /* Jobs added and not taken yet */
@@ -214,15 +216,17 @@ static struct {
     unsigned int traced;
 } m;
 
-static void *ptr(uint32_t addr)
+/* The engine reads and writes RAM, behind the driver's cache (fakes/dcache.h) */
+static void ram_read(uint32_t addr, void *dst, uint32_t len)
 {
-    return (void *)(uintptr_t)addr;
+    dcache_dev_read(addr, dst, len);
 }
 
-/* FNV-1a */
+/* FNV-1a, of what the driver has there: its cache. A job's data isn't
+ * written while the engine has it, cleaned or not */
 static uint64_t sum(uint32_t addr, uint32_t len)
 {
-    const uint8_t *p = ptr(addr);
+    const uint8_t *p = (const void *)(uintptr_t)addr;
     uint64_t h = 0xcbf29ce484222325ull;
 
     for (uint32_t i = 0; i < len; i++)
@@ -428,7 +432,7 @@ static uint32_t not_modeled(const struct cmd *c, uint32_t code)
 static uint32_t mdha(struct ccb *ccb, const struct cmd *c)
 {
     const struct alg *a = ccb->alg;
-    const uint8_t *data = ptr(c->pointer);
+    uint8_t *data;
     bool init = (ccb->as == AS_INIT || ccb->as == AS_INIT_FINAL);
     bool final = (ccb->as == AS_FINAL || ccb->as == AS_INIT_FINAL);
     uint8_t *ctx = ccb->ctx;
@@ -450,6 +454,10 @@ static uint32_t mdha(struct ccb *ccb, const struct cmd *c)
         bench_violation(SRM "MDHA", "%s is continued without its running message length", a->name);
 
     total = get_be(&ctx[a->running], 8);
+
+    data = malloc(c->length + 1);
+    assert_non_null(data);
+    ram_read(c->pointer, data, c->length);
 
     switch (a->sel) {
     case 0x40: {
@@ -518,6 +526,7 @@ static uint32_t mdha(struct ccb *ccb, const struct cmd *c)
     }
     }
 
+    free(data);
     assert_int_equal(rc, 0);
 
     if (!final)
@@ -529,6 +538,8 @@ static uint32_t dsa_verify(struct job *job, const struct cmd *c)
 {
     static const uint8_t scratch[2 * EC_MAX] = { 0xa5 };
     uint8_t point[1 + 2 * EC_MAX];
+    uint8_t c_d[2][EC_MAX];
+    uint8_t f[CONTEXT_SIZE];
     mbedtls_ecp_group grp;
     mbedtls_ecp_point q;
     mbedtls_mpi r, s;
@@ -545,11 +556,15 @@ static uint32_t dsa_verify(struct job *job, const struct cmd *c)
 
     /* The key is Wx and Wy, L bytes each */
     point[0] = 0x04;
-    memcpy(&point[1], ptr(p.w), 2 * p.l);
+    ram_read(p.w, &point[1], 2 * p.l);
+    ram_read(p.c, c_d[0], p.l);
+    ram_read(p.d, c_d[1], p.l);
+    assert_true(p.ml <= sizeof(f));
+    ram_read(p.f, f, p.ml);
 
     assert_int_equal(mbedtls_ecp_group_load(&grp, p.id), 0);
-    assert_int_equal(mbedtls_mpi_read_binary(&r, ptr(p.c), p.l), 0);
-    assert_int_equal(mbedtls_mpi_read_binary(&s, ptr(p.d), p.l), 0);
+    assert_int_equal(mbedtls_mpi_read_binary(&r, c_d[0], p.l), 0);
+    assert_int_equal(mbedtls_mpi_read_binary(&s, c_d[1], p.l), 0);
 
     rc = mbedtls_ecp_point_read_binary(&grp, &q, point, 1 + 2 * p.l);
 
@@ -558,7 +573,7 @@ static uint32_t dsa_verify(struct job *job, const struct cmd *c)
 
     /* The leftmost bits of the hashed message, as FIPS 186-4 6.4 has it */
     if (rc == 0)
-        rc = mbedtls_ecdsa_verify(&grp, ptr(p.f), p.ml, &q, &r, &s);
+        rc = mbedtls_ecdsa_verify(&grp, f, p.ml, &q, &r, &s);
 
     mbedtls_mpi_free(&s);
     mbedtls_mpi_free(&r);
@@ -611,7 +626,7 @@ static uint32_t context(struct job *job, struct ccb *ccb, const struct cmd *c)
         return DECO(c->index, DECO_CONTEXT_LEN);
 
     if (load) {
-        memcpy(&ccb->ctx[offset], ptr(c->pointer), c->length);
+        ram_read(c->pointer, &ccb->ctx[offset], c->length);
         ccb->ctx_loaded = offset + c->length;
     } else {
         job_out(job, c->pointer, &ccb->ctx[offset], c->length);
@@ -675,7 +690,7 @@ static void job_complete(struct job *job)
     for (unsigned int n = 0; n < job->n_out; n++) {
         const struct out *o = &job->out[n];
 
-        memcpy(ptr(o->addr), o->data, o->len);
+        dcache_dev_write(o->addr, o->data, o->len);
 
         /* What a later job reads of it is that job's data as it is now */
         for (struct job *later = job + 1; later < &m.jobs[m.n_jobs]; later++) {
@@ -699,13 +714,13 @@ static void job_take(uint64_t now)
     uint32_t hdr;
 
     memset(job, 0, sizeof(*job));
-    job->addr = *(uint32_t *)ptr(m.irbar + 4 * m.rindex);
+    job->addr = dcache_dev_read_32(m.irbar + 4 * m.rindex);
     job->taken_at = now;
     m.rindex = (m.rindex + 1) % m.irsr;
     m.in_ring--;
     m.irsar++;
 
-    hdr = (job->addr != 0) ? *(uint32_t *)ptr(job->addr) : 0;
+    hdr = (job->addr != 0) ? dcache_dev_read_32(job->addr) : 0;
     job->len = HDR_LEN(hdr);
 
     if (CTYPE(hdr) != CTYPE_JOB_HEADER || !(hdr & HDR_ONE) || (hdr & ~HDR_KNOWN) || job->len < 2 ||
@@ -719,7 +734,7 @@ static void job_take(uint64_t now)
         return;
     }
 
-    memcpy(job->desc, ptr(job->addr), job->len * 4);
+    ram_read(job->addr, job->desc, job->len * 4);
     job_inputs(job);
 
     struct caam_model_event *e = trace_next();
@@ -772,10 +787,16 @@ static void advance(void)
 
         /* A completion waits for a free entry of the output ring */
         if (m.n_jobs > 0 && m.jobs[0].done && m.orsfr < m.orsr) {
-            uint32_t *entry = ptr(m.orbar + 8 * m.windex);
+            uint32_t entry = m.orbar + 8 * m.windex;
 
-            entry[0] = m.jobs[0].addr;
-            entry[1] = m.jobs[0].status;
+            if (m.earlier_ring) {
+                /* Not the driver's memory, nor its cache's business */
+                ((uint32_t *)(uintptr_t)entry)[0] = m.jobs[0].addr;
+                ((uint32_t *)(uintptr_t)entry)[1] = m.jobs[0].status;
+            } else {
+                dcache_dev_write_32(entry, m.jobs[0].addr);
+                dcache_dev_write_32(entry + 4, m.jobs[0].status);
+            }
             m.jrstar = m.jobs[0].status;
             m.windex = (m.windex + 1) % m.orsr;
             m.orsfr++;
@@ -883,6 +904,7 @@ void caam_model_write(uintptr_t addr, uint32_t value)
             m.irbar = value;
         } else if (off == ORBAR_LS) {
             m.orbar = value;
+            m.earlier_ring = false;
         } else if (off == IRSR) {
             m.irsr = value & RING_SIZE_MASK;
             m.irsar = m.irsr;
@@ -961,6 +983,7 @@ void caam_model_earlier_stage(uint32_t *ring, uint32_t status)
     m.irsr = 1;
     m.irsar = 1;
     m.orbar = (uint32_t)(uintptr_t)ring;
+    m.earlier_ring = true;
     m.orsr = 1;
     m.windex = 0;
     caam_model_foreign_completion(status);

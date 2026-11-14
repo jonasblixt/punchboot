@@ -17,6 +17,7 @@
 
 #include <cmocka.h>
 
+#include "fakes/dcache.h"
 #include "fakes/plat.h"
 #include <drivers/crypto/imx_caam.h>
 #include <pb/pb.h>
@@ -79,17 +80,13 @@ static struct {
 
 #define REG(off) (regs[(off) / 4])
 
-static uint32_t *ptr(uint32_t addr)
-{
-    return (uint32_t *)(uintptr_t)addr;
-}
-
+/* The engine reads and writes RAM, behind the driver's cache
+ * (fakes/dcache.h): an entry or a descriptor the driver didn't clean, and
+ * an output entry in a line the driver has dirty, fail the test */
 static void complete(uint32_t status)
 {
-    uint32_t *out = ptr(REG(ORBAR_LS));
-
-    out[0] = *ptr(REG(IRBAR_LS));
-    out[1] = status;
+    dcache_dev_write_32(REG(ORBAR_LS), dcache_dev_read_32(REG(IRBAR_LS)));
+    dcache_dev_write_32(REG(ORBAR_LS) + 4, status);
     REG(JRSTAR) = status;
     REG(ORSFR) = 1;
 }
@@ -103,9 +100,14 @@ static void complete_late(void)
 /* Runs the descriptor and writes the output ring entry */
 static void run_job(void)
 {
-    uint32_t *desc = ptr(*ptr(REG(IRBAR_LS)));
-    uint32_t len = desc[0] & 0x7f;
+    uint32_t desc_addr = dcache_dev_read_32(REG(IRBAR_LS));
+    uint32_t desc[16];
+    uint32_t len;
     uint32_t status = 0;
+
+    dcache_dev_read(desc_addr, desc, sizeof(desc));
+    len = desc[0] & 0x7f;
+    assert_true(len <= ARRAY_SIZE(desc));
 
     assert_int_equal(desc[0] >> 27, 0x16); /* Job descriptor header */
     model.jobs++;
@@ -214,18 +216,6 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
     default:
         REG(off) = (uint32_t)value;
     }
-}
-
-void arch_invalidate_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
-}
-
-void arch_clean_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
 }
 
 /* An era 9 CAAM with RNG4 and two state handles, as on the i.MX8M */
