@@ -61,7 +61,7 @@ static unsigned int dram_gib;
  * pb itself uses the first GiB (BOARD_DRAM_SIZE, D-079), what every
  * variant has.
  */
-const struct dram_timing_info *imx8m_board_dram_timing(void)
+const struct imx8m_dram_timing *imx8m_board_dram_timing(void)
 {
     static const struct imx_pin pins[] = {
         IMX8M_PIN(NAND_DATA05, MUX_ALT(5), IMX_PAD_KEEP),

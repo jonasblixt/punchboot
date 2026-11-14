@@ -157,6 +157,10 @@ part stands now (2026-10-28):
 | (`src/board/imx8mevk/lpddr4_timing.c`)  | BSD-3-Clause, Copyright 2026 NXP (`c129bbf9`);   |                        |
 | and its golden trace                    | NXP's notice kept, data as generated. Replaced   |                        |
 |                                         | the GPL-derived table (F-108)                    |                        |
+| pico8ml timings                         | NXP's MX8M DDR tool output, as TechNexion's      | Jonas (2026-11-14):    |
+| (`src/board/pico8ml/lpddr4_timing_*.c`) | U-Boot has it (GPL-2.0+ header there); data as   | the tool's output,     |
+|                                         | generated, written by                            | BSD-3 from NXP on      |
+|                                         | `scripts/gen-imx8m-dram-timing.py`               | request                |
 | Training firmware                       | NXP's binaries, not in the repository            | Distributed images     |
 |                                         |                                                  | that contain it follow |
 |                                         |                                                  | NXP's firmware licence |
@@ -167,10 +171,17 @@ and the board, but the PHY configuration, message blocks and the PIE image come 
 init code inside the tool. The tool's C output ("Init Code") is BSD-3-Clause, Copyright NXP (v4.2.0;
 check the header of each new output). To use it:
 
-1. Copy the generated C code as the board's `lpddr4_timing.c`, keeping NXP's header (add a
-   punchboot line and our copyright for the changes). Replace its U-Boot includes with
-   `<pb/pb.h>` and `<plat/imx8m/dram.h>` and make the tables `static`; leave the data as generated.
-   It uses the same struct and table layout.
+1. Run `scripts/gen-imx8m-dram-timing.py` on the generated C code: it writes the board's
+   `lpddr4_timing.c` (`imx8m_dram_timing`, which the platform reads by itself), keeping the
+   tool's provenance lines and NXP's copyright with ours, the data as generated. The PHY's tables
+   (its configuration, the CSRs read back after the training, the PIE image) are packed, runs of
+   consecutive CSRs with 16-bit values (`struct dram_phy_table`), and checked against the tool's
+   pairs before anything is written. For a board with several DRAM densities give one
+   `<name>=<file>` per density: it writes `lpddr4_timing_<name>.c` each, `lpddr4_timing_common.c`
+   with every table they have the same, and `lpddr4_timing.h`, and the board chooses one in its
+   `imx8m_board_dram_timing()` (pico8ml). The files are never edited: run the script again.
+   A board with a timing in `struct dram_timing_info`'s layout, the tool's, still builds: the
+   platform reads its `dram_timing` when it has no `imx8m_dram_timing`.
 2. The tool's stress test script (the part before "Init Code") shows the clock setup per frequency
    set point: PLL or PHY bypass, and the clock roots. `imx8m_ddr_soc_set_clock()` must support each
    data rate in `fsp_msg`.
