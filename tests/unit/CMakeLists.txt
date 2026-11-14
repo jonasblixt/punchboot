@@ -912,3 +912,13 @@ target_include_directories(test_imx6ul_hab BEFORE PRIVATE
 )
 target_compile_options(test_imx6ul_hab PRIVATE -fno-pie)
 target_link_options(test_imx6ul_hab PRIVATE -no-pie)
+
+# The i.MX8X's fuse, RoT and SLC helpers as the boards build them: without the
+# fuse dry run, the SCFW's calls faked by the test
+pb_unit_test(test_imx8x_helpers SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/fusebox.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/rot_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/slc_helpers.c
+)
+target_compile_definitions(test_imx8x_helpers PRIVATE CONFIG_PLAT_IMX8X=1)
+target_include_directories(test_imx8x_helpers PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
