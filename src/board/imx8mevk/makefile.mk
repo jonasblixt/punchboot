@@ -20,7 +20,7 @@ IMX8M_UMCTL_TRAIN_2D_I ?= lpddr4_pmu_train_2d_imem.bin
 IMX8M_SRK_TABLE ?= pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin
 IMX8M_KEY_INDEX ?= 0
 IMX8M_SIGN_CERT ?= pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem
-IMX8M_IMAGE_SIGN_CERT ?= pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem
+IMX8M_IMAGE_SIGN_CERT ?= pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem
 
 blobs-y  = $(IMX8M_UMCTL_TRAIN_1D_D) \
 		   $(IMX8M_UMCTL_TRAIN_1D_I)\
@@ -48,7 +48,7 @@ imx8m_sign_image: imx8m_image
 	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE2)" | bc	))
 	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0x40 ))" | bc	))
 	@echo "PB imx image size: $(PB_FILESIZE) bytes ($(PB_FILESIZE_HEX)), cst addr $(PB_CST_ADDR)"
-	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x0 $(PB_FILESIZE_HEX) "$(BUILD_DIR)\/pb_pad.imx"/g' < $(PB_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
+	@$(SED) -e 's#__BLOCKS__#Blocks = $(PB_CST_ADDR) 0x0 $(PB_FILESIZE_HEX) "$(BUILD_DIR)/pb_pad.imx"#g' < $(PB_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__KEY_INDEX__#$(IMX8M_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__SRK_TBL__#$(IMX8M_SRK_TABLE)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__CSFK_PEM__#$(IMX8M_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
