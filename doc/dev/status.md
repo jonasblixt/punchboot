@@ -60,7 +60,7 @@ bump is for the porting API. Each item's history is in `log/`.
      data (F-263, PR #51), the SCU kick on the MEK (F-322). Still open: F-429, the accessor on
      the 8M and RT, F-246, the bench for F-241 and F-294.
    - D-085 for Jonas's review: `boot.md` 5.7 (OP-TEE, Open (1)), `platform.md` 4.1 and 7,
-     `command-mode.md` 5.2, `board.md` 2.2, 2.3, 2.7. Then F-437, F-438, F-439. F-246 is in
+     `command-mode.md` 5.2, `board.md` 2.2, 2.3, 2.7. Then F-438, F-439, F-440. F-246 is in
      (`54a19104`), not run on jiffy.
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
    - `plat_get_info()` and the core's `info` (D-077): run on all four boards. Left: F-432,

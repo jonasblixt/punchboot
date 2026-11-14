@@ -2035,7 +2035,7 @@ F-294. No 6ULL board for now (F-433); an 8MQ can be borrowed (F-432).
 
 Jonas's answers to the follow ups of D-084 (log 2026-11-14, "The platform's questions").
 
-- **A key the device can't revoke is reported as such** (F-437): "it would make sense here to
+- **A key the device can't revoke is reported as such** (F-438): "it would make sense here to
   report N/A". A board has 16 key slots (D-083); the SoC has a revoke bit for fewer (HABv4 3,
   the i.MX8X's AHAB 4). `plat_rot.revoke_slots` says how many (`platform.md` 4.1). `SLC_READ`'s
   first result takes `uint16_t unrevocable` from its `rz`: bit n set, the list's key n is active
@@ -2045,11 +2045,11 @@ Jonas's answers to the follow ups of D-084 (log 2026-11-14, "The platform's ques
   such keys (F-165), and they stay refused (D-008). `SLC_REVOKE_KEY` on such a key answers
   `NOT_SUPPORTED` on every platform (the 8X answered PARAM). The build warns for a board key in
   such a slot ("sure"). The boot and the token don't change.
-- **Functions, not `<p>_plat()`** (`platform.md` 7, F-438): the SoC through `plat_get_info()`,
+- **Functions, not `<p>_plat()`** (`platform.md` 7, F-439): the SoC through `plat_get_info()`,
   a clock's rate through `<p>_clk_rate()`, read when called; a speed grade or a system
   controller's handle a function each. `imx6ul_plat()` and `imx8x_plat()` stay through 3.x,
   deprecated, for boards out of the tree.
-- **OP-TEE on ARMv7-A is a delivery** (`boot.md` 5.7, F-439), "the proper handover", not
+- **OP-TEE on ARMv7-A is a delivery** (`boot.md` 5.7, F-440), "the proper handover", not
   OP-TEE as the kernel's part with `CFG_NS_ENTRY_ADDR`: that ties each OP-TEE build to one
   kernel address that pb can't check. pb enters OP-TEE with OP-TEE's own convention without TF-A
   (lr the normal world's entry, r1 and r2 relayed to it; OP-TEE 4.9.0's `entry_a32.S` and
