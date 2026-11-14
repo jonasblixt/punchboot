@@ -27,10 +27,31 @@ KCONFIG_CONFIG ?= .config
 
 BUILD_CONFIG ?= $(BUILD_DIR)/.config
 
+# A build needs its configuration: a name that is mistyped would build the
+# Kconfig defaults (F-229). menuconfig and olddefconfig make one, clean needs
+# none.
+ifneq ($(filter-out menuconfig olddefconfig clean,$(or $(MAKECMDGOALS),all)),)
+ifeq ($(wildcard $(KCONFIG_CONFIG)),)
+$(error KCONFIG_CONFIG=$(KCONFIG_CONFIG) doesn't exist: give a defconfig, or make one with menuconfig)
+endif
+endif
+
 $(shell mkdir -p $(BUILD_DIR))
-$(shell BOARD=$(BOARD) KCONFIG_CONFIG=$(KCONFIG_CONFIG) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h --config-out $(BUILD_CONFIG) src/Kconfig)
+# A failure stops the build, which would otherwise use the old $(BUILD_CONFIG) (F-229)
+ifneq ($(shell BOARD=$(BOARD) KCONFIG_CONFIG=$(KCONFIG_CONFIG) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h --config-out $(BUILD_CONFIG) src/Kconfig >&2; echo $$?),0)
+$(error scripts/genconfig.py failed)
+endif
 
 include $(BUILD_CONFIG)
+
+# $(call value_file,<variable>) gives $(BUILD_DIR)/value/<variable>, a file
+# with the variable's value that is rewritten only when the value changes. What
+# is made from a variable depends on its file, so it is made again when the
+# variable changes, in the configuration or on the command line (F-183).
+value_file = $(shell f=$(BUILD_DIR)/value/$(1); v='$(subst ','\'',$($(1)))'; \
+                 mkdir -p $(BUILD_DIR)/value; \
+                 [ -f $$f ] && [ "$$(cat $$f)" = "$$v" ] || printf '%s\n' "$$v" > $$f; \
+                 echo $$f)
 
 cflags-y   = -std=c99
 cflags-y  += -O$(call unquote,$(CONFIG_OPTIMIZE))
@@ -106,30 +127,45 @@ OBJS =
 OBJS += $(patsubst %.c, $(BUILD_DIR)/%.o, $(src-y))
 OBJS += $(patsubst %.S, $(BUILD_DIR)/%.o, $(asm-y))
 
-BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(blobs-y))
-BLOB_OBJS2 = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(notdir $(blobs-y)))
+# A blob's object is $(BUILD_DIR)/<its name>.bino, wherever the blob is: the
+# link reads it there (F-431)
+BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(notdir $(blobs-y)))
 
 DEPS      = $(OBJS:.o=.d)
 
 FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).bin
 
-.PHONY: keystore menuconfig olddefconfig
+.PHONY: menuconfig olddefconfig
 
-menuconfig oldconfig:
+menuconfig olddefconfig:
 	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/$@.py src/Kconfig
 
 all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
 	@echo "Success, final output: $(FINAL_OUTPUT)"
 
-$(BUILD_DIR)/keystore.o:
+# Every object can use PB_VERSION
+$(OBJS): $(call value_file,PB_VERSION)
+
+# What the objects are compiled with and pb is linked with: a changed flag
+# (CONFIG_OPTIMIZE on the command line, an edited makefile.mk), compiler or
+# list of objects makes them again, and so does a changed link script (F-398)
+compile_cmd = $(CC) $(cflags-y)
+link_cmd = $(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS) $(LIBS)
+LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(ldflags-y))))
+
+$(OBJS): $(call value_file,compile_cmd)
+
+$(BUILD_DIR)/keystore.o: $(call unquote,$(CONFIG_KEYSTORE)) $(call value_file,CONFIG_KEYSTORE)
 	@echo GEN $(BUILD_DIR)/keystore.c
 	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) --decorate > $(BUILD_DIR)/keystore.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
-$(BUILD_DIR)/srk_fuse.o: $(patsubst "%",%,$(CONFIG_SRK_FUSE))
+SRK_FUSE_FILE := $(patsubst "%",%,$(CONFIG_SRK_FUSE))
+
+$(BUILD_DIR)/srk_fuse.o: $(SRK_FUSE_FILE) $(call value_file,CONFIG_SRK_FUSE) scripts/gen-srk-fuse.py
 	@echo GEN $(BUILD_DIR)/srk_fuse.c
-	$(Q)$(PYTHON) scripts/gen-srk-fuse.py $< > $(BUILD_DIR)/srk_fuse.c
+	$(Q)$(PYTHON) scripts/gen-srk-fuse.py $(SRK_FUSE_FILE) > $(BUILD_DIR)/srk_fuse.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/srk_fuse.c -o $@
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
@@ -138,17 +174,24 @@ $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	$(Q)$(STRIP) --strip-all $<
 	$(Q)$(OBJCOPY) -O binary -R .comment $< $@
 
-$(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS)
+$(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS) $(LINK_SCRIPTS) $(call value_file,link_cmd)
 	@echo LD $@
-	$(Q)$(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS2) $(LIBS) -o $@
+	$(Q)$(link_cmd) -o $@
 
-$(BUILD_DIR)/%.bino: %.bin
-	@mkdir -p $(@D)
+# A rule per blob, for the object the link reads: the pattern rule's target
+# was the blob's path under $(BUILD_DIR), a file nothing made, so pb was
+# linked again on every make (F-431). The copy in blobs/ gives the symbols a
+# name without the blob's directory.
+define blob_rule
+$(BUILD_DIR)/$(notdir $(1:.bin=.bino)): $(1)
+	@mkdir -p $$(@D)
 	@mkdir -p blobs/
-	@mkdir -p $(BUILD_DIR)/blobs
-	@cp $< blobs/
-	@echo BLOB $< $(notdir $<)
-	$(Q)$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) blobs/$(notdir $<) $(BUILD_DIR)/$(notdir $@)
+	@mkdir -p $$(BUILD_DIR)/blobs
+	@cp $$< blobs/
+	@echo BLOB $$< $$(notdir $$<)
+	$$(Q)$$(OBJCOPY) -I binary -O $$(ARCH_OUTPUT) -B $$(ARCH) blobs/$$(notdir $$<) $$@
+endef
+$(foreach blob,$(blobs-y),$(eval $(call blob_rule,$(blob))))
 
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(@D)

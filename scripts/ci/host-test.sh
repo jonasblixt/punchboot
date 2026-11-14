@@ -19,7 +19,15 @@ BUILD_DIR="${BUILD_DIR:-build-host}"
 mkdir -p "$HOME"
 
 echo "=== Installing punchboot host tools"
-pip install --quiet --no-build-isolation --no-deps .
+# setuptools builds in the source tree (build/, punchboot.egg-info) unless
+# told otherwise: two runs at once in one tree collided there (F-400). Each
+# BUILD_DIR has its own.
+python_build="$(realpath -m "$BUILD_DIR")/python"
+mkdir -p "$python_build"
+printf '[build]\nbuild_base = %s\n[egg_info]\negg_base = %s\n' \
+    "$python_build" "$python_build" > "$python_build/setup.cfg"
+DIST_EXTRA_CONFIG="$python_build/setup.cfg" \
+    pip install --quiet --no-build-isolation --no-deps .
 
 echo "=== Building pbstate"
 cmake -S tools/pbstate -B "$BUILD_DIR/pbstate" -DCMAKE_INSTALL_PREFIX=/opt/pb > /dev/null
