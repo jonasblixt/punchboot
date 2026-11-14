@@ -31,6 +31,7 @@ static size_t n_regs;
 struct fake_reg_write fake_reg_log[MAX_WRITES];
 size_t fake_reg_log_len;
 uint64_t (*fake_regs_on_write)(uintptr_t addr, uint64_t value);
+uint64_t (*fake_regs_on_read)(uintptr_t addr, uint64_t value);
 
 static size_t reg_index(uintptr_t addr)
 {
@@ -51,6 +52,7 @@ void fake_regs_reset(void)
     n_regs = 0;
     fake_reg_log_len = 0;
     fake_regs_on_write = NULL;
+    fake_regs_on_read = NULL;
 }
 
 void fake_regs_set(uintptr_t addr, uint64_t value)
@@ -101,6 +103,10 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
 
     (void)width;
     regs[i].reads++;
+
+    if (fake_regs_on_read != NULL)
+        regs[i].value = fake_regs_on_read(addr, regs[i].value);
+
     return regs[i].value;
 }
 

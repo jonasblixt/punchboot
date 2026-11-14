@@ -113,6 +113,11 @@ static struct {
     bool writing;
 
     unsigned int programs, erases, ignored, violations;
+
+    /* The controller flags IPCMDERR at the n-th write of TFDR or read of
+     * RFDR, while the driver moves the data. 0: never */
+    unsigned int tfdr_writes, rfdr_reads;
+    unsigned int err_at_tfdr, err_at_rfdr;
 } nor;
 
 static void violation(const char *what)
@@ -316,6 +321,11 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
     /* The model reads no log: keep it from filling */
     fake_reg_log_len = 0;
 
+    if (addr >= BASE + TFDR(0) && addr < BASE + TFDR(32) && ++nor.tfdr_writes == nor.err_at_tfdr) {
+        nor.intr |= INTR_IPCMDERR;
+        update_intr();
+    }
+
     switch (addr - BASE) {
     case MCR0:
         return nor.swreset_stuck ? value : (value & ~(uint64_t)MCR0_SWRESET);
@@ -337,6 +347,16 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
     default:
         return value;
     }
+}
+
+static uint64_t on_read(uintptr_t addr, uint64_t value)
+{
+    if (addr >= BASE + RFDR(0) && addr < BASE + RFDR(32) && ++nor.rfdr_reads == nor.err_at_rfdr) {
+        nor.intr |= INTR_IPCMDERR;
+        update_intr();
+    }
+
+    return value;
 }
 
 static const uint8_t uu[16] = "\x6f\x2b\x0a\x1e\x52\x6c\x4a\x55\x9a\x86\x7e\x08\x95\x23\xf0\x01";
@@ -393,6 +413,7 @@ static void reset_model(void)
 
     fake_regs_reset();
     fake_regs_on_write = on_write;
+    fake_regs_on_read = on_read;
     fake_regs_set(BASE + STS0, STS0_IDLE);
     update_rx();
 
@@ -757,6 +778,35 @@ static void test_read_any_length(void **state)
     munmap(map, map_len);
 }
 
+/* F-420: INTR is write 1 to clear. A push or a pop writes its own bit
+ * only: an error that the controller flags while the driver moves the data
+ * isn't cleared by it, and the transfer is that error. The driver works
+ * after it */
+static void test_error_while_moving_data(void **state)
+{
+    (void)state;
+
+    assert_int_equal(bio_erase(dev, 1, 1), PB_OK);
+    fill(out, BLOCK, 4);
+
+    /* In the first page's fifth push */
+    nor.err_at_tfdr = nor.tfdr_writes + 10;
+    assert_int_equal(bio_write(dev, 1, BLOCK, out), -PB_ERR_IO);
+    assert_int_equal(nor.programs, 0);
+    assert_mem_is(BLOCK, 0xff, BLOCK);
+
+    /* In the fifth watermark of the data */
+    fill(nor.mem, BLOCK, 5);
+    nor.err_at_rfdr = nor.rfdr_reads + 10;
+    assert_int_equal(bio_read(dev, 0, BLOCK, in), -PB_ERR_IO);
+
+    memset(in, 0, BLOCK);
+    assert_int_equal(bio_read(dev, 0, BLOCK, in), PB_OK);
+    assert_mem(0, in, BLOCK);
+    assert_int_equal(bio_write(dev, 1, BLOCK, out), PB_OK);
+    assert_mem(BLOCK, out, BLOCK);
+}
+
 /* The codes of drivers.md 3: a port the controller doesn't have is the
  * caller's argument */
 static void test_port_out_of_range(void **state)
@@ -785,6 +835,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_unaligned_buffer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_any_length, setup, teardown),
         cmocka_unit_test_setup_teardown(test_port_out_of_range, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_error_while_moving_data, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

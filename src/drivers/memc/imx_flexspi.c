@@ -163,8 +163,9 @@ static int imx_flexspi_writeblocking(uint8_t *buffer, size_t size)
             }
         }
 
-        /* Push a watermark level datas into IP TX FIFO. */
-        mmio_clrsetbits_32(cfg->base + FLEXSPI_INTR, 0, FLEXSPI_INT_IPTXWEEN);
+        /* Push a watermark level datas into IP TX FIFO. INTR is write 1 to
+         * clear: a flag set now must not be written back */
+        mmio_write_32(cfg->base + FLEXSPI_INTR, FLEXSPI_INT_IPTXWEEN);
     }
 
     return rc;
@@ -246,8 +247,9 @@ static int imx_flexspi_readblocking(uint8_t *buffer, size_t size)
             }
         }
 
-        /* Pop out a watermark level datas from IP RX FIFO. */
-        mmio_clrsetbits_32(cfg->base + FLEXSPI_INTR, 0, FLEXSPI_INT_IPRXWAEN);
+        /* Pop out a watermark level datas from IP RX FIFO. INTR is write 1
+         * to clear: a flag set now must not be written back */
+        mmio_write_32(cfg->base + FLEXSPI_INTR, FLEXSPI_INT_IPRXWAEN);
     }
 
     return rc;
