@@ -234,9 +234,12 @@ keys, and CAAM's MID for OP-TEE.
   are reserved) and SCS 0x80000000 (HAB locked it); the SRK_REVOKE shadow takes a write. After
   `plat_lockdown()` SW_STICKY is 0x1e and the shadow write is refused. A watchdog reset (Linux's
   `reboot`) clears SW_STICKY, so command mode can revoke keys after a reboot, and HAB still boots.
-- **i.MX8M**: nothing locked yet; pb doesn't support its HAB (D-027) and its CSF leaves revocation
-  locked. D-084: pb gets the 8M's HAB, then `plat_lockdown()` sets the locks as on the 6UL. NXP's U-Boot (`secure_lockup()`, i.MX8MQ, SPL, closed devices) sets SW_STICKY's field
-  return and SRK revoke locks and locks SCS. The 8MP's OCOTP registers aren't in its public RM.
+- **i.MX8M** (2026-11-14, D-084): as the 6UL, `plat_lockdown()` locks SW_STICKY's SRK_REVOKE_LOCK
+  and FIELD_RETURN_LOCK and SCS (HAB_JDE), then stops the CAAM; its CSF unlocks SRKREVOKE for
+  command mode. The 8MQ RM (OCOTP 0x50, 0x60; SCS's lock holds until a POR); NXP's U-Boot does
+  the same on a closed 8MQ (`secure_lockup()`). The 8MP's OCOTP registers aren't in its public
+  RM: U-Boot's `struct ocotp_regs` has the family's at the same offsets. Not run on a board yet:
+  the pico8ml has no boot image, the 8MP EVK wasn't attached.
 - **i.MX8X** (SECO) and **i.MX RT**: unchecked.
 
 ### 4.4 Other first-stage duties
@@ -351,8 +354,8 @@ Where each port is (2026-11-14).
 | The system controller's API through  | n/a          | n/a               | yes        | n/a       |               |
 | the platform header (7)              |              |                   |            |           |               |
 | TrustZone filter                     | partly       | partly            | n/a (BL31) | n/a       | F-241, F-261  |
-| `plat_lockdown()`                    | yes          | no (HAB first,    | unchecked  | unchecked | F-244, D-084  |
-|                                      |              | D-084)            |            |           |               |
+| `plat_lockdown()`                    | yes          | yes, not on a     | unchecked  | unchecked | F-244, D-084  |
+|                                      |              | board             |            |           |               |
 | Bus access control                   | yes (jiffy)  | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
 | `plat_rot`, `plat_slc`               | yes          | yes (HABv4; the   | yes        | yes       | F-447         |
 |                                      |              | 8MP revokes none) |            |           |               |

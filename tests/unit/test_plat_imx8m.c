@@ -86,7 +86,9 @@ static void call(const char *name)
 /* The crypto backends: what their set up returns, what it got, and the
  * register log's length and the MMU's state when the first was called */
 static struct {
-    int caam_rc, rng_rc, mbedtls_rc, stop_rc;
+    int caam_rc, rng_rc, mbedtls_rc, stop_rc, lock_rc;
+    uint32_t lock_sticky; /* What imx_ocotp_lock() was asked to lock */
+    bool lock_scs;
     uintptr_t caam_base, rng_base;
     size_t caam_at;
     unsigned int caam_mmu_enables;
@@ -205,6 +207,14 @@ int imx_ocotp_fuse_write(uint32_t index, uint32_t value)
     (void)index;
     (void)value;
     return PB_OK;
+}
+
+int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs)
+{
+    crypto.lock_sticky = sw_sticky;
+    crypto.lock_scs = lock_scs;
+    call("lock");
+    return crypto.lock_rc;
 }
 
 int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz)
@@ -719,18 +729,30 @@ static void test_lockdown_stops_the_crypto_engine(void **state)
 {
     (void)state;
 
+    /* D-084: SRK revocation and field return locked in SW_STICKY, and SCS,
+     * as on the 6UL, then the CAAM stopped */
     assert_int_equal(plat_lockdown(), PB_OK);
-    assert_string_equal(calls, "stop ");
+    assert_string_equal(calls, "lock stop ");
+    assert_int_equal(crypto.lock_sticky,
+                     OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK);
+    assert_true(crypto.lock_scs);
     assert_int_equal(fake_reg_log_len, 0);
 
     /* A second lockdown before a reset (platform.md 4.4) */
     assert_int_equal(plat_lockdown(), PB_OK);
-    assert_string_equal(calls, "stop stop ");
+    assert_string_equal(calls, "lock stop lock stop ");
+
+    /* A lock that didn't hold is a failed lockdown: the CAAM stays up for
+     * command mode */
+    setup(NULL);
+    crypto.lock_rc = -PB_ERR_IO;
+    assert_int_equal(plat_lockdown(), -PB_ERR_IO);
+    assert_string_equal(calls, "lock ");
 
     setup(NULL);
     crypto.stop_rc = -PB_ERR_TIMEOUT;
     assert_int_equal(plat_lockdown(), -PB_ERR_TIMEOUT);
-    assert_string_equal(calls, "stop ");
+    assert_string_equal(calls, "lock stop ");
 }
 
 /* platform.md 4.1, 4.2: the root of trust and the life cycle are the

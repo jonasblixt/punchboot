@@ -561,8 +561,25 @@ int plat_get_boot_source(struct pb_boot_source *src)
 
 int plat_lockdown(void)
 {
-    /* Nothing locked yet: pb doesn't support the 8M's HAB (D-027), and its
-     * CSF leaves SRK revocation locked (F-244) */
+    int rc;
+
+    /*
+     * D-084, as the 6UL: the CSF unlocks SRK revocation for pb's command mode
+     * (pb.csf.template), so it is locked again before the next stage runs,
+     * with field return, in SW_STICKY. SCS holds HAB_JDE, which HAB "must
+     * lock ... before passing control to the OS" (8MQ RM 6.3.5, OCOTP_SCS).
+     * NXP's U-Boot does the same on a closed 8MQ (secure_lockup()). The 8M
+     * family's OCOTP has SW_STICKY and SCS where the 8MQ has them (U-Boot's
+     * struct ocotp_regs). SW_STICKY holds until a reset, SCS's lock until a
+     * POR.
+     */
+    rc = imx_ocotp_lock(OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK, true);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* Last, and only when the locks are set: a lockdown that fails ends in
+     * command mode, where a locked device verifies its token with the CAAM */
     return crypto_stop();
 }
 
