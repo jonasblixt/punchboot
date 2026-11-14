@@ -150,6 +150,7 @@ static struct {
     int connect_ok_after;
     int connect_calls;
     int disconnect_calls;
+    int disconnect_rc; /* Returned by disconnect() */
     bool disconnected; /* Until the transport is started again */
     int after_disconnect; /* Calls of a transport that is disconnected */
     int complete_calls;
@@ -201,7 +202,7 @@ int cm_transport_disconnect(void)
 {
     t.disconnect_calls++;
     t.disconnected = true;
-    return PB_OK;
+    return t.disconnect_rc;
 }
 
 int cm_transport_read(void *buf, size_t length)
@@ -3721,6 +3722,127 @@ static void test_boot_fails_after_the_disconnect(void **state)
     }
 }
 
+/*
+ * usb.md 2.5, drivers.md 2.3 and command-mode.md 2.3 (F-287): a disconnect
+ * that fails before a jump is a failed boot. pb doesn't jump with a
+ * controller it couldn't stop: the task ends the loop with the disconnect's
+ * error, so that pb resets. The disconnect isn't tried again, and nothing of
+ * the transport is called after it. Its result was ignored, and pb jumped
+ */
+static void test_boot_with_a_failed_disconnect(void **state)
+{
+    struct pb_command_boot_part part = { 0 };
+    struct pb_command_bpak_boot bpak = { 0 };
+    static struct bpak_header header;
+    (void)state;
+
+    memcpy(part.uuid, UU_RW, 16);
+
+    for (int from_ram = 0; from_ram < 2; from_ram++) {
+        memset(&t, 0, sizeof(t));
+        t.max_inits = 2; /* A restart would succeed */
+        t.fail_reads_after = -1;
+        t.fail_writes_after = -1;
+        t.connect_ok_after = -1;
+        t.disconnect_rc = -PB_ERR_TIMEOUT;
+        memset(&fake_boot, 0, sizeof(fake_boot));
+
+        if (from_ram) {
+            fake_boot.reads_header = true;
+            host_cmd(PB_CMD_BOOT_BPAK, &bpak, sizeof(bpak));
+            host_send(&header, sizeof(header));
+        } else {
+            host_cmd(PB_CMD_BOOT_PART, &part, sizeof(part));
+        }
+        host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+
+        assert_int_equal(cm_run(), -PB_ERR_TIMEOUT);
+
+        /* The host has its last OK: the boot was loaded and verified */
+        expect_result(PB_RESULT_OK);
+        if (from_ram)
+            expect_result(PB_RESULT_OK);
+        expect_end();
+        assert_int_equal(fake_boot.load_calls, 1);
+        assert_int_equal(fake_boot.jump_calls, 0);
+        assert_int_equal(t.disconnect_calls, 1);
+        assert_int_equal(t.after_disconnect, 0);
+        assert_int_equal(t.init_calls, 1);
+    }
+}
+
+/*
+ * usb.md 2.1, 2.5 and command-mode.md 2.1, 2.2 (F-287): a restart is a
+ * disconnect, then init; a disconnect that fails is a restart that fails, as
+ * an init that fails: no command mode, the task ends the loop with its error
+ * and pb resets. Not tried again, no init after it, and the next host isn't
+ * served. Both ways to a restart: lost while waiting for a command, and a
+ * transfer lost inside one. A DEVICE_RESET whose disconnect fails still
+ * resets
+ */
+static void test_restart_with_a_failed_disconnect(void **state)
+{
+    (void)state;
+
+    /* Lost while waiting for a command */
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_lost(-PB_ERR_IO);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    t.disconnect_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(cm_run(), -PB_ERR_TIMEOUT);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.init_calls, 1);
+    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(t.after_disconnect, 0);
+    assert_int_equal(t.n_reads, 1);
+
+    /* A caller that runs the task again finds it at its set up */
+    teardown(state);
+    setup(state);
+    t.max_inits = 2;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    /* A result lost inside a command */
+    teardown(state);
+    setup(state);
+    t.max_inits = 2;
+    t.lose_write = 1;
+    t.disconnect_rc = -PB_ERR_IO;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    assert_int_equal(cm_run(), -PB_ERR_IO);
+    expect_end();
+    assert_int_equal(t.init_calls, 1);
+    assert_int_equal(t.disconnect_calls, 1);
+    assert_int_equal(t.after_disconnect, 0);
+    assert_int_equal(t.n_reads, 1);
+
+    /* The read of a command can't be started: the 16 starts' path ends at
+     * the first restart */
+    teardown(state);
+    setup(state);
+    t.max_inits = 1000;
+    t.fail_reads_after = 0;
+    t.disconnect_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(cm_run(), -PB_ERR_TIMEOUT);
+    assert_int_equal(t.init_calls, 1);
+    assert_int_equal(t.disconnect_calls, 1);
+
+    /* The reset: the disconnect's error changes nothing */
+    teardown(state);
+    setup(state);
+    t.disconnect_rc = -PB_ERR_TIMEOUT;
+    host_cmd(PB_CMD_DEVICE_RESET, NULL, 0);
+    assert_int_equal(cm_run(), -PB_ERR_ABORT);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 1);
+}
+
 static void test_run_errors(void **state)
 {
     (void)state;
@@ -5016,6 +5138,8 @@ int main(void)
         CM_TEST(test_run_errors),
         CM_TEST(test_lost_at_the_start_of_a_read),
         CM_TEST(test_a_restart_disconnects_first),
+        CM_TEST(test_restart_with_a_failed_disconnect),
+        CM_TEST(test_boot_with_a_failed_disconnect),
         CM_TEST(test_transport_lost_before_every_command),
         CM_TEST(test_transport_lost_count_ends_with_a_command),
         CM_TEST(test_setup_platform_first),

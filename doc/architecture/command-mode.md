@@ -133,7 +133,8 @@ session ends (3.1). A host that unplugs leaves a device that resets 10 s later.
 Each start of the transport gives it the time again, so a transport that says it is ready and
 is lost at once would be started for ever. After 16 starts without a command between them,
 command mode ends and pb resets, as when the transport doesn't start (2.1). A command starts
-the count again (F-413).
+the count again (F-413). A restart is the transport's disconnect, then its start (`usb.md`
+2.1); a disconnect that fails there is a start that fails.
 
 ### 2.3 Leaving
 
@@ -144,6 +145,7 @@ the count again (F-413).
 | A boot the host started (5.5)                      | The transport is disconnected, then the jump                 |
 | No host in time (2.2)                              | pb resets                                                    |
 | A boot the host started fails after the disconnect | pb resets (`board.md` 5.4)                                   |
+| The disconnect before a boot's jump fails          | No jump, pb resets (`usb.md` 2.5)                            |
 
 Command mode never leaves by itself to boot from storage: a reset does that.
 

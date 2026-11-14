@@ -171,8 +171,9 @@ before a restart (`command-mode.md` 2.3), so that the host sees the device go an
 the transport runs in the next stage (`drivers.md` 2.3). A transfer that was running is given
 up; its buffer is the caller's again.
 
-A disconnect that fails before a jump is a failed boot, and pb resets (`drivers.md` 2.3).
-**Not yet in the code (F-287)**: its result is ignored.
+A disconnect that fails before a jump is a failed boot, and pb resets (`drivers.md` 2.3). One
+that fails at a restart is a restart that fails, as an init that fails (2.1): no command mode,
+and pb resets. Before a reset its result changes nothing.
 
 ### 2.6 The host platform's socket
 

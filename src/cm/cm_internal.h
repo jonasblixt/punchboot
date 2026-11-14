@@ -52,7 +52,7 @@ int cm_error_to_wire(int error_code);
 int cm_write(const void *buf, size_t length);
 int cm_read(void *buf, size_t length);
 int cm_drain(size_t length);
-void cm_disconnect(void);
+int cm_disconnect(void);
 
 /* cm_auth.c */
 int cm_cmd_auth(void);

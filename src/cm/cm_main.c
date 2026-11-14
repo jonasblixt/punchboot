@@ -232,12 +232,26 @@ int cm_drain(size_t length)
     return PB_OK;
 }
 
-void cm_disconnect(void)
+/*
+ * The device leaves the bus (usb.md 2.5), once until the transport is
+ * started again: a second call returns PB_OK, a disconnect that failed isn't
+ * tried again. Its error is the caller's: before a jump it is a failed boot,
+ * at a restart a failed restart, and both leave command mode so that pb
+ * resets (drivers.md 2.3, usb.md 2.1)
+ */
+int cm_disconnect(void)
 {
-    if (!disconnected)
-        cm_transport_disconnect();
+    int rc = PB_OK;
+
+    if (!disconnected) {
+        rc = cm_transport_disconnect();
+
+        if (rc != PB_OK)
+            LOG_ERR("Transport disconnect failed (%i)", rc);
+    }
 
     disconnected = true;
+    return rc;
 }
 
 /*
@@ -612,11 +626,12 @@ static int cm_start(void)
 }
 
 /* Leaves command mode (command-mode.md 2.3): the device leaves the bus, and
- * the error ends the loop of the tasks, so that pb resets. A caller that
- * runs the task again all the same finds it at its first call */
+ * the error ends the loop of the tasks, so that pb resets. A disconnect that
+ * fails here changes nothing: the reset follows. A caller that runs the task
+ * again all the same finds it at its first call */
 static int cm_leave(int rc)
 {
-    cm_disconnect();
+    (void)cm_disconnect();
     cm_leave_requested = false;
     state = CM_SETUP;
     return rc;
@@ -629,10 +644,11 @@ static int cm_leave(int rc)
  * and it returns PB_OK to be called again, so that the other tasks run and
  * the core kicks the watchdog meanwhile. A command that has come runs to its
  * end inside the call, with its own kicks and its transfers' timeout (4.6).
- * An error ends the loop of the tasks: the set up failed, no host came in
- * time, the transport was lost again and again before a command came, a
- * command asked for the reset, or a boot the host started returned after the
- * transport's disconnect.
+ * An error ends the loop of the tasks: the set up failed, the transport
+ * didn't start or a restart's disconnect failed, no host came in time, the
+ * transport was lost again and again before a command came, a command asked
+ * for the reset, or a boot the host started returned after the transport's
+ * disconnect or its disconnect failed.
  */
 int cm_main_task(void)
 {
@@ -654,7 +670,14 @@ int cm_main_task(void)
              * command-mode.md 2.3): the device leaves the bus and comes
              * back, so that the host sees a new device and starts over.
              * The first start, after the set up, is the start alone */
-            cm_disconnect();
+            rc = cm_disconnect();
+
+            /* A disconnect that fails is a restart that fails, as a start
+             * that fails (usb.md 2.1, command-mode.md 2.1): no command mode,
+             * and pb resets */
+            if (rc != PB_OK)
+                return cm_leave(rc);
+
             state = CM_START;
             break;
         case CM_START:
