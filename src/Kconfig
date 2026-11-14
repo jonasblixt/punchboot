@@ -88,6 +88,9 @@ config RAMLOG_SIZE_KiB
     int "RAM log size (KiB)"
     default 16
     depends on RAMLOG
+    help
+        The log's size in RAM, its header included: the data is 16 bytes
+        less (struct pb_ramlog_hdr's size field).
 
 menuconfig BOOT_LINUX_RAMOOPS
     bool "Linux's ramoops records as the log 'linux'"

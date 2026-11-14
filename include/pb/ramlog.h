@@ -30,6 +30,14 @@ struct pb_ramlog_hdr {
     uint32_t head; /*!< Bytes written since init. The next byte goes to data[head % size] */
 };
 
+#ifdef CONFIG_RAMLOG_SIZE_KiB
+/* The log, header and data, is CONFIG_RAMLOG_SIZE_KiB: a page aligned
+ * platform loses no page to the 16 bytes of the header. The data area is
+ * not a power of two, so data[head % size] is off where head wraps at 4 GiB
+ * written, which a boot doesn't reach */
+#define PB_RAMLOG_DATA_SIZE (CONFIG_RAMLOG_SIZE_KiB * 1024 - sizeof(struct pb_ramlog_hdr))
+#endif
+
 /**
  * Reset the RAM log. Output written before this is dropped.
  */

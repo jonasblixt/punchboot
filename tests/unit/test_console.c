@@ -31,7 +31,7 @@
 #include <pb/plat.h>
 #include <pb/ramlog.h>
 
-#define LOG_SIZE  (CONFIG_RAMLOG_SIZE_KiB * 1024)
+#define LOG_SIZE  PB_RAMLOG_DATA_SIZE
 #define UART_BASE 0x1234
 
 static char uart[LOG_SIZE * 4];
