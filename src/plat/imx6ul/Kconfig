@@ -33,3 +33,11 @@ config IMX6UL_IMAGE_SIGN_CERT
     default "pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
     depends on IMX6UL_SIGN_IMAGE
 endmenu
+
+# The platform's room in the translation tables (platform.md 5.1), with room
+# for a few regions of a board's (board.md 2.8)
+config MAX_MMAP_REGIONS
+    default 32 if PLAT_IMX6UL
+
+config MAX_XLAT_TABLES
+    default 32 if PLAT_IMX6UL

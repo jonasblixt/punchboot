@@ -16,8 +16,6 @@ PB_BUFFERS_SIZE ?= 0x1000000
 cflags-y += -mtune=cortex-a7
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000
-cflags-y += -DMAX_XLAT_TABLES=32
-cflags-y += -DMAX_MMAP_REGIONS=32
 
 ldflags-y += -Tsrc/plat/imx6ul/link.lds
 

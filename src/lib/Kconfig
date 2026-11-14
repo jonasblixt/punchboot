@@ -26,4 +26,26 @@ config LIB_XLAT_TBLS_ARMV8
     default y if ARCH_ARMV8
     select LIB_XLAT_TBLS
 
+# The room in the translation tables (platform.md 5.1, 5.2). The platform
+# gives the default in its Kconfig, which is read before this one; a board
+# with many regions in its mmap (board.md 2.8) raises them in its defconfig
+config MAX_MMAP_REGIONS
+    int "Memory map regions, at most"
+    depends on LIB_XLAT_TBLS
+    range 8 256
+    help
+        The regions the memory map holds (platform.md 5.2): the board's
+        DRAM, the platform's, the board's mmap and pb's six. pb_mmu_init()
+        refuses a map with more, and plat_init() fails. Each is 32 bytes
+        in pb's memory.
+
+config MAX_XLAT_TABLES
+    int "Translation tables, at most"
+    depends on LIB_XLAT_TBLS
+    range 1 256
+    help
+        The translation tables the memory map may take, 4 KiB each, in
+        pb's buffers, whose size the linker checks. A region that isn't
+        aligned to a block takes tables of its own.
+
 endmenu
