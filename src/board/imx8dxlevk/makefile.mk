@@ -28,11 +28,17 @@ imx8xl_image: $(BUILD_DIR)/$(TARGET).bin
 				  -c -scfw $(IMX8XL_SCFW_IMAGE) \
 				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(CONFIG_PB_ENTRY) \
 				  -out $(BUILD_DIR)/pb.imx
-	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
 
 imx8xl_sign_image: imx8xl_image
 	@echo Signing not yet supported on imx8dxl
 	@exit 1
 
-plat-$(CONFIG_IMX8X_CREATE_IMX_IMAGE) += imx8xl_image
-plat-$(CONFIG_IMX8X_SIGN_IMAGE) += imx8xl_sign_image
+image-$(CONFIG_IMX8X_CREATE_IMX_IMAGE) += imx8xl_image
+image-$(CONFIG_IMX8X_SIGN_IMAGE) += imx8xl_sign_image
+
+# What `all` names as the build's output, set here and not by a recipe
+ifdef CONFIG_IMX8X_SIGN_IMAGE
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET)_signed.imx
+else ifdef CONFIG_IMX8X_CREATE_IMX_IMAGE
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).imx
+endif

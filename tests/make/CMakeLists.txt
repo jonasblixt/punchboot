@@ -40,3 +40,12 @@ add_test(
             ${CMAKE_NM} $<TARGET_FILE:pb-host> $<TARGET_OBJECTS:pb_core>
 )
 set_tests_properties(make.host_link PROPERTIES LABELS make TIMEOUT 60)
+
+# The image stages as a board out of the tree gets them (platform.md 6.2):
+# image-y, FINAL_OUTPUT and the levels at which a board overrides
+add_test(
+    NAME make.stages
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_stages.py
+            ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/stages
+)
+set_tests_properties(make.stages PROPERTIES LABELS make TIMEOUT 300 SKIP_RETURN_CODE 77)

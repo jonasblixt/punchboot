@@ -54,5 +54,5 @@ imx8m_sign_image: imx8m_image
 	@echo "Writing signature block at offset $(shell echo "obase=16; $(PB_FILESIZE_IMX2)" | bc	)"
 	@dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/$(TARGET)_signed.imx seek=$(PB_FILESIZE_IMX2) bs=1 conv=notrunc
 
-plat-y += imx8m_image
-plat-y += imx8m_sign_image
+image-y += imx8m_image
+image-y += imx8m_sign_image

@@ -34,4 +34,4 @@ imx8mp_image: $(BUILD_DIR)/pb.bin
 	@printf 'ROM_VERSION v2\nBOOT_FROM sd\nLOADER $(BUILD_DIR)/pb.bin $(CONFIG_PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
 	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(CONFIG_PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
 
-plat-y += imx8mp_image
+image-y += imx8mp_image

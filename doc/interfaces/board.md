@@ -74,8 +74,8 @@ finding removes the marker here and updates the board's row in the conformance t
 - **In or out of the tree.** `make BOARD=<path>` builds a board from any directory (section 7).
   `struct board`, the meaning of its hooks and the build interface change only in a major release
   (D-018, `system.md` 3). A new object for a member is no such change.
-  **Not yet in the code (F-240)**: CI builds an out-of-tree board, the level 3 override of
-  `platform.md` 6.2, which tests this interface too.
+  CI builds an out-of-tree board, the level 3 override of `platform.md` 6.2, which tests this
+  interface too.
 
 ## 2. Lifecycle
 

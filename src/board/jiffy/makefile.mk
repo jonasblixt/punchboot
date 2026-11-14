@@ -16,8 +16,6 @@ src-y += $(BOARD)/board.c
 imx6ul_image: $(BUILD_DIR)/$(TARGET).bin
 	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(CONFIG_PB_ENTRY) \
 				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx
-
-	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
 ##
 # Note: imx6ul expects the boot image to begin at block 2. Currently
 # there is now way of writing the image at an offset, therefore we prepend
@@ -55,7 +53,12 @@ imx6ul_sign_image: imx6ul_image
 	@$(CST_TOOL) --o $(BUILD_DIR)/pb_csf_uuu.bin --i $(BUILD_DIR)/pb_uuu.csf
 	@cat $(BUILD_DIR)/pb.imx $(BUILD_DIR)/pb_csf_uuu.bin > $(BUILD_DIR)/pb_signed_uuu.imx
 
-	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET)_signed.imx)
+image-$(CONFIG_IMX6UL_CREATE_IMX_IMAGE) += imx6ul_image
+image-$(CONFIG_IMX6UL_SIGN_IMAGE) += imx6ul_sign_image
 
-plat-$(CONFIG_IMX6UL_CREATE_IMX_IMAGE) += imx6ul_image
-plat-$(CONFIG_IMX6UL_SIGN_IMAGE) += imx6ul_sign_image
+# What `all` names as the build's output, set here and not by a recipe
+ifdef CONFIG_IMX6UL_SIGN_IMAGE
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET)_signed.imx
+else ifdef CONFIG_IMX6UL_CREATE_IMX_IMAGE
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).imx
+endif

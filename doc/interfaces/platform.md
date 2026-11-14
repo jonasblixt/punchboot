@@ -663,7 +663,7 @@ Rules for the platform's makefile, so that a board can override:
 
 - The board's makefile is included before the platform's: every input is set with `?=`, the
   signing tool too.
-- A stage is added to `image-y` (today `plat-y`) only through its Kconfig option.
+- A stage is added to `image-y` only through its Kconfig option.
 - `FINAL_OUTPUT` is set when the makefile is parsed, from the same options, not with `$(eval)`
   in a recipe.
 

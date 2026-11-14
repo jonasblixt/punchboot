@@ -17,7 +17,7 @@ make BOARD=src/board/<x> KCONFIG_CONFIG=configs/<x>_defconfig CROSS_COMPILE=<arm
 - Kconfig is handled by the vendored Kconfiglib. `scripts/genconfig.py` runs on **every** make
   invocation and writes `build-<board>/config.h`. `make menuconfig` and `make olddefconfig` are available.
   Without `KCONFIG_CONFIG`, the config is read from `.config`.
-- Kbuild-like variables (`src-y`, `asm-y`, `cflags-y`, `blobs-y`, `plat-y`) are collected from `src/*/makefile.mk` plus `$(BOARD)/makefile.mk`.
+- Kbuild-like variables (`src-y`, `asm-y`, `cflags-y`, `blobs-y`, `image-y`) are collected from `src/*/makefile.mk` plus `$(BOARD)/makefile.mk`.
 - `keystore.c` is generated with the host `bpak` CLI (`$(BPAK) generate keystore`) from `CONFIG_KEYSTORE`,
   default `pki/internal_keystore.bpak`. It can be overridden on the make command line (`CONFIG_KEYSTORE=...`).
 - Outputs go to `build-<board>/`: `pb`, `pb.bin` and `pb.map`.

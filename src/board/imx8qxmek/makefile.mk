@@ -28,7 +28,6 @@ imx8x_image: $(BUILD_DIR)/$(TARGET).bin
 				  -c -scfw $(IMX8X_SCFW_IMAGE) \
 				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(CONFIG_PB_ENTRY) \
 				  -out $(BUILD_DIR)/pb.imx
-	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
 
 imx8x_sign_image: imx8x_image
 	@cp $(PB_CSF_TEMPLATE) $(BUILD_DIR)/pb.csf
@@ -38,7 +37,13 @@ imx8x_sign_image: imx8x_image
 	@$(SED) -i -e 's#__CSFK_PEM__#$(IMX8X_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__FILE__#$(BUILD_DIR)/pb.imx#g' $(BUILD_DIR)/pb.csf
 	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/$(TARGET)_signed.imx  > /dev/null
-	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET)_signed.imx)
 
-plat-$(CONFIG_IMX8X_CREATE_IMX_IMAGE) += imx8x_image
-plat-$(CONFIG_IMX8X_SIGN_IMAGE) += imx8x_sign_image
+image-$(CONFIG_IMX8X_CREATE_IMX_IMAGE) += imx8x_image
+image-$(CONFIG_IMX8X_SIGN_IMAGE) += imx8x_sign_image
+
+# What `all` names as the build's output, set here and not by a recipe
+ifdef CONFIG_IMX8X_SIGN_IMAGE
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET)_signed.imx
+else ifdef CONFIG_IMX8X_CREATE_IMX_IMAGE
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).imx
+endif

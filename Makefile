@@ -132,6 +132,18 @@ include src/arch/*/makefile.mk
 include src/plat/*/makefile.mk
 include src/cm/makefile.mk
 
+# The image stages (platform.md 6.2): image-y lists the stages `all` makes
+# after pb.bin, each added through its Kconfig option, and FINAL_OUTPUT is the
+# last file they make. Both are set while the makefiles are read, the board's
+# before the platform's, so a board's own stage and FINAL_OUTPUT are kept.
+# Before 3.0.0 the list was plat-y: a board that still fills it would build
+# without its image, so it stops here.
+ifneq ($(strip $(plat-y)),)
+$(error plat-y ($(strip $(plat-y))) is image-y since 3.0.0: the platform's makefile.mk has the SoC's image stages, see platform.md 6.2 for what a board's makefile.mk still sets)
+endif
+
+FINAL_OUTPUT ?= $(BUILD_DIR)/$(TARGET).bin
+
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
 ldflags-y += --defsym=PB_ENTRY=$(CONFIG_PB_ENTRY)
 ldflags-y += --defsym=PB_SIZE=$(CONFIG_PB_SIZE)
@@ -153,14 +165,12 @@ BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(notdir $(blobs-y)))
 
 DEPS      = $(OBJS:.o=.d)
 
-FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).bin
-
 .PHONY: menuconfig olddefconfig
 
 menuconfig olddefconfig:
 	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/$@.py src/Kconfig
 
-all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
+all: $(BUILD_DIR)/$(TARGET).bin $(image-y)
 	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
 	@echo "Success, final output: $(FINAL_OUTPUT)"
 

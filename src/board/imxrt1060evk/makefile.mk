@@ -11,8 +11,6 @@ imxrt_image: $(BUILD_DIR)/$(TARGET).bin
 	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(CONFIG_PB_ENTRY) \
 				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx
 
-	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
-
 $(BUILD_DIR)/fcb.bin: $(fcb-y)
 	@echo FCB $<
 	$(Q)$(CC) -c $(cflags-y) $< -o $(BUILD_DIR)/fcb.o
@@ -25,6 +23,8 @@ imxrt_flash_image: imxrt_image $(BUILD_DIR)/fcb.bin
 	$(Q)cp $(BUILD_DIR)/fcb.bin $(BUILD_DIR)/$(TARGET)_flash.bin
 	$(Q)truncate -s 4096 $(BUILD_DIR)/$(TARGET)_flash.bin
 	$(Q)cat $(BUILD_DIR)/$(TARGET).imx >> $(BUILD_DIR)/$(TARGET)_flash.bin
-	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET)_flash.bin)
 
-plat-y += imxrt_image imxrt_flash_image
+image-y += imxrt_image imxrt_flash_image
+
+# What `all` names as the build's output, set here and not by a recipe
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET)_flash.bin
