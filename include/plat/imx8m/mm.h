@@ -3,8 +3,10 @@
 
 #define IMX8M_ROM_BASE             (0x00000000) /* IMX8M_ROM_SIZE: makefile.mk */
 #define IMX8M_OCRAM_BASE           (0x00900000) /* IMX8M_OCRAM_SIZE: makefile.mk */
-#define IMX8M_AIPS_BASE            (0x30000000) /* The peripherals, AIPS1..4 */
+#define IMX8M_AIPS_BASE            (0x30000000) /* AIPS1..3, and the 8MP's AIPS5 */
 #define IMX8M_AIPS_SIZE            (0x01000000)
+#define IMX8M_AIPS4_BASE           (0x32C00000) /* AIPS4: the TZASC, the 8MP's HSIO */
+#define IMX8M_AIPS4_SIZE           (0x00400000)
 #define IMX8M_GPV_BASE             (0x32000000) /* The NoC's global programmer's view */
 #define IMX8M_GPV_SIZE             (0x00020000)
 #define IMX8MP_HSIO_BLK_CTRL_BASE  (0x32F10000)

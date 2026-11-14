@@ -86,8 +86,11 @@ static const mmap_region_t imx_mmap[] = {
     MAP_REGION_FLAT(IMX8M_GPV_BASE, IMX8M_GPV_SIZE, MT_DEVICE | MT_RW),
     /* USB */
     MAP_REGION_FLAT(IMX8M_USB1_BASE, IMX8M_USB_SIZE, MT_DEVICE | MT_RW),
-    /* HSIO BLK_CTRL (i.MX8M Plus) */
-    MAP_REGION_FLAT(IMX8MP_HSIO_BLK_CTRL_BASE, IMX8MP_HSIO_BLK_CTRL_SIZE, MT_DEVICE | MT_RW),
+    /* AIPS4, whole (platform.md 5.2, layer 2): the TZASC and the 8MP's HSIO
+     * block control, which was its only part mapped. The span F-158 split
+     * covered the rest as Normal memory (Linux's imx8mq.dtsi and
+     * imx8mp.dtsi, bus@32c00000) */
+    MAP_REGION_FLAT(IMX8M_AIPS4_BASE, IMX8M_AIPS4_SIZE, MT_DEVICE | MT_RW),
     { 0 }
 };
 
