@@ -440,8 +440,9 @@ The partition tables:
 for section 3, run on the host against every device that can run there: the RAM disk, the host's
 disk, and the MMC and SD drivers on their card models through the uSDHC's model. The fakes pass
 the same suite, so that none is more forgiving than a driver (F-182 hid behind two that wrote
-exact byte counts). The FlexSPI's driver has no model: the bench, through the simple target
-(D-025).
+exact byte counts). The FlexSPI's driver has a model, a NOR flash behind the controller's
+registers (`test_imx_flexspi`), which runs the driver's own tests and not yet the suite; on the
+board, the bench, through the simple target (D-025).
 
 `tests/unit/conformance/bio_conformance.c` has its start: a length that isn't whole blocks, a
 length of 0, a range outside the device, a length of more than a driver's chunk. It runs
