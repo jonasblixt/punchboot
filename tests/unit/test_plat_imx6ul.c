@@ -9,6 +9,9 @@
  * (doc/interfaces/platform.md), with the SoC's registers in a register file
  * (fakes/regs.h). The GPT's and the WDOG's drivers are the real ones; the
  * fuses, the ROM's logs, the HAB, the TZASC and the MMU are fakes.
+ *
+ * Built twice: with CONFIG_ENABLE_WATCHDOG, as every board has it, and
+ * without.
  */
 
 #include <setjmp.h>
@@ -36,6 +39,9 @@
 /* The GPT (RM 28.6) */
 #define GPT_CR     0x00
 #define GPT_CR_SWR BIT(15)
+
+/* A write that resets the SoC leaves the code under test through here */
+static jmp_buf soc_reset;
 
 void imx_rom_log_save(const struct imx_rom_log_config *cfg)
 {
@@ -125,6 +131,10 @@ static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
     /* The GPT's software reset ends by itself */
     if (addr == IMX6UL_GPT1_BASE + GPT_CR)
         return value & ~GPT_CR_SWR;
+
+    /* WDOG1's software reset: WCR.SRS written 0 */
+    if (addr == IMX6UL_WDOG1_BASE + WDOG_WCR && (value & WDOG_WCR_SRS) == 0)
+        longjmp(soc_reset, 1);
 
     return value;
 }
@@ -237,9 +247,92 @@ static void test_boot_reason_is_read_once_and_not_cleared(void **state)
     assert_int_equal(fake_regs_writes(IMX6UL_SRC_SRSR), 0);
 }
 
+/* platform.md 2.1: the watchdog is armed in plat_early_init() when
+ * CONFIG_ENABLE_WATCHDOG is set, and only then. The WDOGs' power-down
+ * counters are stopped whatever the option is */
+static void test_wdog_armed_by_the_option(void **state)
+{
+    static const uintptr_t wdogs[] = { IMX6UL_WDOG1_BASE, IMX6UL_WDOG2_BASE, IMX6UL_WDOG3_BASE };
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+#if CONFIG_ENABLE_WATCHDOG
+    assert_int_equal(fake_regs_writes(IMX6UL_WDOG1_BASE + WDOG_WCR), 1);
+    assert_true(fake_regs_get(IMX6UL_WDOG1_BASE + WDOG_WCR) & WDOG_WCR_WDE);
+    assert_true(fake_regs_get(IMX6UL_WDOG1_BASE + WDOG_WCR) >> 8 != 0);
+#else
+    assert_int_equal(fake_regs_writes(IMX6UL_WDOG1_BASE + WDOG_WCR), 0);
+#endif
+
+    for (size_t i = 0; i < ARRAY_SIZE(wdogs); i++) {
+        assert_true(fake_regs_writes(wdogs[i] + WDOG_WMCR) >= 1);
+        assert_int_equal(fake_regs_get(wdogs[i] + WDOG_WMCR), 0);
+    }
+
+    /* Nothing went to the driver's base of old, 0 (F-206, F-234) */
+    assert_int_equal(fake_regs_writes_in(0, 0x1000), 0);
+}
+
+/* platform.md 3.3: plat_wdog_kick() is safe at any time, also before the
+ * watchdog is armed and without CONFIG_ENABLE_WATCHDOG: WDOG1's service
+ * sequence, at WDOG1 (F-206: it went to address 0 without the option) */
+static void test_wdog_kick(void **state)
+{
+    (void)state;
+
+    plat_wdog_kick();
+
+    assert_int_equal(fake_reg_log_len, 2);
+    assert_int_equal(fake_reg_log[0].addr, IMX6UL_WDOG1_BASE + WDOG_WSR);
+    assert_int_equal(fake_reg_log[0].value, WDOG_WSR_SEQ1);
+    assert_int_equal(fake_reg_log[1].addr, IMX6UL_WDOG1_BASE + WDOG_WSR);
+    assert_int_equal(fake_reg_log[1].value, WDOG_WSR_SEQ2);
+}
+
+/* platform.md 3.1: plat_reset() resets the SoC whatever
+ * CONFIG_ENABLE_WATCHDOG is, also before plat_early_init(): one write, to
+ * WDOG1 (F-206: without the option it wrote to address 0 and spun) */
+static void test_plat_reset(void **state)
+{
+    (void)state;
+
+    if (setjmp(soc_reset) == 0) {
+        plat_reset();
+        fail_msg("plat_reset() returned");
+    }
+
+    assert_int_equal(fake_reg_log_len, 1);
+    assert_int_equal(fake_reg_log[0].addr, IMX6UL_WDOG1_BASE + WDOG_WCR);
+    assert_int_equal(fake_reg_log[0].value, WDOG_WCR_SRE | WDOG_WCR_WDE);
+}
+
+/* And after plat_init() */
+static void test_plat_reset_after_init(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    if (setjmp(soc_reset) == 0) {
+        plat_reset();
+        fail_msg("plat_reset() returned");
+    }
+
+    assert_int_equal(fake_reg_log[fake_reg_log_len - 1].addr, IMX6UL_WDOG1_BASE + WDOG_WCR);
+    assert_int_equal(fake_reg_log[fake_reg_log_len - 1].value, WDOG_WCR_SRE | WDOG_WCR_WDE);
+    assert_int_equal(fake_regs_writes_in(0, 0x1000), 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup(test_plat_reset, setup),
+        cmocka_unit_test_setup(test_wdog_kick, setup),
+        cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
+        cmocka_unit_test_setup(test_plat_reset_after_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_priority, setup),
         cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),
