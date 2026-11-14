@@ -9,6 +9,9 @@
  * (doc/interfaces/platform.md), with the SoC's registers in a register file
  * (fakes/regs.h). The GPT's and the WDOG's drivers are the real ones; the
  * fuses, the HAB and Mbed TLS are fakes.
+ *
+ * Built twice: with CONFIG_DRIVERS_CRYPTO_MBEDTLS, as the RT1060 EVK has
+ * it, and without (test_plat_imxrt_no_mbedtls).
  */
 
 #include <setjmp.h>
@@ -26,6 +29,8 @@
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imxrt/imxrt.h>
 #include <string.h>
 
@@ -50,6 +55,9 @@
 static struct {
     int mbedtls_rc;
     int hab_log_rc;
+    unsigned int mbedtls_inits;
+    /* The register log's length when mbedtls_pb_init() was called */
+    size_t mbedtls_at;
     uint32_t speed_grade;
     unsigned int log_time_starts;
     /* The register log's length when log_time_start() was called */
@@ -68,6 +76,8 @@ static jmp_buf soc_reset;
 
 int mbedtls_pb_init(void)
 {
+    f.mbedtls_inits++;
+    f.mbedtls_at = fake_reg_log_len;
     return f.mbedtls_rc;
 }
 
@@ -107,6 +117,19 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
 {
     (void)cfg;
+}
+
+/* The HAB's fuses: the port only names them, in plat_rot and
+ * plat_slc */
+int imx_hab_read_key_status(const struct rot_key *key)
+{
+    (void)key;
+    return PB_OK;
+}
+
+slc_t imx_hab_slc_read_status(void)
+{
+    return SLC_NOT_CONFIGURED;
 }
 
 void log_time_start(void)
@@ -185,10 +208,12 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     assert_int_equal(plat_init(), PB_OK);
     assert_false(status_now().crypto_engine);
 
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
     /* And it is the state of this plat_init(), not of an earlier one */
     f.mbedtls_rc = PB_OK;
     assert_int_equal(plat_init(), PB_OK);
     assert_true(status_now().crypto_engine);
+#endif
 }
 
 /* platform.md 3.8: what plat_init() recorded. The Cortex-M7 has no
@@ -205,7 +230,12 @@ static void test_status(void **state)
 
     assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_NONE);
     assert_true(status.wdog_armed);
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
     assert_true(status.crypto_engine);
+#else
+    /* A build without a backend has none that works (platform.md 3.8) */
+    assert_false(status.crypto_engine);
+#endif
     assert_true(status.rom_log);
 }
 
@@ -298,6 +328,26 @@ static void test_vdd_soc_for_600_mhz(void **state)
     assert_int_equal(fake_regs_writes(IMXRT_DCDC_REG3), 0);
     assert_int_equal(fake_regs_get(IMXRT_CCM_ANALOG_PLL_ARM) & ANALOG_PLL_ARM_DIV_SELECT_MASK,
                      ANALOG_PLL_ARM_DIV_SELECT(88));
+}
+
+/* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
+ * crypto backend behind its driver's option: Mbed TLS with
+ * CONFIG_DRIVERS_CRYPTO_MBEDTLS, once and as its last step, and nothing of
+ * it in a build without the option */
+static void test_crypto_backend_behind_its_option(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(f.mbedtls_inits, 0);
+    assert_int_equal(plat_init(), PB_OK);
+
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    assert_int_equal(f.mbedtls_inits, 1);
+    assert_int_equal(f.mbedtls_at, fake_reg_log_len);
+#else
+    assert_int_equal(f.mbedtls_inits, 0);
+#endif
 }
 
 /* platform.md 2.1 (F-416): GPT1's bus and serial gates (CCGR1's CG10 and
@@ -601,6 +651,25 @@ static void test_platform_ns_uuid(void **state)
     assert_memory_equal(platform_ns_uuid, ns, sizeof(ns));
 }
 
+/* platform.md 4.1, 4.2 (F-247): the root of trust and the life cycle are the
+ * platform's, HABv4's state in the OCOTP, read only. What the RT1060 EVK
+ * wired itself until then, unchanged: a key's status and the life cycle can
+ * be read, no key is revoked and no fuse is written */
+static void test_plat_rot_and_slc(void **state)
+{
+    (void)state;
+
+    assert_null(plat_rot.revoke_key);
+    assert_ptr_equal(plat_rot.read_key_status, imx_hab_read_key_status);
+
+    assert_ptr_equal(plat_slc.read_status, imx_hab_slc_read_status);
+    assert_null(plat_slc.set_configuration);
+    assert_null(plat_slc.set_configuration_locked);
+    assert_null(plat_slc.set_eol);
+    assert_null(plat_slc.fuse_read);
+    assert_null(plat_slc.fuse_write);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -612,6 +681,7 @@ int main(void)
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_rom_log_missing, setup),
         cmocka_unit_test_setup(test_boot_source, setup),
+        cmocka_unit_test_setup(test_crypto_backend_behind_its_option, setup),
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
@@ -623,6 +693,7 @@ int main(void)
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_plat_reset_before_early_init, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
+        cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

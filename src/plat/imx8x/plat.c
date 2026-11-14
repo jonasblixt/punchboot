@@ -7,6 +7,8 @@
  *
  */
 
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/crypto/mbedtls.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/uart/imx_lpuart.h>
 #include <drivers/usb/imx_cdns3_udc.h>
@@ -419,10 +421,13 @@ int plat_early_init(void)
     return PB_OK;
 }
 
+/* Whether plat_init() set the build's crypto backends up */
+static bool crypto_engine;
+
 /*
- * What plat_early_init() recorded (platform.md 3.8). The DRAM filter is a
- * later stage's: BL31 partitions the memory through the SCFW. The crypto
- * engine is the board's (F-247), and the ROM's logs aren't saved.
+ * What plat_early_init() and plat_init() recorded (platform.md 3.8). The
+ * DRAM filter is a later stage's: BL31 partitions the memory through the
+ * SCFW. The ROM's logs aren't saved.
  */
 void plat_get_status(struct plat_status *status)
 {
@@ -432,8 +437,77 @@ void plat_get_status(struct plat_status *status)
 #else
     status->wdog_armed = false;
 #endif
-    status->crypto_engine = false;
+    status->crypto_engine = crypto_engine;
     status->rom_log = false;
+}
+
+/*
+ * The build's crypto backends (platform.md 2.2, crypto.md 2), each behind
+ * its driver's option: the CAAM on job ring 2, which the SCFW powers (job
+ * rings 0 and 1 are the SECO's), and Mbed TLS. A board that needs the
+ * software implementation turns the CAAM's option off and Mbed TLS's on in
+ * its defconfig. The RNG isn't pb's here (plat-imx.md 4.4).
+ *
+ * Command mode can start without a backend, so a failure isn't plat_init()'s
+ * error: main() would reset. A backend that failed isn't registered and no
+ * image verifies: it is recorded (plat_get_status()), and the boot's
+ * preconditions refuse the boot before anything is loaded (platform.md 2.3).
+ *
+ * Returns whether the build's backends all came up. A build without one has
+ * none that works.
+ */
+static bool crypto_init(void)
+{
+    unsigned int backends = 0;
+    bool failed = false;
+    int rc = PB_OK;
+
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
+
+    rc = imx_caam_init(IMX_CAAM_JR2_BASE);
+    backends++;
+
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+        failed = true;
+    }
+#endif
+
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    rc = mbedtls_pb_init();
+    backends++;
+
+    if (rc != PB_OK) {
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+        failed = true;
+    }
+#endif
+
+    (void)rc;
+    return backends > 0 && !failed;
+}
+
+/*
+ * Before the jump the platform stops what plat_init() started (platform.md
+ * 4.5, drivers.md 2.3): the CAAM's job ring holds no address in pb's memory
+ * any more (crypto.md 6). Mbed TLS has nothing to stop. After it the CAAM's
+ * backend answers -PB_ERR_STATE until a reset. A stop that fails is a failed
+ * boot: plat_lockdown() returns its error and pb doesn't jump.
+ */
+static int crypto_stop(void)
+{
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    int rc = imx_caam_stop();
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM stop failed (%i)", rc);
+
+    return rc;
+#else
+    return PB_OK;
+#endif
 }
 
 int plat_init(void)
@@ -450,6 +524,9 @@ int plat_init(void)
     imx8x_fuse_init(plat.ipc);
     imx8x_rot_helpers_init(plat.ipc);
     imx8x_slc_helpers_init(plat.ipc);
+
+    /* Last: until F-247 the board's init() did it, as its first step */
+    crypto_engine = crypto_init();
 
     return PB_OK;
 }
@@ -591,6 +668,6 @@ int plat_get_boot_source(struct pb_boot_source *src)
 
 int plat_lockdown(void)
 {
-    /* Nothing yet: what the SECO can lock is unchecked (F-244) */
-    return PB_OK;
+    /* Nothing locked yet: what the SECO can lock is unchecked (F-244) */
+    return crypto_stop();
 }

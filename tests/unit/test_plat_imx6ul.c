@@ -8,7 +8,8 @@
  * The i.MX6UL port (src/plat/imx6ul/plat.c) against the platform contract
  * (doc/interfaces/platform.md), with the SoC's registers in a register file
  * (fakes/regs.h). The GPT's and the WDOG's drivers are the real ones; the
- * fuses, the ROM's logs, the HAB, the TZASC and the MMU are fakes.
+ * fuses, the ROM's logs, the HAB, the TZASC, the MMU and the crypto backends
+ * (the CAAM and Mbed TLS: the test's build has both options) are fakes.
  *
  * Built twice: with CONFIG_ENABLE_WATCHDOG, as every board has it, and
  * without.
@@ -21,6 +22,8 @@
 
 #include <cmocka.h>
 
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
@@ -30,6 +33,8 @@
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imx6ul/clock.h>
 #include <plat/imx6ul/imx6ul.h>
 #include <string.h>
@@ -43,6 +48,57 @@
 
 /* A write that resets the SoC leaves the code under test through here */
 static jmp_buf soc_reset;
+
+/* What plat_init() sets up after the clocks, in order */
+static char calls[64];
+
+/* A test that sets the platform up again and again fills it: what doesn't
+ * fit is left out */
+static void call(const char *name)
+{
+    if (strlen(calls) + strlen(name) + 2 > sizeof(calls))
+        return;
+
+    strcat(calls, name);
+    strcat(calls, " ");
+}
+
+/* The crypto backends: what their set up returns, what it got, and the
+ * register log's length and the MMU's state when the first was called */
+static struct {
+    int caam_rc, rng_rc, mbedtls_rc, stop_rc, lock_rc;
+    uintptr_t caam_base, rng_base;
+    size_t caam_at;
+    unsigned int caam_mmu_enables;
+} crypto;
+
+int imx_caam_init(uintptr_t base)
+{
+    call("caam");
+    crypto.caam_base = base;
+    crypto.caam_at = fake_reg_log_len;
+    crypto.caam_mmu_enables = fake_mmu_enables;
+    return crypto.caam_rc;
+}
+
+int imx_caam_rng_init(uintptr_t ctrl_base)
+{
+    call("rng");
+    crypto.rng_base = ctrl_base;
+    return crypto.rng_rc;
+}
+
+int mbedtls_pb_init(void)
+{
+    call("mbedtls");
+    return crypto.mbedtls_rc;
+}
+
+int imx_caam_stop(void)
+{
+    call("stop");
+    return crypto.stop_rc;
+}
 
 /* The fuses */
 static struct {
@@ -128,7 +184,8 @@ int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs)
 {
     (void)sw_sticky;
     (void)lock_scs;
-    return PB_OK;
+    call("lock");
+    return crypto.lock_rc;
 }
 
 void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
@@ -136,9 +193,53 @@ void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
     (void)cfg;
 }
 
+/* The HAB's fuses and the OCOTP's access by index: the port only names them, in plat_rot and
+ * plat_slc */
+int imx_hab_read_key_status(const struct rot_key *key)
+{
+    (void)key;
+    return PB_OK;
+}
+
+slc_t imx_hab_slc_read_status(void)
+{
+    return SLC_NOT_CONFIGURED;
+}
+
+int imx_hab_revoke_key(const struct rot_key *key)
+{
+    (void)key;
+    return PB_OK;
+}
+
+int imx_hab_slc_set_configuration(void)
+{
+    return PB_OK;
+}
+
+int imx_hab_slc_set_configuration_locked(void)
+{
+    return PB_OK;
+}
+
+int imx_ocotp_fuse_read(uint32_t index, uint32_t *value)
+{
+    (void)index;
+    *value = 0;
+    return PB_OK;
+}
+
+int imx_ocotp_fuse_write(uint32_t index, uint32_t value)
+{
+    (void)index;
+    (void)value;
+    return PB_OK;
+}
+
 int tzc380_init(uintptr_t base)
 {
     (void)base;
+    call("tzasc");
     return f.tzc_init_rc;
 }
 
@@ -185,6 +286,8 @@ static int setup(void **state)
     (void)state;
     memset(&fuses, 0, sizeof(fuses));
     memset(&f, 0, sizeof(f));
+    memset(&crypto, 0, sizeof(crypto));
+    memset(calls, 0, sizeof(calls));
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
     /* The board's DCD took the TZASC out of bypass */
@@ -446,7 +549,7 @@ static struct plat_status status_now(void)
 /* platform.md 3.8: what plat_init() recorded. The TZASC is out of bypass and
  * DRAM is open in region 1, the watchdog is armed when the option is on and
  * reported as not armed without it, the ROM's logs were found, and the
- * platform sets no crypto engine up (the board does, F-247) */
+ * crypto backends the platform set up work */
 static void test_status(void **state)
 {
     struct plat_status status;
@@ -463,7 +566,7 @@ static void test_status(void **state)
 #else
     assert_false(status.wdog_armed);
 #endif
-    assert_false(status.crypto_engine);
+    assert_true(status.crypto_engine);
     assert_true(status.rom_log);
 }
 
@@ -713,6 +816,138 @@ static void test_unique_id_buffer_too_small(void **state)
     assert_int_equal(fuses.reads, 0);
 }
 
+/* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
+ * crypto backends, each behind its driver's option: the CAAM on job ring 0,
+ * then its RNG4 on the controller page, and Mbed TLS.
+ *
+ * Until F-247 jiffy's init() did the CAAM's two calls as its first step,
+ * which was the first thing after plat_init(): they are plat_init()'s last
+ * now, after the TZASC and with the MMU on, and no register of the
+ * platform's is written after them. So the SoC sees the same writes in the
+ * same order */
+static void test_crypto_set_up_last_in_plat_init(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_string_equal(calls, "");
+
+    assert_int_equal(plat_init(), PB_OK);
+    assert_string_equal(calls, "tzasc caam rng mbedtls ");
+    assert_int_equal(crypto.caam_base, IMX6UL_CAAM_JR0_BASE);
+    assert_int_equal(crypto.rng_base, IMX6UL_CAAM_BASE);
+    assert_int_equal(crypto.caam_mmu_enables, 1);
+    assert_int_equal(crypto.caam_at, fake_reg_log_len);
+}
+
+/* platform.md 2.2: a crypto engine that fails isn't plat_init()'s error:
+ * command mode can start without it, and main() would reset. The RNG isn't
+ * instantiated on an engine that didn't come up; a failed RNG alone is no
+ * reason not to boot (Linux has no hardware RNG then) */
+static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
+{
+    (void)state;
+
+    crypto.caam_rc = -PB_ERR_IO;
+    crypto.mbedtls_rc = -PB_ERR_PARAM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_string_equal(calls, "tzasc caam mbedtls ");
+
+    setup(NULL);
+    crypto.rng_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_string_equal(calls, "tzasc caam rng mbedtls ");
+}
+
+/* platform.md 2.3, 3.8 (F-247, F-248): the platform sets the build's crypto
+ * backends up, so their result is the platform's status, and the boot's
+ * preconditions refuse the boot when it is false, before a candidate is
+ * tried (test_boot.c). A failed RNG
+ * doesn't make it false */
+static void test_status_crypto_engine(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+
+    /* The CAAM, which the boards verify with */
+    setup(NULL);
+    crypto.caam_rc = -PB_ERR_IO;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* Each algorithm has one backend (crypto.md 2): a build with two needs
+     * both */
+    setup(NULL);
+    crypto.mbedtls_rc = -PB_ERR_MEM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* The RNG is Linux's loss, not the boot's: the engine verifies */
+    setup(NULL);
+    crypto.rng_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+
+    /* It is the state of this plat_init(), not of an earlier one */
+    setup(NULL);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+}
+
+/* platform.md 4.5, drivers.md 2.3, crypto.md 6 (F-286): the platform stops
+ * what plat_init() started before the jump, in plat_lockdown(), the core's
+ * last call of it: the CAAM's job ring. After the OCOTP's locks, and only
+ * when they are set: a lockdown that fails ends in command mode, which
+ * verifies a token with the CAAM. A stop that fails is a failed boot */
+static void test_lockdown_stops_the_crypto_engine(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_lockdown(), PB_OK);
+    assert_string_equal(calls, "lock stop ");
+
+    /* A second lockdown before a reset (platform.md 4.4) */
+    assert_int_equal(plat_lockdown(), PB_OK);
+    assert_string_equal(calls, "lock stop lock stop ");
+
+    setup(NULL);
+    crypto.lock_rc = -PB_ERR_IO;
+    assert_int_equal(plat_lockdown(), -PB_ERR_IO);
+    assert_string_equal(calls, "lock ");
+
+    setup(NULL);
+    crypto.stop_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(plat_lockdown(), -PB_ERR_TIMEOUT);
+    assert_string_equal(calls, "lock stop ");
+}
+
+/* platform.md 4.1, 4.2 (F-247): the root of trust and the life cycle are the
+ * platform's, HABv4's state in the OCOTP. What jiffy wired itself until
+ * then, unchanged: SRK revocation, the SRK hash and the closed bit, the
+ * fuses by index, and no EOL (F-263) */
+static void test_plat_rot_and_slc(void **state)
+{
+    (void)state;
+
+    assert_ptr_equal(plat_rot.revoke_key, imx_hab_revoke_key);
+    assert_ptr_equal(plat_rot.read_key_status, imx_hab_read_key_status);
+
+    assert_ptr_equal(plat_slc.read_status, imx_hab_slc_read_status);
+    assert_ptr_equal(plat_slc.set_configuration, imx_hab_slc_set_configuration);
+    assert_ptr_equal(plat_slc.set_configuration_locked, imx_hab_slc_set_configuration_locked);
+    assert_null(plat_slc.set_eol);
+    assert_ptr_equal(plat_slc.fuse_read, imx_ocotp_fuse_read);
+    assert_ptr_equal(plat_slc.fuse_write, imx_ocotp_fuse_write);
+}
+
 /* platform.md 5.2: the memory map. The rest of pb (.bss, the RAM log) and
  * the buffers are two regions, RW and execute never, and nothing maps the
  * address space between them: one span from pb to the buffers mapped it as
@@ -751,6 +986,11 @@ int main(void)
         cmocka_unit_test_setup(test_unique_id, setup),
         cmocka_unit_test_setup(test_unique_id_read_fails, setup),
         cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
+        cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
+        cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
+        cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_status_crypto_engine, setup),
+        cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_mmu_map, setup),
     };
 

@@ -20,7 +20,7 @@ int imx_caam_init(uintptr_t base);
  * A job that is in flight is waited for, then the job ring's base and size
  * registers are cleared, so that the engine holds no address in pb's memory.
  * After it the backend's calls are -PB_ERR_STATE. Whoever set the CAAM up
- * stops it: today the board, in its late_boot() (board.md 5.3).
+ * stops it: the platform, in its plat_lockdown() (platform.md 4.5).
  *
  * @return PB_OK when stopped, also before imx_caam_init() and a second time,
  *        -PB_ERR_TIMEOUT if a job doesn't end: the rings are left as they are

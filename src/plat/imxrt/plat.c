@@ -12,6 +12,8 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imxrt/imxrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -67,6 +69,16 @@ static const struct imx_hab_fuses hab_fuses = {
     .revoke_bank = IMXRT_FUSE_REVOKE_BANK,
     .revoke_word = IMXRT_FUSE_REVOKE_WORD,
     .revocable = IMXRT_FUSE_REVOCABLE_SRKS,
+};
+
+/* The root of trust and the life cycle (platform.md 4.1, 4.2): HABv4's
+ * state in the OCOTP, read only: pb writes no fuse on the RT */
+const struct rot_config plat_rot = {
+    .read_key_status = imx_hab_read_key_status,
+};
+
+const struct slc_ops plat_slc = {
+    .read_status = imx_hab_slc_read_status,
 };
 
 int plat_early_init(void)
@@ -133,8 +145,6 @@ static int dcdc_overdrive(void)
 
 int plat_init(void)
 {
-    int rc;
-
     /* Without it: logged, nothing of the boot's rests on it (platform.md 2.3) */
     status.rom_log = (imx_hab_log_init(&hab_log_cfg) == PB_OK);
 
@@ -228,16 +238,21 @@ int plat_init(void)
     LOG_INFO("IPG root clock = %d MHz", plat.ipg_root_clk_MHz);
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
-    /* Command mode can start without it, so it isn't plat_init()'s error
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    /* The build's crypto backend, behind its driver's option (crypto.md 2):
+     * pb has no driver for an engine of the RT's.
+     *
+     * Command mode can start without it, so it isn't plat_init()'s error
      * (platform.md 2.2): main() would reset. It is recorded: without a
      * provider no image verifies, and the boot's preconditions refuse the
      * boot before anything is loaded (platform.md 2.3) */
-    rc = mbedtls_pb_init();
+    int rc = mbedtls_pb_init();
 
     if (rc != PB_OK)
         LOG_ERR("Mbed TLS init failed (%i)", rc);
 
     status.crypto_engine = (rc == PB_OK);
+#endif
 
     return PB_OK;
 }

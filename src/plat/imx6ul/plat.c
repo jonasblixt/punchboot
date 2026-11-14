@@ -7,6 +7,8 @@
  *
  */
 
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/mmc_core.h>
@@ -22,6 +24,8 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <plat/imx6ul/imx6ul.h>
 #include <stdio.h>
 #include <string.h>
@@ -305,6 +309,94 @@ static const struct imx_hab_fuses hab_fuses = {
     .revoke_allowed = hab_has_no_errors,
 };
 
+/* The root of trust and the life cycle (platform.md 4.1, 4.2): HABv4's
+ * state in the OCOTP. No EOL (F-263) */
+const struct rot_config plat_rot = {
+    .revoke_key = imx_hab_revoke_key,
+    .read_key_status = imx_hab_read_key_status,
+};
+
+const struct slc_ops plat_slc = {
+    .read_status = imx_hab_slc_read_status,
+    .set_configuration = imx_hab_slc_set_configuration,
+    .set_configuration_locked = imx_hab_slc_set_configuration_locked,
+    .fuse_read = imx_ocotp_fuse_read,
+    .fuse_write = imx_ocotp_fuse_write,
+};
+
+/*
+ * The build's crypto backends (platform.md 2.2, crypto.md 2), each behind
+ * its driver's option: the CAAM on job ring 0 with its RNG, and Mbed TLS. A
+ * board that needs the software implementation turns the CAAM's option off
+ * and Mbed TLS's on in its defconfig.
+ *
+ * Command mode can start without a backend, so a failure isn't plat_init()'s
+ * error: main() would reset. A backend that failed isn't registered and no
+ * image verifies: it is recorded (plat_get_status()), and the boot's
+ * preconditions refuse the boot before anything is loaded (platform.md 2.3).
+ *
+ * Returns whether the build's backends all came up. A build without one has
+ * none that works.
+ */
+static bool crypto_init(void)
+{
+    unsigned int backends = 0;
+    bool failed = false;
+    int rc = PB_OK;
+
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    rc = imx_caam_init(IMX6UL_CAAM_JR0_BASE);
+    backends++;
+
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+        failed = true;
+    } else {
+        /* Linux can't instantiate the RNG when it runs in the normal world
+         * (platform.md 4.5). Without it Linux has no hardware RNG, which is
+         * no reason not to boot */
+        rc = imx_caam_rng_init(IMX6UL_CAAM_BASE);
+
+        if (rc != PB_OK)
+            LOG_ERR("CAAM RNG init failed (%i)", rc);
+    }
+#endif
+
+#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
+    rc = mbedtls_pb_init();
+    backends++;
+
+    if (rc != PB_OK) {
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+        failed = true;
+    }
+#endif
+
+    (void)rc;
+    return backends > 0 && !failed;
+}
+
+/*
+ * Before the jump the platform stops what plat_init() started (platform.md
+ * 4.5, drivers.md 2.3): the CAAM's job ring holds no address in pb's memory
+ * any more (crypto.md 6). Mbed TLS has nothing to stop. After it the CAAM's
+ * backend answers -PB_ERR_STATE until a reset. A stop that fails is a failed
+ * boot: plat_lockdown() returns its error and pb doesn't jump.
+ */
+static int crypto_stop(void)
+{
+#ifdef CONFIG_DRIVERS_IMX_CAAM
+    int rc = imx_caam_stop();
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM stop failed (%i)", rc);
+
+    return rc;
+#else
+    return PB_OK;
+#endif
+}
+
 int plat_early_init(void)
 {
     /* The reset reason. Read only: the OS reads the same register */
@@ -438,6 +530,9 @@ int plat_init(void)
 
     status.tz_dram_filter = (rc == PB_OK) ? PLAT_TZ_DRAM_ACTIVE : PLAT_TZ_DRAM_BYPASSED;
 
+    /* Last: until F-247 the board's init() did it, as its first step */
+    status.crypto_engine = crypto_init();
+
     return PB_OK;
 }
 
@@ -534,6 +629,8 @@ int plat_get_boot_source(struct pb_boot_source *src)
 
 int plat_lockdown(void)
 {
+    int rc;
+
     /*
      * The CSF unlocks SRK revocation for pb's command mode (pb.csf.template),
      * so lock it again before the next stage runs (RM 35.5.6). SCS holds
@@ -543,8 +640,14 @@ int plat_lockdown(void)
      * hold until the next reset: a watchdog reset clears them too, so pb's
      * command mode can revoke keys after a reboot.
      */
-    return imx_ocotp_lock(OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK,
-                          true);
+    rc = imx_ocotp_lock(OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK, true);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* Last, and only when the locks are set: a lockdown that fails ends in
+     * command mode, where a locked device verifies its token with the CAAM */
+    return crypto_stop();
 }
 
 /*

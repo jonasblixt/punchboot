@@ -10,9 +10,6 @@
 #include <boot/ab_state.h>
 #include <boot/boot.h>
 #include <boot/image.h>
-#include <drivers/crypto/imx_caam.h>
-#include <drivers/fuse/imx_hab_fuses.h>
-#include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
@@ -26,7 +23,6 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx6ul/imx6ul.h>
 
@@ -120,20 +116,6 @@ static int board_hw_init(void)
 {
     int rc;
 
-    rc = imx_caam_init(IMX6UL_CAAM_JR0_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("CAAM init failed (%i)", rc);
-        return rc;
-    }
-
-    /* Linux can't instantiate the RNG when it runs in the normal world. Without
-     * it Linux has no hardware RNG, which is no reason not to boot. */
-    rc = imx_caam_rng_init(IMX6UL_CAAM_BASE);
-
-    if (rc != PB_OK)
-        LOG_ERR("CAAM RNG init failed (%i)", rc);
-
     rc = usdhc_emmc_setup();
 
     if (rc != PB_OK)
@@ -168,21 +150,6 @@ cmd_test(const uint8_t *request, size_t request_size, uint8_t *response, size_t 
 }
 
 DEFINE_COMMAND("test", "Answers with a greeting", cmd_test);
-
-static const struct rot_config rot = {
-    .revoke_key = imx_hab_revoke_key,
-    .read_key_status = imx_hab_read_key_status,
-};
-
-static const struct slc_config slc = {
-    .read_status = imx_hab_slc_read_status,
-    .set_configuration = imx_hab_slc_set_configuration,
-    .set_configuration_locked = imx_hab_slc_set_configuration_locked,
-    .fuses = config_fuses,
-    .fuses_length = ARRAY_SIZE(config_fuses),
-    .fuse_read = imx_ocotp_fuse_read,
-    .fuse_write = imx_ocotp_fuse_write,
-};
 
 static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
@@ -304,8 +271,8 @@ static const struct boot_image_region image_regions[] = {
 const struct board board = {
     .name = "jiffy",
     .console_init = board_console_init,
-    .rot = &rot,
-    .slc = &slc,
+    .slc_fuses = config_fuses,
+    .slc_fuses_length = ARRAY_SIZE(config_fuses),
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),

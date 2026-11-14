@@ -1,4 +1,5 @@
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/rot.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
@@ -123,3 +124,10 @@ int imx8x_read_key_status(const struct rot_key *key)
     else
         return PB_OK;
 }
+
+/* The root of trust (platform.md 4.1): AHAB's OEM SRK revocation, through
+ * the SECO */
+const struct rot_config plat_rot = {
+    .revoke_key = imx8x_revoke_key,
+    .read_key_status = imx8x_read_key_status,
+};

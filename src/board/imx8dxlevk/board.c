@@ -12,7 +12,6 @@
 #include <boot/atf.h>
 #include <boot/boot.h>
 #include <boot/image.h>
-#include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
@@ -24,7 +23,6 @@
 #include <pb/delay.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
@@ -179,17 +177,6 @@ static int board_hw_init(void)
 {
     int rc;
 
-    /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
-    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
-
-    rc = imx_caam_init(IMX_CAAM_JR2_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("CAAM init failed (%i)", rc);
-        return rc;
-    }
-
     rc = usdhc_emmc_setup();
 
     if (rc != PB_OK)
@@ -197,25 +184,6 @@ static int board_hw_init(void)
 
     return rc;
 }
-
-static const struct rot_config rot = {
-    .revoke_key = imx8x_revoke_key,
-    .read_key_status = imx8x_read_key_status,
-};
-
-/*
- * No set_configuration_locked: the build can't sign pb yet (makefile.mk,
- * imx8xl_sign_image), and a closed DXL would refuse the only image there
- * is. 'slc lock' answers NOT_SUPPORTED until signing exists (F-212).
- */
-static const struct slc_config slc = {
-    .read_status = imx8x_slc_read_status,
-    .set_configuration = imx8x_slc_set_configuration,
-    .fuses = config_fuses,
-    .fuses_length = ARRAY_SIZE(config_fuses),
-    .fuse_read = imx8x_fuse_read,
-    .fuse_write = imx8x_fuse_write,
-};
 
 /*
  * Linux, through TF-A (boot.md 5.3): BL31 gets the kernel's part as BL33 in
@@ -355,8 +323,8 @@ static const struct boot_image_region image_regions[] = {
 const struct board board = {
     .name = "imx8dxlevk",
     .console_init = board_console_init,
-    .rot = &rot,
-    .slc = &slc,
+    .slc_fuses = config_fuses,
+    .slc_fuses_length = ARRAY_SIZE(config_fuses),
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),

@@ -264,9 +264,9 @@ pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
 )
 
-# The same with what pb-host is built without: a watchdog, and a platform
-# that sets the crypto engine up. The boot's preconditions check both
-# (platform.md 2.3)
+# The same with a watchdog, which pb-host is built without. The boot's
+# preconditions check it, and the crypto engine of a platform that sets one
+# up, which the host is (platform.md 2.3)
 add_executable(test_boot_preconditions test_boot.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
@@ -281,6 +281,29 @@ target_include_directories(test_boot_preconditions PRIVATE ${CMAKE_CURRENT_SOURC
 target_link_libraries(test_boot_preconditions PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
 add_test(NAME unit.test_boot_preconditions COMMAND test_boot_preconditions)
 set_tests_properties(unit.test_boot_preconditions PROPERTIES LABELS unit TIMEOUT 60)
+
+# And for a platform that sets no crypto engine up, which no platform in the
+# tree is since F-247: the core doesn't ask for one (platform.md 2.3). The
+# build is the host's configuration less CONFIG_PLAT_CRYPTO_ENGINE
+string(REPLACE "#define CONFIG_PLAT_CRYPTO_ENGINE 1\n" ""
+    PB_CONFIG_H_NO_CRYPTO_ENGINE "${PB_CONFIG_H}")
+if(PB_CONFIG_H_NO_CRYPTO_ENGINE STREQUAL PB_CONFIG_H)
+    message(FATAL_ERROR "The host platform doesn't select PLAT_CRYPTO_ENGINE")
+endif()
+set(PB_NO_CRYPTO_ENGINE_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_crypto_engine)
+file(CONFIGURE OUTPUT ${PB_NO_CRYPTO_ENGINE_DIR}/config.h
+    CONTENT "${PB_CONFIG_H_NO_CRYPTO_ENGINE}" @ONLY)
+add_executable(test_boot_no_crypto_engine test_boot.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/boot/boot.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
+)
+target_include_directories(test_boot_no_crypto_engine BEFORE PRIVATE ${PB_NO_CRYPTO_ENGINE_DIR})
+target_include_directories(test_boot_no_crypto_engine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_boot_no_crypto_engine PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_boot_no_crypto_engine COMMAND test_boot_no_crypto_engine)
+set_tests_properties(unit.test_boot_no_crypto_engine PROPERTIES LABELS unit TIMEOUT 60)
 
 pb_unit_test(test_image_helpers SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c
@@ -588,7 +611,28 @@ pb_plat_test(test_plat_imxrt
     DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
 )
 
+# The same without CONFIG_DRIVERS_CRYPTO_MBEDTLS: the platform sets a crypto
+# backend up behind its option (platform.md 2.2, F-247). The build without it
+# is the host's configuration less that line, first on the include path
+string(REPLACE "#define CONFIG_DRIVERS_CRYPTO_MBEDTLS 1\n" ""
+    PB_CONFIG_H_NO_MBEDTLS "${PB_CONFIG_H}")
+if(PB_CONFIG_H_NO_MBEDTLS STREQUAL PB_CONFIG_H)
+    message(FATAL_ERROR "configs/host_defconfig: CONFIG_DRIVERS_CRYPTO_MBEDTLS is not set")
+endif()
+set(PB_NO_MBEDTLS_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_mbedtls)
+file(CONFIGURE OUTPUT ${PB_NO_MBEDTLS_DIR}/config.h CONTENT "${PB_CONFIG_H_NO_MBEDTLS}" @ONLY)
+
+pb_plat_test(test_plat_imxrt_no_mbedtls
+    TEST test_plat_imxrt.c
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/plat/imxrt/plat.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
+    DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+    INCLUDES ${PB_NO_MBEDTLS_DIR}
+)
+
 # The i.MX8QXP, with the port's SCFW client: the test is the SCFW. xlat.h
 # declares the ARMv8-A enable of the MMU for plat.c
 set(PB_IMX8X_SCI ${PROJECT_SOURCE_DIR}/src/plat/imx8x/sci)
@@ -607,6 +651,7 @@ pb_plat_test(test_plat_imx8x
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
     DEFINITIONS
         CONFIG_PLAT_IMX8X=1 CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+        CONFIG_DRIVERS_IMX_CAAM=1
         BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
     INCLUDES ${PROJECT_SOURCE_DIR}/include/plat/imx8x
     OPTIONS "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/fakes/xlat.h"
@@ -631,6 +676,20 @@ pb_unit_test(test_imx8x_seco_log SOURCES
 )
 target_compile_definitions(test_imx8x_seco_log PRIVATE CONFIG_PLAT_IMX8X=1)
 target_include_directories(test_imx8x_seco_log PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
+
+# The same for the i.MX8DXL, whose plat_slc has no lock
+add_executable(test_imx8xl_dry_run test_imx8x_dry_run.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/fusebox.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/rot_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/slc_helpers.c
+)
+target_compile_definitions(test_imx8xl_dry_run PRIVATE
+    CONFIG_PLAT_IMX8XL=1 CONFIG_IMX8X_FUSE_DRY_RUN=1)
+target_include_directories(test_imx8xl_dry_run PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
+target_link_libraries(test_imx8xl_dry_run PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_imx8xl_dry_run COMMAND test_imx8xl_dry_run)
+set_tests_properties(unit.test_imx8xl_dry_run PROPERTIES LABELS unit TIMEOUT 60)
 # The WDOG's driver alone, on the register file
 pb_plat_test(test_imx_wdog
     SOURCES ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
@@ -644,7 +703,7 @@ pb_plat_test(test_plat_imx6ul
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
-        CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+        CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5 CONFIG_DRIVERS_IMX_CAAM=1
         BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
 )
 
@@ -657,7 +716,8 @@ pb_plat_test(test_plat_imx6ul_no_wdog
         ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/plat.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
-    DEFINITIONS BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
+    DEFINITIONS
+        CONFIG_DRIVERS_IMX_CAAM=1 BOARD_RAM_BASE=0x80000000 BOARD_RAM_END=0xc0000000
 )
 
 # The i.MX8M Plus. The arch's system registers are the test's
@@ -670,6 +730,7 @@ pb_plat_test(test_plat_imx8m
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
         CONFIG_PLAT_IMX8MP=1 CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+        CONFIG_DRIVERS_IMX_CAAM=1
         IMX8M_OCRAM_SIZE=0x90000 IMX8M_ROM_SIZE=0x3f000
         BOARD_RAM_BASE=0x40000000 BOARD_RAM_END=0x80000000
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/fakes/armv8a

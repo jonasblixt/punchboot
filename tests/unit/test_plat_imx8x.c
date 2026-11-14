@@ -10,7 +10,8 @@
  * (fakes/regs.h). The SCFW is a model behind its messaging unit: it takes
  * the RPC messages that the port's SCFW client (src/plat/imx8x/sci) writes
  * and answers them. The GPT's driver is the real one; the fuses, the RoT
- * and the SLC helpers and the MMU are fakes.
+ * and the SLC helpers, the MMU and the crypto backends (the CAAM and Mbed
+ * TLS: the test's build has both options) are fakes.
  *
  * The port keeps the SCFW's handle in a static: the tests of the time before
  * plat_early_init() run first.
@@ -23,6 +24,8 @@
 
 #include <cmocka.h>
 
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/crypto/mbedtls.h>
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -45,6 +48,7 @@
 #define MU_ASR_RF_ALL           (0xfu << 24)
 
 /* The functions' indexes (src/plat/imx8x/sci/svc/pm/rpc.h) */
+#define PM_FUNC_SET_POWER_MODE  3
 #define PM_FUNC_SET_CLOCK_RATE  5
 #define PM_FUNC_GET_CLOCK_RATE  6
 #define PM_FUNC_RESET_REASON    10
@@ -95,6 +99,40 @@ static struct {
 
 /* A reset leaves the code under test through here */
 static jmp_buf soc_reset;
+
+/* The crypto backends: what their set up returns and how often it was
+ * called, what the CAAM's got, and the number of the SCFW's calls, the
+ * register log's length and the MMU's state when it was called */
+static struct {
+    int caam_rc, mbedtls_rc, stop_rc;
+    unsigned int caam_inits, mbedtls_inits, stops;
+    uintptr_t caam_base;
+    size_t caam_scfw_calls, caam_at, mbedtls_at;
+    unsigned int caam_mmu_enables;
+} crypto;
+
+int imx_caam_init(uintptr_t base)
+{
+    crypto.caam_inits++;
+    crypto.caam_base = base;
+    crypto.caam_scfw_calls = scfw.n_calls;
+    crypto.caam_at = fake_reg_log_len;
+    crypto.caam_mmu_enables = fake_mmu_enables;
+    return crypto.caam_rc;
+}
+
+int mbedtls_pb_init(void)
+{
+    crypto.mbedtls_inits++;
+    crypto.mbedtls_at = fake_reg_log_len;
+    return crypto.mbedtls_rc;
+}
+
+int imx_caam_stop(void)
+{
+    crypto.stops++;
+    return crypto.stop_rc;
+}
 
 void imx8x_fuse_init(sc_ipc_t ipc)
 {
@@ -216,6 +254,7 @@ static int setup(void **state)
 {
     (void)state;
     memset(&scfw, 0, sizeof(scfw));
+    memset(&crypto, 0, sizeof(crypto));
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
     /* The unit can always send, and an answer is always there */
@@ -367,8 +406,8 @@ static struct plat_status status_now(void)
 
 /* platform.md 3.8: what the port recorded. The DRAM filter is a later
  * stage's (BL31, through the SCFW), the watchdog is armed (the test is built
- * with the option), the platform sets no crypto engine up (the board does,
- * F-247) and saves none of the ROM's logs */
+ * with the option), the crypto backends the platform set up work, and it
+ * saves none of the ROM's logs */
 static void test_status(void **state)
 {
     struct plat_status status;
@@ -380,7 +419,7 @@ static void test_status(void **state)
 
     assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_LATER_STAGE);
     assert_true(status.wdog_armed);
-    assert_false(status.crypto_engine);
+    assert_true(status.crypto_engine);
     assert_false(status.rom_log);
 }
 
@@ -616,6 +655,115 @@ static void test_get_info_unknown(void **state)
     assert_int_equal(info.mem_hz, 0);
 }
 
+/* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
+ * crypto backends, each behind its driver's option: the CAAM on job ring 2,
+ * which the SCFW powers first (the ring and its output), and Mbed TLS.
+ *
+ * Until F-247 the boards' init() did the SCFW's two calls and the CAAM's as
+ * its first step, which was the first thing after plat_init(): they are
+ * plat_init()'s last now, with the MMU on, and neither the SCFW nor a
+ * register of the platform's hears anything after them. So the SoC sees the
+ * same calls and writes in the same order */
+static void test_crypto_set_up_last_in_plat_init(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(crypto.caam_inits, 0);
+    assert_int_equal(crypto.mbedtls_inits, 0);
+
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(crypto.caam_inits, 1);
+    assert_int_equal(crypto.mbedtls_inits, 1);
+    assert_int_equal(crypto.caam_base, IMX_CAAM_JR2_BASE);
+    assert_int_equal(crypto.caam_mmu_enables, 1);
+
+    /* The SCFW's last two calls, before the CAAM is touched */
+    assert_true(scfw.n_calls >= 2);
+    assert_int_equal(crypto.caam_scfw_calls, scfw.n_calls);
+
+    for (size_t i = 0; i < 2; i++) {
+        static const uint32_t resources[] = { SC_R_CAAM_JR2, SC_R_CAAM_JR2_OUT };
+        size_t n = scfw.n_calls - 2 + i;
+
+        assert_int_equal(scfw.calls[n].svc, SC_RPC_SVC_PM);
+        assert_int_equal(scfw.calls[n].func, PM_FUNC_SET_POWER_MODE);
+        assert_int_equal(scfw.calls[n].arg & 0xffff, resources[i]);
+        assert_int_equal((scfw.calls[n].arg >> 16) & 0xff, SC_PM_PW_MODE_ON);
+    }
+
+    /* Nothing is written after it, and Mbed TLS comes after the CAAM */
+    assert_int_equal(crypto.caam_at, fake_reg_log_len);
+    assert_int_equal(crypto.mbedtls_at, fake_reg_log_len);
+}
+
+/* platform.md 2.2: a crypto engine that fails isn't plat_init()'s error:
+ * command mode can start without it, and main() would reset */
+static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
+{
+    (void)state;
+
+    crypto.caam_rc = -PB_ERR_IO;
+    crypto.mbedtls_rc = -PB_ERR_PARAM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(crypto.caam_inits, 1);
+    assert_int_equal(crypto.mbedtls_inits, 1);
+}
+
+/* platform.md 2.3, 3.8 (F-247, F-248): the platform sets the build's crypto
+ * backends up, so their result is the platform's status, and the boot's
+ * preconditions refuse the boot when it is false, before a candidate is
+ * tried (test_boot.c) */
+static void test_status_crypto_engine(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+
+    /* The CAAM, which the boards verify with */
+    setup(NULL);
+    crypto.caam_rc = -PB_ERR_IO;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* Each algorithm has one backend (crypto.md 2): a build with two needs
+     * both */
+    setup(NULL);
+    crypto.mbedtls_rc = -PB_ERR_MEM;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_false(status_now().crypto_engine);
+
+    /* It is the state of this plat_init(), not of an earlier one */
+    setup(NULL);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_true(status_now().crypto_engine);
+}
+
+/* platform.md 4.5, drivers.md 2.3, crypto.md 6 (F-286): the platform stops
+ * what plat_init() started before the jump, in plat_lockdown(), the core's
+ * last call of it: the CAAM's job ring. A stop that fails is a failed boot */
+static void test_lockdown_stops_the_crypto_engine(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_lockdown(), PB_OK);
+    assert_int_equal(crypto.stops, 1);
+    /* Nothing of the SCFW's: the ring's power stays as it is */
+    assert_int_equal(scfw.n_calls, 0);
+
+    /* A second lockdown before a reset (platform.md 4.4) */
+    assert_int_equal(plat_lockdown(), PB_OK);
+    assert_int_equal(crypto.stops, 2);
+
+    crypto.stop_rc = -PB_ERR_TIMEOUT;
+    assert_int_equal(plat_lockdown(), -PB_ERR_TIMEOUT);
+}
+
 /* platform.md 5.2: the memory map. The rest of pb (.bss, the RAM log) and
  * the buffers are two regions, RW and execute never, and nothing maps the
  * address space between them: one span from pb to the buffers mapped it as
@@ -678,6 +826,10 @@ int main(void)
         cmocka_unit_test_setup(test_unique_id, setup),
         cmocka_unit_test_setup(test_unique_id_answer_without_the_id, setup),
         cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
+        cmocka_unit_test_setup(test_crypto_set_up_last_in_plat_init, setup),
+        cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
+        cmocka_unit_test_setup(test_status_crypto_engine, setup),
+        cmocka_unit_test_setup(test_lockdown_stops_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_mmu_map, setup),
         cmocka_unit_test_setup(test_early_init_resets_without_the_tick, setup),
         cmocka_unit_test_setup(test_get_info, setup),

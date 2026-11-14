@@ -217,10 +217,10 @@ static void test_slc_not_initialized(void **state)
 
 static void test_slc_without_callbacks(void **state)
 {
-    static const struct slc_config cfg = { 0 };
+    static const struct slc_ops cfg = { 0 };
     (void)state;
 
-    assert_int_equal(slc_init(&cfg), PB_OK);
+    assert_int_equal(slc_init(&cfg, NULL, 0), PB_OK);
     assert_int_equal(slc_read_status(), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(slc_set_configuration(), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(slc_set_configuration_locked(), -PB_ERR_NOT_SUPPORTED);
@@ -230,21 +230,21 @@ static void test_slc_without_callbacks(void **state)
 /* A board that can lock but has no EOL, like jiffy (F-001) */
 static void test_slc_without_eol(void **state)
 {
-    static const struct slc_config cfg = {
+    static const struct slc_ops cfg = {
         .read_status = fake_read_status,
         .set_configuration_locked = fake_set_configuration_locked,
     };
     (void)state;
 
     slc_state = SLC_CONFIGURATION;
-    assert_int_equal(slc_init(&cfg), PB_OK);
+    assert_int_equal(slc_init(&cfg, NULL, 0), PB_OK);
     assert_int_equal(slc_set_eol(), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(slc_read_status(), SLC_CONFIGURATION);
 }
 
 static void test_slc_life_cycle(void **state)
 {
-    static const struct slc_config cfg = {
+    static const struct slc_ops cfg = {
         .read_status = fake_read_status,
         .set_configuration = fake_set_configuration,
         .set_configuration_locked = fake_set_configuration_locked,
@@ -253,7 +253,7 @@ static void test_slc_life_cycle(void **state)
     (void)state;
 
     slc_state = SLC_NOT_CONFIGURED;
-    assert_int_equal(slc_init(&cfg), PB_OK);
+    assert_int_equal(slc_init(&cfg, NULL, 0), PB_OK);
     assert_int_equal(slc_read_status(), SLC_NOT_CONFIGURED);
     assert_int_equal(slc_set_configuration(), PB_OK);
     assert_int_equal(slc_read_status(), SLC_CONFIGURATION);
@@ -266,7 +266,7 @@ static void test_slc_life_cycle(void **state)
 /* Forward only, and setting the current state again writes nothing */
 static void test_slc_order(void **state)
 {
-    static const struct slc_config cfg = {
+    static const struct slc_ops cfg = {
         .read_status = fake_read_status,
         .set_configuration = fake_set_configuration,
         .set_configuration_locked = fake_set_configuration_locked,
@@ -274,7 +274,7 @@ static void test_slc_order(void **state)
     };
     (void)state;
 
-    assert_int_equal(slc_init(&cfg), PB_OK);
+    assert_int_equal(slc_init(&cfg, NULL, 0), PB_OK);
 
     /* Not configured: no lock */
     slc_state = SLC_NOT_CONFIGURED;
@@ -340,11 +340,9 @@ static const struct slc_fuse boot_fuses[] = {
 
 static void test_slc_fuses(void **state)
 {
-    static const struct slc_config cfg = {
+    static const struct slc_ops cfg = {
         .read_status = fake_read_status,
         .set_configuration = fake_set_configuration,
-        .fuses = boot_fuses,
-        .fuses_length = ARRAY_SIZE(boot_fuses),
         .fuse_read = fake_fuse_read,
         .fuse_write = fake_fuse_write,
     };
@@ -352,7 +350,7 @@ static void test_slc_fuses(void **state)
 
     slc_state = SLC_NOT_CONFIGURED;
     slc_writes = 0;
-    assert_int_equal(slc_init(&cfg), PB_OK);
+    assert_int_equal(slc_init(&cfg, boot_fuses, ARRAY_SIZE(boot_fuses)), PB_OK);
     assert_int_equal(slc_set_configuration(), PB_OK);
     assert_int_equal(slc_writes, 1);
     assert_int_equal(fuse_writes, 2);
@@ -393,24 +391,18 @@ static int failing_set_configuration(void)
 /* The fuses alone are a configuration, they need a read and a write */
 static void test_slc_fuses_config(void **state)
 {
-    static const struct slc_config fuses_only = {
+    static const struct slc_ops fuses_only = {
         .read_status = fake_read_status,
-        .fuses = boot_fuses,
-        .fuses_length = ARRAY_SIZE(boot_fuses),
         .fuse_read = fake_fuse_read,
         .fuse_write = fake_fuse_write,
     };
-    static const struct slc_config no_write = {
+    static const struct slc_ops no_write = {
         .read_status = fake_read_status,
-        .fuses = boot_fuses,
-        .fuses_length = ARRAY_SIZE(boot_fuses),
         .fuse_read = fake_fuse_read,
     };
-    static const struct slc_config failing = {
+    static const struct slc_ops failing = {
         .read_status = fake_read_status,
         .set_configuration = failing_set_configuration,
-        .fuses = boot_fuses,
-        .fuses_length = ARRAY_SIZE(boot_fuses),
         .fuse_read = fake_fuse_read,
         .fuse_write = fake_fuse_write,
     };
@@ -419,17 +411,51 @@ static void test_slc_fuses_config(void **state)
     memset(fuses, 0, sizeof(fuses));
     fuse_writes = 0;
     slc_state = SLC_NOT_CONFIGURED;
-    assert_int_equal(slc_init(&fuses_only), PB_OK);
+    assert_int_equal(slc_init(&fuses_only, boot_fuses, ARRAY_SIZE(boot_fuses)), PB_OK);
     assert_int_equal(slc_set_configuration(), PB_OK);
     assert_int_equal(fuse_writes, 2);
 
-    assert_int_equal(slc_init(&no_write), -PB_ERR_PARAM);
+    assert_int_equal(slc_init(&no_write, boot_fuses, ARRAY_SIZE(boot_fuses)), -PB_ERR_PARAM);
 
     /* The platform's part first: when it fails, no fuse is written */
     memset(fuses, 0, sizeof(fuses));
     fuse_writes = 0;
-    assert_int_equal(slc_init(&failing), PB_OK);
+    assert_int_equal(slc_init(&failing, boot_fuses, ARRAY_SIZE(boot_fuses)), PB_OK);
     assert_int_equal(slc_set_configuration(), -PB_ERR_IO);
+    assert_int_equal(fuse_writes, 0);
+}
+
+/* The fuses are the board's and the operations the platform's (platform.md
+ * 4.2): slc_init() takes them apart. A length without a list is refused and
+ * what was set up stays; without fuses the platform's part is the whole
+ * configuration, and nothing of an earlier list is written */
+static void test_slc_fuses_are_the_boards(void **state)
+{
+    static const struct slc_ops ops = {
+        .read_status = fake_read_status,
+        .set_configuration = fake_set_configuration,
+        .fuse_read = fake_fuse_read,
+        .fuse_write = fake_fuse_write,
+    };
+    (void)state;
+
+    memset(fuses, 0, sizeof(fuses));
+    fuse_writes = 0;
+    slc_writes = 0;
+    slc_state = SLC_NOT_CONFIGURED;
+
+    assert_int_equal(slc_init(&ops, boot_fuses, ARRAY_SIZE(boot_fuses)), PB_OK);
+    assert_int_equal(slc_init(&ops, NULL, ARRAY_SIZE(boot_fuses)), -PB_ERR_PARAM);
+    assert_int_equal(slc_set_configuration(), PB_OK);
+    assert_int_equal(slc_writes, 1);
+    assert_int_equal(fuse_writes, 2);
+
+    /* A board without configuration fuses */
+    memset(fuses, 0, sizeof(fuses));
+    fuse_writes = 0;
+    assert_int_equal(slc_init(&ops, NULL, 0), PB_OK);
+    assert_int_equal(slc_set_configuration(), PB_OK);
+    assert_int_equal(slc_writes, 2);
     assert_int_equal(fuse_writes, 0);
 }
 
@@ -439,18 +465,14 @@ static void test_slc_fuses_config(void **state)
  * has a configuration and no read_status. */
 static void test_slc_configuration_needs_the_state(void **state)
 {
-    static const struct slc_config no_read = {
+    static const struct slc_ops no_read = {
         .set_configuration = fake_set_configuration,
         .set_configuration_locked = fake_set_configuration_locked,
         .set_eol = fake_set_eol,
-        .fuses = boot_fuses,
-        .fuses_length = ARRAY_SIZE(boot_fuses),
         .fuse_read = fake_fuse_read,
         .fuse_write = fake_fuse_write,
     };
-    static const struct slc_config fuses_no_read = {
-        .fuses = boot_fuses,
-        .fuses_length = ARRAY_SIZE(boot_fuses),
+    static const struct slc_ops fuses_no_read = {
         .fuse_read = fake_fuse_read,
         .fuse_write = fake_fuse_write,
     };
@@ -461,7 +483,7 @@ static void test_slc_configuration_needs_the_state(void **state)
     slc_writes = 0;
     slc_state = SLC_CONFIGURATION_LOCKED; /* What nothing can read */
 
-    assert_int_equal(slc_init(&no_read), PB_OK);
+    assert_int_equal(slc_init(&no_read, boot_fuses, ARRAY_SIZE(boot_fuses)), PB_OK);
     assert_int_equal(slc_read_status(), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(slc_set_configuration(), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(slc_set_configuration_locked(), -PB_ERR_NOT_SUPPORTED);
@@ -469,7 +491,7 @@ static void test_slc_configuration_needs_the_state(void **state)
     assert_int_equal(slc_writes, 0);
     assert_int_equal(fuse_writes, 0);
 
-    assert_int_equal(slc_init(&fuses_no_read), PB_OK);
+    assert_int_equal(slc_init(&fuses_no_read, boot_fuses, ARRAY_SIZE(boot_fuses)), PB_OK);
     assert_int_equal(slc_set_configuration(), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(fuse_writes, 0);
 }
@@ -490,6 +512,7 @@ int main(void)
         cmocka_unit_test(test_slc_fuses),
         cmocka_unit_test(test_slc_fuses_config),
         cmocka_unit_test(test_slc_order),
+        cmocka_unit_test(test_slc_fuses_are_the_boards),
         cmocka_unit_test(test_slc_configuration_needs_the_state),
     };
 
