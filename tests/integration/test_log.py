@@ -54,6 +54,14 @@ def test_log_banner(device: Device) -> None:
     assert re.match(rb"\n\rPB \S+, POR \(0x0\)\n\r", log)
 
 
+def test_log_soc_line(device: Device) -> None:
+    """platform.md 3.11: the SoC's line follows plat_init(), before the board."""
+    with device.session() as s:
+        log = s.log_read()
+
+    assert b"I plat_info_log: SoC host rev unknown, CPU unknown, memory none set up\n" in log
+
+
 def test_log_read_in_chunks(device: Device) -> None:
     with device.session() as s:
         fill_log(s, 3 * CM_BUF_SIZE)

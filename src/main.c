@@ -12,6 +12,7 @@
 #include <pb/board.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/plat_info.h>
 #include <pb/ramlog.h>
 #include <pb/task.h>
 #include <stdbool.h>
@@ -68,6 +69,9 @@ void main(void)
 
     if (rc != PB_OK)
         goto platform_failed;
+
+    /* What the SoC is and runs at, for the log (platform.md 3.11, D-077) */
+    plat_info_log();
 
     rc = board_setup();
 

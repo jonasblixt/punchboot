@@ -119,3 +119,36 @@ void imx8m_soc_clock_init(void)
     pll14xx_start(IMX8MP_SYS_PLL1_GEN_CTRL);
     pll14xx_start(IMX8MP_SYS_PLL2_GEN_CTRL);
 }
+
+/* CCM_ANALOG_DIGPROG is at 0x800 on the i.MX8M Plus, not at the 8MQ's 0x6C
+ * (RM 5.1.8.39) */
+#define IMX8MP_DIGPROG          (0x30360800)
+/* The ARM PLL, a PLL14xx (RM 5.1.8.27, 5.1.8.28) */
+#define IMX8MP_ARM_PLL_GEN_CTRL (0x30360084)
+#define IMX8MP_ARM_PLL_FDIV0    (0x30360088)
+
+const char *imx8m_soc_name(void)
+{
+    return "i.MX8MP";
+}
+
+uint32_t imx8m_soc_digprog(void)
+{
+    return mmio_read_32(IMX8MP_DIGPROG);
+}
+
+/* The ARM PLL as the ROM left it, 1000 MHz in a normal boot (RM Table 6-30):
+ * FOUT = 24 MHz * main / (pre * 2^post) */
+uint32_t imx8m_soc_cpu_hz(void)
+{
+    uint32_t fdiv = mmio_read_32(IMX8MP_ARM_PLL_FDIV0);
+    uint32_t main_div = (fdiv >> 12) & 0x3ff;
+    uint32_t pre_div = (fdiv >> 4) & 0x3f;
+    uint32_t post_div = fdiv & 0x7;
+
+    if ((mmio_read_32(IMX8MP_ARM_PLL_GEN_CTRL) & PLL14XX_BYPASS) || pre_div == 0)
+        return 0;
+
+    /* In kHz: 24 MHz * 1023 doesn't fit in 32 bits */
+    return (24000u * main_div / pre_div >> post_div) * 1000;
+}
