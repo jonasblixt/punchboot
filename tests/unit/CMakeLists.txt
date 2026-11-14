@@ -750,6 +750,24 @@ target_include_directories(test_cdns3_udc BEFORE PRIVATE
 target_compile_options(test_cdns3_udc PRIVATE -fno-pie)
 target_link_options(test_cdns3_udc PRIVATE -no-pie)
 
+# The DWC3 controller's driver on a register file with a few lines of a
+# model, and the D-cache's (see the test). -no-pie keeps what the model
+# reads from 32 bit registers below 4 GiB
+pb_unit_test(test_dwc3_udc SOURCES
+    ${PB_DMA_MODEL}
+    fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/dwc3_udc.c
+)
+target_include_directories(test_dwc3_udc BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_include_directories(test_dwc3_udc PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb
+)
+target_compile_options(test_dwc3_udc PRIVATE -fno-pie)
+target_link_options(test_dwc3_udc PRIVATE -no-pie)
+
 # The ChipIdea controller's driver, with a model of the controller's side of
 # a transfer and of the cache (see the test). Its descriptors hold 32 bit
 # addresses: -no-pie keeps them and the buffers below 4 GiB. The driver's

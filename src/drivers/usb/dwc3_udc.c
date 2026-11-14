@@ -29,10 +29,10 @@
  * -PB_ERR_AGAIN until done and -PB_ERR_IO after a USB reset.
  */
 
-#include <arch/arch.h>
 #include <drivers/usb/dwc3_udc.h>
 #include <drivers/usb/usbd.h>
 #include <pb/delay.h>
+#include <pb/dma.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -93,11 +93,28 @@ static struct {
     uint16_t mps;
 } ep0;
 
-static uint32_t ev_buffer[DWC3_EV_BUFFER_ENTRIES] __aligned(DWC3_EV_BUFFER_BYTES) __section(".no_"
-                                                                                            "init");
-static struct usb_setup_packet setup_pkt __aligned(64) __section(".no_init");
-static struct dwc3_trb trbs[USB_EP_END] __section(".no_init");
+/*
+ * What the controller reads and writes of the driver's own, each on cache
+ * lines of its own (drivers.md 4.2, 3 and 5). The setup packet was aligned
+ * and not padded: 8 bytes, with whatever the linker put behind them in the
+ * line that every SETUP invalidates.
+ */
+PB_DMA_ARRAY_ALIGNED(uint32_t, ev_buffer, DWC3_EV_BUFFER_ENTRIES, DWC3_EV_BUFFER_BYTES);
+PB_DMA_BUFFER(struct usb_setup_packet, setup_pkt);
+PB_DMA_ARRAY(struct dwc3_trb, trbs, USB_EP_END);
 static struct dwc3_ep eps[USB_EP_END];
+
+/* What the controller has of an endpoint's transfer: its TRB, which it
+ * updates, and the buffer when it writes it. Begun, and not ended yet. Apart
+ * from 'eps', which init clears */
+static struct {
+    bool begun;
+    void *in_buf; /* An OUT transfer's buffer, NULL for none */
+    size_t in_length;
+} ep_dma[USB_EP_END];
+
+/* The controller has the event buffer: from init to stop */
+static bool ev_dma;
 static unsigned int ev_index;
 static bool reset_pending;
 static bool connect_done_pending;
@@ -225,6 +242,34 @@ static void dwc3_record_event(uint32_t ev)
     }
 }
 
+/* An endpoint's transfer is over, or is replaced: its TRB and what it wrote
+ * are the driver's and the caller's again, and read from RAM */
+static void dwc3_ep_dma_end(usb_ep_t ep)
+{
+    if (!ep_dma[ep].begun)
+        return;
+
+    dma_in_end(&trbs[ep], sizeof(trbs[ep]));
+
+    if (ep_dma[ep].in_buf != NULL)
+        dma_in_end(ep_dma[ep].in_buf, ep_dma[ep].in_length);
+
+    ep_dma[ep].begun = false;
+}
+
+/* The controller is reset or halted: nothing of the driver's memory is its
+ * own */
+static void dwc3_dma_take_back(void)
+{
+    for (usb_ep_t ep = USB_EP0_OUT; ep < USB_EP_END; ep++)
+        dwc3_ep_dma_end(ep);
+
+    if (ev_dma)
+        dma_in_end(ev_buffer, sizeof(ev_buffer));
+
+    ev_dma = false;
+}
+
 static void dwc3_read_events(void)
 {
     uint32_t count = mmio_read_32(base + DWC3_GEVNTCOUNT) & GEVNTCOUNT_EVNTCOUNT_MASK;
@@ -232,13 +277,19 @@ static void dwc3_read_events(void)
     if (count == 0)
         return;
 
-    arch_invalidate_cache_range((uintptr_t)ev_buffer, sizeof(ev_buffer));
+    /* The events are read from RAM, and the buffer is the controller's
+     * again: it goes on writing behind what is read here */
+    if (ev_dma)
+        dma_in_end(ev_buffer, sizeof(ev_buffer));
 
     for (uint32_t i = 0; i < count / sizeof(uint32_t); i++) {
         dwc3_record_event(ev_buffer[ev_index]);
         ev_index = (ev_index + 1) % DWC3_EV_BUFFER_ENTRIES;
         mmio_write_32(base + DWC3_GEVNTCOUNT, sizeof(uint32_t));
     }
+
+    if (ev_dma)
+        dma_in_begin(ev_buffer, sizeof(ev_buffer));
 }
 
 /* Start a one-TRB transfer of 'size' bytes into or from 'buf' ('length' of them valid) */
@@ -247,17 +298,32 @@ static int dwc3_start_trb(usb_ep_t ep, void *buf, size_t length, size_t size, ui
     struct dwc3_trb *trb = &trbs[ep];
     uintptr_t trb_addr = (uintptr_t)trb;
     uintptr_t buf_addr = (uintptr_t)buf;
+    bool has_data = (buf != NULL && length > 0);
     int rc;
 
-    if (buf != NULL && length > 0)
-        arch_clean_cache_range(buf_addr, length);
+    /* The endpoint's transfer before this one: the TRB is the driver's to
+     * write */
+    dwc3_ep_dma_end(ep);
+
+    if (has_data && EP_IS_IN(ep))
+        dma_out(buf, length);
 
     trb->bptrl = (uint32_t)buf_addr;
     trb->bptrh = (uint32_t)((uint64_t)buf_addr >> 32);
     trb->size = size & TRB_SIZE_BUFSIZ_MASK;
     /* One TRB per transfer: CHN=0, LST=1, CSP=0. HWO last */
     trb->control = TRB_CTRL_TRBCTL(trbctl) | TRB_CTRL_LST | TRB_CTRL_IOC | TRB_CTRL_HWO;
-    arch_clean_cache_range(trb_addr, sizeof(*trb));
+
+    /* The controller updates the TRB, and writes an OUT transfer's buffer,
+     * which owns its lines (usb.md 4.3): its own until the transfer is over */
+    ep_dma[ep].in_buf = (has_data && !EP_IS_IN(ep)) ? buf : NULL;
+    ep_dma[ep].in_length = length;
+
+    if (ep_dma[ep].in_buf != NULL)
+        dma_in_begin(buf, length);
+
+    dma_in_begin(trb, sizeof(*trb));
+    ep_dma[ep].begun = true;
 
     eps[ep].complete = false;
     eps[ep].reset = false;
@@ -268,8 +334,11 @@ static int dwc3_start_trb(usb_ep_t ep, void *buf, size_t length, size_t size, ui
     rc = dwc3_command(
         ep, DEPCMD_DEPSTRTXFER, (uint32_t)((uint64_t)trb_addr >> 32), (uint32_t)trb_addr, 0);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+        /* Nothing was started */
+        dwc3_ep_dma_end(ep);
         return rc;
+    }
 
     eps[ep].rsc_idx = DWC3_FIELD_GET(
         mmio_read_32(base + DWC3_DEPCMD(ep)), DEPCMD_XFERRSCIDX_SHIFT, DEPCMD_XFERRSCIDX_MASK);
@@ -284,8 +353,11 @@ static int dwc3_end_transfer(usb_ep_t ep)
     struct pb_timeout to;
     int rc;
 
-    if (!eps[ep].active)
+    if (!eps[ep].active) {
+        /* It completed, or never started: its buffer is the caller's */
+        dwc3_ep_dma_end(ep);
         return PB_OK;
+    }
 
     eps[ep].cmd_complete = false;
     rc = dwc3_command(ep,
@@ -309,6 +381,8 @@ static int dwc3_end_transfer(usb_ep_t ep)
     }
 
     eps[ep].active = false;
+    /* The controller is done with the transfer (usb.md 4.3) */
+    dwc3_ep_dma_end(ep);
     return PB_OK;
 }
 
@@ -502,10 +576,9 @@ static int dwc3_udc_xfer_complete(usb_ep_t ep)
     if (!eps[ep].complete)
         return -PB_ERR_AGAIN;
 
-    if (!EP_IS_IN(ep) && eps[ep].length > 0) {
-        /* Data from the host: drop lines the CPU may have fetched during DMA */
-        arch_invalidate_cache_range((uintptr_t)eps[ep].buf, eps[ep].length);
-    }
+    /* Data from the host: drop lines the CPU may have fetched during DMA,
+     * and the TRB's */
+    dwc3_ep_dma_end(ep);
 
     return PB_OK;
 }
@@ -578,7 +651,8 @@ static int dwc3_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
     ep0.data_stage = false;
     ep0.aborted = false;
 
-    arch_invalidate_cache_range((uintptr_t)&setup_pkt, sizeof(setup_pkt));
+    /* The Setup TRB completed: the packet is read from RAM */
+    dwc3_ep_dma_end(USB_EP0_OUT);
     memcpy(pkt, &setup_pkt, sizeof(*pkt));
     return PB_OK;
 }
@@ -687,12 +761,18 @@ static int dwc3_udc_init(void)
         return rc;
     }
 
+    /* A second init: the controller is in reset, and what it had of the
+     * driver's memory is the driver's again */
+    dwc3_dma_take_back();
+
     /* Endpoint commands need the USB2 PHY out of suspend */
     mmio_clrsetbits_32(base + DWC3_GUSB2PHYCFG, GUSB2PHYCFG_SUSPENDUSB20, 0);
 
-    /* Event buffer, enabled by the GEVNTCOUNT write (RM 11.2.2.5.2.2) */
+    /* Event buffer, enabled by the GEVNTCOUNT write (RM 11.2.2.5.2.2): the
+     * controller's from here to the stop */
     memset(ev_buffer, 0, sizeof(ev_buffer));
-    arch_clean_invalidate_cache_range((uintptr_t)ev_buffer, sizeof(ev_buffer));
+    dma_in_begin(ev_buffer, sizeof(ev_buffer));
+    ev_dma = true;
     mmio_write_32(base + DWC3_GEVNTADRLO, (uint32_t)(uintptr_t)ev_buffer);
     mmio_write_32(base + DWC3_GEVNTADRHI, (uint32_t)((uint64_t)(uintptr_t)ev_buffer >> 32));
     mmio_write_32(base + DWC3_GEVNTSIZ,
@@ -755,6 +835,9 @@ static int dwc3_udc_stop(void)
             return -PB_ERR_TIMEOUT;
         }
     }
+
+    /* Halted: it writes pb's memory no more (drivers.md 2.3) */
+    dwc3_dma_take_back();
 
     return PB_OK;
 }
