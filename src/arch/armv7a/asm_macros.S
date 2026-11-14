@@ -17,16 +17,8 @@
 	mrc	\coproc, \opc1, \reg, \CRn, \CRm, \opc2
 	.endm
 
-	.macro ldcopr16 reg1, reg2, coproc, opc1, CRm
-	mrrc	\coproc, \opc1, \reg1, \reg2, \CRm
-	.endm
-
 	.macro stcopr reg, coproc, opc1, CRn, CRm, opc2
 	mcr	\coproc, \opc1, \reg, \CRn, \CRm, \opc2
-	.endm
-
-	.macro stcopr16 reg1, reg2, coproc, opc1, CRm
-	mcrr	\coproc, \opc1, \reg1, \reg2, \CRm
 	.endm
 
 	/* Cache line size helpers */
@@ -52,29 +44,6 @@
 	.section .vectors, "ax"
 	.align 5
 	\label:
-	.endm
-
-	/*
-	 * This macro calculates the base address of the current CPU's multi
-	 * processor(MP) stack using the plat_my_core_pos() index, the name of
-	 * the stack storage and the size of each stack.
-	 * Out: r0 = physical address of stack base
-	 * Clobber: r14, r1, r2
-	 */
-	.macro get_my_mp_stack _name, _size
-	bl  plat_my_core_pos
-	ldr r2, =(\_name + \_size)
-	mov r1, #\_size
-	mla r0, r0, r1, r2
-	.endm
-
-	/*
-	 * This macro calculates the base address of a uniprocessor(UP) stack
-	 * using the name of the stack storage and the size of the stack
-	 * Out: r0 = physical address of stack base
-	 */
-	.macro get_up_stack _name, _size
-	ldr r0, =(\_name + \_size)
 	.endm
 
 #if ARM_ARCH_MAJOR == 7 && !defined(ARMV7_SUPPORTS_VIRTUALIZATION)
@@ -138,39 +107,6 @@
 	.align	SPINLOCK_ASM_ALIGN
 	\_name:
 	.space	SPINLOCK_ASM_SIZE
-	.endm
-
-	/*
-	 * Helper macro to OR the bottom 32 bits of `_val` into `_reg_l`
-	 * and the top 32 bits of `_val` into `_reg_h`.  If either the bottom
-	 * or top word of `_val` is zero, the corresponding OR operation
-	 * is skipped.
-	 */
-	.macro orr64_imm _reg_l, _reg_h, _val
-		.if (\_val >> 32)
-			orr \_reg_h, \_reg_h, #(\_val >> 32)
-		.endif
-		.if (\_val & 0xffffffff)
-			orr \_reg_l, \_reg_l, #(\_val & 0xffffffff)
-		.endif
-	.endm
-
-	/*
-	 * Helper macro to bitwise-clear bits in `_reg_l` and
-	 * `_reg_h` given a 64 bit immediate `_val`.  The set bits
-	 * in the bottom word of `_val` dictate which bits from
-	 * `_reg_l` should be cleared.  Similarly, the set bits in
-	 * the top word of `_val` dictate which bits from `_reg_h`
-	 * should be cleared.  If either the bottom or top word of
-	 * `_val` is zero, the corresponding BIC operation is skipped.
-	 */
-	.macro bic64_imm _reg_l, _reg_h, _val
-		.if (\_val >> 32)
-			bic \_reg_h, \_reg_h, #(\_val >> 32)
-		.endif
-		.if (\_val & 0xffffffff)
-			bic \_reg_l, \_reg_l, #(\_val & 0xffffffff)
-		.endif
 	.endm
 
 #endif /* __ASM_MACROS_S__ */

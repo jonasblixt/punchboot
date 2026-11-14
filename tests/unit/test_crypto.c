@@ -207,20 +207,13 @@ static void test_dsa_dispatch(void **state)
     assert_false(verified);
 }
 
-static void test_hash_print(void **state)
-{
-    uint8_t digest[4] = { 0xde, 0xad, 0xbe, 0xef };
-    (void)state;
-
-    hash_print("digest", digest, sizeof(digest));
-}
-
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_without_providers), cmocka_unit_test(test_register_providers),
-        cmocka_unit_test(test_hash_dispatch),     cmocka_unit_test(test_dsa_dispatch),
-        cmocka_unit_test(test_hash_print),
+        cmocka_unit_test(test_without_providers),
+        cmocka_unit_test(test_register_providers),
+        cmocka_unit_test(test_hash_dispatch),
+        cmocka_unit_test(test_dsa_dispatch),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

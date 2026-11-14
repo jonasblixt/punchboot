@@ -41,9 +41,6 @@ SECTIONS
         *(.got .got.*)
         *(.rodata .rodata.*)
         . = ALIGN(8);
-        PROVIDE (_self_test_fn_start = .);
-        *(.self_test_fn .self_test_fn.*)
-        PROVIDE (_self_test_fn_end = .);
         . = ALIGN(PB_SECTION_ALIGNMENT);
         _edata = .;
         *(.keystore_header)

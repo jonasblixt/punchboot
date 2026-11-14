@@ -1,5 +1,5 @@
-src-$(CONFIG_LIB_BPAK) += src/lib/bpak.c
-src-$(CONFIG_LIB_ZLIB_CRC) += src/lib/crc.c
+src-y  += src/lib/bpak.c
+src-y  += src/lib/crc.c
 src-$(CONFIG_LIB_DER_HELPERS) += src/lib/der_helpers.c
 
 # C standard library functions
@@ -34,16 +34,16 @@ src-$(CONFIG_LIB_FDT)  += src/lib/fdt/fdt_wip.c
 cflags-$(CONFIG_LIB_FDT) += -I include/fdt
 
 # UUID lib
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/pack.c
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/unpack.c
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/compare.c
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/copy.c
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/unparse.c
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/parse.c
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/clear.c
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/conv.c
-src-$(CONFIG_LIB_UUID)  += src/lib/uuid/isnull.c
-src-$(CONFIG_LIB_UUID3)  += src/lib/uuid/uuid3.c
+src-y  += src/lib/uuid/pack.c
+src-y  += src/lib/uuid/unpack.c
+src-y  += src/lib/uuid/compare.c
+src-y  += src/lib/uuid/copy.c
+src-y  += src/lib/uuid/unparse.c
+src-y  += src/lib/uuid/parse.c
+src-y  += src/lib/uuid/clear.c
+src-y  += src/lib/uuid/conv.c
+src-y  += src/lib/uuid/isnull.c
+src-y  += src/lib/uuid/uuid3.c
 
 # VM/MMU helpers
 src-$(CONFIG_LIB_XLAT_TBLS) += src/lib/xlat_tables_v2/xlat_tables_common.c
