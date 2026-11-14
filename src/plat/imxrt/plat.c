@@ -228,31 +228,7 @@ void plat_reset(void)
 
 int plat_get_unique_id(uint8_t *output, size_t *length)
 {
-    union {
-        uint32_t uid[2];
-        uint8_t uid_bytes[8];
-    } plat_unique;
-
-    int rc;
-
-    if (*length < sizeof(plat_unique.uid_bytes))
-        return -PB_ERR_BUF_TOO_SMALL;
-
-    /* A read that fails writes nothing: the device's UUID is made of this */
-    rc = imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_1, &plat_unique.uid[0]);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_2, &plat_unique.uid[1]);
-
-    if (rc != PB_OK)
-        return rc;
-
-    memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
-    *length = sizeof(plat_unique.uid_bytes);
-
-    return PB_OK;
+    return imx_ocotp_read_unique_id(0, IMXRT_FUSE_UNIQUE_1, IMXRT_FUSE_UNIQUE_2, output, length);
 }
 
 void plat_wdog_kick(void)

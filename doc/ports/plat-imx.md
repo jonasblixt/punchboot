@@ -105,8 +105,9 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   MEK: `SoC i.MX8QXP rev B0, CPU 1200 MHz, memory 1200 MHz`, ~70 µs of the boot. jiffy: i.MX6UL
   1.2, 528 MHz, 396 MHz; the 8MP EVK: 1.1, 1000 MHz, 2000 MHz; the RT1060: 1.0, 600 MHz. The boards
   have no status (D-077). F-432, F-433 for what isn't checked.
-- **Unique id**: OCOTP words (6UL, 8M, RT; the 8M's are words 1 and 2, F-169), `sc_misc_unique_id()`
-  on the 8X. 8 bytes each.
+- **Unique id**: two OCOTP words (6UL, 8M, RT; the 8M's are words 1 and 2, F-169), which
+  `imx_ocotp_read_unique_id()` makes into the id for all three; `sc_misc_unique_id()` on the 8X. 8
+  bytes each.
 - **Boot source**: the 6UL, from the ROM log (AN12853 Table 7) and the eMMC's boot partition
   configuration. A serial download is USB when a host gave the ROM's USB device an address, which
   `plat_early_init()` saves, and else UART: the serial downloader listens on both. The 8M, from

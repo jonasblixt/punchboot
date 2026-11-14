@@ -217,7 +217,11 @@ static int teardown(void **state)
 static void test_not_initialized(void **state)
 {
     uint32_t value = 0x5a5a5a5a;
+    uint8_t id[8] = { 0 };
+    size_t length = sizeof(id);
     (void)state;
+    assert_int_equal(imx_ocotp_read_unique_id(0, 1, 2, id, &length), -PB_ERR_STATE);
+    assert_int_equal(length, sizeof(id));
     assert_int_equal(imx_ocotp_lock(LOCKS, true), -PB_ERR_STATE);
     assert_int_equal(imx_ocotp_read(0, 1, &value), -PB_ERR_STATE);
     assert_int_equal(value, 0x5a5a5a5a);
@@ -371,6 +375,73 @@ static void test_read_of_a_locked_word(void **state)
     assert_int_equal(val, 0x4321);
 }
 
+/* platform.md 3.5, 3.7: the unique id is its two words, the first named
+ * first, each with its low byte first: eight bytes that never change, because
+ * the device's UUID is made from them (the 6UL's, the 8M's and the RT's) */
+static void test_unique_id(void **state)
+{
+    static const uint8_t expected[8] = { 0x04, 0x03, 0x02, 0x01, 0x08, 0x07, 0x06, 0x05 };
+    uint8_t id[16];
+    size_t length = sizeof(id);
+    (void)state;
+
+    m.otp[WORDS_PER_BANK + 3] = 0x05060708;
+    m.otp[WORDS_PER_BANK + 2] = 0x01020304;
+    memset(id, 0xa5, sizeof(id));
+
+    assert_int_equal(imx_ocotp_read_unique_id(1, 2, 3, id, &length), PB_OK);
+    assert_int_equal(length, 8);
+    assert_memory_equal(id, expected, sizeof(expected));
+    assert_int_equal(id[8], 0xa5);
+
+    /* The words in the order named */
+    length = 8;
+    assert_int_equal(imx_ocotp_read_unique_id(1, 3, 2, id, &length), PB_OK);
+    assert_memory_equal(id, &expected[4], 4);
+    assert_memory_equal(&id[4], expected, 4);
+}
+
+/* platform.md 3.5: a read that fails returns its error and writes nothing.
+ * Never a partial id or one from memory that wasn't read (F-200: the error
+ * was dropped and the id came from the stack) */
+static void test_unique_id_read_fails(void **state)
+{
+    uint8_t untouched[16];
+    uint8_t id[16];
+    size_t length;
+    (void)state;
+
+    m.otp[1] = 0x01020304;
+    m.otp[2] = 0x05060708;
+    memset(untouched, 0xa5, sizeof(untouched));
+
+    for (unsigned int word = 1; word <= 2; word++) {
+        memset(id, 0xa5, sizeof(id));
+        length = sizeof(id);
+        m.locked[1] = (word == 1);
+        m.locked[2] = (word == 2);
+
+        assert_int_equal(imx_ocotp_read_unique_id(0, 1, 2, id, &length), -PB_ERR_IO);
+        assert_memory_equal(id, untouched, sizeof(id));
+        assert_int_equal(length, sizeof(id));
+    }
+}
+
+/* platform.md 3.5: a buffer that is too small is its own error, and nothing
+ * is read or written */
+static void test_unique_id_buffer_too_small(void **state)
+{
+    uint8_t id[8] = { 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5 };
+    size_t length = 7;
+    (void)state;
+
+    m.otp[1] = 0x01020304;
+    assert_int_equal(imx_ocotp_read_unique_id(0, 1, 2, id, &length), -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(id[0], 0xa5);
+    assert_int_equal(length, 7);
+    assert_int_equal(m.read_fuse_data, 0);
+}
+
 /* TIMING's fields (6UL RM 35.5.2), in ipg_clk periods */
 #define T_STROBE_PROG(t) ((t) & 0xfff)
 #define T_RELAX(t)       (((t) >> 12) & 0xf)
@@ -480,6 +551,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_write_postamble, setup, teardown),
         cmocka_unit_test_setup_teardown(test_index_out_of_range, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_of_a_locked_word, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_unique_id, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_unique_id_read_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_unique_id_buffer_too_small, setup, teardown),
         cmocka_unit_test_setup_teardown(test_timing_66mhz, setup, teardown),
         cmocka_unit_test_setup_teardown(test_timing_scales_with_the_rate, setup, teardown),
         cmocka_unit_test_setup_teardown(test_timing_without_a_rate, setup, teardown),
