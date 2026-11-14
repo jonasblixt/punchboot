@@ -1,4 +1,8 @@
-comment "Boot source policies: the board's data names the one it uses"
+# The boot: what it boots from (the policy), what the next stage gets (the
+# handover) and how pb jumps to it (the delivery), boot.md 3 to 5. The
+# board's data names one of each; these compile them in.
+
+comment "Boot source policy: the board's data names the one it uses"
 
 config BOOT_POLICY_FIXED
     bool "Fixed: one partition"
@@ -22,17 +26,9 @@ config BOOT_POLICY_AB
         and rolled back when the OS doesn't confirm it. The OS's side is
         pbstate.
 
-config BOOT_AB_DRIVER
-    bool "A/B boot driver (the name of BOOT_POLICY_AB before 3.0.0)"
-    select BOOT_POLICY_AB
-    help
-        Kept so that a configuration from before 3.0.0 builds unchanged.
-        Use BOOT_POLICY_AB.
-
 config BOOT_AB_SPECULATIVE
-    bool "A/B: speculative mode"
+    bool "Speculative mode"
     depends on BOOT_POLICY_AB && ENABLE_WATCHDOG
-    default n
     help
         For a system that must stay reachable for an update when no slot
         is viable (boot.md 3.6). Where A/B would enter command mode, it
@@ -54,6 +50,8 @@ config BOOT_AB_SPECULATIVE
         watchdog: the alternation is written before the load, so that a
         hang and the watchdog's reset lead to the other slot.
 
+comment "Handover: what the next stage gets"
+
 config BOOT_DTB
     bool
     select LIB_FDT
@@ -62,7 +60,7 @@ config BOOT_DTB
         by the handovers that pass a device tree on.
 
 config BOOT_LINUX
-    bool "Handover: image (Linux, Xen)"
+    bool "Image (Linux, Xen)"
     select BOOT_DTB
     help
         The image handover (boot/image.h, BOOT_HANDOVER_IMAGE()): the Linux
@@ -71,7 +69,7 @@ config BOOT_LINUX
         TF-A (BOOT_ATF).
 
 config BOOT_FH
-    bool "Handover: Firmware Handoff, generic"
+    bool "Firmware Handoff, generic"
     select BOOT_DTB
     help
         The generic handover (boot/fh.h, BOOT_HANDOVER_FH()): Arm's
@@ -88,7 +86,7 @@ config BOOT_FH
         relies on it.
 
 config BOOT_FH_REGION_BASE
-    hex "Firmware Handoff: the transfer list's region, its address"
+    hex "Transfer list region: address"
     depends on BOOT_FH
     default 0x0
     help
@@ -101,28 +99,13 @@ config BOOT_FH_REGION_BASE
         has read or moved the list: it is fixed once a product ships.
 
 config BOOT_FH_REGION_SIZE
-    hex "Firmware Handoff: the transfer list's region, its size"
+    hex "Transfer list region: size"
     depends on BOOT_FH
     default 0x0
     help
         A multiple of 8. The least is 192 bytes, which hold pb's
         structure. With a device tree part: the list's headers (32
         bytes), the device tree and BOOT_DTB_HEADROOM.
-
-config BOOT_ATF
-    bool "Delivery: TF-A"
-    depends on ARCH_ARMV8
-    help
-        The delivery through TF-A (boot/atf.h, BOOT_DELIVERY_TFA()): pb
-        starts BL31 with a bl_params list, in which BL33 is the board's
-        handover and BL32 (optional) gets OP-TEE's arguments.
-
-        The delivery alone: it selects no handover and no device tree
-        code. A board names it next to its handover and enables that
-        too, e.g. the image handover (BOOT_LINUX). Before 3.0.0 this
-        option was the whole TF-A boot driver.
-
-        ARMv8-A only.
 
 config BOOT_DTB_HEADROOM
     int "Device tree headroom (bytes)"
@@ -133,13 +116,13 @@ config BOOT_DTB_HEADROOM
         device tree: pb,device-uuid, pb,slc, pb,slc-active-key,
         pb,slc-available-keys, pb,active-system, the initrd, the kernel
         command line (bootargs), what the board's hook sets and, new in
-        3.0.0, pb,boot-mode,
-        pb,boot-partition and pb,version. First they grow the device tree in
-        place by this many bytes, into the RAM after its part. Leave that RAM
-        free in the boot image: another part or pb there fails the boot.
-        For a device tree in dtc's block order growing only changes its
-        size in the header. A device tree built with the properties and free
-        space for them (dtc -p) doesn't need it, set 0 then.
+        3.0.0, pb,boot-mode, pb,boot-partition and pb,version. First they
+        grow the device tree in place by this many bytes, into the RAM
+        after its part. Leave that RAM free in the boot image: another
+        part or pb there fails the boot. For a device tree in dtc's block
+        order growing only changes its size in the header. A device tree
+        built with the properties and free space for them (dtc -p) doesn't
+        need it, set 0 then.
 
         Firmware Handoff (BOOT_FH) copies the device tree into its transfer
         list and grows the copy by as much: the room is the list's region's
@@ -153,13 +136,37 @@ config BOOT_DTB_HEADROOM
         left out, with a warning in the log. A property of the older ones
         that doesn't fit fails the boot, as it always did.
 
+comment "Delivery: how pb starts the next stage"
+    depends on ARCH_ARMV8
+
+config BOOT_ATF
+    bool "TF-A (ARMv8-A)"
+    depends on ARCH_ARMV8
+    help
+        The delivery through TF-A (boot/atf.h, BOOT_DELIVERY_TFA()): pb
+        starts BL31 with a bl_params list, in which BL33 is the board's
+        handover and BL32 (optional) gets OP-TEE's arguments. Without it a
+        board delivers the handover directly.
+
+        The delivery alone: it selects no handover and no device tree
+        code. A board names it next to its handover and enables that
+        too, e.g. the image handover (BOOT_LINUX). Before 3.0.0 this
+        option was the whole TF-A boot driver.
+
+comment "Loading"
+
 config BOOT_LOAD_CHUNK_kB
-    int "Copy/Hash load chunk size (kB)"
+    int "Load chunk size (KiB)"
     range 1 1048576
     default 4096
+    help
+        How much of a part is read and hashed at a time when an image is
+        loaded. A part whose load address doesn't start on a cache line is
+        read through a buffer of this size, in pb's buffers
+        (PB_BUFFERS_SIZE holds it).
 
-config BOOT_LINUX_RAMOOPS
-    bool "Read Linux's ramoops records as the log 'linux'"
+menuconfig BOOT_LINUX_RAMOOPS
+    bool "Linux's ramoops records as the log 'linux'"
     help
         Linux's pstore/ramoops saves the kernel log in a reserved RAM region
         that survives a warm reset: a dmesg record at an oops or a panic,
@@ -175,28 +182,38 @@ config BOOT_LINUX_RAMOOPS
         command mode sets it up, not the boot.
 
 config BOOT_LINUX_RAMOOPS_ADDR
-    hex "ramoops region address"
+    hex "Region address (reg)"
     depends on BOOT_LINUX_RAMOOPS
 
 config BOOT_LINUX_RAMOOPS_SIZE
-    hex "ramoops region size"
+    hex "Region size (reg)"
     depends on BOOT_LINUX_RAMOOPS
 
 config BOOT_LINUX_RAMOOPS_RECORD_SIZE
-    hex "ramoops record-size"
+    hex "record-size"
     depends on BOOT_LINUX_RAMOOPS
 
 config BOOT_LINUX_RAMOOPS_CONSOLE_SIZE
-    hex "ramoops console-size"
+    hex "console-size"
     depends on BOOT_LINUX_RAMOOPS
     default 0x0
 
 config BOOT_LINUX_RAMOOPS_FTRACE_SIZE
-    hex "ramoops ftrace-size"
+    hex "ftrace-size"
     depends on BOOT_LINUX_RAMOOPS
     default 0x0
 
 config BOOT_LINUX_RAMOOPS_PMSG_SIZE
-    hex "ramoops pmsg-size"
+    hex "pmsg-size"
     depends on BOOT_LINUX_RAMOOPS
     default 0x0
+
+comment "Names before 3.0.0"
+
+config BOOT_AB_DRIVER
+    bool "A/B boot driver (selects BOOT_POLICY_AB)"
+    select BOOT_POLICY_AB
+    help
+        The name of BOOT_POLICY_AB before 3.0.0, kept so that a
+        configuration from before 3.0.0 builds unchanged. Use
+        BOOT_POLICY_AB.
