@@ -117,6 +117,9 @@ for the command mode transport.
 - Integration tests (pytest) in tests/integration, which drive the host build
   through the punchboot Python package, the same way the tools talk to a
   device over USB
+- Python unit tests of the host tools (tests/unit/python), the compatibility
+  guards of the wire and the image format (tests/compat), the document lint
+  (tests/doc) and checks of the firmware build (tests/make)
 
 Everything runs in a docker container with the required toolchains and tools:
 ```

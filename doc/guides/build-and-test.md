@@ -150,4 +150,6 @@ hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`, a ruff bump c
 
 ## Release
 
-See D-003 in `decisions.md` and `doc/guides/release-checklist.txt`.
+A release is made from master (D-003): `version.txt` is bumped in a pull request, then the tag
+`vX.Y.Z` on master publishes the package to PyPI (`punchboot-tools.yml` above). The steps, the
+test record among them, are in `doc/guides/release-checklist.txt`.
