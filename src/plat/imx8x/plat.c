@@ -16,6 +16,7 @@
 #include <drivers/usb/imx_usb2_phy.h>
 #include <pb/console.h>
 #include <pb/crypto.h>
+#include <pb/mmu.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/utils_def.h>
@@ -33,20 +34,6 @@
 #include <xlat_tables.h>
 
 #include "sci/svc/misc/rpc.h"
-
-IMPORT_SYM(uintptr_t, _code_start, code_start);
-IMPORT_SYM(uintptr_t, _code_end, code_end);
-IMPORT_SYM(uintptr_t, _data_region_start, data_start);
-IMPORT_SYM(uintptr_t, _data_region_end, data_end);
-IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
-IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
-IMPORT_SYM(uintptr_t, _stack_start, stack_start);
-IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-/* The rest of pb, .bss and the RAM log, and the buffers (platform.md 5.1) */
-IMPORT_SYM(uintptr_t, _zero_region_start, pb_rw_start);
-IMPORT_SYM(uintptr_t, _pb_end, pb_rw_end);
-IMPORT_SYM(uintptr_t, _buffers_start, buffers_start);
-IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
 
 const char *platform_ns_uuid = "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
@@ -79,6 +66,10 @@ int imx8x_pads_setup(const struct imx8x_pad *pads, size_t length)
 static int boot_reason = -1;
 
 static const mmap_region_t imx_mmap[] = {
+    /* TF-A's BL31, at the start of the DRAM (imx8x.h): inside layer 1,
+     * with its attributes, named for what the SoC's boot puts there
+     * (platform.md 5.2) */
+    MAP_REGION_FLAT(BOARD_RAM_BASE, IMX8X_ATF_SIZE, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER),
     /* Map all of the normal I/O space */
     MAP_REGION_FLAT(IMX_REG_BASE, IMX_REG_SIZE, MT_DEVICE | MT_RW),
     /* CAAM JR2 */
@@ -261,54 +252,6 @@ static void imx8x_load_boot_reason(void)
         plat.soc_id = 0;
         plat.soc_rev = 0;
     }
-}
-
-static void imx8x_mmu_init(void)
-{
-    /* Configure MMU */
-    reset_xlat_tables();
-
-    /* Map ATF hole */
-    mmap_add_region(
-        BOARD_RAM_BASE, BOARD_RAM_BASE, IMX8X_ATF_SIZE, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(code_start, code_start, code_end - code_start, MT_RO | MT_MEMORY | MT_EXECUTE);
-
-    mmap_add_region(
-        data_start, data_start, data_end - data_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(ro_data_start,
-                    ro_data_start,
-                    ro_data_end - ro_data_start,
-                    MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(
-        stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    /* The rest of pb and the buffers, each a region of its own: one span
-     * from pb to the buffers mapped what is between them as memory, which
-     * is the address space and its devices when they aren't in the same
-     * memory (F-158). The DRAM between them is the DRAM's region's */
-    mmap_add_region(
-        pb_rw_start, pb_rw_start, pb_rw_end - pb_rw_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add_region(buffers_start,
-                    buffers_start,
-                    buffers_end - buffers_start,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    /* The board's DRAM, where the images are loaded. What of pb is in it
-     * is a region inside it, and the innermost region wins */
-    mmap_add_region(BOARD_RAM_BASE,
-                    BOARD_RAM_BASE,
-                    BOARD_RAM_END - BOARD_RAM_BASE,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    mmap_add(imx_mmap);
-
-    init_xlat_tables();
-
-    enable_mmu_el3(0);
 }
 
 /* Add a line to the specifics when it fits whole (platform.md 3.11) */
@@ -512,13 +455,23 @@ static int crypto_stop(void)
 
 int plat_init(void)
 {
+    int rc;
+
     if (wdog_rc != 0) {
         /* Not plat_init()'s error: it is recorded (plat_get_status()), and
          * the boot goes on and reports it (platform.md 2.3) */
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
     }
 
-    imx8x_mmu_init();
+    /* The memory map, imx_mmap[] as its layer 2 (platform.md 5.2). Without
+     * it command mode doesn't run: plat_init()'s error (2.2) */
+    rc = pb_mmu_init(imx_mmap);
+
+    if (rc != PB_OK) {
+        LOG_ERR("MMU setup failed (%i)", rc);
+        return rc;
+    }
+
     LOG_DBG("MMU on");
 
     imx8x_fuse_init(plat.ipc);
