@@ -161,9 +161,20 @@ RT1060's USB OTG2.
 
 ### 4.1 RoT and SLC
 
-HABv4 on the 6UL and the RT (`imx_hab_fuses`, the fuse locations from the platform); the 8M once
-its SRK_REVOKE word is verified (D-027, the 8MP RM marks it reserved). AHAB through the SECO on the
-8X (`imx8x_revoke_key()`, `imx8x_slc_*()`). The fuse index macros: `IMX6UL_FUSE()`, ...
+HABv4 on the 6UL, the RT and the 8M (`imx_hab_fuses`, the fuse locations from the platform). AHAB
+through the SECO on the 8X (`imx8x_revoke_key()`, `imx8x_slc_*()`). The fuse index macros:
+`IMX6UL_FUSE()`, ...
+
+The 8M's (`include/plat/imx8m/fusebox.h`, 2026-11-14): SEC_CONFIG[1] at bank 1 word 3 bit 25 and
+SRK_HASH in banks 6 and 7, from the 8MQ RM's fuse map and NXP's U-Boot for the whole family
+(`mx8m_secure_boot.txt`); the 8M Plus's public RM has no security fuses. SRK_REVOKE[2:0] on the
+8MQ only, bank 9 word 3: the RM's OCOTP register "Value of OTP Bank9 Word3 (SRK Revoke)" and its
+boot fuses, while its fuse map calls 0x670 reserved; not verified on a part (F-447). The 8M
+Plus's SRK_REVOKE isn't public: its keys read as active and none is revoked. The 8M's CSF
+unlocks SRKREVOKE, as the 6UL's. The lock and a revocation wait for a boot without a HAB
+failure (`imx_hab_no_failure()`): warnings pass, the 8MQ's ROM reports one for the CAAM. On the
+pico8ml (HAB open, SRK fused): `slc show` reads CONFIGURATION and the three development keys
+active.
 
 ### 4.2 The TrustZone DRAM filter
 
@@ -343,9 +354,8 @@ Where each port is (2026-11-14).
 | `plat_lockdown()`                    | yes          | no (HAB first,    | unchecked  | unchecked | F-244, D-084  |
 |                                      |              | D-084)            |            |           |               |
 | Bus access control                   | yes (jiffy)  | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |
-| `plat_rot`, `plat_slc`               | yes          | yes (no HAB; the  | yes        | yes       |               |
-|                                      |              | 8MQ can't read a  |            |           |               |
-|                                      |              | key's status)     |            |           |               |
+| `plat_rot`, `plat_slc`               | yes          | yes (HABv4; the   | yes        | yes       | F-447         |
+|                                      |              | 8MP revokes none) |            |           |               |
 | `plat_rot.revoke_slots` (4.1)        | yes (3)      | yes (3)           | yes (4)    | yes (3)   | F-439         |
 | EOL as the SoC's own state           | no           | no                | no         | no        | F-263, D-084  |
 | Crypto engine and RNG in             | yes          | yes               | yes (no    | yes (Mbed |               |

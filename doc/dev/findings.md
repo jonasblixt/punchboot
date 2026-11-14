@@ -891,6 +891,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14, read on the pico8ml (its RAM log): "No ROM log (pointer 0xaa0003f8)", the word at | | |
 | | | 0x9e0 is no address. The 8MQ's ROM seems to keep no event log there: the platform should | | |
 | | | report none for the 8MQ rather than look | | |
+| F-447 | `include/plat/imx8m/fusebox.h` | The i.MX8M's SLC (2026-11-14) rests on public sources | Reported | open |
+| | | that don't all agree: the 8MQ's SRK_REVOKE at bank 9 word 3 is its RM's OCOTP register, while its | | |
+| | | fuse map calls 0x670 reserved; the 8M Plus's SEC_CONFIG and SRK_HASH are NXP's U-Boot's, its | | |
+| | | SRK_REVOKE unknown (the 8MP's keys can't be revoked). Verify on a part that can be spent: a | | |
+| | | revocation on an 8MQ (the pico8ml is the only 8MQ on the bench), the 8MP's fuses in its | | |
+| | | Security Reference Manual (NDA) | | |
 
 ## Dependencies / vendored code
 

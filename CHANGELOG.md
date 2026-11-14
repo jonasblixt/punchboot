@@ -69,6 +69,17 @@ Boot:
 - When a board's hook stops a boot that the host started before the device has left the bus,
   the host gets an error and the device stays in command mode. It reset (F-252, 2026-11-13).
 
+The life cycle on the i.MX8M (2026-11-14):
+
+- The i.MX8M boards (imx8mevk, imx8mpevk, pico8ml) have a life cycle: HABv4's SRK hash and its
+  closed bit. `slc show` reads it, `slc configure` fuses the build's SRK hash, `slc lock` closes
+  the device. A locked 8M device answers nothing but its identity before authentication, as
+  every other port; command mode on the 8M was open before.
+- The i.MX8MQ's keys are read and revoked through SRK_REVOKE; on 8MQ boards no key could be
+  used before. The i.MX8M Plus's keys read as active and can't be revoked (F-447).
+- `slc lock` and a revocation are refused on an 8M whose boot HAB reports a failure for: closed,
+  it wouldn't boot.
+
 The keys (D-085, F-439, 2026-11-14):
 
 - `SLC_READ`'s result says which active keys the device can't revoke: those in a slot the

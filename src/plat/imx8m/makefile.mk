@@ -18,6 +18,7 @@ cflags-y += -DPLAT_REVOKE_SLOTS=$(PLAT_REVOKE_SLOTS)
 PB_BUFFERS_BASE ?= 0x40060000
 PB_BUFFERS_SIZE ?= 0x1000000
 
+src-y  += src/drivers/fuse/imx_hab_fuses.c
 src-y  += src/plat/imx8m/plat.c
 src-y  += src/plat/imx8m/ddr.c
 src-$(CONFIG_PLAT_IMX8MQ) += src/plat/imx8m/plat_imx8mq.c
