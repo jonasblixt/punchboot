@@ -66,6 +66,10 @@ cflags-y  += -fno-common -fno-builtin
 cflags-y  += -ffreestanding -fno-exceptions
 cflags-y  += -fstack-usage
 cflags-y  += -fno-stack-protector
+# pb runs where it is linked: no position independent code, also from a
+# compiler that makes it by default, like the dev container's aarch64 gcc
+# (F-454). One code generation on every toolchain.
+cflags-y  += -fno-pie
 cflags-y  += -MMD -MP
 
 # Include path
