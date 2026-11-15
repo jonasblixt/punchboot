@@ -64,9 +64,10 @@ static struct {
     int hab_no_failure_rc;
     unsigned int hab_locks;
     int tzc_init_rc;
+    /* Region 1 as the TZASC has it, what the SPL set up (D-088) */
     int tzc_region_rc;
-    /* GPR10's bits that don't take a write */
-    uint32_t gpr10_stuck_at_0;
+    uint64_t tzc_region_base, tzc_region_size;
+    uint32_t tzc_region_sp;
 } f;
 
 /* What plat_init() sets up after the clocks, in order */
@@ -250,33 +251,30 @@ int tzc380_init(uintptr_t base)
     return f.tzc_init_rc;
 }
 
+int tzc380_get_region(unsigned int region, uint64_t *region_base, uint64_t *size, uint32_t *sp)
+{
+    assert_int_equal(region, 1);
+    *region_base = f.tzc_region_base;
+    *size = f.tzc_region_size;
+    *sp = f.tzc_region_sp;
+    return f.tzc_region_rc;
+}
+
+/* The SPL's (spl/spl.c, tzasc.c): pb proper never sets the TZASC up */
 int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp)
 {
     (void)region;
     (void)region_base;
     (void)size;
     (void)sp;
-    return f.tzc_region_rc;
-}
-
-void imx8m_soc_clock_init(void)
-{
-}
-
-int imx8m_ddr_init(void)
-{
-    call("ddr");
-    return PB_OK;
+    fail_msg("pb proper configured a TZASC region");
+    return -PB_ERR;
 }
 
 /* The variant's part (plat_imx8mp.c): the 8MP EVK's values */
 static uint32_t fake_digprog = 0x00824310;
 static const unsigned int fake_mts[] = { 4000 };
 struct dram_rates dram_rates = { .mts = fake_mts, .num = 1 };
-
-/* pb's .bss in the DRAM (__dram_bss), which plat_init() zeroes: empty, its
- * end is its start (CMakeLists.txt) */
-char _dram_bss_start[1];
 
 const char *imx8m_soc_name(void)
 {
@@ -317,9 +315,6 @@ static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
     if (addr == IMX8M_GPT1_BASE + GPT_CR)
         return value & ~GPT_CR_SWR;
 
-    if (addr == IMX8M_IOMUXC_GPR10)
-        return value & ~(uint64_t)f.gpr10_stuck_at_0;
-
     return value;
 }
 
@@ -333,6 +328,13 @@ static int setup(void **state)
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
     fake_mmu_enables = 0;
+    /* What the SPL left (D-088): the TZASC enabled and locked, DRAM open to
+     * both worlds in region 1 from the window's start */
+    fake_regs_set(IMX8M_IOMUXC_GPR10,
+                  GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS | GPR10_LOCK_TZASC_EN |
+                      GPR10_LOCK_TZASC_ID_SWAP);
+    f.tzc_region_size = UINT64_C(8) << 30;
+    f.tzc_region_sp = TZC380_SP_ALL;
     return 0;
 }
 
@@ -420,9 +422,10 @@ static void test_status(void **state)
     assert_true(status.rom_log);
 }
 
-/* platform.md 2.2, 4.3 (F-248): a TZASC whose enable or whose lock didn't
- * take isn't plat_init()'s error, command mode runs without it. It is
- * recorded as bypassed: the normal world can switch off what isn't locked */
+/* platform.md 2.2, 4.3 (F-248, D-088): pb proper reads the TZASC back. One
+ * whose enable or whose lock the SPL left off isn't plat_init()'s error,
+ * command mode runs without it. It is recorded as bypassed: the normal
+ * world can switch off what isn't locked */
 static void test_status_tzasc_not_enabled(void **state)
 {
     static const uint32_t bits[] = {
@@ -431,26 +434,29 @@ static void test_status_tzasc_not_enabled(void **state)
         GPR10_LOCK_TZASC_EN,
         GPR10_LOCK_TZASC_ID_SWAP,
     };
+    const uint32_t all = GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS | GPR10_LOCK_TZASC_EN |
+                         GPR10_LOCK_TZASC_ID_SWAP;
     (void)state;
 
     for (size_t i = 0; i < ARRAY_SIZE(bits); i++) {
-        f.gpr10_stuck_at_0 = bits[i];
-        fake_regs_set(IMX8M_IOMUXC_GPR10, 0);
+        fake_regs_set(IMX8M_IOMUXC_GPR10, all & ~bits[i]);
         assert_int_equal(plat_early_init(), PB_OK);
         assert_int_equal(plat_init(), PB_OK);
         assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
     }
 
     /* And it is the state of this plat_init(), not of an earlier one */
-    f.gpr10_stuck_at_0 = 0;
+    fake_regs_set(IMX8M_IOMUXC_GPR10, all);
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
 }
 
-/* The same when DRAM's region couldn't be opened with the TZASC enabled:
- * not the state 4.3 asks for, and the boot is refused the same way */
-static void test_status_tzasc_setup_failed(void **state)
+/* The same when region 1 isn't what the SPL is to set up: the TZC-380 not
+ * there, its region not read, not from the window's start, smaller than
+ * the board's DRAM, or closed to a world. Not the state 4.3 asks for, and
+ * the boot is refused the same way */
+static void test_status_tzasc_region_not_open(void **state)
 {
     (void)state;
 
@@ -459,8 +465,33 @@ static void test_status_tzasc_setup_failed(void **state)
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
 
-    f.tzc_init_rc = PB_OK;
+    setup(NULL);
     f.tzc_region_rc = -PB_ERR_STATE;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    setup(NULL);
+    f.tzc_region_base = SZ_GiB(1);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    /* The board's DRAM is 1 GiB from the window's start (CMakeLists.txt) */
+    setup(NULL);
+    f.tzc_region_size = SZ_GiB(1) / 2;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    setup(NULL);
+    f.tzc_region_size = SZ_GiB(1);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+
+    setup(NULL);
+    f.tzc_region_sp = TZC380_SP_ALL & ~TZC380_SP_NS_W;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
@@ -645,7 +676,8 @@ static void test_unique_id_read_fails(void **state)
  *
  * Until F-247 the boards' init() did the CAAM's two calls as its first step,
  * which was the first thing after plat_init(): they are plat_init()'s last
- * now, after the DRAM's training and the TZASC and with the MMU on, and no
+ * now, after the TZASC's check (the SPL trained DRAM, D-088) and with the
+ * MMU on, and no
  * register of the platform's is written after them. So the SoC sees the same
  * writes in the same order */
 static void test_crypto_set_up_last_in_plat_init(void **state)
@@ -656,7 +688,7 @@ static void test_crypto_set_up_last_in_plat_init(void **state)
     assert_string_equal(calls, "");
 
     assert_int_equal(plat_init(), PB_OK);
-    assert_string_equal(calls, "ddr tzasc caam rng mbedtls ");
+    assert_string_equal(calls, "tzasc caam rng mbedtls ");
     assert_int_equal(crypto.caam_base, IMX8M_CAAM_JR0_BASE);
     assert_int_equal(crypto.rng_base, IMX8M_CAAM_BASE);
     assert_int_equal(crypto.caam_mmu_enables, 1);
@@ -675,13 +707,13 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     crypto.mbedtls_rc = -PB_ERR_PARAM;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_string_equal(calls, "ddr tzasc caam mbedtls ");
+    assert_string_equal(calls, "tzasc caam mbedtls ");
 
     setup(NULL);
     crypto.rng_rc = -PB_ERR_TIMEOUT;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_string_equal(calls, "ddr tzasc caam rng mbedtls ");
+    assert_string_equal(calls, "tzasc caam rng mbedtls ");
 }
 
 /* platform.md 2.3, 3.8 (F-247, F-248): the platform sets the build's crypto
@@ -924,7 +956,7 @@ int main(void)
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_tzasc_not_enabled, setup),
-        cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
+        cmocka_unit_test_setup(test_status_tzasc_region_not_open, setup),
         cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
         cmocka_unit_test_setup(test_boot_source_serial_download, setup),
         cmocka_unit_test_setup(test_boot_source_not_a_download, setup),

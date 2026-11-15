@@ -20,7 +20,6 @@
 #include <boot/atf.h>
 #include <boot/boot.h>
 #include <boot/image.h>
-#include <drivers/gpio/imx_gpio.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
@@ -33,13 +32,13 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/slc.h>
-#include <plat/imx8m/dram.h>
 #include <plat/imx8m/fusebox.h>
 #include <plat/imx8m/imx8m.h>
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "lpddr4_timing.h"
+#include "console.h"
+#include "dram.h"
 #include "partitions.h"
 
 /*
@@ -58,71 +57,6 @@ _Static_assert(PICO8ML_BOOT_CFG == 0x2060, "the pico8ml's boot configuration bef
 static const struct slc_fuse config_fuses[] = {
     { IMX8M_FUSE(IMX8MQ_FUSE_BOOT_CFG_BANK, IMX8MQ_FUSE_BOOT_CFG_WORD), PICO8ML_BOOT_CFG },
 };
-
-/* DRAM: both set points of the timings, for DDR frequency scaling in Linux */
-static const unsigned int pico8ml_dram_mts[] = { 3200, 667 };
-
-struct dram_rates dram_rates = {
-    .mts = pico8ml_dram_mts,
-    .num = ARRAY_SIZE(pico8ml_dram_mts),
-};
-
-#define IMX8MQ_GPIO1_BASE 0x30200000
-#define DDR_DET_BANK      2 /* GPIO3 */
-#define DDR_DET_1         11
-#define DDR_DET_2         12
-#define DDR_DET_3         13
-
-/* The DRAM's density in GiB, read from its straps, for the log */
-static unsigned int dram_gib;
-
-/*
- * The density straps (TechNexion's spl.c): DDR_DET_1, _2 and _3 on
- * GPIO3_IO11, _12 and _13, the pads NAND_DATA05 to 07.
- *
- *   DDR_DET_1  DDR_DET_2  DDR_DET_3
- *       0          0          1      4 GiB
- *       1          1          1      3 GiB
- *       1          1          0      2 GiB
- *       1          0          1      1 GiB
- *
- * pb itself uses the first GiB (BOARD_DRAM_SIZE, D-079), what every
- * variant has.
- */
-const struct imx8m_dram_timing *imx8m_board_dram_timing(void)
-{
-    static const struct imx_pin pins[] = {
-        IMX8M_PIN(NAND_DATA05, MUX_ALT(5), IMX_PAD_KEEP),
-        IMX8M_PIN(NAND_DATA06, MUX_ALT(5), IMX_PAD_KEEP),
-        IMX8M_PIN(NAND_DATA07, MUX_ALT(5), IMX_PAD_KEEP),
-    };
-    unsigned int straps;
-
-    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
-    imx_gpio_init(IMX8MQ_GPIO1_BASE);
-
-    straps = (imx_gpio_get_pin(DDR_DET_BANK, DDR_DET_1) << 2) |
-             (imx_gpio_get_pin(DDR_DET_BANK, DDR_DET_2) << 1) |
-             imx_gpio_get_pin(DDR_DET_BANK, DDR_DET_3);
-
-    switch (straps) {
-    case 0x1:
-        dram_gib = 4;
-        return &dram_timing_4gb;
-    case 0x7:
-        dram_gib = 3;
-        return &dram_timing_3gb;
-    case 0x6:
-        dram_gib = 2;
-        return &dram_timing_2gb;
-    case 0x5:
-        dram_gib = 1;
-        return &dram_timing_1gb;
-    default:
-        LOG_ERR("Unknown DRAM density straps 0x%x", straps);
-        return NULL;
-    }
-}
 
 /* The board's named command 'test' (command-mode.md 5.6), pb_id() 0xf93ba110,
  * the id it had before 3.0.0. Its answer names that id, as it did */
@@ -150,29 +84,6 @@ cmd_test(const uint8_t *request, size_t request_size, uint8_t *response, size_t 
 }
 
 DEFINE_COMMAND("test", "Answers with a greeting", cmd_test);
-
-static void board_console_init(void)
-{
-    /* Enable UART1 clock */
-    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(UART1_CLK_ROOT), CLK_ROOT_ON);
-    /* Ungate UART1 clock */
-    mmio_write_32(CCM_CCGR_SET(CCGR_UART1), CCGR_CLK_ON_MASK);
-
-    static const struct imx_pin pins[] = {
-        IMX8M_PIN(UART1_RXD, MUX_ALT(0), PAD_CTL_DSE_40_OHM),
-        IMX8M_PIN(UART1_TXD, MUX_ALT(0), PAD_CTL_DSE_40_OHM),
-    };
-
-    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
-
-    imx_uart_init(IMX8M_UART1_BASE, MHz(25), 115200);
-
-    static const struct console_ops ops = {
-        .putc = imx_uart_putc,
-    };
-
-    console_init(IMX8M_UART1_BASE, &ops);
-}
 
 static int usdhc_emmc_setup(void)
 {
@@ -221,7 +132,7 @@ static int usdhc_emmc_setup(void)
 
 static int board_hw_init(void)
 {
-    LOG_INFO("LPDDR4: %u GiB, pb uses the first", dram_gib);
+    LOG_INFO("LPDDR4: %u GiB, pb uses the first", pico8ml_dram_gib());
     return usdhc_emmc_setup();
 }
 
@@ -325,21 +236,22 @@ static const struct boot_ab_state_config boot_state_cfg = {
 };
 
 /*
- * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps, the
- * first GiB, from 0x40000000 to BOARD_RAM_END, above what pb has at its
- * start: the DDR controller's state and pb's buffers (src/plat/imx8m/link.lds).
- * And the OCRAM TF-A's BL31 is linked for, 0x910000; pb runs from the TCM
- * and keeps its RAM log below BL31 (ramlog_ocram.lds). board_setup() checks
- * the list against what is linked.
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps,
+ * from 0x40000000 to BOARD_RAM_END, above what pb has in it: the DDR
+ * controller's state and pb's buffers, then pb proper, which runs from
+ * PB_ENTRY (D-088). And the on-chip RAM TF-A's BL31 is linked for. board_setup() checks the list
+ * against what is linked.
  *
- * The region and the link have one source, the board's makefile.mk (platform.md 5.1):
- * the region starts where the buffers' region (PB_BUFFERS_BASE,
- * _SIZE) ends, so the link fails when the buffers grow into it.
+ * The DRAM's region and the link have one source, the board's makefile.mk
+ * (platform.md 5.1): pb proper is after the buffers, so the build fails when
+ * they grow into it, and the region starts where pb proper ends.
  */
-#define BOARD_BUFFERS_END ((uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE)
+_Static_assert((uint64_t)PB_ENTRY >= (uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE,
+               "pb proper (PB_ENTRY) is not after pb's buffers");
 
 static const struct boot_image_region image_regions[] = {
-    BOOT_IMAGE_REGION(BOARD_BUFFERS_END, BOARD_RAM_END - BOARD_BUFFERS_END),
+    /* The DRAM after pb proper (D-088) */
+    BOOT_IMAGE_REGION(PB_ENTRY + PB_SIZE, BOARD_RAM_END - (PB_ENTRY + PB_SIZE)),
     BOOT_IMAGE_REGION(IMX8MQ_BL31_BASE, IMX8MQ_BL31_SIZE),
     BOOT_IMAGE_REGION_END,
 };
@@ -348,7 +260,7 @@ const struct board board = {
     .name = "pico8ml",
     .slc_fuses = config_fuses,
     .slc_fuses_length = ARRAY_SIZE(config_fuses),
-    .console_init = board_console_init,
+    .console_init = pico8ml_console_init,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),

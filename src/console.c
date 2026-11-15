@@ -81,7 +81,8 @@ void console_init(uintptr_t base_, const struct console_ops *ops_)
     (void)had_output;
 #endif
 
-#ifdef CONFIG_PRINT_BOOT_BANNER
+#if defined(CONFIG_PRINT_BOOT_BANNER) && !defined(PB_SPL)
+    /* pb proper's: the SPL has no boot reason (D-088) */
     struct pb_boot_reason reason;
 
     /* The reason is filled in also when the platform couldn't read it */

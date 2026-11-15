@@ -54,41 +54,17 @@ struct dram_timing_save {
 
 extern struct dram_timing_save dram_timing_info_copy;
 
-/*
- * A board's timing, as scripts/gen-imx8m-dram-timing.py writes it from NXP's
- * DDR tool's output (imx8m-ddr.md): struct dram_timing_info's tables, with
- * the PHY's packed (struct dram_phy_table). imx8m_ddr_init() writes the
- * copy for TF-A in struct dram_timing_info's layout from it.
- */
-struct imx8m_dram_timing {
-    const struct dram_cfg_param *ddrc_cfg; /* Controller registers, absolute addresses */
-    unsigned int ddrc_cfg_num;
-    struct dram_phy_table ddrphy_cfg; /* PHY CSRs written before training */
-    const struct dram_fsp_msg *fsp_msg; /* Training runs, in order */
-    unsigned int fsp_msg_num;
-    struct dram_phy_table ddrphy_trained_csr; /* PHY CSRs read back after training, no values */
-    struct dram_phy_table ddrphy_pie; /* PHY Init Engine image */
-    unsigned int fsp_table[4]; /* Data rate (MT/s) of each frequency set point, 0: unused */
-};
-
-/* The board's timing: a board with one DRAM (the script's file for one
- * input), src/board/imx8mevk/lpddr4_timing.c */
-extern const struct imx8m_dram_timing imx8m_dram_timing;
-
-/* The board's timing in struct dram_timing_info's layout, as the DDR tool
- * writes it: boards before the script, out of the tree. Read when the board
- * has no imx8m_dram_timing */
+/* The board's timing, see src/board/imx8mevk/lpddr4_timing.c */
 extern struct dram_timing_info dram_timing;
 
 /*
  * The timing imx8m_ddr_init() trains, asked once by plat_init() before the
- * DRAM is set up: the board's imx8m_dram_timing (or its dram_timing), unless
- * the board defines this to choose among several (the straps of its DRAM's
- * density, pico8ml). Valid from the clocks of the GPIOs and the IOMUXC, which
- * plat_init() ungates before it; no DRAM, no MMU. NULL: no timing,
- * plat_init() fails.
+ * DRAM is set up: the board's dram_timing, unless the board defines this to
+ * choose among several (the straps of its DRAM's density, pico8ml). Valid
+ * from the clocks of the GPIOs and the IOMUXC, which plat_init() ungates
+ * before it; no DRAM, no MMU. NULL: no timing, plat_init() fails.
  */
-const struct imx8m_dram_timing *imx8m_board_dram_timing(void);
+const struct dram_timing_info *imx8m_board_dram_timing(void);
 
 /*
  * The data rates (MT/s) the board trains, from its board code: the first

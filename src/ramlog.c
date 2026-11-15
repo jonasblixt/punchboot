@@ -26,12 +26,21 @@ static struct {
 _Static_assert(sizeof(ramlog) == CONFIG_RAMLOG_SIZE_KiB * 1024,
                "The RAM log is CONFIG_RAMLOG_SIZE_KiB");
 
-/* Set by ramlog_init(). In the SPL the log is in DRAM, which may not be
- * set up yet: nothing may touch it before ramlog_init(). */
+/* Set by ramlog_init(): nothing writes the log before it */
 static bool ramlog_active;
 
 void ramlog_init(void)
 {
+#if defined(PB_HAS_SPL) && !defined(PB_SPL)
+    /* pb proper after the SPL (D-088): the SPL started this log at the same
+     * address on this boot and pb proper goes on with it, so the SPL's lines
+     * are pb's log and its console's. The SPL starts a new one every time */
+    if (ramlog.hdr.magic == PB_RAMLOG_MAGIC && ramlog.hdr.version == PB_RAMLOG_VERSION &&
+        ramlog.hdr.size == RAMLOG_SIZE) {
+        ramlog_active = true;
+        return;
+    }
+#endif
     ramlog.hdr.magic = PB_RAMLOG_MAGIC;
     ramlog.hdr.version = PB_RAMLOG_VERSION;
     ramlog.hdr.size = RAMLOG_SIZE;

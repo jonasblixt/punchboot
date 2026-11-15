@@ -5,19 +5,20 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * Where pb, its buffers and the board's DRAM are is the board's, from its
- * makefile.mk (platform.md 5.1): PB_ENTRY, PB_SIZE, PB_BUFFERS_BASE and _SIZE,
- * BOARD_DRAM_BASE and _SIZE. The addresses here are the SoC's, and the ones
- * that differ per SoC are makefile.mk's: IMX8M_LOAD_BASE, IMX8M_LOAD_END and
- * IMX8M_OCRAM_SIZE.
+ * pb proper (D-088). Where pb, its buffers and the board's DRAM are is the
+ * board's, from its makefile.mk (platform.md 5.1): PB_ENTRY, PB_SIZE,
+ * PB_BUFFERS_BASE and _SIZE, BOARD_DRAM_BASE and _SIZE. pb proper is in the
+ * board's DRAM, the SPL brought it up. The addresses here are the SoC's, and
+ * the ones that differ per SoC are makefile.mk's: the RAM log's and
+ * bl_params', at the end of the SPL's window, which pb proper keeps
+ * (spl/link.lds).
  */
 
-/* The start of the DRAM, where the DDR controller's state is: TF-A's i.MX8M
- * DRAM driver reads it there (plat/imx8m/dram.h) */
+/* The start of the DRAM, where the DDR controller's state is: the SPL wrote
+ * it, TF-A's i.MX8M DRAM driver reads it there (plat/imx8m/dram.h) */
 IMX8M_DDR_BASE = 0x40000000;
 
-/* pb runs from on-chip RAM: it has the ROM's load window from PB_ENTRY to
- * the window's end; a board with PB_SIZE gives it less.
+/* pb proper is in DRAM from PB_ENTRY, PB_SIZE long.
  *
  * The buffers region is the DRAM from its start to the end of the board's
  * buffers: the controller's state is linked there too, so that everything pb
@@ -31,10 +32,11 @@ IMX8M_DDR_BASE = 0x40000000;
  * regions. */
 MEMORY
 {
-    ram (rx)  : ORIGIN = PB_ENTRY,
-                LENGTH = (PB_SIZE != 0 ? PB_ENTRY + PB_SIZE : IMX8M_LOAD_END) - PB_ENTRY
+    ram (rx)  : ORIGIN = PB_ENTRY, LENGTH = PB_SIZE
     buffers (rx)   : ORIGIN = IMX8M_DDR_BASE,
                      LENGTH = PB_BUFFERS_BASE + PB_BUFFERS_SIZE - IMX8M_DDR_BASE
+    spl_ram (rw) : ORIGIN = IMX8M_RAMLOG_BASE,
+                   LENGTH = PLAT_BL_PARAMS_BASE + 0x1000 - IMX8M_RAMLOG_BASE
 }
 
 IMX8M_OCRAM_BASE = 0x00900000;
@@ -42,14 +44,12 @@ IMX8M_OCRAM_END = IMX8M_OCRAM_BASE + IMX8M_OCRAM_SIZE;
 BOARD_DRAM_END = BOARD_DRAM_BASE + BOARD_DRAM_SIZE;
 PB_REGION_END = ORIGIN(ram) + LENGTH(ram);
 
-ASSERT(PB_ENTRY >= IMX8M_LOAD_BASE && PB_ENTRY < IMX8M_LOAD_END,
-       "PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to")
+ASSERT(PB_SIZE != 0, "PB_SIZE: pb proper's region in the DRAM is the board's (D-088)")
 
-ASSERT(PB_REGION_END > PB_ENTRY && PB_REGION_END <= IMX8M_LOAD_END,
-       "PB_SIZE ends pb's region after the memory the ROM loads pb to")
+ASSERT(PB_ENTRY >= BOARD_DRAM_BASE && PB_REGION_END <= BOARD_DRAM_END,
+       "pb proper (PB_ENTRY, PB_SIZE) is not in the board's DRAM (D-088)")
 
-/* The buffers are in the DRAM here, after the controller's state: the on-chip
- * RAM has no room for them, and the region is one range */
+/* The buffers are in the DRAM here, after the controller's state */
 ASSERT(PB_BUFFERS_BASE >= BOARD_DRAM_BASE && PB_BUFFERS_BASE >= ADDR(.umctl) + SIZEOF(.umctl) &&
        PB_BUFFERS_BASE + PB_BUFFERS_SIZE <= BOARD_DRAM_END,
        "pb's buffers (PB_BUFFERS_BASE, _SIZE) are not in the board's DRAM, after the DDR controller's state")
@@ -66,35 +66,30 @@ ASSERT(DEFINED(BOOT_FH_REGION_BASE) ?
         (BOOT_FH_REGION_BASE >= IMX8M_OCRAM_BASE && BOOT_FH_REGION_END <= IMX8M_OCRAM_END)) : 1,
        "The Firmware Handoff region (CONFIG_BOOT_FH_REGION_BASE, _SIZE) is not in the board's DRAM or the OCRAM")
 
-/* Used to store run-time training data for the dram -controller
- */
-
 SECTIONS
 {
+    /* The DDR controller's state, which the SPL wrote for TF-A
+     * (IMX8M_DRAM_TIMING_SAVE_SIZE, plat/imx8m/dram.h): kept free */
     .umctl IMX8M_DDR_BASE (NOLOAD):
     {
         PROVIDE(_umctl2_start = .);
         *(.umctl2 .umctl2*)
-        . = ALIGN(8);
+        . = 0x20000; /* From the section's start */
         PROVIDE(_umctl2_end = .);
     } > buffers
 
-    /* __dram_bss (pb/utils_def.h): .bss that nothing uses before plat_init()
-     * returns, in the DRAM after the controller's state, which plat_init()
-     * zeroes after the MMU. The TCM of the i.MX8MQ doesn't hold it with the
-     * LPDDR4 training firmware */
-    .dram_bss (NOLOAD):
+    /* The SPL's RAM log, which pb proper goes on with (ramlog.c, D-088) */
+    .ramlog_spl IMX8M_RAMLOG_BASE (NOLOAD):
     {
-        . = ALIGN(64);
-        PROVIDE(_dram_bss_start = .);
-        *(.bss.pb_dram)
-        . = ALIGN(64);
-        PROVIDE(_dram_bss_end = .);
-    } > buffers
-}
+        *(.ramlog)
+    } > spl_ram
 
-ASSERT(_dram_bss_end <= PB_BUFFERS_BASE,
-       "pb's .bss in the DRAM (__dram_bss) overlaps pb's buffers (PB_BUFFERS_BASE)")
+    /* TF-A's bl_params (platform.md 5.3), where BL31 takes them from */
+    .bl_params PLAT_BL_PARAMS_BASE (NOLOAD):
+    {
+        *(.bl_params)
+    } > spl_ram
+}
 
 /* TF-A's bl_params are where BL31 takes them from (plat.c, makefile.mk) */
 _plat_bl_params_end = DEFINED(plat_bl_params) ? plat_bl_params + PLAT_BL_PARAMS_SIZE : 0;

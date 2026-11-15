@@ -69,6 +69,7 @@ BUFFERS_OVERLAP = "pb's buffers (PB_BUFFERS_BASE, _SIZE) overlap pb"
 BUFFERS_NOT_IN = "pb's buffers (PB_BUFFERS_BASE, _SIZE) are not in "
 PB_SIZE_AFTER = "PB_SIZE ends pb's region after the memory the ROM loads pb to"
 IMX6UL_ENTRY = "PB_ENTRY is not where the i.MX6UL's ROM loads pb to"
+IMX8M_NOT_IN = "pb proper (PB_ENTRY, PB_SIZE) is not in the board's DRAM (D-088)"
 
 # (board, the values that are changed, what the build says)
 CASES = [
@@ -78,18 +79,12 @@ CASES = [
         {"PB_ENTRY": "0x80020000"},
         "PB_ENTRY is not 0x80000000, where the i.MX8X starts pb",
     ),
+    # The i.MX8M's pb proper outside the board's DRAM (D-088): below it, and
+    # over its end
+    ("imx8mpevk", {"PB_ENTRY": "0x3ff00000"}, IMX8M_NOT_IN),
+    ("imx8mpevk", {"PB_ENTRY": "0xbff00000"}, IMX8M_NOT_IN),
     # pb outside the ROM's load window: in the ROM's own part of the RAM,
     # and one byte after the window
-    (
-        "imx8mpevk",
-        {"PB_ENTRY": "0x91f000"},
-        "PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to",
-    ),
-    (
-        "imx8mpevk",
-        {"PB_ENTRY": "0x980000"},
-        "PB_ENTRY is not in the on-chip RAM the i.MX8M's ROM loads pb to",
-    ),
     (
         "imxrt1060evk",
         {"PB_ENTRY": "0x20207000"},
@@ -132,7 +127,11 @@ CASES = [
     # A region of pb's that ends after its window, or is empty
     ("jiffy", {"PB_SIZE": "0x40000000"}, PB_SIZE_AFTER),
     ("jiffy", {"PB_ENTRY": "0x00908000", "PB_SIZE": "0x19000"}, PB_SIZE_AFTER),
-    ("imx8mpevk", {"PB_SIZE": "0x61000"}, PB_SIZE_AFTER),
+    (
+        "imx8mpevk",
+        {"PB_SIZE": "0x0"},
+        "PB_SIZE: pb proper's region in the DRAM is the board's (D-088)",
+    ),
     ("imxrt1060evk", {"PB_SIZE": "0x78000"}, PB_SIZE_AFTER),
     (
         "imx8qxmek",
@@ -188,13 +187,8 @@ CASES = [
     ("jiffy", {"PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
     ("imx8qxmek", {"PB_SIZE": "0x50000"}, "region `ram' overflowed"),
     ("imx8mpevk", {"PB_SIZE": "0x20000"}, "region `ram' overflowed"),
-    # pb's .bss in the DRAM (__dram_bss) is after the DDR controller's state:
-    # buffers there overlap it
-    (
-        "imx8mpevk",
-        {"PB_BUFFERS_BASE": "0x40020000"},
-        "pb's .bss in the DRAM (__dram_bss) overlaps pb's buffers (PB_BUFFERS_BASE)",
-    ),
+    # The i.MX8M's pb proper is after the buffers (D-088): buffers over it
+    ("imx8mpevk", {"PB_BUFFERS_BASE": "0x41000000"}, BUFFERS_OVERLAP),
     ("imx8mpevk", {"PB_BUFFERS_SIZE": "0x800000"}, "is not within region `buffers'"),
     # The stack right above .ro_data, which is read only with the MMU on: a
     # link script that has something between the two (F-209)
@@ -256,8 +250,9 @@ REFUSALS = {message for _, _, message in CASES if "region `" not in message}
 # them. A length that ld can't work out is every address, without a message.
 # pb's region and the buffers' end where the board's next image data region
 # starts (F-391): jiffy's at 0x80101000 and 0x82000000, the MEK's at
-# 0x80080000 and 0x86000000, the 8MP EVK's at 0x970000 (BL31's on-chip RAM)
-# and 0x41060000, the RT1060 EVK's below pb.
+# 0x80080000 and 0x86000000, the 8MP EVK's at 0x41300000, after pb proper,
+# which is after the buffers (D-088), the RT1060 EVK's below pb. The 8MP
+# EVK's spl_ram: the SPL's RAM log and bl_params in the OCRAM.
 REGIONS = {
     "jiffy": {"ram": (0x80001000, 0x100000), "buffers": (0x81021000, 0xFDF000)},
     "imxrt1060evk": {"ram": (0x20249000, 0x40000), "buffers": (0x20289000, 0x37000)},
@@ -267,8 +262,9 @@ REGIONS = {
         "buffers": (0x85000000, 0x1000000),
     },
     "imx8mpevk": {
-        "ram": (0x920000, 0x50000),
+        "ram": (0x41100000, 0x200000),
         "buffers": (0x40000000, 0x1060000),
+        "spl_ram": (0x95B000, 0x5000),
     },
 }
 
@@ -302,8 +298,6 @@ ALLOWED = [
     # pb's region derived in the DRAM: to the buffers that follow it
     ("jiffy", {"PB_SIZE": "0x0"}, {"ram": (0x80001000, 0x1020000)}),
     ("imx8qxmek", {"PB_SIZE": "0x0"}, {"ram": (0x80020000, 0x4FE0000)}),
-    # and in the i.MX8M's on-chip RAM: to the window's end
-    ("imx8mpevk", {"PB_SIZE": "0x0"}, {"ram": (0x920000, 0x60000)}),
     # and to the DRAM's end when they are below it
     (
         "jiffy",
@@ -311,14 +305,13 @@ ALLOWED = [
         {"ram": (0x83000000, 0x3D000000)},
     ),
     # A board that gives pb less
-    ("imx8mpevk", {"PB_SIZE": "0x58000"}, {"ram": (0x920000, 0x58000)}),
+    ("imx8mpevk", {"PB_SIZE": "0x58000"}, {"ram": (0x41100000, 0x58000)}),
     ("imxrt1060evk", {"PB_SIZE": "0x30000"}, {"ram": (0x20249000, 0x30000)}),
-    # The i.MX8M's buffers right after the DDR controller's state and pb's
-    # .bss in the DRAM
+    # The i.MX8M's buffers right after the DDR controller's state
     (
         "imx8mpevk",
-        {"PB_BUFFERS_BASE": "0x40030000"},
-        {"buffers": (0x40000000, 0x1030000)},
+        {"PB_BUFFERS_BASE": "0x40020000"},
+        {"buffers": (0x40000000, 0x1020000)},
     ),
     # The ARMv7-M has no MMU: the stack may be anywhere
     ("imxrt1060evk", {"CONFIG_LINK_FILE": "{work}/link_gap.lds"}, {}),
