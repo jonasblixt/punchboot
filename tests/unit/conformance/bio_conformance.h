@@ -44,6 +44,9 @@ struct bio_conformance_fault {
     /* From the next write on, which starts at block 'lba' of the device,
      * every block after the first 'blocks' fails */
     void (*fail_writes)(lba_t lba, size_t blocks);
+    /* The next read of the medium fails; NULL when the test program can't
+     * make this medium's reads fail */
+    void (*fail_reads)(void);
     /* The medium works again */
     void (*end)(void);
 };
@@ -51,6 +54,7 @@ struct bio_conformance_fault {
 extern const struct bio_conformance_fault *bio_conformance_fault;
 
 void bio_3_1_a_read_that_isnt_whole_blocks_is_trimmed(void **state);
+void bio_3_1_a_read_that_fails(void **state);
 void bio_3_2_a_write_that_isnt_whole_blocks_is_padded_with_zeros(void **state);
 void bio_3_2_a_write_that_fails_half_way(void **state);
 void bio_3_3_an_erase_erases_exactly_the_blocks(void **state);
@@ -63,6 +67,7 @@ void bio_3_any_length_in_one_call(void **state);
 #define BIO_CONFORMANCE_TESTS(setup, teardown)                                                 \
     cmocka_unit_test_setup_teardown(                                                           \
         bio_3_1_a_read_that_isnt_whole_blocks_is_trimmed, setup, teardown),                    \
+        cmocka_unit_test_setup_teardown(bio_3_1_a_read_that_fails, setup, teardown),           \
         cmocka_unit_test_setup_teardown(                                                       \
             bio_3_2_a_write_that_isnt_whole_blocks_is_padded_with_zeros, setup, teardown),     \
         cmocka_unit_test_setup_teardown(bio_3_2_a_write_that_fails_half_way, setup, teardown), \

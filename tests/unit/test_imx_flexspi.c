@@ -943,13 +943,21 @@ static void conformance_fail_writes(lba_t lba, size_t blocks)
     nor.err_from_tfdr = nor.tfdr_writes + (unsigned int)(blocks * (BLOCK / 4)) + 1;
 }
 
+/* A read that fails: its busy poll ends in IPCMDERR, as test_read_busy_poll_fails */
+static void conformance_fail_reads(void)
+{
+    nor.fail_seq = SEQ_READ_STATUS;
+}
+
 static void conformance_fault_end(void)
 {
     nor.err_from_tfdr = 0;
+    nor.fail_seq = -1;
 }
 
 static const struct bio_conformance_fault conformance_fault = {
     .fail_writes = conformance_fail_writes,
+    .fail_reads = conformance_fail_reads,
     .end = conformance_fault_end,
 };
 

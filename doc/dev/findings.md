@@ -422,6 +422,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | on the RAM disk, the host's disk and flash, the e.MMC (user area and a boot partition), the SD, the | |
 | | | uSDHC and the FlexSPI model: every one conforms. Left: the GPT's `512`s (`gpt_pmbr[512]`, three | |
 | | | divisions; for Jonas) and a read that fails, in the suite | |
+| | | 2026-11-15: the suite has a read that fails (whole blocks, half a block), on the RAM disk, the | | |
+| | | e.MMC, the SD, the uSDHC and the FlexSPI; the host's files skip it. Left: the GPT's `512`s (for | | |
+| | | Jonas) | | |
 | F-286 | `src/crypto.c`, `imx_caam.c`, `mbedtls_pb.c`, the users | Crypto against | Reported (read) | open |
 | | | `crypto.md`. (1) `hash_init()` keeps the backend selected when its `init` fails, and returns | | |
 | | | `-PB_ERR_NOT_SUPPORTED` where `crypto.h` says `-PB_ERR_PARAM`. (2) The CAAM's `init` neither | | |

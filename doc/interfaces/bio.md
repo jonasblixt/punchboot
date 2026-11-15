@@ -455,7 +455,8 @@ range outside the device, a length of more than a driver's chunk; an erase of ex
 blocks named, of 0 blocks and outside the device, or `-PB_ERR_NOT_SUPPORTED` from a device
 without one; `write_done` after a complete write; a write that fails half way, whole blocks
 and in the core's last block: the caller gets `-PB_ERR_IO` or `-PB_ERR_TIMEOUT`, nothing
-outside the range is written, and the same write works next. On a device with
+outside the range is written, and the same write works next; a read that fails, whole blocks
+and half a block: the same errors, and the same read works next. On a device with
 `ERASE_BEFORE_WRITE` it erases before it writes (3.3). It runs against the RAM disk (512 byte
 and 4 KiB blocks, and a partition), the host's disk and its flash (`test_bio_conformance`),
 `mmc_core` on the e.MMC's user area and a boot partition and on the SD model (`test_mmc_emmc`,
@@ -463,13 +464,13 @@ and 4 KiB blocks, and a partition), the host's disk and its flash (`test_bio_con
 driver on its model (`test_imx_flexspi`). The RAM disk and the host's devices refuse what a
 driver never gets: a length that isn't whole blocks, or 0. A device without a callback is the
 core's, `test_bio`: a read, a write and an erase answer `-PB_ERR_NOT_SUPPORTED`, `write_done`
-PB_OK, and a partition doesn't get its parent's `write_done`. **Not yet in the code
-(F-283)**: a read that fails, what the caller gets and that the device reads after it.
+PB_OK, and a partition doesn't get its parent's `write_done`. The host's file-backed disk and
+flash can't be made to fail a read: they skip that case.
 
 ## 9. Not yet in the code
 
 | Finding      | What                                                                        |
 | ------------ | --------------------------------------------------------------------------- |
-| F-283        | The block size asked (2.3); a read that fails, in the suite (8)             |
+| F-283        | The block size asked (2.3)                                                  |
 | F-200        | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                |
 | F-078, F-079 | The ROM boots from the eMMC after a warm reset (5)                          |

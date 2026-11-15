@@ -111,7 +111,43 @@ static void assert_blocks(lba_t lba, size_t n, const uint8_t *expected)
 static void assert_failed(int rc)
 {
     if (rc != -PB_ERR_IO && rc != -PB_ERR_TIMEOUT)
-        fail_msg("The write answered %i, not -PB_ERR_IO or -PB_ERR_TIMEOUT", rc);
+        fail_msg("The medium failed, the call answered %i, not -PB_ERR_IO or -PB_ERR_TIMEOUT", rc);
+}
+
+/* bio.md 3.1, 8: a read that the medium fails answers -PB_ERR_IO or
+ * -PB_ERR_TIMEOUT (what it left in the buffer is unknown, F-173), and the
+ * device reads after it. Whole blocks, the driver's own read, and half a
+ * block, which the core reads into its block buffer */
+void bio_3_1_a_read_that_fails(void **state)
+{
+    const struct bio_conformance_fault *fault = bio_conformance_fault;
+    int rc;
+    (void)state;
+
+    begin();
+
+    if (fault == NULL || fault->fail_reads == NULL) {
+        print_message("Skipped: the test program can't make this medium's reads fail\n");
+        skip();
+    }
+
+    fill(out, 4 * bs, 12);
+    put(2, 4 * bs, out);
+
+    fault->fail_reads();
+    rc = bio_read(dev, 2, 4 * bs, in);
+    fault->end();
+    assert_failed(rc);
+    assert_blocks(2, 4, out);
+
+    fault->fail_reads();
+    rc = bio_read(dev, 3, bs / 2, in);
+    fault->end();
+    assert_failed(rc);
+    memset(in, 0, bs);
+    assert_int_equal(bio_read(dev, 3, bs / 2, in), PB_OK);
+    assert_memory_equal(in, out + bs, bs / 2);
+    end();
 }
 
 /* bio.md 3.1: exactly 'length' bytes are written to the buffer, never more,

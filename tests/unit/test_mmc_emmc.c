@@ -131,13 +131,20 @@ static void conformance_fail_writes(lba_t lba, size_t blocks)
     emmc_model_fail_writes_after((int)blocks, BUS_DATA_CRC);
 }
 
+static void conformance_fail_reads(void)
+{
+    emmc_model_fail_read(BUS_DATA_CRC);
+}
+
 static void conformance_fault_end(void)
 {
     emmc_model_fail_writes_after(-1, BUS_DATA_OK);
+    emmc_model_fail_read(BUS_DATA_OK);
 }
 
 static const struct bio_conformance_fault conformance_fault = {
     .fail_writes = conformance_fail_writes,
+    .fail_reads = conformance_fail_reads,
     .end = conformance_fault_end,
 };
 

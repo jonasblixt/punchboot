@@ -62,13 +62,20 @@ static void ramdisk_fail_writes(lba_t lba, size_t blocks)
     disk->fail_writes_after_blocks = (int)blocks;
 }
 
+static void ramdisk_fail_reads(void)
+{
+    disk->fail_reads_after = 0;
+}
+
 static void ramdisk_fault_end(void)
 {
     disk->fail_writes_after_blocks = -1;
+    disk->fail_reads_after = -1;
 }
 
 static const struct bio_conformance_fault ramdisk_fault = {
     .fail_writes = ramdisk_fail_writes,
+    .fail_reads = ramdisk_fail_reads,
     .end = ramdisk_fault_end,
 };
 
