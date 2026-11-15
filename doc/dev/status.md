@@ -41,8 +41,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
    - The 8M Plus: its SPL boots pb proper on the EVK from the eMMC and over USB (`26fd5a1d`),
      Linux after it (log 2026-11-15). Not run: the signed image (the EVK is open).
    - The bench of what landed without a board (log 2026-11-14): USB on all four, the MMU maps,
-     the RT1060's entry (F-210, F-207), the DMA rule (F-282), the 8MP EVK through TF-A, the
-     8M's lockdown (D-084).
+     the RT1060's entry (F-210, F-207), the 8MP EVK through TF-A, the 8M's lockdown (D-084).
+     The DMA rule (F-282) ran on all four on 2026-11-15.
    - D-084's rest: EOL with data (F-263, PR #51), F-241. Closed: F-320, F-322 (a kick 5.8 us),
      F-402 (the 8X's OTG1 ran on the MEK, the 8MP's USB2 is built, not run).
    - F-444 (OP-TEE's SMC on jiffy), F-447 (the 8M's SLC sources), F-432, F-433.
