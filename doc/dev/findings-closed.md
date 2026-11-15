@@ -1832,6 +1832,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | where pb proper checks the SPL's region is exactly that. A board's DRAM must be one TZC-380 region | | |
 | | | (static assertions; the migration guide says so). On the 8MP EVK: 2 GiB from 0 of the 8 GiB window, | | |
 | | | System A to the login three times. jiffy not run (F-455), its unit test checks the region | | |
+| F-148 | `src/plat/imxrt/plat.c` `plat_init` | The clock roots depend on how the chip was reset: pb sets the ARM PLL and the periph clock muxes but not all dividers, so it inherits them. On the RT1060 EVK after a power-on boot (loaded over JTAG after the ROM) it reports AHB 150, IPG 75, PER 37 MHz; booted from the NOR after a software reset, AHB 600, IPG 200, PER 100 MHz. 200 MHz is above the IPG root's 150 MHz maximum (RT1060 data sheet). Set AHB_PODF, IPG_PODF and PERCLK_PODF explicitly. | Verified (board) | fixed |
+| | | 2026-11-15 (`1b1616c6`): ARM /2, AHB /1, IPG /4, PERCLK from IPG /2, set while AHB runs from PLL2. | | |
+| | | On the EVK: IPG 150, PER 75 MHz (CBCDR 0x000a8300), the simple bench 7 of 7. The voltage 600 MHz | | |
+| | | needs is F-457 | | |
+| F-457 | `src/plat/imxrt/plat.c` `plat_init` | The core at 600 MHz on 1.15 V: speed grade 2 is | Verified (board) | fixed |
+| | | overdrive run, VDD_SOC_IN 1.25 to 1.3 V (data sheet Table 9), and the DCDC resets to 1.15 V (RM | | |
+| | | 18.7.1.5); nothing raised it (REG3 0x10E on the EVK) | | |
+| | | 2026-11-16 (`25b44094`): TRG 0x13, 1.275 V, before the PLL, STS_DC_OK waited for (10 ms bound, then | | |
+| | | 528 MHz). On the EVK: REG3 0x113, settled, 7 of 7; 1.6 ms more to the image's entry (44.0 ms) | | |
 
 ## Dependencies / vendored code
 

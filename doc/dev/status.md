@@ -18,7 +18,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR: `b3901579`, the simple bench 7 of 7 (log 2026-11-15). The MEK: `ad44621b`'s pb in BOOT1
+  - RT1060 from its NOR: `25b44094` (VDD_SOC 1.275 V, F-457), the simple bench 7 of 7. The MEK: `ad44621b`'s pb in BOOT1
     (enabled), BOOT0 keeps its pb of 2026-11-14; both its USB ports are wired. The 8MP EVK:
     `b3901579`'s two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of
     2026-11-14 in BOOT0.

@@ -57,7 +57,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | runs each: 2.35 s with SDIS (13.6 MiB/s), 1.99 s without (16.1 MiB/s), every verify OK, no error in | | |
 | | | pb's log. The default stays SDIS: the RT1060 isn't measured (its writes are NOR bound, the test | | |
 | | | pb would go in its NOR), and the 8DXL can't be. For Jonas: clear it on jiffy only, or for all | | |
-| F-148 | `src/plat/imxrt/plat.c` `plat_init` | The clock roots depend on how the chip was reset: pb sets the ARM PLL and the periph clock muxes but not all dividers, so it inherits them. On the RT1060 EVK after a power-on boot (loaded over JTAG after the ROM) it reports AHB 150, IPG 75, PER 37 MHz; booted from the NOR after a software reset, AHB 600, IPG 200, PER 100 MHz. 200 MHz is above the IPG root's 150 MHz maximum (RT1060 data sheet). Set AHB_PODF, IPG_PODF and PERCLK_PODF explicitly. | Verified (board) | open |
 | F-149 | `src/board/imxrt1060evk/imximage.cfg` | The DCD writes IOMUXC_GPR17 (0x400ac044 = 0x55555555) and sets GPR16 bit 2 to make all of the FlexRAM OCRAM. HAB rejects the write: `punchboot log hab` on the RT1060 EVK has a failure, invalid address (0x22) in a CSF/DCD command, for that write. So the FlexRAM keeps its fused split (256 KiB OCRAM); pb fits, since its buffers end at 0x202bf000. On an open part the ROM goes on; on a closed one the boot fails. Drop the DCD or set GPR17 from pb (the ROM's DCD address list doesn't allow IOMUXC_GPR). | Verified (board, HAB log) | open |
 | F-153 | Linux 6.18 + TF-A v2.12 on the i.MX8M Plus | Linux powers the audio mix through the GPC itself, which leaves its AIPS5 bridge at the reset defaults (TF-A configures AIPS5 only when its own SiP call powers the domain): the first access (audio mix clock driver, MU2) takes an SError. Not pb; U-Boot doesn't set AIPS5 either. Newer kernels have `drivers/bus/imx-aipstz.c` (MPR0 = 0x77777777 on probe and runtime resume) with a node in `imx8mp.dtsi`. | Verified (EVK) | worked around: the test bench's DTS disables AIPS5 (`59569a10`) |
 | F-155 | i.MX8M Plus EVK, `30be0000.ethernet` (FEC) | The FEC's PHY (address 1, reset `gpio4 2`) doesn't answer on MDIO (`MDIO device at address 1 is missing`, `Unable to connect to phy`), with the upstream DTS. The EQOS port probes. No cable was attached. | Seen on the board | open |
@@ -824,6 +823,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | it to BOOT1. Then to find out: whether a power cycle alone ends it (the test pb locks again at every | | |
 | | | boot, so likely not), why the lock stops DMA when region 1 is unchanged, and whether a warm reset | | |
 | | | resets the TZASC | | |
+| F-458 | the RT1060's boot time | Low. The warm reset to the image's entry was 40.1 ms | Seen (board) | open |
+| | | on 2026-11-08 (`testbench/simple/README.md`), 42.3 ms at `b7561ea1` (2026-11-15, the same 5.2 KiB | | |
+| | | application, medians of 10). Not tonight's: F-148 adds 0.1 ms, F-457 1.6 ms. Which commit of the | | |
+| | | week added the 2.2 ms isn't known; `scripts/boot-time-image` splits pb's steps | | |
 
 ## Dependencies / vendored code
 

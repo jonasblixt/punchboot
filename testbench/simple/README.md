@@ -130,6 +130,10 @@ medians of 10 warm resets (`SYSRESETREQ`), spread one SRTC tick:
 The signature is two thirds of it. Bigger images add their read and hash:
 59 ms to verify 200 KiB.
 
+2026-11-16, pb at `25b44094`: 44.0 ms. Since F-457 pb raises VDD_SOC to
+1.275 V for 600 MHz and waits for the DCDC: 1.6 ms of it. The build before
+that and F-148 had 42.4 ms; the week's other 2.2 ms are F-458.
+
 pb's information, read before the first candidate since 3.0.0 (the device's
 identity, its life cycle, the keys' status: `collect_info()`, F-349), with
 the board's early boot: 25 to 26 us (2026-11-15, the RT's pb of 2026-11-14,
