@@ -459,6 +459,9 @@ host tools ask before they send one; the device doesn't, the command is the deci
 |                              | that is known                                 | `NOT_SUPPORTED`                 |
 | `SLC_REVOKE_KEY`             | Revokes the keystore key the command names    | A key the keystore doesn't have |
 
+- **A build without fuse writes** (`system.md` 4, D-087) answers `NOT_SUPPORTED` to
+  `SLC_SET_CONFIGURATION`, `SLC_SET_CONFIGURATION_LOCK`, `SLC_SET_EOL` and `SLC_REVOKE_KEY`,
+  before it reads anything, in every state. `SLC_READ` is as above.
 - **Setting the state the device is in** answers OK: for `CONFIGURATION` the fuses are written
   again, so that a configuration that failed half way is completed by running it again; for
   locked and EOL nothing is written.

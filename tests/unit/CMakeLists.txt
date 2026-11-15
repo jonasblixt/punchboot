@@ -168,6 +168,21 @@ pb_no_slc_eol_test(test_slc_no_eol test_slc_no_eol.c
     ${PROJECT_SOURCE_DIR}/src/slc.c
 )
 
+# CONFIG_SLC_NO_FUSE_WRITES (system.md 4, D-087): the host's configuration
+# with the option, EOL's option kept on
+set(PB_NO_FUSE_WRITES_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_fuse_writes)
+file(CONFIGURE OUTPUT ${PB_NO_FUSE_WRITES_DIR}/config.h
+    CONTENT "${PB_CONFIG_H}\n#define CONFIG_SLC_NO_FUSE_WRITES 1\n" @ONLY)
+add_executable(test_slc_no_fuse_writes test_slc_no_fuse_writes.c
+    ${PROJECT_SOURCE_DIR}/src/slc.c
+    ${PROJECT_SOURCE_DIR}/src/rot.c
+)
+target_include_directories(test_slc_no_fuse_writes BEFORE PRIVATE ${PB_NO_FUSE_WRITES_DIR})
+target_include_directories(test_slc_no_fuse_writes PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_slc_no_fuse_writes PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_slc_no_fuse_writes COMMAND test_slc_no_fuse_writes)
+set_tests_properties(unit.test_slc_no_fuse_writes PROPERTIES LABELS unit TIMEOUT 60)
+
 pb_unit_test(test_imx_iomuxc SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/pinctrl/imx_iomuxc.c
 )

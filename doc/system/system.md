@@ -117,6 +117,11 @@ order is the core's (D-027), the fuses the platform's.
     the keys do then. Command mode is open in EOL because of that state, never because of a
     flag pb keeps.
   - **Not yet in the code (F-263)**: only the host platform implements EOL.
+- **A product may forbid every fuse write** (D-087): a Kconfig option, off by default. With it
+  pb writes no fuse whatever the port can: configuring, locking, revoking a key and EOL answer
+  NOT_SUPPORTED, the answer of a port without them, and the life cycle and the keys are still
+  read. For a board that must stay as it is, such as a development board that isn't the
+  developer's to close (the 8MP EVK).
 
 ## 5. What pb promises
 

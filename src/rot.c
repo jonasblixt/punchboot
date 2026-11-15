@@ -109,6 +109,12 @@ int rot_revoke_key(key_id_t id)
     struct rot_key key;
     int rc;
 
+#ifdef CONFIG_SLC_NO_FUSE_WRITES
+    /* A build that writes no fuses (system.md 4, D-087) */
+    LOG_ERR("This build writes no fuses (CONFIG_SLC_NO_FUSE_WRITES)");
+    return -PB_ERR_NOT_SUPPORTED;
+#endif
+
     if (!cfg || !cfg->revoke_key)
         return -PB_ERR_NOT_SUPPORTED;
 

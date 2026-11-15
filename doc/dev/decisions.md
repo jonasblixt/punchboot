@@ -106,6 +106,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-084 | The platform's open questions, answered          | In force                                           |
 | D-085 | Unrevocable keys, board functions, OP-TEE        | In force; Jonas reviewed it                        |
 | D-086 | The software crypto backend is the core's        | In force; the documents wait for Jonas's review    |
+| D-087 | A build may forbid every fuse write              | In force (Jonas: "the EVK must never write fuses") |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2078,3 +2079,21 @@ up, so on the RT, which has no engine, "the crypto engine works" was Mbed TLS's.
   every board in the tree. Nothing changes on the wire or in the images.
 - Open, for Jonas: `CONFIG_PLAT_CRYPTO_ENGINE` stays through 3.x, unused, and goes in 4.0
   (`platform.md`, Open (1)).
+
+## D-087: A build may forbid every fuse write (2026-11-15)
+
+Jonas: "fix F-449 too, the EVK must never write fuses". The 8MP EVK isn't HAB closed and isn't
+his to close; its board file said it never writes fuses because the platform had no SLC
+operations, which stopped being true when the i.MX8M got them (`ce438b74`, F-449).
+
+- **The product's option, `CONFIG_SLC_NO_FUSE_WRITES`**, off by default, beside
+  `CONFIG_SLC_EOL` (`system.md` 4). With it the core calls none of the port's writes:
+  `slc_set_configuration()`, `slc_set_configuration_locked()`, `slc_set_eol()` and
+  `rot_revoke_key()` answer `-PB_ERR_NOT_SUPPORTED` before they read anything. The life cycle
+  and the keys' status are read as before.
+- **In the core, not in a board's data or the platform**: every board and port gets it, and
+  what a port can do doesn't change for the other boards on its SoC (the 8MP's life cycle
+  stays for a product that wants it).
+- **Nothing changes on the wire** (D-008): `NOT_SUPPORTED` is what a port without these
+  operations answered in every release (`command-mode.md` 5.2).
+- The 8MP EVK's defconfig turns it on.
