@@ -243,6 +243,10 @@ int imx8m_ddr_init(void)
     umctl2_dfi_init_done(ddrc);
     umctl2_enable_port(ddrc, 0);
 
+    /* Self refresh when the DRAM is idle, as NXP's U-Boot leaves it
+     * (drivers/ddr/imx/imx8m/ddr_init.c: "enable selfref_en by default") */
+    mmio_clrsetbits_32(ddrc + UMCTL2_PWRCTL, 0, PWRCTL_SELFREF_EN);
+
     LOG_INFO("DDRC: STAT %08x, MSTR2 %08x, DFIMISC %08x, PWRCTL %08x",
              mmio_read_32(ddrc + UMCTL2_STAT),
              mmio_read_32(ddrc + UMCTL2_MSTR2),
