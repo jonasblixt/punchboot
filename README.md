@@ -18,8 +18,8 @@ Punchboot is a secure and fast bootloader for embedded systems. It is designed t
  - Be useful for day-to-day development
 
 Punchboot is designed for embedded systems and therefore it has a minimalistic
-apporach. There is no run-time configuration, everything is configured in
-the board files.
+approach. There is no run-time configuration: everything is chosen at build
+time, in Kconfig (`make menuconfig`) and the board files.
 
 Punchboot could be useful if you care about the following:
  - Boot speed
@@ -28,7 +28,8 @@ Punchboot could be useful if you care about the following:
 
 ## Design
 
-Punchboot is written in C and some assembler, for armv7a, armv8a and armv7m.
+Punchboot is written in C99 (freestanding) and some assembler, for armv7a,
+armv8a and armv7m.
 
 The directory layout is as follows:
 
@@ -55,25 +56,41 @@ Supported architectures:
 
 Supported platforms:
 
-| Platform   | USB | Storage     | Crypto              | Secure Boot | Fuses      |
-| ---------- | --- | ----------- | ------------------- | ----------- | ---------- |
-| NXP imx6ul | Yes | eMMC        | CAAM                | Yes         | Read/write |
-| NXP imx8m  | Yes | eMMC, SD    | CAAM                | No          | Read       |
-| NXP imx8x  | Yes | eMMC        | CAAM                | Yes         | Read/write |
-| NXP imxrt  | Yes | FlexSPI NOR | Mbed TLS (software) | No          | Read       |
+| Platform   | USB | Storage     | Crypto              | Secure Boot     | Fuses      |
+| ---------- | --- | ----------- | ------------------- | --------------- | ---------- |
+| NXP imx6ul | Yes | eMMC        | CAAM                | HABv4           | Read/write |
+| NXP imx8m  | Yes | eMMC, SD    | CAAM                | HABv4 (i.MX8MQ) | Read/write |
+| NXP imx8x  | Yes | eMMC        | CAAM                | AHAB            | Read/write |
+| NXP imxrt  | Yes | FlexSPI NOR | Mbed TLS (software) | No              | Read       |
 
 Boards in the tree:
 
-| Board               | Platform         | State                                      |
-| ------------------- | ---------------- | ------------------------------------------ |
-| Jiffy               | imx6ul           | Boots Linux                                |
-| NXP i.MX8M Plus EVK | imx8m (i.MX8MP)  | Boots Linux through TF-A                   |
-| NXP i.MX8QXP MEK    | imx8x (i.MX8QXP) | Boots Linux through TF-A                   |
-| NXP i.MX RT1060 EVK | imxrt            | Boots a bare metal application from RAM    |
-| NXP i.MX8MQ EVK     | imx8m (i.MX8MQ)  | Builds, not run on a board                 |
-| NXP i.MX8DXL EVK    | imx8x (i.MX8DXL) | Builds, not run on a board                 |
+| Board                  | Platform         | State                                                          |
+| ---------------------- | ---------------- | -------------------------------------------------------------- |
+| Jiffy                  | imx6ul           | Boots Linux, HAB closed; OP-TEE as a test bench add-on         |
+| NXP i.MX8M Plus EVK    | imx8m (i.MX8MP)  | Boots Linux through TF-A                                       |
+| NXP i.MX8QXP MEK       | imx8x (i.MX8QXP) | Boots Linux through TF-A                                       |
+| TechNexion PICO-IMX8MQ | imx8m (i.MX8MQ)  | HAB closed, pb boots from eMMC; Linux through TF-A in bring-up |
+| NXP i.MX RT1060 EVK    | imxrt            | Boots a bare metal application, A/B from its NOR               |
+| NXP i.MX8MQ EVK        | imx8m (i.MX8MQ)  | Builds, no boot path yet (F-300)                               |
+| NXP i.MX8DXL EVK       | imx8x (i.MX8DXL) | Builds, not run on a board                                     |
 
 Jiffy: https://github.com/jonasblixt/jiffy
+
+The boards that run Linux have a Buildroot test bench (`testbench/`): pb, TF-A where the SoC
+needs it, Linux, [kickstart](https://github.com/jonasblixt/kickstart) as the initramfs and a
+dm-verity root file system. The microcontrollers have a bare metal one (`testbench/simple/`).
+
+## Booting
+
+A board chooses what to boot with a boot source policy: A/B with automatic rollback
+(`BOOT_POLICY_AB`), one fixed partition, or a chain of candidates. pb verifies the image and
+hands it over:
+
+- Linux or Xen with a device tree (below), started directly (armv7a), through TF-A's BL31
+  (armv8a) or through OP-TEE.
+- Arm's [Firmware Handoff](https://github.com/FirmwareHandoff/firmware_handoff) transfer list,
+  for bare metal and RTOS images (the RT1060).
 
 Images are signed with ECDSA on P-256, P-384 or P-521, over a SHA-256, SHA-384 or SHA-512
 hash. The CAAM computes MD5 and SHA-256 and verifies the three curves; it computes SHA-384 and
@@ -89,11 +106,11 @@ the algorithms its configuration selects.
  - Punchboot loads a bpak image, calculates the checksum and verifies the signature using built in keys
  - Run next step in boot chain
 
-Most SoC:s have a boot rom that includes meachanisms for calculating a checksum
+Most SoC:s have a boot rom that includes mechanisms for calculating a checksum
 of the bootloader and cryptographically verifying a signature using a public key
 fused to the device.
 
-Normally fuses are a limited resource and therefor a common way is to calculate
+Normally fuses are a limited resource and therefore a common way is to calculate
 a sha256 checksum of the public key(s) and then store this checksum in fuses,
 this way many different public keys can be stored in a flash memory and every
 time the device boots it will compute a sha256 checksum and compare it to the
@@ -121,6 +138,9 @@ for the command mode transport.
   guards of the wire and the image format (tests/compat), the document lint
   (tests/doc) and checks of the firmware build (tests/make)
 
+On hardware, the test benches (`testbench/README.md`, `testbench/simple/README.md`) build
+complete systems for the boards and measure their boot time.
+
 Everything runs in a docker container with the required toolchains and tools:
 ```
 $ scripts/pbdev test                    # build and run all tests
@@ -132,11 +152,11 @@ See doc/guides/testing.md for details.
 ## Device identity
 
 Most modern SoC's provide some kind of unique identity, that is guaranteed to
-be unique for that particular type of SoC / Vendor etc but can not be guarateed
+be unique for that particular type of SoC / Vendor etc but can not be guaranteed
 to be globally unique.
 
 Punchboot provides a UUID3 device identity based on a combination of the unique
-data from the SoC and an allocated, random, namspace UUID per platform.
+data from the SoC and an allocated, random, namespace UUID per platform.
 
 When booting a linux system this information is relayed to linux through
 the device tree (below). The device identity can be found in
@@ -213,14 +233,19 @@ the board's name.
 ## punchboot tool
 The punchboot CLI is used for interacting with the command mode. A summary of the features available:
 
-- Update the bootloader it self (`part write`, `part verify`)
+- Update the bootloader itself (`part write`, `part verify`)
 - Manually start system A or B (`boot partition`)
 - Activate boot partitions (`boot enable`, `boot disable`, `boot status`)
 - Load image to ram and execute it (`boot bpak`)
 - Display basic device info (`dev show`, `list`)
-- Configure fuses and GPT parition tables (`slc`, `part install`)
-- List and run the commands of the device's board and platform (`command list`, `command <name>`)
-- Read the device's logs (`log`, `log --list`)
+- Authenticate the session on a locked device (`auth token`, `auth password`)
+- The security life cycle: show it, fuse the keys and the board's configuration, lock,
+  revoke keys (`slc show`, `slc configure`, `slc lock`, `slc revoke-key`)
+- Install the GPT partition table (`part install`)
+- List and run the commands of the device's board and platform (`cmd list`, `cmd <name>`)
+- Read the device's logs (`log --list`): pb's own, and where the SoC and the board have them
+  the boot ROM's (`log rom`), HAB's (`log hab`) and Linux's last kernel log from ramoops
+  (`log linux`)
 
 `punchboot --help` and `punchboot <group> --help` have the commands and their options.
 
@@ -273,7 +298,7 @@ Authenticating the session, which prints nothing when it succeeds:
 $ punchboot auth token ./0b177094-6b62-3572-902e-c1de339ecb01.token <name of a key>
 ```
 Now the command mode is fully unlocked. The token is of course only valid for
-the individual unit with that perticular UUID.
+the individual unit with that particular UUID.
 
 ## Metrics
 
