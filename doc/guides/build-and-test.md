@@ -23,7 +23,9 @@ make BOARD=src/board/<x> KCONFIG_CONFIG=configs/<x>_defconfig CROSS_COMPILE=<arm
   board's keys, `VERIFY_KEY<n>_PATH` and `_ID` in its `makefile.mk` (`board.md` 7), or `pki/dev-keys.mk`
   for a board that names none. They can be set on the make command line too (`VERIFY_KEY0_PATH=...
   VERIFY_KEY0_ID=...`). The script needs the Python package `cryptography` (in the dev container).
-- Outputs go to `build-<board>/`: `pb`, `pb.bin` and `pb.map`.
+- Outputs go to `build-<board>/`: `pb`, `pb.bin` and `pb.map`. On a platform with an SPL (the
+  i.MX8M, D-088) also `pb_spl`, `spl.bin` and `spl.map`, from `spl-src-y` (`board.md` 7).
+  The `binaries` target makes `pb.bin` and `spl.bin` without the image stages.
 - The default `all` target also makes the platform's image stages that the defconfig turns on
   (`.imx`, signed with NXP `cst`; `platform.md` 6.2, the i.MX ports' in `plat-imx.md` 6).
   `mkimage` (u-boot-tools) and `cst` (imx-code-signing-tool 3.4.1) are in the container. jiffy
@@ -138,7 +140,8 @@ hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`, a ruff bump c
   - **host-tests:** default and sanitizer builds.
   - **coverage:** the gcovr summary in the job log, and the line by line HTML report as the
     `coverage` workflow artifact (D-012). Not a gate.
-  - **firmware:** jiffy, imx8dxlevk, imx8mevk, imx8mpevk and imxrt1060evk `pb.bin`. The i.MX8M boards are built
+  - **firmware:** jiffy, imx8dxlevk, imx8mevk, imx8mpevk and imxrt1060evk `pb.bin`, and the i.MX8M's
+    `spl.bin` (`binaries`). The i.MX8M boards are built
     with placeholder DDR training firmware (`IMX8M_FW_DIR` points `build-firmware.sh` at the real
     one, inside the repository): a compile check only.
   - **coverity:** cov-build of jiffy inside the container. Only on pushes to master in

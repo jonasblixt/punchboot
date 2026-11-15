@@ -20,8 +20,9 @@ the tree has to be ported. `doc/guides/migration-3.0.md` says how. Hosts and dev
 3.x can be mixed, and a pin such as `punchboot~=2.7` or `<3` only keeps the fixes out.
 
 New since 2.7.1, among more: the i.MX8M Plus and its EVK, SD cards, a log in RAM that a host
-reads (D-018), named commands (D-076), two more boot source policies (D-046), and the host
-tools in pure Python (D-021).
+reads (D-018), named commands (D-076), two more boot source policies (D-046), the host
+tools in pure Python (D-021), and on the i.MX8M two stages in one image: an SPL that brings
+up DRAM and pb proper in DRAM (D-088).
 
 ### What a host sees change
 
@@ -225,6 +226,11 @@ can change by mistake that a device in the field relies on. Then check:
   properties (F-260).
 - **An image for ARMv7-M** that relied on the D-cache being on or on interrupts being unmasked
   at its entry (D-028).
+- **The i.MX8M's image** (D-088): `pb_signed.imx` holds the SPL and pb proper, and the
+  board's memory moved to DRAM (`PB_ENTRY`, `PB_SIZE`). pb 2.x writes it to a boot partition
+  as any image. On the i.MX8MQ the new image boots from storage; over the ROM's serial
+  downloader it trains DRAM but can't hand pb proper over yet (F-451): a recovery script with
+  `SDP: boot` needs a single-stage pb until then.
 - **A GPT that another tool changed.** A sane table gives the same partitions and nothing is
   written. An entry that covers the table's own blocks is no longer a partition, and a device
   whose backup table is stale logs one error line per boot (2026-11-13, "The GPT").

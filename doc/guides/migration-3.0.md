@@ -31,7 +31,8 @@ neither has the code, another board's or the header's, and the section says whic
 | 13      | The keys, the life cycle and the fuses                | D-027                 |
 | 14      | What a board includes and asks the platform           | D-056, `board.md` 6   |
 | 15      | Kconfig and the defconfig; the board's memory         | `board.md` 7          |
-| 16      | The image stages are the platform's                   | `platform.md` 6.2     |
+| 16      | The image stages are the platform's                   | `platform.md` 6.2,    |
+|         |                                                       | D-088                 |
 | 17      | An out-of-tree driver                                 | `drivers.md`          |
 | 18      | An out-of-tree platform                               | D-030, `platform.md`  |
 | 19      | `pb/dma.h`, the board's `mmap`, and not in the code   | D-066, D-054, F-247   |
@@ -898,6 +899,10 @@ PB_BUFFERS_SIZE = 0xfdf000
 - The platform's link script checks the values: pb is where the ROM may load it, its buffers
   are in the board's DRAM or the SoC's on-chip RAM, and the two don't overlap. A board with a
   wrong address doesn't link, where 2.x built it.
+- **An i.MX8M board** (D-088): pb proper runs from DRAM, so `PB_ENTRY` is in the board's DRAM,
+  after the buffers, and `PB_SIZE` is mandatory: the boards in the tree have 0x41100000 and
+  2 MiB. The SPL's window is the platform's. The board's image data region in DRAM starts
+  where pb proper ends, not where the buffers do (`src/board/pico8ml/board.c`).
 
 Rests on: `board.md` 7, `platform.md` 5.1.
 
@@ -975,8 +980,12 @@ CONFIG_IMX6UL_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_
 - A product that signs elsewhere overrides at one of `platform.md` 6.2's levels, in its own
   files: its own `CST_TOOL`; signing off and its own target after `<p>_image` in `image-y`,
   with its `FINAL_OUTPUT`; or both options off and its own tooling from `pb.bin`.
+- **The i.MX8M's images hold two stages** (D-088): `pb.imx` and `pb_signed.imx` have the SPL
+  and pb proper, built from `spl.bin` and `pb.bin`. The 8MQ's has two CSFs, the plugin's and pb
+  proper's, at the offsets in `pb.imx.offsets` (`plat-imx.md` 6). Tooling of its own (level 3)
+  starts from both binaries.
 
-Rests on: D-018, `platform.md` 6.2, `board.md` 7.
+Rests on: D-018, D-088, `platform.md` 6.2, `board.md` 7.
 
 ## 17. An out-of-tree driver
 
@@ -1036,7 +1045,10 @@ struct mmc_hal {
   is called as before.
 - The i.MX8M's DRAM: the controller and the PHY are drivers in `src/drivers/ddr` (D-014), and
   the board gives its timing as `dram_timing` and `dram_rates` (`<plat/imx8m/dram.h>`,
-  `src/board/imx8mevk/lpddr4_timing.c`).
+  `src/board/imx8mevk/lpddr4_timing.c`). Since D-088 the SPL trains DRAM: the timing file goes
+  in `spl-src-y` (`board.md` 7), as NXP's DDR tool wrote it (`imx8m-ddr.md`), and
+  `dram_rates` in a file both stages link (`src/board/imx8mevk/dram.c`). A board may give the
+  SPL a console (`<plat/imx8m/spl.h>`, `src/board/pico8ml/console.c`).
 
 **A block device** (`bio.md`):
 
@@ -1280,3 +1292,5 @@ The port is done when the board passes `board.md` 9. A product in the field also
   (section 12).
 - On a SoC with a TrustZone DRAM filter: that the filter is out of bypass when pb's
   preconditions are checked, or pb refuses every boot (section 18).
+- On an i.MX8M: that the two-stage image boots from the boot partition the product updates, and
+  how the factory and the field recover over USB (F-451 on the 8MQ).
