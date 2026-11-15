@@ -11,7 +11,7 @@ dm-verity.
 | jiffy (i.MX6UL) | `configs/jiffy_defconfig`     | boots: kickstart, dm-verity root, login (2026-10-29)              |
 | i.MX8QXP MEK    | `configs/imx8qxmek_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-11-08) |
 | PICO-IMX8MQ     | `configs/pico8ml_defconfig`   | boots through TF-A: kickstart, dm-verity root, login (2026-11-15) |
-|                 |                               | the console took no input after it ("pico8ml: TF-A")              |
+|                 |                               | hangs now and then, F-450 ("pico8ml: TF-A")                       |
 
 | Component                 | Version                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------ |
@@ -173,7 +173,9 @@ EQOS port (eth1) probes.
 ### pico8ml: TF-A
 
 The PICO-IMX8MQ is closed (HAB, the test keys): only `pb_signed.imx` and `pb_signed_uuu.imx`
-run on it. punchboot runs from the TCM and loads BL31 to 0x910000. Upstream TF-A (v2.12 to
+run on it. punchboot boots in two stages (D-088): the SPL, a HABv4 plugin in the TCM, trains
+DRAM and has the ROM load pb proper, which the ROM authenticates; pb proper runs from DRAM at
+0x41100000 and loads BL31 to 0x910000. Upstream TF-A (v2.12 to
 v2.15 and master) doesn't take BL33 from its caller on the 8MQ: it jumps to 0x40200000 with
 x0 = 0, so Linux gets no device tree. v2.12 doesn't build for the 8MQ either. Three patches
 (`board/pico8ml/patches/arm-trusted-firmware`): upstream's two build fixes from v2.13
@@ -185,12 +187,14 @@ the memory U-Boot would fix up, 1 GiB, and ramoops at 0x7ff00000. The upstream t
 node.
 
 2026-11-15: Linux boots to the login prompt, kickstart verifies Root A and mounts it with
-dm-verity, `S99pbstate` marks System A verified. Open:
+dm-verity, `S99pbstate` marks System A verified. The console takes input. The DTS also keeps the
+BD71837's rails on (the PICO-PI's tree has them only `regulator-boot-on`, and Linux turned the
+"unused" ones off after 30 s) and lets the watchdog reset the SoC itself (without
+`fsl,ext-reset-output`). Open:
 
-- The console took no input afterwards, and the board didn't come back: either it hung after
-  ~12 s without a word, or UART1's receive doesn't work in Linux. Its watchdog wouldn't have
-  reset it: with `fsl,ext-reset-output` (the PICO-PI's DTS) Linux's `imx2_wdt` only asserts
-  WDOG_B, not the SoC's own reset.
+- F-450: Linux still stops now and then without a word, with clean checksums of a file in RAM
+  up to the hang; the watchdog resets it then. Runs from 9 minutes to over 1.5 hours on one
+  USB port, a few minutes on another: power is the first suspect.
 - eth0's PHY doesn't answer at MDIO address 1; the USB host port's DWC3 fails to start.
 
 ### imx8qxmek: TF-A
@@ -393,6 +397,20 @@ RNG comes with `CRYPTO_ECHAINIV`, which the defconfig sets.
 pb now instantiates the CAAM's RNG (Linux runs non-secure here and can't), which
 adds 27 ms to every boot after these measurements; Linux has `rng-caam` and its
 random pool is ready at 0.15 s. Open: the FEC's PHY doesn't answer on MDIO.
+
+### pico8ml
+
+From the consoles of 2026-11-15, not yet measured with `boottime`. The SPL's times are from its
+own start, the GPT it sets up; the ROM's part before it isn't in them.
+
+| Step                                                  | Time       |
+| ----------------------------------------------------- | ---------- |
+| SPL: DRAM trained (3200 MT/s 1D, 667 MT/s 1D, 2D)     | 282 ms     |
+| SPL: pb proper read by the ROM, the plugin returns    | 321 ms     |
+| pb proper: from its start to the jump to BL31         | ~935 ms    |
+
+pb proper's part includes reading the 25.9 MB `Image` (~165 ms at ~108 MiB/s) and the boot
+image's verification. The boot time list (`boottime`, the kernel and DTS) is still to do.
 
 ### imx8qxmek
 
