@@ -1768,6 +1768,18 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `CONFIG_SRK_FUSE` stays what it was. `check_srk_fuse` runs the script on the test keys and every | | |
 | | | defconfig's pair. Jiffy, the MEK and the pico8ml's signed builds pass it. A build without | | |
 | | | signing (the 8DXL) isn't checked, nor a product that signs outside pb's build | | |
+| F-349 | `src/boot/boot.c` `collect_info()` | Boot time: pb's | Verified (code) | closed |
+| | | information is read on every board's boot path now, before the first candidate, and its cost isn't | | |
+| | | measured: `system.md` 5.3 asks for a recorded time. The boards with a device tree read the same in | | |
+| | | prepare before. New for the RT1060 EVK and the host, whose handover writes none of it but the name | | |
+| | | and the UUID: the device identity (2 OCOTP reads and an MD5), the life cycle (1 to 9 OCOTP reads) | | |
+| | | and the status of the 3 keys (3 reads), in a boot of 40.1 ms from a warm reset to the image's entry | | |
+| | | (`testbench/simple/README.md`). Measure it on the RT (`pytest tests -k boot_time`) and record it | | |
+| | | there | | |
+| | | 2026-11-15, measured on the RT1060 (its pb of 2026-11-14): from pb's "Early boot" line to its | | |
+| | | "Load" line, `early_boot()` (one register read) and `collect_info()`, 25 to 26 us in five boots | | |
+| | | (`boot bpak` of an image with a changed payload byte, so pb stays and its log is read). Recorded | | |
+| | | in `testbench/simple/README.md`; next to the boot's 40.1 ms it is nothing to change | | |
 
 ## Dependencies / vendored code
 

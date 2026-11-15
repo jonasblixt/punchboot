@@ -604,14 +604,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | and the image boots (F-260): 5.6 has a next stage take an absent entry for an older pb, and nothing | | |
 | | | tells it "no room" but pb's log. To decide and write into 5.5: the namespace, and what a next stage | | |
 | | | is told when a property didn't fit | | |
-| F-349 | `src/boot/boot.c` `collect_info()` | Boot time: pb's | Verified (code) | open |
-| | | information is read on every board's boot path now, before the first candidate, and its cost isn't | | |
-| | | measured: `system.md` 5.3 asks for a recorded time. The boards with a device tree read the same in | | |
-| | | prepare before. New for the RT1060 EVK and the host, whose handover writes none of it but the name | | |
-| | | and the UUID: the device identity (2 OCOTP reads and an MD5), the life cycle (1 to 9 OCOTP reads) | | |
-| | | and the status of the 3 keys (3 reads), in a boot of 40.1 ms from a warm reset to the image's entry | | |
-| | | (`testbench/simple/README.md`). Measure it on the RT (`pytest tests -k boot_time`) and record it | | |
-| | | there | | |
 | F-360 | `doc/architecture/boot.md` 3.5, 3.7, `tools/pbstate` | The contract says who sets a | Verified (code) | open |
 | | | rollback bit (3.5, rule 2) and that `boot activate` clears both, but not who else clears one, nor | | |
 | | | that both can be set (F-340). Today: `pbstate -s A`/`-s B` (`pbstate_switch_system()`) assigns | | |

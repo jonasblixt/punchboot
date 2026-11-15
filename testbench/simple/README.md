@@ -130,6 +130,11 @@ medians of 10 warm resets (`SYSRESETREQ`), spread one SRTC tick:
 The signature is two thirds of it. Bigger images add their read and hash:
 59 ms to verify 200 KiB.
 
+pb's information, read before the first candidate since 3.0.0 (the device's
+identity, its life cycle, the keys' status: `collect_info()`, F-349), with
+the board's early boot: 25 to 26 us (2026-11-15, the RT's pb of 2026-11-14,
+five boots, pb's log from "Early boot" to "Load"). Inside the table's spread.
+
 ## Adding a board
 
 1. pb: the board's handover is Firmware Handoff without a device tree part
