@@ -51,7 +51,8 @@ static uintptr_t base;
 static uint8_t ver_maj, ver_min;
 static uint16_t ver_stp;
 
-int imx_usb2_phy_init(uintptr_t phy_base)
+/* Out of reset, its version logged */
+static void phy_out_of_reset(uintptr_t phy_base)
 {
     base = phy_base;
 
@@ -64,6 +65,21 @@ int imx_usb2_phy_init(uintptr_t phy_base)
 
     /* Bring PHY out of reset */
     mmio_clrsetbits_32(base + IMX_USB2PHY_CTRL, CTRL_SFTRST | CTRL_CLKGATE, 0);
+}
+
+int imx_usb2_phy_init_ccm_pll(uintptr_t phy_base)
+{
+    phy_out_of_reset(phy_base);
+
+    /* Clear power down bits */
+    mmio_write_32(base + IMX_USB2PHY_PWD, 0);
+
+    return PB_OK;
+}
+
+int imx_usb2_phy_init(uintptr_t phy_base)
+{
+    phy_out_of_reset(phy_base);
 
     /**
      * Configure PLL
