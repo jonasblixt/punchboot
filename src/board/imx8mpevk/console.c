@@ -24,6 +24,8 @@ void imx8mpevk_console_init(void)
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(UART2_CLK_ROOT), CLK_ROOT_ON);
     mmio_write_32(CCM_CCGR_SET(CCGR_UART2), CCGR_CLK_ON_MASK);
 
+    /* Before plat_init(): the IOMUXC's gate, CCGR27, is on out of reset
+     * (0x2, RUN and WAIT) and the ROM leaves it on (RM Table 6-6, F-412) */
     static const struct imx_pin pins[] = {
         IMX8M_PIN(UART2_RXD, MUX_ALT(0), IMX_PAD_KEEP),
         IMX8M_PIN(UART2_TXD, MUX_ALT(0), IMX_PAD_KEEP),
