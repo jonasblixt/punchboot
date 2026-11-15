@@ -77,6 +77,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the write helped. The cdns3 bulk path's TODOs (TRB count, burst, TRBERR) are the | | |
 | | | suspects. A reset with garbage in the enabled boot partition leaves the MEK dead | | |
 | | | until SW2 is set to serial download. | | |
+| | | 2026-11-16, the MEK with `ad44621b`'s pb (USB3, cdns3) from BOOT1, to Mass storage: 15 MB, 4 KiB | | |
+| | | and 700 B writes in turns, each verified, 30 of 30. Then `dev reset`, a write as soon as it | | |
+| | | enumerates (no wait, no `dev show`), 10 times: the 10th, 4 KiB, failed. The host saw the device | | |
+| | | connect and disconnect every 1 to 2 s until 00:06:32, then nothing. Since, at every boot | | |
+| | | `cm_main_task: Transport init error (-2)` (a timeout, about 10 s) and a software reset: the USB | | |
+| | | never enumerates again across pb's resets, the hub port isn't disabled. Needs a power cycle | | |
+| | | (Jonas). Not known: whether the MEK's USB3 PHY or the VL813 hub's port is stuck. Boot partitions | | |
+| | | untouched | | |
 | F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
 | | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
 | | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
