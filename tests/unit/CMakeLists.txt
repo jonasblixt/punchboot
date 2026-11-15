@@ -303,6 +303,34 @@ add_test(NAME unit.cm_auth_needs_a_method
 set_tests_properties(unit.cm_auth_needs_a_method PROPERTIES LABELS unit TIMEOUT 60
     PASS_REGULAR_EXPRESSION "CONFIG_CM_AUTH needs a method")
 
+# The ports against the platform contract (platform.md). A port's plat.c is
+# built for the host with the SoC's registers in a register file behind the
+# fake pb/mmio.h (fakes/regs.h), the drivers its test names and the port's
+# Kconfig symbols, which the host's config.h doesn't have.
+# pb_plat_test(name SOURCES <the port and its drivers> DEFINITIONS <symbols>
+#              INCLUDES <directories, before the others>)
+function(pb_plat_test name)
+    cmake_parse_arguments(ARG "" "" "SOURCES;DEFINITIONS;INCLUDES" ${ARGN})
+    add_executable(${name} ${name}.c fakes/regs.c ${ARG_SOURCES})
+    target_include_directories(${name} BEFORE PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio ${ARG_INCLUDES})
+    target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_definitions(${name} PRIVATE ${ARG_DEFINITIONS})
+    target_link_libraries(${name} PRIVATE pb_lib PkgConfig::CMOCKA)
+    add_test(NAME unit.${name} COMMAND ${name})
+    set_tests_properties(unit.${name} PROPERTIES LABELS unit TIMEOUT 60)
+endfunction()
+
+pb_plat_test(test_plat_imxrt
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/plat/imxrt/plat.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
+    DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
+)
+
+        ${PROJECT_SOURCE_DIR}/src/delay.c
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
