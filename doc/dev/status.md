@@ -15,7 +15,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - **Boards (2026-11-15):**
   - jiffy: `55689509` from BOOT1 (BOOT0 an older pb); Root A has the test bench's root image,
     Root B random test data. The OP-TEE add-on's pb is no longer on it.
-  - pico8ml (closed, HAB test keys, token `scripts/c12f1c67-...token`): the SPL and pb proper
+  - pico8ml (closed, HAB test keys, token outside the repository): the SPL and pb proper
     (D-088) from BOOT1, BOOT0 an older SPL build; boot switches on eMMC. Linux from System A.
   - RT1060 from its NOR, the MEK from BOOT0: `246bd897` (log 2026-11-14). The 8MP EVK offline.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
