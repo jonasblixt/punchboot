@@ -577,6 +577,15 @@ add_test(
 )
 set_tests_properties(unit.cm_usb_kconfig PROPERTIES LABELS unit TIMEOUT 60)
 
+# The SRK hash pb fuses is the hash of the table it is signed with (F-213):
+# the signing step's check, and every defconfig's two settings
+add_test(
+    NAME unit.srk_fuse
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_srk_fuse.py
+            ${PROJECT_SOURCE_DIR}
+)
+set_tests_properties(unit.srk_fuse PROPERTIES LABELS unit TIMEOUT 60)
+
 # The watchdog's time-out has a range every platform's watchdog takes, and
 # every defconfig's value is inside it (F-416): its test reads Kconfig
 add_test(
