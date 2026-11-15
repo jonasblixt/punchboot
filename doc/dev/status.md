@@ -18,7 +18,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR: `246bd897` (log 2026-11-14). The MEK: `9b31d3ad`'s pb in BOOT1
+  - RT1060 from its NOR: `246bd897` (log 2026-11-14). The MEK: `4a017151`'s pb in BOOT1
     (enabled), BOOT0 keeps its pb of 2026-11-14; both its USB ports are wired. The 8MP EVK:
     `e5a4efc4`'s two-stage pb in BOOT1 (enabled), the single-stage pb of 2026-11-14 in BOOT0;
     its switches on serial download until Jonas sets them back.
@@ -56,9 +56,9 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - D-086 (Mbed TLS by the core) and its Open (1); then F-442's code.
 - Review: the guides and `CHANGELOG.md` (F-232), D-074, D-070, D-066, D-056, the logs' "For
   Jonas".
-- Contract sentences: `platform.md` 3.10's port rule (D-084), `usb.md` 4.2's stop (F-453); `boot.md` F-291,
-  F-331, F-323, F-345, F-360, F-342, F-348; `board.md` F-325, F-335, F-392; `platform.md` F-320;
-  `command-mode.md` F-375; `bio.md` F-310; F-311.
+- Contract sentences: `platform.md` 3.10's port rule (D-084), `usb.md` 4.2's stop (F-453);
+  `boot.md` F-291, F-331, F-323, F-345, F-360, F-342, F-348; `board.md` F-325, F-335, F-392;
+  `platform.md` F-320; `command-mode.md` F-375; `bio.md` F-310; F-311.
 - Choices left in findings: F-140 (SDIS off: 15% faster writes on jiffy), F-283 and F-200 (the
   GPT's 512s, SEC_COUNT 0), F-406, F-411, F-180, F-227's default device.
 - Which findings gate the 3.0.0 tag; bebop's defconfig (F-033); virtio for QEMU (F-052).

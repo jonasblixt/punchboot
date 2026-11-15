@@ -1716,7 +1716,7 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | MEK, though the board reset. The cdns3 completes an IN transfer when its DMA is done (IOC, QXP | | |
 | | | RM 14.12.6.178, EP_STS), its packets possibly still in the on-chip buffer; `stop` (`b4341687`, | | |
 | | | F-204) left the bus at once and the reset's result was lost. The ChipIdea completes on the | | |
-| | | host's ACK: the OTG1 pb's reset answered. 2026-11-15, fixed (`9b31d3ad`): stop waits for each | | |
+| | | host's ACK: the OTG1 pb's reset answered. 2026-11-15, fixed (`4a017151`): stop waits for each | | |
 | | | enabled IN endpoint's BUFFEMPTY, 50 ms at most each; `test_cdns3_udc` (fails without it). On the | | |
 | | | MEK: `dev reset` 5 of 5, `boot partition` answers and Linux boots. `usb.md` 4.2 has the rule | | |
 | | | now; the DWC3's is unverified | | |
