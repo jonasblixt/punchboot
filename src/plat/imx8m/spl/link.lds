@@ -28,7 +28,7 @@ MEMORY
     spl_rw (rw) : ORIGIN = IMX8M_SPL_END - 0x4000, LENGTH = 0x4000
     ramlog (rw) : ORIGIN = IMX8M_RAMLOG_BASE, LENGTH = IMX8M_RAMLOG_SIZE
     umctl (rw) : ORIGIN = 0x40000000, LENGTH = 0x20000
-    buffers (rw) : ORIGIN = PB_BUFFERS_BASE, LENGTH = 0x10000
+    buffers (rw) : ORIGIN = PB_BUFFERS_BASE, LENGTH = 0x80000
 }
 
 /* The SPL's own header, which the ROM read before the entry (imx-mkimage's

@@ -68,21 +68,75 @@ static uint32_t rom_query(uint32_t type, uint32_t *info)
     return rom_api()->query_boot_infor(type, info, type ^ (uint32_t)(uintptr_t)info);
 }
 
-/* A page the ROM's API reads into before pb proper's place is known: in
- * DRAM, at the start of pb's buffers (spl/link.lds) */
-PB_DMA_ARRAY(uint8_t, scratch, 0x1000);
+/* What the ROM's API reads before pb proper's place is known: in DRAM, at
+ * the start of pb's buffers (spl/link.lds). Over USB the rest of the SPL's
+ * part and pb proper's header, so the SPL's part and a page */
+#define SCRATCH_SIZE (IMX8MP_PB_OFFSET + 0x1000)
+PB_DMA_ARRAY(uint8_t, scratch, SCRATCH_SIZE);
 
-/* pb proper's header, from the boot device at its offset, or from the USB
- * stream, read page by page until a page starts with it. The image's
- * first page, the header's, is at the load address (hdr.boot_data.start,
- * the IVT's own) afterwards */
+/* pb proper's header at 'p': its IVT's tag, length and version word as
+ * gen-imx8m-ivt.py writes it, and the entry the SPL was built for */
+static bool is_header(const uint8_t *p)
+{
+    struct imx_ivt ivt;
+
+    memcpy(&ivt, p, sizeof(ivt));
+    return (ivt.header & 0xff) == IMX_IVT_TAG && ivt.entry == PB_ENTRY &&
+           ivt.self == PB_ENTRY - IMX_HEADER_SIZE;
+}
+
+/*
+ * Over USB the ROM's API streams: each download_image() is the next bytes
+ * the host sends. The ROM has read the SPL's image and whatever it reads
+ * ahead of it, so where pb proper's header falls in the stream isn't known.
+ * The SPL reads page after page and looks for it at every word, as U-Boot's
+ * spl_romapi.c looks for its FIT. It returns the header's offset in
+ * 'scratch' and the bytes read after it, or -PB_ERR_IO.
+ *
+ * The ROM answers a page of 1 byte over USB (read on the 8MP EVK), and a
+ * read of 1 byte at an odd address fails: the stream is read in pieces of
+ * at least STREAM_CHUNK, as U-Boot's 1 KiB.
+ */
+#define STREAM_CHUNK 1024
+
+static int find_in_stream(uint32_t page, size_t *at, size_t *have)
+{
+    size_t read = 0;
+    size_t next = 0;
+
+    page = MAX(page, (uint32_t)STREAM_CHUNK);
+
+    while (read + page <= SCRATCH_SIZE) {
+        if (rom_download(scratch + read, 0, page) != ROM_API_OKAY)
+            break;
+
+        read += page;
+
+        for (; next + IMX_HEADER_SIZE <= read; next += 4) {
+            if (is_header(scratch + next)) {
+                *at = next;
+                *have = read - next;
+                return PB_OK;
+            }
+        }
+    }
+
+    LOG_ERR("ROM API: no pb proper in %u bytes of the stream", (unsigned int)read);
+    return -PB_ERR_IO;
+}
+
+/* pb proper, its header first: from the boot device at its offset, or the
+ * next of the USB stream. Afterwards pb proper is at its load address
+ * (hdr.boot_data.start, the IVT's own) */
 static int load(struct imx_header *hdr, const struct imx_ivt_limits *limits)
 {
     uint32_t dev = 0;
     uint32_t page = 0;
     uint32_t image_offset = 0;
+    size_t at = 0;
+    size_t have;
     bool stream;
-    uint32_t rest;
+    uint8_t *dest;
 
     if (rom_query(QUERY_BT_DEV, &dev) != ROM_API_OKAY ||
         rom_query(QUERY_PAGE_SZ, &page) != ROM_API_OKAY || page == 0 || page > 0x1000) {
@@ -100,30 +154,24 @@ static int load(struct imx_header *hdr, const struct imx_ivt_limits *limits)
     LOG_INFO("ROM API: device %08x, page %u, image at %u", dev, page, image_offset);
 
     if (stream) {
-        /* What the ROM hasn't read of the SPL's part, then pb proper's
-         * header at a page's start: at most the SPL's part in pages */
-        for (unsigned int n = 0;; n++) {
-            if (n > IMX8MP_PB_OFFSET / page || rom_download(scratch, 0, page) != ROM_API_OKAY) {
-                LOG_ERR("ROM API: no pb proper in the stream");
-                return -PB_ERR_IO;
-            }
+        if (find_in_stream(page, &at, &have) != PB_OK)
+            return -PB_ERR_IO;
 
-            memcpy(hdr, scratch, sizeof(*hdr));
-
-            if ((hdr->ivt.header & 0xff) == IMX_IVT_TAG && hdr->ivt.entry == PB_ENTRY)
-                break;
-        }
+        LOG_DBG("ROM API: pb proper's header %u bytes into the stream's pages", (unsigned int)at);
     } else if (rom_download(scratch, image_offset + IMX8MP_PB_OFFSET, page) != ROM_API_OKAY) {
         LOG_ERR("ROM API: reading pb proper's header failed");
         return -PB_ERR_IO;
     } else {
-        memcpy(hdr, scratch, sizeof(*hdr));
+        have = page;
     }
+
+    memcpy(hdr, scratch + at, sizeof(*hdr));
 
     if (imx_ivt_check(hdr, limits) != PB_OK)
         return -PB_ERR_PARAM;
 
-    /* The build makes the size a multiple of 4 KiB, the largest page */
+    /* The build makes the size a multiple of 4 KiB, the largest page: the
+     * boot device is read in whole pages */
     if (hdr->boot_data.size % page != 0 || hdr->boot_data.start != hdr->ivt.self) {
         LOG_ERR("pb proper: %u bytes at %08x, page %u",
                 hdr->boot_data.size,
@@ -132,12 +180,16 @@ static int load(struct imx_header *hdr, const struct imx_ivt_limits *limits)
         return -PB_ERR_PARAM;
     }
 
-    memcpy((void *)(uintptr_t)hdr->boot_data.start, scratch, page);
-    rest = hdr->boot_data.size - page;
+    /* What was read after the header is pb proper's, as much of it as it
+     * has: the stream goes on with nothing else */
+    have = MIN(have, (size_t)hdr->boot_data.size);
+    dest = (uint8_t *)(uintptr_t)hdr->boot_data.start;
+    memcpy(dest, scratch + at, have);
 
-    if (rest > 0 && rom_download((void *)(uintptr_t)(hdr->boot_data.start + page),
-                                 stream ? 0 : image_offset + IMX8MP_PB_OFFSET + page,
-                                 rest) != ROM_API_OKAY) {
+    if (have < hdr->boot_data.size &&
+        rom_download(dest + have,
+                     stream ? 0 : image_offset + IMX8MP_PB_OFFSET + (uint32_t)have,
+                     hdr->boot_data.size - (uint32_t)have) != ROM_API_OKAY) {
         LOG_ERR("ROM API: reading pb proper failed");
         return -PB_ERR_IO;
     }
