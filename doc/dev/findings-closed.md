@@ -1841,6 +1841,19 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 18.7.1.5); nothing raised it (REG3 0x10E on the EVK) | | |
 | | | 2026-11-16 (`25b44094`): TRG 0x13, 1.275 V, before the PLL, STS_DC_OK waited for (10 ms bound, then | | |
 | | | 528 MHz). On the EVK: REG3 0x113, settled, 7 of 7; 1.6 ms more to the image's entry (44.0 ms) | | |
+| F-209 | `src/link.lds:60-67` | The stack is directly above `.keystore_key`; on the RT1060 (no | Verified (board) | fixed |
+| | | MPU region, 4 KiB stack, software ECDSA) an overflow rewrites a root-of-trust key silently. | | |
+| | | `.vector_handlers` is an orphan section placed after `_code_end`, outside the overlap check (F-157). | | |
+| | | 2026-11-14 (`eac22242`, `6ec60648`): `.vector_handlers` is an output section of the link script's, | | |
+| | | and an assert keeps the stack directly above `.ro_data` where an MMU maps that read only. Left: the | | |
+| | | RT1060, where a guard needs an MPU region (code in `src/arch/armv7m`, 32 bytes of stack) or a | | |
+| | | reorder that moves every symbol after the stack. Since the key list (D-083) the keys are in | | |
+| | | `.rodata` and the `.keystore_*` sections are gone: an overflow still rewrites `.ro_data` | | |
+| | | 2026-11-16 (`1410bbe3`): the ARMv7-M programs one MPU region at its entry, the 32 bytes below the | | |
+| | | stack, read only, execute never, PRIVDEFENA for the rest; sections aligned to 32, `_stack_start` on | | |
+| | | it asserted; `arch_disable_mmu()` clears it. On the RT1060: a store into the guard is a HardFault | | |
+| | | (CFSR 0x82, MMFAR the address) and changes nothing, one into the stack doesn't; the simple bench | | |
+| | | 7 of 7. A single overflow larger than 32 bytes past the guard isn't caught | | |
 
 ## Dependencies / vendored code
 

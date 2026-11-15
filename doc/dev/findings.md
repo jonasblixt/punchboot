@@ -82,9 +82,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | enumerates (no wait, no `dev show`), 10 times: the 10th, 4 KiB, failed. The host saw the device | | |
 | | | connect and disconnect every 1 to 2 s until 00:06:32, then nothing. Since, at every boot | | |
 | | | `cm_main_task: Transport init error (-2)` (a timeout, about 10 s) and a software reset: the USB | | |
-| | | never enumerates again across pb's resets, the hub port isn't disabled. Needs a power cycle | | |
-| | | (Jonas). Not known: whether the MEK's USB3 PHY or the VL813 hub's port is stuck. Boot partitions | | |
-| | | untouched | | |
+| | | doesn't enumerate across pb's resets, the hub port isn't disabled. It came back by itself at | | |
+| | | 00:08:44, about 2 minutes later, after a software reset like the others; `dev show` answers. | | |
+| | | Not known: whether the MEK's USB3 PHY or the VL813 hub's port was stuck. Boot partitions untouched | | |
 | F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
 | | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
 | | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
@@ -138,14 +138,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 1 ms), the glue's is F-281's; a cancel whose flush times out refuses the next bulk transfer until | |
 | | | `init`. Bounds from Linux 6.1, no manual. Left: the DWC3's OUT rounding, the salvo PHY's licence. | |
 | | | Not run on a board | |
-| F-209 | `src/link.lds:60-67` | The stack is directly above `.keystore_key`; on the RT1060 (no | Reported | open |
-| | | MPU region, 4 KiB stack, software ECDSA) an overflow rewrites a root-of-trust key silently. | | |
-| | | `.vector_handlers` is an orphan section placed after `_code_end`, outside the overlap check (F-157). | | |
-| | | 2026-11-14 (`eac22242`, `6ec60648`): `.vector_handlers` is an output section of the link script's, | | |
-| | | and an assert keeps the stack directly above `.ro_data` where an MMU maps that read only. Left: the | | |
-| | | RT1060, where a guard needs an MPU region (code in `src/arch/armv7m`, 32 bytes of stack) or a | | |
-| | | reorder that moves every symbol after the stack. Since the key list (D-083) the keys are in | | |
-| | | `.rodata` and the `.keystore_*` sections are gone: an overflow still rewrites `.ro_data` | | |
 | F-210 | arch/plat, low | v7m: CACR.FORCEWT never cleared at the handover, VTOR never set to pb's | Reported | open |
 | | | table. 6UL: PLL1 raised without writing CACRR.ARM_PODF (F-148 class), SRSR never cleared (stale reset | | |
 | | | reason). Exception policy differs per arch, v8 handlers run on the faulting stack and hang by default. | | |
