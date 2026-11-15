@@ -103,10 +103,7 @@ static const struct rot_config rot_cfg = {
 static void test_no_write_in_any_state(void **state)
 {
     static const slc_t states[] = {
-        SLC_NOT_CONFIGURED,
-        SLC_CONFIGURATION,
-        SLC_CONFIGURATION_LOCKED,
-        SLC_EOL,
+        SLC_NOT_CONFIGURED, SLC_CONFIGURATION, SLC_CONFIGURATION_LOCKED, SLC_EOL,
         -PB_ERR_IO, /* Unknown: the build's answer, not the read's */
     };
     (void)state;
