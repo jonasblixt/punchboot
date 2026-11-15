@@ -23,9 +23,10 @@ log. The board must stop in command mode after a reset: no active boot
 partition. The banner is CONFIG_PRINT_BOOT_BANNER, off in the RT1060's
 defconfig (F-458).
 
-Runs on the host. Needs the bpak and punchboot CLIs, openssl for -k, the
-board in command mode over USB and pb built with CONFIG_RAMLOG, which has
-the debug messages.
+Runs on the host. Needs the punchboot Python package (tools/punchboot, the
+host library) and the bpak Python package, openssl for -k, the board in
+command mode over USB and pb built with CONFIG_RAMLOG, which has the debug
+messages.
 """
 
 import argparse
@@ -42,11 +43,17 @@ import tempfile
 import termios
 import time
 import tty
+import uuid
 from pathlib import Path
+
+import bpak
+import punchboot
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SIGN_KEY = REPO_ROOT / "pki" / "secp256r1-key-pair.pem"
 KEY_ID = "pb-development"
+PACKAGE_UUID = uuid.UUID("8df597ff-2cf5-42ea-b2b6-47c348721b75")
+LOAD_ADDR_BYTES = 8  # bpak's integer encoding: little endian, 8 bytes
 BPAK_HEADER_SIZE = 4096
 BAD_PAYLOAD = -27
 
@@ -63,8 +70,6 @@ LOAD_KEYS = {"load", "header", "auth", "bytes", "part", "read", "hash", "final",
 LOG_LINE = re.compile(r"^\[(\d+)\.(\d+)\] \w (\w+): (.*)$")
 PART_LINE = re.compile(r"Part \w+: (\d+) bytes in (\d+) us \(read (\d+) us, hash (\d+) us\)")
 FINAL_LINE = re.compile(r"Payload hash final: (\d+) us, last chunk (\d+) bytes")
-PART_LIST_LINE = re.compile(r"^([0-9a-f-]{36})\s+(\S+)\s+(\d+)\s+(B|kB|MB|GB)\s")
-UNITS = {"B": 1, "kB": 1 << 10, "MB": 1 << 20, "GB": 1 << 30}
 
 
 def run(*args: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -79,20 +84,19 @@ def fail(msg: str) -> None:
 
 
 class Board:
+    """The board in command mode, through the punchboot library's session."""
+
     def __init__(self, uuid: str | None, key: Path | None, workdir: Path) -> None:
-        devices = {}
-        for line in run("punchboot", "list").stdout.splitlines():
-            fields = line.split(" -- ")
-            if len(fields) == 2:  # noqa: PLR2004
-                devices[fields[0].strip()] = fields[1].strip()
+        devices = [str(u) for u in punchboot.list_usb_devices()]
         if uuid is None:
             if len(devices) != 1:
                 fail(f"pick a device with -u: {devices or 'none found'}")
-            uuid = next(iter(devices))
+            uuid = devices[0]
         if uuid not in devices:
             fail(f"{uuid} not found: {devices}")
         self.uuid = uuid
-        self.name = devices[uuid]
+        self.session = punchboot.Session(uuid)
+        self.name = self.session.device_get_boardname()
         self.token = None
         if key is not None:
             self.token = workdir / "auth.token"
@@ -104,17 +108,14 @@ class Board:
         path.write_text(self.uuid)
         return path
 
-    def pb(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
-        return run("punchboot", "-u", self.uuid, *args, check=check)
-
     def auth(self) -> None:
         if self.token is not None:
-            self.pb("auth", "token", str(self.token), KEY_ID)
+            self.session.authenticate_dsa_token(self.token, KEY_ID)
 
     def log(self) -> list[tuple[int, str, str]]:
         """The RAM log as (time in us, function, message)."""
         lines = []
-        for line in self.pb("log").stdout.splitlines():
+        for line in self.session.log_read().decode(errors="replace").splitlines():
             m = LOG_LINE.match(line)
             if m:
                 lines.append((int(m[1]) * 1000 + int(m[2]), m[3], m[4]))
@@ -122,22 +123,43 @@ class Board:
 
     def part_size(self, part: str) -> tuple[int, bool]:
         """The size in bytes of a bootable partition, and whether it needs an erase first."""
-        for line in self.pb("part", "list").stdout.splitlines():
-            m = PART_LIST_LINE.match(line)
-            if m and m[1] == part:
-                if not m[2].startswith("B"):
+        for p in self.session.part_get_partitions():
+            if str(p.uuid) == part:
+                if not p.bootable:
                     fail(f"{part} is not bootable")
-                return int(m[3]) * UNITS[m[4]], m[2][3] == "E"
+                return (p.last_block - p.first_block + 1) * p.block_size, p.erase_before_write
         fail(f"no partition {part}")
         return 0, False
+
+    def boot_fails(self, part: str) -> None:
+        """Boot the partition: the image must fail its verification."""
+        try:
+            self.session.boot_partition(part)
+        except punchboot.Error:
+            # BadPayloadError from pb 3.0.0, GenericError before: the RAM log
+            # has the result (parse_loads())
+            return
+        fail("the image booted, it should have failed verification")
+
+    def reset(self) -> None:
+        """Reset the board; the session ends with it."""
+        self.session.device_reset()
+        self.session.close()
 
     # 30 s: the i.MX8QXP MEK enumerates in ~22 s after a reset, the host retries its
     # serial number string (F-159)
     def wait(self, timeout: float = 30.0) -> None:
+        """Wait for the board in command mode after a reset, and open a new session."""
         end = time.monotonic() + timeout
         while time.monotonic() < end:
-            if self.uuid in run("punchboot", "list", check=False).stdout:
-                return
+            if self.uuid in [str(u) for u in punchboot.list_usb_devices()]:
+                try:
+                    self.session = punchboot.Session(self.uuid)
+                    self.session.device_get_uuid()
+                except (punchboot.Error, OSError):
+                    pass
+                else:
+                    return
             time.sleep(0.2)
         fail("the board did not come back in command mode")
 
@@ -146,18 +168,23 @@ def build_image(path: Path, size: int, load_addr: int) -> None:
     payload = path.with_suffix(".kernel")
     payload.write_bytes(random.Random(0).randbytes(size))  # noqa: S311
 
-    def bpak(*args: str) -> None:
-        run("bpak", *args)
-
     path.unlink(missing_ok=True)
-    bpak("create", str(path), "-Y", "--hash-kind", "sha256", "--signature-kind", "prime256v1")
-    bpak("add", str(path), "--meta", "bpak-package", "--from-string",
-         "8df597ff-2cf5-42ea-b2b6-47c348721b75", "--encoder", "uuid")  # fmt: skip
-    bpak("add", str(path), "--meta", "pb-load-addr", "--from-string", hex(load_addr),
-         "--part-ref", "kernel", "--encoder", "integer")  # fmt: skip
-    bpak("add", str(path), "--part", "kernel", "--from-file", str(payload))
-    bpak("set", str(path), "--key-id", KEY_ID, "--keystore-id", "pb")
-    bpak("sign", str(path), "--key", str(SIGN_KEY))
+    # Created write only, then opened to add to it: as the bpak CLI does
+    with bpak.Package(path, "wb") as pkg:
+        pkg.hash_kind = bpak.HASH_SHA256
+        pkg.signature_kind = bpak.SIGN_PRIME256v1
+    with bpak.Package(path, "r+") as pkg:
+        pkg.add_meta(bpak.id("bpak-package"), data=PACKAGE_UUID.bytes)
+        pkg.add_meta(
+            bpak.id("pb-load-addr"),
+            bpak.id("kernel"),
+            data=load_addr.to_bytes(LOAD_ADDR_BYTES, "little"),
+        )
+        pkg.add_file("kernel", payload)
+        pkg.key_id = bpak.id(KEY_ID)
+        pkg.keystore_id = bpak.id("pb")
+        if not pkg.sign(SIGN_KEY):
+            fail(f"signing {path} failed")
     payload.unlink()
 
     # The payload no longer matches the signed hash: pb never starts it
@@ -257,7 +284,7 @@ class Console:
         """Reset the board, return the ms from the reset to pb's banner."""
         board.auth()
         termios.tcflush(self.fd, termios.TCIFLUSH)
-        board.pb("dev", "reset")
+        board.reset()
         t_reset = time.monotonic()
         text, times = b"", []
         end = t_reset + 5
@@ -332,13 +359,11 @@ def main() -> None:
             build_image(image, size, load_addr)
             board.auth()
             if erase:  # NOR flash
-                board.pb("part", "erase", args.part)
-            board.pb("part", "write", str(image), args.part)
-            board.pb("part", "verify", str(image), args.part)
+                board.session.part_erase(args.part)
+            board.session.part_write(image, args.part)
+            board.session.part_verify(image, args.part)
             for _ in range(args.runs):
-                r = board.pb("boot", "partition", args.part, check=False)
-                if r.returncode == 0:
-                    fail("the image booted, it should have failed verification")
+                board.boot_fails(args.part)
             loads = parse_loads(board.log())[-args.runs :]
             if len(loads) != args.runs or any(r["bytes"] != size for r in loads):
                 fail(f"{size_name(size)}: not {args.runs} loads in the RAM log, see 'punchboot log'")
@@ -363,6 +388,7 @@ def main() -> None:
             finally:
                 console.close()
 
+    board.session.close()
     print(f"{board.name} {board.uuid}: image in {args.part}, {args.runs} runs per size")
     if resets:
         summary("Reset", resets)

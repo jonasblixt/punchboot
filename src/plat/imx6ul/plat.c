@@ -377,7 +377,7 @@ int plat_early_init(void)
                        SRC_SCR_MASK_WDOG_RST(10));
 
     status.wdog_armed = false;
-#if CONFIG_ENABLE_WATCHDOG
+#ifdef CONFIG_ENABLE_WATCHDOG
     /* Enable WDT */
     mmio_clrsetbits_32(IMX6UL_CCM_CCGR3, 0, CCM_CCGR3_WDOG1);
     status.wdog_armed = (imx_wdog_init(IMX6UL_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT) == PB_OK);

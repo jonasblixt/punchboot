@@ -275,15 +275,30 @@ static void report_first_difference(const char *golden, const char *actual)
     print_error("  actual: %.60s\n", a);
 }
 
+/* The board's timing as imx8m_ddr_init() gets it: a copy of the EVK's
+ * (lpddr4_timing.c), with its training runs, that a test may change. Made
+ * again before each test */
+static struct imx8m_dram_timing timing;
+static struct dram_fsp_msg timing_fsp_msg[8];
+
+const struct imx8m_dram_timing *imx8m_board_dram_timing(void)
+{
+    return &timing;
+}
+
 /* The board's rates, normally from board.c: all set points of the timing */
 struct dram_rates dram_rates;
 
 static void all_rates(void)
 {
-    dram_rates.mts = dram_timing.fsp_table;
+    timing = imx8m_dram_timing;
+    assert_true(timing.fsp_msg_num <= ARRAY_SIZE(timing_fsp_msg));
+    memcpy(timing_fsp_msg, timing.fsp_msg, timing.fsp_msg_num * sizeof(timing_fsp_msg[0]));
+    timing.fsp_msg = timing_fsp_msg;
+
+    dram_rates.mts = timing.fsp_table;
     dram_rates.num = 0;
-    while (dram_rates.num < ARRAY_SIZE(dram_timing.fsp_table) &&
-           dram_timing.fsp_table[dram_rates.num] != 0)
+    while (dram_rates.num < ARRAY_SIZE(timing.fsp_table) && timing.fsp_table[dram_rates.num] != 0)
         dram_rates.num++;
 }
 
@@ -339,13 +354,13 @@ static void test_boot_rate_only(void **state)
     unsigned int runs = 0;
     (void)state;
 
-    for (unsigned int i = 0; i < dram_timing.fsp_msg_num; i++)
-        runs += dram_timing.fsp_msg[i].drate == dram_timing.fsp_table[0];
+    for (unsigned int i = 0; i < timing.fsp_msg_num; i++)
+        runs += timing.fsp_msg[i].drate == timing.fsp_table[0];
 
     dram_rates.num = 1;
     assert_int_equal(imx8m_ddr_init(), PB_OK);
     assert_int_equal(mail_pos, runs * ARRAY_SIZE(mail_script));
-    assert_int_equal(dt->fsp_table[0], dram_timing.fsp_table[0]);
+    assert_int_equal(dt->fsp_table[0], timing.fsp_table[0]);
     assert_int_equal(dt->fsp_table[1], 0);
     assert_int_equal(dt->fsp_table[2], 0);
     assert_int_equal(dt->fsp_table[3], 0);
@@ -354,7 +369,7 @@ static void test_boot_rate_only(void **state)
 /* The rates must be the first set points of the timing, in order */
 static void test_rates_not_a_prefix(void **state)
 {
-    unsigned int mts[2] = { dram_timing.fsp_table[0], dram_timing.fsp_table[2] };
+    unsigned int mts[2] = { timing.fsp_table[0], timing.fsp_table[2] };
     (void)state;
 
     dram_rates.mts = mts;
@@ -395,14 +410,11 @@ static void test_firmware_verify_failed(void **state)
 static void test_unsupported_data_rate(void **state)
 {
     (void)state;
-    unsigned int drate = dram_timing.fsp_msg[1].drate;
 
     /* The set point too, so that the board's rates still match */
-    dram_timing.fsp_msg[1].drate = 1234;
-    dram_timing.fsp_table[1] = 1234;
+    timing_fsp_msg[1].drate = 1234;
+    timing.fsp_table[1] = 1234;
     assert_int_equal(imx8m_ddr_init(), -PB_ERR_NOT_SUPPORTED);
-    dram_timing.fsp_msg[1].drate = drate;
-    dram_timing.fsp_table[1] = drate;
     /* Only the first training run happened */
     assert_int_equal(mail_pos, ARRAY_SIZE(mail_script));
 }
@@ -412,20 +424,20 @@ static void test_timing_copy_too_large(void **state)
 {
     (void)state;
     static struct dram_cfg_param pie[ARRAY_SIZE(dram_timing_info_copy.cfg) + 1];
-    struct dram_cfg_param *saved_pie = dram_timing.ddrphy_pie;
-    unsigned int saved_pie_num = dram_timing.ddrphy_pie_num;
     unsigned int others =
-        dram_timing.ddrc_cfg_num + dram_timing.ddrphy_cfg_num + dram_timing.ddrphy_trained_csr_num;
+        timing.ddrc_cfg_num + timing.ddrphy_cfg.num + timing.ddrphy_trained_csr.num;
 
     for (size_t i = 0; i < ARRAY_SIZE(pie); i++)
         pie[i].reg = 0x90000;
 
-    /* One entry more than fits */
-    dram_timing.ddrphy_pie = pie;
-    dram_timing.ddrphy_pie_num = ARRAY_SIZE(dram_timing_info_copy.cfg) + 1 - others;
+    /* One entry more than fits, a table of pairs as a board in the tool's
+     * layout has it */
+    timing.ddrphy_pie = (struct dram_phy_table){
+        .pairs = pie,
+        .num = ARRAY_SIZE(dram_timing_info_copy.cfg) + 1 - others,
+        .values = true,
+    };
     assert_int_equal(imx8m_ddr_init(), -PB_ERR_MEM);
-    dram_timing.ddrphy_pie = saved_pie;
-    dram_timing.ddrphy_pie_num = saved_pie_num;
 }
 
 /* The PHY driver refuses an invalid firmware type or a missing image before touching the PHY */

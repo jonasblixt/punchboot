@@ -42,7 +42,7 @@ repos:
   hooks:
   - id: clang-format
     # The DDR timings are kept as NXP's DDR Tool generated them
-    exclude: (src/boot/atf-interface/|src/board/[^/]+/lpddr4_timing\.c$)
+    exclude: (src/boot/atf-interface/|src/board/[^/]+/lpddr4_timing[^/]*\.(c|h)$)
 
 - repo: local
   hooks:
