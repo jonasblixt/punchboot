@@ -830,6 +830,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | on 2026-11-08 (`testbench/simple/README.md`), 42.3 ms at `b7561ea1` (2026-11-15, the same 5.2 KiB | | |
 | | | application, medians of 10). Not tonight's: F-148 adds 0.1 ms, F-457 1.6 ms. Which commit of the | | |
 | | | week added the 2.2 ms isn't known; `scripts/boot-time-image` splits pb's steps | | |
+| | | 2026-11-16, measured on the EVK without old pbs: 32 KiB more of pb costs the ROM 0.42 ms (13 us a | | |
+| | | KiB), so pb's growth since `be98eb8d` (75712 to 101760 bytes) is about 0.34 ms. `boot-time-image` | | |
+| | | against the table: the signature 26.6 ms (was 25.9), the A/B state's read 0.6 ms (8 KiB of NOR), | | |
+| | | pb's init to `boot_load()` 4.7 ms with F-457's 1.6. In `be98eb8d` pb's timer started after the clocks | | |
+| | | and the banner, so the table's 12.7 ms had them; now its init has. The banner is 2.1 ms of console | | |
+| | | init on every boot: about 22 characters at 115200 baud, written synchronously (`console.c`, a log | | |
+| | | line before and after it from RAM). Left: the signature's 0.7 ms; whether the RT prints the banner | | |
+| | | (`CONFIG_PRINT_BOOT_BANNER`, D-023) for Jonas | | |
 
 ## Dependencies / vendored code
 
