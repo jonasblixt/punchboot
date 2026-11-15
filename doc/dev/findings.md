@@ -894,6 +894,15 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | SRK_REVOKE unknown (the 8MP's keys can't be revoked). Verify on a part that can be spent: a | | |
 | | | revocation on an 8MQ (the pico8ml is the only 8MQ on the bench), the 8MP's fuses in its | | |
 | | | Security Reference Manual (NDA) | | |
+| F-450 | `testbench/board/pico8ml/`, the pico8ml | After Linux's login prompt the pico8ml's | Seen (board) | open |
+| | | console took no input and the board didn't come back (2026-11-15, the first boot): either | | |
+| | | Linux hung ~12 s in without a word (the last lines are the deferred probe timeout's), or | | |
+| | | UART1's receive doesn't work in Linux (pb never reads it). Its watchdog didn't reset it: | | |
+| | | with `fsl,ext-reset-output` (the PICO-PI's DTS) `imx2_wdt` only asserts WDOG_B, and the | | |
+| | | SoC's own reset is off, so a hang stays a hang unless the PMIC resets on WDOG_B. No JTAG | | |
+| | | probe on it. Next: a power cycle (Jonas), then the console at the login; the DTS without | | |
+| | | `fsl,ext-reset-output`, or the BD71837 told to reset on WDOG_B. Also: eth0's PHY doesn't | | |
+| | | answer at MDIO 1, the USB host port's DWC3 doesn't start | | |
 
 ## Dependencies / vendored code
 
@@ -924,6 +933,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | Checked 2026-11-12: imx8mevk is described by `struct board` and builds, what it lacks is F-300. | |
 | | The RT1060 EVK runs on the bench. Left: `bebop_defconfig` and `pico8ml_defconfig` have no | |
 | | board in `src/board/`; which boards to keep | |
+| | 2026-11-15: the pico8ml is a board again (`9ea656f2`) and boots Linux through TF-A in the | |
+| | test bench (`f2b29c88`). Left: `bebop_defconfig`, imx8mevk (F-300) | |
 | F-035 | The same data is defined in several places: exception names (C ×1, Python ×3, before D-021), partition flags, SLC enum, and the crc32 id table (`helpers.py`, could be `zlib.crc32`). | partly fixed (D-021): exception names are defined once (`errors.py`), and `wire.py` mirrors the wire values checked against `abi.txt`. Left: `pbtest.py`'s `PB_CMD_*`, the crc32 table |
 | | 2026-11-14 (`93508742`): the tests take their wire values from `wire.py`. `zlib.crc32(name, | |
 | | 0xffffffff) ^ 0xffffffff` equals `pb_id()` for every name in use and any ASCII name | |

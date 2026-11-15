@@ -70,7 +70,7 @@ Boards in the tree:
 | Jiffy                  | imx6ul           | Boots Linux, HAB closed; OP-TEE as a test bench add-on         |
 | NXP i.MX8M Plus EVK    | imx8m (i.MX8MP)  | Boots Linux through TF-A                                       |
 | NXP i.MX8QXP MEK       | imx8x (i.MX8QXP) | Boots Linux through TF-A                                       |
-| TechNexion PICO-IMX8MQ | imx8m (i.MX8MQ)  | HAB closed, pb boots from eMMC; Linux through TF-A in bring-up |
+| TechNexion PICO-IMX8MQ | imx8m (i.MX8MQ)  | Boots Linux through TF-A, HAB closed (in bring-up)             |
 | NXP i.MX RT1060 EVK    | imxrt            | Boots a bare metal application, A/B from its NOR               |
 | NXP i.MX8MQ EVK        | imx8m (i.MX8MQ)  | Builds, no boot path yet (F-300)                               |
 | NXP i.MX8DXL EVK       | imx8x (i.MX8DXL) | Builds, not run on a board                                     |

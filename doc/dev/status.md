@@ -58,8 +58,9 @@ bump is for the porting API. Each item's history is in `log/`.
    - pico8ml restored (`9ea656f2`), signed `pb_signed.imx` from `make all`, command mode on the
      board; `-Os` and packed DRAM tables (`gen-imx8m-dram-timing.py`) for room. Open: F-445.
      The i.MX8M's SLC and lockdown; the pico8ml is closed (log 2026-11-15), its token
-     `scripts/c12f1c67-...token`. Open: F-447. Next: the
-     pico8ml's test bench (Jonas).
+     `scripts/c12f1c67-...token`. Open: F-447. The test bench boots Linux
+     through TF-A (patched v2.12) to the login; then it hung or lost console input (F-450): it
+     needs a power cycle. pb in BOOT1 (BOOT0 the fallback). F-449 fixed (D-087).
    - D-086 for Jonas's review: Mbed TLS set up by the core (`crypto.md` 2, `platform.md` 2.2,
      2.3, 3.8, Open (1)). Then F-442's code.
    - Jonas's review: the guides and `CHANGELOG.md` (F-232), D-074, the logs' "For Jonas".
