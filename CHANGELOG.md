@@ -229,8 +229,9 @@ can change by mistake that a device in the field relies on. Then check:
 - **The i.MX8M's image** (D-088): `pb_signed.imx` holds the SPL and pb proper, and the
   board's memory moved to DRAM (`PB_ENTRY`, `PB_SIZE`). pb 2.x writes it to a boot partition
   as any image. On the i.MX8MQ the new image boots from storage; over the ROM's serial
-  downloader it trains DRAM but can't hand pb proper over yet (F-451): a recovery script with
-  `SDP: boot` needs a single-stage pb until then.
+  downloader its SPL is a fastboot device that takes pb proper from the host (D-089): a
+  recovery script with `SDP: boot` sends the image once more, `FB: download` and `FB: boot`
+  (`doc/guides/build-and-test.md`).
 - **A GPT that another tool changed.** A sane table gives the same partitions and nothing is
   written. An entry that covers the table's own blocks is no longer a partition, and a device
   whose backup table is stale logs one error line per boot (2026-11-13, "The GPT").

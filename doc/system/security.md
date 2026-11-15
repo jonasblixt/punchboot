@@ -19,9 +19,10 @@ ROM  ->  pb  ->  the next stage: secure firmware, a secure OS, an operating syst
   before pb, it belongs to the root as the ROM does.
 - **Where pb is two stages** (the i.MX8M, D-088), the ROM authenticates both: the SPL, which
   brings up DRAM, and pb proper. The SPL never verifies pb proper with its own code: the 8MQ's
-  ROM authenticates it after the SPL returns, the 8M Plus's SPL has the ROM's HAB do it before it
-  jumps. What of pb proper's header the SPL reads before that check is covered by its own
-  signature, or checked against the SPL's build.
+  ROM authenticates it after the SPL returns, and an SPL that loads pb proper itself (the 8M
+  Plus's, and the 8MQ's in its USB recovery, D-089) has the ROM's HAB do it before it jumps.
+  What of pb proper's header the SPL reads before that check is covered by its own signature,
+  or checked against the SPL's build.
 - pb's trust anchor is its **keystore**: the public keys pb trusts, built into the image the ROM
   verified. pb verifies the next stage's image with it. What the next stage verifies (a root file
   system) is the next stage's.

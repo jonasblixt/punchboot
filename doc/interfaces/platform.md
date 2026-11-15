@@ -91,7 +91,9 @@ the tasks, in turn      when the boot failed or stopped (5.1); command mode is o
 
 **Two stages** `[optional]` (D-088). A platform whose on-chip RAM is too small for pb runs an
 SPL before `main()`: an image of its own that the ROM loads and authenticates, which brings up
-DRAM and nothing else, and leaves loading and authenticating pb proper to the ROM. pb proper is
+DRAM and nothing else, and leaves loading and authenticating pb proper to the ROM. Where the ROM
+can't load pb proper over USB, the SPL takes it from the host itself, on the port and the stack
+command mode uses, and the ROM still authenticates it (D-089; the port's document). pb proper is
 pb, linked in DRAM, and runs the list above: its `plat_init()` finds DRAM up, checks what the SPL
 set up that security rests on (the TrustZone filter, 4.3) instead of trusting it, and records it
 in `plat_get_status()`. The SPL's messages are in the RAM log, which pb proper keeps

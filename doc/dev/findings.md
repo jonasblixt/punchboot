@@ -881,12 +881,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | port: 30 minutes, 180 checks of a 200 MiB checksum in RAM. Power (Jonas) or the self | | |
 | | | refresh: the run without the bit decides. Also: eth0's PHY doesn't answer at MDIO 1, the | | |
 | | | USB host port's DWC3 doesn't start | | |
-| F-451 | `src/plat/imx8m/spl/`, the i.MX8MQ | The SPL, a HABv4 plugin (D-088), boots from the eMMC  | Seen (board) | open |
-| | | but can't hand pb proper over to the ROM's serial downloader: the downloader takes one | | |
-| | | image (8MQ RM 6.1.8.2.1.7), and after the plugin it either goes on without pb proper | | |
-| | | (return 1) or refuses everything (return 0, HAB failed); both on the pico8ml. USB | | |
-| | | recovery with the SPL needs the SPL to download pb proper itself, over its own SDP on pb's | | |
-| | | DWC3 driver as U-Boot's 8MQ SPL does, or a single-stage pb for uuu. For Jonas | | |
+| F-452 | `testbench/board/pico8ml/`, the pico8ml | `reboot` in Linux hangs the board: "Restarting | Seen (board) | open |
+| | | system", then nothing, and no watchdog ends it. TF-A's PSCI reset asserts WDOG_B | | |
+| | | (`IMX_WDOG_B_RESET`), which doesn't reset this board. A reset that does happen (pb's | | |
+| | | `dev reset`, WDOG1's software reset from Linux with `devmem`) ends in the ROM's serial | | |
+| | | downloader: the ROM log has "Device init: fail" (0x8f010b74) for the eMMC, twice on | | |
+| | | 2026-11-15 with BOOT1 enabled, after Linux and after a pb loaded over USB. Only a power | | |
+| | | cycle was seen to boot from the eMMC then. Not looked into: the eMMC's reset line, the | | |
+| | | boot mode the fuses select, what the earlier watchdog resets (F-450) came back to | | |
 
 ## Dependencies / vendored code
 

@@ -1647,6 +1647,19 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | (`testbench/board/pico8ml/patches`) takes them from the TCM or the OCRAM below BL31, as the 8MM | | |
 | | | does. pb's `.data` is in the TCM on the 8MQ: `PLAT_BL_PARAMS_LIMIT` is the TCM's end, 0x820000 | | |
 | | | 2026-11-15, fixed with D-088 (`971099fc`): pb proper is in DRAM, `plat_bl_params` is in a section of its own at `PLAT_BL_PARAMS_BASE`, the end of the SPL's window (the 8MQ's TCM, the 8M Plus's OCRAM), outside `pb` and `buffers`, mapped, and in the image data regions' check | | |
+| F-451 | `src/plat/imx8m/spl/`, the i.MX8MQ | The SPL, a HABv4 plugin (D-088), boots from the eMMC  | Seen (board) | fixed |
+| | | but can't hand pb proper over to the ROM's serial downloader: the downloader takes one | | |
+| | | image (8MQ RM 6.1.8.2.1.7), and after the plugin it either goes on without pb proper | | |
+| | | (return 1) or refuses everything (return 0, HAB failed); both on the pico8ml. USB | | |
+| | | recovery with the SPL needs the SPL to download pb proper itself, over its own SDP on pb's | | |
+| | | DWC3 driver as U-Boot's 8MQ SPL does, or a single-stage pb for uuu. D-089: the SPL is a | | |
+| | | fastboot device in a serial download, in the code (`spl/fb_proto.c`, `fb_usb.c`, `hab.c`; | | |
+| | | `test_fb_proto`, `test_fb_usb`) | | |
+| | | 2026-11-15, on the closed pico8ml: `uuu` (`SDP: boot`, `FB: download`, `FB: boot`) and | | |
+| | | Android's `fastboot` (`stage`, `continue`) load pb proper, HAB authenticates it in 3.7 s | | |
+| | | and it stops in command mode; a cut download, another header and a changed byte are | | |
+| | | refused. The first runs hung in the HAB step: `report_status` writes 32 bit words, the SPL | | |
+| | | gave it bytes. The session has the watchdog since | | |
 
 ## Dependencies / vendored code
 

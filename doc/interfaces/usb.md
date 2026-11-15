@@ -342,6 +342,10 @@ that doesn't have it. Only the DWC3 has it.
 | endpoint 0                    |                              | no alignment, and isn't changed |
 |                               |                              | until it is sent                |
 
+The DWC3's driver copies endpoint 0's data stage to the host into memory of its own before it is
+sent (D-089): the i.MX8M SPL's stack answers from on-chip RAM, and what the controller reads and
+writes there is in DRAM.
+
 The caps tell a host the buffer's size and the largest transfer (`command-mode.md` 5.1); both
 are `CONFIG_CM_BUF_SIZE_KiB` today.
 

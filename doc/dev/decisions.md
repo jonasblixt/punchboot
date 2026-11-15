@@ -108,7 +108,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-086 | The software crypto backend is the core's        | In force; the documents wait for Jonas's review    |
 | D-087 | A build may forbid every fuse write              | In force (Jonas: "the EVK must never write fuses") |
 | D-088 | The i.MX8M boots pb in two stages, one image     | Accepted (Jonas); the code follows                 |
-| D-089 | The 8MQ SPL's USB recovery: fastboot             | Accepted (Jonas); Jonas writes the SPL's part      |
+| D-089 | The 8MQ SPL's USB recovery: fastboot             | In force; on the pico8ml (2026-11-15)              |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2160,5 +2160,21 @@ recovery needs the SPL to download pb proper itself.
 - **The stack**: one optional controller operation, `xfer_start_short` (`usb.md` 4.5), for
   fastboot's commands, which are as long as they are; only the DWC3 has it. Command mode's
   reads stay exact.
-- **The SPL's part is Jonas's**: the protocol, the USB glue and the step that decides whether
-  the downloaded pb proper may start.
+- **The SPL's part** (Jonas wrote `fb_proto.h` and handed the rest over, 2026-11-15: "I want you
+  to implement the fastboot for the spl"): the protocol (`spl/fb_proto.c`), the USB glue
+  (`spl/fb_usb.c`) and the step that decides whether the downloaded pb proper may start
+  (`spl_imx8mq.c`, `spl/hab.c`). What was settled in writing it, `plat-imx.md` 2 has the rest:
+  - **The host downloads the image it loaded the plugin from**, `pb_signed_uuu.imx`: one file
+    for both steps, no output of its own for pb proper.
+  - **What starts**: the download's header for pb proper must be the one the ROM authenticated
+    with the plugin, and HAB authenticates pb proper before the jump, as the 8M Plus's SPL has
+    it (`security.md` 1). On a closed device nothing starts that HAB refused.
+  - **The SPL never returns to the ROM** from a serial download: it starts pb proper or resets.
+  - **The product id is 0x0001 for now**, pid.codes' test id, behind `PB_SPL_USB_PID`: Jonas
+    registers the SPL's own.
+  - **The DWC3 sends endpoint 0's replies from its own memory**, in DRAM in the SPL: nothing
+    says the controller reaches the TCM the SPL runs in.
+  - **A board without `IMX8M_CM_USB1` has no USB recovery.** No option of its own: where the
+    port is, the SPL has it.
+  - **The watchdog runs in the session** where the build has it: the step that decides calls
+    the ROM, and the first run on the pico8ml hung there with nothing to reset it.

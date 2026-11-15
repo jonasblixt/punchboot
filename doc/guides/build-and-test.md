@@ -38,6 +38,33 @@ make BOARD=src/board/<x> KCONFIG_CONFIG=configs/<x>_defconfig CROSS_COMPILE=<arm
   i.MX RT only. It covers AHAB (i.MX8DXL/8QXP/8ULP/9).
 - MBEDTLS_DIR must point to Mbed TLS 3.4.0 sources (set in the container).
 
+## The i.MX8MQ over USB
+
+The 8MQ's serial downloader runs the SPL and can't load pb proper after it, so the SPL is a
+fastboot device there and takes pb proper from the host (D-089, `plat-imx.md` 2). The host sends
+`pb_signed_uuu.imx` twice, with `uuu`:
+
+```
+uuu_version 1.4.0
+CFG: FB: -vid 0x1209 -pid 0x0001
+SDP: boot -f pb_signed_uuu.imx
+FB: download -f pb_signed_uuu.imx
+FB: boot
+FB: done
+```
+
+- The product id is the SPL's, `PB_SPL_USB_PID`: 0x0001 until its own is registered. The host
+  needs access to it (a udev rule beside pb's own, `1209:2019`).
+- A ROM that enumerates with other ids than uuu knows needs a line for them, as the pico8ml's:
+  `CFG: SDP: -chip MX8MQ -vid 0x0201 -pid 0x1234`.
+- pb proper stops in command mode (`CONFIG_CM_ON_SERIAL_DOWNLOAD`), as `1209:2019`. About 9 s
+  on the pico8ml, 3.7 s of them HAB's authentication of pb proper.
+- Android's `fastboot` does the second step too: `fastboot stage pb_signed_uuu.imx`, then
+  `fastboot continue`.
+- A build that gives the SPL pb's own product id (`PB_SPL_USB_PID=0x2019`) makes `uuu` send
+  fastboot's commands to every pb on the host's USB: `uuu -m <bus>:<port>` names the one.
+- The i.MX8M Plus needs none of it: its ROM streams the whole image, `uuu pb.imx`.
+
 ## Dev container
 
 `docker/Dockerfile` (Debian trixie) contains:

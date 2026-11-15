@@ -92,13 +92,53 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
     data cache to the point of coherency before it returns: the ROM may run it with the D-cache
     on. Its `.bss` and stack are at the top of its window, below the RAM log: the ROM loads the
     plugin's CSF and pb proper's IVT right after the SPL's image.
-    - **Over USB the plugin can't hand over** (F-451). The serial downloader takes one image:
-      "JUMP_ADDRESS is the last command that the host can send" (8MQ RM 6.1.8.2.1.7). A plugin
-      that returns 1 there makes the ROM go on to pb proper, which the host hasn't sent, and the
-      ROM serves USB no more; one that returns 0 leaves HAB failed (0x33), and the ROM refuses
-      every command after it (both on the pico8ml). In a serial download (the ROM log's event
-      0xd0) the SPL brings up DRAM and returns 0. USB recovery needs an SPL that downloads pb
-      proper itself, as U-Boot's 8MQ SPL does with its own SDP.
+    - **Over USB the SPL is a fastboot device** (D-089, F-451). The serial downloader takes one
+      image: "JUMP_ADDRESS is the last command that the host can send" (8MQ RM 6.1.8.2.1.7). A
+      plugin that returns 1 there makes the ROM go on to pb proper, which the host hasn't sent,
+      and the ROM serves USB no more; one that returns 0 leaves HAB failed (0x33), and the ROM
+      refuses every command after it (both on the pico8ml). So in a serial download (the ROM
+      log's event 0xd0) the SPL doesn't return: it brings up DRAM, takes USB1 from the ROM (its
+      clocks, its PHY and the DWC3, as `plat_cm_init()`) and is a fastboot device, which the
+      host sends pb proper to (`spl/fb_usb.c`, `spl/fb_proto.c`, `spl/hab.c`).
+      - **The device**: pb's vendor id with a product id of the SPL's own, 0x0001, pid.codes'
+        test id, until one is registered (`PB_SPL_USB_PID`, the board's `makefile.mk` or the
+        command line); the interface fastboot's hosts look for (0xff, 0x42, 3), the bulk
+        endpoints pb's device has, no serial number. The commands: `getvar:` of `version`,
+        `product` and `max-download-size`, `download:<size>`, `boot` and `continue`. Any other
+        is `FAIL`. Nothing of the device is told but that it is pb's SPL (`security.md` 4.7).
+      - **The host downloads the image the plugin came from**, `pb_signed_uuu.imx`, whole. It
+        goes to DRAM where pb proper's IVT in it is at its own address (`PB_ENTRY - 0x40` less
+        the IVT's offset in the image, a cache line: the build checks it), at most to the end
+        of pb proper's region, in whole packets.
+      - **What starts** (`security.md` 1). The header in the download is the one the ROM loaded
+        and authenticated with the plugin, which the SPL checked against its build; the
+        download reaches its CSF; and HAB authenticates pb proper where it is
+        (`authenticate_image` between HAB's `entry` and `exit`, RVT at 0x880, as the 8M Plus's
+        SPL). On a closed device nothing starts that HAB refused. On one that isn't, HAB's
+        failure is its events only, as for the ROM's own image. What was refused isn't tried
+        again: the host downloads again. Then the host gets its `OKAY`, the device leaves the
+        bus, the SPL cleans the D-cache and jumps to pb proper's entry. pb proper finds the ROM's
+        event 0xd0 and stops in command mode (`CONFIG_CM_ON_SERIAL_DOWNLOAD`). HAB takes 3.7 s
+        on the pico8ml (RSA 4096, the caches off as the ROM has them) and 2.3 KiB of the SPL's
+        stack. Its `report_status` writes two 32 bit words.
+      - **Its waits**: 10 s for a host to configure the device and 10 s for a transfer inside a
+        command, none for a command. A session that is lost (a bus reset, a host that stopped)
+        starts the device over, and what was downloaded is dropped. No host, or a controller
+        that failed: the SPL resets through WDOG1, and the ROM is in its serial downloader
+        again. It never returns to the ROM. Where the build has the watchdog
+        (`CONFIG_ENABLE_WATCHDOG`) WDOG1 is armed for the session, 30 s, and kicked every round:
+        a call into the ROM that hangs resets too. pb proper arms it again with its own time.
+      - **Its memory**: what the controller reads and writes of the SPL's own is in DRAM, at
+        the start of pb's buffers (`.no_init` in `spl/link.lds`), and the DWC3's driver sends
+        endpoint 0's replies from there (`usb.md` 5). Nothing says the controller reaches the
+        TCM.
+      - **Only with `IMX8M_CM_USB1`**: a board without the port has no USB recovery. Its SPL
+        returns 0 in a serial download, and the ROM stays there.
+      - The host, `uuu` (`build-and-test.md`, "The i.MX8MQ over USB"); Android's `fastboot`
+        speaks it too (`stage`, `continue`). uuu's `FB: boot` sends `boot:`.
+      - On the closed pico8ml (2026-11-15): both hosts, about 9 s from the ROM to pb proper's
+        command mode; a download that is cut short, one with another header and one with a
+        changed byte of pb proper are refused, and the right one starts after them.
     - **A board may give the SPL a console**: `imx8m_spl_console_init()`
       (`include/plat/imx8m/spl.h`), the pico8ml's UART1, and sets `PB_SPL_CONSOLE` in its
       `makefile.mk`: pb proper then doesn't print the SPL's lines again (`ramlog_kept()`); they
@@ -107,8 +147,9 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   - **8MP, an image of the v2 ROM** (no plugins). The SPL reads pb proper's IVT and image with
     the ROM API at 0x980 (`download_image`, `query_boot_infor` as U-Boot's
     `arch/arm/mach-imx/romapi.c`: the arguments XORed into the last one), checks the IVT as the
-    8MQ's SPL does, calls HAB's `authenticate_image` (RVT at 0x900) and jumps to pb proper only when
-    it returns its start. Over USB the ROM API streams: the image is read in order. The v2 ROM
+    8MQ's SPL does, calls HAB's `authenticate_image` (RVT at 0x900, `spl/hab.c`) and jumps to pb
+    proper only when it returns pb proper's entry. Over USB the ROM API streams: the image is
+    read in order. The v2 ROM
     takes no return from the SPL: a failure resets through WDOG1 (`platform.md` 2).
   - **pb proper** is linked at the board's `PB_ENTRY` in DRAM, after its buffers. Its entry turns
     the MMU and the D-cache off and invalidates the cache (F-207), as before.
@@ -330,9 +371,9 @@ keys, and CAAM's MID for OP-TEE.
 |        | DCD                                 | `PB_ENTRY - 0xC00`     | download CSF (0x00910000) |
 | imx8m  | 8MQ: NXP's `mkimage_imx8m`, the SPL | 8MQ: the SPL's at its  | HABv4: 8MQ a CSF for the  |
 |        | as the plugin, pb proper as the     | entry - 0x40, pb       | plugin and pb proper's    |
-|        | loader; 8MP: `mkimage -T            | proper's at `PB_ENTRY  | IVT, one for pb proper    |
-|        | imx8mimage` for the SPL, pb proper  | - 0x40`                |                           |
-|        | with its IVT after it               |                        |                           |
+|        | loader; 8MP: `mkimage -T            | proper's at `PB_ENTRY  | IVT, one for pb proper;   |
+|        | imx8mimage` for the SPL, pb proper  | - 0x40`                | 8MP one for the SPL, one  |
+|        | with its IVT after it               |                        | for pb proper             |
 | imx8x  | `mkimage_imx8`, the SCFW, the AHAB  | -                      | AHAB CSF, CST (8QXP)      |
 |        | container                           |                        |                           |
 | imxrt  | `mkimage -T imximage`, a flash      | -                      | -                         |
@@ -347,12 +388,13 @@ The stages are in `src/plat/<p>/makefile.mk` (`platform.md` 6.2), their files in
 | `imx6ul_sign_desc`  | `IMX6UL_SIGN_IMAGE`        | `pb.csf`; `pb_uuu.csf` for the serial downloader        |
 | `imx6ul_sign_image` | `IMX6UL_SIGN_IMAGE`        | `pb_csf.bin`, `pb_signed.imx` (two zero blocks before); |
 |                     |                            | `pb_csf_uuu.bin`, `pb_signed_uuu.imx`                   |
-| `imx8m_image`       | `IMX8M_CREATE_IMX_IMAGE`   | `pb.imx` from `spl.bin` and `pb.bin`; 8MQ:              |
-|                     |                            | `spl_pad.bin`, `pb_pad.bin`, `pb_pad.imx`               |
-| `imx8m_sign_desc`   | `IMX8M_SIGN_IMAGE` (8MQ)   | `spl.csf`, `pb.csf`                                     |
-| `imx8m_sign_image`  | `IMX8M_SIGN_IMAGE` (8MQ)   | `spl_csf.bin`, `pb_csf.bin`, `pb_signed.imx` (33 KiB of |
-|                     |                            | zeros before,                                           |
-|                     |                            | the ROM's IVT offset), `pb_signed_uuu.imx` (without)    |
+| `imx8m_image`       | `IMX8M_CREATE_IMX_IMAGE`   | `pb.imx` from `spl.bin` and `pb.bin`, its offsets in    |
+|                     |                            | `pb.imx.offsets`; 8MQ: `pb_pad.bin`, `pb_pad.imx`; 8MP: |
+|                     |                            | `spl.imx`, `pb_part.bin`                                |
+| `imx8m_sign_desc`   | `IMX8M_SIGN_IMAGE`         | `spl.csf`, `pb.csf`                                     |
+| `imx8m_sign_image`  | `IMX8M_SIGN_IMAGE`         | `spl_csf.bin`, `pb_csf.bin`, `pb_signed.imx`; 8MQ: with |
+|                     |                            | 33 KiB of zeros before, the ROM's IVT offset, and       |
+|                     |                            | `pb_signed_uuu.imx` without                             |
 | `imx8x_image`       | `IMX8X_CREATE_IMX_IMAGE`   | `pb.imx`                                                |
 | `imx8x_sign_desc`   | `IMX8X_SIGN_IMAGE`         | `pb.csf`; on the DXL it stops the build (not supported) |
 | `imx8x_sign_image`  | `IMX8X_SIGN_IMAGE`         | `pb_signed.imx`                                         |
@@ -375,6 +417,11 @@ variables set with `?=`:
 |        | `IMX8X_KEY_INDEX`, `IMX8X_KEY_REVOKE_MASK`                                                |
 | imxrt  | `MKIMAGE`; `IMXRT_IMAGE_CFG`, the board's `imximage.cfg`; `IMXRT_FCB_SRC`, the board's    |
 |        | FCB: a C file with its 512 bytes in `.fcb`                                                |
+
+The i.MX8M's two CSFs are made from one template (`pb.csf.template`). The 8MQ's plugin has no
+`[Unlock]`: they are pb proper's, the image HAB exits into. The 8M Plus's SPL and pb proper both
+have them: its ROM leaves HAB after the SPL, and what it locks then stays locked. The 8M Plus's
+signed image is built, not run: the EVK is open and its fuses are never written (D-087).
 
 The keys default to the Kconfig strings of the same names. A board at level 3 starts from `pb.bin`,
 linked at `PB_ENTRY` and entered at its first byte, and puts around it what the first table says.
@@ -417,9 +464,11 @@ Where each port is (2026-11-15).
 | MMU from `pb_mmu_init()`             | yes          | yes               | yes        | n/a       | F-158, F-269  |
 | Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
 | Image stages                         | yes          | yes               | yes        | yes       | F-240         |
-| Two stages, pb proper in DRAM        | n/a          | 8MQ from the eMMC | n/a        | n/a       | D-088, F-451  |
-| (`platform.md` 2)                    |              | (pico8ml); USB    |            |           |               |
-|                                      |              | open; 8MP built   |            |           |               |
+| Two stages, pb proper in DRAM        | n/a          | 8MQ from the eMMC | n/a        | n/a       | D-088, D-089  |
+| (`platform.md` 2)                    |              | and over USB, the |            |           |               |
+|                                      |              | SPL's fastboot    |            |           |               |
+|                                      |              | (pico8ml); 8MP    |            |           |               |
+|                                      |              | built, not run    |            |           |               |
 | The SPL's TZASC read back            | n/a          | yes               | n/a        | n/a       | D-088         |
 | Functions for boards, not a          | yes          | n/a               | yes        | n/a       | F-440         |
 | structure (7)                        |              |                   |            |           |               |

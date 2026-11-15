@@ -971,7 +971,7 @@ CONFIG_IMX6UL_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_
 - The stages make the files of 2.x's recipes, with the same names (`plat-imx.md` 6). The DXL
   EVK's stages are `imx8x_*`, where they were `imx8xl_*`.
 - New options in the defconfig: the 8M's `IMX8M_CREATE_IMX_IMAGE` (default y),
-  `IMX8M_SIGN_IMAGE` (the 8MQ, default n) and its keys; the 8X's keys, `IMX8X_SRK_TABLE`,
+  `IMX8M_SIGN_IMAGE` (default n) and its keys; the 8X's keys, `IMX8X_SRK_TABLE`,
   `IMX8X_SIGN_CERT`, `IMX8X_KEY_INDEX` and `IMX8X_KEY_REVOKE_MASK`; the RT's
   `IMXRT_CREATE_IMX_IMAGE` and `IMXRT_CREATE_FLASH_IMAGE` (default y). The make variables of the
   keys' names still win, from the command line or the board's `makefile.mk`.
@@ -981,7 +981,7 @@ CONFIG_IMX6UL_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_
   files: its own `CST_TOOL`; signing off and its own target after `<p>_image` in `image-y`,
   with its `FINAL_OUTPUT`; or both options off and its own tooling from `pb.bin`.
 - **The i.MX8M's images hold two stages** (D-088): `pb.imx` and `pb_signed.imx` have the SPL
-  and pb proper, built from `spl.bin` and `pb.bin`. The 8MQ's has two CSFs, the plugin's and pb
+  and pb proper, built from `spl.bin` and `pb.bin`. Signed, it has two CSFs, the SPL's and pb
   proper's, at the offsets in `pb.imx.offsets` (`plat-imx.md` 6). Tooling of its own (level 3)
   starts from both binaries.
 
@@ -1293,4 +1293,5 @@ The port is done when the board passes `board.md` 9. A product in the field also
 - On a SoC with a TrustZone DRAM filter: that the filter is out of bypass when pb's
   preconditions are checked, or pb refuses every boot (section 18).
 - On an i.MX8M: that the two-stage image boots from the boot partition the product updates, and
-  how the factory and the field recover over USB (F-451 on the 8MQ).
+  how the factory and the field recover over USB: on the 8MQ the host sends the image twice,
+  to the ROM and to the SPL's fastboot (D-089, `build-and-test.md`).
