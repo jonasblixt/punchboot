@@ -1,19 +1,26 @@
 #ifndef INCLUDE_PLAT_IMX8M_MM_H
 #define INCLUDE_PLAT_IMX8M_MM_H
 
-#define IMX8M_ROM_BASE             (0x00000000) /* IMX8M_ROM_SIZE: makefile.mk */
-#define IMX8M_OCRAM_BASE           (0x00900000) /* IMX8M_OCRAM_SIZE: makefile.mk */
-#define IMX8M_AIPS_BASE            (0x30000000) /* AIPS1..3, and the 8MP's AIPS5 */
-#define IMX8M_AIPS_SIZE            (0x01000000)
-#define IMX8M_AIPS4_BASE           (0x32C00000) /* AIPS4: the TZASC, the 8MP's HSIO */
-#define IMX8M_AIPS4_SIZE           (0x00400000)
-#define IMX8M_GPV_BASE             (0x32000000) /* The NoC's global programmer's view */
-#define IMX8M_GPV_SIZE             (0x00020000)
-#define IMX8MP_HSIO_BLK_CTRL_BASE  (0x32F10000)
-#define IMX8MP_HSIO_BLK_CTRL_SIZE  (0x00010000)
-#define IMX8M_USB_SIZE             (0x00200000) /* USB1 and USB2 from IMX8M_USB1_BASE */
-/* The pointer to the ROM's event log (NXP AN12853 Table 11) */
-#define IMX8M_ROM_LOG_POINTER      (0x000009E0)
+#define IMX8M_ROM_BASE            (0x00000000) /* IMX8M_ROM_SIZE: makefile.mk */
+#define IMX8M_OCRAM_BASE          (0x00900000) /* IMX8M_OCRAM_SIZE: makefile.mk */
+#define IMX8M_AIPS_BASE           (0x30000000) /* AIPS1..3, and the 8MP's AIPS5 */
+#define IMX8M_AIPS_SIZE           (0x01000000)
+#define IMX8M_AIPS4_BASE          (0x32C00000) /* AIPS4: the TZASC, the 8MP's HSIO */
+#define IMX8M_AIPS4_SIZE          (0x00400000)
+#define IMX8M_GPV_BASE            (0x32000000) /* The NoC's global programmer's view */
+#define IMX8M_GPV_SIZE            (0x00020000)
+#define IMX8MP_HSIO_BLK_CTRL_BASE (0x32F10000)
+#define IMX8MP_HSIO_BLK_CTRL_SIZE (0x00010000)
+#define IMX8M_USB_SIZE            (0x00200000) /* USB1 and USB2 from IMX8M_USB1_BASE */
+/* The pointer to the ROM's event log: AN12853 Table 11 has 0x9e0 for the
+ * mSCALE series, the 8M Plus's. The 8MQ's ROM has it at 0x960, beside its
+ * boot information's (Boot_SW_Info, 8MQ RM 6.1.13) at 0x968: read on the
+ * pico8ml, where 0x9e0 is code (F-445) */
+#ifdef CONFIG_PLAT_IMX8MQ
+#define IMX8M_ROM_LOG_POINTER (0x00000960)
+#else
+#define IMX8M_ROM_LOG_POINTER (0x000009E0)
+#endif
 /* The HAB API's RVT: U-Boot's addresses, the RMs don't have them */
 #define IMX8MQ_HAB_RVT_BASE        (0x00000880)
 #define IMX8MP_HAB_RVT_BASE        (0x00000900)

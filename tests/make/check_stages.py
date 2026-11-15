@@ -342,6 +342,7 @@ IN_TREE = {
     "imx8dxlevk": "pb.imx",
     "imx8mevk": "pb_signed.imx",
     "imx8mpevk": "pb.imx",
+    "pico8ml": "pb_signed.imx",
 }
 
 

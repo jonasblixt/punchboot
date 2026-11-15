@@ -27,6 +27,10 @@ enum rom_log_param {
     P_AUTH, /* A word, bits 7:0 are 0xf0 if the image passed */
     P_TICK, /* A word, the time (the unit isn't documented) */
     P_VERSION, /* No word: bits 7:0 of the event word are a version */
+    /* A tick the ROM logs only sometimes, last: a word whose bits 31:24,
+     * where an event has its ID, are 0. The 8MQ's authentication has one
+     * when it boots from a device, none in serial download */
+    P_TICK_OPT,
 };
 
 #define ROM_LOG_MAX_PARAMS 2
@@ -142,8 +146,16 @@ static const struct rom_log_event events_v2[] = {
     EV0(0xa1, "IVT header not valid"),
     EV2(0xc0, "Jump to boot image", P_HEX, P_TICK),
     EV0(0xd0, "Serial download"),
+    EV2(0xd1, "Jump to the serial download image", P_HEX, P_TICK),
     EV0(0xe0, "Internal use"),
     EV0(0xf0, "ROM exception handler"),
+};
+
+/* The i.MX8MQ's ROM, where it isn't the 8M Plus's (read on the pico8ml):
+ * authentication's tick only when it boots from a device, not in serial
+ * download */
+static const struct rom_log_event events_v2_8mq[] = {
+    EV2(0xa0, "Authentication", P_AUTH, P_TICK_OPT),
 };
 
 struct rom_log_defs {
@@ -152,6 +164,12 @@ struct rom_log_defs {
     unsigned int id_shift;
     const struct rom_log_event *events;
     size_t n_events;
+    const struct rom_log_event *overrides; /* Looked up before 'events' */
+    size_t n_overrides;
+    /* A zero word inside the log: it ends at its last word that isn't
+     * zero. Else at its first zero word, after which a buffer may hold an
+     * earlier boot's events */
+    bool zero_inside;
 };
 
 static const struct rom_log_defs rom_log_defs[] = {
@@ -168,6 +186,16 @@ static const struct rom_log_defs rom_log_defs[] = {
         .id_shift = 24,
         .events = events_v2,
         .n_events = ARRAY_SIZE(events_v2),
+    },
+    {
+        .version = IMX_ROM_LOG_DEFS_V2_8MQ,
+        .id_mask = GENMASK_32(31, 24),
+        .id_shift = 24,
+        .events = events_v2,
+        .n_events = ARRAY_SIZE(events_v2),
+        .overrides = events_v2_8mq,
+        .n_overrides = ARRAY_SIZE(events_v2_8mq),
+        .zero_inside = true,
     },
 };
 
@@ -201,6 +229,11 @@ static const struct rom_log_event *find_event(const struct rom_log_defs *defs, u
 {
     uint32_t id = event_id(defs, word);
 
+    for (size_t i = 0; i < defs->n_overrides; i++) {
+        if (defs->overrides[i].id == id)
+            return &defs->overrides[i];
+    }
+
     for (size_t i = 0; i < defs->n_events; i++) {
         if (defs->events[i].id == id)
             return &defs->events[i];
@@ -216,13 +249,21 @@ static const struct rom_log_event *find_event(const struct rom_log_defs *defs, u
 #define ROM_LOG_LINE_MAX 128
 
 /* Parameter words that follow an event */
-static size_t param_words(const struct rom_log_event *ev)
+/* The words of the event at log[idx]'s parameters */
+static size_t
+param_words(const struct rom_log_event *ev, const uint32_t *log, size_t idx, size_t n_words)
 {
     size_t n = 0;
 
     for (size_t i = 0; i < ROM_LOG_MAX_PARAMS; i++) {
-        if (ev->params[i] != P_NONE && ev->params[i] != P_VERSION)
+        if (ev->params[i] == P_TICK_OPT) {
+            size_t w = idx + 1 + n;
+
+            if (w < n_words && (log[w] & GENMASK_32(31, 24)) == 0)
+                n++;
+        } else if (ev->params[i] != P_NONE && ev->params[i] != P_VERSION) {
             n++;
+        }
     }
 
     return n;
@@ -240,6 +281,7 @@ static size_t print_param(char *out, enum rom_log_param p, uint32_t value, bool 
         return snprintf(
             out, ROM_LOG_LINE_MAX / 2, "%s%s", sep, ((value & 0xff) == 0xf0) ? "pass" : "fail");
     case P_TICK:
+    case P_TICK_OPT:
         return snprintf(out, ROM_LOG_LINE_MAX / 2, "%stick %u", sep, value);
     case P_VERSION:
         return snprintf(out, ROM_LOG_LINE_MAX / 2, "%s%u", sep, value & 0xff);
@@ -258,7 +300,7 @@ static size_t print_event(char *line,
 {
     /* No field widths in the firmware snprintf */
     const char *pad = (idx < 10) ? " " : "";
-    size_t n_params = (ev != NULL) ? param_words(ev) : 0;
+    size_t n_params = (ev != NULL) ? param_words(ev, log, idx, n_words) : 0;
     size_t pos;
 
     if (ev == NULL) {
@@ -290,6 +332,9 @@ static size_t print_event(char *line,
         &line[pos], ROM_LOG_LINE_MAX - pos, (n_params == 0) ? "           %s" : "  %s", ev->name);
 
     for (size_t i = 0, word = 1; i < ROM_LOG_MAX_PARAMS && ev->params[i] != P_NONE; i++) {
+        if (ev->params[i] == P_TICK_OPT && word > n_params)
+            break;
+
         uint32_t value = (ev->params[i] == P_VERSION) ? log[idx] : log[idx + word++];
 
         /* "name: value", or "name: state, value" when the name has a state */
@@ -299,6 +344,24 @@ static size_t print_event(char *line,
     pos += snprintf(&line[pos], ROM_LOG_LINE_MAX - pos, "\n");
     *len = pos;
     return 1 + n_params;
+}
+
+/* The log's words where the ROM writes a zero inside it: up to its last
+ * word that isn't zero. Else all of them: the log ends at an event word that
+ * is zero (struct rom_log_defs), a parameter may be */
+static size_t log_end(const struct rom_log_defs *defs, const uint32_t *log, size_t n_words)
+{
+    if (defs->zero_inside) {
+        while (n_words > 0 && log[n_words - 1] == 0)
+            n_words--;
+    }
+    return n_words;
+}
+
+/* Whether the word at an event's place ends the log */
+static bool log_ends_at(const struct rom_log_defs *defs, uint32_t word)
+{
+    return word == 0 && !defs->zero_inside;
 }
 
 int imx_rom_log_decode(unsigned int version,
@@ -321,7 +384,9 @@ int imx_rom_log_decode(unsigned int version,
 
     pos += snprintf(out, out_size, "ROM log at 0x%08x\n", (unsigned int)log_addr);
 
-    for (size_t i = 0; i < n_words && log[i] != 0;) {
+    n_words = log_end(defs, log, n_words);
+
+    for (size_t i = 0; i < n_words && !log_ends_at(defs, log[i]);) {
         size_t len;
 
         if (out_size - pos < ROM_LOG_LINE_MAX) {
@@ -410,13 +475,15 @@ bool imx_rom_log_find(unsigned int version, const uint32_t *log, size_t n_words,
     if (defs == NULL)
         return false;
 
-    for (size_t i = 0; i < n_words && log[i] != 0; i++) {
+    n_words = log_end(defs, log, n_words);
+
+    for (size_t i = 0; i < n_words && !log_ends_at(defs, log[i]); i++) {
         const struct rom_log_event *ev = find_event(defs, log[i]);
 
         if (event_id(defs, log[i]) == event)
             return true;
         if (ev != NULL)
-            i += param_words(ev); /* Skip the parameters */
+            i += param_words(ev, log, i, n_words); /* Skip the parameters */
     }
 
     return false;
