@@ -248,7 +248,8 @@ The 8M's two SoCs differ in the clocks and the power only: `imx8m_soc_cm_usb_pow
 downloader uses (D-084): the 6UL's, the 8MQ's and the RT1060's OTG1 or USB1 alone (6UL RM 8.2.4,
 8MQ RM 6.1.2.4, RT RM 9.9.1), both of the 8M Plus's (8MP RM 6.1.7), the 8QXP's USB 2.0 OTG and
 USB 3.0, the 8DXL's OTG1 and OTG2 (QXP and DXL RM 5, USB serial download boot). No board in the
-tree uses `IMX8M_CM_USB2` or `IMX8X_CM_USB_OTG1`: they are built, not run (F-402).
+tree uses `IMX8M_CM_USB2` or `IMX8X_CM_USB_OTG1`. OTG1 ran on the MEK (log 2026-11-15); the 8DXL's
+OTG1 and the 8M Plus's USB2 are built, not run (F-402).
 
 ## 4. Security
 
@@ -455,8 +456,7 @@ Where each port is (2026-11-15).
 | `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
 | command mode                         |              |                   |            |           |               |
 | `plat_get_status()`                  | yes          | yes               | yes        | yes       | F-248         |
-| `plat_cm_init()`                     | yes          | yes, USB2 not run | yes, OTG1  | yes       | F-402         |
-|                                      |              |                   | not run    |           |               |
+| `plat_cm_init()`                     | yes          | yes, USB2 not run | yes        | yes       | F-402         |
 | The board's regions in the map (5.2) | yes          | yes               | yes        | n/a       | F-269         |
 | SoC memory for image data,           | n/a          | yes (D-088)       | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |

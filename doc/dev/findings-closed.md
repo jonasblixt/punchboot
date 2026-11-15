@@ -1698,6 +1698,9 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `IMX8X_CM_USB_OTG1` (8QXP and 8DXL) and `IMX8M_CM_USB2` (8M Plus) are new; built for the | | |
 | | | MEK, the 8DXL EVK and the 8MP EVK, not run; `check_cm_usb_kconfig` chooses them. The 6UL's | | |
 | | | and the RT1060's OTG2, the 8MQ's USB2: no option, not a ROM boot port (D-084) | | |
+| | | 2026-11-15, on the MEK (both ports wired): OTG1's pb from BOOT1 enumerates on OTG1 | | |
+| | | (ChipIdea at 0x5b0d0000), random 15 MB writes 5 of 5, each verified. Not run: the 8DXL's | | |
+| | | OTG1, the 8M Plus's USB2 | | |
 
 ## Dependencies / vendored code
 

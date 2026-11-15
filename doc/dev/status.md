@@ -18,7 +18,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR, the MEK from BOOT0: `246bd897` (log 2026-11-14). The 8MP EVK:
+  - RT1060 from its NOR: `246bd897` (log 2026-11-14). The MEK: `a875cf4b`'s pb in BOOT1
+    (enabled), BOOT0 keeps its pb of 2026-11-14; both its USB ports are wired. The 8MP EVK:
     `e5a4efc4`'s two-stage pb in BOOT1 (enabled), the single-stage pb of 2026-11-14 in BOOT0;
     its switches on serial download until Jonas sets them back.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
@@ -42,8 +43,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
    - The bench of what landed without a board (log 2026-11-14): USB on all four, the MMU maps,
      the RT1060's entry (F-210, F-207), the DMA rule (F-282), the 8MP EVK through TF-A, the
      8M's lockdown (D-084).
-   - D-084's rest: F-320, EOL with data (F-263, PR #51), F-322, F-241. F-402 closed: the new
-     ports (8MP USB2, 8X OTG1) are built, not run.
+   - D-084's rest: F-320, EOL with data (F-263, PR #51), F-322, F-241. F-402 closed: the 8X's OTG1
+     ran on the MEK, the 8MP's USB2 is built, not run.
    - F-444 (OP-TEE's SMC on jiffy), F-447 (the 8M's SLC sources), F-432, F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
    review of the guides and the notes.
