@@ -693,6 +693,76 @@ static void test_setup_packet(void **state)
     assert_int_equal(dma_host_in_open(), NO_OF_DQHS);
 }
 
+/* A second SETUP that arrives once the first is copied: the second read of
+ * USBCMD in a poll is the tripwire's check after the copy */
+static unsigned int usbcmd_reads;
+static const struct usb_setup_packet late_setup = {
+    .bRequestType = 0x00,
+    .bRequest = 9,
+    .wValue = 1,
+};
+
+static uint64_t setup_after_the_copy(uintptr_t addr, uint64_t value)
+{
+    if (addr == BASE + CI_USBCMD && ++usbcmd_reads == 2) {
+        uintptr_t qh = (uintptr_t)fake_regs_get(BASE + CI_ENDPTLISTADDR) +
+                       USB_EP0_OUT * sizeof(struct imx_ci_udc_queue_head);
+
+        ram_write(
+            qh + offsetof(struct imx_ci_udc_queue_head, setup), &late_setup, sizeof(late_setup));
+        fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+    }
+
+    return value;
+}
+
+/* RT1060 RM 42.5.6.4.2.1, 6UL RM 54.4.6.4.2 (F-138): the setup status is
+ * cleared first, then the packet is copied under the tripwire. A SETUP
+ * during the copy trips it, one after it sets the status again for the
+ * next poll: neither is acknowledged unread */
+static void test_setup_status_cleared_before_the_copy(void **state)
+{
+    static const struct usb_setup_packet get_descriptor = {
+        .bRequestType = 0x80,
+        .bRequest = 6,
+        .wValue = 0x0100,
+        .wLength = 18,
+    };
+    uintptr_t qh = (uintptr_t)fake_regs_get(BASE + CI_ENDPTLISTADDR) +
+                   USB_EP0_OUT * sizeof(struct imx_ci_udc_queue_head);
+    struct usb_setup_packet pkt;
+    size_t clear = SIZE_MAX;
+    size_t sutw = SIZE_MAX;
+    size_t start;
+    (void)state;
+
+    ram_write(qh + offsetof(struct imx_ci_udc_queue_head, setup),
+              &get_descriptor,
+              sizeof(get_descriptor));
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+    usbcmd_reads = 0;
+    test_on_read = setup_after_the_copy;
+    start = fake_reg_log_len;
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+    test_on_read = NULL;
+    assert_memory_equal(&pkt, &get_descriptor, sizeof(pkt));
+
+    for (size_t i = start; i < fake_reg_log_len; i++) {
+        if (fake_reg_log[i].addr == BASE + CI_ENDPTSETUPSTAT && clear == SIZE_MAX)
+            clear = i;
+        else if (fake_reg_log[i].addr == BASE + CI_USBCMD &&
+                 (fake_reg_log[i].value & USBCMD_SUTW) && sutw == SIZE_MAX)
+            sutw = i;
+    }
+
+    assert_true(clear < sutw);
+
+    /* The late SETUP is the next poll's */
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+    assert_memory_equal(&pkt, &late_setup, sizeof(pkt));
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+}
+
 /* pb's two bulk endpoints (usb.md 6) */
 static const struct usb_endpoint_descriptor bulk_eps[] = {
     { .bLength = 7,
@@ -1427,10 +1497,15 @@ static void test_resets_are_bounded(void **state)
     fake_regs_set(BASE + CI_PORTSC1, 0);
     assert_int_equal(ops->init(), PB_OK);
 
+    /* A tripwire that never holds: the SETUP is given up with the timeout,
+     * its status was cleared before the copy (F-138), and the host asks
+     * again */
     sutw_trips = true;
     fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
     assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_TIMEOUT);
     sutw_trips = false;
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
     assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
 
     fake_us_tick_step = 0;
@@ -1672,6 +1747,7 @@ int main(void)
         cmocka_unit_test_setup(test_buffer_from_inside_a_page_over_several, setup),
         cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
         cmocka_unit_test_setup(test_setup_packet, setup),
+        cmocka_unit_test_setup(test_setup_status_cleared_before_the_copy, setup),
         cmocka_unit_test_setup(test_bus_reset_is_reported, setup),
         cmocka_unit_test_setup(test_status_stage_is_bounded, setup),
         cmocka_unit_test_setup(test_request_during_a_bulk_transfer, setup),

@@ -1021,6 +1021,12 @@ static int imx_ci_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
         struct imx_ci_udc_queue_head *qh = &dqhs[USB_EP0_OUT];
         struct pb_timeout to;
 
+        /* The status is cleared before the copy (RT1060 RM 42.5.6.4.2.1,
+         * F-138): a SETUP during the copy trips the tripwire and is copied
+         * again, one after it sets the status again for the next poll.
+         * Cleared after the copy, a SETUP between the two was lost */
+        mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+
         /* The tripwire trips when a SETUP arrives during the copy, which
          * is made again: bounded, for a controller that keeps it tripped */
         rc = pb_timeout_init_us(&to, IMX_CI_UDC_ENDPT_TIMEOUT_us);
@@ -1040,7 +1046,6 @@ static int imx_ci_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
             qh_give(qh);
         } while (!(mmio_read_32(imx_ci_udc_base + CI_USBCMD) & USBCMD_SUTW));
 
-        mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
         mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, USBCMD_SUTW, 0);
 
         /*
