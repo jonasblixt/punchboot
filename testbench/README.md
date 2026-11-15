@@ -10,6 +10,8 @@ dm-verity.
 | i.MX8M Plus EVK | `configs/imx8mpevk_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-10-30) |
 | jiffy (i.MX6UL) | `configs/jiffy_defconfig`     | boots: kickstart, dm-verity root, login (2026-10-29)              |
 | i.MX8QXP MEK    | `configs/imx8qxmek_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-11-08) |
+| PICO-IMX8MQ     | `configs/pico8ml_defconfig`   | boots through TF-A: kickstart, dm-verity root, login (2026-11-15) |
+|                 |                               | the console took no input after it ("pico8ml: TF-A")              |
 
 | Component                 | Version                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------ |
@@ -17,13 +19,14 @@ dm-verity.
 | Toolchain                 | Buildroot internal: GCC 14, musl (kickstart is linked statically, see its            |
 |                           | `doc/licensing.md`)                                                                  |
 | Linux                     | 6.18.58 (longterm)                                                                   |
-| TF-A                      | v2.12 (imx8mpevk, imx8qxmek with `board/imx8qxmek/patches`, BL31 only)               |
+| TF-A                      | v2.12 (imx8mpevk; imx8qxmek and pico8ml with `board/<board>/patches`), BL31 only     |
 | punchboot                 | this tree (`..`)                                                                     |
 | kickstart                 | branch `master` of `../../kickstart`                                                 |
 | bpak                      | branch `master` of `../../bpak`: libbpak for kickstart, the `bpak` python package as |
 |                           | the host tool                                                                        |
 | NXP CST                   | 3.4.1 (host, Debian source, jiffy's HAB and the MEK's AHAB signature)                |
-| firmware-imx              | 8.27, the LPDDR4 training firmware FW2020.06 (imx8mpevk)                             |
+| firmware-imx              | 8.27, the LPDDR4 training firmware: FW2020.06 (imx8mpevk), the files without a       |
+|                           | version (pico8ml)                                                                    |
 | imx-sc-firmware, imx-seco | 1.18.0, 5.9.4.1: the SCU firmware and the SECO firmware (B0) in the MEK's boot       |
 |                           | container                                                                            |
 
@@ -71,8 +74,8 @@ about that and checks every other download (`BR2_DOWNLOAD_FORCE_CHECK_HASHES`).
 After a new commit of bpak, rebuild what used the host tool:
 `make BOARD=jiffy punchboot-dirclean kickstart-dirclean all`.
 
-Building imx8mpevk extracts firmware-imx and accepts NXP's EULA, imx8qxmek the same for
-imx-sc-firmware and imx-seco.
+Building imx8mpevk or pico8ml extracts firmware-imx and accepts NXP's EULA, imx8qxmek the
+same for imx-sc-firmware and imx-seco.
 
 ### Add-ons
 
@@ -97,7 +100,8 @@ make BOARD=jiffy ADDON=optee   # jiffy with OP-TEE, in output/jiffy-optee
 | File                                  |                                                                             |
 | ------------------------------------- | --------------------------------------------------------------------------- |
 | `punchboot/`                          | punchboot: `pb.imx` (imx8mpevk), `pb_signed.imx` and `pb_signed_uuu.imx`    |
-|                                       | (jiffy, HAB signed with the test keys), `pb.imx` and `pb_signed.imx`        |
+|                                       | (jiffy and pico8ml, HAB signed with the test keys; the pico8ml's            |
+|                                       | `pb_signed.imx` has the ROM's 33 KiB offset), `pb.imx` and `pb_signed.imx`  |
 |                                       | (imx8qxmek: the boot container with the SECO and SCU firmware, AHAB signed) |
 | `boot.bpak`                           | the boot image, for System A/B                                              |
 | `root.bpak`                           | the root image, for Root A/B                                                |
@@ -122,6 +126,9 @@ ROM (HAB) -> punchboot -> [TF-A BL31] -> Linux -> kickstart (/init) -> /sbin/ini
 | `dt`      | device tree         | 0x83f00000           | 0x50000000          | 0x83000000          |
 | `ramdisk` | `kickstart.cpio.gz` | 0x84000000           | 0x50100000          | 0x83100000          |
 
+pico8ml: `atf` at 0x910000 (OCRAM), the others as on imx8mpevk (`Image` at 0x42000000, `dt`
+0x50000000, `ramdisk` 0x50100000), in its first GiB.
+
 The addresses keep clear of what punchboot itself uses while it loads
 (`src/plat/*/link.lds`). The part names are the bpak ids that the boards'
 boot drivers look for (`src/board/<board>/board.c`).
@@ -130,7 +137,7 @@ boot drivers look for (`src/board/<board>/board.c`).
 `rootfs.squashfs` and its dm-verity hash tree, the root hash in the signed
 header. kickstart is built for the board's eMMC (`BR2_PACKAGE_KICKSTART_ROOT_A`
 etc. in the defconfigs): Root A/B are partitions 3 and 4 and the boot state
-5 and 6 in the boards' GPT, on `mmcblk0` (jiffy, the MEK's uSDHC1) and `mmcblk2`
+5 and 6 in the boards' GPT, on `mmcblk0` (jiffy, the MEK's and the pico8ml's uSDHC1) and `mmcblk2`
 (8MP EVK, uSDHC3). It reads the boot state, verifies the root image of the system
 punchboot booted (`/chosen/pb,active-system`) and switches to it.
 
@@ -162,6 +169,29 @@ Three things it takes on this SoC:
 
 The FEC port's PHY (`30be0000.ethernet`, eth0) doesn't answer on MDIO; the
 EQOS port (eth1) probes.
+
+### pico8ml: TF-A
+
+The PICO-IMX8MQ is closed (HAB, the test keys): only `pb_signed.imx` and `pb_signed_uuu.imx`
+run on it. punchboot runs from the TCM and loads BL31 to 0x910000. Upstream TF-A (v2.12 to
+v2.15 and master) doesn't take BL33 from its caller on the 8MQ: it jumps to 0x40200000 with
+x0 = 0, so Linux gets no device tree. v2.12 doesn't build for the 8MQ either. Three patches
+(`board/pico8ml/patches/arm-trusted-firmware`): upstream's two build fixes from v2.13
+(backported), and one that takes BL33 from punchboot's `bl_params` in the TCM, as the other
+i.MX8M do.
+
+The DTS (`board/pico8ml/dts/freescale/imx8mq-pico-pi-pb.dts`) is the upstream PICO-PI tree with
+the memory U-Boot would fix up, 1 GiB, and ramoops at 0x7ff00000. The upstream tree has no memory
+node.
+
+2026-11-15: Linux boots to the login prompt, kickstart verifies Root A and mounts it with
+dm-verity, `S99pbstate` marks System A verified. Open:
+
+- The console took no input afterwards, and the board didn't come back: either it hung after
+  ~12 s without a word, or UART1's receive doesn't work in Linux. Its watchdog wouldn't have
+  reset it: with `fsl,ext-reset-output` (the PICO-PI's DTS) Linux's `imx2_wdt` only asserts
+  WDOG_B, not the SoC's own reset.
+- eth0's PHY doesn't answer at MDIO address 1; the USB host port's DWC3 fails to start.
 
 ### imx8qxmek: TF-A
 
@@ -504,6 +534,10 @@ board/common/
 board/imx8mpevk/
   dts/                   imx8mp-evk-pb.dts: the EVK's device tree without AIPS5 and unused devices
   linux.fragment         on top of the arm64 defconfig: only the i.MX SoCs
+board/pico8ml/
+  dts/                   imx8mq-pico-pi-pb.dts: the PICO-PI's, with the memory and ramoops
+  linux.fragment         on top of the arm64 defconfig: only the i.MX SoCs
+  patches/               TF-A: the 8MQ's build fixes, BL33 from punchboot's bl_params
 board/jiffy/
   dts/                   imx6ul-jiffy.dts (from jiffy's test bench)
   linux.fragment         on top of imx_v6_v7_defconfig

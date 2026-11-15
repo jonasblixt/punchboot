@@ -1,0 +1,92 @@
+From 9975a6af130c51552344eeff018d1ff0bad274d9 Mon Sep 17 00:00:00 2001
+From: Jonas Blixt <jonas@blxt.se>
+Date: Sun, 15 Nov 2026 01:30:00 +0100
+Subject: [PATCH] feat(imx8mq): take BL33 from a bl_params list in x0
+
+A boot loader that starts BL31 itself, without BL2 (punchboot), can
+only choose BL33 when BL31 takes it from the boot loader: imx8mq always
+jumped to PLAT_NS_IMAGE_OFFSET without arguments, so Linux could not be
+BL33 and got no device tree.
+
+Parse a bl_params list in x0 as the other i.MX8M platforms do, from the
+TCM or the non-secure OCRAM, and keep the old BL33 when there is none.
+
+Signed-off-by: Jonas Blixt <jonas@blxt.se>
+---
+ plat/imx/imx8m/imx8mq/imx8mq_bl31_setup.c    | 14 +++++++++++++-
+ plat/imx/imx8m/imx8mq/include/platform_def.h |  4 ++++
+ plat/imx/imx8m/imx8mq/platform.mk            |  4 +++-
+ 3 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/plat/imx/imx8m/imx8mq/imx8mq_bl31_setup.c b/plat/imx/imx8m/imx8mq/imx8mq_bl31_setup.c
+index fdaf9fd22..8a082aa0f 100644
+--- a/plat/imx/imx8m/imx8mq/imx8mq_bl31_setup.c
++++ b/plat/imx/imx8m/imx8mq/imx8mq_bl31_setup.c
+@@ -27,6 +27,7 @@
+ #include <imx_uart.h>
+ #include <imx8m_caam.h>
+ #include <imx8m_ccm.h>
++#include <plat_common.h>
+ #include <plat_imx8.h>
+ 
+ #define TRUSTY_PARAMS_LEN_BYTES      (4096*2)
+@@ -175,7 +176,6 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
+ 	 */
+ 	bl33_image_ep_info.pc = PLAT_NS_IMAGE_OFFSET;
+ 	bl33_image_ep_info.spsr = get_spsr_for_bl33_entry();
+-	SET_SECURITY_STATE(bl33_image_ep_info.h.attr, NON_SECURE);
+ 
+ #if defined(SPD_opteed) || defined(SPD_trusty)
+ 	/* Populate entry point information for BL32 */
+@@ -199,6 +199,18 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
+ #endif
+ #endif
+ 
++	/*
++	 * A boot loader that starts BL31 itself can pass the next images in
++	 * a bl_params list in x0, in the TCM or the OCRAM, as on the other
++	 * i.MX8M. Without one, BL33 is the image at PLAT_NS_IMAGE_OFFSET.
++	 */
++	if (imx_bl31_params_parse(arg0, IMX_TCM_BASE, IMX_TCM_SIZE,
++				  &bl32_image_ep_info, &bl33_image_ep_info) != 0) {
++		(void)imx_bl31_params_parse(arg0, IMX_NS_OCRAM_BASE, IMX_NS_OCRAM_SIZE,
++					    &bl32_image_ep_info, &bl33_image_ep_info);
++	}
++	SET_SECURITY_STATE(bl33_image_ep_info.h.attr, NON_SECURE);
++
+ 	bl31_tz380_setup();
+ }
+ 
+diff --git a/plat/imx/imx8m/imx8mq/include/platform_def.h b/plat/imx/imx8m/imx8mq/include/platform_def.h
+index 34bd77e87..8f6c69510 100644
+--- a/plat/imx/imx8m/imx8mq/include/platform_def.h
++++ b/plat/imx/imx8m/imx8mq/include/platform_def.h
+@@ -150,6 +150,10 @@
+ #define GPR_TZASC_EN			BIT(0)
+ #define GPR_TZASC_EN_LOCK		BIT(16)
+ 
++/* Where a boot loader may pass a bl_params list: the TCM, besides the OCRAM */
++#define IMX_TCM_BASE			U(0x7e0000)
++#define IMX_TCM_SIZE			U(0x40000)
++
+ #define COUNTER_FREQUENCY		8333333 /* 25MHz / 3 */
+ 
+ #define IMX_WDOG_B_RESET
+diff --git a/plat/imx/imx8m/imx8mq/platform.mk b/plat/imx/imx8m/imx8mq/platform.mk
+index 76fc07107..e36f27bd1 100644
+--- a/plat/imx/imx8m/imx8mq/platform.mk
++++ b/plat/imx/imx8m/imx8mq/platform.mk
+@@ -25,7 +25,9 @@ IMX_GIC_SOURCES		:=	${GICV3_SOURCES}			\
+ 				plat/common/plat_psci_common.c		\
+ 				plat/imx/common/plat_imx8_gic.c
+ 
+-BL31_SOURCES		+=	plat/imx/common/imx8_helpers.S			\
++BL31_SOURCES		+=	common/desc_image_load.c			\
++				plat/imx/common/imx_common.c			\
++				plat/imx/common/imx8_helpers.S			\
+ 				plat/imx/imx8m/imx8mq/imx8mq_bl31_setup.c	\
+ 				plat/imx/imx8m/imx8mq/imx8mq_psci.c		\
+ 				plat/imx/imx8m/gpc_common.c			\
+-- 
+2.47.3
+

@@ -75,6 +75,20 @@ imx8mpevk)
     DT_ADDR=0x50000000
     RAMDISK_ADDR=0x50100000
     ;;
+pico8ml)
+    # BL31 runs from the OCRAM at 0x910000 (TF-A's BL31_BASE without BL2);
+    # punchboot runs from the TCM and has its RAM log at 0x900000. punchboot
+    # uses 0x40000000-0x41060000 of the DRAM (src/plat/imx8m/link.lds), the
+    # board's first GiB to 0x80000000, ramoops at 0x7ff00000. The Image
+    # runs where it is loaded, 2 MiB aligned.
+    ATF="${BINARIES_DIR}/bl31.bin"
+    ATF_ADDR=0x910000
+    KERNEL="${BINARIES_DIR}/Image"
+    KERNEL_ADDR=0x42000000
+    DT="${BINARIES_DIR}/imx8mq-pico-pi-pb.dtb"
+    DT_ADDR=0x50000000
+    RAMDISK_ADDR=0x50100000
+    ;;
 imx8qxmek)
     # BL31 runs at 0x80000000, TF-A's fixed BL31_BASE, in the hole that
     # punchboot leaves for it (src/plat/imx8x/link.lds). punchboot uses

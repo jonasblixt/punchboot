@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * TechNexion's PICO-IMX8MQ (punchboot's pico8ml) for the punchboot test
+ * bench: the upstream PICO-PI device tree with the memory that U-Boot would
+ * fix up at boot, which the upstream tree leaves out.
+ *
+ * - The module has 1 to 4 GiB, strapped (src/board/pico8ml/board.c); this
+ *   one 1 GiB, what every variant has, from 0x40000000.
+ * - ramoops at the end of it, for punchboot's log "linux".
+ */
+
+#include "imx8mq-pico-pi.dts"
+
+/ {
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0x0 0x40000000 0 0x40000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* Read by punchboot as the log "linux", the same values as
+		 * CONFIG_BOOT_LINUX_RAMOOPS_* in its configs/pico8ml_defconfig */
+		ramoops@7ff00000 {
+			compatible = "ramoops";
+			reg = <0 0x7ff00000 0 0x100000>;
+			record-size = <0x20000>;
+			/* A record at a panic, an oops and a reboot (KMSG_DUMP_SHUTDOWN) */
+			max-reason = <4>;
+			ecc-size = <0>;
+		};
+	};
+};

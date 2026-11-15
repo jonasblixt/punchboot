@@ -40,8 +40,16 @@ PUNCHBOOT_MAKE_OPTS = \
 	CROSS_COMPILE=$(TARGET_CROSS) \
 	PYTHON=$(HOST_DIR)/bin/python3 \
 	BPAK=$(HOST_DIR)/bin/bpak \
-	MKIMAGE=$(HOST_DIR)/bin/mkimage \
 	Q=
+
+# The i.MX8MQ's image is made with NXP's mkimage for the i.MX8M, which
+# host-imx-mkimage installs as mkimage_imx8; the others with U-Boot's
+ifeq ($(BR2_TARGET_PUNCHBOOT_IMX8MQ_MKIMAGE),y)
+PUNCHBOOT_DEPENDENCIES += host-imx-mkimage
+PUNCHBOOT_MAKE_OPTS += MKIMAGE=$(HOST_DIR)/bin/mkimage_imx8
+else
+PUNCHBOOT_MAKE_OPTS += MKIMAGE=$(HOST_DIR)/bin/mkimage
+endif
 
 ifeq ($(BR2_TARGET_PUNCHBOOT_IMX_HAB),y)
 PUNCHBOOT_DEPENDENCIES += host-imx-cst
