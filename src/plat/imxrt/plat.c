@@ -6,6 +6,7 @@
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -52,6 +53,12 @@ static const struct imx_hab_fuses hab_fuses = {
 
 int plat_early_init(void)
 {
+    /* The WDOGs' power-down counters, whether the watchdog is used or not */
+    mmio_clrsetbits_32(IMXRT_CCM_CCGR3, 0, CCGR3_WDOG1);
+    mmio_clrsetbits_32(IMXRT_CCM_CCGR5, 0, CCGR5_WDOG2);
+    imx_wdog_disable_powerdown(IMXRT_WDOG1_BASE);
+    imx_wdog_disable_powerdown(IMXRT_WDOG2_BASE);
+
 #if CONFIG_ENABLE_WATCHDOG
     imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
@@ -63,6 +70,42 @@ int plat_early_init(void)
      */
     mmio_clrsetbits_32(
         IMXRT_CCM_CSCDR1, CSCDR1_UART_PODF_MASK | CSCDR1_UART_CLK_SEL, CSCDR1_UART_PODF(3));
+
+    /* Configure systick. From the 24 MHz crystal: perclk, the GPT's other
+     * source, changes its rate when plat_init() sets the ARM PLL. GPT1's
+     * gates are open out of reset and the ROM (RM 14.7.22, Table 9-6),
+     * opened here so nothing rests on it (F-416) */
+    mmio_clrsetbits_32(IMXRT_CCM_CCGR1, 0, CCGR1_GPT_BUS | CCGR1_GPT1_SERIAL);
+    imx_gpt_init_24m(IMXRT_GPT1_BASE);
+    log_time_start();
+    return PB_OK;
+}
+
+/*
+ * 600 MHz is overdrive run: VDD_SOC_IN 1.25 to 1.3 V (data sheet Table 9),
+ * and DCDC REG3 resets to 1.15 V (RM 18.7.1.5), full speed run's 528 MHz
+ * (RM Table 14-5). Raised to 1.275 V before the clocks, and waited for
+ * (RM 18.6.2) with a bound (F-457).
+ */
+#define DCDC_SETTLE_TIMEOUT_us 10000
+
+static int dcdc_overdrive(void)
+{
+    struct pb_timeout timeout;
+    int rc;
+
+    mmio_clrsetbits_32(IMXRT_DCDC_REG3, DCDC_REG3_TRG_MASK, DCDC_REG3_TRG_1V275);
+
+    rc = pb_timeout_init_us(&timeout, DCDC_SETTLE_TIMEOUT_us);
+
+    if (rc != PB_OK)
+        return rc;
+
+    while (!(mmio_read_32(IMXRT_DCDC_REG0) & DCDC_REG0_STS_DC_OK)) {
+        if (pb_timeout_has_expired(&timeout))
+            return -PB_ERR_TIMEOUT;
+    }
+
     return PB_OK;
 }
 
@@ -97,9 +140,13 @@ int plat_init(void)
     if (plat.speed_grade == 1) {
         mmio_write_32(IMXRT_CCM_ANALOG_PLL_ARM,
                       ANALOG_PLL_ARM_ENABLE | ANALOG_PLL_ARM_DIV_SELECT(88));
-    } else if (plat.speed_grade == 2) {
+    } else if (plat.speed_grade == 2 && dcdc_overdrive() == PB_OK) {
         mmio_write_32(IMXRT_CCM_ANALOG_PLL_ARM,
                       ANALOG_PLL_ARM_ENABLE | ANALOG_PLL_ARM_DIV_SELECT(100));
+    } else if (plat.speed_grade == 2) {
+        LOG_ERR("VDD_SOC didn't settle at 1.275 V, the core runs at 528 MHz");
+        mmio_write_32(IMXRT_CCM_ANALOG_PLL_ARM,
+                      ANALOG_PLL_ARM_ENABLE | ANALOG_PLL_ARM_DIV_SELECT(88));
     } else {
         LOG_WARN("Unknown speed grade (%u), setting core speed to 528MHz", plat.speed_grade);
         mmio_write_32(IMXRT_CCM_ANALOG_PLL_ARM,
@@ -109,6 +156,26 @@ int plat_init(void)
     // Wait for PLL to lock
     while (!(mmio_read_32(IMXRT_CCM_ANALOG_PLL_ARM) & ANALOG_PLL_ARM_LOCK))
         ;
+
+    /* Every divider from PLL1 to PERCLK, not the ones the reset left: a
+     * software reset after a boot keeps the booted code's (IPG at 200 MHz,
+     * F-148). ARM /2 and AHB /1, PLL1's 1200 or 1056 MHz to 600 or 528, IPG
+     * /4 to 150 or 132 and PERCLK from IPG /2 to 75 or 66: inside RM Table
+     * 14-5's maximums. Set while AHB runs from PLL2 */
+    mmio_clrsetbits_32(IMXRT_CCM_CACRR, CACRR_ARM_PODF_MASK, CACRR_ARM_PODF(1));
+
+    while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_ARM_PODF_BUSY)
+        ;
+
+    mmio_clrsetbits_32(IMXRT_CCM_CBCDR,
+                       CBCDR_AHB_PODF_MASK | CBCDR_IPG_PODF_MASK,
+                       CBCDR_AHB_PODF(0) | CBCDR_IPG_PODF(3));
+
+    while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_AHB_PODF_BUSY)
+        ;
+
+    mmio_clrsetbits_32(
+        IMXRT_CCM_CSCMR1, CSCMR1_PERCLK_CLK_SEL | CSCMR1_PERCLK_PODF_MASK, CSCMR1_PERCLK_PODF(1));
 
     // Switch back to PLL1 for AHB Root
     mmio_clrsetbits_32(IMXRT_CCM_CBCMR, CBCMR_PRE_PERIPH_CLK_SEL_MASK, CBCMR_PRE_PERIPH_CLK_SEL(3));
@@ -140,12 +207,16 @@ int plat_init(void)
     LOG_INFO("IPG root clock = %d MHz", plat.ipg_root_clk_MHz);
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
-    imx_gpt_init(IMXRT_GPT1_BASE, MHz(plat.per_root_clk_MHz));
-    log_time_start();
-
+    /* Command mode can start without it, so it isn't plat_init()'s error
+     * (platform.md 2.2): main() would reset. Without a provider no image
+     * verifies, and the boot stops with that. To be recorded in
+     * plat_get_status() (F-248) */
     rc = mbedtls_pb_init();
 
-    return rc;
+    if (rc != PB_OK)
+        LOG_ERR("Mbed TLS init failed (%i)", rc);
+
+    return PB_OK;
 }
 
 void plat_reset(void)
@@ -160,13 +231,24 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
         uint8_t uid_bytes[8];
     } plat_unique;
 
+    int rc;
+
     if (*length < sizeof(plat_unique.uid_bytes))
         return -PB_ERR_BUF_TOO_SMALL;
-    *length = sizeof(plat_unique.uid_bytes);
 
-    imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_1, &plat_unique.uid[0]);
-    imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_2, &plat_unique.uid[1]);
+    /* A read that fails writes nothing: the device's UUID is made of this */
+    rc = imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_1, &plat_unique.uid[0]);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = imx_ocotp_read(0, IMXRT_FUSE_UNIQUE_2, &plat_unique.uid[1]);
+
+    if (rc != PB_OK)
+        return rc;
+
     memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
+    *length = sizeof(plat_unique.uid_bytes);
 
     return PB_OK;
 }
