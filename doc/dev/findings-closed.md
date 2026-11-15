@@ -1757,6 +1757,17 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | Linux reaches the login, twice; a copy with one payload byte changed is refused ("payload | | |
 | | | doesn't match its hash") and pb stays in command mode. The RT1060 (4 KiB pieces, 10 KiB image) | | |
 | | | starts `app-good.bpak`, its 36 checks pass with `--pretend-part`, the A/B state unchanged | | |
+| F-213 | `configs/*`, board `makefile.mk` | The SRK hash that is fused (`CONFIG_SRK_FUSE`) and | Reported | fixed |
+| | | the SRK table pb is signed with are independent settings: a product that changes one fuses a hash that | | |
+| | | closes the device to its own images. D-027 and `srk_fuse.h` claim they match. Derive or check at build | | |
+| | | time. | | |
+| | | 2026-11-15, fixed (`6d1e13c0`): each platform's signing step runs `scripts/check-srk-fuse.py` | | |
+| | | first, the HABv4 hash (SHA-256 over each key record's SHA-256, the 6UL and the 8M) or the AHAB | | |
+| | | one (SHA-512 of the table, the 8X) of the table cst signs with against the fuse file; the build | | |
+| | | stops when they differ (tried: the MEK with the HAB fuse file). Checked, not derived: | | |
+| | | `CONFIG_SRK_FUSE` stays what it was. `check_srk_fuse` runs the script on the test keys and every | | |
+| | | defconfig's pair. Jiffy, the MEK and the pico8ml's signed builds pass it. A build without | | |
+| | | signing (the 8DXL) isn't checked, nor a product that signs outside pb's build | | |
 
 ## Dependencies / vendored code
 

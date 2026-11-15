@@ -728,7 +728,8 @@ CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
 - **A board that names no key gets the development keys** (`pki/dev-keys.mk`), whose private
   keys are in the tree, and the build says so. A board that names one key gets only its own.
 - **The SRK hash comes from the build**: `CONFIG_SRK_FUSE` names srktool's fuse file. No words
-  are copied into the board. A wrong hash closes the device to every image.
+  are copied into the board. A wrong hash closes the device to every image: the signed build
+  checks the file against the SRK table it signs with and stops when they differ (F-213).
 - **The configuration fuses are data**, `slc.fuses`, by the platform's fuse index macro. The
   board writes no fuse itself (`board.md` 6). `slc_set_configuration()` sets the bits that
   aren't set yet.

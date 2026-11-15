@@ -157,10 +157,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `BOARD_RAM_END`: done by `2599f9d8`, `ffc45fbb`. Reviewed; not run on a board. Left: the exception | |
 | | | policy (v8 handlers on the faulting stack, hang by default; v7m hangs; v7a resets), the 6UL's PLL1 | |
 | | | and ARM_PODF | |
-| F-213 | `configs/*`, board `makefile.mk` | The SRK hash that is fused (`CONFIG_SRK_FUSE`) and | Reported | open |
-| | | the SRK table pb is signed with are independent settings: a product that changes one fuses a hash that | | |
-| | | closes the device to its own images. D-027 and `srk_fuse.h` claim they match. Derive or check at build | | |
-| | | time. | | |
 | F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
 | F-218 | boards, low | `IMX8X_FUSE_DRY_RUN` doesn't gate | Reported | open |
