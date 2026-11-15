@@ -153,6 +153,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `BOARD_RAM_END`: done by `2599f9d8`, `ffc45fbb`. Reviewed; not run on a board. Left: the exception | |
 | | | policy (v8 handlers on the faulting stack, hang by default; v7m hangs; v7a resets), the 6UL's PLL1 | |
 | | | and ARM_PODF | |
+| | | 2026-11-15 (`b7561ea1`): on the RT1060 with pb at `b3901579` the simple bench passes 7 of 7, the | | |
+| | | application now checks CACR.FORCEWT clear at its entry, and VTOR at its table. Left as above: the | | |
+| | | exception policy, the 6UL's PLL1 and ARM_PODF (jiffy, F-455) | | |
 | F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
 | F-218 | boards, low | `IMX8X_FUSE_DRY_RUN` doesn't gate | Reported | open |
