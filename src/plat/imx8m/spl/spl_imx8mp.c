@@ -68,7 +68,8 @@ typedef void *(*hab_authenticate_t)(uint8_t cid,
                                     void **start,
                                     size_t *bytes,
                                     void *loader);
-typedef uint32_t (*hab_report_status_t)(uint8_t *config, uint8_t *state);
+/* HAB writes its enums as 32 bit words (imx_hab_log.c, read on the boards) */
+typedef uint32_t (*hab_report_status_t)(uint32_t *config, uint32_t *state);
 
 /* A pointer the ROM keeps at addr. The ROM is at 0: the compiler takes a
  * constant address there for NULL, so it doesn't see one */
@@ -187,8 +188,8 @@ static int authenticate(const struct imx_header *hdr)
         (hab_report_status_t)rom_entry(IMX8MP_HAB_RVT + HAB_RVT_REPORT_STATUS);
     void *start = (void *)(uintptr_t)hdr->boot_data.start;
     size_t bytes = hdr->boot_data.size;
-    uint8_t config = 0;
-    uint8_t state = 0;
+    uint32_t config = 0;
+    uint32_t state = 0;
     void *loaded = NULL;
 
     if (hab_entry() == HAB_SUCCESS && check_target(HAB_TGT_MEMORY, start, bytes) == HAB_SUCCESS)
