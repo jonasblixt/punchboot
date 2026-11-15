@@ -28,6 +28,7 @@ MEMORY
     spl_rw (rw) : ORIGIN = IMX8M_SPL_END - 0x4000, LENGTH = 0x4000
     ramlog (rw) : ORIGIN = IMX8M_RAMLOG_BASE, LENGTH = IMX8M_RAMLOG_SIZE
     umctl (rw) : ORIGIN = 0x40000000, LENGTH = 0x20000
+    buffers (rw) : ORIGIN = PB_BUFFERS_BASE, LENGTH = 0x80000
 }
 
 /* The SPL's own header, which the ROM read before the entry (imx-mkimage's
@@ -84,6 +85,16 @@ SECTIONS
     {
         *(.umctl2 .umctl2.*)
     } > umctl
+
+    /* What a device reads and writes of the SPL's own (PB_DMA_BUFFER(),
+     * drivers.md 4), the USB controller's: in DRAM, at the start of pb's
+     * buffers, where pb proper expects nothing. Not in the SPL's window:
+     * nothing says the controller reaches that RAM. Used after DRAM is up,
+     * and never initialised */
+    .no_init (NOLOAD) :
+    {
+        *(.no_init .no_init.*)
+    } > buffers
 
     .debug_aranges 0 : { *(.debug_aranges) }
     .debug_info 0 : { *(.debug_info) }

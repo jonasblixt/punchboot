@@ -32,6 +32,7 @@ src-$(CONFIG_PLAT_IMX8MP) += src/plat/imx8m/plat_imx8mp.c
 # LOG_* needs. The board adds its DRAM sources (board.md 7)
 spl-src-y += src/plat/imx8m/spl/spl.c
 spl-src-y += src/plat/imx8m/spl/ivt.c
+spl-src-y += src/plat/imx8m/spl/hab.c
 spl-src-y += src/plat/imx8m/ddr.c
 spl-src-y += src/plat/imx8m/tzasc.c
 spl-src-$(CONFIG_PLAT_IMX8MQ) += src/plat/imx8m/spl/spl_imx8mq.c
@@ -60,6 +61,26 @@ spl-src-y += src/lib/libc/memcmp.c
 spl-asm-$(CONFIG_PLAT_IMX8MQ) += src/plat/imx8m/spl/entry_imx8mq.S
 spl-asm-$(CONFIG_PLAT_IMX8MP) += src/plat/imx8m/spl/entry_imx8mp.S
 spl-asm-y += src/arch/armv8a/misc_helpers.S
+# USB recovery on the i.MX8MQ (D-089, plat-imx.md 2): its ROM's serial
+# downloader can't load pb proper after the plugin, so the SPL is a fastboot
+# device there, on the port and the stack command mode uses. A board without
+# that port has no USB recovery
+ifdef CONFIG_PLAT_IMX8MQ
+ifdef CONFIG_IMX8M_CM_USB1
+spl-cflags-y += -DIMX8M_SPL_FASTBOOT
+# The fastboot device's product id, with pb's vendor id: the board's
+# makefile.mk, read before this one, or the command line may give its own
+ifdef PB_SPL_USB_PID
+spl-cflags-y += -DPB_SPL_USB_PID=$(PB_SPL_USB_PID)
+endif
+spl-src-y += src/plat/imx8m/spl/fb_proto.c
+spl-src-y += src/plat/imx8m/spl/fb_usb.c
+spl-src-y += src/drivers/usb/usbd.c
+spl-src-y += src/drivers/usb/dwc3_udc.c
+spl-src-y += src/drivers/usb/imx8m_phy.c
+spl-src-y += src/dma.c
+endif
+endif
 # The boards' timing files as NXP's DDR tool writes them, with U-Boot's
 # includes (imx8m-ddr.md)
 spl-cflags-y += -I src/plat/imx8m/spl/compat
@@ -142,6 +163,7 @@ spl-ldflags-y += --defsym=IMX8M_SPL_END=$(IMX8M_RAMLOG_BASE)
 spl-ldflags-y += --defsym=IMX8M_RAMLOG_BASE=$(IMX8M_RAMLOG_BASE)
 spl-ldflags-y += --defsym=IMX8M_RAMLOG_SIZE=$(IMX8M_RAMLOG_SIZE)
 spl-ldflags-y += --defsym=IMX8M_SPL_STACK_SIZE=$(IMX8M_SPL_STACK_SIZE)
+spl-ldflags-y += --defsym=PB_BUFFERS_BASE=$(PB_BUFFERS_BASE)
 ifdef CONFIG_PLAT_IMX8MQ
 spl-ldflags-y += --defsym=SPL_ENTRY_SYMBOL=spl_plugin_entry
 else
@@ -187,7 +209,10 @@ ifdef CONFIG_PLAT_IMX8MQ
 # plugin's CSF, pb proper's IVT and its CSF. pb_pad.imx is the image that is
 # signed. The ROM reads the plugin's IVT at the SPL's entry - 0x40, pb
 # proper's at PB_ENTRY - 0x40, and loads pb proper's from the image's start
-# (0x400 before the IVT): that is checked to be after pb's buffers.
+# (0x400 before the IVT): that is checked to be after pb's buffers. The
+# SPL's fastboot (D-089) downloads the image to where pb proper's IVT is at
+# its address, memory the USB controller writes: checked to be on a cache
+# line.
 IMX8M_CSF_ROOM = 0x2000
 
 imx8m_image: $(BUILD_DIR)/pb.bin $(BUILD_DIR)/spl.bin
@@ -205,6 +230,8 @@ imx8m_image: $(BUILD_DIR)/pb.bin $(BUILD_DIR)/spl.bin
 	 start=$$(( $(PB_ENTRY) - 0x40 - $$image - 0x400 )); \
 	 [ $$start -ge $$(( $(PB_BUFFERS_BASE) + $(PB_BUFFERS_SIZE) )) ] || \
 	     { printf 'pb.imx: pb proper is loaded from 0x%x, in pb'"'"'s buffers: PB_ENTRY is too low\n' $$start; exit 1; }; \
+	 [ $$(( ($(PB_ENTRY) - 0x40 - $$image) % 64 )) -eq 0 ] || \
+	     { echo "pb.imx: the SPL's fastboot (D-089) downloads the image to PB_ENTRY - 0x40 - $$image, which isn't on a cache line"; exit 1; }; \
 	 printf 'SPL_CSF=%s\nIMAGE=%s\nCSF=%s\n' $$spl_csf $$image $$csf > $(BUILD_DIR)/pb.imx.offsets
 	@cp $(BUILD_DIR)/pb.imx $(BUILD_DIR)/pb_pad.imx
 	@echo "$(BUILD_DIR)/pb_pad.imx ready"

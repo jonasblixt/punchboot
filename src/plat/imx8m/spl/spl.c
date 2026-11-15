@@ -5,13 +5,16 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * The i.MX8M's SPL (D-088, plat-imx.md 2): it brings up DRAM and nothing
- * else, and leaves loading and authenticating pb proper to the ROM
- * (spl_imx8mq.c, spl_imx8mp.c). No console: its lines are in the RAM log,
- * which pb proper keeps and prints.
+ * The i.MX8M's SPL (D-088, plat-imx.md 2): it brings up DRAM and leaves
+ * loading and authenticating pb proper to the ROM (spl_imx8mq.c,
+ * spl_imx8mp.c). The i.MX8MQ's also brings up USB1 when the ROM is in its
+ * serial downloader, which can't load pb proper (D-089). No console: its
+ * lines are in the RAM log, which pb proper keeps and prints.
  */
 
 #include <drivers/timer/imx_gpt.h>
+#include <drivers/usb/dwc3_udc.h>
+#include <drivers/usb/imx8m_phy.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
@@ -37,6 +40,50 @@ void imx8m_spl_reset(void)
     mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
     imx_wdog_reset_now(IMX8M_WDOG1_BASE);
 }
+
+#ifdef IMX8M_SPL_FASTBOOT
+/* USB1 for the SPL's fastboot (D-089), as plat_cm_init() for command mode:
+ * its clocks, its PHY and the controller's driver. The ROM's serial
+ * downloader ran on the port: the PHY and the controller are reset */
+int imx8m_spl_usb_init(void)
+{
+    int rc = imx8m_soc_usb1_power_up();
+
+    if (rc == PB_OK)
+        rc = imx8m_usb_phy_init(IMX8M_USB1_PHY_BASE);
+
+    if (rc == PB_OK)
+        rc = imx_dwc3_udc_init(IMX8M_USB1_BASE);
+
+    return rc;
+}
+#endif
+
+#ifdef CONFIG_ENABLE_WATCHDOG
+/* WDOG1 armed while the SPL serves a host and calls the ROM's HAB (D-089):
+ * what hangs there resets, and the ROM is in its serial downloader again.
+ * pb proper arms it again, with its own time (plat_init()) */
+void imx8m_spl_wdog_start(unsigned int timeout_s)
+{
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
+    mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
+    (void)imx_wdog_init(IMX8M_WDOG1_BASE, timeout_s);
+}
+
+void imx8m_spl_wdog_kick(void)
+{
+    (void)imx_wdog_kick(IMX8M_WDOG1_BASE);
+}
+#else
+void imx8m_spl_wdog_start(unsigned int timeout_s)
+{
+    (void)timeout_s;
+}
+
+void imx8m_spl_wdog_kick(void)
+{
+}
+#endif
 
 /* Without the board's console the SPL writes the RAM log only */
 __attribute__((weak)) void imx8m_spl_console_init(void)

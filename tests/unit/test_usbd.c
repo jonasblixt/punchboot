@@ -148,9 +148,10 @@ static const char *reply_string(void)
     return str;
 }
 
-/* usb.md 4: every operation is mandatory. A driver that leaves one out
- * isn't registered, and the stack calls nothing of it: the transport has no
- * controller (F-287: three were called unchecked) */
+/* usb.md 4: every operation is mandatory but xfer_start_short (4.5). A
+ * driver that leaves one out isn't registered, and the stack calls nothing
+ * of it: the transport has no controller (F-287: three were called
+ * unchecked) */
 static void test_every_operation_is_mandatory(void **state)
 {
     typedef void (*op_t)(void);
@@ -167,6 +168,11 @@ static void test_every_operation_is_mandatory(void **state)
     for (size_t i = 0; i < ARRAY_SIZE(u.op); i++) {
         usb_host_reset(NULL);
         u.ops = *usb_host_hal_ops();
+
+        /* The optional one: without it the driver is registered (4.5) */
+        if (i == offsetof(struct usbd_hal_ops, xfer_start_short) / sizeof(op_t))
+            continue;
+
         u.op[i] = NULL;
 
         assert_int_equal(usbd_init_hal_ops(&u.ops), -PB_ERR_PARAM);
@@ -180,6 +186,24 @@ static void test_every_operation_is_mandatory(void **state)
 
     assert_int_equal(usbd_init_hal_ops(NULL), -PB_ERR_PARAM);
     assert_int_equal(cm_transport_init(), -PB_ERR_IO);
+}
+
+/* usb.md 4.5: a controller without xfer_start_short is registered, and the
+ * stack's short read says it has none */
+static void test_short_read_optional(void **state)
+{
+    struct usbd_hal_ops ops;
+    size_t received = 0;
+
+    (void)state;
+
+    usb_host_reset(NULL);
+    ops = *usb_host_hal_ops();
+    ops.xfer_start_short = NULL;
+
+    assert_int_equal(usbd_init_hal_ops(&ops), PB_OK);
+    assert_int_equal(usbd_xfer_start_short(USB_EP2_OUT, buf, PACKET, &received),
+                     -PB_ERR_NOT_SUPPORTED);
 }
 
 /* usb.md 2.2: connect is polled and answers "not yet" until the host has
@@ -959,6 +983,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_every_operation_is_mandatory),
+        cmocka_unit_test(test_short_read_optional),
         cmocka_unit_test(test_connect),
         cmocka_unit_test(test_set_configuration_value),
         cmocka_unit_test(test_descriptors),

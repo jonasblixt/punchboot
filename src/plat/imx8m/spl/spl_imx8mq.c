@@ -12,6 +12,8 @@
  * sizeof(imx_header_v2_t)) to get the secondary IVT pointer"). The SPL
  * brings up DRAM, has the ROM read pb proper into it and returns pb proper's
  * start, size and IVT offset; the ROM authenticates pb proper and jumps.
+ * In a serial download the SPL gets pb proper from the host itself, over
+ * fastboot (D-089).
  */
 
 #include <arch/arch_helpers.h>
@@ -26,7 +28,9 @@
 #include <plat/imx8m/spl.h>
 
 #include "../plat.h"
+#include "fb_usb.h"
 #include "ivt.h"
+#include "rom.h"
 
 /*
  * The ROM's pu_irom_hwcnfg_setup(void **start, size_t *bytes, const void
@@ -69,17 +73,9 @@ typedef uint32_t (*hab_call_t)(void);
 #define ROM_LOG_SERIAL_DOWNLOAD 0xd0
 #define ROM_LOG_END             0x00
 
-/* A word the ROM keeps at addr. The ROM is at 0: the compiler takes a
- * constant address there for NULL, so it doesn't see one */
-static uint64_t rom_read_64(uintptr_t addr)
-{
-    __asm__("" : "+r"(addr));
-    return mmio_read_64(addr);
-}
-
 static bool serial_download(void)
 {
-    uint64_t log = rom_read_64(IMX8M_ROM_LOG_POINTER);
+    uint64_t log = imx8m_rom_read_64(IMX8M_ROM_LOG_POINTER);
 
     if (log < IMX8M_OCRAM_BASE ||
         log + IMX8MQ_ROM_LOG_WORDS * 4 > IMX8M_OCRAM_BASE + IMX8M_OCRAM_SIZE)
@@ -97,6 +93,100 @@ static bool serial_download(void)
 
 /* The plugin's own header, where the ROM read it: 0x40 bytes before its entry */
 extern const struct imx_header spl_plugin_header;
+
+#ifdef IMX8M_SPL_FASTBOOT
+/*
+ * USB recovery (D-089, F-451). The serial downloader takes one image, the
+ * plugin, and can't be handed pb proper (8MQ RM 6.1.8.2.1.7): the SPL takes
+ * the port from the ROM, is a fastboot device, and the host downloads the
+ * image the plugin came from, pb_signed_uuu.imx, once more. Its byte 0 is
+ * the plugin's IVT, so pb proper's header is 'image_offset' into it, and
+ * the download goes where that puts the header at its own address.
+ *
+ * The step that decides what starts: the header in the download is the one
+ * the ROM authenticated with the plugin, the SPL's checked copy; the
+ * download reaches its CSF; and HAB authenticates pb proper as the ROM
+ * would have. The SPL never goes back to the ROM from here: it starts pb
+ * proper, or resets.
+ */
+#define RECOVERY_WDOG_TIMEOUT_s 30
+
+static struct {
+    struct imx_header hdr; /* pb proper's header, checked (imx_ivt_check()) */
+    uint8_t *dest; /* Where the image's byte 0 goes */
+    size_t image_offset; /* pb proper's header in the image */
+} recovery;
+
+static int recovery_accept(size_t downloaded)
+{
+    const struct imx_header *hdr = &recovery.hdr;
+    size_t csf = hdr->ivt.csf - (uint32_t)(uintptr_t)recovery.dest;
+
+    if (downloaded <= csf ||
+        memcmp(recovery.dest + recovery.image_offset, hdr, sizeof(*hdr)) != 0) {
+        LOG_ERR("fastboot: %u bytes that aren't this SPL's pb proper", (unsigned int)downloaded);
+        return -PB_ERR_PARAM;
+    }
+
+    return imx8m_spl_hab_authenticate(IMX8MQ_HAB_RVT_BASE, hdr);
+}
+
+static void recovery_main(const struct imx_header *hdr, size_t image_offset)
+{
+    struct fb_usb_config cfg = { .accept = recovery_accept };
+    uint32_t dest = hdr->ivt.self - (uint32_t)image_offset;
+    int rc;
+
+    recovery.hdr = *hdr;
+    recovery.dest = (uint8_t *)(uintptr_t)dest;
+    recovery.image_offset = image_offset;
+    cfg.dest = recovery.dest;
+
+    /* Above pb's buffers, as the ROM loads it (imx_ivt_check()), and whole
+     * packets up to the end of pb proper's region */
+    if (image_offset > hdr->ivt.self - hdr->boot_data.start) {
+        LOG_ERR("fastboot: the image would start at %08x, below %08x", dest, hdr->boot_data.start);
+        return;
+    }
+
+    cfg.room = ((size_t)PB_ENTRY + PB_SIZE - dest) & ~((size_t)FB_USB_PACKET - 1);
+
+    rc = imx8m_spl_usb_init();
+
+    if (rc == PB_OK)
+        rc = fb_usb_start(&cfg);
+
+    if (rc != PB_OK) {
+        LOG_ERR("fastboot: not started (%i)", rc);
+        return;
+    }
+
+    LOG_INFO("fastboot: pb proper to %08x, at most %u bytes", dest, (unsigned int)cfg.room);
+
+    /* The watchdog from here: the session is the host's, and the step that
+     * decides calls the ROM. Kicked every round, so its time is the longest
+     * one round may take: HAB's authentication */
+    imx8m_spl_wdog_start(RECOVERY_WDOG_TIMEOUT_s);
+
+    do {
+        imx8m_spl_wdog_kick();
+        rc = fb_usb_poll();
+    } while (rc == -PB_ERR_AGAIN);
+
+    if (rc != PB_OK) {
+        LOG_ERR("fastboot: ended (%i)", rc);
+        return;
+    }
+
+    LOG_INFO("pb proper: %08x, from the host", hdr->ivt.entry);
+
+    /* As before a return to the ROM: what the SPL wrote to DRAM and the RAM
+     * log reach memory before pb proper, which starts with the cache off */
+    dcsw_op_all(DCCSW);
+    dsbsy();
+    ((void (*)(void))(uintptr_t)hdr->ivt.entry)();
+}
+#endif
 
 /* main() of the plugin (entry_imx8mq.S): 1, the image's values in *start,
  * *bytes and *ivt_offset; 0 when DRAM or the image's header failed, and the
@@ -139,25 +229,36 @@ uint32_t spl_plugin_main(void **start, size_t *bytes, uint32_t *ivt_offset)
         return 0;
 
     if (serial_download()) {
-        /* A plugin that returns 1 here makes the ROM go on to pb proper,
-         * which the host can't have sent yet: it serves USB no more (read
-         * on the pico8ml). 0 keeps it in its serial downloader with DRAM up:
-         * the host writes pb proper to DRAM and jumps to its IVT */
-        LOG_INFO(
-            "pb proper: %08x, %u bytes, from the host", hdr.boot_data.start, hdr.boot_data.size);
+#ifdef IMX8M_SPL_FASTBOOT
+        /* The ROM can't be handed pb proper here (F-451): a plugin that
+         * returns 1 makes it go on to a pb proper the host can't have sent,
+         * and it serves USB no more; 0 leaves HAB failed, and it refuses
+         * every command (both read on the pico8ml). The host sends pb
+         * proper to the SPL instead, and the SPL starts it or resets */
+        recovery_main(&hdr, (size_t)((uintptr_t)next - (uintptr_t)self));
+        LOG_ERR("SPL failed, resetting");
+        imx8m_spl_reset();
+
+        while (true)
+            wfi();
+#else
+        /* A board without the USB port: nothing can load pb proper. 0, and
+         * the ROM stays in its serial downloader */
+        LOG_ERR("pb proper: no USB recovery in this build");
         dcsw_op_all(DCCSW);
         dsbsy();
         return 0;
+#endif
     } else {
-        hwcnfg_setup = (hwcnfg_setup_t)(uintptr_t)rom_read_64(IMX8MQ_ROM_HWCNFG_SETUP);
+        hwcnfg_setup = (hwcnfg_setup_t)(uintptr_t)imx8m_rom_read_64(IMX8MQ_ROM_HWCNFG_SETUP);
 
         if ((uintptr_t)hwcnfg_setup >= IMX8M_ROM_SIZE) {
             LOG_ERR("ROM API: hwcnfg_setup at %p", (void *)hwcnfg_setup);
             return 0;
         }
 
-        hab_entry = (hab_call_t)(uintptr_t)rom_read_64(IMX8MQ_HAB_RVT_BASE + HAB_RVT_ENTRY);
-        hab_exit = (hab_call_t)(uintptr_t)rom_read_64(IMX8MQ_HAB_RVT_BASE + HAB_RVT_EXIT);
+        hab_entry = (hab_call_t)(uintptr_t)imx8m_rom_read_64(IMX8MQ_HAB_RVT_BASE + HAB_RVT_ENTRY);
+        hab_exit = (hab_call_t)(uintptr_t)imx8m_rom_read_64(IMX8MQ_HAB_RVT_BASE + HAB_RVT_EXIT);
 
         if ((uintptr_t)hab_entry >= IMX8M_ROM_SIZE || (uintptr_t)hab_exit >= IMX8M_ROM_SIZE) {
             LOG_ERR("HAB: entry at %p, exit at %p", (void *)hab_entry, (void *)hab_exit);
