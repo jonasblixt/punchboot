@@ -37,29 +37,9 @@
 #include <plat/imx8m/dram.h>
 #include <plat/imx8m/imx8m.h>
 
+#include "console.h"
+
 #include "partitions.h"
-
-static void board_console_init(void)
-{
-    /* UART2_CLK_ROOT runs from the 24 MHz reference after reset */
-    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(UART2_CLK_ROOT), CLK_ROOT_ON);
-    mmio_write_32(CCM_CCGR_SET(CCGR_UART2), CCGR_CLK_ON_MASK);
-
-    static const struct imx_pin pins[] = {
-        IMX8M_PIN(UART2_RXD, MUX_ALT(0), IMX_PAD_KEEP),
-        IMX8M_PIN(UART2_TXD, MUX_ALT(0), IMX_PAD_KEEP),
-    };
-
-    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
-
-    imx_uart_init(IMX8M_UART2_BASE, MHz(24), 115200);
-
-    static const struct console_ops ops = {
-        .putc = imx_uart_putc,
-    };
-
-    console_init(IMX8M_UART2_BASE, &ops);
-}
 
 static int usdhc_emmc_setup(void)
 {
@@ -303,7 +283,7 @@ static const struct boot_image_region image_regions[] = {
 
 const struct board board = {
     .name = "imx8mpevk",
-    .console_init = board_console_init,
+    .console_init = imx8mpevk_console_init,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),

@@ -9,10 +9,16 @@
 
 src-y += $(BOARD)/board.c
 src-y += $(BOARD)/dram.c
+src-y += $(BOARD)/console.c
 
 # The SPL's (board.md 7, D-088): the DRAM's rates and its timing
 spl-src-y += $(BOARD)/dram.c
 spl-src-y += $(BOARD)/lpddr4_timing.c
+# The SPL's console (plat/imx8m/spl.h): its lines are on the console
+# already, so pb proper doesn't print them again (PB_SPL_CONSOLE)
+spl-src-y += $(BOARD)/console.c
+spl-src-y += src/drivers/uart/imx_uart.c
+cflags-y += -DPB_SPL_CONSOLE
 
 # The board's memory (platform.md 5.1): where pb is linked, pb's region,
 # the DRAM and pb's buffers. The link checks them against the SoC.
