@@ -240,23 +240,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (F-248). Left, each needing a board or OP-TEE: region 1 gets the physical DDR base, GPR9 has no | | |
 | | | lock, TZASC1_BOOT_LOCK is unread | | |
 | | | 2026-11-14, D-084: the TZC-380 TRM goes on the share | | |
-| F-320 | `doc/interfaces/platform.md` 3.3, `src/boot/boot.c` | Stretches without a kick on the boot | Verified (code) | open |
-| | | path that aren't in 3.3's list of what `CONFIG_WATCHDOG_TIMEOUT` must be longer than. Since F-243 the | | |
-| | | kicks are: after each chunk, and before the jump. (1) 3.3 doesn't say whether a chunk's kick comes before | | |
-| | | or after it. It is after, so the first stretch is arming to the first chunk plus that chunk: two entries | | |
-| | | of the list, added. (2) Between two candidates (F-256): the failed one's last hash, the policy's report | | |
-| | | and next (A/B writes its state), the next header's read and signature, its first chunk. A candidate that | | |
-| | | fails before its first chunk (the header, the key, the signature, placement) has no kick at all, and a | | |
-| | | chain policy adds one such stretch per candidate. (3) After the last chunk: the final hash, the payload's | | |
-| | | check, prepare, `late_boot()`, `plat_lockdown()`; 3.3 names them, its list doesn't. Measured, when the | | |
-| | | hardware answers (the README, `testbench/README.md`, `testbench/simple/README.md`): the header's read and | | |
-| | | ECDSA P-256 7 ms on jiffy and the 8MP EVK (CAAM), 25.9 ms on the RT1060 (Mbed TLS, software), the | | |
-| | | signature alone 1.3 ms on the MEK; the last chunk's SHA-256 9 and 8 ms; pb's init 27 ms on jiffy, 91 ms on | | |
-| | | the 8MP EVK. Not measured: the policy's state writes, prepare with a device tree. All far below 5 s; what | | |
-| | | isn't is a driver's wait that runs to its bound (F-321). To decide: the list names these stretches, or the | | |
-| | | loop kicks once per candidate. `boot_image_copy_and_hash()` (no caller, kept by D-020) copies and hashes a | | |
-| | | whole part at once: no chunk to kick for | | |
-| | | 2026-11-14, D-084: the loop kicks once per candidate; 3.3 and `boot.c` to change | | |
 | F-321 | `src/drivers/mmc/imx_usdhc.c`, the defconfigs | One chunk's read may wait longer | Verified (code) | open |
 | | | than the watchdog. The uSDHC's data wait is `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us per byte, and a chunk | | |
 | | | is one request: 6.0 s for 1 MiB (jiffy, imx8mpevk), 9.2 s for 4 MiB (imx8qxmek, imx8mevk, imx8dxlevk), | | |

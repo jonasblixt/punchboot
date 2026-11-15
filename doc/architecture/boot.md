@@ -133,7 +133,7 @@ Each step's responsibilities:
 - **Load, verify and prepare are one attempt.** A failure in any of them is the candidate's: the
   policy hears it, and the next candidate is tried, so that a device with a verified system boots
   it (`security.md` 2, item 5). What a failed attempt left in memory is overwritten or ignored;
-  nothing of it runs.
+  nothing of it runs. Each attempt starts with a kick of the watchdog (`platform.md` 3.3, D-084).
 - **Before and after the loop, a failure stops the boot.** The preconditions, `early_boot()`,
   pb's information, `late_boot()` and `plat_lockdown()` decide about this boot, not about the
   image: no other candidate is tried, and pb enters command mode (in a boot command mode started:

@@ -1720,6 +1720,28 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | enabled IN endpoint's BUFFEMPTY, 50 ms at most each; `test_cdns3_udc` (fails without it). On the | | |
 | | | MEK: `dev reset` 5 of 5, `boot partition` answers and Linux boots. `usb.md` 4.2 has the rule | | |
 | | | now; the DWC3's is unverified | | |
+| F-320 | `doc/interfaces/platform.md` 3.3, `src/boot/boot.c` | Stretches without a kick on the boot | Verified (code) | fixed |
+| | | path that aren't in 3.3's list of what `CONFIG_WATCHDOG_TIMEOUT` must be longer than. Since F-243 the | | |
+| | | kicks are: after each chunk, and before the jump. (1) 3.3 doesn't say whether a chunk's kick comes before | | |
+| | | or after it. It is after, so the first stretch is arming to the first chunk plus that chunk: two entries | | |
+| | | of the list, added. (2) Between two candidates (F-256): the failed one's last hash, the policy's report | | |
+| | | and next (A/B writes its state), the next header's read and signature, its first chunk. A candidate that | | |
+| | | fails before its first chunk (the header, the key, the signature, placement) has no kick at all, and a | | |
+| | | chain policy adds one such stretch per candidate. (3) After the last chunk: the final hash, the payload's | | |
+| | | check, prepare, `late_boot()`, `plat_lockdown()`; 3.3 names them, its list doesn't. Measured, when the | | |
+| | | hardware answers (the README, `testbench/README.md`, `testbench/simple/README.md`): the header's read and | | |
+| | | ECDSA P-256 7 ms on jiffy and the 8MP EVK (CAAM), 25.9 ms on the RT1060 (Mbed TLS, software), the | | |
+| | | signature alone 1.3 ms on the MEK; the last chunk's SHA-256 9 and 8 ms; pb's init 27 ms on jiffy, 91 ms on | | |
+| | | the 8MP EVK. Not measured: the policy's state writes, prepare with a device tree. All far below 5 s; what | | |
+| | | isn't is a driver's wait that runs to its bound (F-321). To decide: the list names these stretches, or the | | |
+| | | loop kicks once per candidate. `boot_image_copy_and_hash()` (no caller, kept by D-020) copies and hashes a | | |
+| | | whole part at once: no chunk to kick for | | |
+| | | 2026-11-14, D-084: the loop kicks once per candidate; 3.3 and `boot.c` to change | | |
+| | | 2026-11-15, fixed (`8e8bb5fb`): `boot_from_policy()` kicks before each candidate; `test_boot` | | |
+| | | counts the kicks (three candidates that fail on the signature: three). `platform.md` 3.3 names | | |
+| | | the kick and the stretches: arming to the first candidate, a candidate's kick to its first | | |
+| | | chunk, a failed candidate to the next, the last chunk to the jump's kick (items 1 to 3). | | |
+| | | `boot_image_copy_and_hash()` still has no chunk to kick for, and no caller | | |
 
 ## Dependencies / vendored code
 

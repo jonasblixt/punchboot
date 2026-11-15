@@ -231,10 +231,11 @@ Return   : void
 Restarts the watchdog. Cheap and safe at any time, also before the watchdog is armed and without
 `CONFIG_ENABLE_WATCHDOG`.
 
-Who kicks it: the core, where work makes progress. Once per chunk in `load_and_hash`, once before
-the jump (the final hash, prepare and `late_boot()` follow the last chunk without a kick
-otherwise; the signature is checked on the header, before the load), and once per round of the
-tasks while pb is stopped (`board.md` 4.5). Inside a command, once per chunk and while a transfer
+Who kicks it: the core, where work makes progress. Once per candidate of the boot source policy,
+before its attempt (D-084), once per chunk in `load_and_hash`, once before the jump (the final
+hash, prepare and `late_boot()` follow the last chunk without a kick otherwise; the signature is
+checked on the header, before the load), and once per round of the tasks while pb is stopped
+(`board.md` 4.5). Inside a command, once per chunk and while a transfer
 is waited for (`command-mode.md` 4.6). A board's command that runs long kicks as it
 makes progress (`command-mode.md` 5.6). Never in
 `pb_delay_*()` or `pb_timeout_*()`: a driver polling forever would keep the board alive, which is
@@ -242,8 +243,15 @@ what the watchdog is there to catch.
 
 So `CONFIG_WATCHDOG_TIMEOUT` must be longer than each of these:
 
-- The longest time without a kick from arming to the first chunk. The platform states its share in
-  its header, measured (DRAM training is the usual long one).
+- The longest time without a kick from arming to the first candidate, or to the first chunk of a
+  partition named for the boot. The platform states its share in its header, measured (DRAM
+  training is the usual long one).
+- From a candidate's kick to the end of its first chunk: its header's read and signature, the
+  chunk.
+- From a failed candidate's last kick to the next candidate's: what is left of its attempt, the
+  policy's report and its next (A/B writes its state).
+- From the last chunk to the kick before the jump: the final hash, the payload's check, prepare,
+  `late_boot()`, `plat_lockdown()`.
 - One chunk on the slowest medium the board loads from. The board states it.
 - From the kick before the jump to the next stage's first kick: BL31, a secure OS, the kernel up
   to its watchdog driver. Usually the longest; the product measures it.
