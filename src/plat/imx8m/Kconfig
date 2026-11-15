@@ -8,11 +8,11 @@ config IMX8M_CREATE_IMX_IMAGE
         pb.imx, the image the boot ROM loads (plat-imx.md 6).
 
 config IMX8M_SIGN_IMAGE
-    bool "Sign it (HABv4, i.MX8MQ)"
-    depends on IMX8M_CREATE_IMX_IMAGE && PLAT_IMX8MQ
+    bool "Sign it (HABv4)"
+    depends on IMX8M_CREATE_IMX_IMAGE
     help
-        pb_signed.imx, signed for HABv4 with NXP's cst. The i.MX8M Quad
-        only: where the image header sits is the 8MQ's (plat-imx.md 6).
+        pb_signed.imx, signed for HABv4 with NXP's cst: the SPL and pb
+        proper, a CSF each (plat-imx.md 6).
 
 config IMX8M_SRK_TABLE
     string "SRK table"

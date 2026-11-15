@@ -27,6 +27,7 @@ CONFIG_MAX_XLAT_TABLES=32
 # Output image
 #
 CONFIG_IMX8M_CREATE_IMX_IMAGE=y
+# CONFIG_IMX8M_SIGN_IMAGE is not set
 # end of Output image
 # end of Platform support
 

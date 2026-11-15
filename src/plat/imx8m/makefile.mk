@@ -287,16 +287,67 @@ else
 # (ROM_VERSION v2), padded to IMX8MP_PB_OFFSET, then pb proper's part
 # (pb_part.bin, scripts/gen-imx8m-ivt.py): its IVT, pb.bin and room for a
 # CSF. The SPL reads pb proper there with the ROM's API.
+# mkimage's offsets, from its output (spl.imx.log), and pb proper's are in
+# pb.imx.offsets for the signing: the SPL's address, its length up to its
+# CSF, which mkimage leaves 8 KiB for at the end of spl.imx, and pb proper's
+# part and its CSF in pb.imx.
+IMX8M_CSF_ROOM = 0x2000
+
 imx8m_image: $(BUILD_DIR)/pb.bin $(BUILD_DIR)/spl.bin scripts/gen-imx8m-ivt.py
 	@echo Generating $(BUILD_DIR)/pb.imx
 	@printf 'ROM_VERSION v2\nBOOT_FROM $(IMX8M_BOOT_FROM)\nLOADER $(BUILD_DIR)/spl.bin $(IMX8M_SPL_ENTRY)\n' > $(BUILD_DIR)/spl.cfg
-	$(Q)$(MKIMAGE) -n $(BUILD_DIR)/spl.cfg -T imx8mimage -e $(IMX8M_SPL_ENTRY) -d $(BUILD_DIR)/spl.bin $(BUILD_DIR)/spl.imx > /dev/null
+	$(Q)$(MKIMAGE) -n $(BUILD_DIR)/spl.cfg -T imx8mimage -e $(IMX8M_SPL_ENTRY) -d $(BUILD_DIR)/spl.bin $(BUILD_DIR)/spl.imx > $(BUILD_DIR)/spl.imx.log 2>&1 || \
+	    { cat $(BUILD_DIR)/spl.imx.log; exit 1; }
 	$(Q)[ $$(stat -c%s $(BUILD_DIR)/spl.imx) -le $$(( $(IMX8MP_PB_OFFSET) )) ] || \
 	    { echo "$(BUILD_DIR)/spl.imx is larger than IMX8MP_PB_OFFSET"; exit 1; }
-	$(Q)$(PYTHON) scripts/gen-imx8m-ivt.py $(PB_ENTRY) 0x2000 $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb_part.bin
+	$(Q)$(PYTHON) scripts/gen-imx8m-ivt.py $(PB_ENTRY) $(IMX8M_CSF_ROOM) $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb_part.bin
 	$(Q)cp $(BUILD_DIR)/spl.imx $(BUILD_DIR)/pb.imx
 	$(Q)truncate -s $$(( $(IMX8MP_PB_OFFSET) )) $(BUILD_DIR)/pb.imx
 	$(Q)cat $(BUILD_DIR)/pb_part.bin >> $(BUILD_DIR)/pb.imx
+	$(Q)set -- $$(sed -n 's/^ *spl hab block:[ \t]*//p' $(BUILD_DIR)/spl.imx.log | head -1); \
+	 spl_self=$$1; spl_off=$$2; spl_csf=$$3; \
+	 [ -n "$$spl_self" ] && [ -n "$$spl_csf" ] && [ $$(( spl_off )) -eq 0 ] || \
+	     { echo "pb.imx: no SPL block in $(BUILD_DIR)/spl.imx.log"; exit 1; }; \
+	 [ $$(( spl_csf + $(IMX8M_CSF_ROOM) )) -le $$(( $(IMX8MP_PB_OFFSET) )) ] || \
+	     { echo "pb.imx: the SPL's CSF doesn't fit below IMX8MP_PB_OFFSET"; exit 1; }; \
+	 csf=$$(( $(IMX8MP_PB_OFFSET) + $$(stat -c%s $(BUILD_DIR)/pb_part.bin) - $(IMX8M_CSF_ROOM) )); \
+	 printf 'SPL_SELF=%s\nSPL_CSF=%s\nIMAGE=%s\nCSF=0x%x\n' $$spl_self $$spl_csf $(IMX8MP_PB_OFFSET) $$csf \
+	     > $(BUILD_DIR)/pb.imx.offsets
+
+# spl.csf, the SPL's HABv4 description: from its IVT to its CSF, which the
+# ROM authenticates. pb.csf, pb proper's: from its IVT to its CSF, which the
+# SPL has HAB authenticate (D-088). Both with the [Unlock]s: the ROM leaves
+# HAB after the SPL, and what it locks then stays locked (NXP's csf_spl.txt
+# has them in the SPL's too).
+imx8m_sign_desc: imx8m_image
+	$(Q). $(BUILD_DIR)/pb.imx.offsets; \
+	 printf '    Blocks = 0x%X 0x0 0x%X "%s"\n' \
+	        $$(( SPL_SELF )) $$(( SPL_CSF )) $(BUILD_DIR)/pb.imx > $(BUILD_DIR)/spl.csf.blocks; \
+	 printf '    Blocks = 0x%X 0x%X 0x%X "%s"\n' \
+	        $$(( $(PB_ENTRY) - 0x40 )) $$(( IMAGE )) $$(( CSF - IMAGE )) $(BUILD_DIR)/pb.imx \
+	        > $(BUILD_DIR)/pb.csf.blocks; \
+	 subst() { sed -e "/__BLOCKS__/{r $$1" -e 'd;}' \
+	     -e 's#__KEY_INDEX__#$(IMX8M_KEY_INDEX)#g' \
+	     -e 's#__SRK_TBL__#$(IMX8M_SRK_TABLE)#g' \
+	     -e 's#__CSFK_PEM__#$(IMX8M_SIGN_CERT)#g' \
+	     -e 's#__IMG_PEM__#$(IMX8M_IMAGE_SIGN_CERT)#g' $(IMX8M_CSF_TEMPLATE); }; \
+	 subst $(BUILD_DIR)/spl.csf.blocks > $(BUILD_DIR)/spl.csf; \
+	 subst $(BUILD_DIR)/pb.csf.blocks > $(BUILD_DIR)/pb.csf
+
+# pb_signed.imx: pb.imx with both signatures where the image has room for
+# them; for the boot media and the serial downloader (uuu) alike
+imx8m_sign_image: imx8m_sign_desc
+	@$(CST_TOOL) -i $(BUILD_DIR)/spl.csf -o $(BUILD_DIR)/spl_csf.bin
+	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/pb_csf.bin
+	$(Q)for f in spl_csf.bin pb_csf.bin; do \
+	     [ $$(stat -c%s $(BUILD_DIR)/$$f) -le $$(( $(IMX8M_CSF_ROOM) )) ] || \
+	         { echo "$(BUILD_DIR)/$$f is larger than its room in pb.imx"; exit 1; }; done
+	@cp $(BUILD_DIR)/pb.imx $(BUILD_DIR)/pb_signed.imx
+	$(Q). $(BUILD_DIR)/pb.imx.offsets; \
+	 dd if=$(BUILD_DIR)/spl_csf.bin of=$(BUILD_DIR)/pb_signed.imx bs=1 conv=notrunc \
+	    seek=$$(( SPL_CSF )) 2> /dev/null && \
+	 dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/pb_signed.imx bs=1 conv=notrunc \
+	    seek=$$(( CSF )) 2> /dev/null
 endif
 
 image-$(CONFIG_IMX8M_CREATE_IMX_IMAGE) += imx8m_image
