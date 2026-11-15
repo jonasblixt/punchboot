@@ -35,6 +35,7 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <plat/imx6ul/clock.h>
 #include <plat/imx6ul/imx6ul.h>
 #include <string.h>
 
@@ -446,6 +447,35 @@ static void test_gpt1_gates_opened_before_the_timer(void **state)
                      CG0 | CCM_CCGR1_GPT1_BUS | CCM_CCGR1_GPT1_SERIAL);
     assert_true(fake_regs_first_write(IMX6UL_CCM_CCGR1) <
                 fake_regs_first_write(IMX6UL_GPT1_BASE + GPT_CR));
+}
+
+/* imx6ul_clk_rate() (platform.md 7, D-085): the rates the CCM says, read
+ * when called. PLL2's PFDs at the ROM's fractions, PFD2 396 MHz and PFD0
+ * 352 MHz; uSDHC1 from PFD2 / 2, uSDHC2 from PFD0 / 1; the core from PLL1
+ * at DIV_SELECT 88 (1056 MHz) / ARM_PODF 2, 528 MHz. A gated PFD reads 0 */
+static void test_clk_rate(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMX6UL_CCM_ANALOG_PFD_528, (24u << 16) | 27u);
+    fake_regs_set(IMX6UL_CCM_CSCMR1, CCM_CSCMR1_USDHC2_CLK_SEL);
+    fake_regs_set(IMX6UL_CCM_CSCDR1, CCM_CSCDR1_USDHC1_PODF(1));
+    fake_regs_set(IMX6UL_CCM_ANALOG_PLL_ARM, 88);
+    fake_regs_set(IMX6UL_CCM_CACRR, 1);
+    fake_regs_set(IMX6UL_CCM_CCSR, 0);
+
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC1), 198000000);
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC2), 352000000);
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_CORE), 528000000);
+
+    /* Read when called: another divider is another rate */
+    fake_regs_set(IMX6UL_CCM_CSCDR1, CCM_CSCDR1_USDHC1_PODF(3));
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC1), 99000000);
+
+    /* PFD2 gated */
+    fake_regs_set(IMX6UL_CCM_ANALOG_PFD_528, (24u << 16) | BIT(23) | 27u);
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC1), 0);
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC2), 352000000);
 }
 
 /* What plat_get_status() answers, every field set by the port */
@@ -934,6 +964,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_reset, setup),
+        cmocka_unit_test_setup(test_clk_rate, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),

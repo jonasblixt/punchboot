@@ -48,8 +48,9 @@ the life cycle last.
 **Is.** A board defines one object, `const struct board board` (`include/pb/board.h`). `main()`
 calls `board.console_init()`, and `board_setup()` (`src/board.c`) runs the steps in one order
 for every board: `rot` and `slc`, `init()`, `ptbl`, `boot_policy`, `late_init()`, the handover.
-The hooks take no argument and are `static`. A board that needs the platform's data asks for it
-(`imx6ul_plat()`, `imx8x_ipc()`, `imx8x_plat()`).
+The hooks take no argument and are `static`. A board that needs the platform's data asks for it,
+a function each (`platform.md` 7): `imx6ul_clk_rate()`, `imx8x_ipc()`, `plat_get_info()`.
+`imx6ul_plat()` and `imx8x_plat()` are there through 3.x, deprecated.
 
 2.x:
 
@@ -68,7 +69,7 @@ int board_init(struct imx6ul_platform *plat_)
 ```c
 static void board_console_init(void)
 ...
-    return imx_usdhc_init(&cfg, MHz(imx6ul_plat()->usdhc1_clk_MHz));
+    return imx_usdhc_init(&cfg, imx6ul_clk_rate(IMX6UL_CLK_USDHC1));
 ...
 const struct board board = {
     .name = "jiffy",
@@ -802,7 +803,9 @@ What a board asks the platform changed too:
 | `struct pb_timeout` with `ts_end` and | `ts_start` and `timeout_us`; code that only calls |
 | `rollover`                            | `pb_timeout_init_us()` and                        |
 |                                       | `pb_timeout_has_expired()` doesn't change         |
-| The platform's struct as an argument  | `imx6ul_plat()`, `imx8x_plat()`, `imx8x_ipc()`    |
+| The platform's struct as an argument  | A function each: `imx6ul_clk_rate()`,             |
+|                                       | `imx8x_ipc()`, `plat_get_info()` (`platform.md`   |
+|                                       | 7); `imx6ul_plat()` and `imx8x_plat()` deprecated |
 | Nothing                               | `plat_get_status()`: what `plat_init()` couldn't  |
 |                                       | do (`platform.md` 3.8)                            |
 | Nothing                               | `board_report_degraded()`: the board's own, for   |

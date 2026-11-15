@@ -463,8 +463,9 @@ int plat_init(void)
     plat.usdhc1_clk_MHz = ((cscmr1 & CCM_CSCMR1_USDHC1_CLK_SEL) ? 352 : 400) / usdhc1_podf;
     plat.usdhc2_clk_MHz = ((cscmr1 & CCM_CSCMR1_USDHC2_CLK_SEL) ? 352 : 400) / usdhc2_podf;
 
-    LOG_INFO("uSDHC1 clk: %u MHz", plat.usdhc1_clk_MHz);
-    LOG_INFO("uSDHC2 clk: %u MHz", plat.usdhc2_clk_MHz);
+    /* The rates the CCM says; the deprecated struct keeps its rounded ones */
+    LOG_INFO("uSDHC1 clk: %u kHz", (unsigned int)(imx6ul_clk_rate(IMX6UL_CLK_USDHC1) / 1000));
+    LOG_INFO("uSDHC2 clk: %u kHz", (unsigned int)(imx6ul_clk_rate(IMX6UL_CLK_USDHC2) / 1000));
 
     imx_wdog_kick(IMX6UL_WDOG1_BASE);
 
@@ -624,6 +625,20 @@ static uint32_t cpu_hz(void)
     return 24000000u * (pll & CCM_ANALOG_PLL_ARM_DIV_SELECT_MASK) / (2 * podf);
 }
 
+/* PLL2's PFD n: 528 MHz * 18 / FRAC (RM 18.7.13); 0 when it is gated or its
+ * fraction is out of range */
+static uint32_t pll2_pfd_hz(unsigned int n)
+{
+    uint32_t pfd = mmio_read_32(IMX6UL_CCM_ANALOG_PFD_528);
+    uint32_t frac = CCM_ANALOG_PFD_FRAC_OF(pfd, n);
+
+    if ((pfd & BIT(8 * n + 7)) || frac < 12)
+        return 0;
+
+    /* In kHz: 528 MHz * 18 doesn't fit in 32 bits */
+    return 528000u * 18 / frac * 1000;
+}
+
 /* mmdc_clk_root (RM 18.6.5, 18.6.6, the clock tree in 18.3): periph2, from
  * PLL2 or one of its PFDs, or from periph2_clk2; then FABRIC_MMDC_PODF. The
  * ROM sets it (396 MHz, PLL2's PFD2, Table 8-43) and jiffy's DCD keeps it */
@@ -634,8 +649,6 @@ static uint32_t mmdc_hz(void)
     uint32_t pll2 = (mmio_read_32(IMX6UL_CCM_ANALOG_PLL_SYS) & CCM_ANALOG_PLL_SYS_DIV_SELECT)
                         ? 528000000
                         : 480000000;
-    uint32_t pfd = mmio_read_32(IMX6UL_CCM_ANALOG_PFD_528);
-    uint32_t frac;
     uint32_t src;
 
     if (cbcdr & CCM_CBCDR_PERIPH2_CLK_SEL) {
@@ -648,12 +661,9 @@ static uint32_t mmdc_hz(void)
             break;
         case 1: /* PLL2's PFD2 */
         case 2: /* PLL2's PFD0 */
-            frac =
-                CCM_ANALOG_PFD_FRAC_OF(pfd, CCM_CBCMR_PRE_PERIPH2_CLK_SEL_OF(cbcmr) == 1 ? 2 : 0);
-            if (frac < 12)
+            src = pll2_pfd_hz(CCM_CBCMR_PRE_PERIPH2_CLK_SEL_OF(cbcmr) == 1 ? 2 : 0);
+            if (src == 0)
                 return 0;
-            /* In kHz: 528 MHz * 18 doesn't fit in 32 bits */
-            src = 528000u * 18 / frac * 1000;
             break;
         default: /* PLL4, the audio PLL: not read */
             return 0;
@@ -661,6 +671,32 @@ static uint32_t mmdc_hz(void)
     }
 
     return src / (CCM_CBCDR_FABRIC_MMDC_PODF_OF(cbcdr) + 1);
+}
+
+/* usdhcN_clk_root (RM 18.6.6, the clock tree in 18.3): PLL2's PFD2 or, with
+ * USDHCn_CLK_SEL, its PFD0, then USDHCn_PODF */
+static uint32_t usdhc_hz(uint32_t clk_sel, uint32_t podf_mask, unsigned int podf_shift)
+{
+    uint32_t cscmr1 = mmio_read_32(IMX6UL_CCM_CSCMR1);
+    uint32_t cscdr1 = mmio_read_32(IMX6UL_CCM_CSCDR1);
+
+    return pll2_pfd_hz((cscmr1 & clk_sel) ? 0 : 2) / (((cscdr1 & podf_mask) >> podf_shift) + 1);
+}
+
+uint32_t imx6ul_clk_rate(enum imx6ul_clk clk)
+{
+    switch (clk) {
+    case IMX6UL_CLK_CORE:
+        return cpu_hz();
+    case IMX6UL_CLK_USDHC1:
+        return usdhc_hz(
+            CCM_CSCMR1_USDHC1_CLK_SEL, CCM_CSCDR1_USDHC1_PODF_MASK, CCM_CSCDR1_USDHC1_PODF_SHIFT);
+    case IMX6UL_CLK_USDHC2:
+        return usdhc_hz(
+            CCM_CSCMR1_USDHC2_CLK_SEL, CCM_CSCDR1_USDHC2_PODF_MASK, CCM_CSCDR1_USDHC2_PODF_SHIFT);
+    default:
+        return 0;
+    }
 }
 
 int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size)

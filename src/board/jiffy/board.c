@@ -67,7 +67,7 @@ static int usdhc_emmc_setup(void)
         },
     };
 
-    return imx_usdhc_init(&cfg, MHz(imx6ul_plat()->usdhc1_clk_MHz));
+    return imx_usdhc_init(&cfg, imx6ul_clk_rate(IMX6UL_CLK_USDHC1));
 }
 
 /*

@@ -93,7 +93,8 @@ struct imx8x_platform {
     uint32_t soc_rev;
 };
 
-/** The SCFW IPC handle and the SoC id, for the board */
+/** Deprecated (D-085): imx8x_ipc() and plat_get_info() instead. Kept
+ * through 3.x for boards out of the tree */
 const struct imx8x_platform *imx8x_plat(void);
 sc_ipc_t imx8x_ipc(void);
 

@@ -367,7 +367,7 @@ Where each port is (2026-11-14).
 | MMU from `pb_mmu_init()`             | yes          | yes               | yes        | n/a       | F-158, F-269  |
 | Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
 | Image stages                         | yes          | yes               | yes        | yes       | F-240         |
-| Functions for boards, not a          | no           | n/a               | yes        | n/a       | F-440         |
+| Functions for boards, not a          | yes          | n/a               | yes        | n/a       | F-440         |
 | structure (7)                        |              |                   |            |           |               |
 | `plat_get_info()`                    | yes (jiffy)  | 8MP EVK; 8MQ not  | yes (MEK)  | yes       | F-432, F-433  |
 | The header: the tick's accuracy, the | no           | no                | no         | no        |               |

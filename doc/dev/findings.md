@@ -852,10 +852,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `boot.bpak` 5 of 5 and random 15 MB files 10 of 10, each verified; System A holds | | |
 | | | `boot.bpak` again and boots Linux to the login. The old pb failed a 500 KB write once on the | | |
 | | | way. Left: whether it is F-172's cause too, which a longer run will tell | | |
-| F-440 | `include/plat/*/`, `src/board/jiffy/board.c` | `platform.md` 7 (D-085): functions, | Verified | open |
-| | | not `<p>_plat()`. Left: `imx6ul_clk_rate()` and jiffy on it, `imx6ul_plat()` and | | |
-| | | `imx8x_plat()` deprecated, the 8M and the RT get `<p>_clk_rate()` when a board needs a clock, | | |
-| | | `plat-imx.md` 7's row, the migration guide | | |
 | F-441 | `src/boot/`, `board/jiffy`, `testbench/` | The delivery through OP-TEE on ARMv7-A | Verified | open |
 | | | (`boot.md` 5.7, D-085) doesn't exist: OP-TEE is booted as the kernel's part, with a fixed | | |
 | | | `CFG_NS_ENTRY_ADDR`. Left, after the review: the delivery, its host test, jiffy's board, a | | |

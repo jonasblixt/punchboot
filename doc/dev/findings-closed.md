@@ -1599,6 +1599,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-15 (D-087): `CONFIG_SLC_NO_FUSE_WRITES`, on in the EVK's defconfig: configuring, | | |
 | | | locking, revoking a key and EOL answer NOT_SUPPORTED before reading anything, whatever the | | |
 | | | platform can (`test_slc_no_fuse_writes`). The EVK's pb has it; not run on the board | | |
+| F-440 | `include/plat/*/`, `src/board/jiffy/board.c` | `platform.md` 7 (D-085): functions, | Verified | fixed |
+| | | not `<p>_plat()`. Left: `imx6ul_clk_rate()` and jiffy on it, `imx6ul_plat()` and | | |
+| | | `imx8x_plat()` deprecated, the 8M and the RT get `<p>_clk_rate()` when a board needs a clock, | | |
+| | | `plat-imx.md` 7's row, the migration guide | | |
+| | | 2026-11-15: `imx6ul_clk_rate()` (the core, uSDHC1, uSDHC2) reads the CCM when called, PLL2's | | |
+| | | PFDs by their fractions; jiffy's uSDHC1 from it, 198 MHz (the struct said 200: PFD2 taken as | | |
+| | | 400 MHz), the same divisors, DDR52 at 49.5 MHz, on jiffy from BOOT1. `imx6ul_plat()` and | | |
+| | | `imx8x_plat()` deprecated, the struct's values as they were. The 8M and the RT: no board needs | | |
+| | | a clock | | |
 
 ## Dependencies / vendored code
 

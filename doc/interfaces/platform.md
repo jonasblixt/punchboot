@@ -791,8 +791,9 @@ The platform header documents:
     controller's handle (`imx8x_ipc()`).
 
   `<p>_plat()` and its structure stay through 3.x where they exist (`imx6ul_plat()`,
-  `imx8x_plat()`), deprecated: boards out of the tree may read them. **Not yet in the code
-  (F-440)**: jiffy reads uSDHC1's rate from `imx6ul_plat()`.
+  `imx8x_plat()`), deprecated: boards out of the tree may read them. The 6UL has
+  `imx6ul_clk_rate()` (the core, uSDHC1 and uSDHC2); the 8M and the RT get one when a board needs
+  a clock.
 - Helpers for boards (pad setup through a system controller), and which of a system
   controller's services the header gives a board.
 - The SoC memory a board may list as an image data region, and `bl_params`' region (5.3).
