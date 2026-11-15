@@ -332,7 +332,7 @@ static int setup(void **state)
     fake_regs_set(IMX8M_IOMUXC_GPR10,
                   GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS | GPR10_LOCK_TZASC_EN |
                       GPR10_LOCK_TZASC_ID_SWAP);
-    f.tzc_region_size = UINT64_C(8) << 30;
+    f.tzc_region_size = SZ_GiB(1);
     f.tzc_region_sp = TZC380_SP_ALL;
     return 0;
 }
@@ -452,9 +452,9 @@ static void test_status_tzasc_not_enabled(void **state)
 }
 
 /* The same when region 1 isn't what the SPL is to set up: the TZC-380 not
- * there, its region not read, not from the window's start, smaller than
- * the board's DRAM, or closed to a world. Not the state 4.3 asks for, and
- * the boot is refused the same way */
+ * there, its region not read, not from the DRAM's start, smaller or larger
+ * than the board's DRAM, or closed to a world. Not the state 4.3 asks for,
+ * and the boot is refused the same way */
 static void test_status_tzasc_region_not_open(void **state)
 {
     (void)state;
@@ -488,6 +488,14 @@ static void test_status_tzasc_region_not_open(void **state)
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+
+    /* The whole window (8 GiB on the 8MP) opens the copies of DRAM in it
+     * too (F-261) */
+    setup(NULL);
+    f.tzc_region_size = UINT64_C(8) << 30;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
 
     setup(NULL);
     f.tzc_region_sp = TZC380_SP_ALL & ~TZC380_SP_NS_W;

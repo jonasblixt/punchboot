@@ -19,6 +19,7 @@
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/wdog/imx_wdog.h>
+#include <inttypes.h>
 #include <pb/console.h>
 #include <pb/delay.h>
 #include <pb/mmio.h>
@@ -200,10 +201,33 @@ void plat_wdog_kick(void)
  *
  * Out of bypass, region 0 only lets secure accesses through, but OP-TEE reads
  * the DTB through a non-secure mapping before its TZASC driver has run. Open
- * DDR to both worlds in region 1 until OP-TEE replaces it.
+ * the board's DRAM to both worlds in region 1 until OP-TEE replaces it, and
+ * not the 2 GiB DDR window: with less DRAM the window repeats it (RM 52.3),
+ * and the copies stay secure only (platform.md 4.3, F-261). The TZASC sees
+ * DDR at its physical address on the 6UL, as OP-TEE programs it (F-241).
+ *
+ * Region 1 is read back: a secure OS that locked its regions (lockdown_range
+ * and GPR1's TZASC1_BOOT_LOCK, which only a reset of the TZASC clears) makes
+ * the TZASC ignore the write. pb leaves TZASC1_BOOT_LOCK alone: OP-TEE
+ * programs the lockdown registers after pb, which the lock would freeze.
  */
+#define TZASC_DRAM_BASE ((uint64_t)BOARD_RAM_BASE)
+#define TZASC_DRAM_SIZE ((uint64_t)BOARD_RAM_END - BOARD_RAM_BASE)
+
+/* One TZC-380 region: a power of two of at least 32 KiB, aligned to its size */
+_Static_assert(TZASC_DRAM_SIZE >= SZ_KiB(32) && (TZASC_DRAM_SIZE & (TZASC_DRAM_SIZE - 1)) == 0,
+               "The board's DRAM isn't a TZASC region's size");
+_Static_assert((TZASC_DRAM_BASE & (TZASC_DRAM_SIZE - 1)) == 0,
+               "The board's DRAM isn't aligned to its size, as a TZASC region");
+_Static_assert(TZASC_DRAM_BASE >= IMX6UL_DDR_BASE &&
+                   TZASC_DRAM_BASE + TZASC_DRAM_SIZE <= (uint64_t)IMX6UL_DDR_BASE + IMX6UL_DDR_SIZE,
+               "The board's DRAM isn't in the DDR window");
+
 static int tzasc_init(void)
 {
+    uint64_t base;
+    uint64_t size;
+    uint32_t sp;
     int rc;
 
     /*
@@ -220,7 +244,25 @@ static int tzasc_init(void)
     if (rc != PB_OK)
         return rc;
 
-    return tzc380_configure_region(1, IMX6UL_DDR_BASE, IMX6UL_DDR_SIZE, TZC380_SP_ALL);
+    rc = tzc380_configure_region(1, TZASC_DRAM_BASE, TZASC_DRAM_SIZE, TZC380_SP_ALL);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = tzc380_get_region(1, &base, &size, &sp);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (base != TZASC_DRAM_BASE || size != TZASC_DRAM_SIZE || sp != TZC380_SP_ALL) {
+        LOG_ERR("TZASC region 1: base 0x%" PRIx64 ", %" PRIu64 " MiB, sp %08" PRIx32,
+                base,
+                size >> 20,
+                sp);
+        return -PB_ERR_STATE;
+    }
+
+    return PB_OK;
 }
 
 /* The ROM log, AN12853 Tables 11 and 13 */
@@ -288,6 +330,27 @@ const struct slc_ops plat_slc = {
  * Returns whether the build's backends all came up. A build without one has
  * none that works.
  */
+/* The AIPS-TZ bridges (6UL RM 14.4, 14.7), a duty of the stage in BL2's
+ * place (platform.md 4.5, F-246). Out of reset MPR is 0x77000000: master 0
+ * (every master but the core, the CAAM and the SDMA) and master 1 (the A7)
+ * are trusted, the CAAM and the SDMA are untrusted and forced to user mode.
+ * Every OPACR is 0x44444444: each peripheral wants supervisor accesses. So
+ * the SDMA reaches no peripheral and user mode reaches no register, which
+ * Linux doesn't expect. As U-Boot's init_aips(): every master trusted and
+ * not forced to user mode, no peripheral protected. A secure OS restricts
+ * what it wants through the CSU, which an access must pass as well (14.4) */
+static void aipstz_init(void)
+{
+    static const uintptr_t aipstz[] = { IMX6UL_AIPSTZ1_BASE, IMX6UL_AIPSTZ2_BASE };
+
+    for (size_t i = 0; i < ARRAY_SIZE(aipstz); i++) {
+        mmio_write_32(aipstz[i] + AIPSTZ_MPR, 0x77777777);
+
+        for (unsigned int n = 0; n < AIPSTZ_OPACRS; n++)
+            mmio_write_32(aipstz[i] + AIPSTZ_OPACR(n), 0);
+    }
+}
+
 static bool crypto_init(void)
 {
     unsigned int backends = 0;
@@ -492,6 +555,8 @@ int plat_init(void)
         LOG_ERR("TZASC setup failed (%i)", rc);
 
     status.tz_dram_filter = (rc == PB_OK) ? PLAT_TZ_DRAM_ACTIVE : PLAT_TZ_DRAM_BYPASSED;
+
+    aipstz_init();
 
     /* Last: until F-247 the board's init() did it, as its first step */
     status.crypto_engine = crypto_init();

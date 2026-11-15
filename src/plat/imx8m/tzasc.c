@@ -27,8 +27,21 @@
 /* The DDR window's start, where the TZASC counts from */
 #define DDR_WINDOW_BASE UINT64_C(0x40000000)
 
-#define GPR10_BITS      (GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS)
-#define GPR10_LOCKS     (GPR10_LOCK_TZASC_EN | GPR10_LOCK_TZASC_ID_SWAP)
+/* The board's DRAM as the TZASC counts it, from the window's start */
+#define TZASC_DRAM_BASE ((uint64_t)BOARD_RAM_BASE - DDR_WINDOW_BASE)
+#define TZASC_DRAM_SIZE ((uint64_t)BOARD_RAM_END - BOARD_RAM_BASE)
+
+/* One TZC-380 region: a power of two of at least 32 KiB, aligned to its size */
+_Static_assert(TZASC_DRAM_SIZE >= SZ_KiB(32) && (TZASC_DRAM_SIZE & (TZASC_DRAM_SIZE - 1)) == 0,
+               "The board's DRAM isn't a TZASC region's size");
+_Static_assert((TZASC_DRAM_BASE & (TZASC_DRAM_SIZE - 1)) == 0,
+               "The board's DRAM isn't aligned to its size, as a TZASC region");
+_Static_assert((uint64_t)BOARD_RAM_BASE >= DDR_WINDOW_BASE &&
+                   TZASC_DRAM_BASE + TZASC_DRAM_SIZE <= DDR_WINDOW_SIZE,
+               "The board's DRAM isn't in the DDR window");
+
+#define GPR10_BITS  (GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS)
+#define GPR10_LOCKS (GPR10_LOCK_TZASC_EN | GPR10_LOCK_TZASC_ID_SWAP)
 
 /*
  * The TZASC checks no DRAM access until GPR10's TZASC_EN is set, and TF-A's
@@ -55,13 +68,13 @@ int imx8m_tzasc_enable(void)
 /*
  * Out of bypass, region 0 lets only secure accesses through, and some
  * masters are non-secure: the DWC3, command mode's USB, among them, and the
- * boot ROM's own loads of pb proper on the 8MQ. Open the DDR window to both
- * worlds in region 1 and leave region 0 secure, so that aliases of DRAM stay
- * protected; OP-TEE replaces region 1 with its own.
+ * boot ROM's own loads of pb proper on the 8MQ. Open the board's DRAM, not
+ * the window, to both worlds in region 1 and leave region 0 secure, so that
+ * the copies of DRAM in the window stay protected (platform.md 4.3, F-261);
+ * OP-TEE replaces region 1 with its own.
  */
 int imx8m_tzasc_open_dram(void)
 {
-    uint64_t size;
     int rc;
 
     rc = tzc380_init(IMX8M_TZASC_BASE);
@@ -69,29 +82,16 @@ int imx8m_tzasc_open_dram(void)
     if (rc != PB_OK)
         return rc;
 
-    /* The enable is locked: without region 1 command mode's USB stops. So
-     * if the TZASC addresses less than the window, open what it addresses */
-    for (size = DDR_WINDOW_SIZE; size >= SZ_GiB(1); size >>= 1) {
-        rc = tzc380_configure_region(1, 0, size, TZC380_SP_ALL);
-
-        if (rc != -PB_ERR_PARAM)
-            break;
-    }
-
-    if (rc == PB_OK && size != DDR_WINDOW_SIZE)
-        LOG_ERR("TZASC: only %" PRIu64 " MiB of DRAM opened", size >> 20);
-
-    return rc;
+    return tzc380_configure_region(1, TZASC_DRAM_BASE, TZASC_DRAM_SIZE, TZC380_SP_ALL);
 }
 
 /*
  * pb proper (D-088): what the SPL set up, read back rather than trusted. The
- * enable and its locks in GPR10, and region 1 from the window's start over
- * the board's DRAM, to both worlds, with no subregion disabled.
+ * enable and its locks in GPR10, and region 1 over the board's DRAM and no
+ * more, to both worlds, with no subregion disabled.
  */
 int imx8m_tzasc_check(void)
 {
-    const uint64_t dram_end = (uint64_t)BOARD_RAM_END - DDR_WINDOW_BASE;
     uint32_t gpr10 = mmio_read_32(IMX8M_IOMUXC_GPR10);
     uint64_t base;
     uint64_t size;
@@ -113,7 +113,7 @@ int imx8m_tzasc_check(void)
     if (rc != PB_OK)
         return rc;
 
-    if (base != 0 || size < dram_end || sp != TZC380_SP_ALL) {
+    if (base != TZASC_DRAM_BASE || size != TZASC_DRAM_SIZE || sp != TZC380_SP_ALL) {
         LOG_ERR("TZASC region 1: base 0x%" PRIx64 ", %" PRIu64 " MiB, sp %08" PRIx32,
                 base,
                 size >> 20,
