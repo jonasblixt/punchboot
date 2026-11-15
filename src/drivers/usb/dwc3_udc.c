@@ -123,7 +123,7 @@ static struct {
 PB_DMA_ARRAY_ALIGNED(uint32_t, ev_buffer, DWC3_EV_BUFFER_ENTRIES, DWC3_EV_BUFFER_BYTES);
 PB_DMA_BUFFER(struct usb_setup_packet, setup_pkt);
 PB_DMA_ARRAY(struct dwc3_trb, trbs, USB_EP_END);
-static struct dwc3_ep eps[USB_EP_END];
+static struct dwc3_ep eps[USB_EP_END] __dram_bss; /* Command mode's */
 
 /* What the controller has of an endpoint's transfer: its TRB, which it
  * updates, and the buffer when it writes it. Begun, and not ended yet. Apart

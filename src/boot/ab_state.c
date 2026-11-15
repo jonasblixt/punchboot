@@ -23,8 +23,9 @@ static bio_dev_t primary_part, backup_part;
  * PB_DMA_BUFFER()'s .no_init: after an init that found no partitions the
  * state is read with no copy read into it, and is zeros, as it always was */
 PB_STATIC_ASSERT(sizeof(struct pb_boot_state) % PB_DMA_ALIGN == 0, "whole lines");
-static struct pb_boot_state boot_state __aligned(PB_DMA_ALIGN);
-static struct pb_boot_state boot_state_backup __aligned(PB_DMA_ALIGN);
+/* Read by the boot and command mode, after plat_init() */
+static struct pb_boot_state boot_state __aligned(PB_DMA_ALIGN) __dram_bss;
+static struct pb_boot_state boot_state_backup __aligned(PB_DMA_ALIGN) __dram_bss;
 static const struct boot_ab_state_config *cfg;
 /* This boot's candidates: how many were handed out, and the first one */
 static unsigned int handed_out;
