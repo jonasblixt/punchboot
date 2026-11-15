@@ -17,6 +17,17 @@ config IMX8X_CM_USB3
     help
         The Cadence USB3 controller with its PHY, the SCFW's SC_R_USB_2.
 
+config IMX8X_CM_USB_OTG1
+    bool "USB OTG1"
+    select DRIVER_USB_DEVICE
+    select DRIVER_USB_PB_CLS
+    select DRIVER_IMX_USB2_PHY
+    select DRIVER_IMX_CI_UDC
+    help
+        The first ChipIdea controller with its PHY, the SCFW's SC_R_USB_0:
+        the i.MX8QXP's USB 2.0 OTG port, the i.MX8DXL's USB OTG1. No board
+        in the tree uses it.
+
 config IMX8X_CM_USB_OTG2
     bool "USB OTG2 (i.MX8DXL)"
     depends on PLAT_IMX8XL

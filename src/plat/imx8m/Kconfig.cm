@@ -14,4 +14,18 @@ config IMX8M_CM_USB1
     select DRIVER_USB_PB_CLS
     select DRIVER_IMX8M_PHY
     select DRIVER_IMX_DWC3_UDC
+    help
+        USB1, the port of the ROM's serial downloader on the i.MX8MQ, and
+        one of the two on the i.MX8M Plus.
+
+config IMX8M_CM_USB2
+    bool "USB2 (i.MX8M Plus)"
+    depends on PLAT_IMX8MP
+    select DRIVER_USB_DEVICE
+    select DRIVER_USB_PB_CLS
+    select DRIVER_IMX8M_PHY
+    select DRIVER_IMX_DWC3_UDC
+    help
+        USB2, the i.MX8M Plus's second port of the ROM's serial downloader
+        (RM 6.1.7). No board in the tree uses it.
 endchoice
