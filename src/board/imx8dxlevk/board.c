@@ -10,8 +10,9 @@
 #include <arch/arch_helpers.h>
 #include <arch/armv8a/timer.h>
 #include <boot/ab_state.h>
+#include <boot/atf.h>
 #include <boot/boot.h>
-#include <boot/linux.h>
+#include <boot/image.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
@@ -164,8 +165,6 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
                                 celsius,
                                 tenths);
 
-    response[(*response_size)++] = 0;
-
     return PB_OK;
 }
 
@@ -278,12 +277,26 @@ static const struct slc_config slc = {
     .fuse_write = imx8x_fuse_write,
 };
 
-static const struct boot_driver_linux_config boot_linux = {
-    .image_bpak_id = 0xa697d988, /* bpak_id("atf") */
+/*
+ * Linux, through TF-A (boot.md 5.3): BL31 gets the kernel's part as BL33 in
+ * the bl_params list in x0, with the device tree in x0 there. Until 3.0.0 pb
+ * started the part "atf" directly, with x0 to x3 = 0, and named no BL33.
+ *
+ * Only built, not run on a board, and this tree builds no image for the
+ * board. Not known: what the board's BL31 does with the list, and what an
+ * image in the field has in "atf" and at the address its BL31 starts BL33
+ * at (F-295).
+ */
+static const struct boot_handover_image_config boot_image = {
+    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
     .dtb_patch_cb = board_patch_bootargs,
-    .resolve_part_name = boot_ab_part_uu_to_name,
+    .set_dtb_boot_arg = true,
+};
+
+static const struct boot_delivery_tfa_config boot_tfa = {
+    .bl31_bpak_id = 0xa697d988, /* bpak_id("atf") */
 };
 
 static const struct gpt_part_table gpt_tbl_default[] = {
@@ -368,7 +381,22 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .backup_state_part_uu = PART_backup_state,
     .sys_a_uu = PART_sys_a,
     .sys_b_uu = PART_sys_b,
-    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
+
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM, 1 GiB from
+ * 0x80000000, without pb, which runs in it (src/plat/imx8x/link.lds). BL31
+ * goes where pb's reset stub was. pb is linked from 0x80020000 and its
+ * buffers from 0x85000000, 16 MiB each. pb's 16 MiB aren't all kept: the
+ * build uses less than 256 KiB, and a kernel with the older text offset is at
+ * 0x80080000 (the MEK's images, this board's aren't known). board_setup()
+ * checks the list against what is linked.
+ */
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(IMX8X_ATF_BASE, IMX8X_ATF_SIZE),
+    BOOT_IMAGE_REGION(0x80080000, 0x85000000 - 0x80080000), /* Between pb and its buffers */
+    BOOT_IMAGE_REGION(0x86000000, 0xc0000000 - 0x86000000),
+    BOOT_IMAGE_REGION_END,
 };
 
 const struct board board = {
@@ -377,11 +405,11 @@ const struct board board = {
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,
-    .gpt_dev_uu = PART_user,
-    .gpt_tables = gpt_tables,
-    .gpt_tables_length = ARRAY_SIZE(gpt_tables),
-    .ab = &boot_state_cfg,
-    .boot_linux = &boot_linux,
+    .ptbl = PTBL_GPT(PART_user, gpt_tables),
+    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
+    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+    .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
+    .image_regions = image_regions,
     .early_boot = early_boot,
     .bootargs = "console=ttyLP0,115200 quiet ",
     .bootargs_verbose = "console=ttyLP0,115200  "

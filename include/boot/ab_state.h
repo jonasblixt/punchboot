@@ -12,20 +12,21 @@
 #ifndef BOOT_AB_STATE_H
 #define BOOT_AB_STATE_H
 
+#include <boot/policy.h>
 #include <pb/bio.h>
+#include <pb/utils_def.h>
 #include <uuid.h>
 
-enum ab_rollback_mode {
-    AB_ROLLBACK_MODE_NORMAL,
-    AB_ROLLBACK_MODE_SPECULATIVE,
-};
-
+/**
+ * The board's configuration for A/B (board.md 2.5): the two slots and the
+ * two state partitions. Speculative mode (boot.md 3.6) isn't the board's
+ * to switch: CONFIG_BOOT_AB_SPECULATIVE is its only switch.
+ */
 struct boot_ab_state_config {
     const unsigned char *primary_state_part_uu;
     const unsigned char *backup_state_part_uu;
     const unsigned char *sys_a_uu;
     const unsigned char *sys_b_uu;
-    enum ab_rollback_mode rollback_mode;
 };
 
 /**
@@ -41,26 +42,17 @@ struct boot_ab_state_config {
 int boot_ab_state_init(const struct boot_ab_state_config *cfg);
 
 /**
- * Compute which block device that should be used for booting.
- * This advances the boot counters if needed and may trigger rollback
- * on un-verified partitions.
+ * Command mode's 'boot activate' (boot.md 3.5): the slot 'part_uu' is
+ * enabled and marked verified, the other slot's verified bit and the error
+ * bits are cleared, and the state is written. The null UUID disables both.
  *
- * @return A valid block device on success,
- *        -PB_ERR_PARAM, bad block device UUID's
- *        -PB_ERR_IO, on read/write errors
- *        -PB_ERR_NOT_FOUND, when can't partitions can't be found
- */
-bio_dev_t boot_ab_state_get(void);
-
-/**
- * For partition 'part_uu' to be active and verified.
- *
- * @param[in] part_uu Partition to activate
+ * @param[in] part_uu A slot's partition, or the null UUID
  *
  * @return PB_OK on success,
- *        -PB_ERR_PARAM, bad block device UUID's
- *        -PB_ERR_IO, on read/write errors
- *        -PB_ERR_NOT_FOUND, when can't partitions can't be found
+ *        -PB_ERR_STATE, before an init that found the state partitions
+ *        -PB_ERR_PART_NOT_BOOTABLE, 'part_uu' is neither: nothing changes
+ *         and nothing is written
+ *         or the error of the state's write (-PB_ERR_IO)
  */
 int boot_ab_state_set_boot_partition(uuid_t part_uu);
 
@@ -101,5 +93,17 @@ int boot_ab_state_read_board_reg(unsigned int index, uint32_t *value);
  * @return 0 on success
  */
 int boot_ab_state_write_board_reg(unsigned int index, uint32_t value);
+
+extern const struct boot_policy_ops boot_policy_ab_ops;
+
+/**
+ * A board's boot source policy (board.boot_policy): A/B, with '_config', a
+ * const struct boot_ab_state_config *.
+ */
+#define BOOT_POLICY_AB(_config)                                          \
+    {                                                                    \
+        .ops = &boot_policy_ab_ops,                                      \
+        .config = PB_CONFIG(_config, const struct boot_ab_state_config), \
+    }
 
 #endif

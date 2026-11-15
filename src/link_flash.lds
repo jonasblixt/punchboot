@@ -28,6 +28,10 @@ SECTIONS
     {
         _sdata = .;
         . = ALIGN(16);
+        /* pb, what of it is in RAM: from here to the end of the RAM log
+         * (platform.md 5.1). The code and the read only data stay in the
+         * flash, which no image data region lists */
+        PROVIDE (_pb_start = .);
         PROVIDE (_data_region_start = .);
         *(.data .data.*)
         . = ALIGN(16);
@@ -97,17 +101,20 @@ SECTIONS
         . = ALIGN(16);
         *(.ramlog)
         . = ALIGN(16);
+        PROVIDE(_pb_end = .);
     } > ram
 
     .no_init (NOLOAD):
     {
         . = ALIGN(16);
+        PROVIDE(_buffers_start = .);
         PROVIDE(_no_init_start = .);
         *(.no_init .no_init*)
         . = ALIGN(16);
         *(xlat_table)
         . = ALIGN(16);
         PROVIDE(_no_init_end = .);
+        PROVIDE(_buffers_end = .);
     } > buffers
 
     PROVIDE(end = .);

@@ -34,4 +34,21 @@
 #define UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5 \
     (const unsigned char *)"\xff\x4d\xdc\x6c\xad\x7a\x47\xe8\x87\x73\x67\x29\x39\x2d\xd1\xb5"
 #define PART_readable UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5
+
+/* The memory mapped flash (--nor) and its static table */
+#define UUID_c1d0d298_8b7c_4a27_82a5_0f40a79b7142 \
+    (const unsigned char *)"\xc1\xd0\xd2\x98\x8b\x7c\x4a\x27\x82\xa5\x0f\x40\xa7\x9b\x71\x42"
+#define PART_nor UUID_c1d0d298_8b7c_4a27_82a5_0f40a79b7142
+
+#define UUID_f65e995f_d1f0_48cb_b1ff_44fa21c4f234 \
+    (const unsigned char *)"\xf6\x5e\x99\x5f\xd1\xf0\x48\xcb\xb1\xff\x44\xfa\x21\xc4\xf2\x34"
+#define PART_nor_in_place UUID_f65e995f_d1f0_48cb_b1ff_44fa21c4f234
+
+#define UUID_105ef3a6_cf80_445c_be8b_29089499c09e \
+    (const unsigned char *)"\x10\x5e\xf3\xa6\xcf\x80\x44\x5c\xbe\x8b\x29\x08\x94\x99\xc0\x9e"
+#define PART_nor_loaded UUID_105ef3a6_cf80_445c_be8b_29089499c09e
+
+#define UUID_5e808588_1c7a_4755_8729_5f4256610cdb \
+    (const unsigned char *)"\x5e\x80\x85\x88\x1c\x7a\x47\x55\x87\x29\x5f\x42\x56\x61\x0c\xdb"
+#define PART_nor_not_bootable UUID_5e808588_1c7a_4755_8729_5f4256610cdb
 #endif

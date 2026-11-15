@@ -16,4 +16,8 @@
 #define BOARD_RAM_BASE (0x40000000)
 #define BOARD_RAM_END  (BOARD_RAM_BASE + BOARD_RAM_SIZE)
 
+/* A memory mapped flash, with --nor: off the RAM and below ASan's shadow */
+#define BOARD_NOR_SIZE (512 * 1024ul)
+#define BOARD_NOR_BASE (0x70000000)
+
 #endif

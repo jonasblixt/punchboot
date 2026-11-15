@@ -147,13 +147,17 @@ add_library(pb_core STATIC
     src/wire.c
     src/boot/ab_state.c
     src/boot/boot.c
+    src/boot/policy.c
+    src/boot/policy_chain.c
+    src/boot/policy_fixed.c
     src/boot/dtb.c
     src/boot/image_helpers.c
-    src/boot/linux.c
+    src/boot/image.c
     src/cm/cm_main.c
     src/drivers/crypto/mbedtls/mbedtls_pb.c
     src/drivers/fuse/test_fuse_bio.c
     src/drivers/partition/gpt.c
+    src/drivers/partition/static.c
 )
 target_link_libraries(pb_core PUBLIC pb_lib pb_mbedtls pb_keystore)
 # The host platform provides the process entry point and calls pb_main
@@ -164,6 +168,7 @@ add_executable(pb-host
     src/arch/host/arch.c
     src/plat/host/disk.c
     src/plat/host/main.c
+    src/plat/host/nor.c
     src/plat/host/plat.c
     src/plat/host/socket.c
     src/board/host/board.c
@@ -172,23 +177,17 @@ target_link_libraries(pb-host PRIVATE pb_core)
 # fopencookie(), for the console stream
 set_source_files_properties(src/plat/host/plat.c PROPERTIES COMPILE_DEFINITIONS _GNU_SOURCE)
 
-# The image loader refuses to overwrite punchboot itself, which it finds
-# through linker script symbols on target. Place a fake punchboot image at the
-# start of the emulated RAM. -no-pie keeps the absolute symbols absolute.
+# No image data region of a board's may hold punchboot itself, which the check
+# of the board's list finds through linker script symbols on target. Place a
+# fake punchboot, 'pb' and 'buffers', at the start of the emulated RAM: the
+# host board's region starts above it. -no-pie keeps the absolute symbols
+# absolute.
 target_link_options(pb-host PRIVATE
     -no-pie
-    -Wl,--defsym=_code_start=0x40000000
-    -Wl,--defsym=_code_end=0x40080000
-    -Wl,--defsym=_ro_data_region_start=0x40080000
-    -Wl,--defsym=_ro_data_region_end=0x400a0000
-    -Wl,--defsym=_data_region_start=0x400a0000
-    -Wl,--defsym=_data_region_end=0x400c0000
-    -Wl,--defsym=_zero_region_start=0x400c0000
-    -Wl,--defsym=_zero_region_end=0x400e0000
-    -Wl,--defsym=_stack_start=0x400e0000
-    -Wl,--defsym=_stack_end=0x40100000
-    -Wl,--defsym=_no_init_start=0x40100000
-    -Wl,--defsym=_no_init_end=0x40120000
+    -Wl,--defsym=_pb_start=0x40000000
+    -Wl,--defsym=_pb_end=0x40100000
+    -Wl,--defsym=_buffers_start=0x40100000
+    -Wl,--defsym=_buffers_end=0x40120000
 )
 
 enable_testing()

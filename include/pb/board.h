@@ -12,61 +12,85 @@
  * plat_early_init() and plat_init(), then src/board.c sets up the rest in
  * this order:
  *
- *  1. rot, slc      The keys and the life cycle, before anything that can
- *                   fail, so that command mode knows whether to ask for
- *                   authentication
- *  2. init()        Hardware: crypto, storage
- *  3. gpt_*         The partition table, on the device gpt_dev_uu
- *  4. ab            The A/B boot state
- *  5. late_init()   What needs the partitions
- *  6. boot_*        The boot driver: boot_linux, boot_atf or boot_armv7m
+ *  1. rot, slc       The keys and the life cycle, before anything that can
+ *                    fail, so that command mode knows whether to ask for
+ *                    authentication
+ *  2. init()         Hardware: crypto, storage
+ *  3. ptbl           The partition table
+ *  4. boot_policy    The boot source policy
+ *  5. late_init()    What needs the partitions
+ *  6. boot_handover  The handover, and its delivery
  *
  * Command mode, cm_board_init(): cm_init(), then cm_transport.
  *
+ * One member per concept (board.md 1). ptbl, boot_policy, boot_handover and
+ * boot_delivery are objects: a module's functions and the board's
+ * configuration for it, made by the module's macro. src/board.c calls
+ * through them and knows no module.
+ *
  * Hooks are optional (NULL), the rest is required unless it says otherwise.
+ *
+ * What is required is checked before it is used (board.md 3). board_setup():
+ * image_regions, rot and slc first, boot_policy and boot_handover when their
+ * step comes, a GPT's layouts by its driver. A failed check is a failed step,
+ * -PB_ERR_PARAM: no boot from storage, and the handover is still set up when
+ * its own data passed. cm_board_init(): name, password_auth, cm_transport.
+ * A failed check there means no command mode, and pb resets.
  */
 
 #ifndef INCLUDE_PB_BOARD_H
 #define INCLUDE_PB_BOARD_H
 
+#include <boot/handover.h>
+#include <boot/image_regions.h>
+#include <boot/policy.h>
+#include <pb/ptbl.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <uuid.h>
 
-struct bpak_header;
-struct boot_ab_state_config;
-struct boot_driver_armv7m_baremetal_config;
-struct boot_driver_atf_config;
-struct boot_driver_linux_config;
 struct cm_transport_ops;
-struct gpt_table_list;
 struct rot_config;
 struct slc_config;
 
 struct board {
-    const char *name; /*!< The board id in command mode, at most 16 characters */
+    const char *name; /*!< The board id in command mode, 1 to 16 characters */
 
     void (*console_init)(void); /*!< The debug UART: clock, pads, console_init() */
 
     const struct rot_config *rot; /*!< Key revocation */
-    const struct slc_config *slc; /*!< Security life cycle */
+    /* Security life cycle. A board without one has an slc without
+     * read_status, and its command mode is open */
+    const struct slc_config *slc;
 
     int (*init)(void); /*!< Hardware: crypto, storage */
 
-    const unsigned char *gpt_dev_uu; /*!< Device with a GPT, NULL: none */
-    const struct gpt_table_list *gpt_tables; /*!< Its layouts */
-    size_t gpt_tables_length;
+    /* The partition table: PTBL_GPT(), PTBL_STATIC() or PTBL_STATIC_MAPPED().
+     * Absent: init() created the partitions, or there are none. A GPT has
+     * at least one layout */
+    struct ptbl ptbl;
 
-    const struct boot_ab_state_config *ab; /*!< A/B state. NULL: none */
+    /* The boot source policy: BOOT_POLICY_FIXED(), BOOT_POLICY_CHAIN() or
+     * BOOT_POLICY_AB() */
+    struct boot_policy boot_policy;
 
-    int (*late_init)(void); /*!< After the partition table and the A/B state */
+    int (*late_init)(void); /*!< After the partition table and the policy */
 
-    /* The boot driver: one of them */
-    const struct boot_driver_linux_config *boot_linux;
-    const struct boot_driver_atf_config *boot_atf;
-    const struct boot_driver_armv7m_baremetal_config *boot_armv7m;
+    /* The handover: BOOT_HANDOVER_IMAGE() or BOOT_HANDOVER_SIMPLE() */
+    struct boot_handover boot_handover;
+    /* Its delivery: BOOT_DELIVERY_TFA(). Absent: directly */
+    struct boot_delivery boot_delivery;
+
+    /* The image data regions, the only memory an image's parts are loaded
+     * into: BOOT_IMAGE_REGION() entries, then BOOT_IMAGE_REGION_END
+     * (boot/image_regions.h). None holds anything of pb's. Absent: nothing is
+     * loaded, and only a partition that is booted in place boots */
+    const struct boot_image_region *image_regions;
+
     int (*early_boot)(void); /*!< Before the image is loaded */
-    int (*late_boot)(struct bpak_header *header, uuid_t boot_part_uu); /*!< Before the jump */
+    /* Before the jump. The verified header: boot_image_get_bpak_header()
+     * (boot/image_helpers.h) */
+    int (*late_boot)(uuid_t boot_part_uu);
 
     /* The kernel command line board_patch_bootargs() sets, and the one
      * with BOOT_FLAG_VERBOSE */
@@ -77,6 +101,7 @@ struct board {
     const struct cm_transport_ops *cm_transport; /*!< e.g. pb_dev_cls_transport */
     int (*status)(uint8_t *buf, size_t *length); /*!< NULL: "Board status OK!" */
     int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
+    /* Required with CONFIG_CM_AUTH_PASSWORD */
     int (*password_auth)(const char *password, size_t length);
 };
 

@@ -9,12 +9,14 @@
  * partition layout, keys and board commands are available to the tests.
  */
 
+#include <board_defs.h>
 #include <boot/ab_state.h>
 #include <boot/boot.h>
-#include <boot/linux.h>
+#include <boot/image.h>
 #include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <drivers/partition/gpt.h>
+#include <drivers/partition/static.h>
 #include <pb/bio.h>
 #include <pb/board.h>
 #include <pb/cm.h>
@@ -152,6 +154,35 @@ static const struct gpt_table_list gpt_tables[] = {
     },
 };
 
+/*
+ * The memory mapped flash (--nor), mapped at BOARD_NOR_BASE: its first
+ * partition is booted in place, the second is loaded like the disk's, the
+ * third is in place and never made bootable.
+ */
+static const struct static_part_table nor_table[] = {
+    {
+        .uu = PART_nor_in_place,
+        .description = "NOR In place",
+        .first_lba = 8,
+        .size = SZ_KiB(128),
+        .flags = STATIC_PART_FLAG_IN_PLACE,
+    },
+    {
+        .uu = PART_nor_loaded,
+        .description = "NOR Loaded",
+        .size = SZ_KiB(128),
+    },
+    {
+        .uu = PART_nor_not_bootable,
+        .description = "NOR Not bootable",
+        .size = SZ_KiB(64),
+        .flags = STATIC_PART_FLAG_IN_PLACE,
+    },
+    {
+        .uu = NULL,
+    },
+};
+
 static int early_boot(void)
 {
     if (boot_get_flags() & BOOT_FLAG_CMD) {
@@ -166,9 +197,8 @@ static int early_boot(void)
     return PB_OK;
 }
 
-static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
+static int late_boot(uuid_t boot_part_uu)
 {
-    (void)header;
     LOG_DBG("Boot!");
 
     char name;
@@ -177,6 +207,10 @@ static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
         name = 'A';
     else if (uuid_compare(boot_part_uu, PART_sys_b) == 0)
         name = 'B';
+    else if (uuid_compare(boot_part_uu, PART_nor_in_place) == 0)
+        name = 'X';
+    else if (uuid_compare(boot_part_uu, PART_nor_loaded) == 0)
+        name = 'N';
     else
         name = '?';
 
@@ -245,12 +279,37 @@ static const struct slc_fuse config_fuses[] = {
     { FUSE_BOOT1, 0xCAFEEFEE },
 };
 
+static int nor_init(void)
+{
+    int rc;
+    bio_dev_t nor = host_nor_init(PART_nor, "Host NOR");
+
+    if (nor < 0)
+        return nor;
+
+    rc = static_ptbl_init_mapped(nor, BOARD_NOR_BASE, nor_table);
+    /* As the core does for its table's device: a host writes the partitions */
+    (void)bio_set_flags(nor, BIO_FLAG_VISIBLE);
+
+    if (rc != PB_OK)
+        return rc;
+
+    return PB_OK;
+}
+
 static int board_hw_init(void)
 {
     bio_dev_t disk = host_disk_init(host_opts.disk_path, SZ_MiB(32), PART_disk, "Host disk");
 
     if (disk < 0)
         return disk;
+
+    if (host_opts.nor_path != NULL) {
+        int rc = nor_init();
+
+        if (rc != PB_OK)
+            return rc;
+    }
 
     return mbedtls_pb_init();
 }
@@ -335,9 +394,8 @@ static const struct slc_config slc = {
     .fuse_write = test_fuse_write,
 };
 
-static const struct boot_driver_linux_config boot_linux = {
+static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
-    .resolve_part_name = boot_ab_part_uu_to_name,
 };
 
 static const struct cm_transport_ops socket_transport = {
@@ -352,7 +410,77 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .backup_state_part_uu = PART_backup_state,
     .sys_a_uu = PART_sys_a,
     .sys_b_uu = PART_sys_b,
-    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
+
+/*
+ * The tests' boot source policy: A/B on the disk, and with a flash (--nor)
+ * its two bootable partitions as well. A policy marks what can be booted
+ * (boot.md 3.1): the flash's partitions are candidates that the policy
+ * never hands out, so only 'boot part' boots them.
+ */
+static int host_policy_init(const struct boot_policy *policy)
+{
+    int rc = boot_policy_ab_ops.init(policy);
+    bio_dev_t dev;
+
+    dev = bio_get_part_by_uu(PART_nor_in_place);
+
+    if (dev >= 0)
+        (void)bio_clear_set_flags(dev, 0, BIO_FLAG_BOOTABLE);
+
+    dev = bio_get_part_by_uu(PART_nor_loaded);
+
+    if (dev >= 0)
+        (void)bio_clear_set_flags(dev, 0, BIO_FLAG_BOOTABLE);
+
+    return rc;
+}
+
+static int host_policy_next(uuid_t part_uu)
+{
+    return boot_policy_ab_ops.next(part_uu);
+}
+
+static void host_policy_report(const uuid_t part_uu, int result)
+{
+    boot_policy_ab_ops.report(part_uu, result);
+}
+
+static enum boot_policy_mode host_policy_mode(void)
+{
+    return boot_policy_ab_ops.mode();
+}
+
+static int host_policy_activate(uuid_t part_uu)
+{
+    return boot_policy_ab_ops.activate(part_uu);
+}
+
+static void host_policy_status(uuid_t part_uu)
+{
+    boot_policy_ab_ops.status(part_uu);
+}
+
+static const struct boot_policy_ops host_policy_ops = {
+    .init = host_policy_init,
+    .next = host_policy_next,
+    .report = host_policy_report,
+    .mode = host_policy_mode,
+    .activate = host_policy_activate,
+    .status = host_policy_status,
+    .system_name = boot_ab_part_uu_to_name,
+};
+
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the emulated RAM above
+ * the fake pb at its start, 'pb' and 'buffers' to 0x40120000 (CMakeLists.txt).
+ * The flash is booted in place and needs no region.
+ */
+#define HOST_PB_SIZE 0x120000
+
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(BOARD_RAM_BASE + HOST_PB_SIZE, BOARD_RAM_SIZE - HOST_PB_SIZE),
+    BOOT_IMAGE_REGION_END,
 };
 
 const struct board board = {
@@ -360,12 +488,11 @@ const struct board board = {
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,
-    .gpt_dev_uu = PART_disk,
-    .gpt_tables = gpt_tables,
-    .gpt_tables_length = ARRAY_SIZE(gpt_tables),
-    .ab = &boot_state_cfg,
+    .ptbl = PTBL_GPT(PART_disk, gpt_tables),
+    .boot_policy = { .ops = &host_policy_ops, .config = &boot_state_cfg },
     .late_init = board_late_init,
-    .boot_linux = &boot_linux,
+    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+    .image_regions = image_regions,
     .early_boot = early_boot,
     .late_boot = late_boot,
     .cm_transport = &socket_transport,
