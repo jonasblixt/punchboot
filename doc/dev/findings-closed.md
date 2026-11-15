@@ -1780,6 +1780,13 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | "Load" line, `early_boot()` (one register read) and `collect_info()`, 25 to 26 us in five boots | | |
 | | | (`boot bpak` of an image with a changed payload byte, so pb stays and its log is read). Recorded | | |
 | | | in `testbench/simple/README.md`; next to the boot's 40.1 ms it is nothing to change | | |
+| F-081 | `src/arch/armv7a/cp15.S` `arch_invalidate_cache_range`, callers in `imx_caam.c` | The invalidate rounds the start down to a cache line and uses DCIMVAC (invalidate, no clean), so dirty CPU data sharing the first or last line is lost. `caam_wait_for_job` invalidates `caam.output` (0x8001a20c in the jiffy debug build), whose line also holds the tail of `struct caam` (`init`, `async_hashing`, `hash_align_buf_len`...), `wpb`, another `base`, `mmc_current_part` and `mmc_current_part_config`. Not shown to cause F-080. | Verified (code, symbol map) | closed |
+| | | 2026-11-14: nothing in a build invalidates a shared line any more (F-282): every invalidate a driver | | |
+| | | does goes through `dma_in_end()` on a range that owns its lines, asserted on the host. The ARMv7-A | | |
+| | | invalidate still rounds without a clean, documented in `pb/arch.h`. Close after a bench run | | |
+| | | 2026-11-15, the bench run on jiffy (`55689509`, F-282 in it): random 15 MB written and verified | | |
+| | | 3 of 3 on Root B (the CAAM's hash), a wrong file refused, System A boots to the login and | | |
+| | | `reboot` comes back. Closed: no invalidate of a shared line is left | | |
 
 ## Dependencies / vendored code
 
