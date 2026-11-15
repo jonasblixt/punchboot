@@ -18,6 +18,7 @@
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -35,8 +36,11 @@ IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
 IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
 IMPORT_SYM(uintptr_t, _stack_start, stack_start);
 IMPORT_SYM(uintptr_t, _stack_end, stack_end);
-IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
-IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
+/* The rest of pb, .bss and the RAM log, and the buffers (platform.md 5.1) */
+IMPORT_SYM(uintptr_t, _zero_region_start, pb_rw_start);
+IMPORT_SYM(uintptr_t, _pb_end, pb_rw_end);
+IMPORT_SYM(uintptr_t, _buffers_start, buffers_start);
+IMPORT_SYM(uintptr_t, _buffers_end, buffers_end);
 
 /* USB OTG1 device address, see imx_ci_udc.c */
 #define USB_DEVICEADDR      0x154
@@ -161,13 +165,24 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
         uint8_t uid_bytes[8];
     } plat_unique;
 
+    int rc;
+
     if (*length < sizeof(plat_unique.uid_bytes))
         return -PB_ERR_BUF_TOO_SMALL;
-    *length = sizeof(plat_unique.uid_bytes);
 
-    imx_ocotp_read(IMX6UL_FUSE_UNIQUE_BANK, IMX6UL_FUSE_UNIQUE1_WORD, &plat_unique.uid[0]);
-    imx_ocotp_read(IMX6UL_FUSE_UNIQUE_BANK, IMX6UL_FUSE_UNIQUE2_WORD, &plat_unique.uid[1]);
+    /* A read that fails writes nothing: the device's UUID is made of this */
+    rc = imx_ocotp_read(IMX6UL_FUSE_UNIQUE_BANK, IMX6UL_FUSE_UNIQUE1_WORD, &plat_unique.uid[0]);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = imx_ocotp_read(IMX6UL_FUSE_UNIQUE_BANK, IMX6UL_FUSE_UNIQUE2_WORD, &plat_unique.uid[1]);
+
+    if (rc != PB_OK)
+        return rc;
+
     memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
+    *length = sizeof(plat_unique.uid_bytes);
     return PB_OK;
 }
 
@@ -204,14 +219,24 @@ static int plat_mmu_init(void)
     mmap_add_region(
         stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(rw_nox_start,
-                    rw_nox_start,
-                    rw_nox_end - rw_nox_start,
+    /* The rest of pb and the buffers, each a region of its own: one span
+     * from pb to the buffers mapped what is between them as memory, which
+     * is the address space and its devices when they aren't in the same
+     * memory (F-158). The DRAM between them is the DRAM's region's */
+    mmap_add_region(
+        pb_rw_start, pb_rw_start, pb_rw_end - pb_rw_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(buffers_start,
+                    buffers_start,
+                    buffers_end - buffers_start,
                     MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    /* Add the rest of the RAM */
-    mmap_add_region(
-        rw_nox_end, rw_nox_end, BOARD_RAM_END - rw_nox_end, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    /* The board's DRAM, where the images are loaded. What of pb is in it
+     * is a region inside it, and the innermost region wins */
+    mmap_add_region(BOARD_RAM_BASE,
+                    BOARD_RAM_BASE,
+                    BOARD_RAM_END - BOARD_RAM_BASE,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add(imx_mmap);
 
@@ -317,7 +342,9 @@ int plat_early_init(void)
     status.wdog_armed = (imx_wdog_init(IMX6UL_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT) == PB_OK);
 #endif
 
-    /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal */
+    /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal.
+     * GPT1's gates are open out of the ROM, opened here so nothing rests on it (F-416) */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR1, 0, CCM_CCGR1_GPT1_BUS | CCM_CCGR1_GPT1_SERIAL);
     imx_gpt_init_24m(IMX6UL_GPT1_BASE);
     log_time_start();
     return PB_OK;
@@ -394,8 +421,9 @@ int plat_init(void)
     plat.usdhc1_clk_MHz = ((cscmr1 & CCM_CSCMR1_USDHC1_CLK_SEL) ? 352 : 400) / usdhc1_podf;
     plat.usdhc2_clk_MHz = ((cscmr1 & CCM_CSCMR1_USDHC2_CLK_SEL) ? 352 : 400) / usdhc2_podf;
 
-    LOG_INFO("uSDHC1 clk: %u MHz", plat.usdhc1_clk_MHz);
-    LOG_INFO("uSDHC2 clk: %u MHz", plat.usdhc2_clk_MHz);
+    /* The rates the CCM says; the deprecated struct keeps its rounded ones */
+    LOG_INFO("uSDHC1 clk: %u kHz", (unsigned int)(imx6ul_clk_rate(IMX6UL_CLK_USDHC1) / 1000));
+    LOG_INFO("uSDHC2 clk: %u kHz", (unsigned int)(imx6ul_clk_rate(IMX6UL_CLK_USDHC2) / 1000));
 
     imx_wdog_kick(IMX6UL_WDOG1_BASE);
     plat_mmu_init();
@@ -414,14 +442,50 @@ int plat_init(void)
 }
 
 #ifdef CONFIG_IMX6UL_CM_USB_OTG1
-/* Command mode's USB (platform.md 3.10): USB OTG1, with USBPHY1 and the
- * clocks of PLL_USB1 */
+/* USB_ANALOG_USB1_CHRG_DETECT (RM 55.4.2): the charger detector, on after reset */
+#define IMX6UL_USB_ANALOG_USB1_CHRG_DETECT 0x020C81B0
+#define USB1_CHRG_DETECT_EN_B              BIT(20)
+#define USB1_CHRG_DETECT_CHK_CHRG_B        BIT(19)
+
+/* PLL3's lock, RM 18.7.2: microseconds; 1 ms is plenty */
+#define PLL_USB1_LOCK_TIMEOUT_US           1000
+
+/*
+ * Command mode's USB (platform.md 3.10): USB OTG1, with USBPHY1 and the
+ * clocks of PLL_USB1 (F-139).
+ *
+ * PLL_USB1 (PLL3, 480 MHz) is powered, locked and out of bypass here, where
+ * pb relied on the ROM (its reset value has BYPASS set and POWER clear). On
+ * jiffy the ROM leaves it running: the UART's clock comes from it too. The
+ * USBPHY has no PLL of its own (no PLL_SIC). The charger detector is turned
+ * off before the controller pulls D+ up (RM Figure 55-3).
+ */
 int plat_cm_init(void)
 {
-    /* Enable USB PLL */
-    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
+    struct pb_timeout timeout;
+    int rc;
 
-    imx_usb2_phy_init(IMX6UL_USBPHY1_BASE);
+    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_POWER);
+
+    rc = pb_timeout_init_us(&timeout, PLL_USB1_LOCK_TIMEOUT_US);
+    if (rc != PB_OK)
+        return rc;
+
+    while (!(mmio_read_32(IMX6UL_CCM_ANALOG_PLL_USB1) & CCM_ANALOG_PLL_USB1_LOCK)) {
+        if (pb_timeout_has_expired(&timeout)) {
+            LOG_ERR("PLL_USB1 doesn't lock");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1,
+                       CCM_ANALOG_PLL_USB1_BYPASS,
+                       CCM_ANALOG_PLL_USB1_ENABLE | CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
+
+    mmio_clrsetbits_32(
+        IMX6UL_USB_ANALOG_USB1_CHRG_DETECT, 0, USB1_CHRG_DETECT_EN_B | USB1_CHRG_DETECT_CHK_CHRG_B);
+
+    imx_usb2_phy_init_ccm_pll(IMX6UL_USBPHY1_BASE);
     return imx_ci_udc_init(IMX6UL_USB1_BASE);
 }
 #endif
@@ -534,6 +598,20 @@ static uint32_t cpu_hz(void)
     return 24000000u * (pll & CCM_ANALOG_PLL_ARM_DIV_SELECT_MASK) / (2 * podf);
 }
 
+/* PLL2's PFD n: 528 MHz * 18 / FRAC (RM 18.7.13); 0 when it is gated or its
+ * fraction is out of range */
+static uint32_t pll2_pfd_hz(unsigned int n)
+{
+    uint32_t pfd = mmio_read_32(IMX6UL_CCM_ANALOG_PFD_528);
+    uint32_t frac = CCM_ANALOG_PFD_FRAC_OF(pfd, n);
+
+    if ((pfd & BIT(8 * n + 7)) || frac < 12)
+        return 0;
+
+    /* In kHz: 528 MHz * 18 doesn't fit in 32 bits */
+    return 528000u * 18 / frac * 1000;
+}
+
 /* mmdc_clk_root (RM 18.6.5, 18.6.6, the clock tree in 18.3): periph2, from
  * PLL2 or one of its PFDs, or from periph2_clk2; then FABRIC_MMDC_PODF. The
  * ROM sets it (396 MHz, PLL2's PFD2, Table 8-43) and jiffy's DCD keeps it */
@@ -544,8 +622,6 @@ static uint32_t mmdc_hz(void)
     uint32_t pll2 = (mmio_read_32(IMX6UL_CCM_ANALOG_PLL_SYS) & CCM_ANALOG_PLL_SYS_DIV_SELECT)
                         ? 528000000
                         : 480000000;
-    uint32_t pfd = mmio_read_32(IMX6UL_CCM_ANALOG_PFD_528);
-    uint32_t frac;
     uint32_t src;
 
     if (cbcdr & CCM_CBCDR_PERIPH2_CLK_SEL) {
@@ -558,12 +634,9 @@ static uint32_t mmdc_hz(void)
             break;
         case 1: /* PLL2's PFD2 */
         case 2: /* PLL2's PFD0 */
-            frac =
-                CCM_ANALOG_PFD_FRAC_OF(pfd, CCM_CBCMR_PRE_PERIPH2_CLK_SEL_OF(cbcmr) == 1 ? 2 : 0);
-            if (frac < 12)
+            src = pll2_pfd_hz(CCM_CBCMR_PRE_PERIPH2_CLK_SEL_OF(cbcmr) == 1 ? 2 : 0);
+            if (src == 0)
                 return 0;
-            /* In kHz: 528 MHz * 18 doesn't fit in 32 bits */
-            src = 528000u * 18 / frac * 1000;
             break;
         default: /* PLL4, the audio PLL: not read */
             return 0;
@@ -571,6 +644,32 @@ static uint32_t mmdc_hz(void)
     }
 
     return src / (CCM_CBCDR_FABRIC_MMDC_PODF_OF(cbcdr) + 1);
+}
+
+/* usdhcN_clk_root (RM 18.6.6, the clock tree in 18.3): PLL2's PFD2 or, with
+ * USDHCn_CLK_SEL, its PFD0, then USDHCn_PODF */
+static uint32_t usdhc_hz(uint32_t clk_sel, uint32_t podf_mask, unsigned int podf_shift)
+{
+    uint32_t cscmr1 = mmio_read_32(IMX6UL_CCM_CSCMR1);
+    uint32_t cscdr1 = mmio_read_32(IMX6UL_CCM_CSCDR1);
+
+    return pll2_pfd_hz((cscmr1 & clk_sel) ? 0 : 2) / (((cscdr1 & podf_mask) >> podf_shift) + 1);
+}
+
+uint32_t imx6ul_clk_rate(enum imx6ul_clk clk)
+{
+    switch (clk) {
+    case IMX6UL_CLK_CORE:
+        return cpu_hz();
+    case IMX6UL_CLK_USDHC1:
+        return usdhc_hz(
+            CCM_CSCMR1_USDHC1_CLK_SEL, CCM_CSCDR1_USDHC1_PODF_MASK, CCM_CSCDR1_USDHC1_PODF_SHIFT);
+    case IMX6UL_CLK_USDHC2:
+        return usdhc_hz(
+            CCM_CSCMR1_USDHC2_CLK_SEL, CCM_CSCDR1_USDHC2_PODF_MASK, CCM_CSCDR1_USDHC2_PODF_SHIFT);
+    default:
+        return 0;
+    }
 }
 
 int plat_get_info(struct pb_plat_info *info, char *extra, size_t extra_size)
