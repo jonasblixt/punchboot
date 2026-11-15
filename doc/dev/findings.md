@@ -556,6 +556,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | TF-A). With F-239 | | |
 | | | 2026-11-14: not done with F-239: on the 8MP pb ends at 0x961000, so no byte below 0x960000 is | | |
 | | | outside pb or the ROM's part, and a region of its own moves pb | | |
+| | | 2026-11-15: the i.MX8MQ's limit: upstream TF-A's BL31 takes no `bl_params` (v2.12 to v2.15 and | | |
+| | | master jump to `PLAT_NS_IMAGE_OFFSET` with x0 = 0); the test bench's patch | | |
+| | | (`testbench/board/pico8ml/patches`) takes them from the TCM or the OCRAM below BL31, as the 8MM | | |
+| | | does. pb's `.data` is in the TCM on the 8MQ: `PLAT_BL_PARAMS_LIMIT` is the TCM's end, 0x820000 | | |
 | F-295 | `src/board/imx8dxlevk/board.c` | The DXL EVK moved to the TF-A delivery | Reported | open |
 | | | (F-258, `boot.md` 5.3). The board has only been built: no DXL is at hand, and this tree builds no image | | |
 | | | for it (the test bench has jiffy, imx8mpevk and imx8qxmek). Before, pb started the part `atf` directly | | |

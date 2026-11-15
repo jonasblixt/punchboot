@@ -57,7 +57,9 @@ extern char _dram_bss_end[];
  * its own fixed address without them: on the i.MX8M Plus below 0x960000
  * (v2.12 imx8mp_bl31_setup.c swaps base and size in that check). They are
  * in .data, which follows the code, not at the end of .bss, and link.lds
- * checks where that is.
+ * checks where that is. The i.MX8MQ's BL31 takes none upstream (v2.12 to
+ * v2.15): with the test bench's patch from the TCM or the OCRAM below BL31,
+ * and pb's .data is in the TCM.
  */
 uint8_t plat_bl_params[PLAT_BL_PARAMS_SIZE] __section(".data") __aligned(PLAT_BL_PARAMS_ALIGN);
 #endif

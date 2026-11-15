@@ -50,8 +50,9 @@ ifdef CONFIG_PLAT_IMX8MQ
 # tree, 224 KiB of the TCM from its entry
 IMX8M_LOAD_BASE = 0x7e1000
 IMX8M_LOAD_END = 0x819000
-# What the i.MX8M Quad's BL31 takes isn't known, and no board of it has TF-A
-PLAT_BL_PARAMS_LIMIT = 0xffffffff
+# Upstream TF-A's i.MX8MQ BL31 takes no bl_params (v2.12 to v2.15); the test
+# bench's patch takes them from the TCM, where pb's .data is, to 0x820000
+PLAT_BL_PARAMS_LIMIT = 0x820000
 IMX8M_OCRAM_SIZE = 0x20000
 # The ROM's 124 KiB; the 4 KiB after them fault, a protected page (read on
 # the pico8ml), as the 8M Plus's last 4 KiB

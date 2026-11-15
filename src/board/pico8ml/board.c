@@ -8,9 +8,18 @@
  * TechNexion's PICO-IMX8MQ (pico8ml): an i.MX8MQ with 1 to 4 GiB of LPDDR4,
  * eMMC on USDHC1, the console on UART1. The pins and the density straps
  * are TechNexion's U-Boot's (board/technexion/pico-imx8mq).
+ *
+ * Linux boots through TF-A: the boot image has BL31 in the part "atf" and
+ * Linux as BL33 in "kernel" (testbench/board/common/post-image.sh). The
+ * 8MQ's BL31 takes BL33 from the bl_params list only with the test bench's
+ * patch (testbench/board/pico8ml/patches): upstream jumps to its own
+ * PLAT_NS_IMAGE_OFFSET without a device tree.
  */
 
 #include <boot/ab_state.h>
+#include <boot/atf.h>
+#include <boot/boot.h>
+#include <boot/image.h>
 #include <drivers/gpio/imx_gpio.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/partition/gpt.h>
@@ -216,10 +225,21 @@ static int board_hw_init(void)
     return usdhc_emmc_setup();
 }
 
-/*
- * No A/B state and no boot driver yet, as the 8MQ EVK (F-033): board_setup()
- * fails after the partitions and pb always enters command mode.
- */
+/* Linux, through TF-A: BL31 starts it as BL33 at EL2, with the device tree in x0 */
+static const struct boot_handover_image_config boot_image = {
+    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+    .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
+    .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+    .bootargs = "console=ttymxc0,115200 quiet ",
+    /* arm64 has no earlyprintk: earlycon, on stdout-path */
+    .bootargs_verbose = "console=ttymxc0,115200 earlycon ",
+    .set_dtb_boot_arg = true,
+};
+
+static const struct boot_delivery_tfa_config boot_tfa = {
+    .bl31_bpak_id = 0xa697d988, /* bpak_id("atf") */
+};
+
 static const struct gpt_part_table gpt_tbl_default[] = {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
@@ -297,12 +317,20 @@ static const struct gpt_table_list gpt_tables[] = {
     },
 };
 
+static const struct boot_ab_state_config boot_state_cfg = {
+    .primary_state_part_uu = PART_primary_state,
+    .backup_state_part_uu = PART_backup_state,
+    .sys_a_uu = PART_sys_a,
+    .sys_b_uu = PART_sys_b,
+};
+
 /*
  * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps, the
  * first GiB, from 0x40000000 to BOARD_RAM_END, above what pb has at its
  * start: the DDR controller's state and pb's buffers (src/plat/imx8m/link.lds).
- * pb itself runs from on-chip RAM. The board has no handover yet, so nothing
- * is loaded.
+ * And the OCRAM TF-A's BL31 is linked for, 0x910000; pb runs from the TCM
+ * and keeps its RAM log below BL31 (ramlog_ocram.lds). board_setup() checks
+ * the list against what is linked.
  *
  * The region and the link have one source, the board's makefile.mk (platform.md 5.1):
  * the region starts where the buffers' region (PB_BUFFERS_BASE,
@@ -312,6 +340,7 @@ static const struct gpt_table_list gpt_tables[] = {
 
 static const struct boot_image_region image_regions[] = {
     BOOT_IMAGE_REGION(BOARD_BUFFERS_END, BOARD_RAM_END - BOARD_BUFFERS_END),
+    BOOT_IMAGE_REGION(IMX8MQ_BL31_BASE, IMX8MQ_BL31_SIZE),
     BOOT_IMAGE_REGION_END,
 };
 
@@ -322,5 +351,8 @@ const struct board board = {
     .console_init = board_console_init,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
+    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
+    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+    .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
     .image_regions = image_regions,
 };
