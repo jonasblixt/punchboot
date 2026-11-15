@@ -36,6 +36,25 @@
  * the kind nor the name comes from it. No cause set: UNKNOWN, "Unknown" */
 #define IMX6UL_SRSR_WARM_BOOT BIT(16)
 
+/* The clocks a board may read (platform.md 7, D-085) */
+enum imx6ul_clk {
+    IMX6UL_CLK_CORE, /* arm_clk_root */
+    IMX6UL_CLK_USDHC1, /* usdhc1_clk_root, uSDHC1's input clock */
+    IMX6UL_CLK_USDHC2, /* usdhc2_clk_root */
+};
+
+/**
+ * A clock's rate in Hz, read from the CCM when it is called: the rate the
+ * SoC runs (platform.md 7). From plat_init() on, which sets the core's PLL.
+ * 0 for a clock whose source pb doesn't read, or that is gated.
+ */
+uint32_t imx6ul_clk_rate(enum imx6ul_clk clk);
+
+/*
+ * Deprecated (D-085): imx6ul_clk_rate() and plat_get_info() instead. Kept
+ * through 3.x for boards out of the tree, with the values it always had:
+ * the uSDHC rates in MHz with PLL2's PFD2 taken as 400 MHz (it is 396).
+ */
 struct imx6ul_platform {
     uint8_t si_rev;
     uint8_t speed_grade;
@@ -44,7 +63,7 @@ struct imx6ul_platform {
     unsigned int usdhc2_clk_MHz;
 };
 
-/** The platform's clocks and fuses, for the board */
+/** Deprecated (D-085): the platform's clocks and fuses, for the board */
 const struct imx6ul_platform *imx6ul_plat(void);
 
 #endif // PLATFORM_IMX6UL_H

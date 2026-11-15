@@ -153,6 +153,8 @@
 #define CCM_CCGR0_AIPS_TZ1                  CG0
 
 #define IMX6UL_CCM_CCGR1                    (0x020C406C)
+#define CCM_CCGR1_GPT1_SERIAL               CG11
+#define CCM_CCGR1_GPT1_BUS                  CG10
 #define IMX6UL_CCM_CCGR2                    (0x020C4070)
 
 #define IMX6UL_CCM_CCGR3                    (0x020C4074)

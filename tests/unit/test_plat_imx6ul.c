@@ -30,6 +30,7 @@
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <plat/imx6ul/clock.h>
 #include <plat/imx6ul/imx6ul.h>
 #include <string.h>
 
@@ -42,6 +43,13 @@
 
 /* A write that resets the SoC leaves the code under test through here */
 static jmp_buf soc_reset;
+
+/* The fuses */
+static struct {
+    uint32_t unique[2]; /* UNIQUE_ID's two words */
+    unsigned int reads; /* imx_ocotp_read() calls */
+    unsigned int fail_at; /* The call that fails, counted from 1; 0: none */
+} fuses;
 
 /* The ROM's logs and the TZASC's driver: what each answers */
 static struct {
@@ -97,11 +105,18 @@ int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg
     return PB_OK;
 }
 
+/* A read that fails returns its error and leaves the value alone, as the
+ * driver's does */
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 {
-    (void)bank;
+    if (++fuses.reads == fuses.fail_at)
+        return -PB_ERR_IO;
 
-    if (row == IMX6UL_FUSE_SPEED_GRADE_WORD)
+    if (bank == IMX6UL_FUSE_UNIQUE_BANK && row == IMX6UL_FUSE_UNIQUE1_WORD)
+        *value = fuses.unique[0];
+    else if (bank == IMX6UL_FUSE_UNIQUE_BANK && row == IMX6UL_FUSE_UNIQUE2_WORD)
+        *value = fuses.unique[1];
+    else if (bank == 0 && row == IMX6UL_FUSE_SPEED_GRADE_WORD)
         *value = 2 << IMX6UL_FUSE_SPEED_GRADE_SHIFT;
     else
         *value = 0;
@@ -168,6 +183,7 @@ static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
 static int setup(void **state)
 {
     (void)state;
+    memset(&fuses, 0, sizeof(fuses));
     memset(&f, 0, sizeof(f));
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
@@ -370,6 +386,51 @@ static void test_wdog_armed_by_the_option(void **state)
 
     /* Nothing went to the driver's base of old, 0 (F-206, F-234) */
     assert_int_equal(fake_regs_writes_in(0, 0x1000), 0);
+}
+
+/* platform.md 2.1 (F-416): GPT1's bus and serial gates (CCGR1's CG10 and
+ * CG11, Linux's clk-imx6ul.c) are opened before the timer is started,
+ * whatever the ROM left them at, and no other gate is changed */
+static void test_gpt1_gates_opened_before_the_timer(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMX6UL_CCM_CCGR1, CG0);
+    assert_int_equal(plat_early_init(), PB_OK);
+
+    assert_int_equal(fake_regs_get(IMX6UL_CCM_CCGR1),
+                     CG0 | CCM_CCGR1_GPT1_BUS | CCM_CCGR1_GPT1_SERIAL);
+    assert_true(fake_regs_first_write(IMX6UL_CCM_CCGR1) <
+                fake_regs_first_write(IMX6UL_GPT1_BASE + GPT_CR));
+}
+
+/* imx6ul_clk_rate() (platform.md 7, D-085): the rates the CCM says, read
+ * when called. PLL2's PFDs at the ROM's fractions, PFD2 396 MHz and PFD0
+ * 352 MHz; uSDHC1 from PFD2 / 2, uSDHC2 from PFD0 / 1; the core from PLL1
+ * at DIV_SELECT 88 (1056 MHz) / ARM_PODF 2, 528 MHz. A gated PFD reads 0 */
+static void test_clk_rate(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMX6UL_CCM_ANALOG_PFD_528, (24u << 16) | 27u);
+    fake_regs_set(IMX6UL_CCM_CSCMR1, CCM_CSCMR1_USDHC2_CLK_SEL);
+    fake_regs_set(IMX6UL_CCM_CSCDR1, CCM_CSCDR1_USDHC1_PODF(1));
+    fake_regs_set(IMX6UL_CCM_ANALOG_PLL_ARM, 88);
+    fake_regs_set(IMX6UL_CCM_CACRR, 1);
+    fake_regs_set(IMX6UL_CCM_CCSR, 0);
+
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC1), 198000000);
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC2), 352000000);
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_CORE), 528000000);
+
+    /* Read when called: another divider is another rate */
+    fake_regs_set(IMX6UL_CCM_CSCDR1, CCM_CSCDR1_USDHC1_PODF(3));
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC1), 99000000);
+
+    /* PFD2 gated */
+    fake_regs_set(IMX6UL_CCM_ANALOG_PFD_528, (24u << 16) | BIT(23) | 27u);
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC1), 0);
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_USDHC2), 352000000);
 }
 
 /* What plat_get_status() answers, every field set by the port */
@@ -592,13 +653,90 @@ static void test_plat_reset_after_init(void **state)
     assert_int_equal(fake_regs_writes_in(0, 0x1000), 0);
 }
 
+/* platform.md 3.5, 3.7: the unique id is the two UNIQUE_ID words (bank 0,
+ * words 1 and 2), the first word first, each with its low byte first: eight
+ * bytes that never change, because the device's UUID is made from them */
+static void test_unique_id(void **state)
+{
+    static const uint8_t expected[8] = { 0x04, 0x03, 0x02, 0x01, 0x08, 0x07, 0x06, 0x05 };
+    uint8_t id[16];
+    size_t length = sizeof(id);
+    (void)state;
+
+    fuses.unique[0] = 0x01020304;
+    fuses.unique[1] = 0x05060708;
+    memset(id, 0xa5, sizeof(id));
+
+    assert_int_equal(plat_get_unique_id(id, &length), PB_OK);
+    assert_int_equal(length, 8);
+    assert_memory_equal(id, expected, sizeof(expected));
+    assert_int_equal(id[8], 0xa5);
+    assert_int_equal(fuses.reads, 2);
+}
+
+/* platform.md 3.5: a read that fails returns its error and writes nothing.
+ * Never a partial id or one from memory that wasn't read (F-200: the error
+ * was dropped and the id came from the stack) */
+static void test_unique_id_read_fails(void **state)
+{
+    uint8_t untouched[16];
+    uint8_t id[16];
+    size_t length;
+    (void)state;
+
+    fuses.unique[0] = 0x01020304;
+    fuses.unique[1] = 0x05060708;
+    memset(untouched, 0xa5, sizeof(untouched));
+
+    for (unsigned int fail_at = 1; fail_at <= 2; fail_at++) {
+        memset(id, 0xa5, sizeof(id));
+        length = sizeof(id);
+        fuses.reads = 0;
+        fuses.fail_at = fail_at;
+
+        assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_IO);
+        assert_memory_equal(id, untouched, sizeof(id));
+        assert_int_equal(length, sizeof(id));
+    }
+}
+
+/* platform.md 3.5: a buffer that is too small is its own error, and nothing
+ * is read or written */
+static void test_unique_id_buffer_too_small(void **state)
+{
+    uint8_t id[8] = { 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5 };
+    size_t length = 7;
+    (void)state;
+
+    assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(id[0], 0xa5);
+    assert_int_equal(fuses.reads, 0);
+}
+
+/* platform.md 5.2: the memory map. The rest of pb (.bss, the RAM log) and
+ * the buffers are two regions, RW and execute never, and nothing maps the
+ * address space between them: one span from pb to the buffers mapped it as
+ * memory, on the i.MX8M Plus 1 GiB with device windows in it (F-158). The
+ * board's DRAM is one region, the same, which pb's regions in it nest in */
+static void test_mmu_map(void **state)
+{
+    (void)state;
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(fake_mmu_enables, 1);
+    fake_mmu_check_pb_map(BOARD_RAM_BASE, BOARD_RAM_END);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_reset, setup),
+        cmocka_unit_test_setup(test_clk_rate, setup),
         cmocka_unit_test_setup(test_get_info, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
+        cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_tzasc_bypassed, setup),
         cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
@@ -610,6 +748,10 @@ int main(void)
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),
         cmocka_unit_test_setup(test_boot_reason_priority, setup),
         cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),
+        cmocka_unit_test_setup(test_unique_id, setup),
+        cmocka_unit_test_setup(test_unique_id_read_fails, setup),
+        cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
+        cmocka_unit_test_setup(test_mmu_map, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
