@@ -43,8 +43,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
    - The bench of what landed without a board (log 2026-11-14): USB on all four, the MMU maps,
      the RT1060's entry (F-210, F-207), the DMA rule (F-282), the 8MP EVK through TF-A, the
      8M's lockdown (D-084).
-   - D-084's rest: F-320, EOL with data (F-263, PR #51), F-241. F-322 closed (a kick 5.8 us). F-402 closed: the 8X's OTG1
-     ran on the MEK, the 8MP's USB2 is built, not run.
+   - D-084's rest: F-320, EOL with data (F-263, PR #51), F-241. Closed: F-322 (a kick 5.8 us),
+     F-402 (the 8X's OTG1 ran on the MEK, the 8MP's USB2 is built, not run).
    - F-444 (OP-TEE's SMC on jiffy), F-447 (the 8M's SLC sources), F-432, F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
    review of the guides and the notes.
