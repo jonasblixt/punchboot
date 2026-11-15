@@ -60,7 +60,9 @@ The commits named below are in this repository.
   `scripts/menuconfig.py`, `scripts/olddefconfig.py`.
 - **Upstream**: github.com/ulfalizer/Kconfiglib.
 - **Version**: 14.1.0, `VERSION = (14, 1, 0)` in `kconfiglib.py`. Imported 2020-03-26
-  (`e21a6592`); `olddefconfig.py` on 2026-07-16 (`2348c4eb`).
+  (`e21a6592`); `olddefconfig.py` on 2026-07-16 (`2348c4eb`). Checked 2026-11-15: 14.1.0 is
+  upstream's latest (PyPI, and the `v14.1.0` tag is the repository's last commit), and the four
+  files' syntax trees are upstream's.
 - **Local changes**: the tree-wide formatting of 2023-11-28 (`78756e3b`, black: quotes and line
   breaks) and the executable bit of `genconfig.py` and `menuconfig.py` (`e81c80b6`) are the only
   changes to the first three since the import. ruff leaves `scripts/` out,
