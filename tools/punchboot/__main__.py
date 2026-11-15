@@ -754,7 +754,12 @@ def slc(_ctx: click.Context) -> None:
 def slc_show(_ctx: click.Context, s: Session) -> None:
     """Show SLC."""
     click.echo(f"Status: {s.slc_get_lifecycle().name}")
-    click.echo(f"Active keys: {', '.join(f'0x{k:08x}' for k in s.slc_get_active_keys())}")
+    unrevocable = s.slc_get_unrevocable_keys()
+    active = (
+        f"0x{k:08x}{' (cannot be revoked)' if k in unrevocable else ''}"
+        for k in s.slc_get_active_keys()
+    )
+    click.echo(f"Active keys: {', '.join(active)}")
     click.echo(f"Revoked keys: {', '.join(f'0x{k:08x}' for k in s.slc_get_revoked_keys())}")
 
 

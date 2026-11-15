@@ -138,6 +138,7 @@ field pb_result_device_identifier.device_uuid 0 16
 field pb_result_device_identifier.board_id 16 16
 struct pb_result_slc 32
 field pb_result_slc.slc 0 1
+field pb_result_slc.unrevocable 1 2
 struct pb_result_slc_key_status 128
 field pb_result_slc_key_status.active 0 64
 field pb_result_slc_key_status.revoked 64 64

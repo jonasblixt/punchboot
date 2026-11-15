@@ -8,6 +8,11 @@
 #
 ifdef CONFIG_PLAT_IMX8M_COMMON
 
+# The key slots the SoC has a revoke bit for (platform.md 4.1): HABv4, SRK_REVOKE[2:0].
+# plat_rot.revoke_slots, and the build warns for a board key above them
+PLAT_REVOKE_SLOTS = 3
+cflags-y += -DPLAT_REVOKE_SLOTS=$(PLAT_REVOKE_SLOTS)
+
 # pb's buffers (platform.md 5.1), in the DRAM, after the DDR controller's state: the board's makefile.mk,
 # read before this one, may put them elsewhere
 PB_BUFFERS_BASE ?= 0x40060000
@@ -116,6 +121,7 @@ imx8m_image: $(BUILD_DIR)/pb.bin
 # pb.csf, the HABv4 description of pb_pad.imx: its first 0x200 bytes more
 # than pb_pad.bin, from the IVT at PB_ENTRY - 0x40
 imx8m_sign_desc: imx8m_image
+	$(Q)$(PYTHON) scripts/check-srk-fuse.py hab $(IMX8M_SRK_TABLE) $(SRK_FUSE_FILE)
 	$(Q)blocks=$$(printf 'Blocks = 0x%X 0x0 0x%X' $$(( $(PB_ENTRY) - 0x40 )) \
 	                $$(( $$(stat -c%s $(BUILD_DIR)/pb_pad.bin) + 0x200 ))); \
 	 sed -e "s#__BLOCKS__#$$blocks \"$(BUILD_DIR)/pb_pad.imx\"#g" \
@@ -139,6 +145,7 @@ imx8m_image: $(BUILD_DIR)/pb.bin
 	@echo Generating $(BUILD_DIR)/pb.imx
 	@printf 'ROM_VERSION v2\nBOOT_FROM $(IMX8M_BOOT_FROM)\nLOADER $(BUILD_DIR)/pb.bin $(PB_ENTRY)\n' > $(BUILD_DIR)/pb.cfg
 	@$(MKIMAGE) -n $(BUILD_DIR)/pb.cfg -T imx8mimage -e $(PB_ENTRY) -d $(BUILD_DIR)/pb.bin $(BUILD_DIR)/pb.imx > /dev/null
+	$(Q)$(PYTHON) scripts/check-srk-fuse.py hab $(IMX8M_SRK_TABLE) $(SRK_FUSE_FILE)
 endif
 
 image-$(CONFIG_IMX8M_CREATE_IMX_IMAGE) += imx8m_image

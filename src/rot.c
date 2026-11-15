@@ -91,10 +91,29 @@ int rot_key_idx_to_id(unsigned int index, key_id_t *id)
     return PB_OK;
 }
 
+static bool slot_unrevocable(unsigned int slot)
+{
+    return cfg->revoke_slots != 0 && slot >= cfg->revoke_slots;
+}
+
+bool rot_key_unrevocable_by_idx(unsigned int index)
+{
+    if (!cfg || !(index < pb_no_of_keys))
+        return false;
+
+    return slot_unrevocable(pb_keys[index].slot);
+}
+
 int rot_revoke_key(key_id_t id)
 {
     struct rot_key key;
     int rc;
+
+#ifdef CONFIG_SLC_NO_FUSE_WRITES
+    /* A build that writes no fuses (system.md 4, D-087) */
+    LOG_ERR("This build writes no fuses (CONFIG_SLC_NO_FUSE_WRITES)");
+    return -PB_ERR_NOT_SUPPORTED;
+#endif
 
     if (!cfg || !cfg->revoke_key)
         return -PB_ERR_NOT_SUPPORTED;
@@ -103,6 +122,14 @@ int rot_revoke_key(key_id_t id)
 
     if (rc != PB_OK)
         return rc;
+
+    /* No revoke bit for the slot: NOT_SUPPORTED on every platform, where
+     * the i.MX8X answered PARAM (D-085) */
+    if (slot_unrevocable(key.slot)) {
+        LOG_ERR(
+            "Key 0x%x can't be revoked: the SoC has no revoke bit for slot %u", key.id, key.slot);
+        return -PB_ERR_NOT_SUPPORTED;
+    }
 
     LOG_INFO("Revoking key 0x%x, slot %u", key.id, key.slot);
     return cfg->revoke_key(&key);

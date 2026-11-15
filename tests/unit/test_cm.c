@@ -529,6 +529,7 @@ static struct {
     dsa_t key_kind;
     uint32_t revoked; /* Bit per key index */
     uint32_t key_io_error; /* Bit per key index */
+    uint32_t unrevocable; /* Bit per key index: no revoke bit for its slot */
     int revoke_rc;
     key_id_t revoked_id;
     size_t no_of_keys; /* 0: two keys */
@@ -611,6 +612,11 @@ int rot_key_idx_to_id(unsigned int index, key_id_t *id)
     sec.key_reads++;
     *id = 0x1000 + index;
     return PB_OK;
+}
+
+bool rot_key_unrevocable_by_idx(unsigned int index)
+{
+    return (sec.unrevocable & (1u << index)) != 0;
 }
 
 int rot_revoke_key(key_id_t id)
@@ -2186,6 +2192,46 @@ static void test_slc_read_key_status(void **state)
     assert_int_equal(keys->revoked[0], 0);
     assert_int_equal(keys->revoked[1], 0x1001);
     expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+}
+
+/* command-mode.md 5.2 (D-085, F-439): the first result's unrevocable has
+ * bit n for active key n that the device can't revoke. A revoked key, also
+ * one in such a slot, and one that can't be read have no bit */
+static void test_slc_read_unrevocable(void **state)
+{
+    (void)state;
+
+    sec.no_of_keys = 6;
+    sec.unrevocable = (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5);
+    sec.revoked = 1u << 4;
+    sec.key_io_error = 1u << 5;
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    run();
+
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_slc *slc = (const struct pb_result_slc *)r->response;
+    assert_int_equal(slc->slc, SLC_CONFIGURATION);
+    assert_int_equal(slc->unrevocable, (1u << 2) | (1u << 3));
+    const struct pb_result_slc_key_status *keys = (const void *)expect_data(sizeof(*keys));
+    assert_int_equal(keys->active[2], 0x1002);
+    assert_int_equal(keys->active[3], 0x1003);
+    assert_int_equal(keys->revoked[4], 0x1004);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+
+    /* Every key with a revoke bit: 0, as an old device answers */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    sec.unrevocable = 0;
+    sec.revoked = 0;
+    sec.key_io_error = 0;
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    run();
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_slc *)r->response)->unrevocable, 0);
+    expect_data(sizeof(*keys));
+    expect_result(PB_RESULT_OK);
     expect_end();
 }
 
@@ -5129,6 +5175,7 @@ int main(void)
         CM_TEST(test_slc_errors),
         CM_TEST(test_unknown_slc_requires_auth),
         CM_TEST(test_slc_read_key_status),
+        CM_TEST(test_slc_read_unrevocable),
         CM_TEST(test_slc_read_lists_16_keys_at_most),
         CM_TEST(test_slc_read_without_a_rot),
         CM_TEST(test_bpak_read),

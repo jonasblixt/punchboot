@@ -31,6 +31,11 @@ src-y  += src/plat/imx8x/sci/svc/rm/rm_rpc_clnt.c
 asm-y += src/plat/imx8x/reset_vector.S
 
 cflags-y += -mtune=cortex-a35
+
+# The key slots the SoC has a revoke bit for (platform.md 4.1): AHAB's four OEM SRK revoke bits.
+# plat_rot.revoke_slots, and the build warns for a board key above them
+PLAT_REVOKE_SLOTS = 4
+cflags-y += -DPLAT_REVOKE_SLOTS=$(PLAT_REVOKE_SLOTS)
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x200000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x200000000
 cflags-y += -Iinclude/plat/imx8x/
@@ -87,6 +92,7 @@ else
 # pb.csf, the AHAB description of pb.imx: the container header at 0x400,
 # its signature block at 0x590, as mkimage_imx8 places them on the 8QXP
 imx8x_sign_desc: imx8x_image
+	$(Q)$(PYTHON) scripts/check-srk-fuse.py ahab $(IMX8X_SRK_TABLE) $(SRK_FUSE_FILE)
 	@echo Using SRK Table: $$(readlink -f $(IMX8X_SRK_TABLE))
 	@echo Using signing cert: $$(readlink -f $(IMX8X_SIGN_CERT))
 	@sed -e 's#__KEY_INDEX__#$(IMX8X_KEY_INDEX)#g' \

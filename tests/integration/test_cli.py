@@ -6,6 +6,7 @@ these cover the CLI on top of it.
 
 from __future__ import annotations
 
+import ctypes
 import os
 import subprocess
 from typing import TYPE_CHECKING
@@ -285,6 +286,26 @@ def test_an_unknown_life_cycle_is_an_error(monkeypatch: pytest.MonkeyPatch) -> N
     assert run.exit_code == 1
     assert isinstance(run.exception, SystemExit), run.exception
     assert "Error: 5" in run.output
+
+
+def test_slc_show_names_the_keys_that_cannot_be_revoked(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The SLC result's unrevocable, bit n active key n (command-mode.md 5.2, D-085)."""
+    dev = ScriptedDevice()
+    keys = wire.pb_result_slc_key_status(
+        active=(ctypes.c_uint32 * 16)(0x1000, 0, 0x1002, 0x1003),
+        revoked=(ctypes.c_uint32 * 16)(0, 0x1001),
+    ).pack()
+    slc = result(response=wire.pb_result_slc(slc=2, unrevocable=0b1100))
+    dev.on(Command.PB_CMD_SLC_READ, slc, keys)
+
+    run = run_cli(monkeypatch, dev, "slc", "show")
+
+    assert run.exit_code == 0, run.output
+    assert (
+        "Active keys: 0x00001000, 0x00001002 (cannot be revoked), 0x00001003 (cannot be revoked)"
+        in run.output
+    )
+    assert "Revoked keys: 0x00001001" in run.output
 
 
 def test_a_version_that_isnt_semantic_is_an_error(monkeypatch: pytest.MonkeyPatch) -> None:

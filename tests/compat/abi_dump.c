@@ -199,6 +199,7 @@ static void wire(void)
 
     STRUCT(pb_result_slc);
     FIELD(pb_result_slc, slc);
+    FIELD(pb_result_slc, unrevocable);
 
     STRUCT(pb_result_slc_key_status);
     FIELD(pb_result_slc_key_status, active);

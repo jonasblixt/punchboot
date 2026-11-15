@@ -279,7 +279,8 @@ class pb_result_device_identifier(Struct):
 class pb_result_slc(Struct):
     _fields_ = (
         ("slc", u8),
-        ("rz", u8 * 31),
+        ("unrevocable", u16),
+        ("rz", u8 * 29),
     )
 
 

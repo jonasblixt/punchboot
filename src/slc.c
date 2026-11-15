@@ -10,6 +10,20 @@
 #include <pb/pb.h>
 #include <pb/slc.h>
 
+/* A build that writes no fuses (CONFIG_SLC_NO_FUSE_WRITES, system.md 4,
+ * D-087): every write answers as a port without it, nothing is read first */
+#ifdef CONFIG_SLC_NO_FUSE_WRITES
+#define NO_FUSE_WRITES true
+#else
+#define NO_FUSE_WRITES false
+#endif
+
+static int no_fuse_writes(void)
+{
+    LOG_ERR("This build writes no fuses (CONFIG_SLC_NO_FUSE_WRITES)");
+    return -PB_ERR_NOT_SUPPORTED;
+}
+
 static const struct slc_ops *ops;
 static const struct slc_fuse *fuses;
 static size_t fuses_length;
@@ -85,6 +99,9 @@ int slc_set_configuration(void)
     slc_t slc;
     int rc;
 
+    if (NO_FUSE_WRITES)
+        return no_fuse_writes();
+
     if (!ops || (!ops->set_configuration && !fuses_length))
         return -PB_ERR_NOT_SUPPORTED;
 
@@ -112,6 +129,9 @@ int slc_set_configuration(void)
 int slc_set_configuration_locked(void)
 {
     slc_t slc;
+
+    if (NO_FUSE_WRITES)
+        return no_fuse_writes();
 
     if (!ops || !ops->set_configuration_locked)
         return -PB_ERR_NOT_SUPPORTED;
@@ -143,6 +163,9 @@ int slc_set_eol(void)
 {
 #ifdef CONFIG_SLC_EOL
     slc_t slc;
+
+    if (NO_FUSE_WRITES)
+        return no_fuse_writes();
 
     if (!ops || !ops->set_eol)
         return -PB_ERR_NOT_SUPPORTED;
