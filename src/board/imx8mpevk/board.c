@@ -20,6 +20,7 @@
 #include <boot/ab_state.h>
 #include <boot/atf.h>
 #include <boot/boot.h>
+#include <boot/image.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/partition/gpt.h>
@@ -324,14 +325,17 @@ static const struct rot_config rot = {
 /* No fuse access, see the top of this file */
 static const struct slc_config slc = { 0 };
 
-/* TF-A BL31, then Linux as BL33 at EL2 */
-static const struct boot_driver_atf_config boot_atf = {
-    .atf_bpak_id = 0xa697d988, /* bpak_id("atf") */
-    .bl33_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+/* Linux, through TF-A: BL31 starts it as BL33 at EL2, with the device tree in x0 */
+static const struct boot_handover_image_config boot_image = {
+    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
     .dtb_patch_cb = board_patch_bootargs,
-    .resolve_part_name = boot_ab_part_uu_to_name,
+    .set_dtb_boot_arg = true,
+};
+
+static const struct boot_delivery_tfa_config boot_tfa = {
+    .bl31_bpak_id = 0xa697d988, /* bpak_id("atf") */
 };
 
 static const struct gpt_part_table gpt_tbl_default[] = {
@@ -416,7 +420,20 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .backup_state_part_uu = PART_backup_state,
     .sys_a_uu = PART_sys_a,
     .sys_b_uu = PART_sys_b,
-    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
+
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps, from
+ * 0x40000000 to BOARD_RAM_END, above what pb has at its start: the DDR
+ * controller's state and pb's buffers, to 0x41060000
+ * (src/plat/imx8m/link.lds). And the on-chip RAM TF-A's BL31 is linked for,
+ * above pb, which runs from 0x920000. board_setup() checks the list against
+ * what is linked.
+ */
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(0x41060000, BOARD_RAM_END - 0x41060000),
+    BOOT_IMAGE_REGION(IMX8MP_BL31_BASE, IMX8MP_BL31_SIZE),
+    BOOT_IMAGE_REGION_END,
 };
 
 const struct board board = {
@@ -425,11 +442,11 @@ const struct board board = {
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,
-    .gpt_dev_uu = PART_user,
-    .gpt_tables = gpt_tables,
-    .gpt_tables_length = ARRAY_SIZE(gpt_tables),
-    .ab = &boot_state_cfg,
-    .boot_atf = &boot_atf,
+    .ptbl = PTBL_GPT(PART_user, gpt_tables),
+    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
+    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+    .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
+    .image_regions = image_regions,
     .bootargs = "console=ttymxc1,115200 quiet ",
     /* arm64 has no earlyprintk: earlycon, on stdout-path */
     .bootargs_verbose = "console=ttymxc1,115200 earlycon ",

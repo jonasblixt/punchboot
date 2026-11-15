@@ -1,51 +1,120 @@
-config BOOT_AB_DRIVER
-    bool "A/B boot driver"
+comment "Boot source policies: the board's data names the one it uses"
+
+config BOOT_POLICY_FIXED
+    bool "Fixed: one partition"
     help
-        This is the default boot driver. It uses two block devices to store
-        primary an backup configuration. It has support for rollback and
-        error reporting.
+        The board gives one partition (BOOT_POLICY_FIXED(), boot/policy_fixed.h).
+        No state, nothing to activate.
+
+config BOOT_POLICY_CHAIN
+    bool "Staggered chain: a list of partitions"
+    help
+        The board gives a list of partitions, tried in its order
+        (BOOT_POLICY_CHAIN(), boot/policy_chain.h). No state. It protects
+        against an image that doesn't load or verify, not against one that
+        verifies and then fails.
+
+config BOOT_POLICY_AB
+    bool "A/B: two slots, with rollback"
+    help
+        Two slots and a state in two partitions, a primary and a backup
+        (BOOT_POLICY_AB(), boot/ab_state.h). An update is booted on trial
+        and rolled back when the OS doesn't confirm it. The OS's side is
+        pbstate.
+
+config BOOT_AB_DRIVER
+    bool "A/B boot driver (the name of BOOT_POLICY_AB before 3.0.0)"
+    select BOOT_POLICY_AB
+    help
+        Kept so that a configuration from before 3.0.0 builds unchanged.
+        Use BOOT_POLICY_AB.
+
+config BOOT_AB_SPECULATIVE
+    bool "A/B: speculative mode"
+    depends on BOOT_POLICY_AB && ENABLE_WATCHDOG
+    default n
+    help
+        For a system that must stay reachable for an update when no slot
+        is viable (boot.md 3.6). Where A/B would enter command mode, it
+        boots a slot the OS hasn't confirmed: when the enabled slot is a
+        trial without attempts left and the other one isn't confirmed,
+        when nothing is enabled (A first), and when this boot's
+        candidates failed to load or verify. It alternates the slots per
+        boot, counts no attempts, and ends when the OS confirms a slot
+        (pbstate). The policy reports such a boot's mode as speculative,
+        and the handover passes the mode on to the next stage (boot.md
+        5.6).
+
+        It never boots an image that fails verification. With it,
+        disabling both slots doesn't park a device in command mode, and
+        a device in the factory boots an image that was written and not
+        yet activated.
+
+        This is the only switch: the board's data has none. It needs the
+        watchdog: the alternation is written before the load, so that a
+        hang and the watchdog's reset lead to the other slot.
 
 config BOOT_DTB
     bool
     select LIB_FDT
     help
-        The device tree helpers of the boot drivers (boot/dtb.h). Selected
-        by the drivers that pass a device tree on.
+        The device tree helpers of the handovers (boot/dtb.h). Selected
+        by the handovers that pass a device tree on.
 
 config BOOT_LINUX
-    bool "Linux boot support"
-    select BOOT_DTB
-
-config BOOT_ATF
-    bool "ATF boot support"
-    depends on ARCH_ARMV8
+    bool "Handover: image (Linux, Xen)"
     select BOOT_DTB
     help
-        This boot driver uses the Arm Trusted Firmware bootloader interface
-        to boot the BL33 (and optional BL32) image.
+        The image handover (boot/image.h, BOOT_HANDOVER_IMAGE()): the Linux
+        boot protocol, which Xen follows too. The next stage gets a device
+        tree with pb's /chosen. A board delivers it directly, or through
+        TF-A (BOOT_ATF).
 
-        NOTE: Currently only supported on armv8.
+config BOOT_ATF
+    bool "Delivery: TF-A"
+    depends on ARCH_ARMV8
+    help
+        The delivery through TF-A (boot/atf.h, BOOT_DELIVERY_TFA()): pb
+        starts BL31 with a bl_params list, in which BL33 is the board's
+        handover and BL32 (optional) gets OP-TEE's arguments.
+
+        The delivery alone: it selects no handover and no device tree
+        code. A board names it next to its handover and enables that
+        too, e.g. the image handover (BOOT_LINUX). Before 3.0.0 this
+        option was the whole TF-A boot driver.
+
+        ARMv8-A only.
 
 config BOOT_DTB_HEADROOM
     int "Device tree headroom (bytes)"
     depends on BOOT_DTB
     default 4096
     help
-        The Linux and ATF boot drivers add /chosen and pb's properties to the
+        The image handover adds /chosen and pb's properties to the
         device tree: pb,device-uuid, pb,slc, pb,slc-active-key,
-        pb,slc-available-keys, pb,active-system, the initrd and what the
-        board's callback sets (bootargs). First they grow the device tree in
+        pb,slc-available-keys, pb,active-system, the initrd, what the
+        board's callback sets (bootargs) and, new in 3.0.0, pb,boot-mode,
+        pb,boot-partition and pb,version. First they grow the device tree in
         place by this many bytes, into the RAM after its part. Leave that RAM
         free in the boot image: another part or pb there fails the boot.
         For a device tree in dtc's block order growing only changes its
         size in the header. A device tree built with the properties and free
         space for them (dtc -p) doesn't need it, set 0 then.
 
-config BOOT_ARMV7M_BAREMETAL
-    bool "ARMv7m bare metal boot support"
+        With 0, a device tree that was built for an older pb has no room
+        for the three new properties. They take 138 bytes together (with
+        the version "3.0.0"): add them to the device tree, pb,boot-mode with
+        room for "speculative", or that much padding. Without the room the
+        image boots as before and each of the three that doesn't fit is
+        left out, with a warning in the log. A property of the older ones
+        that doesn't fit fails the boot, as it always did.
+
+config BOOT_SIMPLE
+    bool "Simple boot protocol (include/boot/simple.h)"
 
 config BOOT_LOAD_CHUNK_kB
     int "Copy/Hash load chunk size (kB)"
+    range 1 1048576
     default 4096
 
 config BOOT_LINUX_RAMOOPS

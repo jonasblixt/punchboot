@@ -3,8 +3,10 @@
  *
  * The architecture's part of the handover to the next stage. Every
  * architecture implements these, and a new one must give the same
- * guarantees. A boot driver calls arch_disable_mmu(), then arch_jump(); the
- * next stage starts with:
+ * guarantees. A delivery calls arch_disable_mmu(), then arch_jump(): the
+ * core for a board without one (src/boot/boot.c), else the board's
+ * (boot/handover.h). What it starts, the next stage or TF-A's BL31, starts
+ * with:
  *
  *  - the MMU (on ARMv7-M the MPU) and the D-cache off, and everything pb
  *    wrote in memory, not in the cache

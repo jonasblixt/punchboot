@@ -257,15 +257,26 @@ static const struct gpt_table_list gpt_tables[] = {
     },
 };
 
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps, from
+ * 0x40000000 to BOARD_RAM_END, above what pb has at its start: the DDR
+ * controller's state and pb's buffers, to 0x41060000
+ * (src/plat/imx8m/link.lds). pb itself runs from on-chip RAM. The board has
+ * no handover yet (F-300), so nothing is loaded.
+ */
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(0x41060000, BOARD_RAM_END - 0x41060000),
+    BOOT_IMAGE_REGION_END,
+};
+
 const struct board board = {
     .name = "imx8mevk",
     .console_init = board_console_init,
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,
-    .gpt_dev_uu = PART_user,
-    .gpt_tables = gpt_tables,
-    .gpt_tables_length = ARRAY_SIZE(gpt_tables),
+    .ptbl = PTBL_GPT(PART_user, gpt_tables),
+    .image_regions = image_regions,
     .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,
     .command = board_command,

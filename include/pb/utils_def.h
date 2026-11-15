@@ -16,7 +16,19 @@
 #define INCLUDE_PB_UTILS_DEF_H
 
 /* Compute the number of elements in the given array */
-#define ARRAY_SIZE(a)           (sizeof(a) / sizeof((a)[0]))
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+/*
+ * A pointer to a module's configuration, for an object that keeps it as a
+ * const void *: it doesn't compile when '_c' isn't a pointer to a '_type',
+ * NULL included. It stays a constant, for a static initializer.
+ */
+#define PB_CONFIG(_c, _type) \
+    ((_c) + 0 * sizeof(char[1 - 2 * !__builtin_types_compatible_p(__typeof__(*(_c)), _type)]))
+
+/* 0, and it doesn't compile when '_a' is a pointer, which ARRAY_SIZE() takes */
+#define PB_MUST_BE_ARRAY(_a) \
+    (0 * sizeof(char[1 - 2 * __builtin_types_compatible_p(__typeof__(_a), __typeof__(&(_a)[0]))]))
 
 #define IS_POWER_OF_TWO(x)      (((x) & ((x) - 1)) == 0)
 
@@ -143,17 +155,15 @@
  * be used as a 64-bit pointer, the value of the linker symbol must also be
  * aligned to 64 bit. This macro makes sure this is the case.
  */
-#define ASSERT_SYM_PTR_ALIGN(sym)            assert(((size_t)(sym) % __alignof__(*(sym))) == 0)
+#define ASSERT_SYM_PTR_ALIGN(sym) assert(((size_t)(sym) % __alignof__(*(sym))) == 0)
 
-#define COMPILER_BARRIER()                   __asm__ volatile("" ::: "memory")
+#define COMPILER_BARRIER()        __asm__ volatile("" ::: "memory")
 
-#define CHECK_OVERLAP(addr, len, start, end) (((addr) <= (end)) && ((addr) + (len) >= (start)))
+#define membersof(array)          (sizeof(array) / sizeof((array)[0]))
 
-#define membersof(array)                     (sizeof(array) / sizeof((array)[0]))
-
-#define SZ_KiB(x)                            ((size_t)(x) << 10)
-#define SZ_MiB(x)                            ((size_t)(x) << 20)
-#define SZ_GiB(x)                            ((size_t)(x) << 30)
-#define MHz(x)                               (x * 1000000UL)
+#define SZ_KiB(x)                 ((size_t)(x) << 10)
+#define SZ_MiB(x)                 ((size_t)(x) << 20)
+#define SZ_GiB(x)                 ((size_t)(x) << 30)
+#define MHz(x)                    (x * 1000000UL)
 
 #endif // INCLUDE_UTILS_DEF_H

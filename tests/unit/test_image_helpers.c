@@ -9,8 +9,11 @@
  * providers and a fake root of trust, so every step can fail on demand.
  * Real signatures are covered by the integration tests (test_boot.py).
  *
- * The pb memory regions are set with --defsym, like for pb-host, see
- * tests/unit/CMakeLists.txt.
+ * 'pb' and 'buffers' are set with --defsym, like for pb-host, see
+ * tests/unit/CMakeLists.txt. Built twice: as pb-host is, and with a Firmware
+ * Handoff region and a platform's region for bl_params
+ * (test_image_helpers_handover), which no image data region may overlap
+ * either.
  */
 
 #include <setjmp.h>
@@ -21,6 +24,7 @@
 #include <cmocka.h>
 
 #include <boot/image_helpers.h>
+#include <boot/image_regions.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <pb/crypto.h>
@@ -29,18 +33,32 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fakes/plat.h"
+
 /* Must match the --defsym values in CMakeLists.txt */
-#define CODE_START    0x40000000
-#define DATA_START    0x400a0000
-#define BSS_START     0x400c0000
-#define STACK_START   0x400e0000
-#define NO_INIT_START 0x40100000
+#define PB_START      0x40000000
+#define PB_END        0x40100000
+#define BUFFERS_START 0x40100000
+#define BUFFERS_END   0x40120000
+
+/* The board's image data regions: two, with a gap that the handover's
+ * regions of the second build are in (CMakeLists.txt) */
+#define REGION_A      0x48000000
+#define REGION_A_SIZE 0x08000000
+#define REGION_B      0x58000000
+#define REGION_B_SIZE 0x02000000
 #define FREE_RAM      0x49000000
 
 #define ID_KERNEL     0xec103b08
 #define ID_DTB        0x56f91b86
 
 #define FAKE_SIG_OK   0x5a
+
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(REGION_A, REGION_A_SIZE),
+    BOOT_IMAGE_REGION(REGION_B, REGION_B_SIZE),
+    BOOT_IMAGE_REGION_END,
+};
 
 static struct {
     int key_status_rc;
@@ -52,6 +70,9 @@ static struct {
     hash_t alg;
     size_t hashed_bytes;
     uint32_t sum;
+    /* The updates since the last init, and the watchdog's kicks at each */
+    size_t updates;
+    unsigned int kicks_at_update[8];
 
     int verify_rc;
     bool verify_ok;
@@ -81,12 +102,17 @@ static int fake_init(hash_t alg)
     fake.alg = alg;
     fake.hashed_bytes = 0;
     fake.sum = 0;
+    fake.updates = 0;
     return fake.init_rc;
 }
 
 static int fake_update(const void *buf, size_t length)
 {
     const uint8_t *p = buf;
+
+    if (fake.updates < ARRAY_SIZE(fake.kicks_at_update))
+        fake.kicks_at_update[fake.updates] = fake_wdog_kicks;
+    fake.updates++;
 
     if (fake.update_rc != PB_OK)
         return fake.update_rc;
@@ -199,8 +225,9 @@ static int setup(void **state)
     (void)state;
     memset(&fake, 0, sizeof(fake));
     fake.verify_ok = true;
+    fake_wdog_kicks = 0;
     make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, FREE_RAM + 0x100000, 512);
-    return 0;
+    return boot_image_set_regions(image_regions) == PB_OK ? 0 : -1;
 }
 
 static void test_auth_header(void **state)
@@ -297,28 +324,406 @@ static void test_verify_parts_needs_load_addr(void **state)
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_BAD_META);
 }
 
-static void test_verify_parts_rejects_pb_memory(void **state)
+/* A part lies inside one region, wherever in it (boot.md 4.3) */
+static void test_verify_parts_inside_a_region(void **state)
 {
-    static const uint64_t regions[] = {
-        CODE_START + 0x1000,
-        DATA_START + 0x1000,
-        BSS_START + 0x1000,
-        STACK_START + 0x1000,
-        NO_INIT_START + 0x1000,
-        /* Ends inside the code */
-        CODE_START - 0x200,
+    (void)state;
+
+    /* One part in each region */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, REGION_B + 0x1000, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* From a region's first byte, and to its last */
+    make_header(BPAK_HASH_SHA256, REGION_A, 1024, REGION_A + REGION_A_SIZE - 1024, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* One part that is the whole region */
+    make_header(BPAK_HASH_SHA256, REGION_B, REGION_B_SIZE, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* A part without bytes is placed like any other */
+    make_header(BPAK_HASH_SHA256, REGION_B + REGION_B_SIZE, 0, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+    make_header(BPAK_HASH_SHA256, REGION_B + REGION_B_SIZE + 1, 0, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+}
+
+/* The regions are the only memory a part is loaded into: pb's own memory is
+ * outside them like any other */
+static void test_verify_parts_outside_the_regions(void **state)
+{
+    static const struct {
+        uint64_t addr;
+        size_t size;
+    } parts[] = {
+        { PB_START + 0x1000, 1024 }, /* pb's own memory */
+        { PB_END - 512, 1024 },
+        { BUFFERS_START + 0x1000, 1024 },
+        { BUFFERS_END, 1024 }, /* RAM that is pb's no more, and in no region */
+        { 0, 1024 },
+        { REGION_A - 0x200, 1024 }, /* Ends inside a region */
+        { REGION_A - 1024, 1024 }, /* Ends where it starts */
+        { REGION_A + REGION_A_SIZE - 512, 1024 }, /* Starts inside */
+        { REGION_A + REGION_A_SIZE, 1024 }, /* The gap between the two */
+        { REGION_A, REGION_A_SIZE + 512 },
+        { REGION_A + 1, REGION_A_SIZE }, /* By one byte */
+        { REGION_B + REGION_B_SIZE, 1024 }, /* Above them */
+        /* Above 4 GiB: not narrowed to an address in a region */
+        { 0x100000000ull + FREE_RAM, 1024 },
+    };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(parts); i++) {
+        /* The second part is outside */
+        make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, parts[i].addr, parts[i].size);
+        assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+        /* And the first */
+        make_header(BPAK_HASH_SHA256, parts[i].addr, parts[i].size, FREE_RAM, 1024);
+        assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    }
+}
+
+/* Inside one region: not across two, also when they are next to each other
+ * and every byte of the part is in one of them */
+static void test_verify_parts_across_two_regions(void **state)
+{
+    static const struct boot_image_region adjacent[] = {
+        BOOT_IMAGE_REGION(FREE_RAM, 0x1000),
+        BOOT_IMAGE_REGION(FREE_RAM + 0x1000, 0x1000),
+        BOOT_IMAGE_REGION_END,
     };
     (void)state;
 
-    for (size_t i = 0; i < ARRAY_SIZE(regions); i++) {
-        /* The second part overlaps */
-        make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, regions[i], 1024);
-        assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    assert_int_equal(boot_image_set_regions(adjacent), PB_OK);
+
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x1000, FREE_RAM + 0x1000, 0x1000);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 0x800, 0x1000, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x2000, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    /* One byte of it in the second */
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 0xe01, 512, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+}
+
+/* An address range that wraps is in no region, wherever its end lands */
+static void test_verify_parts_wraps(void **state)
+{
+    /* The last 64 KiB of the address space, which a 64-bit arch can have */
+    static const struct boot_image_region top[] = {
+        BOOT_IMAGE_REGION(REGION_A, REGION_A_SIZE),
+        BOOT_IMAGE_REGION(UINT64_MAX - 0xffff, 0x10000),
+        BOOT_IMAGE_REGION_END,
+    };
+    (void)state;
+
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 511, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* Wraps into a region: its end is FREE_RAM + 0x1000 */
+    make_header(BPAK_HASH_SHA256, UINT64_MAX - 0xfff, (size_t)FREE_RAM + 0x2000, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    assert_int_equal(boot_image_set_regions(top), PB_OK);
+
+    /* To the last byte there is */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 1023, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+
+    /* One byte further wraps, out of the region it starts in */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 1022, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    make_header(BPAK_HASH_SHA256, UINT64_MAX - 0xfff, (size_t)FREE_RAM + 0x2000, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* Two parts over each other at the last byte there is: the end of both
+     * is 0, their last bytes are compared */
+    make_header(BPAK_HASH_SHA256, UINT64_MAX - 1023, 1024, UINT64_MAX - 511, 512);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    make_header(BPAK_HASH_SHA256, UINT64_MAX - 1023, 512, UINT64_MAX - 511, 512);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+}
+
+/* A part overlaps no other part */
+static void test_verify_parts_over_each_other(void **state)
+{
+    (void)state;
+
+    /* The second starts inside the first */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x2000, FREE_RAM + 0x1000, 0x2000);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* The first starts inside the second */
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 0x1000, 0x2000, FREE_RAM, 0x2000);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* By one byte */
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 1, 0x1000, FREE_RAM + 0x1000, 0x1000);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* The same address */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, FREE_RAM, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* One inside the other */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x4000, FREE_RAM + 0x1000, 512);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* Next to each other, in either order */
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 0x1000, FREE_RAM + 0x1000, 0x1000);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+    make_header(BPAK_HASH_SHA256, FREE_RAM + 0x1000, 0x1000, FREE_RAM, 0x1000);
+    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+}
+
+/* A board without a list loads nothing (board.md 2.9). The in place source
+ * has its own allowed memory */
+static void test_verify_parts_without_regions(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_image_set_regions(NULL), PB_OK);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    assert_false(boot_image_in_regions(FREE_RAM, 1));
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FREE_RAM, 0x200000), PB_OK);
+}
+
+/* The room a handover grows a part by is asked for with the part */
+static void test_in_regions(void **state)
+{
+    (void)state;
+
+    assert_true(boot_image_in_regions(REGION_A, REGION_A_SIZE));
+    assert_true(boot_image_in_regions(REGION_B + REGION_B_SIZE - 0x1000, 0x1000));
+    assert_false(boot_image_in_regions(REGION_B + REGION_B_SIZE - 0x1000, 0x1001));
+    assert_false(boot_image_in_regions(REGION_A - 1, 2));
+    assert_false(boot_image_in_regions(PB_START, 1));
+    assert_false(boot_image_in_regions(REGION_A, UINT64_MAX));
+    assert_false(boot_image_in_regions(UINT64_MAX, 2));
+}
+
+/* The check of the board's list (board.md 3): the list that passes is the
+ * one in use, and one that fails leaves none */
+static void assert_regions_fail(uint64_t base, uint64_t size)
+{
+    const struct boot_image_region alone[] = {
+        BOOT_IMAGE_REGION(base, size),
+        BOOT_IMAGE_REGION_END,
+    };
+    const struct boot_image_region last[] = {
+        BOOT_IMAGE_REGION(REGION_A, REGION_A_SIZE),
+        BOOT_IMAGE_REGION(base, size),
+        BOOT_IMAGE_REGION_END,
+    };
+
+    assert_int_equal(boot_image_set_regions(image_regions), PB_OK);
+    assert_int_equal(boot_image_set_regions(alone), -PB_ERR_PARAM);
+    /* Nothing is loaded, not even where the list before it allowed */
+    assert_false(boot_image_in_regions(FREE_RAM, 1024));
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, 0, 0);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+
+    /* After a region that passes */
+    assert_int_equal(boot_image_set_regions(last), -PB_ERR_PARAM);
+    assert_false(boot_image_in_regions(FREE_RAM, 1024));
+}
+
+static void assert_regions_pass(uint64_t base, uint64_t size)
+{
+    const struct boot_image_region alone[] = {
+        BOOT_IMAGE_REGION(base, size),
+        BOOT_IMAGE_REGION_END,
+    };
+
+    assert_int_equal(boot_image_set_regions(alone), PB_OK);
+    assert_true(boot_image_in_regions(base, size));
+}
+
+static void test_regions_overlap_pb(void **state)
+{
+    (void)state;
+
+    /* The board's whole RAM, with pb at its start */
+    assert_regions_fail(PB_START, 0x20000000);
+    /* Inside pb, over its start, over its end */
+    assert_regions_fail(PB_START + 0x1000, 0x1000);
+    assert_regions_fail(PB_START - 0x1000, 0x1001);
+    assert_regions_fail(PB_END - 1, 0x1000);
+    /* All of pb and more */
+    assert_regions_fail(PB_START - 0x1000, 0x40000000);
+
+    /* 'buffers' */
+    assert_regions_fail(BUFFERS_START + 0x1000, 0x1000);
+    assert_regions_fail(BUFFERS_END - 1, 0x08000000);
+
+    /* Up to pb's first byte, and from the first after 'buffers' */
+    assert_regions_pass(PB_START - 0x1000, 0x1000);
+    assert_regions_pass(BUFFERS_END, 0x1000);
+}
+
+static void test_regions_empty_or_wrapping(void **state)
+{
+    static const struct boot_image_region none[] = { BOOT_IMAGE_REGION_END };
+    (void)state;
+
+    assert_regions_fail(FREE_RAM, 0);
+    assert_regions_fail(0, 0);
+    assert_regions_fail(UINT64_MAX - 0xfff, 0x1001);
+    assert_regions_fail(FREE_RAM, UINT64_MAX);
+    assert_regions_fail(UINT64_MAX, 2);
+
+    /* Memory at address 0, and to the last byte there is */
+    assert_regions_pass(0, 0x20000);
+    assert_regions_pass(UINT64_MAX - 0xfff, 0x1000);
+
+    /* A list without regions passes, and loads nothing */
+    assert_int_equal(boot_image_set_regions(none), PB_OK);
+    assert_false(boot_image_in_regions(FREE_RAM, 1024));
+}
+
+/* What a handover writes outside the parts (boot.md 4.3), in the build that
+ * has it */
+static void test_regions_overlap_handover(void **state)
+{
+    (void)state;
+
+#ifdef CONFIG_BOOT_FH
+    assert_regions_fail(CONFIG_BOOT_FH_REGION_BASE, CONFIG_BOOT_FH_REGION_SIZE);
+    assert_regions_fail(CONFIG_BOOT_FH_REGION_BASE - 0x1000, 0x1001);
+    assert_regions_fail(CONFIG_BOOT_FH_REGION_BASE + CONFIG_BOOT_FH_REGION_SIZE - 1, 0x1000);
+    assert_regions_fail(REGION_A, REGION_B - REGION_A);
+    assert_regions_pass(CONFIG_BOOT_FH_REGION_BASE - 0x1000, 0x1000);
+    assert_regions_pass(CONFIG_BOOT_FH_REGION_BASE + CONFIG_BOOT_FH_REGION_SIZE, 0x1000);
+#endif
+
+#ifdef PLAT_BL_PARAMS_BASE
+    assert_regions_fail(PLAT_BL_PARAMS_BASE, 0x1000);
+    assert_regions_fail(PLAT_BL_PARAMS_BASE - 0x1000, 0x1001);
+    assert_regions_fail(PLAT_BL_PARAMS_BASE + PLAT_BL_PARAMS_SIZE - 1, 0x1000);
+    assert_regions_pass(PLAT_BL_PARAMS_BASE - 0x1000, 0x1000);
+    assert_regions_pass(PLAT_BL_PARAMS_BASE + PLAT_BL_PARAMS_SIZE, 0x1000);
+#endif
+
+#if !defined(CONFIG_BOOT_FH) && !defined(PLAT_BL_PARAMS_BASE)
+    /* Neither: the gap between the suite's regions is the board's to list */
+    assert_regions_pass(REGION_A, REGION_B - REGION_A);
+#endif
+}
+
+/* A partition that is booted in place: its mapped range, without the header */
+#define FLASH_BASE 0x60080000
+#define FLASH_SIZE 0x000ff000
+
+static void test_verify_parts_in_place(void **state)
+{
+    (void)state;
+
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, FLASH_BASE + 0x1000, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+
+    /* The last part ends where the range ends */
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, FLASH_BASE + FLASH_SIZE - 512, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+
+    /* One part that is the whole range */
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, FLASH_SIZE, 0, 0);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+
+    /* Flash that is mapped at 0 */
+    make_header(BPAK_HASH_SHA256, 0, 1024, 0x2000 - 512, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0x2000), PB_OK);
+
+    /* An image without parts has none outside */
+    assert_int_equal(bpak_init_header(hdr), BPAK_OK);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE), PB_OK);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0), PB_OK);
+}
+
+/* Nothing is loaded, so the image data regions aren't what a part must be in */
+static void test_verify_parts_in_place_ignores_pb_memory(void **state)
+{
+    (void)state;
+
+    make_header(BPAK_HASH_SHA256, PB_START + 0x1000, 1024, PB_START + 0xe1000, 1024);
+    assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, PB_START, 0x200000), PB_OK);
+}
+
+static void test_verify_parts_in_place_outside(void **state)
+{
+    static const struct {
+        uint64_t addr;
+        size_t size;
+    } outside[] = {
+        /* Starts one byte below the range */
+        { FLASH_BASE - 1, 512 },
+        /* All of it below */
+        { FLASH_BASE - 0x1000, 512 },
+        /* Ends one byte past the range */
+        { FLASH_BASE + FLASH_SIZE - 511, 512 },
+        /* Starts where the range ends */
+        { FLASH_BASE + FLASH_SIZE, 512 },
+        /* Larger than the range */
+        { FLASH_BASE, FLASH_SIZE + 512 },
+        { FLASH_BASE + 512, (size_t)1 << 62 },
+        /* The address and the size wrap in 64 bits: to 0, and to inside the range */
+        { UINT64_MAX - 511, 512 },
+        { UINT64_MAX - 100, 512 },
+        { UINT64_MAX - 511, 512 + FLASH_BASE + 4096 },
+        /* An address a 32-bit arch can't hold, its low half inside the range */
+        { 0x100000000ULL + FLASH_BASE, 512 },
+    };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(outside); i++) {
+        /* As the second part, the first is inside */
+        make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, outside[i].addr, outside[i].size);
+        assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                         -PB_ERR_MEM);
+
+        /* And as the first */
+        make_header(BPAK_HASH_SHA256, outside[i].addr, outside[i].size, FLASH_BASE, 1024);
+        assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                         -PB_ERR_MEM);
     }
 
-    /* Right after the last region */
-    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, NO_INIT_START + 0x20000 + 1, 1024);
-    assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
+    /* Mapped at 0: past the end, and wrapped around to the start */
+    make_header(BPAK_HASH_SHA256, 0, 1024, 0x2000 - 511, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0x2000), -PB_ERR_MEM);
+    make_header(BPAK_HASH_SHA256, 0, 1024, UINT64_MAX - 255, 512);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, 0, 0x2000), -PB_ERR_MEM);
+
+    /* A range at the top of the address space */
+    make_header(BPAK_HASH_SHA256, UINTPTR_MAX - 1023, 1024, 0, 0);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, UINTPTR_MAX - 1023, 1024), PB_OK);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, UINTPTR_MAX - 1023, 1023), -PB_ERR_MEM);
+
+    /* A partition that only holds the header has room for no part */
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 512, 0, 0);
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, 0), -PB_ERR_MEM);
+}
+
+static void test_verify_parts_in_place_errors(void **state)
+{
+    struct bpak_meta_header *meta;
+    (void)state;
+
+    make_header(BPAK_HASH_SHA256, FLASH_BASE, 1024, FLASH_BASE + 0x1000, 512);
+
+    /* The dtb has no load address */
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
+    meta->part_id_ref = ID_KERNEL + 1;
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                     -PB_ERR_BAD_META);
+
+    hdr->magic = 0;
+    assert_int_equal(boot_image_verify_parts_in_place(hdr, FLASH_BASE, FLASH_SIZE),
+                     -PB_ERR_BAD_HEADER);
 }
 
 /* Fake storage: the image payload, read through read_f */
@@ -329,9 +734,13 @@ static int read_rc;
 static int fail_read_at;
 static int results;
 static int last_result;
+/* The watchdog's kicks when each read was asked for */
+static unsigned int kicks_at_read[8];
 
 static int read_f(int64_t offset, size_t length, void *buf)
 {
+    if ((size_t)reads < ARRAY_SIZE(kicks_at_read))
+        kicks_at_read[reads] = fake_wdog_kicks;
     reads++;
     if (reads == fail_read_at)
         return read_rc;
@@ -354,6 +763,14 @@ static int result_sent_f(int rc)
     return PB_OK;
 }
 
+/* The transport is gone: the result can't be sent */
+static int result_fails_f(int rc)
+{
+    results++;
+    last_result = rc;
+    return -PB_ERR_IO;
+}
+
 static void load_setup(void)
 {
     for (size_t i = 0; i < sizeof(payload); i++)
@@ -364,6 +781,8 @@ static void load_setup(void)
     fail_read_at = 0;
     results = 0;
     last_result = 1;
+    memset(kicks_at_read, 0xff, sizeof(kicks_at_read));
+    fake_wdog_kicks = 0;
     /* Kernel first, then the dtb, back to back in the load area */
     make_header(BPAK_HASH_SHA256, (uintptr_t)load_area, 2048, (uintptr_t)load_area + 2048, 1024);
 }
@@ -399,17 +818,57 @@ static void test_load_and_hash(void **state)
     assert_memory_equal(digest, expected, sizeof(expected));
 }
 
+/*
+ * Without read_f the image is already at its load address (in place): what
+ * is hashed is what is there, nothing is copied and nothing else is read.
+ */
 static void test_load_and_hash_in_memory(void **state)
 {
+    static uint8_t at_load_address[sizeof(load_area)];
     uint8_t digest[64];
+    uint8_t expected[32];
+    uint8_t changed[64];
     (void)state;
 
-    /* Without read_f the image is already at its load address */
+    /* Other bytes at the load address than in the payload's storage, so
+     * that the digest tells which of the two was hashed */
     load_setup();
-    memcpy(load_area, payload, sizeof(payload));
+    for (size_t i = 0; i < sizeof(load_area); i++)
+        load_area[i] = (uint8_t)(i * 13 + 1);
+    memcpy(at_load_address, load_area, sizeof(load_area));
+
     assert_int_equal(boot_image_load_and_hash(hdr, 4096, NULL, NULL, digest, sizeof(digest)),
                      PB_OK);
-    assert_int_equal(fake.hashed_bytes, sizeof(payload));
+    assert_int_equal(fake.hashed_bytes, sizeof(load_area));
+    assert_int_equal(reads, 0);
+    assert_memory_equal(load_area, at_load_address, sizeof(load_area));
+
+    fake_digest(expected, sizeof(expected), expected_sum(load_area, sizeof(load_area)));
+    assert_memory_equal(digest, expected, sizeof(expected));
+    fake_digest(expected, sizeof(expected), expected_sum(payload, sizeof(payload)));
+    assert_memory_not_equal(digest, expected, sizeof(expected));
+
+    /* The payload's storage has no say */
+    payload[100] ^= 0x01;
+    assert_int_equal(boot_image_load_and_hash(hdr, 4096, NULL, NULL, changed, sizeof(changed)),
+                     PB_OK);
+    assert_memory_equal(changed, digest, 32);
+
+    /* One bit at the load address, in each part and in the last byte */
+    static const size_t offsets[] = { 0, 2047, 2048, sizeof(load_area) - 1 };
+
+    for (size_t i = 0; i < ARRAY_SIZE(offsets); i++) {
+        load_area[offsets[i]] ^= 0x01;
+        assert_int_equal(boot_image_load_and_hash(hdr, 4096, NULL, NULL, changed, sizeof(changed)),
+                         PB_OK);
+        assert_memory_not_equal(changed, digest, 32);
+        load_area[offsets[i]] ^= 0x01;
+    }
+
+    /* In chunks, as the boot does it: the same digest */
+    assert_int_equal(boot_image_load_and_hash(hdr, 512, NULL, NULL, changed, sizeof(changed)),
+                     PB_OK);
+    assert_memory_equal(changed, digest, 32);
 }
 
 static void test_load_and_hash_digest_sizes(void **state)
@@ -503,6 +962,226 @@ static void test_load_and_hash_errors(void **state)
     meta->part_id_ref = 0;
     assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
                      -PB_ERR_BAD_META);
+}
+
+/* What load_setup() makes, with other sizes: the kernel, and the dtb right
+ * after it when it has a size */
+static void load_setup_sizes(size_t kernel_size, size_t dtb_size)
+{
+    load_setup();
+    make_header(BPAK_HASH_SHA256,
+                (uintptr_t)load_area,
+                kernel_size,
+                (uintptr_t)load_area + kernel_size,
+                dtb_size);
+}
+
+/*
+ * The watchdog is kicked once per chunk (platform.md 3.3, boot.md 4.2 step
+ * 5, F-243): a chunk is at most load_chunk_size and never spans two parts.
+ * The same for every source: a partition's read function, the host's stream
+ * (a result function too) and in place (no read function).
+ */
+static void test_load_and_hash_kicks_per_chunk(void **state)
+{
+    static const struct {
+        size_t kernel_size;
+        size_t dtb_size;
+        size_t chunk_size;
+        unsigned int kicks;
+    } cases[] = {
+        /* A part of exactly one chunk */
+        { 1024, 0, 1024, 1 },
+        /* Smaller than a chunk (a part is a multiple of 512 bytes) */
+        { 512, 0, 1024, 1 },
+        /* Exactly two and three chunks */
+        { 2048, 0, 1024, 2 },
+        { 3072, 0, 1024, 3 },
+        /* A short last chunk: 1024 + 1024 + 512, and 1000 + 24 */
+        { 2560, 0, 1024, 3 },
+        { 1536, 0, 1024, 2 },
+        { 1024, 0, 1000, 2 },
+        /* Two parts: the chunks of each */
+        { 2048, 1024, 1024, 3 },
+        { 1024, 1024, 1024, 2 },
+        /* Two parts in less than one chunk: one each, a chunk is of one part */
+        { 2048, 1024, 4096, 2 },
+        { 512, 512, 1024, 2 },
+        /* Short last chunks in both */
+        { 1536, 1536, 1024, 4 },
+        /* A part without bytes has no chunk */
+        { 0, 1024, 1024, 1 },
+        /* All of it in one chunk, and many small ones */
+        { 3072, 0, 4096, 1 },
+        { 512, 512, 64, 16 },
+    };
+
+    static const struct {
+        boot_read_cb_t read_f;
+        boot_result_cb_t result_f;
+    } sources[] = {
+        { read_f, NULL }, /* A partition */
+        { read_f, result_sent_f }, /* The host's stream */
+        { NULL, NULL }, /* In place */
+    };
+
+    uint8_t digest[64];
+    (void)state;
+
+    for (size_t s = 0; s < ARRAY_SIZE(sources); s++) {
+        for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+            load_setup_sizes(cases[i].kernel_size, cases[i].dtb_size);
+            assert_int_equal(boot_image_load_and_hash(hdr,
+                                                      cases[i].chunk_size,
+                                                      sources[s].read_f,
+                                                      sources[s].result_f,
+                                                      digest,
+                                                      sizeof(digest)),
+                             PB_OK);
+            assert_int_equal(fake_wdog_kicks, cases[i].kicks);
+            /* One per chunk that was hashed, and per read where there is one */
+            assert_int_equal(fake.updates, cases[i].kicks);
+            assert_int_equal(reads, sources[s].read_f ? (int)cases[i].kicks : 0);
+            assert_int_equal(fake.hashed_bytes, cases[i].kernel_size + cases[i].dtb_size);
+        }
+    }
+
+    /* An image without parts has no chunk: no kick */
+    load_setup();
+    assert_int_equal(bpak_init_header(hdr), BPAK_OK);
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake_wdog_kicks, 0);
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_sent_f, digest, 64), PB_OK);
+    assert_int_equal(fake_wdog_kicks, 0);
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, NULL, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake_wdog_kicks, 0);
+    assert_int_equal(reads, 0);
+}
+
+/*
+ * The kick comes after the chunk, when it is read and its hash is started:
+ * it says that the load made progress. So the first chunk is read and hashed
+ * under the kick that came before the load, and the last kick is the last
+ * chunk's: hash_final() and what follows have the one before the jump.
+ */
+static void test_load_and_hash_kicks_after_the_chunk(void **state)
+{
+    uint8_t digest[64];
+    (void)state;
+
+    /* Three chunks: two of the kernel, one of the dtb */
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake_wdog_kicks, 3);
+
+    for (unsigned int chunk = 0; chunk < 3; chunk++) {
+        assert_int_equal(kicks_at_read[chunk], chunk);
+        assert_int_equal(fake.kicks_at_update[chunk], chunk);
+    }
+
+    /* In place: the same, without the reads */
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, NULL, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake_wdog_kicks, 3);
+
+    for (unsigned int chunk = 0; chunk < 3; chunk++)
+        assert_int_equal(fake.kicks_at_update[chunk], chunk);
+}
+
+/* A chunk that failed isn't kicked for: the count is the chunks before it */
+static void test_load_and_hash_kicks_until_an_error(void **state)
+{
+    static const boot_result_cb_t result_fs[] = { NULL, result_sent_f, result_f };
+    uint8_t digest[64];
+    struct bpak_meta_header *meta;
+    (void)state;
+
+    /* Nothing is read before these: no kick */
+    load_setup();
+    hdr->magic = 0;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
+                     -PB_ERR_BAD_HEADER);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    load_setup();
+    hdr->hash_kind = 99;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
+                     -PB_ERR_UNKNOWN_HASH);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 31), -PB_ERR_PARAM);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    load_setup();
+    fake.init_rc = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
+                     -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(fake_wdog_kicks, 0);
+    fake.init_rc = PB_OK;
+
+    /* A read error at the first, the second and the third chunk, which is
+     * the second part's first: with and without a result function */
+    for (size_t r = 0; r < ARRAY_SIZE(result_fs); r++) {
+        for (int failing = 1; failing <= 3; failing++) {
+            load_setup();
+            fail_read_at = failing;
+            read_rc = -PB_ERR_IO;
+            assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_fs[r], digest, 64),
+                             -PB_ERR_IO);
+            assert_int_equal(reads, failing);
+            assert_int_equal(fake_wdog_kicks, failing - 1);
+        }
+    }
+
+    /* A hash error ends a partition's load and an in place one at once: the
+     * chunk that failed has no kick */
+    load_setup();
+    fake.update_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64), -PB_ERR_IO);
+    assert_int_equal(reads, 1);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, NULL, NULL, digest, 64), -PB_ERR_IO);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    /* The host's stream is read to its end after a hash error (F-061), and
+     * every chunk that is read is progress: a large image that fails early
+     * doesn't end in a reset before the host has its results */
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_sent_f, digest, 64),
+                     -PB_ERR_IO);
+    assert_int_equal(reads, 3);
+    assert_int_equal(results, 2);
+    assert_int_equal(fake_wdog_kicks, 3);
+    fake.update_rc = PB_OK;
+
+    /* A result that can't be sent ends the load after the first part */
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_fails_f, digest, 64),
+                     -PB_ERR_IO);
+    assert_int_equal(results, 1);
+    assert_int_equal(fake_wdog_kicks, 2);
+
+    /* The dtb has no load address: the kernel's chunks, then the error */
+    load_setup();
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
+    meta->part_id_ref = 0;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
+                     -PB_ERR_BAD_META);
+    assert_int_equal(fake_wdog_kicks, 2);
+
+    /* A failed final hash: every chunk was loaded */
+    load_setup();
+    fake.final_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64), -PB_ERR_IO);
+    assert_int_equal(fake_wdog_kicks, 3);
+    fake.final_rc = PB_OK;
 }
 
 static void test_copy_and_hash(void **state)
@@ -629,11 +1308,27 @@ int main(void)
         IMG_TEST(test_auth_header_errors),
         IMG_TEST(test_verify_parts),
         IMG_TEST(test_verify_parts_needs_load_addr),
-        IMG_TEST(test_verify_parts_rejects_pb_memory),
+        IMG_TEST(test_verify_parts_inside_a_region),
+        IMG_TEST(test_verify_parts_outside_the_regions),
+        IMG_TEST(test_verify_parts_across_two_regions),
+        IMG_TEST(test_verify_parts_wraps),
+        IMG_TEST(test_verify_parts_over_each_other),
+        IMG_TEST(test_verify_parts_without_regions),
+        IMG_TEST(test_in_regions),
+        IMG_TEST(test_regions_overlap_pb),
+        IMG_TEST(test_regions_empty_or_wrapping),
+        IMG_TEST(test_regions_overlap_handover),
+        IMG_TEST(test_verify_parts_in_place),
+        IMG_TEST(test_verify_parts_in_place_ignores_pb_memory),
+        IMG_TEST(test_verify_parts_in_place_outside),
+        IMG_TEST(test_verify_parts_in_place_errors),
         IMG_TEST(test_load_and_hash),
         IMG_TEST(test_load_and_hash_in_memory),
         IMG_TEST(test_load_and_hash_digest_sizes),
         IMG_TEST(test_load_and_hash_errors),
+        IMG_TEST(test_load_and_hash_kicks_per_chunk),
+        IMG_TEST(test_load_and_hash_kicks_after_the_chunk),
+        IMG_TEST(test_load_and_hash_kicks_until_an_error),
         IMG_TEST(test_copy_and_hash),
         IMG_TEST(test_copy_and_hash_errors),
         IMG_TEST(test_verify_payload),

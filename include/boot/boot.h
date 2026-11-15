@@ -10,7 +10,8 @@
 #ifndef INCLUDE_BOOT_H
 #define INCLUDE_BOOT_H
 
-#include <bpak/bpak.h>
+#include <boot/handover.h>
+#include <boot/policy.h>
 #include <pb/bio.h>
 #include <pb/utils_def.h>
 #include <uuid.h>
@@ -23,10 +24,9 @@ typedef int (*boot_result_cb_t)(int result);
 /** Boot sources */
 enum boot_source {
     BOOT_SOURCE_INVALID = 0, /*!< Invalid boot mode */
-    BOOT_SOURCE_BIO, /*!< Load from block device */
-    BOOT_SOURCE_IN_MEM, /*!< Authenticate and verify a pre-loaded image */
+    BOOT_SOURCE_BIO, /*!< A partition: loaded, or verified in place when the
+                          board's partition table says so */
     BOOT_SOURCE_CB, /*!< Load through callback functions */
-    BOOT_SOURCE_CUSTOM, /*!< Authenticate using a custom callback */
     BOOT_SOURCE_END,
 };
 
@@ -49,14 +49,12 @@ enum boot_source {
 struct boot_driver {
     enum boot_source default_boot_source;
     int (*early_boot_cb)(void);
-    bio_dev_t (*get_boot_bio_device)(void);
-    int (*set_boot_partition)(uuid_t part_uu);
-    void (*get_boot_partition)(uuid_t part_uu);
-    int (*get_in_mem_image)(struct bpak_header **header);
-    int (*authenticate_image)(struct bpak_header **header_ptr);
-    int (*prepare)(struct bpak_header *header, uuid_t boot_part_uu);
-    int (*late_boot_cb)(struct bpak_header *header, uuid_t boot_part_uu);
-    void (*jump)(void);
+    /* The board's boot source policy (boot/policy.h). NULL, or one without
+     * ops: no boot from storage */
+    const struct boot_policy *policy;
+    const struct boot_handover *handover; /*!< The next stage's entry and arguments */
+    const struct boot_delivery *delivery; /*!< How they reach it. NULL: directly */
+    int (*late_boot_cb)(uuid_t boot_part_uu);
 };
 
 /**
@@ -124,34 +122,47 @@ void boot_clear_set_flags(uint32_t clear, uint32_t set);
 uint32_t boot_get_flags(void);
 
 /**
- * Proxy function to set/activate a boot partition. This function will
- * call the 'set_boot_partition' callback in the config struct if it's
- * populated.
+ * Command mode's 'boot activate': the board's policy activates 'part_uu'
+ * (boot_policy_activate()).
  *
  * @param[in] part_uu UUID of partition to set as active
  *
- * @return PB_OK on success all other codes are errors
+ * @return PB_OK on success,
+ *        -PB_ERR_NOT_SUPPORTED before boot_init(), without a policy, and
+ *         where the policy has nothing to activate
  */
 int boot_set_boot_partition(uuid_t part_uu);
 
 /**
- * Proxy function to get active boot partition. This function will
- * call the 'get_boot_partition' callback in the config struct if it's
- * populated.
+ * Command mode's 'boot status': the board's policy's partition
+ * (boot_policy_status()).
  *
- * @param[out] part_uu UUID of active partition
- *
- * @return PB_OK on success all other codes are errors
+ * @param[out] part_uu UUID of the partition, or the null UUID
  */
 void boot_get_boot_partition(uuid_t part_uu);
 
 /**
  * Boot the system. This fuction tries to load/auth and execute a boot image
  *
- * @param[in] boot_part_override_uu Optional partition UUID to boot.
- *  Set this to NULL for default behaviour.
+ * Without 'boot_part_override_uu' the board's boot source policy hands out
+ * the candidates (boot.md 2, 3): each is loaded, verified and prepared, the
+ * policy hears the result, and the first that succeeds is booted. With it,
+ * that partition is the one candidate; the policy isn't asked.
  *
- * @return This function will not return on sucess
+ * Before the first candidate, pb's information for the handover is
+ * collected (struct boot_info, boot.md 5.6): the device's identity, the
+ * life cycle and the keys that aren't revoked. One that can't be read
+ * stops the boot, and no candidate is tried. The boot's mode in it is the
+ * candidate's: normal for a partition that was named and for the host's
+ * stream (BOOT_SOURCE_CB), the policy's for a candidate of its own.
+ *
+ * @param[in] boot_part_override_uu Optional partition UUID to boot.
+ *  NULL or the null UUID: the policy's candidates.
+ *
+ * @return This function will not return on sucess. The first candidate's
+ *  error when every candidate failed, -PB_ERR_NO_ACTIVE_BOOT_PARTITION when
+ *  the policy had none, the error of pb's information that couldn't be
+ *  read.
  */
 int boot(uuid_t boot_part_override_uu);
 

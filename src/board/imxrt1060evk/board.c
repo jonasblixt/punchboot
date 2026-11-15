@@ -1,8 +1,6 @@
 #include <boot/ab_state.h>
-#include <boot/armv7m_baremetal.h>
 #include <boot/boot.h>
-#include <boot/image_helpers.h>
-#include <bpak/bpak.h>
+#include <boot/simple.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/memc/imx_flexspi.h>
 #include <drivers/partition/gpt.h>
@@ -62,20 +60,16 @@ static const struct static_part_table nor_table[] = {
     },
 };
 
-static int board_get_in_mem_image(struct bpak_header **header)
+/*
+ * A charger on the USB port stops the boot: pb stays in command mode. The
+ * detector's result is read here, after the image is loaded and verified,
+ * since the detection takes more than 100 ms from reset. Nothing in pb starts
+ * the detector: the hook relies on it running from reset.
+ */
+static int board_late_boot(uuid_t boot_part_uu)
 {
-#ifdef __NOPE
-    struct bpak_header *flash_header =
-        (struct bpak_header *)(((uint8_t *)MIDDLEWARE_FLASH_ADDRESS) + MIDDLEWARE_IMAGE_SIZE -
-                               sizeof(struct bpak_header));
+    (void)boot_part_uu;
 
-    memcpy(*header, flash_header, sizeof(struct bpak_header));
-#endif
-    return PB_OK;
-}
-
-static int board_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
-{
     /* If the command interface initiated the boot, skip charger detection,
      * since we're connected but want to boot anyway */
     if (boot_get_flags() & BOOT_FLAG_CMD)
@@ -85,26 +79,6 @@ static int board_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
     uint32_t charger_status = mmio_read_32(IMXRT_USB1_CHRG_DETECT_STAT);
     if (charger_status & IMXRT_CHRG_DETECT_STAT_CHRG_DETECTED) {
         printf("Charger detected, entering command mode\n\r");
-        return -PB_ERR_ABORT;
-    }
-
-    /* When serial loading on bench, bootmode registers are set so force command mode */
-    uint32_t sbmr2 = mmio_read_32(IMXRT_SRC_SBMR2);
-    if (sbmr2 & IMXRT_SRC_SBMR2_BMOD_MASK) {
-        printf("Serial boot detected, entering command mode\n\r");
-        return -PB_ERR_ABORT;
-    }
-
-    /* On virgin cards boot-loaded over serial (no PBL loaded), in production
-     * without wing board sbmr2 above will be 0b00 (fused boot) and as
-     * the ROM code initializes the USB for serial downloader so charge
-     * detection does not work either.
-     *
-     * If no PBL is loaded in start of flash, always go into recovery mode
-     */
-    uint32_t *pvl_ivt_header_addr = (uint32_t *)IMXRT_FLEXSPI_NOR_IVT;
-    if (*pvl_ivt_header_addr == 0x00000000 || *pvl_ivt_header_addr == 0xFFFFFFFF) {
-        printf("No pbl detected, entering command mode\n\r");
         return -PB_ERR_ABORT;
     }
 
@@ -317,21 +291,6 @@ static int flexspi_nor_setup(void)
         return rc;
     }
 
-    bio_dev_t nor_dev = bio_get_part_by_uu(UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068);
-
-    if (nor_dev < 0) {
-        LOG_ERR("Can't find NOR Memory (%i)", nor_dev);
-        return nor_dev;
-    }
-
-    rc = static_ptbl_init(nor_dev, nor_table);
-
-    if (rc != PB_OK)
-        return rc;
-
-    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_sys_a), 0, BIO_FLAG_BOOTABLE);
-    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_sys_b), 0, BIO_FLAG_BOOTABLE);
-
     return PB_OK;
 }
 
@@ -425,9 +384,8 @@ static const struct slc_config slc = {
 };
 
 /* The image runs from RAM, from the load address of its part "app" */
-static const struct boot_driver_armv7m_baremetal_config boot_armv7m = {
+static const struct boot_driver_simple_config boot_simple = {
     .boot_partition_id = 0x362fa9dd, /* bpak_id("app") */
-    .resolve_part_name = boot_ab_part_uu_to_name,
 };
 
 static const struct boot_ab_state_config boot_state_cfg = {
@@ -435,7 +393,22 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .backup_state_part_uu = PART_backup_state,
     .sys_a_uu = PART_sys_a,
     .sys_b_uu = PART_sys_b,
-    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
+
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the RAM an application
+ * is linked for. OCRAM2 between the ROM's data and pb, which is linked from
+ * 0x20249000 to the end of the OCRAM (link.lds), and the two TCMs, which pb
+ * doesn't use. The SDRAM isn't set up. board_setup() checks the list against
+ * what is linked.
+ */
+#define BOARD_OCRAM2_IMAGE_BASE (IMXRT_OCRAM2_BASE + IMXRT_OCRAM2_ROM_SIZE)
+
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(BOARD_OCRAM2_IMAGE_BASE, 0x20249000 - BOARD_OCRAM2_IMAGE_BASE),
+    BOOT_IMAGE_REGION(IMXRT_ITCM_BASE, IMXRT_ITCM_SIZE),
+    BOOT_IMAGE_REGION(IMXRT_DTCM_BASE, IMXRT_DTCM_SIZE),
+    BOOT_IMAGE_REGION_END,
 };
 
 const struct board board = {
@@ -444,9 +417,12 @@ const struct board board = {
     .rot = &rot,
     .slc = &slc,
     .init = flexspi_nor_setup,
-    .ab = &boot_state_cfg,
-    .boot_armv7m = &boot_armv7m,
+    .ptbl = PTBL_STATIC(UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068, nor_table),
+    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
+    .boot_handover = BOOT_HANDOVER_SIMPLE(&boot_simple),
+    .image_regions = image_regions,
     .early_boot = board_early_boot,
+    .late_boot = board_late_boot,
     .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,
     .command = board_command,

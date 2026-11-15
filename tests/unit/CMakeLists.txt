@@ -31,6 +31,11 @@ pb_unit_test(test_gpt SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/partition/gpt.c
 )
 
+pb_unit_test(test_static_ptbl SOURCES
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
+)
+
 pb_unit_test(test_bpak)
 
 pb_unit_test(test_delay SOURCES
@@ -132,54 +137,147 @@ pb_unit_test(test_ab_state SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
 )
 
+# A/B's speculative mode (boot.md 3.6) isn't in pb-host: the host has no
+# watchdog, which CONFIG_BOOT_AB_SPECULATIVE depends on. Its test is the same
+# file and module built with the symbol, which changes nothing else in the
+# build; what A/B does with a viable candidate runs in both
+add_executable(test_ab_state_speculative test_ab_state.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
+)
+target_compile_definitions(test_ab_state_speculative PRIVATE CONFIG_BOOT_AB_SPECULATIVE=1)
+target_include_directories(test_ab_state_speculative PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_ab_state_speculative PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_ab_state_speculative COMMAND test_ab_state_speculative)
+set_tests_properties(unit.test_ab_state_speculative PROPERTIES LABELS unit TIMEOUT 60)
+
+# The symbol's dependencies are Kconfig's (rule 6: the watchdog), so their
+# test reads Kconfig
+add_test(
+    NAME unit.ab_speculative_kconfig
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_ab_speculative_kconfig.py
+            ${PROJECT_SOURCE_DIR}
+)
+set_tests_properties(unit.ab_speculative_kconfig PROPERTIES LABELS unit TIMEOUT 60)
+
+pb_unit_test(test_policy SOURCES
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy_chain.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy_fixed.c
+)
+
 pb_unit_test(test_board SOURCES
     ${PROJECT_SOURCE_DIR}/src/board.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
 )
+
+# The same with the password method, which pb-host is built without: the
+# board's password_auth is then mandatory (board.md 3)
+add_executable(test_board_password test_board.c
+    ${PROJECT_SOURCE_DIR}/src/board.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
+)
+target_compile_definitions(test_board_password PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
+target_include_directories(test_board_password PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_board_password PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_board_password COMMAND test_board_password)
+set_tests_properties(unit.test_board_password PROPERTIES LABELS unit TIMEOUT 60)
 
 pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
+    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
 )
 
 pb_unit_test(test_image_helpers SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c
     ${PROJECT_SOURCE_DIR}/src/crypto.c
 )
-# The pb memory regions that images must not overlap, same as for pb-host
-target_link_options(test_image_helpers PRIVATE
+# 'pb' and 'buffers', which no image data region may overlap, same as for
+# pb-host
+set(PB_TEST_MEMORY
     -no-pie
-    -Wl,--defsym=_code_start=0x40000000
-    -Wl,--defsym=_code_end=0x40080000
-    -Wl,--defsym=_ro_data_region_start=0x40080000
-    -Wl,--defsym=_ro_data_region_end=0x400a0000
-    -Wl,--defsym=_data_region_start=0x400a0000
-    -Wl,--defsym=_data_region_end=0x400c0000
-    -Wl,--defsym=_zero_region_start=0x400c0000
-    -Wl,--defsym=_zero_region_end=0x400e0000
-    -Wl,--defsym=_stack_start=0x400e0000
-    -Wl,--defsym=_stack_end=0x40100000
-    -Wl,--defsym=_no_init_start=0x40100000
-    -Wl,--defsym=_no_init_end=0x40120000
+    -Wl,--defsym=_pb_start=0x40000000
+    -Wl,--defsym=_pb_end=0x40100000
+    -Wl,--defsym=_buffers_start=0x40100000
+    -Wl,--defsym=_buffers_end=0x40120000
+)
+target_link_options(test_image_helpers PRIVATE ${PB_TEST_MEMORY})
+
+# The same with what a handover writes outside the parts, which pb-host has
+# none of: the Firmware Handoff region (F-259) and a platform's region for
+# bl_params (platform.md 5.3), both between the suite's two image data regions
+add_executable(test_image_helpers_handover test_image_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/crypto.c
+)
+target_compile_definitions(test_image_helpers_handover PRIVATE
+    CONFIG_BOOT_FH=1
+    CONFIG_BOOT_FH_REGION_BASE=0x52000000
+    CONFIG_BOOT_FH_REGION_SIZE=0x10000
+    PLAT_BL_PARAMS_BASE=0x56000000
+    PLAT_BL_PARAMS_SIZE=512
+)
+target_include_directories(test_image_helpers_handover PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_image_helpers_handover PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+target_link_options(test_image_helpers_handover PRIVATE ${PB_TEST_MEMORY})
+add_test(NAME unit.test_image_helpers_handover COMMAND test_image_helpers_handover)
+set_tests_properties(unit.test_image_helpers_handover PROPERTIES LABELS unit TIMEOUT 60)
+
+pb_unit_test(test_image SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image.c
 )
 
-pb_unit_test(test_linux SOURCES
+# Again with AArch32's registers, which the host's configuration doesn't have
+add_executable(test_image_armv7 test_image.c
     ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
-    ${PROJECT_SOURCE_DIR}/src/boot/linux.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image.c
 )
-# pb's memory, which the device tree's headroom must not reach
-target_link_options(test_linux PRIVATE
-    -no-pie
-    -Wl,--defsym=_code_start=0x40000000
-    -Wl,--defsym=_code_end=0x40080000
-    -Wl,--defsym=_data_region_start=0x400a0000
-    -Wl,--defsym=_data_region_end=0x400c0000
-    -Wl,--defsym=_zero_region_start=0x400c0000
-    -Wl,--defsym=_zero_region_end=0x400e0000
-    -Wl,--defsym=_stack_start=0x400e0000
-    -Wl,--defsym=_stack_end=0x40100000
-    -Wl,--defsym=_no_init_start=0x40100000
-    -Wl,--defsym=_no_init_end=0x40120000
+target_compile_definitions(test_image_armv7 PRIVATE CONFIG_ARCH_ARMV7=1)
+target_include_directories(test_image_armv7 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_image_armv7 PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_image_armv7 COMMAND test_image_armv7)
+set_tests_properties(unit.test_image_armv7 PROPERTIES LABELS unit TIMEOUT 60)
+
+pb_unit_test(test_simple SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/simple.c
 )
+
+# The delivery through TF-A is ARMv8-A's and isn't in pb-host. Its test gets
+# that arch's names for the registers' fields, the one register it reads from
+# a fake, and TF-A's headers. Built twice: with the bl_params list in pb's own
+# data, and in the platform's memory for it (platform.md 5.3, the i.MX8M)
+function(pb_tfa_test name)
+    target_include_directories(${name} BEFORE PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/fakes/armv8a
+        ${PROJECT_SOURCE_DIR}/src/arch/armv8a/include
+    )
+    target_include_directories(${name} PRIVATE ${PROJECT_SOURCE_DIR}/src/boot)
+endfunction()
+
+pb_unit_test(test_tfa SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/atf.c
+)
+pb_tfa_test(test_tfa)
+
+add_executable(test_tfa_plat test_tfa.c ${PROJECT_SOURCE_DIR}/src/boot/atf.c)
+target_compile_definitions(test_tfa_plat PRIVATE PLAT_BL_PARAMS_SIZE=512)
+target_include_directories(test_tfa_plat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_tfa_plat PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+pb_tfa_test(test_tfa_plat)
+add_test(NAME unit.test_tfa_plat COMMAND test_tfa_plat)
+set_tests_properties(unit.test_tfa_plat PROPERTIES LABELS unit TIMEOUT 60)
+
+# The image handover into the delivery, as the 8MP EVK and the MEK boot
+pb_unit_test(test_tfa_image SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/atf.c
+    ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
+    ${PROJECT_SOURCE_DIR}/src/boot/image.c
+)
+pb_tfa_test(test_tfa_image)
 
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
@@ -190,6 +288,8 @@ pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/crypto.c
     ${PROJECT_SOURCE_DIR}/src/delay.c
 )
+# Both methods, whatever pb-host is built with: its board has no password
+target_compile_definitions(test_cm PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
 
 # A build with CONFIG_CM_AUTH and no method doesn't build (command-mode.md
 # 3.2, D-059): pb/cm.h with a configuration that has the gate and no method

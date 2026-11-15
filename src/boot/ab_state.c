@@ -20,6 +20,10 @@
 static bio_dev_t primary_part, backup_part;
 static struct pb_boot_state boot_state, boot_state_backup;
 static const struct boot_ab_state_config *cfg;
+/* This boot's candidates: how many were handed out, and the first one */
+static unsigned int handed_out;
+static const unsigned char *first_slot;
+static enum boot_policy_mode mode;
 
 static int validate(struct pb_boot_state *state)
 {
@@ -99,6 +103,9 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     bool backup_state_ok = false;
 
     cfg = state_cfg;
+    handed_out = 0;
+    first_slot = NULL;
+    mode = BOOT_POLICY_MODE_NORMAL;
 
     dev = bio_get_part_by_uu(cfg->sys_a_uu);
 
@@ -169,17 +176,47 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
     return rc;
 }
 
-bio_dev_t boot_ab_state_get(void)
+/*
+ * boot.md 3.6: Kconfig is speculative mode's only switch, and it carries the
+ * watchdog dependency. A constant, so that both builds compile all of it.
+ */
+#ifdef CONFIG_BOOT_AB_SPECULATIVE
+static const bool speculative = true;
+#else
+static const bool speculative = false;
+#endif
+
+/*
+ * Speculative mode's first candidate (boot.md 3.6, rules 1, 3 and 4): A/B has
+ * no viable candidate by its state, so 'slot' is enabled, and the caller
+ * writes that before the load. The next boot finds it enabled, not confirmed
+ * and without attempts, and enables the other one: a hang and the watchdog
+ * lead there. Nothing else of the state changes, but a counter that was left
+ * behind with nothing enabled: no attempts are counted.
+ */
+static void speculative_enable(uint32_t slot)
+{
+    boot_state.enable = slot;
+    boot_state.remaining_boot_attempts = 0;
+}
+
+/*
+ * The first candidate of a boot (boot.md 3.5, rules 1 and 2): the enabled
+ * slot when it is verified or on trial with attempts left, else the slot it
+ * rolls back to. With speculative mode a boot without such a candidate has
+ * one (boot.md 3.6): the other slot, or A when nothing is enabled. What the
+ * decision changes is written before it returns.
+ */
+static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode *how)
 {
     int rc;
     const unsigned char *boot_part_uu = NULL;
     bool commit = false;
 
-    if (cfg == NULL)
-        return -PB_ERR_STATE;
-
     LOG_DBG(
         "A/B boot load state %u %u %u", boot_state.enable, boot_state.verified, boot_state.error);
+
+    *how = BOOT_POLICY_MODE_NORMAL;
 
     if (boot_state.enable & PB_STATE_A_ENABLED) {
         if (!(boot_state.verified & PB_STATE_A_VERIFIED) &&
@@ -190,18 +227,16 @@ bio_dev_t boot_ab_state_get(void)
         } else if (!(boot_state.verified & PB_STATE_A_VERIFIED)) {
             LOG_ERR("Rollback to B system");
             if (!(boot_state.verified & PB_STATE_B_VERIFIED)) {
-                if (cfg->rollback_mode == AB_ROLLBACK_MODE_SPECULATIVE) {
-                    // Enable B
-                    // Reset boot counter to one
-                    commit = true;
-                    boot_state.enable = PB_STATE_B_ENABLED;
-                    boot_state.remaining_boot_attempts = 1;
-                    boot_state.error = PB_STATE_ERROR_A_ROLLBACK;
-                    boot_part_uu = cfg->sys_b_uu;
-                } else {
+                if (!speculative) {
                     LOG_ERR("B system not verified, failing");
-                    return -PB_ERR;
+                    return -PB_ERR_NOT_FOUND;
                 }
+
+                LOG_ERR("B system not verified: speculative mode");
+                speculative_enable(PB_STATE_B_ENABLED);
+                commit = true;
+                *how = BOOT_POLICY_MODE_SPECULATIVE;
+                boot_part_uu = cfg->sys_b_uu;
             } else {
                 commit = true;
                 boot_state.enable = PB_STATE_B_ENABLED;
@@ -220,27 +255,32 @@ bio_dev_t boot_ab_state_get(void)
         } else if (!(boot_state.verified & PB_STATE_B_VERIFIED)) {
             LOG_ERR("Rollback to A system");
             if (!(boot_state.verified & PB_STATE_A_VERIFIED)) {
-                if (cfg->rollback_mode == AB_ROLLBACK_MODE_SPECULATIVE) {
-                    // Enable A
-                    // Reset boot counter to one
-                    commit = true;
-                    boot_state.enable = PB_STATE_A_ENABLED;
-                    boot_state.remaining_boot_attempts = 1;
-                    boot_state.error = PB_STATE_ERROR_B_ROLLBACK;
-                    boot_part_uu = cfg->sys_a_uu;
-                } else {
+                if (!speculative) {
                     LOG_ERR("A system not verified, failing");
-                    return -PB_ERR;
+                    return -PB_ERR_NOT_FOUND;
                 }
-            }
 
-            commit = true;
-            boot_state.enable = PB_STATE_A_ENABLED;
-            boot_state.error = PB_STATE_ERROR_B_ROLLBACK;
-            boot_part_uu = cfg->sys_a_uu;
+                LOG_ERR("A system not verified: speculative mode");
+                speculative_enable(PB_STATE_A_ENABLED);
+                commit = true;
+                *how = BOOT_POLICY_MODE_SPECULATIVE;
+                boot_part_uu = cfg->sys_a_uu;
+            } else {
+                commit = true;
+                boot_state.enable = PB_STATE_A_ENABLED;
+                boot_state.error = PB_STATE_ERROR_B_ROLLBACK;
+                boot_part_uu = cfg->sys_a_uu;
+            }
         } else {
             boot_part_uu = cfg->sys_b_uu;
         }
+    } else if (speculative) {
+        /* Nothing enabled: A first (boot.md 3.6, rule 1, D-040) */
+        LOG_ERR("No system enabled: speculative mode");
+        speculative_enable(PB_STATE_A_ENABLED);
+        commit = true;
+        *how = BOOT_POLICY_MODE_SPECULATIVE;
+        boot_part_uu = cfg->sys_a_uu;
     } else {
         boot_part_uu = NULL;
     }
@@ -253,9 +293,98 @@ bio_dev_t boot_ab_state_get(void)
     }
 
     if (boot_part_uu == NULL)
-        return -PB_ERR_NO_ACTIVE_BOOT_PARTITION;
+        return -PB_ERR_NOT_FOUND;
 
-    return bio_get_part_by_uu(boot_part_uu);
+    *part_uu = boot_part_uu;
+    return PB_OK;
+}
+
+/*
+ * The candidate after the first one failed in this boot: the other slot,
+ * for this boot only. When it is verified: boot.md 3.5, rule 3, mode
+ * fallback. When it isn't, there is none, but with speculative mode, which
+ * tries it (boot.md 3.6, rule 1's second case and rule 3). Nothing is
+ * written either way: the next boot starts from the state again.
+ */
+static int fallback_candidate(const unsigned char **part_uu, enum boot_policy_mode *how)
+{
+    const unsigned char *other;
+    uint32_t other_verified;
+
+    if (first_slot == cfg->sys_a_uu) {
+        other = cfg->sys_b_uu;
+        other_verified = PB_STATE_B_VERIFIED;
+    } else if (first_slot == cfg->sys_b_uu) {
+        other = cfg->sys_a_uu;
+        other_verified = PB_STATE_A_VERIFIED;
+    } else {
+        return -PB_ERR_NOT_FOUND;
+    }
+
+    if (boot_state.verified & other_verified)
+        *how = BOOT_POLICY_MODE_FALLBACK;
+    else if (speculative)
+        *how = BOOT_POLICY_MODE_SPECULATIVE;
+    else
+        return -PB_ERR_NOT_FOUND;
+
+    *part_uu = other;
+    return PB_OK;
+}
+
+static int policy_ab_next(uuid_t part_uu)
+{
+    const unsigned char *candidate = NULL;
+    enum boot_policy_mode how = BOOT_POLICY_MODE_NORMAL;
+    int rc;
+
+    if (cfg == NULL)
+        return -PB_ERR_STATE;
+
+    switch (handed_out) {
+    case 0:
+        rc = first_candidate(&candidate, &how);
+        first_slot = candidate;
+        mode = BOOT_POLICY_MODE_NORMAL;
+        break;
+    case 1:
+        rc = fallback_candidate(&candidate, &how);
+        if (rc == PB_OK) {
+            LOG_ERR("System %s failed, trying %s for this boot",
+                    boot_ab_part_uu_to_name((unsigned char *)first_slot),
+                    boot_ab_part_uu_to_name((unsigned char *)candidate));
+        }
+        break;
+    default:
+        rc = -PB_ERR_NOT_FOUND;
+    }
+
+    if (rc != PB_OK) {
+        /* This boot has no more: the next one starts over */
+        handed_out = 0;
+        return rc;
+    }
+
+    mode = how;
+    handed_out++;
+    uuid_copy(part_uu, candidate);
+    return PB_OK;
+}
+
+static void policy_ab_report(const uuid_t part_uu, int result)
+{
+    (void)part_uu;
+
+    /* Nothing is persisted on a failure. The boot goes on with a candidate
+     * that succeeded: the next boot starts over. The mode stays, the
+     * handover reads it */
+    if (result == PB_OK)
+        handed_out = 0;
+}
+
+static enum boot_policy_mode policy_ab_mode(void)
+{
+    return mode;
 }
 
 int boot_ab_state_set_boot_partition(uuid_t part_uu)
@@ -333,3 +462,18 @@ int boot_ab_state_write_board_reg(unsigned int index, uint32_t value)
     boot_state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] = value;
     return pb_boot_state_commit();
 }
+
+static int policy_ab_init(const struct boot_policy *policy)
+{
+    return boot_ab_state_init(policy->config);
+}
+
+const struct boot_policy_ops boot_policy_ab_ops = {
+    .init = policy_ab_init,
+    .next = policy_ab_next,
+    .report = policy_ab_report,
+    .mode = policy_ab_mode,
+    .activate = boot_ab_state_set_boot_partition,
+    .status = boot_ab_state_get_boot_partition,
+    .system_name = boot_ab_part_uu_to_name,
+};

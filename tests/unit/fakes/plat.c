@@ -19,6 +19,7 @@ unsigned int fake_wdog_kicks;
 unsigned int fake_wdog_kick_tick;
 unsigned int fake_wdog_max_gap_us;
 unsigned int fake_lockdown_calls;
+unsigned int fake_lockdown_wdog_kicks;
 int fake_lockdown_rc;
 
 unsigned int plat_get_us_tick(void)
@@ -40,5 +41,6 @@ void plat_wdog_kick(void)
 int plat_lockdown(void)
 {
     fake_lockdown_calls++;
+    fake_lockdown_wdog_kicks = fake_wdog_kicks;
     return fake_lockdown_rc;
 }

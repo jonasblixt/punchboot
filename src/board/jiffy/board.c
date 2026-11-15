@@ -9,7 +9,7 @@
 
 #include <boot/ab_state.h>
 #include <boot/boot.h>
-#include <boot/linux.h>
+#include <boot/image.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
@@ -157,7 +157,6 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
                                 boot_bus_width_str(sbmr1),
                                 (sbmr1 & IMX6UL_BOOT_CFG_MMC_HIGH_SPEED) ? "high" : "normal",
                                 (sbmr1 & IMX6UL_BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
-    response[(*response_size)++] = 0;
 
     return PB_OK;
 }
@@ -251,12 +250,11 @@ static const struct slc_config slc = {
     .fuse_write = imx_ocotp_fuse_write,
 };
 
-static const struct boot_driver_linux_config boot_linux = {
+static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
     .dtb_patch_cb = board_patch_bootargs,
-    .resolve_part_name = boot_ab_part_uu_to_name,
     .set_dtb_boot_arg = true,
 };
 
@@ -342,7 +340,20 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .backup_state_part_uu = PART_backup_state,
     .sys_a_uu = PART_sys_a,
     .sys_b_uu = PART_sys_b,
-    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
+
+/*
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM, 1 GiB from
+ * 0x80000000, without pb, which runs in it (src/plat/imx6ul/link.lds). pb is
+ * linked from 0x80001000 with 1 MiB to grow in, and its buffers from
+ * 0x81021000. Their 16 MiB there aren't all kept: the build uses 8, and the
+ * kernel of the images in use is at 0x82000000. board_setup() checks the
+ * list against what is linked.
+ */
+static const struct boot_image_region image_regions[] = {
+    BOOT_IMAGE_REGION(0x80101000, 0x81021000 - 0x80101000), /* Between pb and its buffers */
+    BOOT_IMAGE_REGION(0x82000000, BOARD_RAM_END - 0x82000000),
+    BOOT_IMAGE_REGION_END,
 };
 
 const struct board board = {
@@ -351,11 +362,10 @@ const struct board board = {
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,
-    .gpt_dev_uu = PART_user,
-    .gpt_tables = gpt_tables,
-    .gpt_tables_length = ARRAY_SIZE(gpt_tables),
-    .ab = &boot_state_cfg,
-    .boot_linux = &boot_linux,
+    .ptbl = PTBL_GPT(PART_user, gpt_tables),
+    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
+    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+    .image_regions = image_regions,
     .bootargs = "console=ttymxc1,115200 quiet ",
     .bootargs_verbose = "console=ttymxc1,115200 earlyprintk ",
     .cm_init = board_cm_init,

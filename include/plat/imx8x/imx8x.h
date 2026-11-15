@@ -26,7 +26,10 @@
 #define IMX8X_SC_ID_SOC(id)    ((id) & 0x1f)
 #define IMX8X_SC_ID_REV(id)    (((id) >> 5) & 0xf)
 
-/* TF-A's BL31 at the start of the RAM, BOARD_RAM_BASE; pb follows it */
+/* TF-A's BL31 at the start of the RAM, BOARD_RAM_BASE; pb follows it. pb's
+ * reset stub is linked there (link.lds) and has run. SoC memory a board may
+ * list as an image data region (platform.md 5.3) */
+#define IMX8X_ATF_BASE         (0x80000000)
 #define IMX8X_ATF_SIZE         (0x20000)
 
 #define PADRING_IFMUX_EN_SHIFT 31

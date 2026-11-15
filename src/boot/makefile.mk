@@ -1,8 +1,11 @@
 src-y  += src/boot/boot.c
-src-$(CONFIG_BOOT_AB_DRIVER) += src/boot/ab_state.c
+src-y  += src/boot/policy.c
+src-$(CONFIG_BOOT_POLICY_FIXED) += src/boot/policy_fixed.c
+src-$(CONFIG_BOOT_POLICY_CHAIN) += src/boot/policy_chain.c
+src-$(CONFIG_BOOT_POLICY_AB) += src/boot/ab_state.c
 src-y  += src/boot/image_helpers.c
-src-$(CONFIG_BOOT_LINUX) += src/boot/linux.c
+src-$(CONFIG_BOOT_LINUX) += src/boot/image.c
 src-$(CONFIG_BOOT_ATF) += src/boot/atf.c
 src-$(CONFIG_BOOT_DTB) += src/boot/dtb.c
-src-$(CONFIG_BOOT_ARMV7M_BAREMETAL) += src/boot/armv7m_baremetal.c
+src-$(CONFIG_BOOT_SIMPLE) += src/boot/simple.c
 src-$(CONFIG_BOOT_LINUX_RAMOOPS) += src/boot/linux_ramoops.c

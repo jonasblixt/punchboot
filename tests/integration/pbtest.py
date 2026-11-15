@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import pathlib
+import re
 import shutil
 import socket
 import struct
@@ -39,6 +40,22 @@ SYSTEM_SIZE = 512 * 1024
 PRIMARY_STATE_LBA = 2082
 BACKUP_STATE_LBA = 2083
 
+# enum boot_policy_mode (include/boot/policy.h), as the strings of pb,boot-mode
+BOOT_MODES = ("normal", "fallback", "speculative")
+
+# The memory mapped flash of src/board/host (pb-host --nor) and its static
+# table: where pb has it mapped, and each partition's offset and size
+NOR_BASE = 0x70000000
+NOR_UUID = uuid.UUID("c1d0d298-8b7c-4a27-82a5-0f40a79b7142")
+NOR_IN_PLACE_UUID = uuid.UUID("f65e995f-d1f0-48cb-b1ff-44fa21c4f234")
+NOR_IN_PLACE_OFFSET = 8 * BLOCK_SIZE
+NOR_IN_PLACE_SIZE = 128 * 1024
+NOR_LOADED_UUID = uuid.UUID("105ef3a6-cf80-445c-be8b-29089499c09e")
+NOR_LOADED_OFFSET = NOR_IN_PLACE_OFFSET + NOR_IN_PLACE_SIZE
+NOR_LOADED_SIZE = 128 * 1024
+NOR_NOT_BOOTABLE_UUID = uuid.UUID("5e808588-1c7a-4755-8729-5f4256610cdb")
+BPAK_HEADER_SIZE = 4096
+
 # Keys in pki/internal_keystore.bpak, and the auth token for the host
 # board's device UUID
 DEV_KEY_ID = 0xA90F9680  # pb-development
@@ -68,11 +85,15 @@ def device_reset(s: punchboot.Session) -> None:
 class Device:
     """A punchboot instance running as a host process."""
 
-    def __init__(self, binary: pathlib.Path, workdir: pathlib.Path) -> None:
-        """Create a device, backed by files in 'workdir'."""
+    def __init__(self, binary: pathlib.Path, workdir: pathlib.Path, *, nor: bool = False) -> None:
+        """Create a device, backed by files in 'workdir'.
+
+        With 'nor' it also has the memory mapped flash, see NOR_BASE.
+        """
         self.binary = binary
         self.workdir = workdir
         self.disk = workdir / "disk.img"
+        self.nor = workdir / "nor.img" if nor else None
         # Unix socket paths are limited to 107 bytes, which a deep working
         # directory easily exceeds (e.g. on CI), so the socket gets its own
         # short directory.
@@ -107,6 +128,8 @@ class Device:
             "--boot-status",
             str(self.boot_status_file),
         ]
+        if self.nor is not None:
+            args += ["--nor", str(self.nor)]
         if command_mode:
             args.append("--command-mode")
 
@@ -262,6 +285,20 @@ class Device:
             return None
         return self.boot_status_file.read_text()
 
+    @property
+    def boot_mode(self) -> str | None:
+        """How the boot since the last power on was chosen: an entry of BOOT_MODES.
+
+        The mode of pb's information (boot.md 5.6) that the last prepare of
+        the handover got, from pb's debug log: the host board has no device
+        tree to carry pb,boot-mode. None when nothing was prepared.
+        """
+        if not self.log.exists():
+            return None
+        run = self.log.read_text(errors="replace").rpartition("=== start:")[2]
+        modes = re.findall(r"Prepare, mode (\d+)", run)
+        return BOOT_MODES[int(modes[-1])] if modes else None
+
     def read_blocks(self, lba: int, count: int = 1) -> bytes:
         """Read blocks directly from the disk image."""
         with self.disk.open("rb") as f:
@@ -272,6 +309,27 @@ class Device:
         """Write directly to the disk image, e.g. to corrupt it."""
         with self.disk.open("r+b") as f:
             f.seek(lba * BLOCK_SIZE)
+            f.write(data)
+
+    def read_nor(self, offset: int, size: int) -> bytes:
+        """Read directly from the image of the memory mapped flash."""
+        if self.nor is None:
+            msg = "The device has no memory mapped flash"
+            raise RuntimeError(msg)
+        with self.nor.open("rb") as f:
+            f.seek(offset)
+            return f.read(size)
+
+    def write_nor(self, offset: int, data: bytes) -> None:
+        """Write directly to the image of the memory mapped flash, e.g. to corrupt it.
+
+        pb-host maps the file, so a running device sees the change at once.
+        """
+        if self.nor is None:
+            msg = "The device has no memory mapped flash"
+            raise RuntimeError(msg)
+        with self.nor.open("r+b") as f:
+            f.seek(offset)
             f.write(data)
 
     def pbstate(self, *args: str) -> str:
@@ -402,7 +460,9 @@ def make_bpak(
          "8df597ff-2cf5-42ea-b2b6-47c348721b75", "--encoder", "uuid")  # fmt: skip
     bpak("add", img, "--meta", "bpak-package-uid", "--from-string",
          str(uuid.uuid1()), "--encoder", "uuid")  # fmt: skip
-    bpak("add", img, "--meta", "pb-load-addr", "--from-string", hex(load_addr),
+    # The bpak CLI takes a signed 64-bit integer: the upper half as negative
+    addr = hex(load_addr) if load_addr < 2**63 else str(load_addr - 2**64)
+    bpak("add", img, "--meta", "pb-load-addr", f"--from-string={addr}",
          "--part-ref", "kernel", "--encoder", "integer")  # fmt: skip
     bpak("add", img, "--part", "kernel", "--from-file", str(payload))
     bpak("set", img, "--key-id", key_id, "--keystore-id", "pb")
