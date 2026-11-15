@@ -556,10 +556,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | TF-A). With F-239 | | |
 | | | 2026-11-14: not done with F-239: on the 8MP pb ends at 0x961000, so no byte below 0x960000 is | | |
 | | | outside pb or the ROM's part, and a region of its own moves pb | | |
-| | | 2026-11-15: the i.MX8MQ's limit: upstream TF-A's BL31 takes no `bl_params` (v2.12 to v2.15 and | | |
-| | | master jump to `PLAT_NS_IMAGE_OFFSET` with x0 = 0); the test bench's patch | | |
-| | | (`testbench/board/pico8ml/patches`) takes them from the TCM or the OCRAM below BL31, as the 8MM | | |
-| | | does. pb's `.data` is in the TCM on the 8MQ: `PLAT_BL_PARAMS_LIMIT` is the TCM's end, 0x820000 | | |
 | F-295 | `src/board/imx8dxlevk/board.c` | The DXL EVK moved to the TF-A delivery | Reported | open |
 | | | (F-258, `boot.md` 5.3). The board has only been built: no DXL is at hand, and this tree builds no image | | |
 | | | for it (the test bench has jiffy, imx8mpevk and imx8qxmek). Before, pb started the part `atf` directly | | |
@@ -894,12 +890,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | SRK_REVOKE unknown (the 8MP's keys can't be revoked). Verify on a part that can be spent: a | | |
 | | | revocation on an 8MQ (the pico8ml is the only 8MQ on the bench), the 8MP's fuses in its | | |
 | | | Security Reference Manual (NDA) | | |
-| F-449 | `src/board/imx8mpevk/board.c` | The 8MP EVK's comment says it never writes fuses | Verified (code) | open |
-| | | because the platform has no SLC operations (`plat_slc`). Since `ce438b74` the i.MX8M has them, | | |
-| | | the 8M Plus too: `slc configure` and `slc lock` on the EVK write its OTP. The board must never | | |
-| | | write fuses (Jonas, the EVK isn't HAB closed and isn't his to close). Fix: the board without | | |
-| | | the SLC's writes (no `slc_fuses`, and a way for a board to refuse configure and lock), or at | | |
-| | | least the comment true. Until then: no SLC command on the 8MP EVK | | |
 
 ## Dependencies / vendored code
 

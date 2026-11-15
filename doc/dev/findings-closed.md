@@ -1590,6 +1590,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | of zeros before it for the eMMC or the card, `pb_signed_uuu.imx` without for the serial | | |
 | | | downloader (zeros aren't loaded, HAB signs from the IVT). `part write` of `pb_signed.imx` to | | |
 | | | BOOT0 boots the closed pico8ml. The 8M Plus's image unchanged | | |
+| F-449 | `src/board/imx8mpevk/board.c` | The 8MP EVK's comment says it never writes fuses | Verified (code) | fixed |
+| | | because the platform has no SLC operations (`plat_slc`). Since `ce438b74` the i.MX8M has them, | | |
+| | | the 8M Plus too: `slc configure` and `slc lock` on the EVK write its OTP. The board must never | | |
+| | | write fuses (Jonas, the EVK isn't HAB closed and isn't his to close). Fix: the board without | | |
+| | | the SLC's writes (no `slc_fuses`, and a way for a board to refuse configure and lock), or at | | |
+| | | least the comment true. Until then: no SLC command on the 8MP EVK | | |
+| | | 2026-11-15 (D-087): `CONFIG_SLC_NO_FUSE_WRITES`, on in the EVK's defconfig: configuring, | | |
+| | | locking, revoking a key and EOL answer NOT_SUPPORTED before reading anything, whatever the | | |
+| | | platform can (`test_slc_no_fuse_writes`). The EVK's pb has it; not run on the board | | |
 
 ## Dependencies / vendored code
 
