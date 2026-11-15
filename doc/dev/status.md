@@ -16,7 +16,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - jiffy: `55689509` from BOOT1 (BOOT0 an older pb); Root A has the test bench's root image,
     Root B random test data. The OP-TEE add-on's pb is no longer on it.
   - pico8ml (closed, HAB test keys, token outside the repository): the SPL and pb proper
-    (D-088) from BOOT1, BOOT0 an older SPL build; boot switches on eMMC. Linux from System A.
+    (D-088, `b5650e14`'s tree) in BOOT1 and BOOT0; boot switches on eMMC. Linux from System A.
   - RT1060 from its NOR, the MEK from BOOT0: `246bd897` (log 2026-11-14). The 8MP EVK offline.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
@@ -29,13 +29,14 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 0. **Resume here: `log/2026-11-15.md`**, its last three sections. Nothing pushed since
    `58c9cf3e`'s rebase.
-   - pico8ml: F-450 without `selfref_en` (power or self refresh), F-451 (USB recovery with the
-     SPL: Jonas), the 8M Plus's SPL on the EVK, then the bring-up's step 5 and the boot time list
+   - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-451 (USB
+     recovery: Jonas writes the SPL's fastboot, D-089; the stack's part is `68777a39`), the 8M
+     Plus's SPL on the EVK (and its signing), then the bring-up's step 5 and the boot time list
      (`testbench/README.md`). TF-A's 8MQ patch could go upstream.
    - The bench of what landed without a board (log 2026-11-14): USB on all four, the MMU maps,
      the RT1060's entry (F-210, F-207), the DMA rule (F-282), the 8MP EVK through TF-A, the
      8M's lockdown (D-084).
-   - D-084's rest: F-402, F-320, EOL with data (F-263, PR #51), F-322, F-241, F-294.
+   - D-084's rest: F-402, F-320, EOL with data (F-263, PR #51), F-322, F-241.
    - F-444 (OP-TEE's SMC on jiffy), F-447 (the 8M's SLC sources), F-432, F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
    review of the guides and the notes.
