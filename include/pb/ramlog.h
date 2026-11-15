@@ -67,6 +67,14 @@ size_t ramlog_length(void);
 uint32_t ramlog_head(void);
 
 /**
+ * What an earlier stage wrote of the log that ramlog_init() kept: the i.MX8M's
+ * SPL's, in pb proper (D-088). The bytes before it in ramlog_head()'s count.
+ *
+ * @return The earlier stage's bytes, 0 when the log was started anew
+ */
+uint32_t ramlog_kept(void);
+
+/**
  * Copy out part of the log, oldest byte first.
  *
  * @param[in] offset Offset from the oldest byte still in the log

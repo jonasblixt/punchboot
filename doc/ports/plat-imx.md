@@ -100,8 +100,10 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
       0xd0) the SPL brings up DRAM and returns 0. USB recovery needs an SPL that downloads pb
       proper itself, as U-Boot's 8MQ SPL does with its own SDP.
     - **A board may give the SPL a console**: `imx8m_spl_console_init()`
-      (`include/plat/imx8m/spl.h`), the pico8ml's UART1. Without it the SPL's lines are in the
-      RAM log only, which pb proper prints.
+      (`include/plat/imx8m/spl.h`), the pico8ml's UART1, and sets `PB_SPL_CONSOLE` in its
+      `makefile.mk`: pb proper then doesn't print the SPL's lines again (`ramlog_kept()`); they
+      stay in the RAM log. Without it the SPL's lines are in the RAM log only, which pb proper
+      prints.
   - **8MP, an image of the v2 ROM** (no plugins). The SPL reads pb proper's IVT and image with
     the ROM API at 0x980 (`download_image`, `query_boot_infor` as U-Boot's
     `arch/arm/mach-imx/romapi.c`: the arguments XORed into the last one), checks the IVT as the

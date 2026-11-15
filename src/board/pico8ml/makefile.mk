@@ -9,9 +9,11 @@ spl-src-y += $(BOARD)/lpddr4_timing_2gb.c
 spl-src-y += $(BOARD)/lpddr4_timing_3gb.c
 spl-src-y += $(BOARD)/lpddr4_timing_4gb.c
 spl-src-y += src/drivers/gpio/imx_gpio.c
-# The SPL's console (plat/imx8m/spl.h)
+# The SPL's console (plat/imx8m/spl.h): its lines are on the console
+# already, so pb proper doesn't print them again (PB_SPL_CONSOLE)
 spl-src-y += $(BOARD)/console.c
 spl-src-y += src/drivers/uart/imx_uart.c
+cflags-y += -DPB_SPL_CONSOLE
 
 # The board's memory (platform.md 5.1): where pb is linked, pb's region,
 # the DRAM and pb's buffers. The link checks them against the SoC.

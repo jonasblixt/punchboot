@@ -38,6 +38,13 @@ static void console_flush_ramlog(void)
     uint32_t pos = oldest;
     unsigned int r = 0;
 
+#ifdef PB_SPL_CONSOLE
+    /* The SPL printed its lines on its own console (plat/imx8m/spl.h): not
+     * twice. They stay in the log */
+    if (ramlog_kept() > pos)
+        pos = ramlog_kept();
+#endif
+
     while (pos < head) {
         uint32_t end = head;
         size_t n;
