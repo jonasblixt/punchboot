@@ -13,6 +13,8 @@
 /* Both SoCs (QXP and DXL RM, chapter 2 memory maps) */
 #define IMX8X_LPUART0_BASE         0x5A060000
 #define IMX8X_USDHC1_BASE          0x5B010000 /* The RM's USDHC1, the SCFW's SC_R_SDHC_0 */
+#define IMX8X_USB_OTG1_BASE        0x5B0D0000 /* The QXP RM's USB2_OTG */
+#define IMX8X_USB2_PHY1_BASE       0x5B100000 /* The QXP RM's USB2_PHY */
 
 /* i.MX8QXP */
 #define IMX8QXP_USB3_NON_CORE_BASE 0x5B110000
