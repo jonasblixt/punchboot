@@ -38,15 +38,23 @@
 #define IMX_CI_UDC_SZ_64B         0x40
 
 /*
+ * A packet doesn't span two descriptors (6UL RM 54.4.6.4.1, RT1060 RM
+ * 42.5.6.4.1): a descriptor that another follows holds whole packets, of
+ * 512 bytes in high speed, a multiple of full speed's 64 (F-438).
+ */
+#define DTD_PACKET_BYTES          512
+
+/*
  * The longest bulk transfer, the driver's own limit (usb.md 2.3, 4.3):
  * command mode's buffer and the boot's piece, 4 MiB on jiffy and the 8DXL
- * EVK, 32 and 4 KiB on the RT1060 EVK. From any start: a buffer that
- * doesn't start on a page has a first descriptor of at least four pages and
- * a byte, so N descriptors of five pages hold N * 20 KiB - 4 KiB.
+ * EVK, 32 and 4 KiB on the RT1060 EVK. From any start: a descriptor holds
+ * four pages and more, cut to whole packets, at least four pages; the last
+ * one less.
  */
 #define IMX_CI_UDC_MAX_XFER_BYTES (4 * 1024 * 1024)
+#define DTD_MIN_BYTES             ((DTD_NO_OF_PAGES - 1) * DTD_PAGE_SIZE)
 #define IMX_CI_UDC_NO_OF_DESCRIPTORS \
-    ((IMX_CI_UDC_MAX_XFER_BYTES + DTD_PAGE_SIZE + DTD_MAX_BYTES - 1) / DTD_MAX_BYTES)
+    ((IMX_CI_UDC_MAX_XFER_BYTES + DTD_MIN_BYTES - 1) / DTD_MIN_BYTES + 1)
 
 #ifdef CONFIG_CM_BUF_SIZE_KiB
 PB_STATIC_ASSERT((unsigned long long)CONFIG_CM_BUF_SIZE_KiB * 1024 <= IMX_CI_UDC_MAX_XFER_BYTES,
@@ -671,59 +679,68 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     }
 
     while (bytes_to_tx) {
-        /* The descriptor that starts with the bounced head holds what is
-         * left of page 0 and four pages */
-        size_t dtd_max_bytes = DTD_MAX_BYTES - (align_length ? align_offset : 0);
+        uint32_t page0;
+        uintptr_t pages; /* Where pages 1 to 4 start, on a page */
+        size_t room; /* What the descriptor's pages hold from page 0 on */
+        size_t dtd_bytes;
+
+        if (align_length) {
+            /* The bounced head is page 0, the caller's pages after it from
+             * the head's end, which is on a page */
+            page0 = (uint32_t)(uintptr_t)(x->bounce + align_offset);
+            pages = buf_ptr + align_length;
+            room = align_length + DTD_MIN_BYTES;
+        } else {
+            /* Page 0 from where the last descriptor ended, which may be
+             * inside a page; the controller takes its offset */
+            page0 = (uint32_t)buf_ptr;
+            pages = (buf_ptr & ~(uintptr_t)DTD_PAGE_OFFSET_MASK) + DTD_PAGE_SIZE;
+            room = DTD_MAX_BYTES - (buf_ptr & DTD_PAGE_OFFSET_MASK);
+        }
+
+        /* One that another follows holds whole packets */
+        if (bytes_to_tx > room)
+            dtd_bytes = room & ~(size_t)(DTD_PACKET_BYTES - 1);
+        else
+            dtd_bytes = bytes_to_tx;
 
         dtd->next = DTD_NEXT_T;
-        dtd->token = DTD_TOKEN_STATUS_ACTIVE;
+        dtd->token = DTD_TOKEN_STATUS_ACTIVE | DTD_TOKEN_TOTAL_BYTES(dtd_bytes);
+        dtd->page[0] = page0;
 
-        if (bytes_to_tx > dtd_max_bytes) {
-            dtd->token |= DTD_TOKEN_TOTAL_BYTES(dtd_max_bytes);
-        } else {
-            dtd->token |= DTD_TOKEN_TOTAL_BYTES(bytes_to_tx);
-        }
+        /* The pages the bytes reach, each from its start */
+        size_t reach = DTD_PAGE_SIZE - (page0 & DTD_PAGE_OFFSET_MASK);
 
-        for (int n = 0; n < DTD_NO_OF_PAGES; n++) {
-            /* Only the bounced head starts inside its page */
-            uint32_t page_offset = 0;
-
-            dtd->page[n] = (uint32_t)buf_ptr;
-
-            if (align_length) {
-                /* If we need to align the input buffer, it will be at most
-                 * one 4k page, and the first one only */
-                dtd->page[n] = (uint32_t)(uintptr_t)(x->bounce + align_offset);
-                page_offset = dtd->page[n] & DTD_PAGE_OFFSET_MASK;
-                bytes_to_tx -= align_length;
-                buf_ptr += align_length;
-                align_length = 0;
-            } else if (bytes_to_tx >= DTD_PAGE_SIZE) {
-                buf_ptr += DTD_PAGE_SIZE;
-                bytes_to_tx -= DTD_PAGE_SIZE;
-            } else {
-                buf_ptr += bytes_to_tx;
-                bytes_to_tx = 0;
+        for (int n = 1; n < DTD_NO_OF_PAGES; n++) {
+            if (dtd_bytes <= reach) {
+                dtd->page[n] = 0;
+                continue;
             }
 
-            if ((dtd->page[n] & DTD_PAGE_OFFSET_MASK) != page_offset)
+            dtd->page[n] = (uint32_t)(pages + (uintptr_t)(n - 1) * DTD_PAGE_SIZE);
+
+            if (dtd->page[n] & DTD_PAGE_OFFSET_MASK)
                 return -PB_ERR_ALIGN;
 
-            if (bytes_to_tx == 0) {
-                buf_ptr = 0;
-                dtd->token |= DTD_TOKEN_IOC;
-                break;
-            }
+            reach += DTD_PAGE_SIZE;
         }
 
-        if (bytes_to_tx) {
-            struct imx_ci_udc_transfer_head *dtd_prev = dtd;
-            dtd++;
-            /* Not reached: max_length fits the descriptors */
-            if (dtd == &x->dtds[x->no_of_dtds])
-                return -PB_ERR_PARAM;
-            dtd_prev->next = (uint32_t)(uintptr_t)dtd;
+        /* The head's bytes are the caller's first ones */
+        buf_ptr += dtd_bytes;
+        bytes_to_tx -= dtd_bytes;
+        align_length = 0;
+
+        if (bytes_to_tx == 0) {
+            dtd->token |= DTD_TOKEN_IOC;
+            break;
         }
+
+        struct imx_ci_udc_transfer_head *dtd_prev = dtd;
+        dtd++;
+        /* Not reached: max_length fits the descriptors */
+        if (dtd == &x->dtds[x->no_of_dtds])
+            return -PB_ERR_PARAM;
+        dtd_prev->next = (uint32_t)(uintptr_t)dtd;
     }
 
     /* The controller writes the dQH overlay, so a cached copy of it can be

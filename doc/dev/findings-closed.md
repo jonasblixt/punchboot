@@ -1621,6 +1621,17 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-15: the 6UL RM's memory map has 0x920000 to 0x97ffff as "OCRAM aliased", 384 KB: the map | | |
 | | | has `IMX6UL_OCRAM_SIZE`, 128 KiB. On jiffy from BOOT1: the boot, HAB's status and log, the ROM's | | |
 | | | log, `slc show` | | |
+| F-438 | `src/drivers/usb/imx_ci_udc.c` | The ChipIdea splits a bulk transfer into dTDs of 16 KiB plus the bounced | Verified (test) | fixed |
+| | | head (`align_length`): for a buffer that isn't 512 byte aligned the first dTD's length isn't a multiple of | | |
+| | | the packet, and a packet can't span two dTDs (RM 42.5.6.4.1, the 6UL's 54.4.6.4.1): an OUT longer than | | |
+| | | 16 KiB overflows at that boundary (it hung; with F-137's branch it is `-PB_ERR_IO`), an IN sends a short packet | | |
+| | | in the middle. The boot's bounce buffer is only line aligned, and a load address may be too (`boot bpak` on | | |
+| | | jiffy). Found by the review of F-137's branch: split at packet multiples, or align the dTDs' buffers | | |
+| | | 2026-11-15: reproduced in `test_imx_ci_udc` (its controller model checks that every descriptor | | |
+| | | but the last holds whole 512 byte packets: a head of 0xfc0 bytes gave 20416). Each descriptor's | | |
+| | | room is counted from its page 0, one that another follows is cut to whole packets, the next starts | | |
+| | | inside the page where it ended; at least 16 KiB each, 257 descriptors for 4 MiB. On jiffy from | | |
+| | | BOOT1: 16 MiB written and verified (its buffers are on pages: the unaligned case is the model's) | | |
 
 ## Dependencies / vendored code
 

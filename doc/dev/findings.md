@@ -818,12 +818,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
 | | | 2026-11-14: no 6ULL board for now | | |
-| F-438 | `src/drivers/usb/imx_ci_udc.c` | The ChipIdea splits a bulk transfer into dTDs of 16 KiB plus the bounced | Reported (review) | open |
-| | | head (`align_length`): for a buffer that isn't 512 byte aligned the first dTD's length isn't a multiple of | | |
-| | | the packet, and a packet can't span two dTDs (RM 42.5.6.4.1, the 6UL's 54.4.6.4.1): an OUT longer than | | |
-| | | 16 KiB overflows at that boundary (it hung; with F-137's branch it is `-PB_ERR_IO`), an IN sends a short packet | | |
-| | | in the middle. The boot's bounce buffer is only line aligned, and a load address may be too (`boot bpak` on | | |
-| | | jiffy). Found by the review of F-137's branch: split at packet multiples, or align the dTDs' buffers | | |
 | F-434 | `src/drivers/usb/cdns3_udc_core.c`, the MEK | `part write` of the 15 MB `boot.bpak` | Verified | fixed |
 | | | fails at `246bd897` with "Bad result magic 0xf9401421", seven times out of seven, also after a | | |
 | | | `dev reset`: the host reads the image's own bytes (offset 0x1660) where the device's result | | |

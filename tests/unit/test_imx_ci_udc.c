@@ -52,7 +52,7 @@
 
 /* The driver's longest transfer and its transfer descriptors */
 #define MAX_LENGTH   (4 * 1024 * 1024)
-#define NO_OF_DTDS   ((MAX_LENGTH + PAGE + DTD_MAX_BYTES - 1) / DTD_MAX_BYTES)
+#define NO_OF_DTDS   ((MAX_LENGTH + 4 * PAGE - 1) / (4 * PAGE) + 1)
 #define NO_OF_DQHS   16
 #define LINE         PB_DMA_ALIGN
 
@@ -280,6 +280,13 @@ static size_t controller_exec(usb_ep_t ep,
         assert_true(dtd.token & DTD_TOKEN_STATUS_ACTIVE);
         total = (dtd.token & DTD_TOKEN_TOTAL_BYTES_MASK) >> DTD_TOKEN_TOTAL_BYTES_SHIFT;
         left = total;
+
+        /* A packet doesn't span two descriptors (RM 54.4.6.4.1, RT1060 RM
+         * 42.5.6.4.1): every one but the last holds whole packets, 512
+         * bytes in high speed (F-438) */
+        if (!(dtd.next & DTD_NEXT_T) && total % 512 != 0)
+            fail_msg("A transfer descriptor of %zu bytes, not whole packets, before another",
+                     total);
 
         for (int n = 0; n < DTD_NO_OF_PAGES && left > 0 && pos < limit; n++) {
             /* Only page 0 has an offset */
