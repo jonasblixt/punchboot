@@ -886,15 +886,15 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | SRK_REVOKE unknown (the 8MP's keys can't be revoked). Verify on a part that can be spent: a | | |
 | | | revocation on an 8MQ (the pico8ml is the only 8MQ on the bench), the 8MP's fuses in its | | |
 | | | Security Reference Manual (NDA) | | |
-| F-450 | `testbench/board/pico8ml/`, the pico8ml | After Linux's login prompt the pico8ml's | Seen (board) | open |
-| | | console took no input and the board didn't come back (2026-11-15, the first boot): either | | |
-| | | Linux hung ~12 s in without a word (the last lines are the deferred probe timeout's), or | | |
-| | | UART1's receive doesn't work in Linux (pb never reads it). Its watchdog didn't reset it: | | |
-| | | with `fsl,ext-reset-output` (the PICO-PI's DTS) `imx2_wdt` only asserts WDOG_B, and the | | |
-| | | SoC's own reset is off, so a hang stays a hang unless the PMIC resets on WDOG_B. No JTAG | | |
-| | | probe on it. Next: a power cycle (Jonas), then the console at the login; the DTS without | | |
-| | | `fsl,ext-reset-output`, or the BD71837 told to reset on WDOG_B. Also: eth0's PHY doesn't | | |
-| | | answer at MDIO 1, the USB host port's DWC3 doesn't start | | |
+| F-450 | `testbench/board/pico8ml/`, the pico8ml | Linux on the pico8ml went dark: silent, no reset, | Seen (board) | open |
+| | | the console's CP2105 still there. The console's receive works (a login at the prompt). | | |
+| | | (1) The BD71837's rails were turned off 30 s after boot as unused: always on since | | |
+| | | `cc91b2cf`. (2) After that it still died between 7 s and 3 minutes, also with the NOC | | |
+| | | locked at 800 MHz and no rate change; not a DRAM DVFS (the test bench's TF-A has no DRAM | | |
+| | | driver, `IMX_DRAM_RETENTION=0`). With `PWRCTL.selfref_en` (`475408cd`) and on another USB | | |
+| | | port: 30 minutes, 180 checks of a 200 MiB checksum in RAM. Power (Jonas) or the self | | |
+| | | refresh: the run without the bit decides. Also: eth0's PHY doesn't answer at MDIO 1, the | | |
+| | | USB host port's DWC3 doesn't start | | |
 | F-451 | `src/plat/imx8m/spl/`, the i.MX8MQ | The SPL, a HABv4 plugin (D-088), boots from the eMMC  | Seen (board) | open |
 | | | but can't hand pb proper over to the ROM's serial downloader: the downloader takes one | | |
 | | | image (8MQ RM 6.1.8.2.1.7), and after the plugin it either goes on without pb proper | | |

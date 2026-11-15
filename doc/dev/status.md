@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-15 (the pico8ml boots Linux; F-449, F-440, F-139, F-437, F-438)_
+_Last updated: 2026-11-15 (the i.MX8M's SPL, D-088; F-450)_
 
 ## Current focus
 
@@ -15,8 +15,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - **Boards (2026-11-15):**
   - jiffy: `55689509` from BOOT1 (BOOT0 an older pb); Root A has the test bench's root image,
     Root B random test data. The OP-TEE add-on's pb is no longer on it.
-  - pico8ml (closed, HAB test keys, token `scripts/c12f1c67-...token`): pb from BOOT1
-    (`f2b29c88`), BOOT0 the fallback. Waits for a power cycle (F-450).
+  - pico8ml (closed, HAB test keys, token `scripts/c12f1c67-...token`): the SPL and pb proper
+    (D-088) from BOOT1, BOOT0 an older SPL build; boot switches on eMMC. Linux from System A.
   - RT1060 from its NOR, the MEK from BOOT0: `246bd897` (log 2026-11-14). The 8MP EVK offline.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
@@ -29,9 +29,9 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 0. **Resume here: `log/2026-11-15.md`**, its last three sections. Nothing pushed since
    `58c9cf3e`'s rebase.
-   - pico8ml: after Jonas's power cycle, F-450 (the console at the login, the watchdog's reset
-     with `ebd8609c`), the rest of the bring-up's step 5, System A from the eMMC, then the boot
-     time list (`testbench/README.md`). TF-A's 8MQ patch could go upstream.
+   - pico8ml: F-450 without `selfref_en` (power or self refresh), F-451 (USB recovery with the
+     SPL: Jonas), the 8M Plus's SPL on the EVK, then the bring-up's step 5 and the boot time list
+     (`testbench/README.md`). TF-A's 8MQ patch could go upstream.
    - The bench of what landed without a board (log 2026-11-14): USB on all four, the MMU maps,
      the RT1060's entry (F-210, F-207), the DMA rule (F-282), the 8MP EVK through TF-A, the
      8M's lockdown (D-084).
