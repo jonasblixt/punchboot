@@ -1821,7 +1821,8 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | the ASSERTs keep empty. The MEK's pb: some 300 fewer instructions of 23,650; jiffy's and the RT1060's | | |
 | | | `pb.bin` are the same byte for byte. All seven boards build in the container without a new warning, the | | |
 | | | MEK also with the bench's toolchain; on the MEK from BOOT1: three `dev reset`s, System A to the login in | | |
-| | | 5.2 s and back to pb | | |
+| | | 5.2 s and back to pb. The 8MP EVK (SPL and pb, from BOOT1): four `dev reset`s, System A to the | | |
+| | | login twice, `reboot` back to pb | | |
 
 ## Dependencies / vendored code
 
