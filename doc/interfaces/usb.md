@@ -265,6 +265,11 @@ power and PHY are done (`platform.md` 3.10).
 `drivers.md` 2.3: the pull-up is off, the controller is halted, nothing is queued, no address
 in pb's memory is left in it. Bounded, and it can be called twice.
 
+What an IN transfer that completed sent reaches the host before the device leaves: the result of
+the command before a reset or a jump is one. A controller whose transfer completes before the host
+has read its packets waits for them in `stop`, bounded, and a host that doesn't read them is no
+error (F-453).
+
 ### 4.3 Operations : xfer_start, xfer_complete, xfer_cancel [mandatory]
 
 ```
@@ -434,7 +439,9 @@ what the code doesn't settle without the hardware.
 | their lines                      | `ci_udc`)          | `udc`)              | `cdns3_udc`)    |         |
 | The order of clean, invalidate   | yes                | unverified          | yes             |         |
 | and copy                         |                    |                     |                 |         |
-| `stop`                           | yes                | yes                 | yes, not run    | F-204   |
+| `stop`                           | yes                | yes                 | yes (the MEK)   | F-204   |
+| `stop` after the host has read   | yes (completes on  | unverified          | yes, waits for  | F-453   |
+| the last IN packets              | the host's ACK)    |                     | BUFFEMPTY       |         |
 | The serial number is read        | yes                | yes                 | yes (the MEK,   |         |
 |                                  |                    |                     | 2026-11-09)     |         |
 | Runs on the bench                | jiffy, the RT1060  | the 8MP EVK         | the MEK; resets | F-172   |

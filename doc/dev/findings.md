@@ -267,12 +267,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | chunk on its slowest medium. No header and no board states either, and `CONFIG_BOOT_LOAD_CHUNK_kB` was | | |
 | | | chosen for speed. When the card answers, by the measured rates: a chunk takes 13 ms on jiffy (77 MiB/s), | | |
 | | | 12 ms on the 8MP EVK (87 MiB/s), 23 ms on the MEK (173 MiB/s). Read in the code, not run on a board | | |
-| F-322 | `src/plat/imx8x/plat.c` | Low. The 8X's `plat_wdog_kick()` is a call to the SCU | Reported | open |
-| | | (`sc_timer_ping_wdog()`, a message each way), since F-243 once per 4 MiB chunk and before the jump: a | | |
-| | | handful in a boot of the MEK's 15 MB image. `platform.md` 3.3 has the kick cheap; the i.MX WDOG's is two | | |
-| | | register writes, the SCU's isn't measured. To measure on the MEK (`scripts/boot-time-image`). With | | |
-| | | `plat-imx.md` 7: the 8X's kick before arming is unchecked | | |
-| | | 2026-11-14, D-084: Jonas: measure it on the MEK | | |
 | F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL | Verified (on jiffy) | open |
 | | | RM (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 | | |
 | | | (supervisor only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code | | |
@@ -857,6 +851,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | both resets ended in the downloader again, the ROM log with "Device init: fail" | | |
 | | | (0x8f010b74) for the eMMC, also with BOOT1 enabled again, until a power cycle. Not | | |
 | | | looked into: whether the ROM sees a changed boot partition only after a power cycle | | |
+| F-454 | the test bench's toolchain, `src/link.lds` | Low. The MEK's pb built with the test | Seen (build) | open |
+| | | bench's aarch64 musl toolchain (Buildroot 2026.02.3) warns of two orphan sections, | | |
+| | | `.rela.text.pb_mmu_init` and `.rela.rodata` from `src/main.o`, placed in `.rela.dyn`; the dev | | |
+| | | container's build of the same board doesn't. `link.lds` asserts `.rela.dyn` empty and the link | | |
+| | | passes, so nothing is relocated at run time. Why that compiler leaves them, and whether | | |
+| | | `link.lds` should name them (F-428's "clean on all six" is the container's toolchain), is open | | |
 
 ## Dependencies / vendored code
 

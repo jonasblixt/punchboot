@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-15 (the SPL's fastboot, D-089; F-451, F-402 and F-434 closed)_
+_Last updated: 2026-11-15 (D-089; F-451, F-402, F-434, F-322 closed; F-453 fixed)_
 
 ## Current focus
 
@@ -18,7 +18,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR: `246bd897` (log 2026-11-14). The MEK: `a875cf4b`'s pb in BOOT1
+  - RT1060 from its NOR: `246bd897` (log 2026-11-14). The MEK: `9b31d3ad`'s pb in BOOT1
     (enabled), BOOT0 keeps its pb of 2026-11-14; both its USB ports are wired. The 8MP EVK:
     `e5a4efc4`'s two-stage pb in BOOT1 (enabled), the single-stage pb of 2026-11-14 in BOOT0;
     its switches on serial download until Jonas sets them back.
@@ -43,7 +43,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
    - The bench of what landed without a board (log 2026-11-14): USB on all four, the MMU maps,
      the RT1060's entry (F-210, F-207), the DMA rule (F-282), the 8MP EVK through TF-A, the
      8M's lockdown (D-084).
-   - D-084's rest: F-320, EOL with data (F-263, PR #51), F-322, F-241. F-402 closed: the 8X's OTG1
+   - D-084's rest: F-320, EOL with data (F-263, PR #51), F-241. F-322 closed (a kick 5.8 us). F-402 closed: the 8X's OTG1
      ran on the MEK, the 8MP's USB2 is built, not run.
    - F-444 (OP-TEE's SMC on jiffy), F-447 (the 8M's SLC sources), F-432, F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
@@ -56,7 +56,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - D-086 (Mbed TLS by the core) and its Open (1); then F-442's code.
 - Review: the guides and `CHANGELOG.md` (F-232), D-074, D-070, D-066, D-056, the logs' "For
   Jonas".
-- Contract sentences: `platform.md` 3.10's port rule (D-084, log 2026-11-15); `boot.md` F-291,
+- Contract sentences: `platform.md` 3.10's port rule (D-084), `usb.md` 4.2's stop (F-453); `boot.md` F-291,
   F-331, F-323, F-345, F-360, F-342, F-348; `board.md` F-325, F-335, F-392; `platform.md` F-320;
   `command-mode.md` F-375; `bio.md` F-310; F-311.
 - Choices left in findings: F-140 (SDIS off: 15% faster writes on jiffy), F-283 and F-200 (the

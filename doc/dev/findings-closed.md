@@ -1701,6 +1701,25 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-15, on the MEK (both ports wired): OTG1's pb from BOOT1 enumerates on OTG1 | | |
 | | | (ChipIdea at 0x5b0d0000), random 15 MB writes 5 of 5, each verified. Not run: the 8DXL's | | |
 | | | OTG1, the 8M Plus's USB2 | | |
+| F-322 | `src/plat/imx8x/plat.c` | Low. The 8X's `plat_wdog_kick()` is a call to the SCU | Reported | closed |
+| | | (`sc_timer_ping_wdog()`, a message each way), since F-243 once per 4 MiB chunk and before the jump: a | | |
+| | | handful in a boot of the MEK's 15 MB image. `platform.md` 3.3 has the kick cheap; the i.MX WDOG's is two | | |
+| | | register writes, the SCU's isn't measured. To measure on the MEK (`scripts/boot-time-image`). With | | |
+| | | `plat-imx.md` 7: the 8X's kick before arming is unchecked | | |
+| | | 2026-11-14, D-084: Jonas: measure it on the MEK | | |
+| | | 2026-11-15, measured on the MEK (a test build, not in the tree): 1000 kicks 6180 us, 1000 reads | | |
+| | | of the tick 375 us, so a kick is about 5.8 us, the SCFW answers 0. A boot of the MEK's 15 MB | | |
+| | | image kicks about five times, some 30 us; command mode once per round. Cheap enough for 3.3: no | | |
+| | | change. A kick before arming: `plat-imx.md` 7 has it checked (F-234) | | |
+| F-453 | `src/drivers/usb/cdns3_udc_core.c` (the MEK) | `dev reset` failed on the host with | Verified | fixed |
+| | | "Transfer: [Errno 5] Input/Output Error", every time (6 of 6) with pb from `a875cf4b` on the | | |
+| | | MEK, though the board reset. The cdns3 completes an IN transfer when its DMA is done (IOC, QXP | | |
+| | | RM 14.12.6.178, EP_STS), its packets possibly still in the on-chip buffer; `stop` (`b4341687`, | | |
+| | | F-204) left the bus at once and the reset's result was lost. The ChipIdea completes on the | | |
+| | | host's ACK: the OTG1 pb's reset answered. 2026-11-15, fixed (`9b31d3ad`): stop waits for each | | |
+| | | enabled IN endpoint's BUFFEMPTY, 50 ms at most each; `test_cdns3_udc` (fails without it). On the | | |
+| | | MEK: `dev reset` 5 of 5, `boot partition` answers and Linux boots. `usb.md` 4.2 has the rule | | |
+| | | now; the DWC3's is unverified | | |
 
 ## Dependencies / vendored code
 
