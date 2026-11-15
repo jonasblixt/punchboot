@@ -805,19 +805,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | both resets ended in the downloader again, the ROM log with "Device init: fail" | | |
 | | | (0x8f010b74) for the eMMC, also with BOOT1 enabled again, until a power cycle. Not | | |
 | | | looked into: whether the ROM sees a changed boot partition only after a power cycle | | |
-| F-454 | the test bench's toolchain, `src/link.lds` | Low. The MEK's pb built with the test | Seen (build) | open |
-| | | bench's aarch64 musl toolchain (Buildroot 2026.02.3) warns of two orphan sections, | | |
-| | | `.rela.text.pb_mmu_init` and `.rela.rodata` from `src/main.o`, placed in `.rela.dyn`; the dev | | |
-| | | container's build of the same board doesn't. `link.lds` asserts `.rela.dyn` empty and the link | | |
-| | | passes, so nothing is relocated at run time. Why that compiler leaves them, and whether | | |
-| | | `link.lds` should name them (F-428's "clean on all six" is the container's toolchain), is open | | |
-| | | 2026-11-15: the warning names `main.o`, which has neither section; the sections are `mmu.o`'s | | |
-| | | (and the pico8ml SPL's `console.o`): ld names the first input. The two compilers differ: the dev | | |
-| | | container's gcc 14.2 (Debian) is built with `--enable-default-pie`, the test bench's 14.3 | | |
-| | | (Buildroot) isn't, and pb's flags set neither `-fno-pie` nor `-fpie`. So CI and a release | | |
-| | | compile pb as PIE code and the test bench doesn't, and only the non-PIE link warns. For Jonas: | | |
-| | | `-fno-pie` in pb's flags (one code generation everywhere; it changes every board's `pb.bin` in | | |
-| | | the container, so a bench round) | | |
 
 ## Dependencies / vendored code
 

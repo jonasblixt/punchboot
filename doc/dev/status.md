@@ -59,6 +59,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   `board.md` F-325, F-335, F-392; `command-mode.md` F-375; `bio.md` F-310; F-311.
 - Choices left in findings: F-140 (SDIS off: 15% faster writes on jiffy), F-283 and F-200 (the
   GPT's 512s, SEC_COUNT 0), F-406, F-411, F-180, F-227's default device.
-- F-454: `-fno-pie` in pb's flags (the container's gcc builds PIE code, the test bench's not).
+- F-454's `-fno-pie` (`ad44621b`) changes the 64 bit boards' pb: run on the MEK; the 8MP EVK and
+  the pico8ml not yet.
 - Which findings gate the 3.0.0 tag; bebop's defconfig (F-033); virtio for QEMU (F-052).
 - The Arm specs and the TZC-380 TRM on the share (D-084).

@@ -1802,6 +1802,26 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | resets to 0x2, clocks on in RUN and WAIT (RM 5.1.7.6), and the ROM leaves on (Table 6-6); pb | | |
 | | | never closes it, and the console opens UART2's own gate (`console.c`). The writes before | | |
 | | | `plat_init()` are on an open gate: nothing to change | | |
+| F-454 | the test bench's toolchain, `src/link.lds` | Low. The MEK's pb built with the test | Seen (build) | fixed |
+| | | bench's aarch64 musl toolchain (Buildroot 2026.02.3) warns of two orphan sections, | | |
+| | | `.rela.text.pb_mmu_init` and `.rela.rodata` from `src/main.o`, placed in `.rela.dyn`; the dev | | |
+| | | container's build of the same board doesn't. `link.lds` asserts `.rela.dyn` empty and the link | | |
+| | | passes, so nothing is relocated at run time. Why that compiler leaves them, and whether | | |
+| | | `link.lds` should name them (F-428's "clean on all six" is the container's toolchain), is open | | |
+| | | 2026-11-15: the warning names `main.o`, which has neither section; the sections are `mmu.o`'s | | |
+| | | (and the pico8ml SPL's `console.o`): ld names the first input. The two compilers differ: the dev | | |
+| | | container's gcc 14.2 (Debian) is built with `--enable-default-pie`, the test bench's 14.3 | | |
+| | | (Buildroot) isn't, and pb's flags set neither `-fno-pie` nor `-fpie`. So CI and a release | | |
+| | | compile pb as PIE code and the test bench doesn't, and only the non-PIE link warns. For Jonas: | | |
+| | | `-fno-pie` in pb's flags (one code generation everywhere; it changes every board's `pb.bin` in | | |
+| | | the container, so a bench round) | | |
+| | | 2026-11-15 (`ad44621b`): Jonas: `-fno-pie`. pb's flags have it; the container's `-fno-pie` link | | |
+| | | warns like the bench's, so the warning is non-PIE code's: aarch64 ld makes the empty sections for | | |
+| | | references to the link scripts' symbols. `src/link.lds` and the 8M SPL's put them in `.rela.dyn`, which | | |
+| | | the ASSERTs keep empty. The MEK's pb: some 300 fewer instructions of 23,650; jiffy's and the RT1060's | | |
+| | | `pb.bin` are the same byte for byte. All seven boards build in the container without a new warning, the | | |
+| | | MEK also with the bench's toolchain; on the MEK from BOOT1: three `dev reset`s, System A to the login in | | |
+| | | 5.2 s and back to pb | | |
 
 ## Dependencies / vendored code
 
