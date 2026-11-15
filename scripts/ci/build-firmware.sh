@@ -93,7 +93,7 @@ make BOARD="src/board/$board" \
      CROSS_COMPILE="$cross" \
      -j"${PB_JOBS:-$(nproc)}" \
      "$@" \
-     "build-$board/pb.bin"
+     binaries
 
 # No LOAD segment of pb is writable and executable (F-090, F-396): pb.bin
 # doesn't carry the headers, but a debugger loads the ELF by them. The 32 bit
