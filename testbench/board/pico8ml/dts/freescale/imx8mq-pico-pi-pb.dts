@@ -44,4 +44,3 @@
 &wdog1 {
 	/delete-property/ fsl,ext-reset-output;
 };
-
