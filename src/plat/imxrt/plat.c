@@ -8,6 +8,7 @@
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -122,6 +123,34 @@ int plat_early_init(void)
     return PB_OK;
 }
 
+/*
+ * 600 MHz is overdrive run: VDD_SOC_IN 1.25 to 1.3 V (data sheet Table 9),
+ * and DCDC REG3 resets to 1.15 V (RM 18.7.1.5), full speed run's 528 MHz
+ * (RM Table 14-5). Raised to 1.275 V before the clocks, and waited for
+ * (RM 18.6.2) with a bound (F-457).
+ */
+#define DCDC_SETTLE_TIMEOUT_us 10000
+
+static int dcdc_overdrive(void)
+{
+    struct pb_timeout timeout;
+    int rc;
+
+    mmio_clrsetbits_32(IMXRT_DCDC_REG3, DCDC_REG3_TRG_MASK, DCDC_REG3_TRG_1V275);
+
+    rc = pb_timeout_init_us(&timeout, DCDC_SETTLE_TIMEOUT_us);
+
+    if (rc != PB_OK)
+        return rc;
+
+    while (!(mmio_read_32(IMXRT_DCDC_REG0) & DCDC_REG0_STS_DC_OK)) {
+        if (pb_timeout_has_expired(&timeout))
+            return -PB_ERR_TIMEOUT;
+    }
+
+    return PB_OK;
+}
+
 int plat_init(void)
 {
     /* Without it: logged, nothing of the boot's rests on it (platform.md 2.3) */
@@ -151,9 +180,13 @@ int plat_init(void)
     if (plat.speed_grade == 1) {
         mmio_write_32(IMXRT_CCM_ANALOG_PLL_ARM,
                       ANALOG_PLL_ARM_ENABLE | ANALOG_PLL_ARM_DIV_SELECT(88));
-    } else if (plat.speed_grade == 2) {
+    } else if (plat.speed_grade == 2 && dcdc_overdrive() == PB_OK) {
         mmio_write_32(IMXRT_CCM_ANALOG_PLL_ARM,
                       ANALOG_PLL_ARM_ENABLE | ANALOG_PLL_ARM_DIV_SELECT(100));
+    } else if (plat.speed_grade == 2) {
+        LOG_ERR("VDD_SOC didn't settle at 1.275 V, the core runs at 528 MHz");
+        mmio_write_32(IMXRT_CCM_ANALOG_PLL_ARM,
+                      ANALOG_PLL_ARM_ENABLE | ANALOG_PLL_ARM_DIV_SELECT(88));
     } else {
         LOG_WARN("Unknown speed grade (%u), setting core speed to 528MHz", plat.speed_grade);
         mmio_write_32(IMXRT_CCM_ANALOG_PLL_ARM,

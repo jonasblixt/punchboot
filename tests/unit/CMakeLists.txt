@@ -645,6 +645,7 @@ endfunction()
 pb_plat_test(test_plat_imxrt
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/plat/imxrt/plat.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
@@ -665,6 +666,7 @@ pb_plat_test(test_plat_imxrt_no_mbedtls
     TEST test_plat_imxrt.c
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/plat/imxrt/plat.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5

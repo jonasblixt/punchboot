@@ -180,7 +180,19 @@ static int setup(void **state)
     f.speed_grade = 2;
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
+    /* The DCDC settled (RM 18.7.1.2) */
+    fake_regs_set(IMXRT_DCDC_REG0, DCDC_REG0_STS_DC_OK);
     return 0;
+}
+
+/* A clock that moves 1 ms each time it is read (the fake keeps what this
+ * returns) */
+static uint64_t gpt_runs(uintptr_t addr, uint64_t value)
+{
+    if (addr == IMXRT_GPT1_BASE + GPT_CNT)
+        return value + 1000;
+
+    return value;
 }
 
 /* What plat_get_status() answers, every field set by the port */
@@ -290,6 +302,42 @@ static void test_clock_roots_from_any_reset(void **state)
                              ~(CBCDR_AHB_PODF_MASK | CBCDR_IPG_PODF_MASK),
                          resets[i].cbcdr & ~(CBCDR_AHB_PODF_MASK | CBCDR_IPG_PODF_MASK));
     }
+}
+
+/* F-457: 600 MHz is overdrive run, VDD_SOC 1.25 to 1.3 V; the DCDC resets
+ * to 1.15 V. Speed grade 2 raises it to 1.275 V before the ARM PLL goes to
+ * 1200 MHz, and stays at 528 MHz when the DCDC doesn't settle. Speed grade 1
+ * leaves the DCDC alone */
+static void test_vdd_soc_for_600_mhz(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMXRT_DCDC_REG3, 0x10e);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(fake_regs_get(IMXRT_DCDC_REG3), 0x113);
+    assert_true(fake_regs_first_write(IMXRT_DCDC_REG3) <
+                fake_regs_first_write(IMXRT_CCM_ANALOG_PLL_ARM));
+    assert_int_equal(fake_regs_get(IMXRT_CCM_ANALOG_PLL_ARM) & ANALOG_PLL_ARM_DIV_SELECT_MASK,
+                     ANALOG_PLL_ARM_DIV_SELECT(100));
+
+    /* Not settled: 528 MHz, after the bound */
+    setup(NULL);
+    fake_regs_set(IMXRT_DCDC_REG0, 0);
+    fake_regs_on_read = gpt_runs;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    fake_regs_on_read = NULL;
+    assert_int_equal(fake_regs_get(IMXRT_CCM_ANALOG_PLL_ARM) & ANALOG_PLL_ARM_DIV_SELECT_MASK,
+                     ANALOG_PLL_ARM_DIV_SELECT(88));
+
+    setup(NULL);
+    f.speed_grade = 1;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(fake_regs_writes(IMXRT_DCDC_REG3), 0);
+    assert_int_equal(fake_regs_get(IMXRT_CCM_ANALOG_PLL_ARM) & ANALOG_PLL_ARM_DIV_SELECT_MASK,
+                     ANALOG_PLL_ARM_DIV_SELECT(88));
 }
 
 /* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
@@ -606,6 +654,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_init, setup),
         cmocka_unit_test_setup(test_clock_roots_from_any_reset, setup),
+        cmocka_unit_test_setup(test_vdd_soc_for_600_mhz, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status, setup),

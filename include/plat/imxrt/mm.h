@@ -105,6 +105,12 @@
 
 #define IMXRT_AIPS1CNF_BASE      0x4007c000 /* 6KB AIPS-1 Configuration */
 #define IMXRT_DCDC_BASE          0x40080000 /* 16KB DCDC */
+/* RM 18.7.1.2, 18.7.1.5 */
+#define IMXRT_DCDC_REG0          (IMXRT_DCDC_BASE + 0x0)
+#define DCDC_REG0_STS_DC_OK      BIT(31)
+#define IMXRT_DCDC_REG3          (IMXRT_DCDC_BASE + 0xc)
+#define DCDC_REG3_TRG_MASK       (0x1f)
+#define DCDC_REG3_TRG_1V275      (0x13) /* 0.8 V + 25 mV a step */
 #define IMXRT_PIT_BASE           0x40084000 /* 16KB PIT */
 
 /* 0x40088000     16KB Reserved */
