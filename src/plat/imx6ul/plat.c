@@ -183,7 +183,9 @@ void plat_wdog_kick(void)
  *
  * Out of bypass, region 0 only lets secure accesses through, but OP-TEE reads
  * the DTB through a non-secure mapping before its TZASC driver has run. Open
- * DDR to both worlds in region 1 until OP-TEE replaces it. The TZASC sees
+ * the board's DRAM to both worlds in region 1 until OP-TEE replaces it, and
+ * not the 2 GiB DDR window: with less DRAM the window repeats it (RM 52.3),
+ * and the copies stay secure only (platform.md 4.3, F-261). The TZASC sees
  * DDR at its physical address on the 6UL, as OP-TEE programs it (F-241).
  *
  * Region 1 is read back: a secure OS that locked its regions (lockdown_range
@@ -191,6 +193,18 @@ void plat_wdog_kick(void)
  * the TZASC ignore the write. pb leaves TZASC1_BOOT_LOCK alone: OP-TEE
  * programs the lockdown registers after pb, which the lock would freeze.
  */
+#define TZASC_DRAM_BASE ((uint64_t)BOARD_RAM_BASE)
+#define TZASC_DRAM_SIZE ((uint64_t)BOARD_RAM_END - BOARD_RAM_BASE)
+
+/* One TZC-380 region: a power of two of at least 32 KiB, aligned to its size */
+_Static_assert(TZASC_DRAM_SIZE >= SZ_KiB(32) && (TZASC_DRAM_SIZE & (TZASC_DRAM_SIZE - 1)) == 0,
+               "The board's DRAM isn't a TZASC region's size");
+_Static_assert((TZASC_DRAM_BASE & (TZASC_DRAM_SIZE - 1)) == 0,
+               "The board's DRAM isn't aligned to its size, as a TZASC region");
+_Static_assert(TZASC_DRAM_BASE >= IMX6UL_DDR_BASE &&
+                   TZASC_DRAM_BASE + TZASC_DRAM_SIZE <= (uint64_t)IMX6UL_DDR_BASE + IMX6UL_DDR_SIZE,
+               "The board's DRAM isn't in the DDR window");
+
 static int tzasc_init(void)
 {
     uint64_t base;
@@ -212,7 +226,7 @@ static int tzasc_init(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = tzc380_configure_region(1, IMX6UL_DDR_BASE, IMX6UL_DDR_SIZE, TZC380_SP_ALL);
+    rc = tzc380_configure_region(1, TZASC_DRAM_BASE, TZASC_DRAM_SIZE, TZC380_SP_ALL);
 
     if (rc != PB_OK)
         return rc;
@@ -222,7 +236,7 @@ static int tzasc_init(void)
     if (rc != PB_OK)
         return rc;
 
-    if (base != IMX6UL_DDR_BASE || size != IMX6UL_DDR_SIZE || sp != TZC380_SP_ALL) {
+    if (base != TZASC_DRAM_BASE || size != TZASC_DRAM_SIZE || sp != TZC380_SP_ALL) {
         LOG_ERR("TZASC region 1: base 0x%" PRIx64 ", %" PRIu64 " MiB, sp %08" PRIx32,
                 base,
                 size >> 20,

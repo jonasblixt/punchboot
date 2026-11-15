@@ -616,13 +616,14 @@ static void test_status_tzasc_region_locked(void **state)
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
 
-    /* What pb wrote, read back: DDR's physical address, to both worlds */
+    /* What pb wrote, read back: the board's DRAM at its physical address,
+     * not the 2 GiB window (F-261), to both worlds */
     f.tzc_get_rc = PB_OK;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
-    assert_int_equal(f.tzc_base, IMX6UL_DDR_BASE);
-    assert_int_equal(f.tzc_size, IMX6UL_DDR_SIZE);
+    assert_int_equal(f.tzc_base, BOARD_RAM_BASE);
+    assert_int_equal(f.tzc_size, BOARD_RAM_END - BOARD_RAM_BASE);
     assert_int_equal(f.tzc_sp, TZC380_SP_ALL);
 }
 
