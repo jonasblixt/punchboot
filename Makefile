@@ -213,6 +213,10 @@ ldflags-y += --gc-sections
 # Every section is placed by a link script (platform.md 5.3): ld warns about
 # one that isn't, which it would put where it chooses
 ldflags-y += --orphan-handling=warn
+# pb's stack isn't executable, whatever its objects say: the assembly
+# sources' and a bare metal compiler's carry no .note.GNU-stack, of which
+# a GNU target's ld warns (F-456)
+ldflags-y += -z noexecstack
 
 OBJS =
 OBJS += $(patsubst %.c, $(BUILD_DIR)/%.o, $(src-y))

@@ -156,7 +156,7 @@ ldflags-y += --defsym=PLAT_BL_PARAMS_SIZE=$(PLAT_BL_PARAMS_SIZE)
 ldflags-y += --defsym=PLAT_BL_PARAMS_LIMIT=$(PLAT_BL_PARAMS_LIMIT)
 
 # The SPL's link (spl/link.lds)
-spl-ldflags-y += -Map=$(BUILD_DIR)/spl.map --build-id=none --gc-sections --orphan-handling=warn
+spl-ldflags-y += -Map=$(BUILD_DIR)/spl.map --build-id=none --gc-sections --orphan-handling=warn -z noexecstack
 spl-ldflags-y += -z max-page-size=4096 --no-warn-rwx-segments
 spl-ldflags-y += --defsym=IMX8M_SPL_ENTRY=$(IMX8M_SPL_ENTRY)
 spl-ldflags-y += --defsym=IMX8M_SPL_END=$(IMX8M_RAMLOG_BASE)
