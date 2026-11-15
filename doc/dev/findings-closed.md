@@ -1742,6 +1742,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | the kick and the stretches: arming to the first candidate, a candidate's kick to its first | | |
 | | | chunk, a failed candidate to the next, the last chunk to the jump's kick (items 1 to 3). | | |
 | | | `boot_image_copy_and_hash()` still has no chunk to kick for, and no caller | | |
+| F-280 | `src/boot/image_helpers.c` `boot_image_load_and_hash()`, the USB drivers | `boot | Reported | closed |
+| | | bpak`: the device reads a part `CONFIG_BOOT_LOAD_CHUNK_kB` at a time (1 MiB on the imx8mpevk | | |
+| | | and jiffy, 4 KiB on the RT1060 with a 32 KiB buffer, 4 MiB elsewhere), hosts send it in | | |
+| | | transfers of the caps' `chunk_transfer_max_bytes` (the buffer's size, 4 MiB by default). | | |
+| | | Where the two differ, one host transfer fills several reads. `command-mode.md` 4.4 and 6 | | |
+| | | (D-060) ask the transport for that. Read in the code, not run: try `boot bpak` on the | | |
+| | | imx8mpevk and jiffy. The requirement is `usb.md` 2.3 | | |
+| | | 2026-11-12, on the bench, pb `64d5bba0`: `boot bpak` loads, verifies and starts Linux on the 8MP EVK | | |
+| | | (DWC3, 15 MB) and on jiffy (ChipIdea, 5.6 MB), pieces of 1 MiB against transfers of 4 MiB. Left: the | | |
+| | | cdns3 (the MEK's two sizes are equal) and the RT1060 (4 KiB pieces) | | |
+| | | 2026-11-15, on the bench, pb `4a017151` on the MEK and the RT1060's pb of 2026-11-14: the MEK | | |
+| | | (cdns3, pieces and transfers of 4 MiB) loads the test bench's 15 MB `boot.bpak` in 0.8 s and | | |
+| | | Linux reaches the login, twice; a copy with one payload byte changed is refused ("payload | | |
+| | | doesn't match its hash") and pb stays in command mode. The RT1060 (4 KiB pieces, 10 KiB image) | | |
+| | | starts `app-good.bpak`, its 36 checks pass with `--pretend-part`, the A/B state unchanged | | |
 
 ## Dependencies / vendored code
 

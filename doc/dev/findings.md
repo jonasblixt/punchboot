@@ -337,16 +337,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | candidate that failed later in prepare points at unverified bytes while the next one is | | |
 | | | loaded. For the contract: say (1) to (4) in 5.3 | | |
 | | | From the review of F-266: the header handed out has its signature cleared (`signature` zero, `signature_sz` 0): those are the bytes that were signed, and the text should say so | | |
-| F-280 | `src/boot/image_helpers.c` `boot_image_load_and_hash()`, the USB drivers | `boot | Reported | open |
-| | | bpak`: the device reads a part `CONFIG_BOOT_LOAD_CHUNK_kB` at a time (1 MiB on the imx8mpevk | | |
-| | | and jiffy, 4 KiB on the RT1060 with a 32 KiB buffer, 4 MiB elsewhere), hosts send it in | | |
-| | | transfers of the caps' `chunk_transfer_max_bytes` (the buffer's size, 4 MiB by default). | | |
-| | | Where the two differ, one host transfer fills several reads. `command-mode.md` 4.4 and 6 | | |
-| | | (D-060) ask the transport for that. Read in the code, not run: try `boot bpak` on the | | |
-| | | imx8mpevk and jiffy. The requirement is `usb.md` 2.3 | | |
-| | | 2026-11-12, on the bench, pb `64d5bba0`: `boot bpak` loads, verifies and starts Linux on the 8MP EVK | | |
-| | | (DWC3, 15 MB) and on jiffy (ChipIdea, 5.6 MB), pieces of 1 MiB against transfers of 4 MiB. Left: the | | |
-| | | cdns3 (the MEK's two sizes are equal) and the RT1060 (4 KiB pieces) | | |
 | F-282 | `src/arch/*/include/arch/arch.h`, the DMA drivers | The DMA rule has | Verified (code) | open |
 | | | no place in the code. Each driver calls `arch_clean_cache_range()` and | | |
 | | | `arch_invalidate_cache_range()` itself, through the arch's own header (`<arch/arch.h>`; | | |
@@ -495,6 +485,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | start (pb resets); of (3), the DWC3 refuses a read of 0 bytes, and command mode never asks for one: | |
 | | | a `STREAM_PREPARE_BUFFER` of size 0 (v2.7.1's C API passes any size) reads nothing and answers as | |
 | | | before. Left: (2) a short read, (4) speed. Not run on a board | |
+| | | 2026-11-15, on the MEK: `boot bpak`, `dev reset` (F-453) and writes of 15 MB run over the cdns3. | | |
+| | | Its write of 0 bytes isn't reachable from the MEK's commands: board status always ends in a NUL, | | |
+| | | and a board command's empty answer isn't sent | | |
 | F-310 | `doc/interfaces/bio.md`, `include/pb/bio.h` | `bio.md` describes five | Verified (code) | open |
 | | | functions of `bio.h` and doesn't name them: `bio_set_ios()` and `bio_set_ios_erase()` ("then | | |
 | | | the callbacks", 2.1), `bio_get_hal_flags()` (2.5 names the setter), | | |
