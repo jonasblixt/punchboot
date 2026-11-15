@@ -232,6 +232,15 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (F-248). Left, each needing a board or OP-TEE: region 1 gets the physical DDR base, GPR9 has no | | |
 | | | lock, TZASC1_BOOT_LOCK is unread | | |
 | | | 2026-11-14, D-084: the TZC-380 TRM goes on the share | | |
+| | | 2026-11-15, the TZC-380 TRM (DDI0431C) in the Library: TZASC1_BOOT_LOCK drives the TZC-380's | | |
+| | | secure_boot_lock input. With it high, lockdown_select is read only, and so are the registers it | | |
+| | | selects and the regions lockdown_range names, until the TZASC is reset (TRM 2.2.8, 3.2.3, 3.2.4). | | |
+| | | OP-TEE 4.9 programs region 1 at DDR's physical address on the 6UL, as pb does (only the 8M | | |
+| | | subtracts the DRAM base), and writes and checks lockdown_range and lockdown_select, but never sets | | |
+| | | TZASC1_BOOT_LOCK: its lockdown has no effect. pb must not set it, OP-TEE's checks would then fail. | | |
+| | | `cee1b689`: pb reads region 1 back and refuses the boot when the TZASC ignored the write. On | | |
+| | | jiffy: System A to the login. Left: whether a warm reset resets the TZASC (F-455), and the CSU | | |
+| | | policy that keeps the normal world off the TZASC's registers (TRM 2.1: secure only), the secure OS's | | |
 | F-321 | `src/drivers/mmc/imx_usdhc.c`, the defconfigs | One chunk's read may wait longer | Verified (code) | open |
 | | | than the watchdog. The uSDHC's data wait is `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us per byte, and a chunk | | |
 | | | is one request: 6.0 s for 1 MiB (jiffy, imx8mpevk), 9.2 s for 4 MiB (imx8qxmek, imx8mevk, imx8dxlevk), | | |
@@ -805,6 +814,18 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | both resets ended in the downloader again, the ROM log with "Device init: fail" | | |
 | | | (0x8f010b74) for the eMMC, also with BOOT1 enabled again, until a power cycle. Not | | |
 | | | looked into: whether the ROM sees a changed boot partition only after a power cycle | | |
+| F-455 | jiffy, the TZASC's lock (F-241) | jiffy is in a reset loop, needs Jonas. A test pb | Seen (board) | open |
+| | | (not committed) in BOOT1 set lockdown_range (all 8 regions), lockdown_select's region_register and | | |
+| | | GPR1's TZASC1_BOOT_LOCK after pb's region 1 (DDR, both worlds), then wrote region 1 again. After | | |
+| | | the `dev reset` that started it, every boot: the CAAM's jobs time out (JRSTAR 0x40000716), the | | |
+| | | uSDHC's data DMA fails (CMD8, -7), `cm_setup()` can't make the UUID, so no command mode, and the | | |
+| | | watchdog resets it. Its log lines (LOG_INFO) never reached the host, so where DMA stops isn't known; | | |
+| | | the region read back as pb wrote it before the lock. The ULINK isn't on USB (last seen 2026-11-14), | | |
+| | | so no JTAG reset. To recover: serial download (switches, power cycle), `uuu` with | | |
+| | | `pb_signed_uuu.imx` of `cee1b689` (`testbench/output/jiffy/images/punchboot/`), `auth token`, write | | |
+| | | it to BOOT1. Then to find out: whether a power cycle alone ends it (the test pb locks again at every | | |
+| | | boot, so likely not), why the lock stops DMA when region 1 is unchanged, and whether a warm reset | | |
+| | | resets the TZASC | | |
 
 ## Dependencies / vendored code
 

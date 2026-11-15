@@ -1876,3 +1876,9 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | packing, the error mapping, bpak detection, the CLI on a fake session), in ctest as `unit.python` | |
 | F-044 | Sphinx docs are mostly stubs, with version 1.0.0 in `conf.py`, broken header paths, and `sphinx<7`. The README test instructions are wrong (no `BOARD`). `doc/guides/release-checklist.txt` is stale. | fixed (`8c83acc7`) |
 | F-043 | No `ruff-format` hook despite the format config. mypy only runs through pre-commit.ci. There is no `_punchboot.pyi`. | fixed (`43fa4ea4`) |
+| F-456 | The test bench's ld (Buildroot, jiffy) warns of `misc_helpers.o`: "missing .note.GNU-stack | fixed |
+| | section implies executable stack" (`src/arch/armv7a/misc_helpers.S`). In earlier logs too; the | |
+| | container's build doesn't warn | |
+| | 2026-11-15 (`8f2c24c6`): no assembly source has the note, and the container's bare metal gcc | |
+| | gives no C object one: `-z noexecstack` for pb and the 8M SPL. Every `pb.bin` and SPL the same | |
+| | byte for byte; no warning from the bench's jiffy build. Done | |
