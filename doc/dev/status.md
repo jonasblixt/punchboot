@@ -18,10 +18,10 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR: `246bd897` (log 2026-11-14). The MEK: `4a017151`'s pb in BOOT1
+  - RT1060 from its NOR: `246bd897` (log 2026-11-14). The MEK: `ad44621b`'s pb in BOOT1
     (enabled), BOOT0 keeps its pb of 2026-11-14; both its USB ports are wired. The 8MP EVK:
-    `e5a4efc4`'s two-stage pb in BOOT1 (enabled), the single-stage pb of 2026-11-14 in BOOT0;
-    its switches on serial download until Jonas sets them back.
+    `ad44621b`'s two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of
+    2026-11-14 in BOOT0.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
 - **Test benches:** Linux (`testbench/`): jiffy, the 8MP EVK, the MEK and the pico8ml boot to
@@ -41,7 +41,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
    - The 8M Plus: its SPL boots pb proper on the EVK from the eMMC and over USB (`26fd5a1d`),
      Linux after it (log 2026-11-15). Not run: the signed image (the EVK is open).
    - Not yet on a board (log 2026-11-14): the RT1060's entry (F-210, F-207), the 8M's lockdown
-     (D-084), the 8MP's USB2 and the 8DXL's OTG1 (F-402).
+     (D-084), the 8MP's USB2 and the 8DXL's OTG1 (F-402), `-fno-pie` (F-454) on the pico8ml.
    - D-084's rest: EOL with data (F-263, PR #51), F-241. F-444 (OP-TEE's SMC on jiffy), F-447
      (the 8M's SLC sources), F-432 (the pico8ml, when it is back), F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
@@ -59,7 +59,5 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   `board.md` F-325, F-335, F-392; `command-mode.md` F-375; `bio.md` F-310; F-311.
 - Choices left in findings: F-140 (SDIS off: 15% faster writes on jiffy), F-283 and F-200 (the
   GPT's 512s, SEC_COUNT 0), F-406, F-411, F-180, F-227's default device.
-- F-454's `-fno-pie` (`ad44621b`) changes the 64 bit boards' pb: run on the MEK and the 8MP EVK;
-  the pico8ml and the 8DXL not yet.
 - Which findings gate the 3.0.0 tag; bebop's defconfig (F-033); virtio for QEMU (F-052).
 - The Arm specs and the TZC-380 TRM on the share (D-084).
