@@ -1632,6 +1632,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | room is counted from its page 0, one that another follows is cut to whole packets, the next starts | | |
 | | | inside the page where it ended; at least 16 KiB each, 257 descriptors for 4 MiB. On jiffy from | | |
 | | | BOOT1: 16 MiB written and verified (its buffers are on pages: the unaligned case is the model's) | | |
+| F-294 | `src/plat/imx8m/plat.c`, `makefile.mk`, `link.lds` | `bl_params`' memory on | Verified (code) | fixed |
+| | | the i.MX8M isn't what `platform.md` 5.3 has: it is `plat_bl_params`, an object in `pb`'s `.data` (where | | |
+| | | `atf.c` had it), with `PLAT_BL_PARAMS_SIZE` from the makefile, not a SoC region outside `pb` that the | | |
+| | | header names with `PLAT_BL_PARAMS_BASE` and that the link script keeps `pb` and `buffers` off. On the | | |
+| | | 8MP every byte of the OCRAM that BL31 takes them from (below 0x960000) is in `pb`'s own region, so a | | |
+| | | region of its own means cutting `pb`'s: not done without a board. New with F-258: `link.lds` fails the | | |
+| | | build when the object ends above the limit. The i.MX8M Quad's limit isn't known (no board of it has | | |
+| | | TF-A). With F-239 | | |
+| | | 2026-11-14: not done with F-239: on the 8MP pb ends at 0x961000, so no byte below 0x960000 is | | |
+| | | outside pb or the ROM's part, and a region of its own moves pb | | |
+| | | 2026-11-15: the i.MX8MQ's limit: upstream TF-A's BL31 takes no `bl_params` (v2.12 to v2.15 and | | |
+| | | master jump to `PLAT_NS_IMAGE_OFFSET` with x0 = 0); the test bench's patch | | |
+| | | (`testbench/board/pico8ml/patches`) takes them from the TCM or the OCRAM below BL31, as the 8MM | | |
+| | | does. pb's `.data` is in the TCM on the 8MQ: `PLAT_BL_PARAMS_LIMIT` is the TCM's end, 0x820000 | | |
+| | | 2026-11-15, fixed with D-088 (`971099fc`): pb proper is in DRAM, `plat_bl_params` is in a section of its own at `PLAT_BL_PARAMS_BASE`, the end of the SPL's window (the 8MQ's TCM, the 8M Plus's OCRAM), outside `pb` and `buffers`, mapped, and in the image data regions' check | | |
 
 ## Dependencies / vendored code
 

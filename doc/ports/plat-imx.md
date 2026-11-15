@@ -380,7 +380,7 @@ linked at `PB_ENTRY` and entered at its first byte, and puts around it what the 
 
 ## 7. Conformance
 
-Where each port is (2026-11-14).
+Where each port is (2026-11-15).
 
 | Requirement                          | imx6ul       | imx8m             | imx8x      | imxrt     | Finding       |
 | ------------------------------------ | ------------ | ----------------- | ---------- | --------- | ------------- |
@@ -399,7 +399,7 @@ Where each port is (2026-11-14).
 | `plat_get_status()`                  | yes          | yes               | yes        | yes       | F-248         |
 | `plat_cm_init()`                     | one port     | one port          | one port   | one port  | F-402         |
 | The board's regions in the map (5.2) | yes          | yes               | yes        | n/a       | F-269         |
-| SoC memory for image data,           | n/a          | partly            | yes        | yes       | F-294         |
+| SoC memory for image data,           | n/a          | yes (D-088)       | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |
 | The system controller's API through  | n/a          | n/a               | yes        | n/a       |               |
 | the platform header (7)              |              |                   |            |           |               |
@@ -416,6 +416,10 @@ Where each port is (2026-11-14).
 | MMU from `pb_mmu_init()`             | yes          | yes               | yes        | n/a       | F-158, F-269  |
 | Link script without addresses        | yes          | yes               | yes        | yes       | F-239         |
 | Image stages                         | yes          | yes               | yes        | yes       | F-240         |
+| Two stages, pb proper in DRAM        | n/a          | 8MQ from the eMMC | n/a        | n/a       | D-088, F-451  |
+| (`platform.md` 2)                    |              | (pico8ml); USB    |            |           |               |
+|                                      |              | open; 8MP built   |            |           |               |
+| The SPL's TZASC read back            | n/a          | yes               | n/a        | n/a       | D-088         |
 | Functions for boards, not a          | yes          | n/a               | yes        | n/a       | F-440         |
 | structure (7)                        |              |                   |            |           |               |
 | `plat_get_info()`                    | yes (jiffy)  | 8MP EVK; 8MQ not  | yes (MEK)  | yes       | F-432, F-433  |

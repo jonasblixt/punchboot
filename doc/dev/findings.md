@@ -552,20 +552,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (or, for the kernel and BL31, has a load address and no part) was jumped into by every release, | | |
 | | | and the bpak CLI builds one. `boot.md` 5.1 to 5.4 say where an entry is, not that it lies in | | |
 | | | bytes the payload's hash covers. D-074 is the entry; the contract's sentence is still open | | |
-| F-294 | `src/plat/imx8m/plat.c`, `makefile.mk`, `link.lds` | `bl_params`' memory on | Verified (code) | open |
-| | | the i.MX8M isn't what `platform.md` 5.3 has: it is `plat_bl_params`, an object in `pb`'s `.data` (where | | |
-| | | `atf.c` had it), with `PLAT_BL_PARAMS_SIZE` from the makefile, not a SoC region outside `pb` that the | | |
-| | | header names with `PLAT_BL_PARAMS_BASE` and that the link script keeps `pb` and `buffers` off. On the | | |
-| | | 8MP every byte of the OCRAM that BL31 takes them from (below 0x960000) is in `pb`'s own region, so a | | |
-| | | region of its own means cutting `pb`'s: not done without a board. New with F-258: `link.lds` fails the | | |
-| | | build when the object ends above the limit. The i.MX8M Quad's limit isn't known (no board of it has | | |
-| | | TF-A). With F-239 | | |
-| | | 2026-11-14: not done with F-239: on the 8MP pb ends at 0x961000, so no byte below 0x960000 is | | |
-| | | outside pb or the ROM's part, and a region of its own moves pb | | |
-| | | 2026-11-15: the i.MX8MQ's limit: upstream TF-A's BL31 takes no `bl_params` (v2.12 to v2.15 and | | |
-| | | master jump to `PLAT_NS_IMAGE_OFFSET` with x0 = 0); the test bench's patch | | |
-| | | (`testbench/board/pico8ml/patches`) takes them from the TCM or the OCRAM below BL31, as the 8MM | | |
-| | | does. pb's `.data` is in the TCM on the 8MQ: `PLAT_BL_PARAMS_LIMIT` is the TCM's end, 0x820000 | | |
 | F-295 | `src/board/imx8dxlevk/board.c` | The DXL EVK moved to the TF-A delivery | Reported | open |
 | | | (F-258, `boot.md` 5.3). The board has only been built: no DXL is at hand, and this tree builds no image | | |
 | | | for it (the test bench has jiffy, imx8mpevk and imx8qxmek). Before, pb started the part `atf` directly | | |
