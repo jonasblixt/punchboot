@@ -35,6 +35,15 @@ int imx8m_tzasc_check(void);
  * in plat_init()'s order before D-088 */
 int imx8m_spl_dram_init(void);
 
+/* USB1 for the SPL's fastboot (spl/spl.c, D-089): the controller is
+ * registered with the stack, not started */
+int imx8m_spl_usb_init(void);
+
+/* WDOG1 while the SPL's fastboot runs (spl/spl.c): armed and kicked where
+ * the build has the watchdog (CONFIG_ENABLE_WATCHDOG), nothing otherwise */
+void imx8m_spl_wdog_start(unsigned int timeout_s);
+void imx8m_spl_wdog_kick(void);
+
 /* A reset from the SPL, through WDOG1 (spl/spl.c) */
 void imx8m_spl_reset(void);
 

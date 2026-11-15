@@ -12,9 +12,11 @@
  */
 
 #include <arch/arch_helpers.h>
+#include <pb/dma.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/ramlog.h>
+#include <plat/imx8m/imx8m.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -22,6 +24,7 @@
 
 #include "../plat.h"
 #include "ivt.h"
+#include "rom.h"
 
 /*
  * The ROM's API at 0x980 (U-Boot, arch/arm/mach-imx/imx8m/soc.c,
@@ -45,40 +48,6 @@ struct rom_api {
     uint32_t (*query_boot_infor)(uint32_t info_type, uint32_t *info, uint32_t xor);
 };
 
-/*
- * HAB's vector table at 0x900 on the 8M Plus, 64-bit entries (U-Boot,
- * arch/arm/include/asm/mach-imx/hab.h; plat-imx.md 2, the HAB log)
- */
-#define IMX8MP_HAB_RVT        0x900
-#define HAB_RVT_ENTRY         0x08
-#define HAB_RVT_EXIT          0x10
-#define HAB_RVT_CHECK_TARGET  0x18
-#define HAB_RVT_AUTHENTICATE  0x20
-#define HAB_RVT_REPORT_STATUS 0x48
-#define HAB_SUCCESS           0xf0
-#define HAB_CFG_OPEN          0xf0
-#define HAB_TGT_MEMORY        0x0f
-#define HAB_CID_UBOOT         1 /* The caller id U-Boot gives HAB */
-
-typedef uint32_t (*hab_entry_t)(void);
-typedef uint32_t (*hab_exit_t)(void);
-typedef uint32_t (*hab_check_target_t)(uint32_t type, const void *start, size_t bytes);
-typedef void *(*hab_authenticate_t)(uint8_t cid,
-                                    ptrdiff_t ivt_offset,
-                                    void **start,
-                                    size_t *bytes,
-                                    void *loader);
-/* HAB writes its enums as 32 bit words (imx_hab_log.c, read on the boards) */
-typedef uint32_t (*hab_report_status_t)(uint32_t *config, uint32_t *state);
-
-/* A pointer the ROM keeps at addr. The ROM is at 0: the compiler takes a
- * constant address there for NULL, so it doesn't see one */
-static uintptr_t rom_entry(uintptr_t addr)
-{
-    __asm__("" : "+r"(addr));
-    return (uintptr_t)mmio_read_64(addr);
-}
-
 static const struct rom_api *rom_api(void)
 {
     uintptr_t addr = IMX8MP_ROM_API;
@@ -99,13 +68,16 @@ static uint32_t rom_query(uint32_t type, uint32_t *info)
     return rom_api()->query_boot_infor(type, info, type ^ (uint32_t)(uintptr_t)info);
 }
 
+/* A page the ROM's API reads into before pb proper's place is known: in
+ * DRAM, at the start of pb's buffers (spl/link.lds) */
+PB_DMA_ARRAY(uint8_t, scratch, 0x1000);
+
 /* pb proper's header, from the boot device at its offset, or from the USB
  * stream, read page by page until a page starts with it. The image's
  * first page, the header's, is at the load address (hdr.boot_data.start,
  * the IVT's own) afterwards */
 static int load(struct imx_header *hdr, const struct imx_ivt_limits *limits)
 {
-    uint8_t *scratch = (uint8_t *)(uintptr_t)PB_BUFFERS_BASE;
     uint32_t dev = 0;
     uint32_t page = 0;
     uint32_t image_offset = 0;
@@ -173,43 +145,6 @@ static int load(struct imx_header *hdr, const struct imx_ivt_limits *limits)
     return PB_OK;
 }
 
-/* HAB authenticates pb proper where it is, its IVT at its start. On an open
- * device a failure is HAB's events only, as the ROM's own (U-Boot's
- * imx_hab_authenticate_image()) */
-static int authenticate(const struct imx_header *hdr)
-{
-    hab_entry_t hab_entry = (hab_entry_t)rom_entry(IMX8MP_HAB_RVT + HAB_RVT_ENTRY);
-    hab_exit_t hab_exit = (hab_exit_t)rom_entry(IMX8MP_HAB_RVT + HAB_RVT_EXIT);
-    hab_check_target_t check_target =
-        (hab_check_target_t)rom_entry(IMX8MP_HAB_RVT + HAB_RVT_CHECK_TARGET);
-    hab_authenticate_t hab_authenticate =
-        (hab_authenticate_t)rom_entry(IMX8MP_HAB_RVT + HAB_RVT_AUTHENTICATE);
-    hab_report_status_t report_status =
-        (hab_report_status_t)rom_entry(IMX8MP_HAB_RVT + HAB_RVT_REPORT_STATUS);
-    void *start = (void *)(uintptr_t)hdr->boot_data.start;
-    size_t bytes = hdr->boot_data.size;
-    uint32_t config = 0;
-    uint32_t state = 0;
-    void *loaded = NULL;
-
-    if (hab_entry() == HAB_SUCCESS && check_target(HAB_TGT_MEMORY, start, bytes) == HAB_SUCCESS)
-        loaded = hab_authenticate(HAB_CID_UBOOT, 0, &start, &bytes, NULL);
-
-    if (hab_exit() != HAB_SUCCESS)
-        loaded = NULL;
-
-    (void)report_status(&config, &state);
-
-    if (loaded == NULL) {
-        LOG_ERR("HAB: pb proper not authenticated (config %02x, state %02x)", config, state);
-
-        if (config != HAB_CFG_OPEN)
-            return -PB_ERR_SIGNATURE;
-    }
-
-    return PB_OK;
-}
-
 void spl_main(void);
 
 void spl_main(void)
@@ -228,7 +163,7 @@ void spl_main(void)
     LOG_INFO("SPL " PB_VERSION);
 
     if (imx8m_spl_dram_init() == PB_OK && load(&hdr, &limits) == PB_OK &&
-        authenticate(&hdr) == PB_OK) {
+        imx8m_spl_hab_authenticate(IMX8MP_HAB_RVT_BASE, &hdr) == PB_OK) {
         LOG_INFO("pb proper: %08x", hdr.ivt.entry);
         ((void (*)(void))(uintptr_t)hdr.ivt.entry)();
     }

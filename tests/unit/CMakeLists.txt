@@ -941,6 +941,22 @@ pb_unit_test(test_imx_ivt SOURCES
     ${PROJECT_SOURCE_DIR}/src/plat/imx8m/spl/ivt.c
 )
 
+# The i.MX8M SPL's fastboot (D-089): its commands
+pb_unit_test(test_fb_proto SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/spl/fb_proto.c
+)
+
+# The same on the USB stack, with a host on the bus (fakes/usb_host.h); a
+# download in pieces of 1024 bytes
+pb_unit_test(test_fb_usb SOURCES
+    fakes/usb_host.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/usbd.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/spl/fb_proto.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/spl/fb_usb.c
+)
+target_compile_definitions(test_fb_usb PRIVATE FB_USB_CHUNK=1024)
+
 pb_unit_test(test_imx8mp_ddr SOURCES
     ${PROJECT_SOURCE_DIR}/src/plat/imx8m/ddr.c
     ${PROJECT_SOURCE_DIR}/src/plat/imx8m/ddr_imx8mp.c
