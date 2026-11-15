@@ -33,6 +33,16 @@ int boot_policy_init(const struct boot_policy *policy_in)
     return policy->ops->init(policy);
 }
 
+/* The policy that is set, set up again: its init can run more than once
+ * (struct boot_policy_ops) */
+int boot_policy_reinit(void)
+{
+    if (policy_ops() == NULL)
+        return PB_OK;
+
+    return policy->ops->init(policy);
+}
+
 int boot_policy_next(uuid_t part_uu)
 {
     if (policy_ops() == NULL)

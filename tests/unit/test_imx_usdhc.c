@@ -35,6 +35,7 @@
         skip();                                        \
     } while (0)
 
+#include "conformance/bio_conformance.h"
 #include "fakes/dcache.h"
 #include "models/bench.h"
 #include "models/emmc_model.h"
@@ -224,6 +225,50 @@ static void read_write(void)
     assert_int_equal(bio_write_done(part(UU_BOOT1)), PB_OK);
     assert_int_equal(bio_read(part(UU_BOOT1), 0, 64 * 1024, in), PB_OK);
     assert_memory_equal(out, in, 64 * 1024);
+}
+
+/* The block device conformance tests (bio.md 8) on the user area, through
+ * mmc_core, the uSDHC driver and its register model, as the 8MP EVK has its
+ * e.MMC: each ends without a violation */
+static void conformance_after(void)
+{
+    assert_bench_clean();
+}
+
+/* A medium that fails half way through a write (bio.md 3.2): the card
+ * answers every block after the first ones with a CRC error */
+static void conformance_fail_writes(lba_t lba, size_t blocks)
+{
+    (void)lba;
+    emmc_model_fail_writes_after((int)blocks, BUS_DATA_CRC);
+}
+
+static void conformance_fail_reads(void)
+{
+    emmc_model_fail_read(BUS_DATA_CRC);
+}
+
+static void conformance_fault_end(void)
+{
+    emmc_model_fail_writes_after(-1, BUS_DATA_OK);
+    emmc_model_fail_read(BUS_DATA_OK);
+}
+
+static const struct bio_conformance_fault conformance_fault = {
+    .fail_writes = conformance_fail_writes,
+    .fail_reads = conformance_fail_reads,
+    .end = conformance_fault_end,
+};
+
+static int conformance_setup(void **state)
+{
+    setup(state);
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    bio_conformance_dev = part(UU_USER);
+    bio_conformance_after = conformance_after;
+    bio_conformance_erases = false;
+    bio_conformance_fault = &conformance_fault;
+    return 0;
 }
 
 static void test_imx8mpevk_emmc(void **state)
@@ -562,6 +607,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_imx8mpevk_no_sd, setup, teardown),
         cmocka_unit_test_setup_teardown(test_buffer_above_4gib_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400_is_refused, setup, teardown),
+        BIO_CONFORMANCE_TESTS(conformance_setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -19,9 +19,20 @@
 
 static int disk_fd = -1;
 
+/* What a driver's callback gets (bio.md 3.1): whole blocks, never none. A
+ * file would take any length, and hide a caller that a real driver fails */
+static bool whole_blocks(size_t length)
+{
+    return length != 0 && (length % HOST_DISK_BLOCK_SIZE) == 0;
+}
+
 static int host_disk_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 {
     (void)dev;
+
+    if (!whole_blocks(length))
+        return -PB_ERR_PARAM;
+
     ssize_t bytes = pread(disk_fd, buf, length, (off_t)lba * HOST_DISK_BLOCK_SIZE);
 
     if (bytes < 0 || (size_t)bytes != length) {
@@ -35,6 +46,10 @@ static int host_disk_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 static int host_disk_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
 {
     (void)dev;
+
+    if (!whole_blocks(length))
+        return -PB_ERR_PARAM;
+
     ssize_t bytes = pwrite(disk_fd, buf, length, (off_t)lba * HOST_DISK_BLOCK_SIZE);
 
     if (bytes < 0 || (size_t)bytes != length) {

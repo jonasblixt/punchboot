@@ -92,5 +92,8 @@ void sd_model_write(uint64_t lba, const void *buf, size_t blocks);
 /* Faults, each once */
 void sd_model_fail_read(enum bus_data_status status);
 void sd_model_fail_write(enum bus_data_status status);
+/* After 'blocks' more written blocks every block written fails with
+ * 'status', until it is called with blocks < 0 */
+void sd_model_fail_writes_after(int blocks, enum bus_data_status status);
 
 #endif // TESTS_UNIT_MODELS_SD_MODEL_H

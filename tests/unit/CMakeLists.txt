@@ -36,6 +36,18 @@ pb_unit_test(test_bio SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
 )
 
+# The block device conformance tests (bio.md 8), linked by every test program
+# that has a device to run them against
+set(PB_BIO_CONFORMANCE ${CMAKE_CURRENT_SOURCE_DIR}/conformance/bio_conformance.c)
+
+# Against the RAM disk and the host platform's disk and flash
+pb_unit_test(test_bio_conformance SOURCES
+    ${PB_BIO_CONFORMANCE}
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/plat/host/disk.c
+    ${PROJECT_SOURCE_DIR}/src/plat/host/nor.c
+)
+
 pb_unit_test(test_gpt SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/partition/gpt.c
@@ -686,6 +698,7 @@ pb_unit_test(test_mmc_models LIBS pb_mmc_models)
 # mmc_core against the SD card model
 pb_unit_test(test_mmc_sd
     SOURCES
+        ${PB_BIO_CONFORMANCE}
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
@@ -697,6 +710,7 @@ pb_unit_test(test_mmc_sd
 # mmc_core against the e.MMC model, JESD84-B51
 pb_unit_test(test_mmc_emmc
     SOURCES
+        ${PB_BIO_CONFORMANCE}
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
@@ -723,6 +737,7 @@ target_link_options(test_imx_caam PRIVATE -no-pie)
 
 pb_unit_test(test_imx_usdhc
     SOURCES
+        ${PB_BIO_CONFORMANCE}
         ${PB_DMA_MODEL}
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
@@ -742,6 +757,7 @@ target_link_options(test_imx_usdhc PRIVATE -no-pie)
 # The FlexSPI NOR driver and bio against a NOR flash modelled behind the
 # controller's registers (see the test)
 pb_unit_test(test_imx_flexspi SOURCES
+    ${PB_BIO_CONFORMANCE}
     fakes/regs.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/delay.c
