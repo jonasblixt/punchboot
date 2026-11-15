@@ -29,6 +29,8 @@
 #define SCB_CCSIDR 0xe000ed80
 #define SCB_CSSELR 0xe000ed84
 #define MPU_CTRL   0xe000ed94
+#define MPU_RNR    0xe000ed98
+#define MPU_RASR   0xe000eda0
 #define SCB_DCISW  0xe000ef60 /* D-cache invalidate by set/way */
 #define SCB_DCCISW 0xe000ef74 /* D-cache clean and invalidate by set/way */
 #define SCB_CACR   0xe000ef9c /* Cortex-M7 L1 cache control */
@@ -112,6 +114,12 @@ arch_disable_mmu:
 
     ldr     r0, =MPU_CTRL
     movs    r1, #0
+    str     r1, [r0]
+    /* And pb's one region, the stack's guard (entry.c), cleared: the next
+     * stage finds the MPU as at reset */
+    ldr     r0, =MPU_RNR
+    str     r1, [r0]
+    ldr     r0, =MPU_RASR
     str     r1, [r0]
     dsb
     isb
