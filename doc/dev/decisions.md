@@ -108,6 +108,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-086 | The software crypto backend is the core's        | In force; the documents wait for Jonas's review    |
 | D-087 | A build may forbid every fuse write              | In force (Jonas: "the EVK must never write fuses") |
 | D-088 | The i.MX8M boots pb in two stages, one image     | Accepted (Jonas); the code follows                 |
+| D-089 | The 8MQ SPL's USB recovery: fastboot             | Accepted (Jonas); Jonas writes the SPL's part      |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2145,3 +2146,19 @@ DRAM (`822ee69e`), 648 bytes left; the next feature had no room. In DRAM pb prop
   change it after the check, as for every image pb loads (`security.md` 5, probing the buses).
 - **Not changed:** the wire and bpak (D-008); the update, `part write` of `pb_signed.imx` to a
   boot partition.
+
+
+## D-089: The i.MX8MQ SPL's USB recovery is fastboot (2026-11-15)
+
+The 8MQ's plugin can't hand pb proper over to the ROM's serial downloader (F-451), so USB
+recovery needs the SPL to download pb proper itself.
+
+- **Fastboot, not SDP** (Jonas): uuu's `FB:` commands and Android's `fastboot` speak it, over
+  the two bulk endpoints pb's USB stack has. SDP would need HID, class requests and control
+  writes on endpoint 0, a change to the stack command mode rests on.
+- **The device**: pb's VID 0x1209 with a PID of its own (to be registered with pid.codes).
+- **The stack**: one optional controller operation, `xfer_start_short` (`usb.md` 4.5), for
+  fastboot's commands, which are as long as they are; only the DWC3 has it. Command mode's
+  reads stay exact.
+- **The SPL's part is Jonas's**: the protocol, the USB glue and the step that decides whether
+  the downloaded pb proper may start.

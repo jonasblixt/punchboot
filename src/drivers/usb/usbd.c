@@ -425,6 +425,44 @@ int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length)
     return rc;
 }
 
+/*
+ * An OUT transfer of at most 'length' bytes that a short packet ends (usb.md
+ * 4.5): what a protocol of messages of their own length needs, fastboot's
+ * commands. *received is the byte count once usbd_xfer_complete() gave
+ * PB_OK. A controller without the operation: -PB_ERR_NOT_SUPPORTED
+ */
+int usbd_xfer_start_short(usb_ep_t ep, void *buf, size_t length, size_t *received)
+{
+    int rc;
+
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
+
+    if (hal_ops->xfer_start_short == NULL)
+        return -PB_ERR_NOT_SUPPORTED;
+
+    if ((ep & 1) || received == NULL)
+        return -PB_ERR_PARAM;
+
+    if (cur_xfer_running) {
+        LOG_ERR("%s: a transfer on %s runs", ep_to_str(ep), ep_to_str(cur_xfer_ep));
+        return -PB_ERR_STATE;
+    }
+
+    if (!dma_owns_lines(buf, 0)) {
+        LOG_ERR("%s: buffer %p isn't on a cache line", ep_to_str(ep), buf);
+        return -PB_ERR_ALIGN;
+    }
+
+    cur_xfer_ep = ep;
+    rc = hal_ops->xfer_start_short(ep, buf, length, received);
+
+    if (rc == PB_OK)
+        cur_xfer_running = true;
+
+    return rc;
+}
+
 int usbd_xfer_cancel(void)
 {
     if (hal_ops == NULL)

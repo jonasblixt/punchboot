@@ -236,8 +236,9 @@ The stack answers these requests and no others:
 ## 4. The controller
 
 A controller's driver gives `struct usbd_hal_ops` to the stack when the platform sets it up
-(`usbd_init_hal_ops()`, from `plat_cm_init()`). Every operation is mandatory. The stack checks
-that at registration and calls none it didn't check.
+(`usbd_init_hal_ops()`, from `plat_cm_init()`). Every operation is mandatory but
+`xfer_start_short` (4.5). The stack checks that at registration and calls none it didn't
+check.
 
 Every operation returns at once but `init`, `stop` and the stages of a control transfer
 (4.4), which wait with a bound (`drivers.md` 3). The driver polls: no interrupt is enabled.
@@ -313,6 +314,19 @@ ep0_stall(void)
 - **`ep0_xfer_zlp`** is the status stage, bounded.
 - **`ep0_stall`.** Stalls endpoint 0 until the next SETUP. **Not yet in the code
   (F-138)**: there is no such operation.
+
+### 4.5 Operation : xfer_start_short [optional]
+
+```
+xfer_start_short(usb_ep_t ep, void *buf, size_t length, size_t *received)   PB_OK or -PB_ERR_*
+```
+
+An OUT transfer of at most `length` bytes that a short packet ends without an error, for a
+protocol of messages of their own length: the i.MX8M SPL's fastboot (D-089), never command
+mode, whose reads stay exact (2.3). `*received` is the byte count once `xfer_complete` returned
+PB_OK. Otherwise 4.3's rules: `buf` owns its lines, one transfer per endpoint, lost on a bus
+reset. The stack's `usbd_xfer_start_short()` answers `-PB_ERR_NOT_SUPPORTED` with a controller
+that doesn't have it. Only the DWC3 has it.
 
 ## 5. Buffers and sizes
 

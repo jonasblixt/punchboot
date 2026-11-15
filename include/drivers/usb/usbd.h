@@ -209,6 +209,9 @@ struct usbd_hal_ops {
     int (*xfer_start)(usb_ep_t ep, void *buf, size_t length);
     int (*xfer_complete)(usb_ep_t ep);
     void (*xfer_cancel)(usb_ep_t ep);
+    /* [optional] An OUT transfer that a short packet may end; *received is
+     * set when xfer_complete returns PB_OK (usb.md 4.5) */
+    int (*xfer_start_short)(usb_ep_t ep, void *buf, size_t length, size_t *received);
     int (*poll_setup_pkt)(struct usb_setup_packet *pkt);
     int (*set_configuration)(const struct usb_endpoint_descriptor *eps, size_t no_of_eps);
     int (*set_address)(uint16_t addr);
@@ -223,6 +226,7 @@ int usbd_init(void);
 int usbd_connect(void);
 int usbd_disconnect(void);
 int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length);
+int usbd_xfer_start_short(usb_ep_t ep, void *buf, size_t length, size_t *received);
 int usbd_xfer_cancel(void);
 int usbd_xfer_complete(void);
 
