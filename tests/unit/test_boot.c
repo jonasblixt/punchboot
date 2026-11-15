@@ -1036,14 +1036,14 @@ static void test_bio_boot(void **state)
     /* The jump, once */
     assert_int_equal(fake.jump_calls, 1);
     assert_int_equal(fake.lockdown_calls_at_jump, 1);
-    /* The watchdog is kicked once before the jump (platform.md 3.3, F-243):
-     * after late_boot and the lockdown, so that the next stage has the whole
-     * timeout. The chunks' kicks are boot_image_load_and_hash()'s, which is
-     * a fake here */
-    assert_int_equal(fake.kicks_at_late, 0);
-    assert_int_equal(fake_lockdown_wdog_kicks, 0);
-    assert_int_equal(fake.kicks_at_jump, 1);
-    assert_int_equal(fake_wdog_kicks, 1);
+    /* The watchdog is kicked once per candidate (platform.md 3.3, D-084)
+     * and once before the jump (F-243): after late_boot and the lockdown, so
+     * that the next stage has the whole timeout. The chunks' kicks are
+     * boot_image_load_and_hash()'s, which is a fake here */
+    assert_int_equal(fake.kicks_at_late, 1);
+    assert_int_equal(fake_lockdown_wdog_kicks, 1);
+    assert_int_equal(fake.kicks_at_jump, 2);
+    assert_int_equal(fake_wdog_kicks, 2);
     /* Directly (boot.md 5.1): the handover's entry and its four arguments,
      * with the cache cleaned and off. The entry itself is cleaned first, it
      * is read after the cache went off */
@@ -1247,10 +1247,10 @@ static void test_policy_next_candidate(void **state)
     assert_memory_equal(fake.prepare_uu, UU_SYS_B, 16);
     assert_int_equal(fake.late_calls, 1);
     assert_int_equal(fake.jump_calls, 1);
-    /* One kick before the jump, whichever candidate it is: the loop over
-     * the candidates has none of its own (platform.md 3.3 names none) */
-    assert_int_equal(fake.kicks_at_late, 0);
-    assert_int_equal(fake.kicks_at_jump, 1);
+    /* A kick per candidate, whichever fails (platform.md 3.3, D-084), and
+     * one before the jump */
+    assert_int_equal(fake.kicks_at_late, 2);
+    assert_int_equal(fake.kicks_at_jump, 3);
 }
 
 /* A failed prepare is the candidate's too: the next one is tried */
@@ -1299,8 +1299,9 @@ static void test_policy_every_candidate_fails(void **state)
     assert_int_equal(fake.late_calls, 0);
     assert_int_equal(fake.jump_calls, 0);
     assert_int_equal(boot_get_flags(), 0);
-    /* No jump, no kick: command mode's loop has the next one */
-    assert_int_equal(fake_wdog_kicks, 0);
+    /* A kick per candidate, also one that fails before its first chunk
+     * (D-084); no jump, no kick for it: command mode's loop has the next */
+    assert_int_equal(fake_wdog_kicks, 3);
 
     /* The next boot starts with the first candidate again */
     fake.auth_rc = PB_OK;
@@ -2081,8 +2082,9 @@ static void test_late_boot_error(void **state)
     assert_int_equal(fake.late_flags, BOOT_FLAG_CMD);
     assert_int_equal(fake.jump_calls, 0);
     assert_int_equal(boot_get_flags(), 0);
-    /* A boot that late_boot stops doesn't jump: no kick before it (F-243) */
-    assert_int_equal(fake_wdog_kicks, 0);
+    /* A boot that late_boot stops doesn't jump: no kick before it (F-243),
+     * only the candidate's */
+    assert_int_equal(fake_wdog_kicks, 1);
 }
 
 /* No jump without the lockdown (F-244), and a late_boot error comes first */
@@ -2097,14 +2099,16 @@ static void test_lockdown_error(void **state)
     assert_int_equal(fake_lockdown_calls, 1);
     assert_int_equal(fake.jump_calls, 0);
     assert_int_equal(boot_get_flags(), 0);
-    /* The kick comes after the lockdown: none without the jump (F-243) */
-    assert_int_equal(fake_wdog_kicks, 0);
+    /* The kick comes after the lockdown: none without the jump (F-243),
+     * only the candidate's */
+    assert_int_equal(fake_wdog_kicks, 1);
 
     fake_lockdown_calls = 0;
     fake.late_rc = -PB_ERR_ABORT;
     assert_int_equal(boot(NULL), -PB_ERR_ABORT);
     assert_int_equal(fake_lockdown_calls, 0);
-    assert_int_equal(fake_wdog_kicks, 0);
+    /* The second boot's candidate kicked too */
+    assert_int_equal(fake_wdog_kicks, 2);
 }
 
 /* The whole disk, to see that a boot in place writes nothing */
@@ -2169,7 +2173,8 @@ static void test_in_place_boot(void **state)
     assert_int_equal(fake.late_calls, 1);
     assert_int_equal(fake_lockdown_calls, 1);
     assert_int_equal(fake.jump_calls, 1);
-    assert_int_equal(fake.kicks_at_jump, 1);
+    /* The candidate's kick, then the jump's */
+    assert_int_equal(fake.kicks_at_jump, 2);
 
     /* The fake auth cleared the signature in its header, as bpak does: that
      * was pb's copy, the partition is as it was */
@@ -2881,10 +2886,11 @@ static void test_delivery(void **state)
     assert_int_equal(fake.late_calls, 1);
     assert_int_equal(fake_lockdown_calls, 1);
     assert_int_equal(fake.delivery_jump_calls, 1);
-    assert_int_equal(fake.kicks_at_late, 0);
-    assert_int_equal(fake_lockdown_wdog_kicks, 0);
-    assert_int_equal(fake.kicks_at_jump, 1);
-    assert_int_equal(fake_wdog_kicks, 1);
+    /* The candidate's kick, then the jump's */
+    assert_int_equal(fake.kicks_at_late, 1);
+    assert_int_equal(fake_lockdown_wdog_kicks, 1);
+    assert_int_equal(fake.kicks_at_jump, 2);
+    assert_int_equal(fake_wdog_kicks, 2);
     assert_true(fake.delivery_jump_next.entry == NEXT_ENTRY);
     assert_true(fake.delivery_jump_next.arg[0] == NEXT_ARG0);
     assert_true(fake.delivery_jump_next.arg[1] == NEXT_ARG1);
@@ -2925,7 +2931,8 @@ static void test_delivery_errors(void **state)
     fake_lockdown_rc = -PB_ERR_IO;
     assert_int_equal(boot(NULL), -PB_ERR_IO);
     assert_int_equal(fake.delivery_jump_calls, 0);
-    assert_int_equal(fake_wdog_kicks, 0);
+    /* No jump's kick in any of the three boots, a candidate's in each */
+    assert_int_equal(fake_wdog_kicks, 3);
 }
 
 /* Every prepare starts from an entry that is all zero: nothing of an earlier

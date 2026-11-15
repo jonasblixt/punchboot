@@ -553,6 +553,10 @@ static int boot_from_policy(void)
     rc = boot_policy_next(candidate_uu);
 
     while (rc == PB_OK) {
+        /* Once per candidate (platform.md 3.3, D-084): the stretch between
+         * two kicks is one candidate's, however many the policy has, also
+         * when one fails before its first chunk */
+        plat_wdog_kick();
         uuid_copy(boot_part_uu, candidate_uu);
         /* The boot's mode is this candidate's, asked now: once the policy
          * has no candidate left its answer is of the last one it had */
