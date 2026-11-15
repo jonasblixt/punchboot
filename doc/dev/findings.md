@@ -447,6 +447,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14 (`f3b5ef34`): (8)'s caller: `plat_lockdown()` on the 6UL, 8M and 8X ends with | | |
 | | | `imx_caam_stop()` (on the 6UL after the OCOTP locks); a failed stop fails the lockdown. Four | | |
 | | | register writes no board has run; the commit reverts alone | | |
+| | | 2026-11-16, (10)'s cost measured: the RT1060 at `25b44094` with `CONFIG_MBEDTLS_MD_SHA384` and | | |
+| | | `_SHA512` on: text 70632 to 74288 bytes (+3.6 KiB), data +640, `pb_flash.bin` 108312 to 112408 bytes | | |
+| | | of the 256 KiB BL partition. The curves are in the build already. Not changed: for Jonas | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
 | | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |
