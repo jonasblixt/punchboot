@@ -21,7 +21,7 @@
 #define LOG_LIST_SIZE   512
 
 static const struct log_source *sources[LOG_SOURCES_MAX];
-static char list_text[LOG_LIST_SIZE];
+static char list_text[LOG_LIST_SIZE] __dram_bss; /* Command mode's */
 
 #ifdef CONFIG_RAMLOG
 static const struct log_source pb_log = {

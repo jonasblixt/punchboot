@@ -782,6 +782,7 @@ pb_plat_test(test_plat_imx8m
         fakes/board.c
         ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx8m/plat.c
+        ${PROJECT_SOURCE_DIR}/src/plat/imx8m/tzasc.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
@@ -961,6 +962,11 @@ target_compile_definitions(test_imx8m_ddr PRIVATE
     IMX8M_DDR_GOLDEN="${CMAKE_CURRENT_SOURCE_DIR}/data/imx8m_ddr_init.trace"
 )
 
+# The i.MX8M SPL's check of pb proper's header (D-088)
+pb_unit_test(test_imx_ivt SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/spl/ivt.c
+)
+
 pb_unit_test(test_imx8mp_ddr SOURCES
     ${PROJECT_SOURCE_DIR}/src/plat/imx8m/ddr.c
     ${PROJECT_SOURCE_DIR}/src/plat/imx8m/ddr_imx8mp.c
@@ -970,6 +976,8 @@ pb_unit_test(test_imx8mp_ddr SOURCES
 )
 target_include_directories(test_imx8mp_ddr BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+    # The timing file as NXP's DDR tool wrote it, with U-Boot's includes
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/spl/compat
 )
 target_compile_definitions(test_imx8mp_ddr PRIVATE
     CONFIG_PLAT_IMX8MP=1

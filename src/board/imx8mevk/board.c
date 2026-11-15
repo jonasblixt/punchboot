@@ -26,14 +26,6 @@
 
 #include "partitions.h"
 
-/* DRAM: all set points of the timing, for DDR frequency scaling in Linux */
-static const unsigned int imx8mevk_dram_mts[] = { 3200, 400, 100 };
-
-struct dram_rates dram_rates = {
-    .mts = imx8mevk_dram_mts,
-    .num = ARRAY_SIZE(imx8mevk_dram_mts),
-};
-
 /* The board's named command 'test' (command-mode.md 5.6), pb_id() 0xf93ba110,
  * the id it had before 3.0.0. Its answer names that id, as it did */
 static int
@@ -216,20 +208,22 @@ static const struct gpt_table_list gpt_tables[] = {
 };
 
 /*
- * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps, from
- * 0x40000000 to BOARD_RAM_END, above what pb has at its start: the DDR
- * controller's state and pb's buffers, to 0x41060000
- * (src/plat/imx8m/link.lds). pb itself runs from on-chip RAM. The board has
- * no handover yet (F-300), so nothing is loaded.
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps,
+ * from 0x40000000 to BOARD_RAM_END, above what pb has in it: the DDR
+ * controller's state and pb's buffers, then pb proper, which runs from
+ * PB_ENTRY (D-088). The board has no handover yet (F-300), so nothing is
+ * loaded. board_setup() checks the list against what is linked.
  *
- * The region and the link have one source, the board's makefile.mk (platform.md 5.1):
- * the region starts where the buffers' region (PB_BUFFERS_BASE,
- * _SIZE) ends, so the link fails when the buffers grow into it.
+ * The DRAM's region and the link have one source, the board's makefile.mk
+ * (platform.md 5.1): pb proper is after the buffers, so the build fails when
+ * they grow into it, and the region starts where pb proper ends.
  */
-#define BOARD_BUFFERS_END ((uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE)
+_Static_assert((uint64_t)PB_ENTRY >= (uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE,
+               "pb proper (PB_ENTRY) is not after pb's buffers");
 
 static const struct boot_image_region image_regions[] = {
-    BOOT_IMAGE_REGION(BOARD_BUFFERS_END, BOARD_RAM_END - BOARD_BUFFERS_END),
+    /* The DRAM after pb proper (D-088) */
+    BOOT_IMAGE_REGION(PB_ENTRY + PB_SIZE, BOARD_RAM_END - (PB_ENTRY + PB_SIZE)),
     BOOT_IMAGE_REGION_END,
 };
 

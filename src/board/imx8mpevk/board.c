@@ -37,41 +37,9 @@
 #include <plat/imx8m/dram.h>
 #include <plat/imx8m/imx8m.h>
 
+#include "console.h"
+
 #include "partitions.h"
-
-/*
- * DRAM: only the 4000 MT/s set point is trained. The timing also has 400
- * and 100 MT/s for DDR frequency scaling in Linux, which this board doesn't
- * use, and their training takes 215 ms of the boot.
- */
-static const unsigned int imx8mpevk_dram_mts[] = { 4000 };
-
-struct dram_rates dram_rates = {
-    .mts = imx8mpevk_dram_mts,
-    .num = ARRAY_SIZE(imx8mpevk_dram_mts),
-};
-
-static void board_console_init(void)
-{
-    /* UART2_CLK_ROOT runs from the 24 MHz reference after reset */
-    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(UART2_CLK_ROOT), CLK_ROOT_ON);
-    mmio_write_32(CCM_CCGR_SET(CCGR_UART2), CCGR_CLK_ON_MASK);
-
-    static const struct imx_pin pins[] = {
-        IMX8M_PIN(UART2_RXD, MUX_ALT(0), IMX_PAD_KEEP),
-        IMX8M_PIN(UART2_TXD, MUX_ALT(0), IMX_PAD_KEEP),
-    };
-
-    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
-
-    imx_uart_init(IMX8M_UART2_BASE, MHz(24), 115200);
-
-    static const struct console_ops ops = {
-        .putc = imx_uart_putc,
-    };
-
-    console_init(IMX8M_UART2_BASE, &ops);
-}
 
 static int usdhc_emmc_setup(void)
 {
@@ -293,33 +261,29 @@ static const struct boot_ab_state_config boot_state_cfg = {
 };
 
 /*
- * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps, from
- * 0x40000000 to BOARD_RAM_END, above what pb has at its start: the DDR
- * controller's state and pb's buffers, to 0x41060000
- * (src/plat/imx8m/link.lds). And the on-chip RAM TF-A's BL31 is linked for,
- * above pb, which runs from 0x920000. board_setup() checks the list against
- * what is linked.
+ * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps,
+ * from 0x40000000 to BOARD_RAM_END, above what pb has in it: the DDR
+ * controller's state and pb's buffers, then pb proper, which runs from
+ * PB_ENTRY (D-088). And the on-chip RAM TF-A's BL31 is linked for. board_setup() checks the list
+ * against what is linked.
  *
- * The DRAM's region and the link have one source, the board's
- * makefile.mk (platform.md 5.1): the region starts where the buffers' region
- * (PB_BUFFERS_BASE, _SIZE) ends, so the link fails when the buffers
- * grow into it. And pb's region (PB_ENTRY, PB_SIZE) ends
- * before BL31's on-chip RAM, so the link fails when pb grows into that.
+ * The DRAM's region and the link have one source, the board's makefile.mk
+ * (platform.md 5.1): pb proper is after the buffers, so the build fails when
+ * they grow into it, and the region starts where pb proper ends.
  */
-#define BOARD_BUFFERS_END ((uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE)
-
-_Static_assert(PB_SIZE != 0 && (uint64_t)PB_ENTRY + PB_SIZE <= IMX8MP_BL31_BASE,
-               "PB_SIZE doesn't end pb's region before BL31's on-chip RAM");
+_Static_assert((uint64_t)PB_ENTRY >= (uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE,
+               "pb proper (PB_ENTRY) is not after pb's buffers");
 
 static const struct boot_image_region image_regions[] = {
-    BOOT_IMAGE_REGION(BOARD_BUFFERS_END, BOARD_RAM_END - BOARD_BUFFERS_END),
+    /* The DRAM after pb proper (D-088) */
+    BOOT_IMAGE_REGION(PB_ENTRY + PB_SIZE, BOARD_RAM_END - (PB_ENTRY + PB_SIZE)),
     BOOT_IMAGE_REGION(IMX8MP_BL31_BASE, IMX8MP_BL31_SIZE),
     BOOT_IMAGE_REGION_END,
 };
 
 const struct board board = {
     .name = "imx8mpevk",
-    .console_init = board_console_init,
+    .console_init = imx8mpevk_console_init,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),

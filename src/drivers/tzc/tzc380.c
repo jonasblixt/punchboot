@@ -12,19 +12,21 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 
-#define TZC380_CONFIGURATION              0x000
-#define TZC380_CONFIGURATION_NO_REGION    GENMASK_32(3, 0)
-#define TZC380_CONFIGURATION_ADDR_W       GENMASK_32(13, 8)
-#define TZC380_CONFIGURATION_ADDR_W_SHIFT 8
+#define TZC380_CONFIGURATION                 0x000
+#define TZC380_CONFIGURATION_NO_REGION       GENMASK_32(3, 0)
+#define TZC380_CONFIGURATION_ADDR_W          GENMASK_32(13, 8)
+#define TZC380_CONFIGURATION_ADDR_W_SHIFT    8
 
-#define TZC380_REGION_SETUP_LOW(n)        (0x100 + 0x10 * (n))
-#define TZC380_REGION_SETUP_HIGH(n)       (0x104 + 0x10 * (n))
-#define TZC380_REGION_ATTR(n)             (0x108 + 0x10 * (n))
+#define TZC380_REGION_SETUP_LOW(n)           (0x100 + 0x10 * (n))
+#define TZC380_REGION_SETUP_HIGH(n)          (0x104 + 0x10 * (n))
+#define TZC380_REGION_ATTR(n)                (0x108 + 0x10 * (n))
 
-#define TZC380_REGION_ATTR_SIZE_SHIFT     1 /* 2^(size + 1) bytes */
-#define TZC380_REGION_ATTR_EN             BIT(0)
+#define TZC380_REGION_ATTR_SIZE_SHIFT        1 /* 2^(size + 1) bytes */
+#define TZC380_REGION_ATTR_EN                BIT(0)
+#define TZC380_REGION_ATTR_SIZE              GENMASK_32(6, 1)
+#define TZC380_REGION_ATTR_SUBREGION_DISABLE GENMASK_32(15, 8)
 
-#define TZC380_REGION_MIN_SIZE_LOG2       15 /* 32 KiB */
+#define TZC380_REGION_MIN_SIZE_LOG2          15 /* 32 KiB */
 
 static uintptr_t base;
 static unsigned int no_of_regions;
@@ -79,6 +81,28 @@ int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t 
     mmio_write_32(base + TZC380_REGION_SETUP_HIGH(region), (uint32_t)(region_base >> 32));
     mmio_write_32(base + TZC380_REGION_ATTR(region),
                   sp | ((size_log2 - 1) << TZC380_REGION_ATTR_SIZE_SHIFT) | TZC380_REGION_ATTR_EN);
+
+    return PB_OK;
+}
+
+int tzc380_get_region(unsigned int region, uint64_t *region_base, uint64_t *size, uint32_t *sp)
+{
+    uint32_t attr;
+
+    if (base == 0)
+        return -PB_ERR_STATE;
+
+    if (region == 0 || region >= no_of_regions)
+        return -PB_ERR_PARAM;
+
+    attr = mmio_read_32(base + TZC380_REGION_ATTR(region));
+    *region_base = ((uint64_t)mmio_read_32(base + TZC380_REGION_SETUP_HIGH(region)) << 32) |
+                   mmio_read_32(base + TZC380_REGION_SETUP_LOW(region));
+    *sp = attr & (TZC380_SP_ALL | TZC380_REGION_ATTR_SUBREGION_DISABLE);
+    *size = (attr & TZC380_REGION_ATTR_EN)
+                ? UINT64_C(1)
+                      << (((attr & TZC380_REGION_ATTR_SIZE) >> TZC380_REGION_ATTR_SIZE_SHIFT) + 1)
+                : 0;
 
     return PB_OK;
 }

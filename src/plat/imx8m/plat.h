@@ -25,4 +25,17 @@ const char *imx8m_soc_name(void);
 uint32_t imx8m_soc_digprog(void);
 uint32_t imx8m_soc_cpu_hz(void);
 
+/* The TZASC (tzasc.c, D-088): the SPL enables it before DRAM is used and
+ * opens the board's DRAM in region 1; pb proper checks both */
+int imx8m_tzasc_enable(void);
+int imx8m_tzasc_open_dram(void);
+int imx8m_tzasc_check(void);
+
+/* The SPL's DRAM bring-up (spl/spl.c): the clocks, the TZASC and the DRAM,
+ * in plat_init()'s order before D-088 */
+int imx8m_spl_dram_init(void);
+
+/* A reset from the SPL, through WDOG1 (spl/spl.c) */
+void imx8m_spl_reset(void);
+
 #endif // PLAT_IMX8M_PLAT_H_

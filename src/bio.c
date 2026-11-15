@@ -41,7 +41,7 @@ struct bio_device {
     bool pending;
 };
 
-static struct bio_device bio_pool[CONFIG_BIO_MAX_DEVS];
+static struct bio_device bio_pool[CONFIG_BIO_MAX_DEVS] __dram_bss;
 static unsigned int n_bios = 0;
 /* The partitions that were released: none before the first install that
  * changes a table, so none on the boot path */

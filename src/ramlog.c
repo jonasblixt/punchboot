@@ -22,12 +22,26 @@ static struct {
     char data[RAMLOG_SIZE];
 } ramlog __section(".ramlog") __aligned(64) __used;
 
-/* Set by ramlog_init(). In the SPL the log is in DRAM, which may not be
- * set up yet: nothing may touch it before ramlog_init(). */
+/* Set by ramlog_init(): nothing writes the log before it */
 static bool ramlog_active;
+
+/* What an earlier stage wrote of the log, which ramlog_init() kept (D-088) */
+static uint32_t ramlog_kept_head;
 
 void ramlog_init(void)
 {
+#if defined(PB_HAS_SPL) && !defined(PB_SPL)
+    /* pb proper after the SPL (D-088): the SPL started this log at the same
+     * address on this boot and pb proper goes on with it, so the SPL's lines
+     * are pb's log and its console's. The SPL starts a new one every time */
+    if (ramlog.hdr.magic == PB_RAMLOG_MAGIC && ramlog.hdr.version == PB_RAMLOG_VERSION &&
+        ramlog.hdr.size == RAMLOG_SIZE) {
+        ramlog_active = true;
+        ramlog_kept_head = ramlog.hdr.head;
+        return;
+    }
+#endif
+    ramlog_kept_head = 0;
     ramlog.hdr.magic = PB_RAMLOG_MAGIC;
     ramlog.hdr.version = PB_RAMLOG_VERSION;
     ramlog.hdr.size = RAMLOG_SIZE;
@@ -55,6 +69,11 @@ size_t ramlog_length(void)
         return 0;
 
     return MIN(ramlog.hdr.head, (uint32_t)RAMLOG_SIZE);
+}
+
+uint32_t ramlog_kept(void)
+{
+    return ramlog_active ? ramlog_kept_head : 0;
 }
 
 uint32_t ramlog_head(void)
