@@ -28,6 +28,7 @@
 #include <drivers/usb/imx_cdns3_udc.h>
 #include <pb/dma.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <string.h>
 
 #include "fakes/dcache.h"
@@ -59,6 +60,7 @@
 #define EP_STS_SETUP    BIT(0)
 #define EP_STS_IOC      BIT(2)
 #define EP_STS_DBUSY    BIT(9)
+#define EP_STS_BUFEMPTY BIT(10) /* BUFFEMPTY */
 #define ISTS_CFGRESI    BIT(26)
 #define ISTS_DIS2I      BIT(17)
 #define ISTS_U2RESI     BIT(18)
@@ -134,6 +136,12 @@ static bool flush_hangs;
 static bool status_stage_hangs;
 static bool eprst_hangs;
 static bool dbusy_hangs;
+/* Packets of an IN endpoint in the on-chip buffer: the reads of its status
+ * before the host has read them, or a host that never does. Whether the
+ * device left the bus while one had packets */
+static unsigned int buffered_reads[32];
+static bool buffer_never_empties;
+static bool left_with_packets;
 
 /* What the registers do with a write: the status registers are written to
  * clear, and a flush, a status stage and an endpoint's reset end at once */
@@ -157,6 +165,15 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
     case EP_ISTS:
     case EP_STS:
         return 0;
+    case USB_CONF:
+        if (value & CONF_DEVDS) {
+            for (size_t ep = 0; ep < ARRAY_SIZE(buffered_reads); ep++) {
+                if (buffered_reads[ep] > 0 || (buffer_never_empties && (ep % 2)))
+                    left_with_packets = true;
+            }
+        }
+
+        return value;
     case EP_CMD:
         if (value & EP_CMD_DRDY)
             armed[selected] = true;
@@ -175,14 +192,25 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
 }
 
 /* What a read gets: the selected endpoint's configuration, and its status
- * with DBUSY when it stays busy */
+ * with DBUSY when it stays busy and BUFFEMPTY when no packet of it is in the
+ * on-chip buffer */
 static uint64_t on_read(uintptr_t addr, uint64_t value)
 {
+    bool empty;
+
     switch (addr) {
     case EP_CFG:
         return ep_cfg[selected];
     case EP_STS:
-        return value | (dbusy_hangs ? EP_STS_DBUSY : 0);
+        empty = buffered_reads[selected] == 0 && !(buffer_never_empties && (selected % 2));
+
+        if (buffered_reads[selected] > 0)
+            buffered_reads[selected]--;
+
+        /* The fake keeps what a read returned: the bit is the selected
+         * endpoint's, not the register's */
+        value &= ~(uint64_t)EP_STS_BUFEMPTY;
+        return value | (dbusy_hangs ? EP_STS_DBUSY : 0) | (empty ? EP_STS_BUFEMPTY : 0);
     default:
         return value;
     }
@@ -272,6 +300,9 @@ static int setup(void **state)
     status_stage_hangs = false;
     eprst_hangs = false;
     dbusy_hangs = false;
+    buffer_never_empties = false;
+    left_with_packets = false;
+    memset(buffered_reads, 0, sizeof(buffered_reads));
     memset(ep_cfg, 0, sizeof(ep_cfg));
     memset(armed, 0, sizeof(armed));
     memset(eprsts, 0, sizeof(eprsts));
@@ -891,6 +922,41 @@ static void test_a_busy_endpoint_is_reset(void **state)
     assert_stopped();
 }
 
+/* An IN transfer is done when its DMA is (IOC): its packets may still be in
+ * the on-chip buffer. Stop waits until the host has read them (BUFFEMPTY)
+ * before the device leaves the bus: the command's result before a reset was
+ * lost on the MEK (F-453) */
+static void test_stop_waits_for_the_in_packets(void **state)
+{
+    (void)state;
+
+    configure();
+    buffered_reads[USB_EP1_IN] = 3;
+    buffered_reads[USB_EP0_IN] = 2;
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_false(left_with_packets);
+    assert_int_equal(buffered_reads[USB_EP1_IN], 0);
+    assert_int_equal(buffered_reads[USB_EP0_IN], 0);
+    assert_stopped();
+}
+
+/* A host that doesn't read the packets is given up, bounded, and that is no
+ * error: the device leaves the bus all the same */
+static void test_in_packets_the_host_doesnt_read(void **state)
+{
+    uint32_t t0;
+    (void)state;
+
+    configure();
+    buffer_never_empties = true;
+    t0 = plat_get_us_tick();
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_true(left_with_packets);
+    assert_true(plat_get_us_tick() - t0 >= 50000);
+    assert_true(plat_get_us_tick() - t0 < 1000000);
+    assert_stopped();
+}
+
 /*
  * drivers.md 2.3: the glue's stop stops the core, then holds the block in
  * reset (ALL_SW_RESET), as its init found it; power and clocks are left on
@@ -961,6 +1027,8 @@ int main(void)
         cmocka_unit_test_setup(test_stop, setup),
         cmocka_unit_test_setup(test_the_endpoint_reset_wait_times_out, setup),
         cmocka_unit_test_setup(test_a_busy_endpoint_is_reset, setup),
+        cmocka_unit_test_setup(test_stop_waits_for_the_in_packets, setup),
+        cmocka_unit_test_setup(test_in_packets_the_host_doesnt_read, setup),
         cmocka_unit_test_setup(test_the_glue_holds_the_block_in_reset, setup),
     };
 

@@ -99,6 +99,7 @@
 #define EP_STS_DESCMIS                     BIT(4)
 #define EP_STS_TRBERR                      BIT(7)
 #define EP_STS_DBUSY                       BIT(9)
+#define EP_STS_BUFFEMPTY                   BIT(10)
 
 #define CDNS_USB_EP_STS_SID                (0x20030)
 #define CDNS_USB_DRBL                      (0x20038)
@@ -234,6 +235,10 @@ static uint32_t eps_enabled;
  * then up to 1 ms for EP_CMD_EPRST to clear (cdns3_gadget_udc_stop() gives
  * it 100 us, the longer of the two is taken) */
 #define CDNS_DBUSY_TIMEOUT_us        10
+/* An IN endpoint's packets still in the on-chip buffer at stop: the host
+ * reads them within a few microframes when it waits for them. A host that
+ * doesn't is given up after this */
+#define CDNS_BUFFEMPTY_TIMEOUT_us    50000
 #define CDNS_EPRST_TIMEOUT_us        1000
 
 /* Polls 'reg' until its bits in 'mask' are 'value', at most 'timeout_us' */
@@ -828,12 +833,33 @@ static int ep_reset(usb_ep_t ep)
 int cdns3_udc_core_stop(void)
 {
     int rc = PB_OK;
+    int empty;
 
     /* Before init, or a second time */
     if (!running)
         return PB_OK;
 
     LOG_INFO("Stop");
+
+    /*
+     * An IN transfer completes when its DMA is done (IOC, QXP RM 14.12.6.178,
+     * EP_STS): its packets may still be in the on-chip buffer, the host
+     * not having read them. The result of the command before a reset or a
+     * jump is one, and leaving the bus at once lost it. Each enabled IN
+     * endpoint's buffer is waited for (BUFFEMPTY) before the device
+     * leaves; one the host doesn't read is given up, and is no error.
+     */
+    for (usb_ep_t ep = USB_EP0_IN; ep < USB_EP_END; ep += 2) {
+        if (!(eps_enabled & BIT(ep)))
+            continue;
+
+        select_ep(ep);
+        empty = wait_for(
+            CDNS_USB_EP_STS, EP_STS_BUFFEMPTY, EP_STS_BUFFEMPTY, CDNS_BUFFEMPTY_TIMEOUT_us);
+
+        if (empty != PB_OK)
+            LOG_INFO("%s: the host didn't read the last packets", ep_to_str(ep));
+    }
 
     mmio_write_32(base + CDNS_USB_EP_ISTS, 0xffffffff);
     mmio_write_32(base + CDNS_USB_ISTS, 0xffffffff);
