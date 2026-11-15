@@ -16,6 +16,14 @@
 /* The pointer to the ROM's event log (NXP AN12853 Table 11) */
 #define IMX6UL_ROM_LOG_POINTER      (0x000001E0)
 
+/* The AIPS-TZ bridges' configuration (6UL RM 14.7, Tables 2-2 and 2-3). The 6UL
+ * has AIPS-1 and AIPS-2; the space of an AIPS-3 is reserved (Table 2-1) */
+#define IMX6UL_AIPSTZ1_BASE         (0x0207C000)
+#define IMX6UL_AIPSTZ2_BASE         (0x0217C000)
+#define AIPSTZ_MPR                  (0x00)
+#define AIPSTZ_OPACR(n)             (0x40 + (n) * 4) /* OPACR, OPACR1 to OPACR4 */
+#define AIPSTZ_OPACRS               (5)
+
 #define IMX6UL_SRC_BASE             (0x020D8000)
 
 #define IMX6UL_SRC_SCR              (0x020D8000)

@@ -119,6 +119,12 @@ static struct {
     int tzc_init_rc;
     int tzc_region_rc;
     unsigned int tzc_regions;
+    /* Region 1 as the TZASC has it; a locked region ignores the write */
+    bool tzc_locked;
+    int tzc_get_rc;
+    uint64_t tzc_base;
+    uint64_t tzc_size;
+    uint32_t tzc_sp;
     bool pll_stuck; /* The ARM PLL never locks */
 } f;
 
@@ -250,11 +256,24 @@ int tzc380_init(uintptr_t base)
 int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp)
 {
     (void)region;
-    (void)region_base;
-    (void)size;
-    (void)sp;
     f.tzc_regions++;
+
+    if (f.tzc_region_rc == PB_OK && !f.tzc_locked) {
+        f.tzc_base = region_base;
+        f.tzc_size = size;
+        f.tzc_sp = sp;
+    }
+
     return f.tzc_region_rc;
+}
+
+int tzc380_get_region(unsigned int region, uint64_t *region_base, uint64_t *size, uint32_t *sp)
+{
+    (void)region;
+    *region_base = f.tzc_base;
+    *size = f.tzc_size;
+    *sp = f.tzc_sp;
+    return f.tzc_get_rc;
 }
 
 void log_time_start(void)
@@ -588,6 +607,30 @@ static void test_status(void **state)
     assert_true(status.rom_log);
 }
 
+/* platform.md 4.5 (F-246): plat_init() opens both AIPS-TZ bridges as U-Boot
+ * does, every master trusted and no peripheral protected. The reset values
+ * (MPR 0x77000000, OPACR 0x44444444) left the SDMA without peripherals */
+static void test_aipstz_opened(void **state)
+{
+    static const uintptr_t aipstz[] = { IMX6UL_AIPSTZ1_BASE, IMX6UL_AIPSTZ2_BASE };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(aipstz); i++) {
+        fake_regs_set(aipstz[i] + AIPSTZ_MPR, 0x77000000);
+        for (unsigned int n = 0; n < AIPSTZ_OPACRS; n++)
+            fake_regs_set(aipstz[i] + AIPSTZ_OPACR(n), 0x44444444);
+    }
+
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    for (size_t i = 0; i < ARRAY_SIZE(aipstz); i++) {
+        assert_int_equal(fake_regs_get(aipstz[i] + AIPSTZ_MPR), 0x77777777);
+        for (unsigned int n = 0; n < AIPSTZ_OPACRS; n++)
+            assert_int_equal(fake_regs_get(aipstz[i] + AIPSTZ_OPACR(n)), 0);
+    }
+}
+
 /* platform.md 2.2, 4.3 (F-241, F-248): a TZASC that the board's DCD left in
  * bypass isn't plat_init()'s error, command mode runs without it. It is
  * recorded, and no region is programmed */
@@ -626,6 +669,38 @@ static void test_status_tzasc_setup_failed(void **state)
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+}
+
+/* F-241: region 1 is read back. A region that a secure OS locked before a
+ * warm reset keeps its value, the TZASC ignores pb's write: that is the
+ * state 4.3 refuses the boot for, as is a read that fails */
+static void test_status_tzasc_region_locked(void **state)
+{
+    (void)state;
+
+    f.tzc_locked = true;
+    f.tzc_base = IMX6UL_DDR_BASE;
+    f.tzc_size = SZ_MiB(512);
+    f.tzc_sp = TZC380_SP_NS_W | TZC380_SP_NS_R;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    f.tzc_locked = false;
+    f.tzc_get_rc = -PB_ERR_STATE;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    /* What pb wrote, read back: the board's DRAM at its physical address,
+     * not the 2 GiB window (F-261), to both worlds */
+    f.tzc_get_rc = PB_OK;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+    assert_int_equal(f.tzc_base, BOARD_RAM_BASE);
+    assert_int_equal(f.tzc_size, BOARD_RAM_END - BOARD_RAM_BASE);
+    assert_int_equal(f.tzc_sp, TZC380_SP_ALL);
 }
 
 /* platform.md 2.3: the ROM's logs are two, its event log and the HAB's.
@@ -1051,8 +1126,10 @@ int main(void)
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
         cmocka_unit_test_setup(test_status, setup),
+        cmocka_unit_test_setup(test_aipstz_opened, setup),
         cmocka_unit_test_setup(test_status_tzasc_bypassed, setup),
         cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
+        cmocka_unit_test_setup(test_status_tzasc_region_locked, setup),
         cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
         cmocka_unit_test_setup(test_boot_source_usb_download, setup),
         cmocka_unit_test_setup(test_boot_source_uart_download, setup),
