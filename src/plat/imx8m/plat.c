@@ -30,6 +30,7 @@
 #include <pb/slc.h>
 #include <plat/imx8m/imx8m.h>
 #include <stdio.h>
+#include <string.h>
 #include <uuid.h>
 #include <xlat_tables.h>
 
@@ -50,23 +51,29 @@
  * TF-A's bl_params (boot/atf.h, platform.md 5.3). The i.MX8M's BL31 takes
  * them only from the low part of the OCRAM, and otherwise starts BL33 at
  * its own fixed address without them: on the i.MX8M Plus below 0x960000
- * (v2.12 imx8mp_bl31_setup.c swaps base and size in that check). They are
- * in .data, which follows the code, not at the end of .bss, and link.lds
- * checks where that is. The i.MX8MQ's BL31 takes none upstream (v2.12 to
- * v2.15): with the test bench's patch from the TCM or the OCRAM below BL31,
- * and pb's .data is in the TCM.
+ * (v2.12 imx8mp_bl31_setup.c swaps base and size in that check). The
+ * i.MX8MQ's BL31 takes none upstream (v2.12 to v2.15): with the test bench's
+ * patch from the TCM or the OCRAM below BL31. pb proper is in DRAM (D-088),
+ * so they are at PLAT_BL_PARAMS_BASE, at the end of the SPL's window
+ * (link.lds), not in pb's data.
  */
-uint8_t plat_bl_params[PLAT_BL_PARAMS_SIZE] __section(".data") __aligned(PLAT_BL_PARAMS_ALIGN);
+uint8_t plat_bl_params[PLAT_BL_PARAMS_SIZE] __section(".bl_params") __aligned(PLAT_BL_PARAMS_ALIGN);
 #endif
 
 const char *platform_ns_uuid = "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
 
+#ifdef CONFIG_PLAT_IMX8MQ
+/* The A53's TCM (8MQ RM 2.1, the memory map), where the SPL ran, with the
+ * RAM log and bl_params at the end of its window (D-088) */
+#define IMX8MQ_TCM_BASE 0x007e0000
+#define IMX8MQ_TCM_SIZE 0x00040000
+#endif
+
 #ifdef CONFIG_HACK_PEEK
 /* On-chip RAM pb doesn't use, mapped for the peek hack (the 8MQ RM's memory
- * map, 2.1): OCRAM_S and the TCM below pb */
+ * map, 2.1): OCRAM_S */
 #define HACK_OCRAM_S_BASE 0x00180000
 #define HACK_OCRAM_S_SIZE 0x8000
-#define HACK_TCM_BASE     0x007e0000
 #endif
 
 static const mmap_region_t imx_mmap[] = {
@@ -80,6 +87,10 @@ static const mmap_region_t imx_mmap[] = {
     MAP_REGION_FLAT(IMX8M_AIPS_BASE, IMX8M_AIPS_SIZE, MT_DEVICE | MT_RW),
     /* OCRAM */
     MAP_REGION_FLAT(IMX8M_OCRAM_BASE, IMX8M_OCRAM_SIZE, MT_MEMORY | MT_RW),
+#ifdef CONFIG_PLAT_IMX8MQ
+    /* TCM: the SPL's window, the RAM log, bl_params */
+    MAP_REGION_FLAT(IMX8MQ_TCM_BASE, IMX8MQ_TCM_SIZE, MT_MEMORY | MT_RW),
+#endif
     /* GVP */
     MAP_REGION_FLAT(IMX8M_GPV_BASE, IMX8M_GPV_SIZE, MT_DEVICE | MT_RW),
     /* USB */
@@ -92,7 +103,6 @@ static const mmap_region_t imx_mmap[] = {
 #ifdef CONFIG_HACK_PEEK
     /* For the peek hack, read only */
     MAP_REGION_FLAT(HACK_OCRAM_S_BASE, HACK_OCRAM_S_SIZE, MT_MEMORY | MT_RO),
-    MAP_REGION_FLAT(HACK_TCM_BASE, PB_ENTRY - HACK_TCM_BASE, MT_MEMORY | MT_RO),
 #endif
     { 0 }
 };
@@ -228,68 +238,6 @@ static const struct imx_hab_log_config hab_log_cfg = {
 #endif
     .entry_size = 8,
 };
-
-#ifdef CONFIG_PLAT_IMX8MQ
-#define DDR_WINDOW_SIZE IMX8MQ_DDR_WINDOW_SIZE
-#else
-#define DDR_WINDOW_SIZE IMX8MP_DDR_WINDOW_SIZE
-#endif
-
-/*
- * The TZASC checks no DRAM access until GPR10's TZASC_EN is set, and TF-A's
- * BL31 only programs it when it is. Set before DRAM is used, with
- * ID_SWAP_BYPASS, which the RM asks for (8MP RM 4.9.1.2), and lock both:
- * the normal world reaches the GPRs. OP-TEE checks all three.
- */
-static int tzasc_enable(void)
-{
-    const uint32_t bits = GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS;
-    const uint32_t locks = GPR10_LOCK_TZASC_EN | GPR10_LOCK_TZASC_ID_SWAP;
-    uint32_t gpr10;
-
-    mmio_clrsetbits_32(IMX8M_IOMUXC_GPR10, 0, bits);
-    mmio_clrsetbits_32(IMX8M_IOMUXC_GPR10, 0, locks);
-    gpr10 = mmio_read_32(IMX8M_IOMUXC_GPR10);
-
-    if ((gpr10 & (bits | locks)) != (bits | locks)) {
-        LOG_ERR("TZASC not enabled, GPR10 %08" PRIx32, gpr10);
-        return -PB_ERR_STATE;
-    }
-
-    return PB_OK;
-}
-
-/*
- * Out of bypass, region 0 lets only secure accesses through, and some
- * masters are non-secure: the DWC3, command mode's USB, among them. Open the
- * DDR window to both worlds in region 1 and leave region 0 secure, so that
- * aliases of DRAM stay protected; OP-TEE replaces region 1 with its own. The
- * TZASC counts from the DDR window's start.
- */
-static int tzasc_open_dram(void)
-{
-    uint64_t size;
-    int rc;
-
-    rc = tzc380_init(IMX8M_TZASC_BASE);
-
-    if (rc != PB_OK)
-        return rc;
-
-    /* The enable is locked: without region 1 command mode's USB stops. So
-     * if the TZASC addresses less than the window, open what it addresses */
-    for (size = DDR_WINDOW_SIZE; size >= SZ_GiB(1); size >>= 1) {
-        rc = tzc380_configure_region(1, 0, size, TZC380_SP_ALL);
-
-        if (rc != -PB_ERR_PARAM)
-            break;
-    }
-
-    if (rc == PB_OK && size != DDR_WINDOW_SIZE)
-        LOG_ERR("TZASC: only %" PRIu64 " MiB of DRAM opened", size >> 20);
-
-    return rc;
-}
 
 /* HABv4's SRK_REVOKE[2:0] (platform.md 4.1) */
 #define IMX8M_REVOCABLE_SRKS (3)
@@ -514,7 +462,6 @@ static unsigned int ipg_rate_hz(void)
 
 int plat_init(void)
 {
-    int tzasc_rc;
     int rc;
 
     /* Init fusebox, its clock gate may be closed. Its fuse timing is for
@@ -535,42 +482,13 @@ int plat_init(void)
                        SCTR_CNTCR_FCR1,
                        SCTR_CNTCR_FCR0 | SCTR_CNTCR_HDBG | SCTR_CNTCR_EN);
 
-    /* Ungate GPIO clocks */
-    mmio_write_32(CCM_CCGR_SET(CCGR_GPIO1), CCGR_CLK_ON_MASK);
-    mmio_write_32(CCM_CCGR_SET(CCGR_GPIO2), CCGR_CLK_ON_MASK);
-    mmio_write_32(CCM_CCGR_SET(CCGR_GPIO3), CCGR_CLK_ON_MASK);
-    mmio_write_32(CCM_CCGR_SET(CCGR_GPIO4), CCGR_CLK_ON_MASK);
-    mmio_write_32(CCM_CCGR_SET(CCGR_GPIO5), CCGR_CLK_ON_MASK);
-
-    /* Ungate IOMUX clocks */
-    mmio_write_32(CCM_CCGR_SET(CCGR_IOMUX), CCGR_CLK_ON_MASK);
-    mmio_write_32(CCM_CCGR_SET(CCGR_IOMUX1), CCGR_CLK_ON_MASK);
-    mmio_write_32(CCM_CCGR_SET(CCGR_IOMUX2), CCGR_CLK_ON_MASK);
-    mmio_write_32(CCM_CCGR_SET(CCGR_IOMUX3), CCGR_CLK_ON_MASK);
-
-    /* The rest of the gates and the PLLs */
-    imx8m_soc_clock_init();
-
-    tzasc_rc = tzasc_enable();
-
-    rc = imx8m_ddr_init();
-    if (rc != PB_OK) {
-        LOG_ERR("LPDDR4 init failed (%i)", rc);
-        return rc;
-    }
-
-    LOG_DBG("LPDDR4 training complete");
-
-    /* Not plat_init()'s error: command mode's prerequisites are there, and
-     * main() would reset (platform.md 2.2). It is recorded, with the enable
-     * above, and no boot goes on without both (platform.md 2.3) */
-    rc = tzasc_open_dram();
-
-    if (rc != PB_OK)
-        LOG_ERR("TZASC setup failed (%i)", rc);
-
-    status.tz_dram_filter = (tzasc_rc == PB_OK && rc == PB_OK) ? PLAT_TZ_DRAM_ACTIVE
-                                                               : PLAT_TZ_DRAM_BYPASSED;
+    /* DRAM, the SoC's clocks and the TZASC are the SPL's (D-088). What it
+     * set up of the TZASC is read back, not trusted. A TZASC that isn't as
+     * it should be isn't plat_init()'s error: command mode's prerequisites
+     * are there, and main() would reset (platform.md 2.2). It is recorded,
+     * and no boot goes on without it (platform.md 2.3) */
+    status.tz_dram_filter = (imx8m_tzasc_check() == PB_OK) ? PLAT_TZ_DRAM_ACTIVE
+                                                           : PLAT_TZ_DRAM_BYPASSED;
 
     imx_wdog_kick(IMX8M_WDOG1_BASE);
 

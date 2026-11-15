@@ -19,8 +19,9 @@
 /* The first line and the specifics */
 #define TEXT_SIZE  (EXTRA_SIZE + 128)
 
-static char extra[EXTRA_SIZE];
-static char text[TEXT_SIZE];
+/* Written after plat_init() (main.c), as command mode does */
+static char extra[EXTRA_SIZE] __dram_bss;
+static char text[TEXT_SIZE] __dram_bss;
 
 /* "1200 MHz", or what 0 means */
 static void put_mhz(char *buf, size_t size, uint32_t hz, const char *zero)

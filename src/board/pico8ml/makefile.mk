@@ -1,16 +1,28 @@
 src-y += $(BOARD)/board.c
-src-y += $(BOARD)/lpddr4_timing_common.c
-src-y += $(BOARD)/lpddr4_timing_1gb.c
-src-y += $(BOARD)/lpddr4_timing_2gb.c
-src-y += $(BOARD)/lpddr4_timing_3gb.c
-src-y += $(BOARD)/lpddr4_timing_4gb.c
+src-y += $(BOARD)/dram.c
+src-y += $(BOARD)/console.c
+
+# The SPL's (board.md 7, D-088): the DRAM's rates, its straps and its timing
+spl-src-y += $(BOARD)/dram.c
+spl-src-y += $(BOARD)/lpddr4_timing_1gb.c
+spl-src-y += $(BOARD)/lpddr4_timing_2gb.c
+spl-src-y += $(BOARD)/lpddr4_timing_3gb.c
+spl-src-y += $(BOARD)/lpddr4_timing_4gb.c
+spl-src-y += src/drivers/gpio/imx_gpio.c
+# The SPL's console (plat/imx8m/spl.h): its lines are on the console
+# already, so pb proper doesn't print them again (PB_SPL_CONSOLE)
+spl-src-y += $(BOARD)/console.c
+spl-src-y += src/drivers/uart/imx_uart.c
+cflags-y += -DPB_SPL_CONSOLE
 
 # The board's memory (platform.md 5.1): where pb is linked, pb's region,
 # the DRAM and pb's buffers. The link checks them against the SoC.
-# pb in the TCM, to the end of the ROM's load window. The buffers are the
-# platform's. The DRAM is 1 to 4 GiB, strapped (board.c): pb uses the
-# first GiB, which every variant has (D-079).
-PB_ENTRY        = 0x7e1000
+# pb proper in DRAM after the buffers (D-088), 2 MiB; the SPL is the
+# platform's, in the TCM. The ROM loads the image's start below PB_ENTRY,
+# after the buffers, which are the platform's. The DRAM is 1 to 4 GiB,
+# strapped (dram.c): pb uses the first GiB, which every variant has (D-079).
+PB_ENTRY        = 0x41100000
+PB_SIZE         = 0x200000
 BOARD_DRAM_BASE = 0x40000000
 BOARD_DRAM_SIZE = 0x40000000
 

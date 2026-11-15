@@ -206,7 +206,7 @@ static const struct imx_rom_log_config *rom_log_cfg;
 static uint32_t rom_log[IMX_ROM_LOG_MAX_WORDS];
 static size_t rom_log_words;
 static uintptr_t rom_log_addr;
-static char rom_log_text[ROM_LOG_TEXT_SIZE];
+static char rom_log_text[ROM_LOG_TEXT_SIZE] __dram_bss; /* Decoded at the first read */
 static size_t rom_log_text_len;
 static bool rom_log_decoded;
 

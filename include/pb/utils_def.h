@@ -32,6 +32,16 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 /*
+ * Zeroed memory, as .bss, that nothing uses before plat_init() returns: a
+ * platform whose RAM before the DRAM is small (the i.MX8MQ's TCM) links it
+ * in its DRAM and zeroes it in plat_init(), after the DRAM and the MMU
+ * (platform.md 5.1). Elsewhere it is .bss, the section's name is one of
+ * .bss's. For buffers of command mode and of the board's set up, never for
+ * what the arch, plat_early_init() or the console use.
+ */
+#define __dram_bss    __attribute__((section(".bss.pb_dram")))
+
+/*
  * A pointer to a module's configuration, for an object that keeps it as a
  * const void *: it doesn't compile when '_c' isn't a pointer to a '_type',
  * NULL included. It stays a constant, for a static initializer.

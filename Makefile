@@ -218,15 +218,31 @@ BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(notdir $(blobs-y)))
 
 DEPS      = $(OBJS:.o=.d)
 
+# The SPL (platform.md 2, D-088): a platform with one fills spl-src-y,
+# spl-asm-y, spl-blobs-y and spl-ldflags-y, the board adds its DRAM sources to
+# spl-src-y (board.md 7). Its objects are in $(BUILD_DIR)/spl/, compiled
+# with pb's flags and PB_SPL; it is linked to $(BUILD_DIR)/pb_spl, and
+# $(BUILD_DIR)/spl.bin is made from it.
+SPL_OBJS  = $(patsubst %.c, $(BUILD_DIR)/spl/%.o, $(sort $(spl-src-y)))
+SPL_OBJS += $(patsubst %.S, $(BUILD_DIR)/spl/%.o, $(spl-asm-y))
+SPL_BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(notdir $(spl-blobs-y)))
+SPL_BIN = $(if $(strip $(spl-src-y)),$(BUILD_DIR)/spl.bin)
+DEPS     += $(SPL_OBJS:.o=.d)
+
 .PHONY: menuconfig olddefconfig
 
 menuconfig olddefconfig:
 	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/$@.py src/Kconfig
 
-all: $(BUILD_DIR)/$(TARGET).bin $(image-y)
-	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
+all: $(BUILD_DIR)/$(TARGET).bin $(SPL_BIN) $(image-y)
+	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)$(if $(SPL_BIN), $(BUILD_DIR)/pb_spl)
 	$(if $(DEV_KEYS),@echo "Keys: the development keys (pki/dev-keys.mk) are never a product's")
 	@echo "Success, final output: $(FINAL_OUTPUT)"
+
+# The binaries without the image stages: pb.bin and, where the platform has
+# one, spl.bin (scripts/ci/build-firmware.sh)
+.PHONY: binaries
+binaries: $(BUILD_DIR)/$(TARGET).bin $(SPL_BIN)
 
 # Every object can use PB_VERSION
 $(OBJS): $(call value_file,PB_VERSION)
@@ -239,6 +255,12 @@ link_cmd = $(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS) $(LIBS)
 LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(ldflags-y))))
 
 $(OBJS): $(call value_file,compile_cmd)
+
+spl_compile_cmd = $(CC) -DPB_SPL $(cflags-y) $(spl-cflags-y) $(asflags-y)
+spl_link_cmd = $(LD) $(spl-ldflags-y) $(SPL_OBJS) $(SPL_BLOB_OBJS)
+SPL_LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(spl-ldflags-y))))
+
+$(SPL_OBJS): $(call value_file,spl_compile_cmd) $(call value_file,PB_VERSION)
 
 $(BUILD_DIR)/keystore.o: $(KEY_PATHS) $(call value_file,KEYSTORE_ARGS) scripts/gen-keystore.py
 	@echo "GEN $(BUILD_DIR)/keystore.c$(if $(DEV_KEYS), with the development keys (pki/dev-keys.mk))"
@@ -263,6 +285,26 @@ $(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS) $(LINK_SCRI
 	@echo LD $@
 	$(Q)$(link_cmd) -o $@
 
+$(BUILD_DIR)/spl.bin: $(BUILD_DIR)/pb_spl
+	@echo OBJCOPY $< $@
+	$(Q)cp $< $<_unstripped
+	$(Q)$(STRIP) --strip-all $<
+	$(Q)$(OBJCOPY) -O binary -R .comment $< $@
+
+$(BUILD_DIR)/pb_spl: $(SPL_OBJS) $(SPL_BLOB_OBJS) $(SPL_LINK_SCRIPTS) $(call value_file,spl_link_cmd)
+	@echo LD $@
+	$(Q)$(spl_link_cmd) -o $@
+
+$(BUILD_DIR)/spl/%.o: %.S
+	@mkdir -p $(@D)
+	@echo AS $< "(SPL)"
+	$(Q)$(CC) -D__ASSEMBLY__ -DPB_SPL -c $(cflags-y) $(spl-cflags-y) $(asflags-y) $< -o $@
+
+$(BUILD_DIR)/spl/%.o: %.c
+	@mkdir -p $(@D)
+	@echo CC $< "(SPL)"
+	$(Q)$(CC) -DPB_SPL -c $(cflags-y) $(spl-cflags-y) $< -o $@
+
 # A rule per blob, for the object the link reads: the pattern rule's target
 # was the blob's path under $(BUILD_DIR), a file nothing made, so pb was
 # linked again on every make (F-431). objcopy names the symbols after the
@@ -283,7 +325,7 @@ $(BUILD_DIR)/$(notdir $(1:.bin=.bino)): $(1)
 	    --redefine-sym $$$${from}_size=$$$${to}_size \
 	    $$< $$@
 endef
-$(foreach blob,$(blobs-y),$(eval $(call blob_rule,$(blob))))
+$(foreach blob,$(sort $(blobs-y) $(spl-blobs-y)),$(eval $(call blob_rule,$(blob))))
 
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(@D)

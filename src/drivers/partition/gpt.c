@@ -74,8 +74,8 @@ struct gpt_backup_tbl {
 static const uint64_t gpt_header_signature = 0x5452415020494645ULL;
 static uint32_t prng_state;
 
-static struct gpt_primary_tbl primary __aligned(64);
-static struct gpt_backup_tbl backup __aligned(64);
+static struct gpt_primary_tbl primary __aligned(64) __dram_bss;
+static struct gpt_backup_tbl backup __aligned(64) __dram_bss;
 /* One block of the device's: the protective MBR's, or a header's. Both are
  * one block of the device's size, of which they use the first 512 bytes
  * (UEFI 2.10 5.2.3, 5.3.2); GPT takes blocks of 512 to 4096 bytes here

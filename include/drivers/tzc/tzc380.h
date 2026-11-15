@@ -46,4 +46,19 @@ int tzc380_init(uintptr_t base);
  */
 int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp);
 
+/**
+ * Read a region back, as the hardware has it
+ *
+ * @param[in] region Region number, 1 to the number of regions - 1
+ * @param[out] region_base Base address
+ * @param[out] size Size in bytes, 0 when the region is disabled
+ * @param[out] sp Security permissions, TZC380_SP_*; and the subregion
+ *                disable bits, which pb never sets, in bits 15:8
+ *
+ * @return PB_OK on success
+ *        -PB_ERR_STATE if the driver isn't initialized
+ *        -PB_ERR_PARAM on a bad region
+ */
+int tzc380_get_region(unsigned int region, uint64_t *region_base, uint64_t *size, uint32_t *sp);
+
 #endif // INCLUDE_DRIVERS_TZC_TZC380_H

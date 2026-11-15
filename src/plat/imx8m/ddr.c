@@ -89,77 +89,42 @@ static void copy_cfg(struct dram_cfg_param **pos,
         *(*pos)++ = src[i];
 }
 
-/* Append table 't' at 'pos' and point 'table' to it: its CSRs and values,
- * 0 in a table without values */
-static void copy_phy(struct dram_cfg_param **pos,
-                     struct dram_cfg_param **table,
-                     const struct dram_phy_table *t)
-{
-    struct dram_phy_iter it;
-    uint32_t csr;
-    uint32_t val;
-
-    *table = *pos;
-    dram_phy_iter_init(&it, t);
-
-    while (dram_phy_iter_next(&it, &csr, &val)) {
-        (*pos)->reg = csr;
-        (*pos)->val = val;
-        (*pos)++;
-    }
-}
-
-/* Write a PHY table's CSRs */
-static void write_phy(const struct dram_phy_table *t)
-{
-    struct dram_phy_iter it;
-    uint32_t csr;
-    uint32_t val;
-
-    dram_phy_iter_init(&it, t);
-
-    while (dram_phy_iter_next(&it, &csr, &val))
-        dwc_ddrphy_write(&phy, csr, val);
-}
-
 /*
  * Read back the trained PHY CSRs, and copy all timing data to the start of
  * DRAM for TF-A (see struct dram_timing_info).
  */
-static int dram_save_timing(const struct imx8m_dram_timing *t)
+static int dram_save_timing(const struct dram_timing_info *t)
 {
     struct dram_timing_info *dt = &dram_timing_info_copy.info;
     struct dram_cfg_param *pos = dram_timing_info_copy.cfg;
     size_t n =
-        (size_t)t->ddrc_cfg_num + t->ddrphy_cfg.num + t->ddrphy_trained_csr.num + t->ddrphy_pie.num;
+        (size_t)t->ddrc_cfg_num + t->ddrphy_cfg_num + t->ddrphy_trained_csr_num + t->ddrphy_pie_num;
 
     if (n > ARRAY_SIZE(dram_timing_info_copy.cfg)) {
         LOG_ERR("DRAM timing does not fit in the TF-A copy (%zu entries)", n);
         return -PB_ERR_MEM;
     }
 
+    dwc_ddrphy_read_csrs(&phy, t->ddrphy_trained_csr, t->ddrphy_trained_csr_num);
+
     dt->ddrc_cfg_num = t->ddrc_cfg_num;
-    dt->ddrphy_cfg_num = t->ddrphy_cfg.num;
-    dt->ddrphy_trained_csr_num = t->ddrphy_trained_csr.num;
-    dt->ddrphy_pie_num = t->ddrphy_pie.num;
+    dt->ddrphy_cfg_num = t->ddrphy_cfg_num;
+    dt->ddrphy_trained_csr_num = t->ddrphy_trained_csr_num;
+    dt->ddrphy_pie_num = t->ddrphy_pie_num;
     /* Only the set points that were trained */
     memset(dt->fsp_table, 0, sizeof(dt->fsp_table));
     memcpy(dt->fsp_table, dram_rates.mts, dram_rates.num * sizeof(dt->fsp_table[0]));
 
     copy_cfg(&pos, &dt->ddrc_cfg, t->ddrc_cfg, t->ddrc_cfg_num);
-    copy_phy(&pos, &dt->ddrphy_cfg, &t->ddrphy_cfg);
-    copy_phy(&pos, &dt->ddrphy_trained_csr, &t->ddrphy_trained_csr);
-    copy_phy(&pos, &dt->ddrphy_pie, &t->ddrphy_pie);
-
-    /* The trained values, read into the copy, with the PHY's CSRs given to
-     * the APB for it */
-    dwc_ddrphy_read_csrs(&phy, dt->ddrphy_trained_csr, dt->ddrphy_trained_csr_num);
+    copy_cfg(&pos, &dt->ddrphy_cfg, t->ddrphy_cfg, t->ddrphy_cfg_num);
+    copy_cfg(&pos, &dt->ddrphy_trained_csr, t->ddrphy_trained_csr, t->ddrphy_trained_csr_num);
+    copy_cfg(&pos, &dt->ddrphy_pie, t->ddrphy_pie, t->ddrphy_pie_num);
 
     return PB_OK;
 }
 
 /* The board's rates are the first set points of its timing, see struct dram_rates */
-static int dram_rates_check(const struct imx8m_dram_timing *t)
+static int dram_rates_check(const struct dram_timing_info *t)
 {
     if (dram_rates.num == 0 || dram_rates.num > ARRAY_SIZE(t->fsp_table)) {
         LOG_ERR("%u DRAM rates, 1 to %zu", dram_rates.num, ARRAY_SIZE(t->fsp_table));
@@ -189,44 +154,19 @@ static bool dram_rate_trained(unsigned int drate)
 }
 
 /*
- * The board's timing (dram.h): its imx8m_dram_timing, or its dram_timing in
- * the tool's layout (boards before the script), unless it chooses among
+ * The board's timing (dram.h): its dram_timing, unless it chooses among
  * several, e.g. by the straps of its DRAM's density
  */
-#pragma weak imx8m_dram_timing
 #pragma weak dram_timing
 
-__attribute__((weak)) const struct imx8m_dram_timing *imx8m_board_dram_timing(void)
+__attribute__((weak)) const struct dram_timing_info *imx8m_board_dram_timing(void)
 {
-    static struct imx8m_dram_timing tool;
-
-    if (&imx8m_dram_timing != NULL)
-        return &imx8m_dram_timing;
-
-    if (&dram_timing == NULL)
-        return NULL;
-
-    tool = (struct imx8m_dram_timing){
-        .ddrc_cfg = dram_timing.ddrc_cfg,
-        .ddrc_cfg_num = dram_timing.ddrc_cfg_num,
-        .ddrphy_cfg = { .pairs = dram_timing.ddrphy_cfg,
-                        .num = dram_timing.ddrphy_cfg_num,
-                        .values = true },
-        .fsp_msg = dram_timing.fsp_msg,
-        .fsp_msg_num = dram_timing.fsp_msg_num,
-        .ddrphy_trained_csr = { .pairs = dram_timing.ddrphy_trained_csr,
-                                .num = dram_timing.ddrphy_trained_csr_num },
-        .ddrphy_pie = { .pairs = dram_timing.ddrphy_pie,
-                        .num = dram_timing.ddrphy_pie_num,
-                        .values = true },
-    };
-    memcpy(tool.fsp_table, dram_timing.fsp_table, sizeof(tool.fsp_table));
-    return &tool;
+    return &dram_timing;
 }
 
 int imx8m_ddr_init(void)
 {
-    const struct imx8m_dram_timing *t = imx8m_board_dram_timing();
+    const struct dram_timing_info *t = imx8m_board_dram_timing();
     const uintptr_t ddrc = DDRC_IPS_BASE_ADDR(0);
     unsigned int drate;
     int rc;
@@ -270,7 +210,7 @@ int imx8m_ddr_init(void)
     umctl2_write_quasi_dynamic(ddrc, UMCTL2_DFIMISC, umctl2_dfimisc(ddrc));
 
     /* 3. PHY configuration */
-    write_phy(&t->ddrphy_cfg);
+    dwc_ddrphy_write_cfg(&phy, t->ddrphy_cfg, t->ddrphy_cfg_num);
 
     /* 4. Training runs */
     for (unsigned int i = 0; i < t->fsp_msg_num; i++) {
@@ -294,7 +234,7 @@ int imx8m_ddr_init(void)
     }
 
     /* 5. PHY Init Engine, then wait for the impedance calibration */
-    write_phy(&t->ddrphy_pie);
+    dwc_ddrphy_write_cfg(&phy, t->ddrphy_pie, t->ddrphy_pie_num);
     dwc_ddrphy_wait_calibration(&phy);
 
     LOG_DBG("ddrphy calibration done");
@@ -302,6 +242,16 @@ int imx8m_ddr_init(void)
     umctl2_dfi_init(ddrc);
     umctl2_dfi_init_done(ddrc);
     umctl2_enable_port(ddrc, 0);
+
+    /* Self refresh when the DRAM is idle, as NXP's U-Boot leaves it
+     * (drivers/ddr/imx/imx8m/ddr_init.c: "enable selfref_en by default") */
+    mmio_clrsetbits_32(ddrc + UMCTL2_PWRCTL, 0, PWRCTL_SELFREF_EN);
+
+    LOG_INFO("DDRC: STAT %08x, MSTR2 %08x, DFIMISC %08x, PWRCTL %08x",
+             mmio_read_32(ddrc + UMCTL2_STAT),
+             mmio_read_32(ddrc + UMCTL2_MSTR2),
+             mmio_read_32(ddrc + UMCTL2_DFIMISC),
+             mmio_read_32(ddrc + UMCTL2_PWRCTL));
 
     /* 6. Save settings and training results for TF-A */
     return dram_save_timing(t);
