@@ -58,6 +58,8 @@
 #define DWC3_EP0_MPS_INIT       512
 #define DWC3_EP0_MPS_HS_FS      64
 #define DWC3_SETUP_PKT_SIZE     sizeof(struct usb_setup_packet)
+/* The longest reply on endpoint 0: a string descriptor is 255 bytes at most */
+#define DWC3_EP0_DATA_MAX       512
 
 /*
  * The longest transfer: one TRB, whose size field (BUFSIZ) has 24 bits, in
@@ -123,6 +125,11 @@ static struct {
 PB_DMA_ARRAY_ALIGNED(uint32_t, ev_buffer, DWC3_EV_BUFFER_ENTRIES, DWC3_EV_BUFFER_BYTES);
 PB_DMA_BUFFER(struct usb_setup_packet, setup_pkt);
 PB_DMA_ARRAY(struct dwc3_trb, trbs, USB_EP_END);
+/* Endpoint 0's data stage to the host is sent from the driver's memory: what
+ * the stack answers with (a descriptor in read only data, a status on its
+ * stack) is where the controller needn't reach. The i.MX8M's SPL runs in
+ * on-chip RAM, and its DMA memory is in DRAM (D-089) */
+PB_DMA_ARRAY(uint8_t, ep0_data, DWC3_EP0_DATA_MAX);
 static struct dwc3_ep eps[USB_EP_END] __dram_bss; /* Command mode's */
 
 /* What the controller has of an endpoint's transfer: its TRB, which it
@@ -133,6 +140,13 @@ static struct {
     void *in_buf; /* An OUT transfer's buffer, NULL for none */
     size_t in_length;
 } ep_dma[USB_EP_END];
+
+/* A transfer that a short packet may end (usb.md 4.5): where its byte
+ * count goes, and the TRB's size it was started with */
+static struct {
+    size_t *received;
+    size_t size;
+} ep_short[USB_EP_END];
 
 /* The controller has the event buffer: from init to stop */
 static bool ev_dma;
@@ -561,6 +575,8 @@ static int dwc3_udc_xfer_start(usb_ep_t ep, void *buf, size_t length)
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
 
+    ep_short[ep].received = NULL;
+
     /* One TRB per transfer, whose size field has 24 bits: a longer transfer
      * is refused before anything is written, never cut (usb.md 2.3, 4.3).
      * An OUT transfer's size is rounded up to whole packets, below */
@@ -571,6 +587,15 @@ static int dwc3_udc_xfer_start(usb_ep_t ep, void *buf, size_t length)
         /* Data stage of a control transfer */
         if (!ep0.in_control || ep0.aborted)
             return PB_OK;
+
+        if (ep == USB_EP0_IN && length > 0) {
+            if (length > sizeof(ep0_data))
+                return -PB_ERR_PARAM;
+
+            memcpy(ep0_data, buf, length);
+            buf = ep0_data;
+        }
+
         ep0.data_stage = true;
         return dwc3_start_trb(ep, buf, length, length, TRBCTL_CONTROL_DATA);
     }
@@ -600,7 +625,25 @@ static int dwc3_udc_xfer_start(usb_ep_t ep, void *buf, size_t length)
     if (!EP_IS_IN(ep))
         size = ((length + eps[ep].mps - 1) / eps[ep].mps) * eps[ep].mps;
 
+    ep_short[ep].size = size;
     return dwc3_start_trb(ep, buf, length, size, TRBCTL_NORMAL);
+}
+
+/* The controller ends an OUT TRB at a short packet by itself, without an
+ * error; what it didn't fill is left in the TRB's BUFSIZ */
+static int dwc3_udc_xfer_start_short(usb_ep_t ep, void *buf, size_t length, size_t *received)
+{
+    int rc;
+
+    if (ep >= USB_EP_END || EP_IS_IN(ep) || ep == USB_EP0_OUT || received == NULL)
+        return -PB_ERR_PARAM;
+
+    rc = dwc3_udc_xfer_start(ep, buf, length);
+
+    if (rc == PB_OK)
+        ep_short[ep].received = received;
+
+    return rc;
 }
 
 static int dwc3_udc_xfer_complete(usb_ep_t ep)
@@ -628,6 +671,14 @@ static int dwc3_udc_xfer_complete(usb_ep_t ep)
     /* Data from the host: drop lines the CPU may have fetched during DMA,
      * and the TRB's */
     dwc3_ep_dma_end(ep);
+
+    if (ep_short[ep].received != NULL) {
+        size_t left = trbs[ep].size & TRB_SIZE_BUFSIZ_MASK;
+        size_t got = (left <= ep_short[ep].size) ? ep_short[ep].size - left : 0;
+
+        *ep_short[ep].received = MIN(got, ep_dma[ep].in_length);
+        ep_short[ep].received = NULL;
+    }
 
     return PB_OK;
 }
@@ -907,6 +958,7 @@ int imx_dwc3_udc_init(uintptr_t base_)
         .xfer_start = dwc3_udc_xfer_start,
         .xfer_complete = dwc3_udc_xfer_complete,
         .xfer_cancel = dwc3_udc_xfer_cancel,
+        .xfer_start_short = dwc3_udc_xfer_start_short,
         .poll_setup_pkt = dwc3_udc_poll_setup_pkt,
         .set_configuration = dwc3_udc_set_configuration,
         .set_address = dwc3_udc_set_address,

@@ -112,9 +112,14 @@ void usb_host_bus_reset(void);
  * the device it is the bus reset of the new connection */
 void usb_host_replug(void);
 
-/* The host sends 'length' bytes on the bulk OUT endpoint. They reach the
- * device when a transfer runs there, in the order they were sent; bytes a
- * cancelled transfer had taken are lost */
+/* The bulk endpoints' packet at high speed */
+#define USB_HOST_PACKET 512
+
+/* The host sends 'length' bytes on the bulk OUT endpoint, one transfer of
+ * its own: it ends with a short packet unless it is whole packets. The bytes
+ * reach the device when a transfer runs there, in the order they were sent;
+ * bytes a cancelled transfer had taken are lost. A short packet ends a
+ * device's transfer that takes one (usb.md 4.5), no other */
 void usb_host_send(const void *data, size_t length);
 
 /* The host reads at most 'size' bytes from the bulk IN endpoint, and gets

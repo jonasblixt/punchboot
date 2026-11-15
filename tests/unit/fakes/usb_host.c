@@ -22,6 +22,8 @@ struct xfer {
     uint8_t *buf;
     size_t length;
     size_t done; /* Bytes that moved */
+    size_t *received; /* A transfer that a short packet may end (usb.md 4.5) */
+    bool ended; /* A short packet ended it */
 };
 
 static struct usb_host_config config;
@@ -38,6 +40,10 @@ static int next_status_rc;
 /* What the host sent on bulk OUT and no transfer took yet */
 static uint8_t out_fifo[64 * 1024];
 static size_t out_fifo_length;
+/* Where in it the host's transfers that ended with a short packet end, in
+ * the order they were sent */
+static size_t out_short[32];
+static size_t out_short_count;
 
 /* Off the bus, or a bus reset: what the controller forgets */
 /* The host doesn't take endpoint 0's replies (usb_host_hold_ep0_in()) */
@@ -51,6 +57,21 @@ static void controller_reset(void)
     setup_pending = false;
     in_control = false;
     out_fifo_length = 0;
+    out_short_count = 0;
+}
+
+/* 'n' bytes left the fifo: the short packets in them are gone, the others
+ * are that much nearer */
+static void out_short_consume(size_t n)
+{
+    size_t kept = 0;
+
+    for (size_t i = 0; i < out_short_count; i++) {
+        if (out_short[i] > n)
+            out_short[kept++] = out_short[i] - n;
+    }
+
+    out_short_count = kept;
 }
 
 /* Moves what the host sent into the transfer that waits for it */
@@ -66,6 +87,13 @@ static void pump(void)
         if (n > out_fifo_length)
             n = out_fifo_length;
 
+        /* A short packet ends a transfer that takes one (usb.md 4.5). One
+         * that doesn't goes on: no driver reports it (F-137) */
+        if (x->received != NULL && out_short_count > 0 && out_short[0] <= n) {
+            n = out_short[0];
+            x->ended = true;
+        }
+
         if (n == 0)
             continue;
 
@@ -73,6 +101,10 @@ static void pump(void)
         x->done += n;
         out_fifo_length -= n;
         memmove(out_fifo, out_fifo + n, out_fifo_length);
+        out_short_consume(n);
+
+        if (x->ended)
+            x->active = false;
     }
 }
 
@@ -129,6 +161,25 @@ static int hal_xfer_start(usb_ep_t ep, void *buf, size_t length)
     return PB_OK;
 }
 
+static int hal_xfer_start_short(usb_ep_t ep, void *buf, size_t length, size_t *received)
+{
+    int rc;
+
+    if (ep >= USB_EP_END || !EP_IS_BULK(ep) || EP_IS_IN(ep) || received == NULL)
+        return -PB_ERR_PARAM;
+
+    rc = hal_xfer_start(ep, buf, 0);
+
+    if (rc != PB_OK)
+        return rc;
+
+    xfers[ep].length = length;
+    xfers[ep].received = received;
+    pump();
+
+    return PB_OK;
+}
+
 static int hal_xfer_complete(usb_ep_t ep)
 {
     struct xfer *x;
@@ -147,15 +198,19 @@ static int hal_xfer_complete(usb_ep_t ep)
     if (x->reset && config.reports_reset)
         return -PB_ERR_IO;
 
-    if (!x->active)
+    if (!x->active && !x->ended)
         return -PB_ERR_AGAIN;
 
     pump();
 
-    if (x->done < x->length)
+    if (x->done < x->length && !x->ended)
         return -PB_ERR_AGAIN;
 
+    if (x->received != NULL)
+        *x->received = x->done;
+
     x->active = false;
+    x->ended = false;
     return PB_OK;
 }
 
@@ -246,6 +301,7 @@ static const struct usbd_hal_ops hal_ops = {
     .xfer_start = hal_xfer_start,
     .xfer_complete = hal_xfer_complete,
     .xfer_cancel = hal_xfer_cancel,
+    .xfer_start_short = hal_xfer_start_short,
     .poll_setup_pkt = hal_poll_setup_pkt,
     .set_configuration = hal_set_configuration,
     .set_address = hal_set_address,
@@ -345,6 +401,10 @@ void usb_host_send(const void *data, size_t length)
 
     memcpy(out_fifo + out_fifo_length, data, length);
     out_fifo_length += length;
+
+    if (length % USB_HOST_PACKET != 0 && out_short_count < ARRAY_SIZE(out_short))
+        out_short[out_short_count++] = out_fifo_length;
+
     pump();
 }
 
