@@ -668,17 +668,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | doesn't cover) and one wrote 44 KiB below its destination. Signed input only, F-065's class; the | | |
 | | | image handover has it in place. Refusing such a tree refuses an image a release took: a decision | | |
 | | | (D-008), for Jonas. Found by the review of F-259 | | |
-| F-412 | `plat/imx8x/plat.c`, `src/log.c`, `board/imx8mpevk` | From F-235's package. The | Verified (code) | open |
-| | | 8X's `plat_boot_reason_str()` has no names for the SCFW's reasons 13 and 14 (`V2X_DEBUG`, | | |
-| | | `BOOT_STAGE`, by the SCFW API guide). On the 8M and the RT a log line before `plat_init()` reads the | | |
-| | | GPT's counter through a base of 0, because `gpt_base` isn't set yet; F-238 ends it. The 8MP EVK's | | |
-| | | `board_console_init()` writes the IOMUXC before `plat_init()` opens its clock gates; it works on the | | |
-| | | bench (read only). `command-mode.md` 2.1 still names F-235 in its text | | |
-| | | 2026-11-13 (`b7de7409`): the 8X names reasons 13 and 14. The GPT item was a direct | | |
-| | | `plat_get_us_tick()` caller before `plat_init()`, not the log's prefix; F-238 ended it. Left: the | | |
-| | | 8MP EVK's console set-up before its clock gate, and `command-mode.md` 2.1 naming F-235 | | |
-| | | 2026-11-14 (`374ad97f`): `command-mode.md` 2.1 cites `platform.md` 2 alone. Left: the 8MP EVK's | |
-| | | console set-up before its clock gate | |
 | F-423 | `error.h`, `bio.md` 4, `cm_main.c`, `command-mode.md` 4.5 | Low, from command mode's | Reported (read) | open |
 | | | second package. `include/pb-tools/error.h` declares `pb_error_string()`, which nothing defines. | | |
 | | | `bio.md` 4 doesn't say which flags a new partition of an installed table starts with (the code: | | |

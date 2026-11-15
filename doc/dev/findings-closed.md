@@ -1787,6 +1787,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-15, the bench run on jiffy (`55689509`, F-282 in it): random 15 MB written and verified | | |
 | | | 3 of 3 on Root B (the CAAM's hash), a wrong file refused, System A boots to the login and | | |
 | | | `reboot` comes back. Closed: no invalidate of a shared line is left | | |
+| F-412 | `plat/imx8x/plat.c`, `src/log.c`, `board/imx8mpevk` | From F-235's package. The | Verified (code) | closed |
+| | | 8X's `plat_boot_reason_str()` has no names for the SCFW's reasons 13 and 14 (`V2X_DEBUG`, | | |
+| | | `BOOT_STAGE`, by the SCFW API guide). On the 8M and the RT a log line before `plat_init()` reads the | | |
+| | | GPT's counter through a base of 0, because `gpt_base` isn't set yet; F-238 ends it. The 8MP EVK's | | |
+| | | `board_console_init()` writes the IOMUXC before `plat_init()` opens its clock gates; it works on the | | |
+| | | bench (read only). `command-mode.md` 2.1 still names F-235 in its text | | |
+| | | 2026-11-13 (`b7de7409`): the 8X names reasons 13 and 14. The GPT item was a direct | | |
+| | | `plat_get_us_tick()` caller before `plat_init()`, not the log's prefix; F-238 ended it. Left: the | | |
+| | | 8MP EVK's console set-up before its clock gate, and `command-mode.md` 2.1 naming F-235 | | |
+| | | 2026-11-14 (`374ad97f`): `command-mode.md` 2.1 cites `platform.md` 2 alone. Left: the 8MP EVK's | |
+| | | console set-up before its clock gate | |
+| | | 2026-11-15 (`6c4f64a2`, a comment): the 8M Plus's IOMUXC gate is CCGR27 (RM Table 5-2), which | | |
+| | | resets to 0x2, clocks on in RUN and WAIT (RM 5.1.7.6), and the ROM leaves on (Table 6-6); pb | | |
+| | | never closes it, and the console opens UART2's own gate (`console.c`). The writes before | | |
+| | | `plat_init()` are on an open gate: nothing to change | | |
 
 ## Dependencies / vendored code
 
