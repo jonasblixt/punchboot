@@ -23,8 +23,9 @@ log. The board must stop in command mode after a reset: no active boot
 partition.
 
 Runs on the host. Needs the punchboot Python package (tools/punchboot, the
-host library), the bpak CLI, openssl for -k, the board in command mode over
-USB and pb built with CONFIG_RAMLOG, which has the debug messages.
+host library) and the bpak Python package, openssl for -k, the board in
+command mode over USB and pb built with CONFIG_RAMLOG, which has the debug
+messages.
 """
 
 import argparse
@@ -41,13 +42,17 @@ import tempfile
 import termios
 import time
 import tty
+import uuid
 from pathlib import Path
 
+import bpak
 import punchboot
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SIGN_KEY = REPO_ROOT / "pki" / "secp256r1-key-pair.pem"
 KEY_ID = "pb-development"
+PACKAGE_UUID = uuid.UUID("8df597ff-2cf5-42ea-b2b6-47c348721b75")
+LOAD_ADDR_BYTES = 8  # bpak's integer encoding: little endian, 8 bytes
 BPAK_HEADER_SIZE = 4096
 BAD_PAYLOAD = -27
 
@@ -162,18 +167,23 @@ def build_image(path: Path, size: int, load_addr: int) -> None:
     payload = path.with_suffix(".kernel")
     payload.write_bytes(random.Random(0).randbytes(size))  # noqa: S311
 
-    def bpak(*args: str) -> None:
-        run("bpak", *args)
-
     path.unlink(missing_ok=True)
-    bpak("create", str(path), "-Y", "--hash-kind", "sha256", "--signature-kind", "prime256v1")
-    bpak("add", str(path), "--meta", "bpak-package", "--from-string",
-         "8df597ff-2cf5-42ea-b2b6-47c348721b75", "--encoder", "uuid")  # fmt: skip
-    bpak("add", str(path), "--meta", "pb-load-addr", "--from-string", hex(load_addr),
-         "--part-ref", "kernel", "--encoder", "integer")  # fmt: skip
-    bpak("add", str(path), "--part", "kernel", "--from-file", str(payload))
-    bpak("set", str(path), "--key-id", KEY_ID, "--keystore-id", "pb")
-    bpak("sign", str(path), "--key", str(SIGN_KEY))
+    # Created write only, then opened to add to it: as the bpak CLI does
+    with bpak.Package(path, "wb") as pkg:
+        pkg.hash_kind = bpak.HASH_SHA256
+        pkg.signature_kind = bpak.SIGN_PRIME256v1
+    with bpak.Package(path, "r+") as pkg:
+        pkg.add_meta(bpak.id("bpak-package"), data=PACKAGE_UUID.bytes)
+        pkg.add_meta(
+            bpak.id("pb-load-addr"),
+            bpak.id("kernel"),
+            data=load_addr.to_bytes(LOAD_ADDR_BYTES, "little"),
+        )
+        pkg.add_file("kernel", payload)
+        pkg.key_id = bpak.id(KEY_ID)
+        pkg.keystore_id = bpak.id("pb")
+        if not pkg.sign(SIGN_KEY):
+            fail(f"signing {path} failed")
     payload.unlink()
 
     # The payload no longer matches the signed hash: pb never starts it
