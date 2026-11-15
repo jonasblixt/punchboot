@@ -231,18 +231,24 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 |                      |          | USB1 PHY's power domain (GPC), the NoC  |                  |              |
 |                      |          | handshake, the BLK_CTRL's USB clock,    |                  |              |
 |                      |          | the PHY's 24 MHz reference (F-115)      |                  |              |
+| `IMX8M_CM_USB2`      | USB2     | As USB1's on the 8MP, with the USB2     | USB2's           | `dwc3_udc`   |
+|                      | (8MP)    | PHY's power domain                      | (`imx8m_phy`)    |              |
 | `IMX8X_CM_USB3`      | USB 3.0  | The SCFW: `SC_R_USB_2` and its PHY on,  | In the           | `imx_cdns3`  |
 |                      | (QXP)    | its `PER`, `MISC` and `MST_BUS` clocks  | controller's     |              |
 |                      |          |                                         | driver           |              |
+| `IMX8X_CM_USB_OTG1`  | USB OTG1 | The SCFW: `SC_R_USB_0` and its PHY on   | USB PHY 1        | `imx_ci_udc` |
+|                      |          |                                         | (`imx_usb2_phy`) |              |
 | `IMX8X_CM_USB_OTG2`  | USB OTG2 | The SCFW: `SC_R_USB_1` and its PHY on   | USB PHY 2        | `imx_ci_udc` |
 |                      | (DXL)    |                                         | (`imx_usb2_phy`) |              |
 | `IMXRT_CM_USB_OTG1`  | USB OTG1 | PLL_USB1's `EN_USB_CLKS`, the gate      | USBPHY1          | `imx_ci_udc` |
 |                      |          | `USBOH3` (CCGR6)                        | (`imx_usb2_phy`) |              |
 
-The 8M's two SoCs differ in the clocks and the power only: `imx8m_soc_usb1_power_up()` in
-`plat_imx8mq.c` and `plat_imx8mp.c`. An option exists for the port a board in the tree uses.
-Without one: the 6UL's USB OTG2, the 8M's USB2, the 8QXP's and the 8DXL's USB OTG1, the
-RT1060's USB OTG2.
+The 8M's two SoCs differ in the clocks and the power only: `imx8m_soc_cm_usb_power_up()` in
+`plat_imx8mq.c` and `plat_imx8mp.c`. An option exists for each USB port the ROM's serial
+downloader uses (D-084): the 6UL's, the 8MQ's and the RT1060's OTG1 or USB1 alone (6UL RM 8.2.4,
+8MQ RM 6.1.2.4, RT RM 9.9.1), both of the 8M Plus's (8MP RM 6.1.7), the 8QXP's USB 2.0 OTG and
+USB 3.0, the 8DXL's OTG1 and OTG2 (QXP and DXL RM 5, USB serial download boot). No board in the
+tree uses `IMX8M_CM_USB2` or `IMX8X_CM_USB_OTG1`: they are built, not run (F-402).
 
 ## 4. Security
 
@@ -449,7 +455,8 @@ Where each port is (2026-11-15).
 | `plat_init()` errors only for        | yes          | yes               | yes        | yes       | F-235         |
 | command mode                         |              |                   |            |           |               |
 | `plat_get_status()`                  | yes          | yes               | yes        | yes       | F-248         |
-| `plat_cm_init()`                     | one port     | one port          | one port   | one port  | F-402         |
+| `plat_cm_init()`                     | yes          | yes, USB2 not run | yes, OTG1  | yes       | F-402         |
+|                                      |              |                   | not run    |           |               |
 | The board's regions in the map (5.2) | yes          | yes               | yes        | n/a       | F-269         |
 | SoC memory for image data,           | n/a          | yes (D-088)       | yes        | yes       | F-294         |
 | `bl_params`' region (5.3)            |              |                   |            |           |               |

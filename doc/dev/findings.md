@@ -659,13 +659,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | Its time is the driver's per block (`bio.md` 3, from the driver's header) times the blocks a host | | |
 | | | names. To decide: what the field means (a whole partition, a block, the largest erase pb takes in | | |
 | | | one command), then fill it. Released hosts ignore it (F-226) | | |
-| F-402 | `src/plat/*/Kconfig`, `platform.md` 3.10 | `platform.md` 3.10 has one option per | Verified (code) | open |
-| | | port of the SoC that can be a device; each platform's choice has only the port a board in the tree | | |
-| | | uses. Without an option: the 6UL's USB OTG2, the 8MQ's and the 8MP's USB2, the 8QXP's USB OTG1, the | | |
-| | | 8DXL's USB OTG1, the RT1060's USB OTG2. Their set up would be SoC code nobody can run. For Jonas: | | |
-| | | write it untested, or does the rule mean the ports that have code. From F-267 | | |
-| | | 2026-11-14, D-084: every port the ROM boots from, one per build, Kconfig by driver and port; write them | | |
-| | | 2026-11-14, Jonas: USB ports only for now; no UART transport for command mode | | |
 | F-403 | `doc/architecture/boot.md` 3, `ab_state.c` | What the A/B policy does where the | Verified (code) | open |
 | | | contract is silent, from the fixes of F-173 to F-393, for Jonas. (1) A resync of two valid copies | | |
 | | | that can't be written: init returns PB_OK with the primary's state, while a repair of a corrupt or | | |
@@ -808,32 +801,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
 | | | 2026-11-14: no 6ULL board for now | | |
-| F-434 | `src/drivers/usb/cdns3_udc_core.c`, the MEK | `part write` of the 15 MB `boot.bpak` | Verified | fixed |
-| | | fails at `246bd897` with "Bad result magic 0xf9401421", seven times out of seven, also after a | | |
-| | | `dev reset`: the host reads the image's own bytes (offset 0x1660) where the device's result | | |
-| | | is, so the result frame carries data of the write. Random 15 MB files fail one write in two | | |
-| | | with other values, 4 and 8 MB pass, `root.bpak` (7 MB) passed at its second try. At | | |
-| | | `bc640ba1` the same writes passed (log 2026-11-13). Suspect: F-282's cdns3 changes | | |
-| | | (`e46baba4`); maybe F-172's cause. Not bisected | | |
-| | | 2026-11-14, the cause, on the MEK at `246bd897`: both bulk endpoints use one TRB ring, | | |
-| | | `trb[]`, since the driver came in (`bf965ce9`). After an IN result (`trb[0]`, the stop gap | | |
-| | | in `trb[1]`) the IN endpoint stays at `trb[1]`, and the TRBERR path rings DRDY again without | | |
-| | | moving it. The next OUT data transfer writes its second TRB there (the buffer + 127 KiB, cycle | | |
-| | | set); the host's IN token for the data's result comes before the device rewrites the ring, | | |
-| | | and the IN endpoint sends that TRB's 127 KiB instead of the result. The host reads 512 bytes of | | |
-| | | it as the result, and the device times out on its real result 10 s later ("Transfer timed | | |
-| | | out", then "Transfer lost"). Measured: the 512 bytes the host got are the file's at 0xc20c00, | | |
-| | | the last chunk's start (0xc01000) + 0x1fc00 (`TRB_MAX_LENGTH`); 0xf9401421 is the word at | | |
-| | | 0x420c00, the second chunk's + 0x1fc00 (offset 0x1660 was only its first copy), 0x361002c0 of | | |
-| | | another run the first chunk's. The failing step is the result after a PREPARE_BUFFER's data. | | |
-| | | Why at `246bd897` and not `bc640ba1` isn't known: the ring was shared before, so `e46baba4` | | |
-| | | changes only the timing, or not at all (F-172). The fix: a ring per bulk endpoint. Left: the | | |
-| | | fix, a bisect if Jonas wants the regression's commit | | |
-| | | 2026-11-14, fixed (`af6e7060`): `trb_in` and `trb_out`, a host test that the IN endpoint's | | |
-| | | next TRB isn't the OUT transfer's (fails on the old driver). On the MEK, from BOOT0: | | |
-| | | `boot.bpak` 5 of 5 and random 15 MB files 10 of 10, each verified; System A holds | | |
-| | | `boot.bpak` again and boots Linux to the login. The old pb failed a 500 KB write once on the | | |
-| | | way. Left: whether it is F-172's cause too, which a longer run will tell | | |
 | F-441 | `src/boot/`, `board/jiffy`, `testbench/` | The delivery through OP-TEE on ARMv7-A | Verified | open |
 | | | (`boot.md` 5.7, D-085) doesn't exist: OP-TEE is booted as the kernel's part, with a fixed | | |
 | | | `CFG_NS_ENTRY_ADDR`. Left, after the review: the delivery, its host test, jiffy's board, a | | |

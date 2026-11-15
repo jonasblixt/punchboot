@@ -466,8 +466,8 @@ CONFIG_IMX6UL_CM_USB_OTG1=y
 
 - `name`, `status` and `password_auth` are members of `struct board`. `command` is section 9,
   `process` section 10.
-- The options per platform are in `plat-imx.md` 3. A port without an option needs one in the
-  platform first (F-402).
+- The options per platform are in `plat-imx.md` 3: one for each USB port the ROM's serial
+  downloader uses. Another port needs an option in the platform first (D-084).
 - A board whose command mode needs something of the PCB (a mux, a VBUS switch) has no hook for
   it: none was needed so far, and one can be added (`board.md` 4.1).
 - pb has no other transport than USB (`board.md` 4.2).

@@ -390,8 +390,8 @@ Called once by command mode's task, when it first runs, never on the boot path (
 `board.md` 4.5). It sets up the USB device port command mode uses (D-049, `board.md` 4.1): its
 clocks, its power, its PHY and its controller, so that the transport can start.
 
-- Which port: a Kconfig choice of the platform's, one option per port of the SoC that can be a
-  device. The board's defconfig makes it.
+- Which port: a Kconfig choice of the platform's, one option for each USB port the ROM boots
+  from (its serial downloader's, D-084), one port per build. The board's defconfig makes it.
 - Valid from: what `plat_init()` provides. It also runs after a failed `board_setup()`, so it
   relies on nothing of the board's.
 - Failure: no command mode. Its task ends the loop and pb resets.

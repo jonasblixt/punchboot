@@ -1660,6 +1660,44 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | and it stops in command mode; a cut download, another header and a changed byte are | | |
 | | | refused. The first runs hung in the HAB step: `report_status` writes 32 bit words, the SPL | | |
 | | | gave it bytes. The session has the watchdog since | | |
+| F-434 | `src/drivers/usb/cdns3_udc_core.c`, the MEK | `part write` of the 15 MB `boot.bpak` | Verified | fixed |
+| | | fails at `246bd897` with "Bad result magic 0xf9401421", seven times out of seven, also after a | | |
+| | | `dev reset`: the host reads the image's own bytes (offset 0x1660) where the device's result | | |
+| | | is, so the result frame carries data of the write. Random 15 MB files fail one write in two | | |
+| | | with other values, 4 and 8 MB pass, `root.bpak` (7 MB) passed at its second try. At | | |
+| | | `bc640ba1` the same writes passed (log 2026-11-13). Suspect: F-282's cdns3 changes | | |
+| | | (`e46baba4`); maybe F-172's cause. Not bisected | | |
+| | | 2026-11-14, the cause, on the MEK at `246bd897`: both bulk endpoints use one TRB ring, | | |
+| | | `trb[]`, since the driver came in (`bf965ce9`). After an IN result (`trb[0]`, the stop gap | | |
+| | | in `trb[1]`) the IN endpoint stays at `trb[1]`, and the TRBERR path rings DRDY again without | | |
+| | | moving it. The next OUT data transfer writes its second TRB there (the buffer + 127 KiB, cycle | | |
+| | | set); the host's IN token for the data's result comes before the device rewrites the ring, | | |
+| | | and the IN endpoint sends that TRB's 127 KiB instead of the result. The host reads 512 bytes of | | |
+| | | it as the result, and the device times out on its real result 10 s later ("Transfer timed | | |
+| | | out", then "Transfer lost"). Measured: the 512 bytes the host got are the file's at 0xc20c00, | | |
+| | | the last chunk's start (0xc01000) + 0x1fc00 (`TRB_MAX_LENGTH`); 0xf9401421 is the word at | | |
+| | | 0x420c00, the second chunk's + 0x1fc00 (offset 0x1660 was only its first copy), 0x361002c0 of | | |
+| | | another run the first chunk's. The failing step is the result after a PREPARE_BUFFER's data. | | |
+| | | Why at `246bd897` and not `bc640ba1` isn't known: the ring was shared before, so `e46baba4` | | |
+| | | changes only the timing, or not at all (F-172). The fix: a ring per bulk endpoint. Left: the | | |
+| | | fix, a bisect if Jonas wants the regression's commit | | |
+| | | 2026-11-14, fixed (`af6e7060`): `trb_in` and `trb_out`, a host test that the IN endpoint's | | |
+| | | next TRB isn't the OUT transfer's (fails on the old driver). On the MEK, from BOOT0: | | |
+| | | `boot.bpak` 5 of 5 and random 15 MB files 10 of 10, each verified; System A holds | | |
+| | | `boot.bpak` again and boots Linux to the login. The old pb failed a 500 KB write once on the | | |
+| | | way. Left: whether it is F-172's cause too, which a longer run will tell | | |
+| F-402 | `src/plat/*/Kconfig`, `platform.md` 3.10 | `platform.md` 3.10 has one option per | Verified (code) | fixed |
+| | | port of the SoC that can be a device; each platform's choice has only the port a board in the tree | | |
+| | | uses. Without an option: the 6UL's USB OTG2, the 8MQ's and the 8MP's USB2, the 8QXP's USB OTG1, the | | |
+| | | 8DXL's USB OTG1, the RT1060's USB OTG2. Their set up would be SoC code nobody can run. For Jonas: | | |
+| | | write it untested, or does the rule mean the ports that have code. From F-267 | | |
+| | | 2026-11-14, D-084: every port the ROM boots from, one per build, Kconfig by driver and port; write them | | |
+| | | 2026-11-14, Jonas: USB ports only for now; no UART transport for command mode | | |
+| | | 2026-11-15, fixed (`7efe613a`, `f63a1233`): the ROM boots over USB OTG1 alone on the 6UL and | | |
+| | | the RT1060, over USB1 alone on the 8MQ (their RMs), so those ports had their option. | | |
+| | | `IMX8X_CM_USB_OTG1` (8QXP and 8DXL) and `IMX8M_CM_USB2` (8M Plus) are new; built for the | | |
+| | | MEK, the 8DXL EVK and the 8MP EVK, not run; `check_cm_usb_kconfig` chooses them. The 6UL's | | |
+| | | and the RT1060's OTG2, the 8MQ's USB2: no option, not a ROM boot port (D-084) | | |
 
 ## Dependencies / vendored code
 
