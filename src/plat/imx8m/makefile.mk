@@ -49,10 +49,13 @@ ifdef CONFIG_PLAT_IMX8MQ
 # tree, 224 KiB of the TCM from its entry
 IMX8M_LOAD_BASE = 0x7e1000
 IMX8M_LOAD_END = 0x819000
-# What the i.MX8M Quad's BL31 takes isn't known, and no board of it has TF-A
-PLAT_BL_PARAMS_LIMIT = 0xffffffff
+# Upstream TF-A's i.MX8MQ BL31 takes no bl_params (v2.12 to v2.15); the test
+# bench's patch takes them from the TCM, where pb's .data is, to 0x820000
+PLAT_BL_PARAMS_LIMIT = 0x820000
 IMX8M_OCRAM_SIZE = 0x20000
-cflags-y += -DIMX8M_ROM_SIZE=0x20000
+# The ROM's 124 KiB; the 4 KiB after them fault, a protected page (read on
+# the pico8ml), as the 8M Plus's last 4 KiB
+cflags-y += -DIMX8M_ROM_SIZE=0x1f000
 endif
 # i.MX8M Plus: the OCRAM free area after the ROM's part (RM, Figure 6-2), up to 0x97ffff
 ifdef CONFIG_PLAT_IMX8MP
@@ -81,6 +84,12 @@ ldflags-y += --defsym=PLAT_BL_PARAMS_LIMIT=$(PLAT_BL_PARAMS_LIMIT)
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000
 ldflags-y += -Tsrc/plat/imx8m/link.lds
+# The 8MQ's RAM log in the OCRAM (ramlog_ocram.lds): its TCM is full
+ifdef CONFIG_PLAT_IMX8MQ
+ifdef CONFIG_RAMLOG
+ldflags-y += -Tsrc/plat/imx8m/ramlog_ocram.lds
+endif
+endif
 
 src-y  += src/drivers/pinctrl/imx_iomuxc.c
 
@@ -131,13 +140,22 @@ imx8m_sign_desc: imx8m_image
 	     -e 's#__IMG_PEM__#$(IMX8M_IMAGE_SIGN_CERT)#g' \
 	     $(IMX8M_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
 
-# pb_signed.imx: pb_pad.imx with the signature in its last 0x2000 bytes,
-# which mkimage_imx8m leaves for it
+# The ROM reads the IVT 33 KiB into an SD/MMC/eMMC device, a boot partition
+# too (8MQ RM, Table "IVT offset"; the 8M Plus reads a boot partition at 0)
+IMX8MQ_IMAGE_OFFSET_KiB = 33
+
+# pb_signed_uuu.imx: pb_pad.imx with the signature in its last 0x2000 bytes,
+# which mkimage_imx8m leaves for it; for the serial downloader (uuu), which
+# loads it to RAM. pb_signed.imx: the same after IMX8MQ_IMAGE_OFFSET_KiB of
+# zeros, for the boot partition or the card (part write, F-448). The zeros
+# aren't loaded: one signature is both's
 imx8m_sign_image: imx8m_sign_desc
 	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/pb_csf.bin
-	@cp $(BUILD_DIR)/pb_pad.imx $(BUILD_DIR)/pb_signed.imx
-	$(Q)dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/pb_signed.imx bs=1 conv=notrunc \
+	@cp $(BUILD_DIR)/pb_pad.imx $(BUILD_DIR)/pb_signed_uuu.imx
+	$(Q)dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/pb_signed_uuu.imx bs=1 conv=notrunc \
 	       seek=$$(( $$(stat -c%s $(BUILD_DIR)/pb_pad.imx) - 0x2000 ))
+	$(Q)dd if=/dev/zero of=$(BUILD_DIR)/pb_signed.imx bs=1024 count=$(IMX8MQ_IMAGE_OFFSET_KiB) 2> /dev/null
+	$(Q)cat $(BUILD_DIR)/pb_signed_uuu.imx >> $(BUILD_DIR)/pb_signed.imx
 else
 # pb.imx: pb.bin with the header of the i.MX8M Plus ROM (ROM_VERSION v2), for
 # the boot media or the serial downloader (uuu)

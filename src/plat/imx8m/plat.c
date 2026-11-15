@@ -51,12 +51,15 @@
  * its own fixed address without them: on the i.MX8M Plus below 0x960000
  * (v2.12 imx8mp_bl31_setup.c swaps base and size in that check). They are
  * in .data, which follows the code, not at the end of .bss, and link.lds
- * checks where that is.
+ * checks where that is. The i.MX8MQ's BL31 takes none upstream (v2.12 to
+ * v2.15): with the test bench's patch from the TCM or the OCRAM below BL31,
+ * and pb's .data is in the TCM.
  */
 uint8_t plat_bl_params[PLAT_BL_PARAMS_SIZE] __section(".data") __aligned(PLAT_BL_PARAMS_ALIGN);
 #endif
 
 const char *platform_ns_uuid = "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
+
 
 static const mmap_region_t imx_mmap[] = {
     /* UMCTL2 state, at the start of the DRAM */
@@ -186,13 +189,20 @@ void plat_wdog_kick(void)
     imx_wdog_kick(IMX8M_WDOG1_BASE);
 }
 
-/* The ROM log, AN12853 Tables 11 and 13. It's in the ROM's part of the OCRAM, below pb */
+/* The ROM log, AN12853 Tables 11 and 13. It's in the ROM's part of the OCRAM,
+ * below pb. The 8MQ's is 64 words: its boot information (Boot_SW_Info) is
+ * 0x100 bytes after it (the pointers at ROM 0x960 and 0x968, mm.h) */
 static const struct imx_rom_log_config rom_log_cfg = {
     .pointer = IMX8M_ROM_LOG_POINTER,
     .ram_start = IMX8M_OCRAM_BASE,
     .ram_end = IMX8M_OCRAM_BASE + IMX8M_OCRAM_SIZE,
+#ifdef CONFIG_PLAT_IMX8MQ
+    .words = 64,
+    .defs = IMX_ROM_LOG_DEFS_V2_8MQ,
+#else
     .words = 128,
     .defs = IMX_ROM_LOG_DEFS_V2,
+#endif
 };
 
 /* The HAB API. 64-bit pointers; the address is U-Boot's (the RMs don't have
@@ -415,14 +425,55 @@ int plat_early_init(void)
     return PB_OK;
 }
 
+/* A clock root's target register, root n of the CCM (8MQ RM 5.1) */
+#define IPG_ROOT_POST_DIV_MASK 0x3u /* IPG_CLK_ROOT divides AHB_CLK_ROOT */
+#define CCM_ROOT_TARGET(n)     (0x30388000UL + 0x80UL * (n))
+
+/* The 24 or 25 MHz reference, AHB_CLK_ROOT's source 0 */
+#ifdef CONFIG_PLAT_IMX8MQ
+#define IMX8M_OSC_HZ 25000000u
+#else
+#define IMX8M_OSC_HZ 24000000u
+#endif
+
+/*
+ * The OCOTP's ipg_clk, which its fuse timing is made for (imx_ocotp_init()):
+ * IPG_CLK_ROOT, AHB_CLK_ROOT divided by its POST_PODF[1:0] + 1 (NXP's
+ * U-Boot, clock_imx8mq.c), as the ROM left both; pb doesn't change them.
+ * AHB_CLK_ROOT's sources 0 to 4 are fixed (8MQ RM, the clock root table:
+ * the reference, SYSTEM_PLL1_DIV6, SYSTEM_PLL1, SYSTEM_PLL1_DIV2,
+ * SYSTEM_PLL2_DIV8; the 8M Plus's the same). Another source: 0, and pb
+ * writes no fuse. The pico8ml's ROM leaves source 1 and IPG at AHB / 2,
+ * 66.7 MHz
+ */
+static unsigned int ipg_rate_hz(void)
+{
+    static const uint32_t ahb_src_hz[] = {
+        IMX8M_OSC_HZ, 133333333u, 800000000u, 400000000u, 125000000u,
+    };
+    uint32_t ahb = mmio_read_32(CCM_ROOT_TARGET(AHB_CLK_ROOT));
+    uint32_t ipg = mmio_read_32(CCM_ROOT_TARGET(IPG_CLK_ROOT));
+    unsigned int src = (ahb & CLK_ROOT_SRC_MUX_MASK) >> CLK_ROOT_SRC_MUX_SHIFT;
+    unsigned int pre = ((ahb & CLK_ROOT_PRE_DIV_MASK) >> 16) + 1;
+    unsigned int post = ((ahb & CLK_ROOT_POST_DIV_MASK) >> CLK_ROOT_POST_DIV_SHIFT) + 1;
+
+    if (src >= ARRAY_SIZE(ahb_src_hz)) {
+        LOG_ERR("AHB_CLK_ROOT from source %u: no fuse timing, no fuse is written", src);
+        return 0;
+    }
+
+    return ahb_src_hz[src] / pre / post / ((ipg & IPG_ROOT_POST_DIV_MASK) + 1);
+}
+
 int plat_init(void)
 {
     int tzasc_rc;
     int rc;
 
-    /* Init fusebox (reading only), its clock gate may be closed */
+    /* Init fusebox, its clock gate may be closed. Its fuse timing is for
+     * the ipg_clk the ROM left: fuse writes (the life cycle, plat_slc) */
     mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);
-    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK, 0);
+    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK, ipg_rate_hz());
 
     /*
      * The system counter, which the Arm generic timer counts: TF-A's delays

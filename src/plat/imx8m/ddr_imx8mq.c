@@ -56,6 +56,9 @@ static const struct dram_pll_setting dram_pll_settings[] = {
       .feedback_div_f1 = 39,
       .feedback_div_f2 = 11,
       .output_div = 0 },
+    /* 167 MHz, NXP's U-Boot (ddrphy_utils.c, clock_imx8mq.c) for its
+     * 667 MT/s set point: the PLL, not the PHY bypass (pico8ml) */
+    { .drate = 667, .ref_divr2 = 30, .feedback_div_f1 = 45, .feedback_div_f2 = 8, .output_div = 3 },
 };
 
 /* PHY bypass: DRAM_ALT_CLK_ROOT runs at the data rate in MHz (twice the DRAM clock) */

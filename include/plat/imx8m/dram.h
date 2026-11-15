@@ -58,6 +58,15 @@ extern struct dram_timing_save dram_timing_info_copy;
 extern struct dram_timing_info dram_timing;
 
 /*
+ * The timing imx8m_ddr_init() trains, asked once by plat_init() before the
+ * DRAM is set up: the board's dram_timing, unless the board defines this to
+ * choose among several (the straps of its DRAM's density, pico8ml). Valid
+ * from the clocks of the GPIOs and the IOMUXC, which plat_init() ungates
+ * before it; no DRAM, no MMU. NULL: no timing, plat_init() fails.
+ */
+const struct dram_timing_info *imx8m_board_dram_timing(void);
+
+/*
  * The data rates (MT/s) the board trains, from its board code: the first
  * 'num' set points of dram_timing.fsp_table, in that order, since TF-A
  * uses a set point's index as the controller and PHY state. The training

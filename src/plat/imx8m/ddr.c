@@ -93,35 +93,32 @@ static void copy_cfg(struct dram_cfg_param **pos,
  * Read back the trained PHY CSRs, and copy all timing data to the start of
  * DRAM for TF-A (see struct dram_timing_info).
  */
-static int dram_save_timing(void)
+static int dram_save_timing(const struct dram_timing_info *t)
 {
     struct dram_timing_info *dt = &dram_timing_info_copy.info;
     struct dram_cfg_param *pos = dram_timing_info_copy.cfg;
-    size_t n = (size_t)dram_timing.ddrc_cfg_num + dram_timing.ddrphy_cfg_num +
-               dram_timing.ddrphy_trained_csr_num + dram_timing.ddrphy_pie_num;
+    size_t n =
+        (size_t)t->ddrc_cfg_num + t->ddrphy_cfg_num + t->ddrphy_trained_csr_num + t->ddrphy_pie_num;
 
     if (n > ARRAY_SIZE(dram_timing_info_copy.cfg)) {
         LOG_ERR("DRAM timing does not fit in the TF-A copy (%zu entries)", n);
         return -PB_ERR_MEM;
     }
 
-    dwc_ddrphy_read_csrs(&phy, dram_timing.ddrphy_trained_csr, dram_timing.ddrphy_trained_csr_num);
+    dwc_ddrphy_read_csrs(&phy, t->ddrphy_trained_csr, t->ddrphy_trained_csr_num);
 
-    dt->ddrc_cfg_num = dram_timing.ddrc_cfg_num;
-    dt->ddrphy_cfg_num = dram_timing.ddrphy_cfg_num;
-    dt->ddrphy_trained_csr_num = dram_timing.ddrphy_trained_csr_num;
-    dt->ddrphy_pie_num = dram_timing.ddrphy_pie_num;
+    dt->ddrc_cfg_num = t->ddrc_cfg_num;
+    dt->ddrphy_cfg_num = t->ddrphy_cfg_num;
+    dt->ddrphy_trained_csr_num = t->ddrphy_trained_csr_num;
+    dt->ddrphy_pie_num = t->ddrphy_pie_num;
     /* Only the set points that were trained */
     memset(dt->fsp_table, 0, sizeof(dt->fsp_table));
     memcpy(dt->fsp_table, dram_rates.mts, dram_rates.num * sizeof(dt->fsp_table[0]));
 
-    copy_cfg(&pos, &dt->ddrc_cfg, dram_timing.ddrc_cfg, dram_timing.ddrc_cfg_num);
-    copy_cfg(&pos, &dt->ddrphy_cfg, dram_timing.ddrphy_cfg, dram_timing.ddrphy_cfg_num);
-    copy_cfg(&pos,
-             &dt->ddrphy_trained_csr,
-             dram_timing.ddrphy_trained_csr,
-             dram_timing.ddrphy_trained_csr_num);
-    copy_cfg(&pos, &dt->ddrphy_pie, dram_timing.ddrphy_pie, dram_timing.ddrphy_pie_num);
+    copy_cfg(&pos, &dt->ddrc_cfg, t->ddrc_cfg, t->ddrc_cfg_num);
+    copy_cfg(&pos, &dt->ddrphy_cfg, t->ddrphy_cfg, t->ddrphy_cfg_num);
+    copy_cfg(&pos, &dt->ddrphy_trained_csr, t->ddrphy_trained_csr, t->ddrphy_trained_csr_num);
+    copy_cfg(&pos, &dt->ddrphy_pie, t->ddrphy_pie, t->ddrphy_pie_num);
 
     return PB_OK;
 }
@@ -156,12 +153,30 @@ static bool dram_rate_trained(unsigned int drate)
     return false;
 }
 
+/*
+ * The board's timing (dram.h): its dram_timing, unless it chooses among
+ * several, e.g. by the straps of its DRAM's density
+ */
+#pragma weak dram_timing
+
+__attribute__((weak)) const struct dram_timing_info *imx8m_board_dram_timing(void)
+{
+    return &dram_timing;
+}
+
 int imx8m_ddr_init(void)
 {
-    const struct dram_timing_info *t = &dram_timing;
+    const struct dram_timing_info *t = imx8m_board_dram_timing();
     const uintptr_t ddrc = DDRC_IPS_BASE_ADDR(0);
-    unsigned int drate = t->fsp_msg[0].drate;
+    unsigned int drate;
     int rc;
+
+    if (t == NULL) {
+        LOG_ERR("The board has no DRAM timing");
+        return -PB_ERR_PARAM;
+    }
+
+    drate = t->fsp_msg[0].drate;
 
     rc = dram_rates_check(t);
     if (rc != PB_OK)
@@ -229,5 +244,5 @@ int imx8m_ddr_init(void)
     umctl2_enable_port(ddrc, 0);
 
     /* 6. Save settings and training results for TF-A */
-    return dram_save_timing();
+    return dram_save_timing(t);
 }

@@ -313,6 +313,90 @@ static void test_8mp_evk_log(void **state)
                         "27647\n");
 }
 
+/* The i.MX8MQ's ROM on the pico8ml (pointer at ROM 0x960, log at
+ * 0x90cae0): no image on the eMMC, then serial download. A zero word after
+ * the first failed device init is no end of the log */
+static const uint32_t pico8ml_log[] = {
+    0xe0000000, 0x12000000, 0x22000000, 0x30000000, 0x40000000, 0x50000000, 0x61000000,
+    0x80000000, 0x00000145, 0x8f010b74, 0x00000180, 0x00000000, 0x73000000, 0x80000000,
+    0x000001a2, 0x8f040000, 0x000001a2, 0xd0000000, 0xa0000000, 0x000000f0, 0xd1000000,
+    0x007e1000, 0x0007c98a, 0x00000000, 0x00000000, 0x00000000,
+};
+
+static void test_pico8ml_log(void **state)
+{
+    size_t len = sizeof(out);
+    (void)state;
+
+    assert_int_equal(
+        imx_rom_log_decode(
+            IMX_ROM_LOG_DEFS_V2_8MQ, pico8ml_log, ARRAY_SIZE(pico8ml_log), 0x0090cae0, out, &len),
+        PB_OK);
+    assert_string_equal(out,
+                        "ROM log at 0x0090cae0\n"
+                        " 0: e0000000           Internal use\n"
+                        " 1: 12000000           Boot mode: internal boot\n"
+                        " 2: 22000000           Security config: open\n"
+                        " 3: 30000000           Internal use\n"
+                        " 4: 40000000           FUSE_SEL_VALUE fuse not blown\n"
+                        " 5: 50000000           Boot from the primary image\n"
+                        " 6: 61000000           Primary boot device: SD/eMMC\n"
+                        " 7: 80000000 00000145  Device init: tick 325\n"
+                        " 9: 8f010b74 00000180  Device init: fail, tick 384\n"
+                        "11: 00000000           Unknown event\n"
+                        "12: 73000000           Manufacture boot device: SD/eMMC\n"
+                        "13: 80000000 000001a2  Device init: tick 418\n"
+                        "15: 8f040000 000001a2  Device init: fail, tick 418\n"
+                        "17: d0000000           Serial download\n"
+                        "18: a0000000 000000f0  Authentication: pass\n"
+                        "20: d1000000 007e1000 0007c98a  Jump to the serial download image: "
+                        "0x007e1000, tick 510346\n");
+
+    /* The serial download is found, past the zero word */
+    assert_true(
+        imx_rom_log_find(IMX_ROM_LOG_DEFS_V2_8MQ, pico8ml_log, ARRAY_SIZE(pico8ml_log), 0xd0));
+}
+
+/* The pico8ml closed, booting from its eMMC: authentication with a tick */
+static const uint32_t pico8ml_emmc_log[] = {
+    0xe0000000, 0x12000000, 0x23000000, 0x30000000, 0x40000000, 0x50000000, 0x61000000,
+    0x80000000, 0x00000146, 0x81000000, 0x0000049c, 0x90000000, 0x00000040, 0x91000000,
+    0x000005c3, 0x90000000, 0x00000050, 0x91000000, 0x0000073f, 0xa0000000, 0x000000f0,
+    0x00026aaf, 0xc0000000, 0x007e1000, 0x00026abc, 0x00000000,
+};
+
+static void test_pico8ml_emmc_log(void **state)
+{
+    size_t len = sizeof(out);
+    (void)state;
+
+    assert_int_equal(imx_rom_log_decode(IMX_ROM_LOG_DEFS_V2_8MQ,
+                                        pico8ml_emmc_log,
+                                        ARRAY_SIZE(pico8ml_emmc_log),
+                                        0x0090cae0,
+                                        out,
+                                        &len),
+                     PB_OK);
+    assert_string_equal(out,
+                        "ROM log at 0x0090cae0\n"
+                        " 0: e0000000           Internal use\n"
+                        " 1: 12000000           Boot mode: internal boot\n"
+                        " 2: 23000000           Security config: closed\n"
+                        " 3: 30000000           Internal use\n"
+                        " 4: 40000000           FUSE_SEL_VALUE fuse not blown\n"
+                        " 5: 50000000           Boot from the primary image\n"
+                        " 6: 61000000           Primary boot device: SD/eMMC\n"
+                        " 7: 80000000 00000146  Device init: tick 326\n"
+                        " 9: 81000000 0000049c  Device init: pass, tick 1180\n"
+                        "11: 90000000 00000040  Device read, image offset: 0x00000040\n"
+                        "13: 91000000 000005c3  Device read: pass, tick 1475\n"
+                        "15: 90000000 00000050  Device read, image offset: 0x00000050\n"
+                        "17: 91000000 0000073f  Device read: pass, tick 1855\n"
+                        "19: a0000000 000000f0 00026aaf  Authentication: pass, tick 158383\n"
+                        "22: c0000000 007e1000 00026abc  Jump to boot image: 0x007e1000, tick "
+                        "158396\n");
+}
+
 /* An unknown definition version */
 static void test_unknown_defs(void **state)
 {
@@ -394,6 +478,8 @@ int main(void)
         cmocka_unit_test(test_saved_log_source),
         cmocka_unit_test(test_v2_log),
         cmocka_unit_test(test_8mp_evk_log),
+        cmocka_unit_test(test_pico8ml_log),
+        cmocka_unit_test(test_pico8ml_emmc_log),
         cmocka_unit_test(test_unknown_defs),
     };
 
