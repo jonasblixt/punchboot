@@ -63,7 +63,8 @@ FB: done
   `fastboot continue`.
 - A build that gives the SPL pb's own product id (`PB_SPL_USB_PID=0x2019`) makes `uuu` send
   fastboot's commands to every pb on the host's USB: `uuu -m <bus>:<port>` names the one.
-- The i.MX8M Plus needs none of it: its ROM streams the whole image, `uuu pb.imx`.
+- The i.MX8M Plus needs none of it: its ROM streams the whole image, and the SPL reads pb
+  proper from the stream (`uuu SDPS: boot -f pb.imx`, about 0.5 s of the SPL's on the EVK).
 
 ## Dev container
 

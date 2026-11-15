@@ -140,7 +140,8 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
         command mode; a download that is cut short, one with another header and one with a
         changed byte of pb proper are refused, and the right one starts after them.
     - **A board may give the SPL a console**: `imx8m_spl_console_init()`
-      (`include/plat/imx8m/spl.h`), the pico8ml's UART1, and sets `PB_SPL_CONSOLE` in its
+      (`include/plat/imx8m/spl.h`), the pico8ml's UART1, the 8MP EVK's UART2, and sets
+      `PB_SPL_CONSOLE` in its
       `makefile.mk`: pb proper then doesn't print the SPL's lines again (`ramlog_kept()`); they
       stay in the RAM log. Without it the SPL's lines are in the RAM log only, which pb proper
       prints.
@@ -148,8 +149,11 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
     the ROM API at 0x980 (`download_image`, `query_boot_infor` as U-Boot's
     `arch/arm/mach-imx/romapi.c`: the arguments XORed into the last one), checks the IVT as the
     8MQ's SPL does, calls HAB's `authenticate_image` (RVT at 0x900, `spl/hab.c`) and jumps to pb
-    proper only when it returns pb proper's entry. Over USB the ROM API streams: the image is
-    read in order. The v2 ROM
+    proper only when it returns pb proper's entry. Over USB the ROM API streams: each read is
+    the next bytes the host sends (`uuu SDPS: boot -f pb.imx`). The ROM has read ahead of the
+    SPL (95744 bytes on the EVK) and answers a page of 1 byte, so the SPL reads in pieces of
+    1 KiB, as U-Boot's `spl_romapi.c`, and looks for pb proper's header at every word of what it
+    read: at most the SPL's part and a page, in DRAM at the start of pb's buffers. The v2 ROM
     takes no return from the SPL: a failure resets through WDOG1 (`platform.md` 2).
   - **pb proper** is linked at the board's `PB_ENTRY` in DRAM, after its buffers. Its entry turns
     the MMU and the D-cache off and invalidates the cache (F-207), as before.
@@ -468,9 +472,10 @@ Where each port is (2026-11-15).
 | (`platform.md` 2)                    |              | and over USB, the |            |           |               |
 |                                      |              | SPL's fastboot    |            |           |               |
 |                                      |              | (pico8ml); 8MP    |            |           |               |
-|                                      |              | from the eMMC     |            |           |               |
-|                                      |              | (EVK), not over   |            |           |               |
-|                                      |              | USB               |            |           |               |
+|                                      |              | from the eMMC and |            |           |               |
+|                                      |              | over USB, the ROM |            |           |               |
+|                                      |              | API's stream      |            |           |               |
+|                                      |              | (EVK)             |            |           |               |
 | The SPL's TZASC read back            | n/a          | yes               | n/a        | n/a       | D-088         |
 | Functions for boards, not a          | yes          | n/a               | yes        | n/a       | F-440         |
 | structure (7)                        |              |                   |            |           |               |

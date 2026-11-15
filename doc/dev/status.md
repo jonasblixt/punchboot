@@ -19,7 +19,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
   - RT1060 from its NOR, the MEK from BOOT0: `246bd897` (log 2026-11-14). The 8MP EVK:
-    `ad8d404e`'s two-stage pb in BOOT1 (enabled), the single-stage pb of 2026-11-14 in BOOT0.
+    `e5a4efc4`'s two-stage pb in BOOT1 (enabled), the single-stage pb of 2026-11-14 in BOOT0;
+    its switches on serial download until Jonas sets them back.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
 - **Test benches:** Linux (`testbench/`): jiffy, the 8MP EVK, the MEK and the pico8ml boot to
@@ -36,9 +37,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
    - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
      resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
      TF-A's 8MQ patch could go upstream.
-   - The 8M Plus: its SPL boots pb proper from the EVK's eMMC and Linux after it (log
-     2026-11-15). Not run: over USB (the ROM API's stream; Jonas sets the switches), and the
-     signed image (the EVK is open).
+   - The 8M Plus: its SPL boots pb proper on the EVK from the eMMC and over USB (`26fd5a1d`),
+     Linux after it (log 2026-11-15). Not run: the signed image (the EVK is open).
    - The bench of what landed without a board (log 2026-11-14): USB on all four, the MMU maps,
      the RT1060's entry (F-210, F-207), the DMA rule (F-282), the 8MP EVK through TF-A, the
      8M's lockdown (D-084).
