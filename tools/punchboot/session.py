@@ -230,16 +230,16 @@ class Session:
         response = self._command(Command.PB_CMD_DEVICE_IDENTIFIER_READ)
         return wire.pb_result_device_identifier.unpack(response)
 
-    def _slc_read(self) -> tuple[int, Sequence[int], Sequence[int]]:
-        """Return the SLC, and the active and revoked key ids."""
+    def _slc_read(self) -> tuple[int, Sequence[int], Sequence[int], int]:
+        """Return the SLC, the active and revoked key ids, and the unrevocable bits."""
         response = self._command(Command.PB_CMD_SLC_READ)
-        slc = wire.pb_result_slc.unpack(response).slc
+        result = wire.pb_result_slc.unpack(response)
         keys = wire.pb_result_slc_key_status.unpack(
             self._read(wire.pb_result_slc_key_status.sizeof())
         )
         code, _ = self._result()
         check(code)
-        return slc, list(keys.active), list(keys.revoked)
+        return result.slc, list(keys.active), list(keys.revoked), result.unrevocable
 
     def _read_part_table(self, max_entries: int) -> list[wire.pb_result_part_table_entry]:
         response = self._command(Command.PB_CMD_PART_TBL_READ)
@@ -989,7 +989,7 @@ class Session:
         Returns a list of id's of key's that can be used to authenticate boot
         images.
         """
-        _, active, _ = self._slc_read()
+        _, active, _, _ = self._slc_read()
         return tuple(k for k in active[:MAX_KEYS] if k)
 
     def slc_get_revoked_keys(self) -> Sequence[int]:
@@ -997,12 +997,22 @@ class Session:
 
         Returns a list of id's of key's that have been revoked.
         """
-        _, _, revoked = self._slc_read()
+        _, _, revoked, _ = self._slc_read()
         return tuple(k for k in revoked[:MAX_KEYS] if k)
+
+    def slc_get_unrevocable_keys(self) -> Sequence[int]:
+        """Read the active keys the device can't revoke.
+
+        Their slot has no revoke bit on the SoC (command-mode.md 5.2). A
+        device before 3.0.0 reports none, which says nothing: its keys may
+        still be in such a slot.
+        """
+        _, active, _, unrevocable = self._slc_read()
+        return tuple(k for i, k in enumerate(active[:MAX_KEYS]) if k and unrevocable & (1 << i))
 
     def slc_get_lifecycle(self) -> SLC:
         """Read Security Life Cycle (SLC)."""
-        slc, _, _ = self._slc_read()
+        slc, _, _, _ = self._slc_read()
         return SLC(slc)
 
     def slc_revoke_key(self, key_id: int | str) -> None:

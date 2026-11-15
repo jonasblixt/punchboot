@@ -10,9 +10,10 @@
  * the debug USB. The eMMC is on uSDHC3, on the NAND pads. Command mode
  * runs on USB1, the USB-C port the ROM's serial download uses.
  *
- * This board never writes fuses: the platform has no SLC operations
- * (plat_slc), so the SLC commands are not supported, and no key is ever
- * revoked (plat_rot).
+ * This board never writes fuses (D-087): the EVK isn't HAB closed and isn't
+ * ours to close. Its defconfig has CONFIG_SLC_NO_FUSE_WRITES, so configuring,
+ * locking, revoking a key and EOL answer NOT_SUPPORTED, whatever the
+ * platform can (the i.MX8M has plat_slc's writes since ce438b74, F-449).
  *
  * Linux boots through TF-A: the boot image has BL31 in the part "atf" and
  * Linux as BL33 in "kernel" (testbench/board/common/post-image.sh).

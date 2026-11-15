@@ -19,18 +19,10 @@ int cm_cmd_slc_read(void)
     struct pb_result_slc_key_status key_status = { 0 };
     cm_slc = slc_read_status();
 
-    if (cm_slc < 0) {
+    if (cm_slc < 0)
         return cm_slc;
-    } else {
-        slc_status.slc = cm_slc;
-        rc = PB_OK;
-    }
-    pb_wire_init_result2(&cm_result, cm_error_to_wire(rc), &slc_status, sizeof(slc_status));
 
-    cm_write(&cm_result, sizeof(cm_result));
-
-    if (rc < 0)
-        return rc;
+    slc_status.slc = cm_slc;
 
     /* The wire has 16 slots for each list (command-mode.md 5.2): a keystore
      * with more keys doesn't write past them */
@@ -45,6 +37,8 @@ int cm_cmd_slc_read(void)
         no_of_keys = ARRAY_SIZE(key_status.active);
     }
 
+    /* The keys are read before the first result, which carries which of the
+     * active ones can't be revoked (D-085) */
     for (size_t i = 0; i < no_of_keys; i++) {
         key_id_t key_id = 0;
         int key_rc = rot_key_idx_to_id(i, &key_id);
@@ -52,15 +46,24 @@ int cm_cmd_slc_read(void)
         if (key_rc == PB_OK)
             key_rc = rot_read_key_status_by_idx(i);
 
-        if (key_rc == PB_OK)
+        if (key_rc == PB_OK) {
             key_status.active[i] = key_id;
-        else if (key_rc == -PB_ERR_KEY_REVOKED)
+
+            if (rot_key_unrevocable_by_idx(i))
+                slc_status.unrevocable |= (uint16_t)(1u << i);
+        } else if (key_rc == -PB_ERR_KEY_REVOKED) {
             key_status.revoked[i] = key_id;
-        else if (rc == PB_OK)
+        } else if (rc == PB_OK) {
             rc = key_rc;
-        LOG_INFO("Key 0x%x status=%i", key_id, key_rc);
+        }
+        LOG_INFO("Key 0x%x status=%i%s",
+                 key_id,
+                 key_rc,
+                 (key_rc == PB_OK && rot_key_unrevocable_by_idx(i)) ? ", can't be revoked" : "");
     }
 
+    pb_wire_init_result2(&cm_result, cm_error_to_wire(PB_OK), &slc_status, sizeof(slc_status));
+    cm_write(&cm_result, sizeof(cm_result));
     cm_write(&key_status, sizeof(key_status));
 
     /* A revoked key is in the key status, the result is only for errors

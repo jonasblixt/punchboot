@@ -255,7 +255,15 @@ static const struct imx_hab_fuses hab_fuses = {
 const struct rot_config plat_rot = {
     .revoke_key = imx_hab_revoke_key,
     .read_key_status = imx_hab_read_key_status,
+    .revoke_slots = IMX6UL_FUSE_REVOCABLE_SRKS,
 };
+
+/* The build's warning for a board key in a slot without a bit reads the
+ * makefile.mk's count (platform.md 4.1) */
+#ifdef PLAT_REVOKE_SLOTS
+_Static_assert(PLAT_REVOKE_SLOTS == IMX6UL_FUSE_REVOCABLE_SRKS,
+               "makefile.mk's PLAT_REVOKE_SLOTS is HAB's");
+#endif
 
 const struct slc_ops plat_slc = {
     .read_status = imx_hab_slc_read_status,

@@ -33,6 +33,18 @@ config SRK_FUSE
         signed with, for a board that fuses the SRK hash in
         slc_set_configuration() (include/pb/srk_fuse.h).
 
+config SLC_NO_FUSE_WRITES
+    bool "Never write fuses"
+    help
+        The product's choice (system.md 4, D-087), for a board that must
+        stay as it is, such as a development board that isn't yours to
+        close. On: pb writes no fuse, whatever the port can. Configuring,
+        locking, revoking a key and EOL (also with SLC_EOL) answer
+        NOT_SUPPORTED, the answer of a port without them
+        (command-mode.md 5.2); the life cycle and the keys are still read.
+
+        Off, the default: the port's fuse writes, in the life cycle's order.
+
 config SLC_EOL
     bool "End of life (EOL) as a life cycle state the device can enter"
     depends on CM

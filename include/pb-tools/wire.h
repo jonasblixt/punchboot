@@ -301,7 +301,9 @@ PACK(struct pb_result_device_identifier {
  */
 PACK(struct pb_result_slc {
     uint8_t slc; /*!< SLC state */
-    uint8_t rz[31]; /*!< Reserved */
+    uint16_t unrevocable; /*!< Bit n: active key n of the key status can't be revoked. 0 from a
+                             device before 3.0.0 */
+    uint8_t rz[29]; /*!< Reserved */
 });
 
 /**
