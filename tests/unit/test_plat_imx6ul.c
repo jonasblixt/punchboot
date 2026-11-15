@@ -912,7 +912,7 @@ static void test_mmu_map_regions(void **state)
     struct fake_mmap_region expected[16] = {
         { BOARD_RAM_BASE, BOARD_RAM_END - BOARD_RAM_BASE, rw_nox },
         { IMX6UL_ROM_BASE, 128 * 1024, MT_MEMORY | MT_RO | MT_EXECUTE },
-        { IMX6UL_OCRAM_BASE, 256 * 1024, MT_MEMORY | MT_RW },
+        { IMX6UL_OCRAM_BASE, IMX6UL_OCRAM_SIZE, MT_MEMORY | MT_RW }, /* Not its alias, F-437 */
         { AIPS1_ARB_BASE_ADDR, 1024 * 1024, MT_DEVICE | MT_RW },
         { AIPS2_ARB_BASE_ADDR, 1024 * 1024, MT_DEVICE | MT_RW },
     };

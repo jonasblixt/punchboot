@@ -1614,6 +1614,13 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | controller pulls D+ up; `imx_usb2_phy_init_ccm_pll()` doesn't write PLL_SIC (the 8DXL keeps | | |
 | | | `imx_usb2_phy_init()`, its PHY has the PLL). On jiffy from BOOT1: enumeration, 16 MiB written and | | |
 | | | verified. The RT1060 still writes PLL_SIC and relies on its ROM for PLL_USB1 | | |
+| F-437 | `src/plat/imx6ul/plat.c` `imx_mmap` | The 6UL maps the OCRAM as 256 KiB from 0x900000, while its link script | Verified (RM) | fixed |
+| | | ends the OCRAM at 0x920000 (128 KiB, the 6UL's and the 6ULL's): the 128 KiB above are mapped as Normal | | |
+| | | memory, F-158's class. Found by the review of F-158's package, unverified against the RM: read the 6UL | | |
+| | | RM's memory map (an alias of the OCRAM, or reserved), then map 128 KiB | | |
+| | | 2026-11-15: the 6UL RM's memory map has 0x920000 to 0x97ffff as "OCRAM aliased", 384 KB: the map | | |
+| | | has `IMX6UL_OCRAM_SIZE`, 128 KiB. On jiffy from BOOT1: the boot, HAB's status and log, the ROM's | | |
+| | | log, `slc show` | | |
 
 ## Dependencies / vendored code
 

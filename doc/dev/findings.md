@@ -818,10 +818,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
 | | | 2026-11-14: no 6ULL board for now | | |
-| F-437 | `src/plat/imx6ul/plat.c` `imx_mmap` | The 6UL maps the OCRAM as 256 KiB from 0x900000, while its link script | Reported (review) | open |
-| | | ends the OCRAM at 0x920000 (128 KiB, the 6UL's and the 6ULL's): the 128 KiB above are mapped as Normal | | |
-| | | memory, F-158's class. Found by the review of F-158's package, unverified against the RM: read the 6UL | | |
-| | | RM's memory map (an alias of the OCRAM, or reserved), then map 128 KiB | | |
 | F-438 | `src/drivers/usb/imx_ci_udc.c` | The ChipIdea splits a bulk transfer into dTDs of 16 KiB plus the bounced | Reported (review) | open |
 | | | head (`align_length`): for a buffer that isn't 512 byte aligned the first dTD's length isn't a multiple of | | |
 | | | the packet, and a packet can't span two dTDs (RM 42.5.6.4.1, the 6UL's 54.4.6.4.1): an OUT longer than | | |

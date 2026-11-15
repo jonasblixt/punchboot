@@ -67,7 +67,9 @@ static const mmap_region_t imx_mmap[] = {
     /* Boot ROM API*/
     MAP_REGION_FLAT(IMX6UL_ROM_BASE, (128 * 1024), MT_MEMORY | MT_RO | MT_EXECUTE),
     /* Needed for HAB*/
-    MAP_REGION_FLAT(IMX6UL_OCRAM_BASE, (256 * 1024), MT_MEMORY | MT_RW),
+    /* 128 KiB: 0x920000 to 0x97ffff is the OCRAM again, aliased (RM, the
+     * memory map), not mapped (F-437) */
+    MAP_REGION_FLAT(IMX6UL_OCRAM_BASE, IMX6UL_OCRAM_SIZE, MT_MEMORY | MT_RW),
     /* AIPS-1 */
     MAP_REGION_FLAT(AIPS1_ARB_BASE_ADDR, (1024 * 1024), MT_DEVICE | MT_RW),
     /* AIPS-2 */
