@@ -15,9 +15,9 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - **Boards (2026-11-15):**
   - jiffy: `55689509` from BOOT1 (BOOT0 an older pb); Root A has the test bench's root image,
     Root B random test data. The OP-TEE add-on's pb is no longer on it.
-  - pico8ml (closed, HAB test keys, token outside the repository): the SPL and pb proper
-    (D-088, `b5650e14`'s tree, without the SPL's fastboot) in BOOT1 and BOOT0; boot switches on
-    eMMC, BOOT1 enabled. A reset ends in the ROM's serial downloader, a power cycle boots (F-452).
+  - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
+    SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
+    System A. Never `reboot` it (F-452).
   - RT1060 from its NOR, the MEK from BOOT0: `246bd897` (log 2026-11-14). The 8MP EVK offline.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
@@ -30,9 +30,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 0. **Resume here: `log/2026-11-15.md`**, its last section. Nothing pushed since
    `58c9cf3e`'s rebase.
-   - The SPL's fastboot (D-089) runs on the pico8ml. Left: its product id (0x0001, pid.codes'
-     test id, until Jonas registers one) and a udev rule for it on the bench host; the new pb
-     in the pico8ml's BOOT0 and BOOT1.
+   - The SPL's fastboot (D-089) runs on the pico8ml, as `1209:0001` (Jonas). Left: a udev
+     rule for that id on the bench host.
    - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
      resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
      TF-A's 8MQ patch could go upstream.

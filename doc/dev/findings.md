@@ -883,12 +883,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | USB host port's DWC3 doesn't start | | |
 | F-452 | `testbench/board/pico8ml/`, the pico8ml | `reboot` in Linux hangs the board: "Restarting | Seen (board) | open |
 | | | system", then nothing, and no watchdog ends it. TF-A's PSCI reset asserts WDOG_B | | |
-| | | (`IMX_WDOG_B_RESET`), which doesn't reset this board. A reset that does happen (pb's | | |
-| | | `dev reset`, WDOG1's software reset from Linux with `devmem`) ends in the ROM's serial | | |
-| | | downloader: the ROM log has "Device init: fail" (0x8f010b74) for the eMMC, twice on | | |
-| | | 2026-11-15 with BOOT1 enabled, after Linux and after a pb loaded over USB. Only a power | | |
-| | | cycle was seen to boot from the eMMC then. Not looked into: the eMMC's reset line, the | | |
-| | | boot mode the fuses select, what the earlier watchdog resets (F-450) came back to | | |
+| | | (`IMX_WDOG_B_RESET`), which doesn't reset this board. pb's `dev reset` and WDOG1's | | |
+| | | software reset from Linux (`devmem 0x30280000 16 0x44`) do reset it, and it boots from | | |
+| | | the eMMC again (three times on 2026-11-15). Not so in the session that began in the | | |
+| | | serial downloader after the eMMC's boot partition was changed (`mmc bootpart enable`): | | |
+| | | both resets ended in the downloader again, the ROM log with "Device init: fail" | | |
+| | | (0x8f010b74) for the eMMC, also with BOOT1 enabled again, until a power cycle. Not | | |
+| | | looked into: whether the ROM sees a changed boot partition only after a power cycle | | |
 
 ## Dependencies / vendored code
 

@@ -196,13 +196,15 @@ BD71837's rails on (the PICO-PI's tree has them only `regulator-boot-on`, and Li
   up to the hang; the watchdog resets it then. Runs from 9 minutes to over 1.5 hours on one
   USB port, a few minutes on another: power is the first suspect.
 - eth0's PHY doesn't answer at MDIO address 1; the USB host port's DWC3 fails to start.
-- F-452: `reboot` hangs the board, and a reset from pb or through WDOG1 ends in the ROM's
-  serial downloader. A power cycle boots from the eMMC.
+- F-452: `reboot` hangs the board. `devmem 0x30280000 16 0x44` (WDOG1's software reset) and
+  pb's `dev reset` reset it.
 
 Over USB (D-089): in the ROM's serial downloader `uuu` loads the SPL, and the SPL takes pb proper
 over fastboot (`doc/guides/build-and-test.md`, "The i.MX8MQ over USB"). The way there without the
 boot switches: `mmc bootpart enable 7 0 /dev/mmcblk0` in Linux and a power cycle, the ROM finds
-no image; `mmc bootpart enable 2 0 /dev/mmcblk0` (BOOT1) puts it back.
+no image; `mmc bootpart enable 2 0 /dev/mmcblk0` (BOOT1) and another power cycle put it back
+(F-452). pb's command mode without any of it: `pbstate -s none` in Linux and a reset, then
+`punchboot boot enable <System A>`.
 
 ### imx8qxmek: TF-A
 
