@@ -35,4 +35,7 @@ int imx8m_tzasc_check(void);
  * in plat_init()'s order before D-088 */
 int imx8m_spl_dram_init(void);
 
+/* A reset from the SPL, through WDOG1 (spl/spl.c) */
+void imx8m_spl_reset(void);
+
 #endif // PLAT_IMX8M_PLAT_H_

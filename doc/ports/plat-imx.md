@@ -108,7 +108,8 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
     the ROM API at 0x980 (`download_image`, `query_boot_infor` as U-Boot's
     `arch/arm/mach-imx/romapi.c`: the arguments XORed into the last one), checks the IVT as the
     8MQ's SPL does, calls HAB's `authenticate_image` (RVT at 0x900) and jumps to pb proper only when
-    it returns its start. Over USB the ROM API streams: the image is read in order.
+    it returns its start. Over USB the ROM API streams: the image is read in order. The v2 ROM
+    takes no return from the SPL: a failure resets through WDOG1 (`platform.md` 2).
   - **pb proper** is linked at the board's `PB_ENTRY` in DRAM, after its buffers. Its entry turns
     the MMU and the D-cache off and invalidates the cache (F-207), as before.
 

@@ -232,8 +232,12 @@ void spl_main(void)
         ((void (*)(void))(uintptr_t)hdr.ivt.entry)();
     }
 
-    /* Nothing to go back to: the v2 ROM doesn't take the SPL's return. The
-     * watchdog, if the ROM armed it, resets */
+    /* Nothing to go back to: the v2 ROM doesn't take the SPL's return. A
+     * platform failure resets (platform.md 2); should it not, the watchdog,
+     * if the ROM armed it, does */
+    LOG_ERR("SPL failed, resetting");
+    imx8m_spl_reset();
+
     while (true)
         wfi();
 }

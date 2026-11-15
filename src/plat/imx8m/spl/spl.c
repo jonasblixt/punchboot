@@ -12,6 +12,7 @@
  */
 
 #include <drivers/timer/imx_gpt.h>
+#include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -26,6 +27,15 @@
 uint32_t plat_get_us_tick(void)
 {
     return imx_gpt_get_tick();
+}
+
+/* A reset through WDOG1, as plat_reset(); its clock is ungated here, the
+ * SPL runs before plat_early_init() */
+void imx8m_spl_reset(void)
+{
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
+    mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
+    imx_wdog_reset_now(IMX8M_WDOG1_BASE);
 }
 
 /* Without the board's console the SPL writes the RAM log only */

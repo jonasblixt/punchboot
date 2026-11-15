@@ -44,6 +44,7 @@ spl-src-y += src/drivers/ddr/umctl2.c
 spl-src-y += src/drivers/ddr/dwc_ddrphy.c
 spl-src-y += src/drivers/tzc/tzc380.c
 spl-src-y += src/drivers/timer/imx_gpt.c
+spl-src-y += src/drivers/wdog/imx_wdog.c
 spl-src-y += src/drivers/pinctrl/imx_iomuxc.c
 spl-src-y += src/delay.c
 spl-src-y += src/log.c
