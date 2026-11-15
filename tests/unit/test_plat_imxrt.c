@@ -256,6 +256,42 @@ static void test_plat_init(void **state)
     assert_int_equal(plat_init(), PB_OK);
 }
 
+/* F-148: the clock roots don't depend on the reset. After a software reset
+ * the booted code's dividers are still set (RT1060 EVK: ARM /2, AHB /1, IPG
+ * /3, PERCLK /2): plat_init() sets every one, to RM Table 14-5's maximums at
+ * 600 MHz, and logs those */
+static void test_clock_roots_from_any_reset(void **state)
+{
+    static const struct {
+        uint32_t cacrr, cbcdr, cscmr1;
+    } resets[] = {
+        { 0x1, 0x000a8200, 0x25930001 }, /* The EVK after a software reset */
+        { 0x0, 0x000a8f00, 0x25930040 }, /* Every divider and the select off */
+    };
+
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(resets); i++) {
+        setup(NULL);
+        fake_regs_set(IMXRT_CCM_CACRR, resets[i].cacrr);
+        fake_regs_set(IMXRT_CCM_CBCDR, resets[i].cbcdr);
+        fake_regs_set(IMXRT_CCM_CSCMR1, resets[i].cscmr1);
+        assert_int_equal(plat_early_init(), PB_OK);
+        assert_int_equal(plat_init(), PB_OK);
+
+        assert_int_equal(fake_regs_get(IMXRT_CCM_CACRR) & CACRR_ARM_PODF_MASK, 1);
+        assert_int_equal(fake_regs_get(IMXRT_CCM_CBCDR) & CBCDR_AHB_PODF_MASK, 0);
+        assert_int_equal(fake_regs_get(IMXRT_CCM_CBCDR) & CBCDR_IPG_PODF_MASK, CBCDR_IPG_PODF(3));
+        assert_int_equal(fake_regs_get(IMXRT_CCM_CSCMR1) &
+                             (CSCMR1_PERCLK_CLK_SEL | CSCMR1_PERCLK_PODF_MASK),
+                         CSCMR1_PERCLK_PODF(1));
+        /* The rest of the registers as they were */
+        assert_int_equal(fake_regs_get(IMXRT_CCM_CBCDR) &
+                             ~(CBCDR_AHB_PODF_MASK | CBCDR_IPG_PODF_MASK),
+                         resets[i].cbcdr & ~(CBCDR_AHB_PODF_MASK | CBCDR_IPG_PODF_MASK));
+    }
+}
+
 /* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
  * crypto backend behind its driver's option: Mbed TLS with
  * CONFIG_DRIVERS_CRYPTO_MBEDTLS, once and as its last step, and nothing of
@@ -569,6 +605,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_init, setup),
+        cmocka_unit_test_setup(test_clock_roots_from_any_reset, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
         cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status, setup),

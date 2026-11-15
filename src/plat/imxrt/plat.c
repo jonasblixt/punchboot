@@ -164,6 +164,26 @@ int plat_init(void)
     while (!(mmio_read_32(IMXRT_CCM_ANALOG_PLL_ARM) & ANALOG_PLL_ARM_LOCK))
         ;
 
+    /* Every divider from PLL1 to PERCLK, not the ones the reset left: a
+     * software reset after a boot keeps the booted code's (IPG at 200 MHz,
+     * F-148). ARM /2 and AHB /1, PLL1's 1200 or 1056 MHz to 600 or 528, IPG
+     * /4 to 150 or 132 and PERCLK from IPG /2 to 75 or 66: inside RM Table
+     * 14-5's maximums. Set while AHB runs from PLL2 */
+    mmio_clrsetbits_32(IMXRT_CCM_CACRR, CACRR_ARM_PODF_MASK, CACRR_ARM_PODF(1));
+
+    while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_ARM_PODF_BUSY)
+        ;
+
+    mmio_clrsetbits_32(IMXRT_CCM_CBCDR,
+                       CBCDR_AHB_PODF_MASK | CBCDR_IPG_PODF_MASK,
+                       CBCDR_AHB_PODF(0) | CBCDR_IPG_PODF(3));
+
+    while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_AHB_PODF_BUSY)
+        ;
+
+    mmio_clrsetbits_32(
+        IMXRT_CCM_CSCMR1, CSCMR1_PERCLK_CLK_SEL | CSCMR1_PERCLK_PODF_MASK, CSCMR1_PERCLK_PODF(1));
+
     // Switch back to PLL1 for AHB Root
     mmio_clrsetbits_32(IMXRT_CCM_CBCMR, CBCMR_PRE_PERIPH_CLK_SEL_MASK, CBCMR_PRE_PERIPH_CLK_SEL(3));
 
