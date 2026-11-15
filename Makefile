@@ -90,6 +90,9 @@ cflags-y += -Wmissing-prototypes
 cflags-y += -Wpointer-arith
 cflags-y += -Wredundant-decls
 cflags-y += -Waggregate-return
+# An #if on a macro that isn't defined is 0 without a word: a Kconfig bool
+# that is off isn't defined, so it is #ifdef or defined() (F-231)
+cflags-y += -Wundef
 # CI's firmware builds fail on a warning (F-228): PB_WERROR=1
 ifeq ($(PB_WERROR),1)
 cflags-y += -Werror
@@ -230,7 +233,7 @@ $(OBJS): $(call value_file,PB_VERSION)
 # What the objects are compiled with and pb is linked with: a changed flag
 # (CONFIG_OPTIMIZE on the command line, an edited makefile.mk), compiler or
 # list of objects makes them again, and so does a changed link script (F-398)
-compile_cmd = $(CC) $(cflags-y)
+compile_cmd = $(CC) $(cflags-y) $(asflags-y)
 link_cmd = $(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS) $(LIBS)
 LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(ldflags-y))))
 
@@ -261,23 +264,30 @@ $(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS) $(LINK_SCRI
 
 # A rule per blob, for the object the link reads: the pattern rule's target
 # was the blob's path under $(BUILD_DIR), a file nothing made, so pb was
-# linked again on every make (F-431). The copy in blobs/ gives the symbols a
-# name without the blob's directory.
+# linked again on every make (F-431). objcopy names the symbols after the
+# path it reads (every character but a letter or digit is a _); they are
+# renamed to what a blobs/<file> gives, the names ddr.c uses
+# (_binary_blobs_..._start). That was a copy in the source tree's blobs/,
+# shared by every build there: the two i.MX8M boards' training firmware has
+# the same names (F-231). Nothing is written outside $(BUILD_DIR).
 define blob_rule
 $(BUILD_DIR)/$(notdir $(1:.bin=.bino)): $(1)
 	@mkdir -p $$(@D)
-	@mkdir -p blobs/
-	@mkdir -p $$(BUILD_DIR)/blobs
-	@cp $$< blobs/
 	@echo BLOB $$< $$(notdir $$<)
-	$$(Q)$$(OBJCOPY) -I binary -O $$(ARCH_OUTPUT) -B $$(ARCH) blobs/$$(notdir $$<) $$@
+	$$(Q)from=_binary_$$$$(printf '%s' '$$<' | tr -c 'A-Za-z0-9' '_'); \
+	to=_binary_$$$$(printf '%s' 'blobs/$$(notdir $$<)' | tr -c 'A-Za-z0-9' '_'); \
+	$$(OBJCOPY) -I binary -O $$(ARCH_OUTPUT) -B $$(ARCH) \
+	    --redefine-sym $$$${from}_start=$$$${to}_start \
+	    --redefine-sym $$$${from}_end=$$$${to}_end \
+	    --redefine-sym $$$${from}_size=$$$${to}_size \
+	    $$< $$@
 endef
 $(foreach blob,$(blobs-y),$(eval $(call blob_rule,$(blob))))
 
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(@D)
 	@echo AS $<
-	$(Q)$(CC) -D__ASSEMBLY__ -c $(cflags-y) $< -o $@
+	$(Q)$(CC) -D__ASSEMBLY__ -c $(cflags-y) $(asflags-y) $< -o $@
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)

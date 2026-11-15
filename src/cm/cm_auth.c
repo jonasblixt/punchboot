@@ -90,7 +90,7 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
 }
 #endif
 
-#if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
+#if defined(CONFIG_CM_AUTH_PASSWORD) || defined(CONFIG_CM_AUTH_TOKEN)
 /* Hosts send the authentication data after an OK result, and check that
  * result first. A bad size is refused before the data and sets *refused:
  * nothing was tried, so the session stays as it was (command-mode.md 3.3). */
@@ -141,7 +141,7 @@ int cm_cmd_auth(void)
 {
     int rc = -PB_ERR_NOT_IMPLEMENTED;
 
-#if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
+#if defined(CONFIG_CM_AUTH_PASSWORD) || defined(CONFIG_CM_AUTH_TOKEN)
     struct pb_command_authenticate *auth_cmd = (struct pb_command_authenticate *)cm_cmd.request;
     bool refused;
 #endif
@@ -171,7 +171,7 @@ int cm_cmd_auth(void)
     }
 #endif
 
-#if CONFIG_CM_AUTH_PASSWORD
+#ifdef CONFIG_CM_AUTH_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD && cm_cfg->password_auth) {
         rc = auth_read_data(auth_cmd, &refused);
 

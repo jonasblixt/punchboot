@@ -11,6 +11,16 @@ cflags-y += -mno-unaligned-access
 cflags-y += -DARM_ARCH_MAJOR=7
 cflags-y += -DARMV7_SUPPORTS_LARGE_PAGE_ADDRESSING
 
+# TF-A's build options, which its files here (arch_helpers.h,
+# misc_helpers.S, asm_macros*.S, vendored.md) test with #if: TF-A's build
+# defines each of them, so they are defined here too (-Wundef), with the value
+# an undefined one had. No erratum's workaround is built in, DEBUG and
+# ERROR_DEPRECATED are off; only assembly tests the two, and DEBUG means
+# something else to other code.
+cflags-y += -DERRATA_A53_819472=0 -DERRATA_A53_824069=0 -DERRATA_A53_827319=0
+cflags-y += -DERRATA_A9_794073=0
+asflags-y += -DDEBUG=0 -DERROR_DEPRECATED=0
+
 ldflags-y += -Tsrc/arch/armv7a/link.lds
 ldflags-y += --defsym=PB_SECTION_ALIGNMENT=4096
 # The sections are aligned to 4 KiB, ld's arm page is 64 KiB: with it, .text
@@ -21,6 +31,10 @@ ldflags-y += -z max-page-size=4096
 asm-y += src/arch/armv7a/entry_armv7a.S
 asm-y += src/arch/armv7a/arm32_aeabi_divmod_a32.S
 asm-y += src/arch/armv7a/uldivmod.S
+# Coreboot's (vendored.md) tests __COREBOOT_ARM_ARCH__, which coreboot sets to
+# the architecture: undefined, it takes the path without CLZ (before ARMv5).
+# Defining it would change the code, so -Wundef is off for this object only.
+$(BUILD_DIR)/src/arch/armv7a/uldivmod.o: cflags-y += -Wno-undef
 asm-y += src/arch/armv7a/boot.S
 asm-y += src/arch/armv7a/timer.S
 asm-y += src/arch/armv7a/cp15.S

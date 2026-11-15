@@ -15,7 +15,7 @@
 #include <plat/imx8x/mm.h>
 #ifdef CONFIG_PLAT_IMX8XL
 #include <plat/imx8x/imx8dxl_pads.h>
-#elif CONFIG_PLAT_IMX8X
+#elif defined(CONFIG_PLAT_IMX8X)
 #include <plat/imx8x/imx8qxp_pads.h>
 #endif
 /* The SCFW's services a board uses (platform.md 7, D-056): its pads and the
