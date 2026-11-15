@@ -58,6 +58,8 @@
 #define DWC3_EP0_MPS_INIT       512
 #define DWC3_EP0_MPS_HS_FS      64
 #define DWC3_SETUP_PKT_SIZE     sizeof(struct usb_setup_packet)
+/* The longest reply on endpoint 0: a string descriptor is 255 bytes at most */
+#define DWC3_EP0_DATA_MAX       512
 
 /*
  * The longest transfer: one TRB, whose size field (BUFSIZ) has 24 bits, in
@@ -123,6 +125,11 @@ static struct {
 PB_DMA_ARRAY_ALIGNED(uint32_t, ev_buffer, DWC3_EV_BUFFER_ENTRIES, DWC3_EV_BUFFER_BYTES);
 PB_DMA_BUFFER(struct usb_setup_packet, setup_pkt);
 PB_DMA_ARRAY(struct dwc3_trb, trbs, USB_EP_END);
+/* Endpoint 0's data stage to the host is sent from the driver's memory: what
+ * the stack answers with (a descriptor in read only data, a status on its
+ * stack) is where the controller needn't reach. The i.MX8M's SPL runs in
+ * on-chip RAM, and its DMA memory is in DRAM (D-089) */
+PB_DMA_ARRAY(uint8_t, ep0_data, DWC3_EP0_DATA_MAX);
 static struct dwc3_ep eps[USB_EP_END] __dram_bss; /* Command mode's */
 
 /* What the controller has of an endpoint's transfer: its TRB, which it
@@ -580,6 +587,15 @@ static int dwc3_udc_xfer_start(usb_ep_t ep, void *buf, size_t length)
         /* Data stage of a control transfer */
         if (!ep0.in_control || ep0.aborted)
             return PB_OK;
+
+        if (ep == USB_EP0_IN && length > 0) {
+            if (length > sizeof(ep0_data))
+                return -PB_ERR_PARAM;
+
+            memcpy(ep0_data, buf, length);
+            buf = ep0_data;
+        }
+
         ep0.data_stage = true;
         return dwc3_start_trb(ep, buf, length, length, TRBCTL_CONTROL_DATA);
     }

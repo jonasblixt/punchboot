@@ -251,6 +251,47 @@ static void test_setup_packet(void **state)
     }
 }
 
+/* usb.md 5, D-089: endpoint 0's data stage to the host is sent from the
+ * driver's own memory, not from where the stack has its answer: a
+ * descriptor in read only data or a status on its stack, which in the
+ * i.MX8M's SPL is on-chip RAM. The stack's bytes are its own again when the
+ * transfer is started, and a reply longer than the driver's memory is
+ * refused */
+static void test_ep0_reply_is_sent_from_the_drivers_memory(void **state)
+{
+    static const struct usb_setup_packet request = {
+        .bRequestType = 0x80, .bRequest = 6, .wValue = 0x0100, .wLength = 18
+    };
+    struct usb_setup_packet pkt;
+    uint8_t packet[sizeof(pkt)];
+    uint8_t reply[18];
+    uint8_t sent[sizeof(reply)];
+    uint8_t got[sizeof(reply)];
+    uint32_t trb[4];
+    uintptr_t buf;
+    (void)state;
+
+    memcpy(packet, &request, sizeof(packet));
+    controller_run(USB_EP0_OUT, packet, sizeof(packet));
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+
+    fill(reply, sizeof(reply), 3);
+    memcpy(sent, reply, sizeof(sent));
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, reply, sizeof(reply)), PB_OK);
+
+    dcache_dev_read((uintptr_t)trb_addr[USB_EP0_IN], trb, sizeof(trb));
+    buf = (uintptr_t)(((uint64_t)trb[1] << 32) | trb[0]);
+    assert_true(buf + sizeof(reply) <= (uintptr_t)reply || buf >= (uintptr_t)reply + sizeof(reply));
+    assert_true(dma_owns_lines((void *)buf, 0));
+
+    memset(reply, 0, sizeof(reply));
+    controller_run(USB_EP0_IN, got, sizeof(got));
+    assert_memory_equal(got, sent, sizeof(sent));
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
+
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, NO_BUF, 513), -PB_ERR_PARAM);
+}
+
 /* usb.md 2.3, 4.3: a transfer from the host arrives in the caller's buffer,
  * all of it and nothing outside the buffer's lines, and a transfer to the
  * host is what the caller has just written */
@@ -294,6 +335,55 @@ static void test_bulk_transfers(void **state)
         assert_memory_equal(buf, host, length);
         assert_int_equal(dma_host_in_open(), IDLE_RANGES);
     }
+}
+
+/* usb.md 4.5: a transfer from the host that a short packet ends without an
+ * error, for the i.MX8M SPL's fastboot (D-089). The controller gives the TRB
+ * back at the short packet with what it didn't fill in its size, and the
+ * count is what arrived: a command of a few bytes, a whole packet, a
+ * download's last piece */
+static void test_a_short_packet_ends_a_short_transfer(void **state)
+{
+    static const struct {
+        size_t length;
+        size_t sent;
+    } cases[] = { { 512, 14 }, { 512, 512 }, { 1000, 1000 }, { 4096, 513 }, { 4096, 4096 } };
+
+    uint8_t *buf = arena + LINE;
+    size_t received;
+    (void)state;
+
+    configure();
+
+    for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+        size_t sent = cases[i].sent;
+
+        fill(host, sent, (unsigned int)sent);
+        memset(arena, 0xee, sizeof(arena));
+        received = SIZE_MAX;
+        assert_int_equal(ops->xfer_start_short(USB_EP2_OUT, buf, cases[i].length, &received),
+                         PB_OK);
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+        assert_int_equal(received, SIZE_MAX);
+        controller_run(USB_EP2_OUT, host, sent);
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+        assert_int_equal(received, sent);
+        assert_memory_equal(buf, host, sent);
+        assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+    }
+
+    /* The next exact transfer has no count to write */
+    received = SIZE_MAX;
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    controller_run(USB_EP2_OUT, host, 512);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_int_equal(received, SIZE_MAX);
+
+    /* From the host on a bulk endpoint only, with a place for the count */
+    assert_int_equal(ops->xfer_start_short(USB_EP1_IN, buf, 512, &received), -PB_ERR_PARAM);
+    assert_int_equal(ops->xfer_start_short(USB_EP0_OUT, buf, 512, &received), -PB_ERR_PARAM);
+    assert_int_equal(ops->xfer_start_short(USB_EP2_OUT, buf, 512, NULL), -PB_ERR_PARAM);
+    assert_int_equal(ops->xfer_start_short(USB_EP2_OUT, buf, 0, &received), -PB_ERR_PARAM);
 }
 
 /*
@@ -530,7 +620,10 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_setup_packet, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_ep0_reply_is_sent_from_the_drivers_memory, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bulk_transfers, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_short_packet_ends_a_short_transfer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cancel_gives_the_buffer_back, setup, teardown),
         cmocka_unit_test_setup_teardown(
             test_a_transfer_longer_than_a_trb_is_refused, setup, teardown),
