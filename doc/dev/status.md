@@ -13,14 +13,14 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   one at a time with `PB_JOBS=6` (load under 8, Jonas). CI: host tests, coverage, all boards,
   Coverity (master only).
 - **Boards (2026-11-15):**
-  - jiffy: `55689509` from BOOT1 (BOOT0 an older pb); Root A has the test bench's root image,
-    Root B random test data. The OP-TEE add-on's pb is no longer on it.
+  - jiffy: **stuck in a reset loop (F-455)**, a TZASC test pb in BOOT1; needs serial download
+    and `uuu` (Jonas). BOOT0 an older pb; Root A the test bench's root image, Root B test data.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
   - RT1060 from its NOR: `246bd897` (log 2026-11-14). The MEK: `ad44621b`'s pb in BOOT1
     (enabled), BOOT0 keeps its pb of 2026-11-14; both its USB ports are wired. The 8MP EVK:
-    `ad44621b`'s two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of
+    `b3901579`'s two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of
     2026-11-14 in BOOT0.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
@@ -60,4 +60,3 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - Choices left in findings: F-140 (SDIS off: 15% faster writes on jiffy), F-283 and F-200 (the
   GPT's 512s, SEC_COUNT 0), F-406, F-411, F-180, F-227's default device.
 - Which findings gate the 3.0.0 tag; bebop's defconfig (F-033); virtio for QEMU (F-052).
-- The Arm specs and the TZC-380 TRM on the share (D-084).

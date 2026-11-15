@@ -276,9 +276,9 @@ active.
 | ------ | -------------------------------------------------------------------- | ------------------------ | ------ |
 | imx6ul | The DCD sets TZASC1_BYP (GPR9, RM 30.4.7), or the ROM with the       | No lock bit. pb's        | OP-TEE |
 |        | TZASC_ENABLE fuse (RM p. 209, a board configuration fuse). pb checks | comments say it's sticky |        |
-|        | it and opens DRAM in region 1                                        | until POR: not in the RM |        |
+|        | it, opens the board's DRAM in region 1 and reads it back             | until POR: not in the RM |        |
 | imx8m  | Before `imx8m_ddr_init()`: GPR10 ID_SWAP_BYPASS, TZASC_EN and both   | GPR10[17:16]             | BL31,  |
-|        | locks (8MP RM 4.9, p. 1328). After it the DDR window in region 1,    |                          | then   |
+|        | locks (8MP RM 4.9, p. 1328). After it the board's DRAM in region 1,  |                          | then   |
 |        | region 0 left secure                                                 |                          | OP-TEE |
 | imx8x  | Nothing: BL31 partitions memory through the SCFW                     | The SCFW                 | BL31   |
 |        | (`imx8qx_bl31_setup.c`)                                              |                          |        |
@@ -304,17 +304,24 @@ SoC facts for the driver:
 - **Addresses.** The 8MP's TZASC counts from the start of DDR (0x40000000, 8MP RM 4.9.2.1; TF-A
   says the same), seen on the EVK: a refused access at PA 0x60000000 has FAIL_ADDRESS 0x20000000.
   Its TZC-380 has 16 regions and 33 bit addresses, enough for the 8 GiB window. The 6UL RM (52.3)
-  says the DDR controller's "local addresses"; pb passes the physical base (F-241).
-- **Aliasing.** With less DRAM than the controller addresses, DRAM repeats (both RMs): the default
-  region stays secure so that the copies are covered.
+  says the DDR controller's "local addresses"; pb passes the physical base, as OP-TEE 4.9 does
+  on the 6UL (`plat-imx/tzc380.c` subtracts the DRAM base on the 8M only; F-241).
+- **Aliasing.** With less DRAM than the controller addresses, DRAM repeats (both RMs): region 1
+  is the board's DRAM and the default region stays secure, so that the copies are covered
+  (F-261). The board's DRAM is one TZC-380 region (a power of two, aligned), checked at build
+  time. On the 8M BL31 then opens region 0 to both worlds (above), until OP-TEE's regions.
 - **Non-secure masters (8M).** Some DMA masters are non-secure, the DWC3 among them: without
   region 1 command mode's USB stops (the comment in `imx8m/plat.c`).
 - **The 8MP's fuse.** Its RM (4.9.1.2) says a TZASC_ENABLE fuse must be blown. On the EVK, unfused,
   GPR10 alone takes it out of bypass (F-208, 2026-11-10): pb, at EL3 through a mapping with the
   NS attribute, had a read refused in a region made secure only, and the same read passed without
   it. The test is in the log of that day.
-- **TZASC1_BOOT_LOCK** (6UL GPR1[23], RM p. 1262), presumably the TZC-380's `secure_boot_lock`
-  input: what it locks needs the TZC-380 TRM (DDI0431), which isn't on the share.
+- **TZASC1_BOOT_LOCK** (6UL GPR1[23], RM p. 1262) is the TZC-380's `secure_boot_lock` input.
+  Once it is high, `lockdown_select` is read only, and so are the registers it selects and the
+  regions `lockdown_range` names, until the TZASC is reset (DDI0431C 2.2.8, 3.2.3, 3.2.4). pb
+  leaves it alone: OP-TEE 4.9 writes and checks the lockdown registers after pb, and never sets
+  the bit, so its lockdown has no effect. pb reads region 1 back, which catches a region locked
+  before a warm reset. Setting it on jiffy stopped the CAAM's and the uSDHC's DMA (F-455).
 
 ### 4.3 Lockdown before the jump
 
@@ -462,7 +469,7 @@ Where each port is (2026-11-15).
 | `bl_params`' region (5.3)            |              |                   |            |           |               |
 | The system controller's API through  | n/a          | n/a               | yes        | n/a       |               |
 | the platform header (7)              |              |                   |            |           |               |
-| TrustZone filter                     | partly       | partly            | n/a (BL31) | n/a       | F-241, F-261  |
+| TrustZone filter                     | partly       | yes               | n/a (BL31) | n/a       | F-241         |
 | `plat_lockdown()`                    | yes          | yes, not on a     | unchecked  | unchecked | F-244, D-084  |
 |                                      |              | board             |            |           |               |
 | Bus access control                   | yes (jiffy)  | n/a (BL31)        | n/a (BL31) | n/a       | F-246         |

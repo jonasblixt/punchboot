@@ -473,9 +473,6 @@ why the SoC can't (`system.md` 4). A product chooses it with a Kconfig option, o
 
 ### 4.3 The TrustZone DRAM filter [mandatory when the SoC has one]
 
-**Not yet in the code (F-261)**: the ports open the SoC's whole DRAM window, not the board's
-DRAM (item 3).
-
 This is pb's part of the secure world's isolation (`security.md` 4.9), and a boot without it is
 refused (2.3).
 

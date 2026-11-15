@@ -312,11 +312,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-13: landed (`6e40e034..b1186de2`): 76 of 76 at `b1186de2`, also with the sanitizers, and the | | |
 | | | six boards build; on the RT1060 EVK the simple target's suite passes 7 of 7 with the application's | | |
 | | | `fh-*` checks. Left: the tag (the marker in `boot.md` 5.4) | | |
-| F-261 | `plat/{imx6ul,imx8m}/plat.c` | The TrustZone filter's open region is the SoC's | Verified (code) | open |
-| | | whole DRAM window, not the board's DRAM: 2 GiB on the 6UL (`tzasc_init()`), 4 or 8 GiB on the 8M | | |
-| | | (`tzasc_open_dram()`). With less DRAM than the window, the copies of DRAM inside it are open to | | |
-| | | the normal world until a secure OS replaces the region. `platform.md` 4.3, item 3: the board's DRAM | | |
-| | | (`BOARD_DRAM_*`, F-239) | | |
 | F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
 | | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
 | | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |

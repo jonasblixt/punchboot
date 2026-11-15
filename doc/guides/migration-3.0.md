@@ -900,6 +900,11 @@ PB_BUFFERS_SIZE = 0xfdf000
 - The platform's link script checks the values: pb is where the ROM may load it, its buffers
   are in the board's DRAM or the SoC's on-chip RAM, and the two don't overlap. A board with a
   wrong address doesn't link, where 2.x built it.
+- **An i.MX6UL or i.MX8M board**: the TrustZone filter's open region is the board's DRAM, not
+  the SoC's DDR window (`platform.md` 4.3, F-261), so the DRAM must be one TZC-380 region: a
+  power of two of at least 32 KiB, aligned to its size, inside the window. A board whose DRAM
+  isn't doesn't build (a static assertion in `plat/imx6ul/plat.c` or `plat/imx8m/tzasc.c`);
+  2.x opened the whole window.
 - **An i.MX8M board** (D-088): pb proper runs from DRAM, so `PB_ENTRY` is in the board's DRAM,
   after the buffers, and `PB_SIZE` is mandatory: the boards in the tree have 0x41100000 and
   2 MiB. The SPL's window is the platform's. The board's image data region in DRAM starts

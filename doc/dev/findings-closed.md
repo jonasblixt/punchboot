@@ -1823,6 +1823,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | MEK also with the bench's toolchain; on the MEK from BOOT1: three `dev reset`s, System A to the login in | | |
 | | | 5.2 s and back to pb. The 8MP EVK (SPL and pb, from BOOT1): four `dev reset`s, System A to the | | |
 | | | login twice, `reboot` back to pb | | |
+| F-261 | `plat/{imx6ul,imx8m}/plat.c` | The TrustZone filter's open region is the SoC's | Verified (code) | fixed |
+| | | whole DRAM window, not the board's DRAM: 2 GiB on the 6UL (`tzasc_init()`), 4 or 8 GiB on the 8M | | |
+| | | (`tzasc_open_dram()`). With less DRAM than the window, the copies of DRAM inside it are open to | | |
+| | | the normal world until a secure OS replaces the region. `platform.md` 4.3, item 3: the board's DRAM | | |
+| | | (`BOARD_DRAM_*`, F-239) | | |
+| | | 2026-11-15 (`b3901579`): region 1 is `BOARD_DRAM_*` on both, from the window's start on the 8M, | | |
+| | | where pb proper checks the SPL's region is exactly that. A board's DRAM must be one TZC-380 region | | |
+| | | (static assertions; the migration guide says so). On the 8MP EVK: 2 GiB from 0 of the 8 GiB window, | | |
+| | | System A to the login three times. jiffy not run (F-455), its unit test checks the region | | |
 
 ## Dependencies / vendored code
 
