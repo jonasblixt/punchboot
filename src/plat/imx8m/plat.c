@@ -486,26 +486,26 @@ int plat_init(void)
     return PB_OK;
 }
 
-#ifdef CONFIG_IMX8M_CM_USB1
-/* Command mode's USB (platform.md 3.10): USB1, a DWC3 with the SoC's PHY.
- * Its clocks and power differ per SoC */
+#if defined(CONFIG_IMX8M_CM_USB1) || defined(CONFIG_IMX8M_CM_USB2)
+/* Command mode's USB (platform.md 3.10): USB1 or USB2, a DWC3 with the SoC's
+ * PHY. Its clocks and power differ per SoC */
 int plat_cm_init(void)
 {
     int rc;
 
-    rc = imx8m_soc_usb1_power_up();
+    rc = imx8m_soc_cm_usb_power_up();
 
     if (rc != PB_OK)
         return rc;
 
-    rc = imx8m_usb_phy_init(IMX8M_USB1_PHY_BASE);
+    rc = imx8m_usb_phy_init(IMX8M_CM_USB_PHY_BASE);
 
     if (rc != PB_OK) {
         LOG_ERR("USB PHY init failed (%i)", rc);
         return rc;
     }
 
-    return imx_dwc3_udc_init(IMX8M_USB1_BASE);
+    return imx_dwc3_udc_init(IMX8M_CM_USB_BASE);
 }
 #endif
 

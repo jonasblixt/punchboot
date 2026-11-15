@@ -47,13 +47,13 @@ void imx8m_spl_reset(void)
  * downloader ran on the port: the PHY and the controller are reset */
 int imx8m_spl_usb_init(void)
 {
-    int rc = imx8m_soc_usb1_power_up();
+    int rc = imx8m_soc_cm_usb_power_up();
 
     if (rc == PB_OK)
-        rc = imx8m_usb_phy_init(IMX8M_USB1_PHY_BASE);
+        rc = imx8m_usb_phy_init(IMX8M_CM_USB_PHY_BASE);
 
     if (rc == PB_OK)
-        rc = imx_dwc3_udc_init(IMX8M_USB1_BASE);
+        rc = imx_dwc3_udc_init(IMX8M_CM_USB_BASE);
 
     return rc;
 }

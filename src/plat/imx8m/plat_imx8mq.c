@@ -17,7 +17,7 @@
 #include "plat.h"
 
 #ifdef CONFIG_IMX8M_CM_USB1
-int imx8m_soc_usb1_power_up(void)
+int imx8m_soc_cm_usb_power_up(void)
 {
     /* Enable and ungate USB clocks */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USB_BUS_CLK_ROOT), CLK_ROOT_ON);
