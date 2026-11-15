@@ -895,6 +895,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | probe on it. Next: a power cycle (Jonas), then the console at the login; the DTS without | | |
 | | | `fsl,ext-reset-output`, or the BD71837 told to reset on WDOG_B. Also: eth0's PHY doesn't | | |
 | | | answer at MDIO 1, the USB host port's DWC3 doesn't start | | |
+| F-451 | `src/plat/imx8m/spl/`, the i.MX8MQ | The SPL, a HABv4 plugin (D-088), boots from the eMMC  | Seen (board) | open |
+| | | but can't hand pb proper over to the ROM's serial downloader: the downloader takes one | | |
+| | | image (8MQ RM 6.1.8.2.1.7), and after the plugin it either goes on without pb proper | | |
+| | | (return 1) or refuses everything (return 0, HAB failed); both on the pico8ml. USB | | |
+| | | recovery with the SPL needs the SPL to download pb proper itself, over its own SDP on pb's | | |
+| | | DWC3 driver as U-Boot's 8MQ SPL does, or a single-stage pb for uuu. For Jonas | | |
 
 ## Dependencies / vendored code
 

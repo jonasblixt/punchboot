@@ -107,6 +107,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-085 | Unrevocable keys, board functions, OP-TEE        | In force; Jonas reviewed it                        |
 | D-086 | The software crypto backend is the core's        | In force; the documents wait for Jonas's review    |
 | D-087 | A build may forbid every fuse write              | In force (Jonas: "the EVK must never write fuses") |
+| D-088 | The i.MX8M boots pb in two stages, one image     | Accepted (Jonas); the code follows                 |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2097,3 +2098,50 @@ operations, which stopped being true when the i.MX8M got them (`ce438b74`, F-449
 - **Nothing changes on the wire** (D-008): `NOT_SUPPORTED` is what a port without these
   operations answered in every release (`command-mode.md` 5.2).
 - The 8MP EVK's defconfig turns it on.
+
+## D-088: The i.MX8M boots pb in two stages, one image (2026-11-15)
+
+Jonas: "We need to implement an "SPL" step on imx8m platform. I want a minimalistic SPL what only
+includes the dram init (you can revert the size optimization and script we did earlier on dram
+timing configs). The SPL should then use the ROM/HAB api to load/authenticate the next part, which
+is PB proper. Both the SPL and PB proper should be bundeled in the same .imx file." For the
+8MQ, whose ROM has no API to load with: the ROM's plugin (Jonas's choice).
+
+Why: the 8MQ's TCM held pb only with its PHY tables packed (`55265ddc`) and six buffers moved to
+DRAM (`822ee69e`), 648 bytes left; the next feature had no room. In DRAM pb proper has room.
+
+- **Two stages, on every i.MX8M** (no option: one way to boot). The **SPL** is the image the
+  ROM loads into its load window, and it brings up DRAM: the tick, the TrustZone filter's enable
+  and its DRAM region before DRAM is used (`platform.md` 4.3), the DRAM init with the board's
+  timing and the copy for TF-A, and the RAM log. No console, no MMU of its own, no other driver.
+  **pb proper** is pb as before without the DRAM init, linked in DRAM. It keeps the SPL's RAM log,
+  so the SPL's lines are on its console.
+- **The ROM loads and authenticates pb proper, never pb's own code:**
+  - **i.MX8MQ:** the SPL is a HABv4 plugin (8MQ RM 6.1.7). The ROM authenticates and runs it; it
+    brings up DRAM, has the ROM read pb proper into DRAM with `pu_irom_hwcnfg_setup()`, and
+    returns pb proper's start, size and IVT offset; the ROM authenticates pb proper and jumps. The
+    function isn't in the RM: it is entry 2 of the ROM's API table at 0x900 (read from the
+    pico8ml's ROM), the function NXP's i.MX6 plugins call (U-Boot, `mx6_plugin.S`). Over USB the
+    host sends pb proper after the plugin returns (the plugin flag, uuu).
+  - **i.MX8M Plus:** its ROM (v2) takes no plugin. The SPL loads pb proper with the ROM's API
+    (`download_image`, as U-Boot's `spl_imx_romapi.c`), has HAB authenticate it
+    (`authenticate_image`, as U-Boot's `imx_hab_authenticate_image()`) and jumps to it only when
+    HAB accepts it.
+- **What the SPL trusts of pb proper's header.** On the 8MQ pb proper's IVT is loaded with the
+  plugin: the plugin's CSF covers it too, and the SPL checks its entry, its address and the load
+  range against what it was built for before it calls the ROM.
+- **One image**, `pb.imx` and `pb_signed.imx` as before, the stages' names unchanged
+  (`platform.md` 6.2, D-018); `spl.bin` is a new output beside `pb.bin`. The 8MQ's image has two
+  CSFs, the 8M Plus's an IVT and a CSF for pb proper after the SPL.
+- **Memory:** the SPL's window is the platform's, pb proper's `PB_ENTRY` the board's, in its DRAM.
+  `bl_params` get a SoC region (F-294): pb's data is no longer where BL31 reads them.
+- **The PHY tables unpacked again** (`55265ddc` reverted, Jonas): the SPL has the room. Jonas: "I
+  want the spl to use the unmodified lpddr4_timing files, the way they came from the tool". The
+  8M Plus EVK's is the tool's output byte for byte; the pico8ml's are TechNexion's copies with
+  NXP's notice as BSD-3-Clause for U-Boot's GPL-2.0+ line (Jonas's choice); the 8MQ EVK keeps
+  `0e58d184`'s edited copy until the tool's output is regenerated (Jonas). Their U-Boot includes
+  are the SPL's shims (`imx8m-ddr.md`).
+- **The cost:** pb proper runs from DRAM after HAB checked it, so whoever controls the DRAM bus can
+  change it after the check, as for every image pb loads (`security.md` 5, probing the buses).
+- **Not changed:** the wire and bpak (D-008); the update, `part write` of `pb_signed.imx` to a
+  boot partition.

@@ -26,6 +26,10 @@ ROM -> pb -> secure firmware (-> a secure OS) -> an operating system or a hyperv
           -> an application (a microcontroller)
 ```
 
+On the i.MX8M pb is two stages in one image (D-088): the SPL, which brings up DRAM, and pb
+proper. The ROM authenticates both, and to the outside they are one pb: one image to write, one
+log, one life cycle.
+
 | Mode         | Entered                                              | Ends with                           |
 | ------------ | ---------------------------------------------------- | ----------------------------------- |
 | Boot         | Every reset                                          | The jump, or command mode           |

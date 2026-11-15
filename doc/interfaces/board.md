@@ -646,6 +646,11 @@ A board directory holds:
 | `Kconfig`     | Optional, the board's options (`osource "$(BOARD)/Kconfig"` in `src/Kconfig`)  |
 | `include/`    | Optional, on the include path                                                  |
 
+On a platform with an SPL (`platform.md` 2, D-088) the board's `makefile.mk` also names, in
+`spl-src-y`, the sources the SPL links: what the DRAM needs, its timing and the code that chooses
+it, and nothing else. They see no `struct board` and call only the platform's functions for
+boards (`platform.md` 7); the platform's port document names what the SPL asks of them.
+
 The defconfig selects the arch and the platform: `configs/<b>_defconfig` in the tree, any file
 out of it, passed as `KCONFIG_CONFIG` (`build-and-test.md`). The build directory is
 `build-<last part of BOARD>`.

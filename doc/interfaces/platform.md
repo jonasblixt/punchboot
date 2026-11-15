@@ -89,6 +89,15 @@ boot()                  fails: pb stops       (also when a precondition fails, 2
 the tasks, in turn      when the boot failed or stopped (5.1); command mode is one; then reset
 ```
 
+**Two stages** `[optional]` (D-088). A platform whose on-chip RAM is too small for pb runs an
+SPL before `main()`: an image of its own that the ROM loads and authenticates, which brings up
+DRAM and nothing else, and leaves loading and authenticating pb proper to the ROM. pb proper is
+pb, linked in DRAM, and runs the list above: its `plat_init()` finds DRAM up, checks what the SPL
+set up that security rests on (the TrustZone filter, 4.3) instead of trusting it, and records it
+in `plat_get_status()`. The SPL's messages are in the RAM log, which pb proper keeps
+(`ramlog_init()`). The SPL is the platform's: its sources, its link script and its window. The
+board gives it only what the DRAM needs (`board.md` 7).
+
 A platform failure resets instead of stopping (`system.md` 5.4): stopped, pb runs its tasks, and
 command mode is one of them (`board.md` 4). Without what `plat_init()` sets up, command mode has
 no console, no MMU or no DRAM for its buffers (F-202, F-235). A deterministic
@@ -586,6 +595,10 @@ DRAM. A value given on make's command line reaches the linker and C alike.
   (`security.md` 4.8), and its name, id and bytes are fixed like a board's (`board.md` 8) for
   every board of the platform.
 
+With an SPL (section 2) `PB_ENTRY` is pb proper's, in the board's DRAM, and the ROM's load window
+is the SPL's: the platform's link script for the SPL places it, its RAM log and its stack there,
+and checks that it fits. The SPL's link checks the board's DRAM sources' size too.
+
 The RAM log is in `pb`, which works from the first instruction. `buffers` may be in DRAM the
 platform trains, so nothing before `plat_init()` uses `.no_init`.
 
@@ -743,7 +756,8 @@ file in the tree:
 2. **Signing**: `<P>_SIGN_IMAGE=n`, and its own target after `<p>_image` in `image-y`.
 3. **Everything**: both options off, its own tooling from `pb.bin`. The platform documents what that
    tooling needs: `pb.bin` is the raw image linked at `PB_ENTRY`, its entry point, and what the ROM
-   requires around it (container, image header, the ROM's register setup, boot data).
+   requires around it (container, image header, the ROM's register setup, boot data). With an SPL
+   (section 2) also `spl.bin`, its address and entry, and how the two are put together.
 
 The stage names, their outputs and their input variables are an interface for out-of-tree boards:
 they change only in a major release (D-018). CI builds a board that overrides at level 3, so the

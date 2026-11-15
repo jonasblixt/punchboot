@@ -17,6 +17,11 @@ ROM  ->  pb  ->  the next stage: secure firmware, a secure OS, an operating syst
 - The ROM is the root: it can't be changed, and on a locked device it runs only a pb whose
   signature verifies against the key hash in the fuses. Where the SoC's vendor firmware runs
   before pb, it belongs to the root as the ROM does.
+- **Where pb is two stages** (the i.MX8M, D-088), the ROM authenticates both: the SPL, which
+  brings up DRAM, and pb proper. The SPL never verifies pb proper with its own code: the 8MQ's
+  ROM authenticates it after the SPL returns, the 8M Plus's SPL has the ROM's HAB do it before it
+  jumps. What of pb proper's header the SPL reads before that check is covered by its own
+  signature, or checked against the SPL's build.
 - pb's trust anchor is its **keystore**: the public keys pb trusts, built into the image the ROM
   verified. pb verifies the next stage's image with it. What the next stage verifies (a root file
   system) is the next stage's.
@@ -162,7 +167,8 @@ Not defended today. Each is a decision to keep, or a roadmap item:
 - **pb's own update has no rollback.** pb is outside the boot source policy; replacing it is the
   product's procedure.
 - **Physical attacks on the SoC**: fault injection, probing the buses, the debug port. The debug
-  port is the SoC's locked state, not pb's.
+  port is the SoC's locked state, not pb's. Where pb proper runs from DRAM (the i.MX8M, D-088),
+  whoever controls the DRAM bus can change it after the ROM checked it, as every image pb loads.
 - **Denial of service** by whoever writes the storage or holds the board's stop: the device
   ends in command mode, locked.
 - **The signing keys' custody and the build.** A pb built with the wrong keystore or key hash is

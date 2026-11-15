@@ -27,9 +27,11 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 
 |                  | imx6ul                        | imx8m                   | imx8x                   | imxrt      |
 | ---------------- | ----------------------------- | ----------------------- | ----------------------- | ---------- |
-| Who sets up DRAM | The ROM, from the board's DCD | `plat_init()` trains it | The SCFW (container)    | None used  |
-| pb runs from     | DRAM (jiffy: 0x80001000)      | OCRAM                   | DRAM, a reset stub at   | OCRAM      |
-|                  |                               |                         | 0x80000000              |            |
+| Who sets up DRAM | The ROM, from the board's DCD | The SPL trains it       | The SCFW (container)    | None used  |
+|                  |                               | (D-088)                 |                         |            |
+| pb runs from     | DRAM (jiffy: 0x80001000)      | DRAM; the SPL from the  | DRAM, a reset stub at   | OCRAM      |
+|                  |                               | TCM (8MQ), the OCRAM    | 0x80000000              |            |
+|                  |                               | (8MP)                   |                         |            |
 | Watchdog         | WDOG1 (`imx_wdog`)            | WDOG1                   | The SCFW (`sc_timer_*`) | WDOG1      |
 | Reset reason     | SRC_SRSR                      | SRC_SRSR                | `sc_pm_reset_reason()`  | WDOG1 WRSR |
 | ROM state saved  | ROM log, the serial           | ROM log                 | -                       | -          |
@@ -69,8 +71,44 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   on the 8MP, 128 KiB on the 8MQ).
 - **Warm resets.** The 6UL's `plat_early_init()` clears SRC_SCR's warm reset enable, as U-Boot's
   `init_src()` does. The others: unchecked.
-- **The 8M's DRAM.** Trained in `plat_init()` (`imx8m-ddr.md`); a failure returns the error, and
-  `main()` resets: command mode's buffers are in DRAM (`.no_init`, the `buffers` region).
+- **The 8M's two stages** (D-088, `platform.md` 2). The SPL (`src/plat/imx8m/spl/`) sets up the
+  GPT for its tick, the TZASC's enable and its DRAM region (4.2), trains DRAM (`imx8m-ddr.md`)
+  and leaves the copy for TF-A at the start of DRAM, with its RAM log in on-chip RAM. pb proper's
+  `plat_init()` doesn't train again: it reads the TZASC's state back into `plat_get_status()`.
+  The SPL fails without a word on the console: the ROM then goes to its serial downloader, and
+  the RAM log of pb proper loaded over USB has the SPL's lines.
+  - **8MQ, a HABv4 plugin** (8MQ RM 6.1.7). The ROM calls the SPL at its entry with three
+    pointers, the start, the size and the IVT offset it returns, at EL3 on the ROM's stack and
+    with the ROM's MMU state. The SPL saves the ROM's registers and stack pointer, runs on its own
+    stack, and returns 1 with pb proper's values, 0 when DRAM failed. pb proper's IVT follows the
+    plugin's CSF (imx-mkimage's layout): the SPL reads its boot data there and checks the IVT's
+    entry and address against `PB_ENTRY` and the load range against the DRAM below pb proper's
+    region, then calls `pu_irom_hwcnfg_setup(&start, &size, &boot_data)` (the ROM's API table at
+    0x900, entry 2, 0xa8cc on the pico8ml's ROM; it returns 0xf0). The function asks HAB's
+    `check_target` for the range, copies what the ROM has read, and reads the rest from the boot
+    device. The ROM has left HAB before it runs the plugin: the SPL calls HAB's `entry` before
+    the function and its `exit` after it (the RVT, 0x888 and 0x890), or `check_target` fails
+    with "function called out of sequence" (HAB's event log on the pico8ml). The SPL cleans the
+    data cache to the point of coherency before it returns: the ROM may run it with the D-cache
+    on. Its `.bss` and stack are at the top of its window, below the RAM log: the ROM loads the
+    plugin's CSF and pb proper's IVT right after the SPL's image.
+    - **Over USB the plugin can't hand over** (F-451). The serial downloader takes one image:
+      "JUMP_ADDRESS is the last command that the host can send" (8MQ RM 6.1.8.2.1.7). A plugin
+      that returns 1 there makes the ROM go on to pb proper, which the host hasn't sent, and the
+      ROM serves USB no more; one that returns 0 leaves HAB failed (0x33), and the ROM refuses
+      every command after it (both on the pico8ml). In a serial download (the ROM log's event
+      0xd0) the SPL brings up DRAM and returns 0. USB recovery needs an SPL that downloads pb
+      proper itself, as U-Boot's 8MQ SPL does with its own SDP.
+    - **A board may give the SPL a console**: `imx8m_spl_console_init()`
+      (`include/plat/imx8m/spl.h`), the pico8ml's UART1. Without it the SPL's lines are in the
+      RAM log only, which pb proper prints.
+  - **8MP, an image of the v2 ROM** (no plugins). The SPL reads pb proper's IVT and image with
+    the ROM API at 0x980 (`download_image`, `query_boot_infor` as U-Boot's
+    `arch/arm/mach-imx/romapi.c`: the arguments XORed into the last one), checks the IVT as the
+    8MQ's SPL does, calls HAB's `authenticate_image` (RVT at 0x900) and jumps to pb proper only when
+    it returns its start. Over USB the ROM API streams: the image is read in order.
+  - **pb proper** is linked at the board's `PB_ENTRY` in DRAM, after its buffers. Its entry turns
+    the MMU and the D-cache off and invalidates the cache (F-207), as before.
 
 ## 3. Services
 
@@ -273,6 +311,9 @@ keys, and CAAM's MID for OP-TEE.
 - **Load windows.** i.MX6UL: DRAM after the DCD, or OCRAM from 0x908000 (ERR011115). i.MX8M Plus:
   the OCRAM's free area after the ROM's part, up to 0x97ffff (8MP RM, Figure 6-2). The others:
   unchecked, today's values are in the link scripts.
+- **The 8M's SPL window**: the ROM's load window, the platform's (`IMX8M_SPL_ENTRY`, D-088). 8MQ:
+  the TCM from 0x7e1000 to 0x819000, the SPL, then its RAM log and `bl_params` at its end. 8MP:
+  the OCRAM from 0x920000 to 0x980000.
 - **SoC regions.** i.MX8M: the umctl2 save area at the start of DRAM. i.MX8X: `reset`, 128 KiB at
   0x80000000, pb's reset stub and then BL31's load address.
 - **`buffers`.** In DRAM on the 6UL, 8M and 8X; in OCRAM on the RT.
@@ -284,8 +325,11 @@ keys, and CAAM's MID for OP-TEE.
 | ------ | ----------------------------------- | ---------------------- | ------------------------- |
 | imx6ul | `mkimage -T imximage`, the board's  | IVT at                 | HABv4 CSF, CST; a serial  |
 |        | DCD                                 | `PB_ENTRY - 0xC00`     | download CSF (0x00910000) |
-| imx8m  | 8MQ: NXP's `mkimage_imx8m`; 8MP:    | 8MQ: `PB_ENTRY - 0x40` | HABv4 CSF (8MQ)           |
-|        | `mkimage -T imx8mimage`             |                        |                           |
+| imx8m  | 8MQ: NXP's `mkimage_imx8m`, the SPL | 8MQ: the SPL's at its  | HABv4: 8MQ a CSF for the  |
+|        | as the plugin, pb proper as the     | entry - 0x40, pb       | plugin and pb proper's    |
+|        | loader; 8MP: `mkimage -T            | proper's at `PB_ENTRY  | IVT, one for pb proper    |
+|        | imx8mimage` for the SPL, pb proper  | - 0x40`                |                           |
+|        | with its IVT after it               |                        |                           |
 | imx8x  | `mkimage_imx8`, the SCFW, the AHAB  | -                      | AHAB CSF, CST (8QXP)      |
 |        | container                           |                        |                           |
 | imxrt  | `mkimage -T imximage`, a flash      | -                      | -                         |
@@ -300,9 +344,11 @@ The stages are in `src/plat/<p>/makefile.mk` (`platform.md` 6.2), their files in
 | `imx6ul_sign_desc`  | `IMX6UL_SIGN_IMAGE`        | `pb.csf`; `pb_uuu.csf` for the serial downloader        |
 | `imx6ul_sign_image` | `IMX6UL_SIGN_IMAGE`        | `pb_csf.bin`, `pb_signed.imx` (two zero blocks before); |
 |                     |                            | `pb_csf_uuu.bin`, `pb_signed_uuu.imx`                   |
-| `imx8m_image`       | `IMX8M_CREATE_IMX_IMAGE`   | `pb.imx`; 8MQ: `pb_pad.bin`, `pb_pad.imx`               |
-| `imx8m_sign_desc`   | `IMX8M_SIGN_IMAGE` (8MQ)   | `pb.csf`                                                |
-| `imx8m_sign_image`  | `IMX8M_SIGN_IMAGE` (8MQ)   | `pb_csf.bin`, `pb_signed.imx` (33 KiB of zeros before,  |
+| `imx8m_image`       | `IMX8M_CREATE_IMX_IMAGE`   | `pb.imx` from `spl.bin` and `pb.bin`; 8MQ:              |
+|                     |                            | `spl_pad.bin`, `pb_pad.bin`, `pb_pad.imx`               |
+| `imx8m_sign_desc`   | `IMX8M_SIGN_IMAGE` (8MQ)   | `spl.csf`, `pb.csf`                                     |
+| `imx8m_sign_image`  | `IMX8M_SIGN_IMAGE` (8MQ)   | `spl_csf.bin`, `pb_csf.bin`, `pb_signed.imx` (33 KiB of |
+|                     |                            | zeros before,                                           |
 |                     |                            | the ROM's IVT offset), `pb_signed_uuu.imx` (without)    |
 | `imx8x_image`       | `IMX8X_CREATE_IMX_IMAGE`   | `pb.imx`                                                |
 | `imx8x_sign_desc`   | `IMX8X_SIGN_IMAGE`         | `pb.csf`; on the DXL it stops the build (not supported) |
