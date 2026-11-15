@@ -34,3 +34,14 @@
 		};
 	};
 };
+
+/*
+ * The watchdog resets the SoC itself. The PICO-PI's tree has
+ * fsl,ext-reset-output, with which Linux's imx2_wdt only asserts WDOG_B
+ * and turns the SoC's own reset off: a hang wasn't reset (F-450), the
+ * PMIC doesn't act on WDOG_B here. pb arms WDOG1 the same way.
+ */
+&wdog1 {
+	/delete-property/ fsl,ext-reset-output;
+};
+
