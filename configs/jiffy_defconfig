@@ -25,6 +25,9 @@ CONFIG_IMX6UL_KEY_INDEX=0
 CONFIG_IMX6UL_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
 CONFIG_IMX6UL_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
 # end of Output image
+
+CONFIG_MAX_MMAP_REGIONS=32
+CONFIG_MAX_XLAT_TABLES=32
 # end of Platform support
 
 #
@@ -46,6 +49,11 @@ CONFIG_BOOT_DTB=y
 CONFIG_BOOT_LINUX=y
 # CONFIG_BOOT_FH is not set
 CONFIG_BOOT_DTB_HEADROOM=4096
+
+#
+# Delivery: how pb starts the next stage
+#
+# CONFIG_BOOT_OPTEE is not set
 
 #
 # Loading
@@ -71,6 +79,7 @@ CONFIG_IMX6UL_CM_USB_OTG1=y
 # Keys and life cycle
 #
 CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
+# CONFIG_SLC_NO_FUSE_WRITES is not set
 # CONFIG_SLC_EOL is not set
 # end of Keys and life cycle
 
@@ -219,6 +228,16 @@ CONFIG_LIB_FDT=y
 CONFIG_LIB_XLAT_TBLS=y
 CONFIG_LIB_XLAT_TBLS_ARMV7=y
 # end of Library
+
+#
+# Hacks
+#
+
+#
+# Development hacks: never in a product's build
+#
+# CONFIG_HACK_PEEK is not set
+# end of Hacks
 
 #
 # Build

@@ -73,6 +73,7 @@ CONFIG_IMXRT_CM_USB_OTG1=y
 # Keys and life cycle
 #
 CONFIG_SRK_FUSE=""
+# CONFIG_SLC_NO_FUSE_WRITES is not set
 # CONFIG_SLC_EOL is not set
 # end of Keys and life cycle
 
@@ -209,6 +210,16 @@ CONFIG_DRIVERS_IMX_WDOG=y
 CONFIG_LIB_DER_HELPERS=y
 CONFIG_LIB_FDT=y
 # end of Library
+
+#
+# Hacks
+#
+
+#
+# Development hacks: never in a product's build
+#
+# CONFIG_HACK_PEEK is not set
+# end of Hacks
 
 #
 # Build

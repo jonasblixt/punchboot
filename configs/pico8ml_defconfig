@@ -20,6 +20,8 @@ CONFIG_PLAT_IMX8M_COMMON=y
 # CONFIG_PLAT_IMX8XL is not set
 CONFIG_PLAT_IMX8MQ=y
 # CONFIG_PLAT_IMX8MP is not set
+CONFIG_MAX_MMAP_REGIONS=32
+CONFIG_MAX_XLAT_TABLES=32
 
 #
 # Output image
@@ -82,6 +84,7 @@ CONFIG_IMX8M_CM_USB1=y
 # Keys and life cycle
 #
 CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
+# CONFIG_SLC_NO_FUSE_WRITES is not set
 # CONFIG_SLC_EOL is not set
 # end of Keys and life cycle
 
@@ -231,6 +234,16 @@ CONFIG_LIB_FDT=y
 CONFIG_LIB_XLAT_TBLS=y
 CONFIG_LIB_XLAT_TBLS_ARMV8=y
 # end of Library
+
+#
+# Hacks
+#
+
+#
+# Development hacks: never in a product's build
+#
+# CONFIG_HACK_PEEK is not set
+# end of Hacks
 
 #
 # Build
