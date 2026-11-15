@@ -133,8 +133,9 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 
 | Option               | Port     | Clocks and power                        | PHY              | Controller   |
 | -------------------- | -------- | --------------------------------------- | ---------------- | ------------ |
-| `IMX6UL_CM_USB_OTG1` | USB OTG1 | PLL_USB1's `EN_USB_CLKS`                | USBPHY1          | `imx_ci_udc` |
-|                      |          |                                         | (`imx_usb2_phy`) |              |
+| `IMX6UL_CM_USB_OTG1` | USB OTG1 | PLL_USB1 powered, locked, out of bypass | USBPHY1          | `imx_ci_udc` |
+|                      |          | and `EN_USB_CLKS`; the charger detector | (`imx_usb2_phy`, |              |
+|                      |          | off (F-139)                             | no PLL_SIC)      |              |
 | `IMX8M_CM_USB1`      | USB1     | 8MQ: the USB bus, core reference and    | USB1's           | `dwc3_udc`   |
 |                      |          | PHY reference clock roots, the gates of | (`imx8m_phy`)    |              |
 |                      |          | USB_CTRL1 and USB_PHY1                  |                  |              |

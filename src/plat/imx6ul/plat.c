@@ -20,6 +20,7 @@
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/mmu.h>
 #include <pb/pb.h>
@@ -497,14 +498,50 @@ int plat_init(void)
 }
 
 #ifdef CONFIG_IMX6UL_CM_USB_OTG1
-/* Command mode's USB (platform.md 3.10): USB OTG1, with USBPHY1 and the
- * clocks of PLL_USB1 */
+/* USB_ANALOG_USB1_CHRG_DETECT (RM 55.4.2): the charger detector, on after reset */
+#define IMX6UL_USB_ANALOG_USB1_CHRG_DETECT 0x020C81B0
+#define USB1_CHRG_DETECT_EN_B              BIT(20)
+#define USB1_CHRG_DETECT_CHK_CHRG_B        BIT(19)
+
+/* PLL3's lock, RM 18.7.2: microseconds; 1 ms is plenty */
+#define PLL_USB1_LOCK_TIMEOUT_US           1000
+
+/*
+ * Command mode's USB (platform.md 3.10): USB OTG1, with USBPHY1 and the
+ * clocks of PLL_USB1 (F-139).
+ *
+ * PLL_USB1 (PLL3, 480 MHz) is powered, locked and out of bypass here, where
+ * pb relied on the ROM (its reset value has BYPASS set and POWER clear). On
+ * jiffy the ROM leaves it running: the UART's clock comes from it too. The
+ * USBPHY has no PLL of its own (no PLL_SIC). The charger detector is turned
+ * off before the controller pulls D+ up (RM Figure 55-3).
+ */
 int plat_cm_init(void)
 {
-    /* Enable USB PLL */
-    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
+    struct pb_timeout timeout;
+    int rc;
 
-    imx_usb2_phy_init(IMX6UL_USBPHY1_BASE);
+    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_POWER);
+
+    rc = pb_timeout_init_us(&timeout, PLL_USB1_LOCK_TIMEOUT_US);
+    if (rc != PB_OK)
+        return rc;
+
+    while (!(mmio_read_32(IMX6UL_CCM_ANALOG_PLL_USB1) & CCM_ANALOG_PLL_USB1_LOCK)) {
+        if (pb_timeout_has_expired(&timeout)) {
+            LOG_ERR("PLL_USB1 doesn't lock");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1,
+                       CCM_ANALOG_PLL_USB1_BYPASS,
+                       CCM_ANALOG_PLL_USB1_ENABLE | CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
+
+    mmio_clrsetbits_32(
+        IMX6UL_USB_ANALOG_USB1_CHRG_DETECT, 0, USB1_CHRG_DETECT_EN_B | USB1_CHRG_DETECT_CHK_CHRG_B);
+
+    imx_usb2_phy_init_ccm_pll(IMX6UL_USBPHY1_BASE);
     return imx_ci_udc_init(IMX6UL_USB1_BASE);
 }
 #endif

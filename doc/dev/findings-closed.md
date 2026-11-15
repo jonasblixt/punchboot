@@ -1608,6 +1608,12 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 400 MHz), the same divisors, DDR52 at 49.5 MHz, on jiffy from BOOT1. `imx6ul_plat()` and | | |
 | | | `imx8x_plat()` deprecated, the struct's values as they were. The 8M and the RT: no board needs | | |
 | | | a clock | | |
+| F-139 | `src/drivers/usb/imx_usb2_phy.c`, `src/board/jiffy/board.c` `cm_board_init` | 6UL clocks and PHY: `imx_usb2_phy_init` writes PLL_SIC at USBPHY+0xa0, which the 6UL USBPHY doesn't have (its map ends at VERSION, 0x80; the PLL is CCM_ANALOG_PLL_USB1). jiffy only sets EN_USB_CLKS in PLL_USB1 (reset 0x00012000: BYPASS set, POWER clear) and relies on the ROM having powered, unbypassed and locked PLL3. The charger detector is on after reset (USB_ANALOG_USB1_CHRG_DETECT EN_B = CHK_CHRG_B = 0) and RM Fig. 55-3 turns it off before D+ is pulled up; pb doesn't. Works on the board. | Verified (code, RM 18.7.2, 55.3, 55.2.7) | fixed |
+| | | 2026-11-15: `plat_cm_init()` powers PLL_USB1, waits for its lock (1 ms bound), takes it out of | | |
+| | | bypass with `EN_USB_CLKS`, and turns the charger detector off (EN_B, CHK_CHRG_B) before the | | |
+| | | controller pulls D+ up; `imx_usb2_phy_init_ccm_pll()` doesn't write PLL_SIC (the 8DXL keeps | | |
+| | | `imx_usb2_phy_init()`, its PHY has the PLL). On jiffy from BOOT1: enumeration, 16 MiB written and | | |
+| | | verified. The RT1060 still writes PLL_SIC and relies on its ROM for PLL_USB1 | | |
 
 ## Dependencies / vendored code
 

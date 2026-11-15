@@ -454,5 +454,5 @@ checklist's last item.
 | F-280        | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)       |
 | F-138        | Endpoint 0: stall and bounds (3.2)                                          |
 | F-205        | Every wait is bounded (4)                                                   |
-| F-139, F-140 | The ChipIdea's set up against its reference manual                          |
+| F-140        | The ChipIdea's set up against its reference manual                          |
 | F-172        | Writes that reset the MEK                                                   |
