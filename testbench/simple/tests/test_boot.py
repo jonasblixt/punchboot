@@ -47,6 +47,10 @@ HANDOVER_CHECKS = {
     "system-uuid",
 }
 
+# The state pb leaves that F-210 changed: VTOR at the image's table and
+# CACR.FORCEWT clear. A run without them is one of an older application
+STATE_CHECKS = {"vtor", "cacr-forcewt"}
+
 
 def assert_clean_handover(run_text: str, system: str) -> None:
     runs = parse_runs(run_text)
@@ -54,7 +58,7 @@ def assert_clean_handover(run_text: str, system: str) -> None:
     run = runs[-1]
     failed = [name for name, result in run.checks.items() if result != "PASS"]
     assert not failed, run_text
-    assert run.checks.keys() >= HANDOVER_CHECKS, run_text
+    assert run.checks.keys() >= HANDOVER_CHECKS | STATE_CHECKS, run_text
     assert run.version, run_text
     assert run.system == system, run_text
     assert run.result == "PASS", run_text

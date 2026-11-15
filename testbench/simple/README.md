@@ -8,9 +8,8 @@ what is tested is what pb hands over, not someone's startup code.
 
 | Board           | Status                                                             |
 | --------------- | ------------------------------------------------------------------ |
-| i.MX RT1060 EVK | all tests passed 2026-11-08, with the registers pb had before      |
-|                 | Firmware Handoff; not run since the application reads the transfer |
-|                 | list (F-259)                                                       |
+| i.MX RT1060 EVK | all 7 tests passed 2026-11-15, pb at `b3901579`, the transfer list |
+|                 | and the F-210 state (VTOR, CACR.FORCEWT) checked                   |
 
 ## What it tests
 
@@ -29,7 +28,8 @@ pb's side of the boot, on the board:
 - The state pb leaves: VTOR is the image's vector table, MSP its initial
   stack pointer, CONTROL and FAULTMASK 0, PRIMASK 1 and no interrupt
   enabled, SysTick off, nothing pending, the D-cache and the MPU off
-  (`include/pb/arch.h`; pb runs with it on), the watchdog running, the
+  (`include/pb/arch.h`; pb runs with it on), CACR.FORCEWT clear (pb sets
+  it while it runs), the watchdog running, the
   console usable. The I-cache is reported.
 - A/B: the enabled system boots, the image marks itself verified in pb's
   boot state like pbstate does on Linux.

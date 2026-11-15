@@ -27,19 +27,21 @@ static unsigned int checks_run;
 static unsigned int checks_failed;
 
 /* Cortex-M registers */
-#define SCB_ICSR    0xe000ed04
-#define SCB_VTOR    0xe000ed08
-#define SCB_CCR     0xe000ed14
-#define SYST_CSR    0xe000e010
-#define NVIC_ISER0  0xe000e100
-#define MPU_CTRL    0xe000ed94
-#define DEMCR       0xe000edfc
-#define DWT_CTRL    0xe0001000
-#define DWT_CYCCNT  0xe0001004
+#define SCB_ICSR     0xe000ed04
+#define SCB_VTOR     0xe000ed08
+#define SCB_CCR      0xe000ed14
+#define SYST_CSR     0xe000e010
+#define NVIC_ISER0   0xe000e100
+#define MPU_CTRL     0xe000ed94
+#define DEMCR        0xe000edfc
+#define DWT_CTRL     0xe0001000
+#define DWT_CYCCNT   0xe0001004
+#define SCB_CACR     0xe000ef9c
 
-#define CCR_DC      (1u << 16)
-#define CCR_IC      (1u << 17)
-#define NVIC_ISER_N 8
+#define CCR_DC       (1u << 16)
+#define CCR_IC       (1u << 17)
+#define CACR_FORCEWT (1u << 2)
+#define NVIC_ISER_N  8
 
 void print(const char *s)
 {
@@ -317,10 +319,15 @@ static void entry_checks(char *system)
     check("pending", (mmio_read_32(SCB_ICSR) & 0x1ff000) == 0, "ICSR", mmio_read_32(SCB_ICSR));
     check("watchdog", board_wdog_running(&wdog_ms), "timeout ms", wdog_ms);
 
-    /* include/pb/arch.h: interrupts masked, the D-cache and the MPU off */
+    /* include/pb/arch.h: interrupts masked, the D-cache and the MPU off,
+     * CACR.FORCEWT at its reset value, clear (F-210) */
     check("primask", entry.primask == 1, "PRIMASK", entry.primask);
     check("dcache", (mmio_read_32(SCB_CCR) & CCR_DC) == 0, "CCR", mmio_read_32(SCB_CCR));
     check("mpu", mmio_read_32(MPU_CTRL) == 0, "MPU_CTRL", mmio_read_32(MPU_CTRL));
+    check("cacr-forcewt",
+          (mmio_read_32(SCB_CACR) & CACR_FORCEWT) == 0,
+          "CACR",
+          mmio_read_32(SCB_CACR));
     info("basepri", "BASEPRI", entry.basepri);
     info("icache", "CCR IC (bit 17)", mmio_read_32(SCB_CCR) & CCR_IC);
 
