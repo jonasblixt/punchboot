@@ -53,8 +53,8 @@ FB: boot
 FB: done
 ```
 
-- The product id is the SPL's, `PB_SPL_USB_PID`: 0x0001 until its own is registered. The host
-  needs access to it (a udev rule beside pb's own, `1209:2019`).
+- The product id is the SPL's: 0x0001, pid.codes' test id (D-089), or the build's
+  `PB_SPL_USB_PID`. The host needs access to it (a udev rule beside pb's own, `1209:2019`).
 - A ROM that enumerates with other ids than uuu knows needs a line for them, as the pico8ml's:
   `CFG: SDP: -chip MX8MQ -vid 0x0201 -pid 0x1234`.
 - pb proper stops in command mode (`CONFIG_CM_ON_SERIAL_DOWNLOAD`), as `1209:2019`. About 9 s

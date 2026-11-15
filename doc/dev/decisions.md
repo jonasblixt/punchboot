@@ -2156,7 +2156,8 @@ recovery needs the SPL to download pb proper itself.
 - **Fastboot, not SDP** (Jonas): uuu's `FB:` commands and Android's `fastboot` speak it, over
   the two bulk endpoints pb's USB stack has. SDP would need HID, class requests and control
   writes on endpoint 0, a change to the stack command mode rests on.
-- **The device**: pb's VID 0x1209 with a PID of its own (to be registered with pid.codes).
+- **The device**: pb's VID 0x1209 with a PID of its own: 0x0001, pid.codes' test id (Jonas,
+  2026-11-15: "It's fine to reuse 1209:0001"). None is registered for it.
 - **The stack**: one optional controller operation, `xfer_start_short` (`usb.md` 4.5), for
   fastboot's commands, which are as long as they are; only the DWC3 has it. Command mode's
   reads stay exact.
@@ -2170,8 +2171,7 @@ recovery needs the SPL to download pb proper itself.
     with the plugin, and HAB authenticates pb proper before the jump, as the 8M Plus's SPL has
     it (`security.md` 1). On a closed device nothing starts that HAB refused.
   - **The SPL never returns to the ROM** from a serial download: it starts pb proper or resets.
-  - **The product id is 0x0001 for now**, pid.codes' test id, behind `PB_SPL_USB_PID`: Jonas
-    registers the SPL's own.
+  - **The product id is behind `PB_SPL_USB_PID`**: a board or a product gives its own.
   - **The DWC3 sends endpoint 0's replies from its own memory**, in DRAM in the SPL: nothing
     says the controller reaches the TCM the SPL runs in.
   - **A board without `IMX8M_CM_USB1` has no USB recovery.** No option of its own: where the

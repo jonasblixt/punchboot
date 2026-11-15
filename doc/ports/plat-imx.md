@@ -100,9 +100,9 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
       log's event 0xd0) the SPL doesn't return: it brings up DRAM, takes USB1 from the ROM (its
       clocks, its PHY and the DWC3, as `plat_cm_init()`) and is a fastboot device, which the
       host sends pb proper to (`spl/fb_usb.c`, `spl/fb_proto.c`, `spl/hab.c`).
-      - **The device**: pb's vendor id with a product id of the SPL's own, 0x0001, pid.codes'
-        test id, until one is registered (`PB_SPL_USB_PID`, the board's `makefile.mk` or the
-        command line); the interface fastboot's hosts look for (0xff, 0x42, 3), the bulk
+      - **The device**: pb's vendor id with the product id 0x0001, pid.codes' test id, which
+        the SPL reuses (D-089; `PB_SPL_USB_PID` in the board's `makefile.mk` or on the command
+        line gives another); the interface fastboot's hosts look for (0xff, 0x42, 3), the bulk
         endpoints pb's device has, no serial number. The commands: `getvar:` of `version`,
         `product` and `max-download-size`, `download:<size>`, `boot` and `continue`. Any other
         is `FAIL`. Nothing of the device is told but that it is pb's SPL (`security.md` 4.7).
