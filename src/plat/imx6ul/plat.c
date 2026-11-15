@@ -19,6 +19,7 @@
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/wdog/imx_wdog.h>
+#include <inttypes.h>
 #include <pb/console.h>
 #include <pb/delay.h>
 #include <pb/mmio.h>
@@ -182,10 +183,19 @@ void plat_wdog_kick(void)
  *
  * Out of bypass, region 0 only lets secure accesses through, but OP-TEE reads
  * the DTB through a non-secure mapping before its TZASC driver has run. Open
- * DDR to both worlds in region 1 until OP-TEE replaces it.
+ * DDR to both worlds in region 1 until OP-TEE replaces it. The TZASC sees
+ * DDR at its physical address on the 6UL, as OP-TEE programs it (F-241).
+ *
+ * Region 1 is read back: a secure OS that locked its regions (lockdown_range
+ * and GPR1's TZASC1_BOOT_LOCK, which only a reset of the TZASC clears) makes
+ * the TZASC ignore the write. pb leaves TZASC1_BOOT_LOCK alone: OP-TEE
+ * programs the lockdown registers after pb, which the lock would freeze.
  */
 static int tzasc_init(void)
 {
+    uint64_t base;
+    uint64_t size;
+    uint32_t sp;
     int rc;
 
     /*
@@ -202,7 +212,25 @@ static int tzasc_init(void)
     if (rc != PB_OK)
         return rc;
 
-    return tzc380_configure_region(1, IMX6UL_DDR_BASE, IMX6UL_DDR_SIZE, TZC380_SP_ALL);
+    rc = tzc380_configure_region(1, IMX6UL_DDR_BASE, IMX6UL_DDR_SIZE, TZC380_SP_ALL);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = tzc380_get_region(1, &base, &size, &sp);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (base != IMX6UL_DDR_BASE || size != IMX6UL_DDR_SIZE || sp != TZC380_SP_ALL) {
+        LOG_ERR("TZASC region 1: base 0x%" PRIx64 ", %" PRIu64 " MiB, sp %08" PRIx32,
+                base,
+                size >> 20,
+                sp);
+        return -PB_ERR_STATE;
+    }
+
+    return PB_OK;
 }
 
 /* The ROM log, AN12853 Tables 11 and 13 */

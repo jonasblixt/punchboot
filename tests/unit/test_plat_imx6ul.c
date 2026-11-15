@@ -121,6 +121,12 @@ static struct {
     int tzc_init_rc;
     int tzc_region_rc;
     unsigned int tzc_regions;
+    /* Region 1 as the TZASC has it; a locked region ignores the write */
+    bool tzc_locked;
+    int tzc_get_rc;
+    uint64_t tzc_base;
+    uint64_t tzc_size;
+    uint32_t tzc_sp;
 } f;
 
 void imx_rom_log_save(const struct imx_rom_log_config *cfg)
@@ -258,11 +264,24 @@ int tzc380_init(uintptr_t base)
 int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp)
 {
     (void)region;
-    (void)region_base;
-    (void)size;
-    (void)sp;
     f.tzc_regions++;
+
+    if (f.tzc_region_rc == PB_OK && !f.tzc_locked) {
+        f.tzc_base = region_base;
+        f.tzc_size = size;
+        f.tzc_sp = sp;
+    }
+
     return f.tzc_region_rc;
+}
+
+int tzc380_get_region(unsigned int region, uint64_t *region_base, uint64_t *size, uint32_t *sp)
+{
+    (void)region;
+    *region_base = f.tzc_base;
+    *size = f.tzc_size;
+    *sp = f.tzc_sp;
+    return f.tzc_get_rc;
 }
 
 void log_time_start(void)
@@ -574,6 +593,37 @@ static void test_status_tzasc_setup_failed(void **state)
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+}
+
+/* F-241: region 1 is read back. A region that a secure OS locked before a
+ * warm reset keeps its value, the TZASC ignores pb's write: that is the
+ * state 4.3 refuses the boot for, as is a read that fails */
+static void test_status_tzasc_region_locked(void **state)
+{
+    (void)state;
+
+    f.tzc_locked = true;
+    f.tzc_base = IMX6UL_DDR_BASE;
+    f.tzc_size = SZ_MiB(512);
+    f.tzc_sp = TZC380_SP_NS_W | TZC380_SP_NS_R;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    f.tzc_locked = false;
+    f.tzc_get_rc = -PB_ERR_STATE;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_BYPASSED);
+
+    /* What pb wrote, read back: DDR's physical address, to both worlds */
+    f.tzc_get_rc = PB_OK;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+    assert_int_equal(f.tzc_base, IMX6UL_DDR_BASE);
+    assert_int_equal(f.tzc_size, IMX6UL_DDR_SIZE);
+    assert_int_equal(f.tzc_sp, TZC380_SP_ALL);
 }
 
 /* platform.md 2.3: the ROM's logs are two, its event log and the HAB's.
@@ -972,6 +1022,7 @@ int main(void)
         cmocka_unit_test_setup(test_aipstz_opened, setup),
         cmocka_unit_test_setup(test_status_tzasc_bypassed, setup),
         cmocka_unit_test_setup(test_status_tzasc_setup_failed, setup),
+        cmocka_unit_test_setup(test_status_tzasc_region_locked, setup),
         cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
         cmocka_unit_test_setup(test_boot_source_usb_download, setup),
         cmocka_unit_test_setup(test_boot_source_uart_download, setup),
