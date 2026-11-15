@@ -143,6 +143,10 @@ void emmc_model_fail_write(enum bus_data_status status); /* Next block written *
 void emmc_model_status_error(uint8_t idx, uint32_t bits);
 /* Power is lost after 'blocks' more written blocks, < 0: never */
 void emmc_model_power_loss_after(int blocks);
+/* After 'blocks' more written blocks every block written fails with
+ * 'status', as emmc_model_fail_write() fails one, until it is called with
+ * blocks < 0: a medium that fails half way through a write */
+void emmc_model_fail_writes_after(int blocks, enum bus_data_status status);
 /*
  * From now on every CMD13 reports CURRENT_STATE 'state' and READY_FOR_DATA as
  * given, whatever the device does: a device that never gets there. Each

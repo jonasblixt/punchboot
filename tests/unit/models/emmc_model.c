@@ -299,6 +299,8 @@ static struct emmc {
     int status_error_idx;
     uint32_t status_error_bits;
     int power_loss_blocks;
+    int fail_writes_blocks;
+    enum bus_data_status fail_writes;
     int stuck_state; /* < 0: CMD13 reports the device's state */
     bool stuck_ready;
 } emmc;
@@ -1404,6 +1406,11 @@ static enum bus_data_status card_write(struct bus_card *card, const void *buf, s
         return BUS_DATA_CRC;
     }
 
+    if (emmc.fail_writes_blocks == 0 && emmc.fail_write == BUS_DATA_OK)
+        emmc.fail_write = emmc.fail_writes;
+    else if (emmc.fail_writes_blocks > 0)
+        emmc.fail_writes_blocks--;
+
     if (emmc.fail_write != BUS_DATA_OK) {
         enum bus_data_status st = emmc.fail_write;
 
@@ -1518,6 +1525,7 @@ struct bus_card *emmc_model_init(const struct emmc_model_config *cfg)
     emmc.fail_switch_index = -1;
     emmc.status_error_idx = -1;
     emmc.power_loss_blocks = -1;
+    emmc.fail_writes_blocks = -1;
     emmc.stuck_state = -1;
     go_idle();
     return &emmc.bus;
@@ -1642,6 +1650,12 @@ void emmc_model_status_error(uint8_t idx, uint32_t bits)
 void emmc_model_power_loss_after(int blocks)
 {
     emmc.power_loss_blocks = blocks;
+}
+
+void emmc_model_fail_writes_after(int blocks, enum bus_data_status status)
+{
+    emmc.fail_writes_blocks = blocks;
+    emmc.fail_writes = status;
 }
 
 void emmc_model_stuck(enum emmc_state state, bool ready_for_data)

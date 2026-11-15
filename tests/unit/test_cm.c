@@ -31,6 +31,7 @@
 #include <cmocka.h>
 
 #include <boot/boot.h>
+#include <boot/policy.h>
 #include <bpak/bpak.h>
 #include <pb-tools/error.h>
 #include <pb-tools/wire.h>
@@ -443,6 +444,20 @@ void boot_get_boot_partition(uuid_t part_uu)
     uuid_copy(part_uu, UU_RW);
 }
 
+/* The boot source policy's init, run again after an install (bio.md 4) */
+static struct {
+    int calls;
+    int rc;
+    bool rw_found; /* UU_RW was a device when it ran */
+} fake_policy;
+
+int boot_policy_reinit(void)
+{
+    fake_policy.calls++;
+    fake_policy.rw_found = bio_get_part_by_uu(UU_RW) >= 0;
+    return fake_policy.rc;
+}
+
 static struct {
     slc_t slc;
     int set_rc;
@@ -792,6 +807,7 @@ static int setup(void **state)
     t.fail_writes_after = -1;
     t.connect_ok_after = -1;
     memset(&fake_boot, 0, sizeof(fake_boot));
+    memset(&fake_policy, 0, sizeof(fake_policy));
     memset(&sec, 0, sizeof(sec));
     sec.slc = SLC_CONFIGURATION;
     sec.key_kind = DSA_EC_SECP256r1;
@@ -2552,6 +2568,85 @@ static void test_stream(void **state)
     assert_memory_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 2), data, sizeof(data));
 }
 
+/* command-mode.md 5.4 (F-182): hosts send the size as it is. A write whose
+ * size isn't a multiple of the block writes its last block padded with
+ * zeros, and a read sends 'size' bytes. The RAM disk takes whole blocks
+ * only, as a driver does */
+static void test_stream_size_that_isnt_whole_blocks(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t data[RAMDISK_BLOCK_SIZE + 200];
+    uint8_t *medium = ramdisk_block(f->disk, RW_FIRST_LBA + 2);
+
+    for (size_t i = 0; i < sizeof(data); i++)
+        data[i] = (uint8_t)(i * 5 + 1);
+    memset(medium, 0xff, 3 * RAMDISK_BLOCK_SIZE);
+
+    stream_init(UU_RW);
+    stream_prepare(1, sizeof(data), data);
+    stream_write(1, sizeof(data), 2 * RAMDISK_BLOCK_SIZE);
+    stream_read(0, sizeof(data), 2 * RAMDISK_BLOCK_SIZE);
+    stream_read(0, 100, 3 * RAMDISK_BLOCK_SIZE);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    assert_memory_equal(expect_data(sizeof(data)), data, sizeof(data));
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    assert_memory_equal(expect_data(100), data + RAMDISK_BLOCK_SIZE, 100);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    assert_memory_equal(medium, data, sizeof(data));
+    for (size_t i = sizeof(data); i < 2 * RAMDISK_BLOCK_SIZE; i++)
+        assert_int_equal(medium[i], 0);
+    for (size_t i = 2 * RAMDISK_BLOCK_SIZE; i < 3 * RAMDISK_BLOCK_SIZE; i++)
+        assert_int_equal(medium[i], 0xff);
+}
+
+/* command-mode.md 5.3 (F-182): 'size' is any number of bytes inside the
+ * partition, and exactly those bytes are hashed */
+static void test_part_verify_size_that_isnt_whole_blocks(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, RW_FIRST_LBA);
+    const size_t part_size = RW_BLOCKS * RAMDISK_BLOCK_SIZE;
+
+    for (size_t i = 0; i < part_size; i++)
+        part[i] = (uint8_t)(i * 13 + 5);
+
+    /* Less than a block, and more than a buffer */
+    struct pb_command_verify_part small = verify_req(300, false, part);
+    struct pb_command_verify_part large = verify_req(BUF_SIZE + 1000, false, part);
+    host_cmd(PB_CMD_PART_VERIFY, &small, sizeof(small));
+    host_cmd(PB_CMD_PART_VERIFY, &large, sizeof(large));
+    /* The last byte is hashed, the one after it isn't */
+    part[BUF_SIZE + 1000] ^= 1;
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+static void test_part_verify_size_that_isnt_whole_blocks_last_byte(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, RW_FIRST_LBA);
+    struct pb_command_verify_part req = verify_req(BUF_SIZE + 1000, false, part);
+
+    part[BUF_SIZE + 999] ^= 1;
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+
+    expect_result(-PB_RESULT_PART_VERIFY_FAILED);
+    expect_end();
+}
+
 /* PART_VERIFY changes nothing, the stream neither (command-mode.md 5.3,
  * F-186): a write after a verify of another partition, and after one that
  * found none, goes to the stream's partition */
@@ -2879,6 +2974,272 @@ static void test_stream_write_done(void **state)
     expect_result(-PB_RESULT_IO_ERROR); /* finalize */
     expect_end();
     assert_int_equal(write_done_calls, 1);
+}
+
+/*
+ * An installed table is in effect at once (command-mode.md 5.3, bio.md 4,
+ * D-070, F-194). The table's callback of the fixture's disk: it writes the
+ * device and makes the layout's partitions, as gpt.c's does.
+ */
+static struct {
+    int variant;
+    int rc; /* Refused before anything is written */
+    bool write_fails;
+} fake_table;
+
+static int fake_table_install(bio_dev_t dev, int variant)
+{
+    static const uint8_t table[RAMDISK_BLOCK_SIZE] = { 0x45, 0x46, 0x49 };
+    bio_dev_t part;
+
+    fake_table.variant = variant;
+
+    if (fake_table.rc != PB_OK)
+        return fake_table.rc;
+
+    if (bio_write(dev, 1, sizeof(table), table) != PB_OK || fake_table.write_fails)
+        return -PB_ERR_IO;
+
+    /* Variant 1: "Read write" is gone, "Visible" is as it was, "Hidden" has
+     * other blocks, and there is a new one. Variant 0: the fixture's */
+    if (variant == 0) {
+        part = bio_allocate_parent(dev, 10, 29, RAMDISK_BLOCK_SIZE, UU_RW, "Read write");
+        if (part < 0)
+            return part;
+    }
+
+    part = bio_allocate_parent(dev, 30, 39, RAMDISK_BLOCK_SIZE, UU_RO, "Visible");
+    if (part < 0)
+        return part;
+
+    part = bio_allocate_parent(
+        dev, 40, (variant == 0) ? 49 : 45, RAMDISK_BLOCK_SIZE, UU_HIDDEN, "Hidden");
+    if (part < 0)
+        return part;
+
+    if (variant == 1) {
+        part = bio_allocate_parent(dev, 50, 59, RAMDISK_BLOCK_SIZE, UU_MISSING, "New");
+        if (part < 0)
+            return part;
+    }
+
+    return PB_OK;
+}
+
+/* The fixture's disk gets a table callback. Its partitions are older than
+ * the callback, so the flags a new one starts with are set here: a host's
+ * to see and to write */
+static void table_setup(void)
+{
+    bio_dev_t disk = bio_get_part_by_uu(UU_DISK);
+
+    memset(&fake_table, 0, sizeof(fake_table));
+    assert_int_equal(bio_set_flags(disk, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE), PB_OK);
+    assert_int_equal(bio_set_install_partition_cb(disk, fake_table_install), PB_OK);
+    assert_int_equal(bio_set_flags(disk, BIO_FLAG_VISIBLE), PB_OK);
+}
+
+static void host_install(int variant)
+{
+    struct pb_command_install_part_table req = { .variant = (uint8_t)variant };
+
+    memcpy(req.uu, UU_DISK, 16);
+    host_cmd(PB_CMD_PART_TBL_INSTALL, &req, sizeof(req));
+}
+
+/* Fills buffer 0 and writes it at 'offset' of the stream's partition */
+static void stream_write_at(uint32_t size, uint64_t offset)
+{
+    uint8_t data[2 * RAMDISK_BLOCK_SIZE];
+
+    assert_true(size <= sizeof(data));
+    memset(data, 0x77, sizeof(data));
+    stream_prepare(0, size, data);
+    stream_write(0, size, offset);
+}
+
+/* The commands that follow the install see the new table: the partition
+ * table's read lists it, past the slot of a partition that was released,
+ * and a partition is found, written and refused as the new table has it */
+static void test_installed_table_is_in_effect_at_once(void **state)
+{
+    struct fixture *f = *state;
+    const struct pb_result_part_table_entry *e;
+    const struct pb_result *r;
+
+    table_setup();
+    host_install(1);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    /* Gone, new, and one that kept its handle */
+    stream_init(UU_RW);
+    stream_init(UU_MISSING);
+    stream_write_at(RAMDISK_BLOCK_SIZE, 9 * RAMDISK_BLOCK_SIZE);
+    stream_init(UU_RO);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    assert_int_equal(fake_table.variant, 1);
+    assert_int_equal(f->disk->writes, 2);
+
+    /* The disk, "Visible" behind the released "Read write", and "New" behind
+     * the released "Hidden" and the hidden new one */
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_part_table_read *)r->response)->no_of_entries, 3);
+    e = (const void *)expect_data(3 * sizeof(*e));
+    assert_memory_equal(e[0].uuid, UU_DISK, 16);
+    assert_memory_equal(e[1].uuid, UU_RO, 16);
+    assert_int_equal(e[1].first_block, 30);
+    assert_int_equal(e[1].flags, BIO_FLAG_VISIBLE);
+    assert_memory_equal(e[2].uuid, UU_MISSING, 16);
+    assert_string_equal(e[2].description, "New");
+    assert_int_equal(e[2].first_block, 50);
+    assert_int_equal(e[2].last_block, 59);
+    assert_int_equal(e[2].flags, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
+    expect_result(PB_RESULT_OK);
+
+    expect_result(-PB_RESULT_NOT_FOUND);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* The write, at the new partition's blocks */
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(ramdisk_block(f->disk, 59)[0], 0x77);
+
+    /* The handles: kept, dead, and a new one for the UUID that moved */
+    assert_false(bio_valid(f->rw));
+    assert_int_equal(bio_get_part_by_uu(UU_RO), f->rw + 1);
+    assert_false(bio_valid(f->rw + 2));
+    assert_int_equal(bio_get_part_by_uu(UU_HIDDEN), f->rw + 3);
+    assert_int_equal(bio_get_part_by_uu(UU_MISSING), f->rw + 4);
+
+    /* The core set up again what is its own: the policy's init ran, once,
+     * when the new partitions were there */
+    assert_int_equal(fake_policy.calls, 1);
+    assert_false(fake_policy.rw_found);
+}
+
+/* The stream ends with an install (command-mode.md 5.3), also the stream of
+ * a partition that didn't change: a write answers STREAM_NOT_INITIALIZED,
+ * and a finalize has nothing to finish */
+static void test_install_ends_the_stream(void **state)
+{
+    struct fixture *f = *state;
+
+    bio_dev_t ro = bio_get_part_by_uu(UU_RO);
+
+    table_setup();
+    assert_int_equal(bio_set_write_done_cb(ro, fake_write_done), PB_OK);
+    assert_int_equal(bio_set_flags(ro, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE), PB_OK);
+    write_done_calls = 0;
+    write_done_rc = PB_OK;
+
+    /* "Visible" is in both tables, with the same blocks */
+    stream_init(UU_RO);
+    stream_write_at(RAMDISK_BLOCK_SIZE, 0);
+    host_install(1);
+    stream_write_at(RAMDISK_BLOCK_SIZE, RAMDISK_BLOCK_SIZE);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    /* A new stream on it is one like any other */
+    stream_init(UU_RO);
+    stream_write_at(RAMDISK_BLOCK_SIZE, 2 * RAMDISK_BLOCK_SIZE);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* The install */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+    expect_result(PB_RESULT_OK); /* Finalize, without a stream */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    /* The partition kept its handle, and the write that the install cut
+     * off wasn't a complete one */
+    assert_int_equal(bio_get_part_by_uu(UU_RO), ro);
+    assert_int_equal(write_done_calls, 0);
+    assert_int_equal(ramdisk_block(f->disk, 30)[0], 0x77);
+    assert_int_equal(ramdisk_block(f->disk, 31)[0], 0);
+    assert_int_equal(ramdisk_block(f->disk, 32)[0], 0x77);
+}
+
+/* An install that is refused before the device is written changes nothing:
+ * the partitions, the stream and the policy stay. One that fails after a
+ * write leaves no old partition, and the stream on one has ended */
+static void test_failed_install(void **state)
+{
+    struct fixture *f = *state;
+
+    table_setup();
+    fake_table.rc = -PB_ERR_PARAM;
+    stream_init(UU_RW);
+    host_install(7);
+    stream_write_at(RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* The stream is the one it was */
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_part_table_read *)r->response)->no_of_entries, 3);
+    expect_data(3 * sizeof(struct pb_result_part_table_entry));
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_table.variant, 7);
+    assert_int_equal(fake_policy.calls, 0);
+    assert_int_equal(ramdisk_block(f->disk, RW_FIRST_LBA)[0], 0x77);
+    assert_true(bio_valid(f->rw));
+
+    /* The write of the table fails */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    fake_table.rc = PB_OK;
+    fake_table.write_fails = true;
+    host_install(0);
+    stream_write_at(RAMDISK_BLOCK_SIZE, RAMDISK_BLOCK_SIZE);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_STREAM_NOT_INITIALIZED);
+    expect_result(PB_RESULT_OK);
+    r = expect_result(PB_RESULT_OK);
+    assert_int_equal(((const struct pb_result_part_table_read *)r->response)->no_of_entries, 1);
+    expect_data(sizeof(struct pb_result_part_table_entry));
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_false(bio_valid(f->rw));
+    assert_int_equal(ramdisk_block(f->disk, RW_FIRST_LBA + 1)[0], 0);
+    assert_int_equal(fake_policy.calls, 0);
+}
+
+/* The table is installed whatever the policy makes of it: a layout without
+ * the policy's partitions answered OK in every release, and does */
+static void test_install_with_a_policy_that_fails(void **state)
+{
+    (void)state;
+
+    table_setup();
+    fake_policy.rc = -PB_ERR_NOT_FOUND;
+    host_install(1);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(fake_policy.calls, 1);
 }
 
 static void test_boot_part(void **state)
@@ -4040,6 +4401,7 @@ static int gate_first_result(enum gate_session kind, uint32_t magic, unsigned in
     t.fail_writes_after = -1;
     t.connect_ok_after = -1;
     memset(&fake_boot, 0, sizeof(fake_boot));
+    memset(&fake_policy, 0, sizeof(fake_policy));
     memset(&sec, 0, sizeof(sec));
     sec.key_kind = DSA_EC_SECP256r1;
     if (kind == GATE_OPEN)
@@ -4267,6 +4629,10 @@ int main(void)
         CM_TEST(test_part_table_read),
         CM_TEST(test_part_table_sends_only_the_table),
         CM_TEST(test_part_table_install),
+        CM_TEST(test_installed_table_is_in_effect_at_once),
+        CM_TEST(test_install_ends_the_stream),
+        CM_TEST(test_failed_install),
+        CM_TEST(test_install_with_a_policy_that_fails),
         CM_TEST(test_part_activate),
         CM_TEST(test_boot_status),
         CM_TEST(test_board_status),
@@ -4310,6 +4676,9 @@ int main(void)
         CM_TEST(test_part_erase_needs_writable),
         CM_TEST(test_hidden_partition),
         CM_TEST(test_stream),
+        CM_TEST(test_stream_size_that_isnt_whole_blocks),
+        CM_TEST(test_part_verify_size_that_isnt_whole_blocks),
+        CM_TEST(test_part_verify_size_that_isnt_whole_blocks_last_byte),
         CM_TEST(test_part_verify_keeps_the_stream),
         CM_TEST(test_part_verify_and_bpak_read_keep_the_buffers),
         CM_TEST(test_stream_errors),
