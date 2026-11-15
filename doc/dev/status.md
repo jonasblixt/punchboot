@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-15 (the i.MX8M's SPL, D-088; F-450)_
+_Last updated: 2026-11-15 (the SPL's fastboot, D-089; F-451 closed, F-452)_
 
 ## Current focus
 
@@ -16,7 +16,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - jiffy: `55689509` from BOOT1 (BOOT0 an older pb); Root A has the test bench's root image,
     Root B random test data. The OP-TEE add-on's pb is no longer on it.
   - pico8ml (closed, HAB test keys, token outside the repository): the SPL and pb proper
-    (D-088, `b5650e14`'s tree) in BOOT1 and BOOT0; boot switches on eMMC. Linux from System A.
+    (D-088, `b5650e14`'s tree, without the SPL's fastboot) in BOOT1 and BOOT0; boot switches on
+    eMMC, BOOT1 enabled. A reset ends in the ROM's serial downloader, a power cycle boots (F-452).
   - RT1060 from its NOR, the MEK from BOOT0: `246bd897` (log 2026-11-14). The 8MP EVK offline.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
@@ -27,12 +28,16 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 ## Next steps
 
-0. **Resume here: `log/2026-11-15.md`**, its last three sections. Nothing pushed since
+0. **Resume here: `log/2026-11-15.md`**, its last section. Nothing pushed since
    `58c9cf3e`'s rebase.
-   - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-451 (USB
-     recovery: Jonas writes the SPL's fastboot, D-089; the stack's part is `68777a39`), the 8M
-     Plus's SPL on the EVK (and its signing), then the bring-up's step 5 and the boot time list
-     (`testbench/README.md`). TF-A's 8MQ patch could go upstream.
+   - The SPL's fastboot (D-089) runs on the pico8ml. Left: its product id (0x0001, pid.codes'
+     test id, until Jonas registers one) and a udev rule for it on the bench host; the new pb
+     in the pico8ml's BOOT0 and BOOT1.
+   - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
+     resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
+     TF-A's 8MQ patch could go upstream.
+   - The 8M Plus (EVK offline): its SPL and the signed image (`IMX8M_SIGN_IMAGE`) are built,
+     not run. Its SPL's HAB step is the one that ran on the pico8ml.
    - The bench of what landed without a board (log 2026-11-14): USB on all four, the MMU maps,
      the RT1060's entry (F-210, F-207), the DMA rule (F-282), the 8MP EVK through TF-A, the
      8M's lockdown (D-084).
