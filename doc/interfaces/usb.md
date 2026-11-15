@@ -121,8 +121,8 @@ return at once; `cm_transport_complete()` says when it is done.
   sides every piece but the part's last is whole packets (`command-mode.md` 4.4; Jonas,
   D-073). A host transfer that ends inside a packet before the part does is a short packet,
   and an error. Released hosts send the caps' largest transfer, which is whole packets:
-  command mode's buffer and the boot's piece are both set in units of 1024 bytes. Not
-  verified where the two sizes differ (F-280).
+  command mode's buffer and the boot's piece are both set in units of 1024 bytes. Run where
+  the two differ: jiffy and the 8MP EVK, the RT1060's 4 KiB pieces (F-280).
 - **A write sends exactly `length` bytes and no packet after them**, also when `length` is
   whole packets: the host knows the size and asks for no more. A write of 0 bytes sends one
   empty packet (`command-mode.md` 6: a transfer of 0 bytes is one).
@@ -422,7 +422,7 @@ what the code doesn't settle without the hardware.
 |                                  | is an error        | packet              |                 | F-137   |
 | OUT: a short packet is an error  | yes                | no                  | no              | F-137,  |
 |                                  |                    |                     |                 | F-287   |
-| A read of whole packets ends at  | yes (jiffy)        | yes (8MP EVK)       | unverified      | F-280   |
+| A read of whole packets ends at  | yes (jiffy)        | yes (8MP EVK)       | yes (the MEK)   | F-280   |
 | its length                       |                    |                     |                 |         |
 | IN: no empty packet after whole  | yes                | yes                 | yes             |         |
 | packets                          |                    |                     |                 |         |
@@ -476,7 +476,6 @@ checklist's last item.
 | ------------ | --------------------------------------------------------------------------- |
 | F-205        | An OUT transfer ends at `length`, writes nothing past it, and its result is |
 |              | the controller's (2.3, 4.3)                                                 |
-| F-280        | `BOOT_BPAK`'s parts where the device's pieces aren't the host's (2.3)       |
 | F-138        | Endpoint 0: stall and bounds (3.2)                                          |
 | F-205        | Every wait is bounded (4)                                                   |
 | F-140        | The ChipIdea's set up against its reference manual                          |

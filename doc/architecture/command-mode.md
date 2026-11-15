@@ -340,8 +340,8 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
   result. A part's bytes are one stream of the part's size. The host splits it into transfers
   of at most the caps' largest transfer, each of whole packets but the part's last, as
   released hosts send them (`usb.md` 2.3); the device reads it in pieces of its own
-  (`CONFIG_BOOT_LOAD_CHUNK_kB`) and relies on the size alone. Not verified on USB where the
-  two differ (F-280).
+  (`CONFIG_BOOT_LOAD_CHUNK_kB`) and relies on the size alone. Run on USB where the two differ:
+  jiffy, the 8MP EVK and the RT1060 (F-280).
 - **`BOOT_BPAK` after a result that isn't OK**: after the header's, the exchange ends (5.5).
   After a part's, hosts send the remaining parts all the same and act on the last result
   only: the device reads every part, answers each, and the last result is the verdict. A
@@ -809,5 +809,4 @@ For a change to command mode, a new command or a new method:
 | Finding | What                                                                                 |
 | ------- | ------------------------------------------------------------------------------------ |
 | F-375   | The caps' erase timeout (4.6)                                                        |
-| F-280   | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-226   | The host uses the caps' timeouts (4.6)                                               |
