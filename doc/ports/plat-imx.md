@@ -468,7 +468,9 @@ Where each port is (2026-11-15).
 | (`platform.md` 2)                    |              | and over USB, the |            |           |               |
 |                                      |              | SPL's fastboot    |            |           |               |
 |                                      |              | (pico8ml); 8MP    |            |           |               |
-|                                      |              | built, not run    |            |           |               |
+|                                      |              | from the eMMC     |            |           |               |
+|                                      |              | (EVK), not over   |            |           |               |
+|                                      |              | USB               |            |           |               |
 | The SPL's TZASC read back            | n/a          | yes               | n/a        | n/a       | D-088         |
 | Functions for boards, not a          | yes          | n/a               | yes        | n/a       | F-440         |
 | structure (7)                        |              |                   |            |           |               |
