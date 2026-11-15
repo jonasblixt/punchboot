@@ -543,22 +543,37 @@ static int cm_usb_init(void)
 }
 #endif
 
-#ifdef CONFIG_IMX8X_CM_USB_OTG2
-/* Command mode's USB (platform.md 3.10): the i.MX8DXL's USB OTG2, the second
- * ChipIdea controller with its PHY, SC_R_USB_1 */
+#if defined(CONFIG_IMX8X_CM_USB_OTG1) || defined(CONFIG_IMX8X_CM_USB_OTG2)
+/* Command mode's USB (platform.md 3.10): a ChipIdea controller with its PHY.
+ * USB OTG1 on both SoCs, the QXP RM's USB2_OTG, SC_R_USB_0; the i.MX8DXL's
+ * USB OTG2, SC_R_USB_1. The ROM's serial downloader uses either (QXP and DXL
+ * RM 5, USB serial download boot) */
+#ifdef CONFIG_IMX8X_CM_USB_OTG1
+#define CM_USB_RSRC     SC_R_USB_0
+#define CM_USB_PHY_RSRC SC_R_USB_0_PHY
+#define CM_USB_BASE     IMX8X_USB_OTG1_BASE
+#define CM_USB_PHY_BASE IMX8X_USB2_PHY1_BASE
+#else
+#define CM_USB_RSRC     SC_R_USB_1
+#define CM_USB_PHY_RSRC SC_R_USB_1_PHY
+#define CM_USB_BASE     IMX8DXL_USB_OTG2_BASE
+#define CM_USB_PHY_BASE IMX8DXL_USB2_PHY2_BASE
+#endif
+
 static int cm_usb_init(void)
 {
     /* Enable usb stuff */
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_1, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_1_PHY, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, CM_USB_RSRC, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, CM_USB_PHY_RSRC, SC_PM_PW_MODE_ON);
 
-    imx_usb2_phy_init(IMX8DXL_USB2_PHY2_BASE);
+    imx_usb2_phy_init(CM_USB_PHY_BASE);
 
-    return imx_ci_udc_init(IMX8DXL_USB_OTG2_BASE);
+    return imx_ci_udc_init(CM_USB_BASE);
 }
 #endif
 
-#if defined(CONFIG_IMX8X_CM_USB3) || defined(CONFIG_IMX8X_CM_USB_OTG2)
+#if defined(CONFIG_IMX8X_CM_USB3) || defined(CONFIG_IMX8X_CM_USB_OTG1) || \
+    defined(CONFIG_IMX8X_CM_USB_OTG2)
 int plat_cm_init(void)
 {
     /* Only read over USB, so not on the boot path (D-023); the SECO keeps

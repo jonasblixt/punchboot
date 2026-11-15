@@ -15,9 +15,20 @@
 /* The SoC's clock gates and PLLs, after the common gates (plat_<soc>.c) */
 int imx8m_soc_clock_init(void);
 
-/* USB1's clocks and power, before its PHY and its controller are set up
- * (plat_<soc>.c) */
-int imx8m_soc_usb1_power_up(void);
+/* Command mode's USB port (platform.md 3.10): USB1 on both SoCs, or the
+ * i.MX8M Plus's USB2. Its ROM's serial downloader uses either (8MP RM 6.1.7),
+ * the 8MQ's USB1 only (8MQ RM 6.1.2.4) */
+#ifdef CONFIG_IMX8M_CM_USB2
+#define IMX8M_CM_USB_BASE     IMX8M_USB2_BASE
+#define IMX8M_CM_USB_PHY_BASE IMX8M_USB2_PHY_BASE
+#else
+#define IMX8M_CM_USB_BASE     IMX8M_USB1_BASE
+#define IMX8M_CM_USB_PHY_BASE IMX8M_USB1_PHY_BASE
+#endif
+
+/* The clocks and power of command mode's USB port, before its PHY and its
+ * controller are set up (plat_<soc>.c) */
+int imx8m_soc_cm_usb_power_up(void);
 
 /* The SoC's name, its DIGPROG and the A53's clock in Hz, 0 when it can't be
  * read (plat_<soc>.c, for plat_get_info()) */

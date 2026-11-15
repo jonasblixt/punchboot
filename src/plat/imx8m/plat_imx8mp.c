@@ -8,8 +8,8 @@
  * i.MX8M Plus clocks. The ARM PLL is left as the ROM set it. SYSTEM_PLL1
  * (800 MHz) and SYSTEM_PLL2 (1000 MHz) feed the DRAM clocks and most clock
  * roots; all their divided outputs are enabled after reset (RM,
- * CCM_ANALOG_SYS_PLLn_GEN_CTRL). And USB1's clocks and power, for command
- * mode.
+ * CCM_ANALOG_SYS_PLLn_GEN_CTRL). And the clocks and power of command mode's
+ * USB port, USB1 or USB2.
  */
 
 #include <inttypes.h>
@@ -22,16 +22,28 @@
 
 #include "plat.h"
 
-#ifdef CONFIG_IMX8M_CM_USB1
-/* USB1 PHY glue (RM 11.2.5.2.5) */
-#define USB1_PHY_CTRL0          (IMX8M_USB1_PHY_BASE + 0x0)
+#if defined(CONFIG_IMX8M_CM_USB1) || defined(CONFIG_IMX8M_CM_USB2)
+/* The port's PHY glue, USB1's at 0x381F0000, USB2's at 0x382F0000 (RM
+ * 11.2.5.2.1, 11.2.5.2.5) */
+#define USB_PHY_CTRL0           (IMX8M_CM_USB_PHY_BASE + 0x0)
 #define PHY_CTRL0_FSEL_MASK     (0x3f << 5)
 #define PHY_CTRL0_FSEL_24MHZ    (0x2a << 5)
 /* Reserved in the RM, reset 0b11: the alternate PHY clock. Cleared, the PHY
  * runs on its own PLL (ALT_CLK_EN, ALT_CLK_SEL in NXP's Linux driver) */
-#define USB1_PHY_CTRL6          (IMX8M_USB1_PHY_BASE + 0x18)
+#define USB_PHY_CTRL6           (IMX8M_CM_USB_PHY_BASE + 0x18)
 #define PHY_CTRL6_ALT_CLK       (0x3)
 #define GPC_POWER_UP_TIMEOUT_us 1000
+
+/* The port's PHY power domain: the controllers are in HSIOMIX, the PHYs
+ * have a domain each (RM 5.2.10, GPC_PU_PGC_SW_PUP_REQ and
+ * GPC_PGC_CPU_A53_MAPPING) */
+#ifdef CONFIG_IMX8M_CM_USB2
+#define GPC_PU_USB_PHY          GPC_PU_USB2_PHY
+#define GPC_A53_MAPPING_USB_PHY GPC_A53_MAPPING_USB2_PHY
+#else
+#define GPC_PU_USB_PHY          GPC_PU_USB1_PHY
+#define GPC_A53_MAPPING_USB_PHY GPC_A53_MAPPING_USB1_PHY
+#endif
 
 static int wait_set(uintptr_t reg, uint32_t mask, uint32_t value)
 {
@@ -48,11 +60,13 @@ static int wait_set(uintptr_t reg, uint32_t mask, uint32_t value)
 }
 
 /*
- * The ROM powers HSIOMIX and the USB1 PHY and sets their clocks only for a
+ * The ROM powers HSIOMIX and the port's PHY and sets their clocks only for a
  * serial download boot (F-115). Power them up here, it does nothing when
- * they are on already.
+ * they are on already. USB2 has the same clocks and gates as USB1: the
+ * CCGRs and the BLK_CTRL's clock are HSIOMIX's, for both controllers (RM
+ * Table 5-2, "USB (HSIOMIX)")
  */
-int imx8m_soc_usb1_power_up(void)
+int imx8m_soc_cm_usb_power_up(void)
 {
     int rc;
 
@@ -67,14 +81,14 @@ int imx8m_soc_usb1_power_up(void)
     mmio_write_32(CCM_CCGR_SET(IMX8MP_CCGR_USB_PHY), CCGR_CLK_ON_MASK);
 
     mmio_clrsetbits_32(
-        IMX8MP_GPC_PGC_CPU_A53_MAPPING, 0, GPC_A53_MAPPING_HSIOMIX | GPC_A53_MAPPING_USB1_PHY);
-    mmio_clrsetbits_32(IMX8MP_GPC_PU_PGC_SW_PUP_REQ, 0, GPC_PU_HSIOMIX | GPC_PU_USB1_PHY);
+        IMX8MP_GPC_PGC_CPU_A53_MAPPING, 0, GPC_A53_MAPPING_HSIOMIX | GPC_A53_MAPPING_USB_PHY);
+    mmio_clrsetbits_32(IMX8MP_GPC_PU_PGC_SW_PUP_REQ, 0, GPC_PU_HSIOMIX | GPC_PU_USB_PHY);
 
     /* The request bits clear when the domains are up */
-    rc = wait_set(IMX8MP_GPC_PU_PGC_SW_PUP_REQ, GPC_PU_HSIOMIX | GPC_PU_USB1_PHY, 0);
+    rc = wait_set(IMX8MP_GPC_PU_PGC_SW_PUP_REQ, GPC_PU_HSIOMIX | GPC_PU_USB_PHY, 0);
 
     if (rc != PB_OK) {
-        LOG_ERR("HSIOMIX/USB1 PHY power up timed out");
+        LOG_ERR("HSIOMIX/USB PHY power up timed out");
         return rc;
     }
 
@@ -95,8 +109,8 @@ int imx8m_soc_usb1_power_up(void)
                  mmio_read_32(IMX8MP_GPC_PU_PWRHSK));
     }
 
-    mmio_clrsetbits_32(USB1_PHY_CTRL0, PHY_CTRL0_FSEL_MASK, PHY_CTRL0_FSEL_24MHZ);
-    mmio_clrsetbits_32(USB1_PHY_CTRL6, PHY_CTRL6_ALT_CLK, 0);
+    mmio_clrsetbits_32(USB_PHY_CTRL0, PHY_CTRL0_FSEL_MASK, PHY_CTRL0_FSEL_24MHZ);
+    mmio_clrsetbits_32(USB_PHY_CTRL6, PHY_CTRL6_ALT_CLK, 0);
 
     return PB_OK;
 }
