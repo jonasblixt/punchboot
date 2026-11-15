@@ -811,6 +811,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | container's build of the same board doesn't. `link.lds` asserts `.rela.dyn` empty and the link | | |
 | | | passes, so nothing is relocated at run time. Why that compiler leaves them, and whether | | |
 | | | `link.lds` should name them (F-428's "clean on all six" is the container's toolchain), is open | | |
+| | | 2026-11-15: the warning names `main.o`, which has neither section; the sections are `mmu.o`'s | | |
+| | | (and the pico8ml SPL's `console.o`): ld names the first input. The two compilers differ: the dev | | |
+| | | container's gcc 14.2 (Debian) is built with `--enable-default-pie`, the test bench's 14.3 | | |
+| | | (Buildroot) isn't, and pb's flags set neither `-fno-pie` nor `-fpie`. So CI and a release | | |
+| | | compile pb as PIE code and the test bench doesn't, and only the non-PIE link warns. For Jonas: | | |
+| | | `-fno-pie` in pb's flags (one code generation everywhere; it changes every board's `pb.bin` in | | |
+| | | the container, so a bench round) | | |
 
 ## Dependencies / vendored code
 
