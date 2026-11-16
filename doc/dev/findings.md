@@ -84,6 +84,15 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | doesn't enumerate across pb's resets, the hub port isn't disabled. It came back by itself at | | |
 | | | 00:08:44, about 2 minutes later, after a software reset like the others; `dev show` answers. | | |
 | | | Not known: whether the MEK's USB3 PHY or the VL813 hub's port was stuck. Boot partitions untouched | | |
+| | | 2026-11-16, with the console captured (`e880cd49`'s pb): the write doesn't cause it. After a | | |
+| | | `dev reset` the MEK boots, and the host sees no device on its port (no connect in the kernel log): | | |
+| | | `Transport init error (-2)` 10 s later, a software reset, again, until the port sees it, 20 s to | | |
+| | | 2 min later. The host's write fails because the device is gone; a `punchboot list` right after | | |
+| | | the reset can still show it. Resets alone, `dev show` after each: lost at the 2nd with 8 s between | | |
+| | | them, at the 1st with 1 s (this night; 8 of 8 on 2026-11-15, 9 then a loss earlier tonight). It | | |
+| | | fails before any request: not the stalls. Left: the device's connect (the PHY or the cdns3 after a | | |
+| | | software reset, which leaves the USB subsystem powered) or the VL813 hub's port; a USB analyser | | |
+| | | or a port reset (root on the bench host) would tell | | |
 | F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
 | | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
 | | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
