@@ -878,4 +878,3 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 
 | ID | Finding | Status |
 |---|---|---|
-| F-052 | `src/drivers/virtio/*` has no user since `plat/qemu` was removed. Verified. | open: keep for a QEMU smoke tier, or remove |

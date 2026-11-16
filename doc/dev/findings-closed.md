@@ -2373,3 +2373,7 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | 2026-11-15 (`8f2c24c6`): no assembly source has the note, and the container's bare metal gcc | |
 | | gives no C object one: `-z noexecstack` for pb and the 8M SPL. Every `pb.bin` and SPL the same | |
 | | byte for byte; no warning from the bench's jiffy build. Done | |
+| F-052 | `src/drivers/virtio/*` has no user since `plat/qemu` was removed. Verified. | closed: kept |
+| | | The status before: open: keep for a QEMU smoke tier, or remove | | |
+| | | Closed 2026-11-16 (Jonas: keep, for QEMU later): the virtio drivers and `test_virtio_block` stay, for | | |
+| | | a QEMU smoke tier if one comes back | | |
