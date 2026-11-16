@@ -90,6 +90,11 @@ jobs:
           PB_WERROR: 1
         run: scripts/pbdev firmware ${{ matrix.board }}
 
+      - name: Build the simple target test bench's application
+        # testbench/simple, the RT1060's (F-228)
+        if: matrix.board == 'imxrt1060evk'
+        run: scripts/pbdev run make -C testbench/simple
+
   coverity:
     name: Coverity scan
     # Needs the COVERITY_SCAN_TOKEN secret, which is not available on forks
