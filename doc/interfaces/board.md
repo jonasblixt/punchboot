@@ -776,7 +776,7 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | `status()` (4.3)               | yes   | default | yes | yes     | default    | default  | default |         |
 | `password_auth()` (4.4)        | n/a   | n/a     | yes | yes     | n/a        | n/a      | n/a     |         |
 | The order of section 2         | yes   | yes     | yes | yes     | yes        | yes      | no      | F-217   |
-| Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-033   |
+| Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-300   |
 
 Data: imx8mevk has neither a policy nor a handover (F-300), so the policy's check fails its
 `board_setup()` with `-PB_ERR_PARAM`. The RoT, the SLC, `init()` and the table are set up before
