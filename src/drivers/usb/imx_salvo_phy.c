@@ -22,7 +22,7 @@
 #define PHY_PMA_CMN_CTRL1                     (0xC800 * 4)
 #define TB_ADDR_CMN_DIAG_HSCLK_SEL            (0x01e0 * 4)
 #define TB_ADDR_CMN_PLL0_VCOCAL_INIT_TMR      (0x0084 * 4)
-#define TB_ADDR_CMN_PLL0_VCOCAL_ITER_TMR      (0x0088 * 4)
+#define TB_ADDR_CMN_PLL0_VCOCAL_ITER_TMR      (0x0085 * 4)
 #define TB_ADDR_CMN_PLL0_INTDIV               (0x0094 * 4)
 #define TB_ADDR_CMN_PLL0_FRACDIV              (0x0095 * 4)
 #define TB_ADDR_CMN_PLL0_HIGH_THR             (0x0096 * 4)
