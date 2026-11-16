@@ -33,36 +33,30 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 0. **Resume here: `log/2026-11-16.md`'s last section** (the afternoon), then
    `log/2026-11-15.md`'s last section. jiffy: power cycle, then auth and today's pb (F-210).
-   No JTAG on jiffy (F-455). Nothing pushed since
-   `58c9cf3e`'s rebase.
+   No JTAG on jiffy (F-455). Nothing pushed since `58c9cf3e`'s rebase.
    - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
      resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
      TF-A's 8MQ patch could go upstream.
-   - The 8M Plus: its SPL boots pb proper on the EVK from the eMMC and over USB (`26fd5a1d`),
-     Linux after it (log 2026-11-15). Not run: the signed image (the EVK is open).
    - Not yet on a board (log 2026-11-14): the RT1060's entry (F-210, F-207), the 8M's lockdown
      (D-084), the 8MP's USB2 and the 8DXL's OTG1 (F-402), `-fno-pie` (F-454) on the pico8ml.
    - D-084's rest: EOL with data (F-263, PR #51), F-241. F-444 (OP-TEE's SMC on jiffy), F-447
      (the 8M's SLC sources), F-432 (the pico8ml, when it is back), F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
    review of the guides and the notes.
-2. The rest of `findings.md`: by board (8MP EVK F-100 to F-110, F-155, F-156),
-   JTAG (F-078 to F-090), boot time.
+2. The rest of `findings.md`: by board (8MP EVK F-104 to F-107, F-113, F-155, F-156), boot time.
 
 ## Open questions (for Jonas)
 
 - From 2026-11-16: F-463 (answer USB 2.0's standard requests, or `usb.md` 3.2 as is), F-460
   (command mode's writes in pieces with a kick, or a measured bound), F-462 (the RT's clock waits,
   the UARTs: a counted bound?).
-
 - D-086 (Mbed TLS by the core) and its Open (1); then F-442's code.
 - Review: the guides and `CHANGELOG.md` (F-232), D-074, D-070, D-066, D-056, the logs' "For
   Jonas".
 - Contract sentences: `platform.md` 3.10's port rule (D-084), `usb.md` 4.2's stop (F-453),
   `platform.md` 3.3's kicks (F-320); `boot.md` F-291, F-331, F-323, F-345, F-360, F-342, F-348;
   `board.md` F-325, F-335, F-392; `command-mode.md` F-375; `bio.md` F-310; F-311.
-- Choices left in findings: F-140 (SDIS off: 15% faster writes on jiffy), F-283 and F-200 (the
-  GPT's 512s, SEC_COUNT 0), F-406, F-411, F-180, F-227's default device.
+- Choices left in findings: F-283 and F-200 (the GPT's 512s, SEC_COUNT 0), F-406, F-411, F-180,
+  F-227's default device.
 - Which findings gate the 3.0.0 tag; bebop's defconfig (F-033); virtio for QEMU (F-052).
-- `Co-Authored-By` trailers in 376 pushed
-  commits (left for now, Jonas).
+- `Co-Authored-By` trailers in 376 pushed commits (left for now, Jonas).
