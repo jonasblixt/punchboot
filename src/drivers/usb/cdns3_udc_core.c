@@ -131,7 +131,11 @@ struct cdns_trb {
 
 #define TRB_MAX_LENGTH      (127 * 1024) // (130048)
 #define TRB_LENGTH_MASK     0x1ffff
-#define TRB_BURST_LENGTH(x) ((x & 0xFF) << 16)
+/* Bits 31:24 of a TRB's length word, above the length's 16:0 (Linux 6.18,
+ * cdns3-gadget.h TRB_BURST_LEN). It was written to 23:16 (F-461) */
+#define TRB_BURST_LENGTH(x) (((uint32_t)(x) & 0xFF) << 24)
+/* The first version without the DMA bug below (Linux's DEV_VER_V2) */
+#define CDNS_DEV_VER_V2     0x0002450C
 
 #define TRB_FLAG_CYCLE      BIT(0)
 #define TRB_FLAG_TOGGLE     BIT(1)
@@ -204,6 +208,13 @@ static size_t ep0_out_length;
 /* A flush that didn't end: the bulk transfer may still be the
  * controller's, and the next one is refused until init (drivers.md 3) */
 static bool xfer_flush_failed;
+/*
+ * A bulk TRB's DMA burst, as Linux's cdns3_ep_config(): 64 for an endpoint
+ * of 512 byte packets, and 16 on a controller before DEV_VER_V2, such as
+ * the i.MX8QXP's (0x24502), whose DMA corrupts data when a longer burst to
+ * an address not on 128 bytes crosses a 4 KiB border
+ */
+static uint8_t trb_burst = 16;
 /* The host configured the device, and reset the bus or went away after
  * that: every bulk transfer fails until the device is configured or
  * started again (usb.md 2.4, 4.3) */
@@ -429,13 +440,7 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
         chunk = bytes_to_xfer > TRB_MAX_LENGTH ? TRB_MAX_LENGTH : bytes_to_xfer;
 
         trb_p->addr = (uint32_t)buf_p;
-        // TODO: Burst size, depends on EP size
-        //  EP sz   Burst sz
-        //  -----   --------
-        //  1024    128
-        //  => 512  64
-        //  < 512   16
-        trb_p->length = (uint32_t)chunk | TRB_BURST_LENGTH(64);
+        trb_p->length = (uint32_t)chunk | TRB_BURST_LENGTH(trb_burst);
         trb_p->flags = TRB_FLAG_CYCLE | TRB_TYPE(TRB_TYPE_NORMAL);
 
         /* A short packet ends the transfer with EP_STS_ISP, as Linux's
@@ -793,6 +798,7 @@ int cdns3_udc_core_init(void)
     dev_ctrl_version = mmio_read_32(base + CDNS_USB_CAP6);
 
     LOG_INFO("Device controller version: 0x%x", dev_ctrl_version);
+    trb_burst = (dev_ctrl_version < CDNS_DEV_VER_V2) ? 16 : 64;
 
     /* A second init: the glue reset the controller, and what it had of the
      * driver's memory is the driver's again */

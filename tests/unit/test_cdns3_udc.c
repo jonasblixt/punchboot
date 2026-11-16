@@ -717,9 +717,13 @@ static void test_a_short_packet_is_an_error(void **state)
         fill(host, length, 7);
         assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, length), PB_OK);
 
-        /* Each OUT TRB asks for the short packet's interrupt (TRB_ISP) */
+        /* Each OUT TRB asks for the short packet's interrupt (TRB_ISP).
+         * Its burst is in bits 31:24, 16 on a controller before DEV_VER_V2
+         * (F-461): the fake's CAP6 reads 0 */
         dcache_dev_read(traddr[USB_EP2_OUT], trb, sizeof(trb));
         assert_true(trb[2] & BIT(2));
+        assert_int_equal(trb[1] >> 24, 16);
+        assert_int_equal((trb[1] >> 17) & 0x7f, 0);
 
         assert_int_equal(controller_run_sent(USB_EP2_OUT, host, length, cases[i].sent),
                          cases[i].sent);
