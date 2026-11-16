@@ -50,6 +50,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | ChipIdea, found by the USB package's review); an unsupported request no longer fails connect or the | |
 | | | running transfer. Left: the ack order, an aborting SETUP seen only at the bound, STALL, EP0 IN ZLT. | |
 | | | Not run on a board | |
+| | | 2026-11-16 (`de68d7c0`, `693054ce`, `9303b4cd`): the ack order is the RM's, ENDPTSETUPSTAT cleared | | |
+| | | before the copy (a SETUP between the copy and the clear was lost; the test has one); `usbd_hal_ops` | | |
+| | | has `ep0_stall`, optional, which the stack calls for what it refuses, and the ChipIdea's is a | | |
+| | | protocol stall (RM 42.5.6.3.2). On the RT1060: three unknown requests STALL in 8 ms where libusb | | |
+| | | timed out after 3 s; the simple bench 7 of 7. Left: the cdns3's and the DWC3's `ep0_stall`, an | | |
+| | | aborting SETUP seen only at the bound, EP0 IN ZLT; jiffy not run (F-455) | | |
 | F-140 | `src/drivers/usb/imx_ci_udc.c` | USBMODE.SDIS is set; the RM: in high speed every OUT packet is then answered with NYET, and it "substantially limits" throughput. Worth measuring for flashing speed. The init also writes ENDPOINTLISTADDR before USBMODE.CM, the RM (54.4.6.1) sets the mode first. `CMD_ITC(x)` cast to `uint16_t` after the shift, so ITC was always 0 (immediate; fine for a polling driver). | Verified (code, RM 54.6.33, 54.4.6.1) | open (ITC: `USBCMD_ITC(0)` since `5bd1d20e`, same value) |
 | | | 2026-11-14 (`cb747e97`, `pkg-b3-ci2` landed): USBMODE.CM is set first, as the RM; benched with F-136. | | |
 | | | Left: whether clearing SDIS raises the throughput without errors, measured on jiffy and the RT1060 | | |
