@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 /* The SoC's clock gates and PLLs, after the common gates (plat_<soc>.c) */
-void imx8m_soc_clock_init(void);
+int imx8m_soc_clock_init(void);
 
 /* USB1's clocks and power, before its PHY and its controller are set up
  * (plat_<soc>.c) */

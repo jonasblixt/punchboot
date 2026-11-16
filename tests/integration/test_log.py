@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 # configs/host_defconfig
 CM_BUF_SIZE = 4 * 1024
-RAMLOG_SIZE = 16 * 1024
+RAMLOG_SIZE = 16 * 1024 - 16  # the header is in the 16 KiB
 
 
 def log_head(s: punchboot.Session) -> int:

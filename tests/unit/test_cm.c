@@ -64,7 +64,7 @@ static uint32_t command_id(const char *name)
 }
 
 #define BUF_SIZE    (CONFIG_CM_BUF_SIZE_KiB * 1024)
-#define LOG_SIZE    (CONFIG_RAMLOG_SIZE_KiB * 1024)
+#define LOG_SIZE    PB_RAMLOG_DATA_SIZE
 #define DISK_BLOCKS 64
 
 #define UU_DISK \

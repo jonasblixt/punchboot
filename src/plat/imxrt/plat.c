@@ -10,6 +10,7 @@
 #include <pb/console.h>
 #include <pb/delay.h>
 #include <pb/mmio.h>
+#include <pb/mmio_poll.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/rot.h>
@@ -151,8 +152,21 @@ static int dcdc_overdrive(void)
     return PB_OK;
 }
 
+/*
+ * The CCM's handshakes and the PLL's lock: counted, not timed (F-462), and
+ * nothing logged; plat_init()'s error is main()'s to log. The two that
+ * switch the core's own clock (the AHB root's mux and AHB_PODF) aren't
+ * bounded: any loop but the bare one faulted there now and then
+ */
+static inline __attribute__((always_inline)) int cdhipr_wait(uint32_t busy)
+{
+    return mmio_poll_32(IMXRT_CCM_CDHIPR, busy, 0, MMIO_POLL_HANDSHAKE);
+}
+
 int plat_init(void)
 {
+    int rc;
+
     /* Without it: logged, nothing of the boot's rests on it (platform.md 2.3) */
     status.rom_log = (imx_hab_log_init(&hab_log_cfg) == PB_OK);
 
@@ -169,6 +183,9 @@ int plat_init(void)
 
     // We probably don't need to wait for both clock switches, but the
     // manual is unclear.
+    /* Not bounded: the core's own clock switches here (the AHB root). With
+     * a counted loop, as with a timed one, pb came up in 7 of 10 loads, and
+     * with this loop 20 of 20 (F-462) */
     while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_PERIPH_CLK_SEL_BUSY)
         ;
     while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_PERIPH2_CLK_SEL_BUSY)
@@ -194,8 +211,11 @@ int plat_init(void)
     }
 
     // Wait for PLL to lock
-    while (!(mmio_read_32(IMXRT_CCM_ANALOG_PLL_ARM) & ANALOG_PLL_ARM_LOCK))
-        ;
+    rc = mmio_poll_32(
+        IMXRT_CCM_ANALOG_PLL_ARM, ANALOG_PLL_ARM_LOCK, ANALOG_PLL_ARM_LOCK, MMIO_POLL_PLL_LOCK);
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Every divider from PLL1 to PERCLK, not the ones the reset left: a
      * software reset after a boot keeps the booted code's (IPG at 200 MHz,
@@ -204,13 +224,16 @@ int plat_init(void)
      * 14-5's maximums. Set while AHB runs from PLL2 */
     mmio_clrsetbits_32(IMXRT_CCM_CACRR, CACRR_ARM_PODF_MASK, CACRR_ARM_PODF(1));
 
-    while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_ARM_PODF_BUSY)
-        ;
+    rc = cdhipr_wait(CDHIPR_ARM_PODF_BUSY);
+
+    if (rc != PB_OK)
+        return rc;
 
     mmio_clrsetbits_32(IMXRT_CCM_CBCDR,
                        CBCDR_AHB_PODF_MASK | CBCDR_IPG_PODF_MASK,
                        CBCDR_AHB_PODF(0) | CBCDR_IPG_PODF(3));
 
+    /* Not bounded either: the core's own divider (F-462) */
     while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_AHB_PODF_BUSY)
         ;
 
@@ -220,6 +243,9 @@ int plat_init(void)
     // Switch back to PLL1 for AHB Root
     mmio_clrsetbits_32(IMXRT_CCM_CBCMR, CBCMR_PRE_PERIPH_CLK_SEL_MASK, CBCMR_PRE_PERIPH_CLK_SEL(3));
 
+    /* Not bounded: the core's own clock switches here (the AHB root). With
+     * a counted loop, as with a timed one, pb came up in 7 of 10 loads, and
+     * with this loop 20 of 20 (F-462) */
     while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_PERIPH_CLK_SEL_BUSY)
         ;
     while (mmio_read_32(IMXRT_CCM_CDHIPR) & CDHIPR_PERIPH2_CLK_SEL_BUSY)
@@ -254,7 +280,7 @@ int plat_init(void)
      * (platform.md 2.2): main() would reset. It is recorded: without a
      * provider no image verifies, and the boot's preconditions refuse the
      * boot before anything is loaded (platform.md 2.3) */
-    int rc = mbedtls_pb_init();
+    rc = mbedtls_pb_init();
 
     if (rc != PB_OK)
         LOG_ERR("Mbed TLS init failed (%i)", rc);

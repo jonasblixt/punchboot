@@ -13,14 +13,18 @@
 #include <pb/ramlog.h>
 #include <string.h>
 
-#define RAMLOG_SIZE (CONFIG_RAMLOG_SIZE_KiB * 1024)
+#define RAMLOG_SIZE PB_RAMLOG_DATA_SIZE
 
 /* In .ramlog, so that it isn't zeroed by the startup code and is found by
- * its symbol name. The header starts a cache line, the data follows it. */
+ * its symbol name. The header starts a cache line, the data follows it,
+ * the two CONFIG_RAMLOG_SIZE_KiB */
 static struct {
     struct pb_ramlog_hdr hdr;
     char data[RAMLOG_SIZE];
 } ramlog __section(".ramlog") __aligned(64) __used;
+
+_Static_assert(sizeof(ramlog) == CONFIG_RAMLOG_SIZE_KiB * 1024,
+               "The RAM log is CONFIG_RAMLOG_SIZE_KiB");
 
 /* Set by ramlog_init(): nothing writes the log before it */
 static bool ramlog_active;
