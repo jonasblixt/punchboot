@@ -150,6 +150,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | buffer in a second, chained TRB (CSP=0, 8MP RM Table 11-1), nothing past `length`; a test has a | | |
 | | | host that sends its last packet whole. On the 8MP EVK: odd-sized writes 7 of 7, `boot bpak` of 15 MB | | |
 | | | and Linux. Left: the salvo PHY's licence; the cdns3's past `length` unverified | | |
+| | | 2026-11-16 (`cae67f28`): bytes past `length` in the bounce TRB are `-PB_ERR_IO`. Unverified on a | | |
+| | | board: a short read's count when a short packet ends inside the first TRB with a bounce TRB | | |
+| | | queued (the 8M SPL's fastboot, an odd last chunk and a host that sends less) | | |
 | F-210 | arch/plat, low | v7m: CACR.FORCEWT never cleared at the handover, VTOR never set to pb's | Reported | open |
 | | | table. 6UL: PLL1 raised without writing CACRR.ARM_PODF (F-148 class), SRSR never cleared (stale reset | | |
 | | | reason). Exception policy differs per arch, v8 handlers run on the faulting stack and hang by default. | | |

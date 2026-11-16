@@ -20,7 +20,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
     System A. Never `reboot` it (F-452).
   - RT1060 from its NOR: `e880cd49`, the simple bench 7 of 7; a test pb runs from RAM over the
     J-Link without the NOR (log 2026-11-15). The MEK: `e880cd49`'s pb in BOOT1 (enabled), BOOT0
-    its pb of 2026-11-14; F-172 reproduced, it came back by itself. The 8MP EVK: `0ac39f68`'s
+    its pb of 2026-11-14; F-172 reproduced, it came back by itself. The 8MP EVK: `cae67f28`'s
     two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of 2026-11-14 in BOOT0.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
