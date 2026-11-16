@@ -1,7 +1,7 @@
 # Status
 
-_Last updated: 2026-11-16, evening (unattended: F-444 fixed, the CAAM's job ring reset and short
-hashes (F-410), F-459, F-241, F-078 closed; jiffy back after Jonas's power cycle)_
+_Last updated: 2026-11-16, night (unattended: the 3.0.0 gate list: F-423, F-231, F-218, F-429,
+F-442, F-427, F-291, F-348, F-083, F-190 done; all four boards on `bc2b951f`'s tree)_
 
 ## Current focus
 
@@ -13,14 +13,14 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - **Tests:** `scripts/pbdev test`, 119 suites and checks, ASan/UBSan clean; builds and tests
   one at a time with `PB_JOBS=6` (load under 8, Jonas). CI: host tests, coverage, all boards,
   Coverity (master only).
-- **Boards (2026-11-16, evening):** all in command mode, no system enabled.
-  - jiffy: BOOT1 (enabled) `6ea4208c`'s tree, BOOT0 the OP-TEE add-on's pb; Root B the add-on's
+- **Boards (2026-11-16, night):** all in command mode, no system enabled.
+  - jiffy: BOOT1 (enabled) `bc2b951f`'s tree, BOOT0 the OP-TEE add-on's pb; Root B the add-on's
     root. Serial download is a button held at power-up. In Linux `pbstate-pb`. No JTAG on jiffy.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb in BOOT0 and
     BOOT1, BOOT1 enabled. Never `reboot` it (F-452).
-  - RT1060: its NOR `59e4ed41`'s pb (no DCD, the curve code at -O2: 37.98 ms to the entry), the
-    simple bench 7 of 7. The MEK and the 8MP EVK: BOOT0 (enabled) `6ea4208c`'s tree, BOOT1
-    `2c9dee80`'s, Root B test data; the 8MP's System A the F-156 kernel.
+  - RT1060: its NOR `bc2b951f`'s pb, the simple bench 7 of 7. The MEK and the 8MP EVK: BOOT0
+    (enabled) `bc2b951f`'s tree, BOOT1 `2c9dee80`'s, Root B test data; the 8MP's System A the
+    F-156 kernel.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
 - **Test benches:** Linux (`testbench/`): jiffy, the 8MP EVK, the MEK and the pico8ml boot to
@@ -30,7 +30,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 ## Next steps
 
-0. **Resume here: `log/2026-11-16.md`'s last section** (the evening), then the afternoon's.
+0. **Resume here: `log/2026-11-16.md`'s last section** (the night), then the evening's.
    No JTAG on jiffy (F-455). Nothing pushed since `58c9cf3e`'s rebase.
    - OP-TEE on jiffy: xtest's regression suite passes (F-444, F-465 fixed in the test bench);
      `boot bpak` the add-on's `boot.bpak` with `--pretend-part` System B (log, the evening).
@@ -41,8 +41,9 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
      `-fno-pie` (F-454) on the pico8ml.
    - D-084's rest: EOL with data (F-263, PR #51). F-447 (the 8M's SLC sources), F-432 (the
      pico8ml, when it is back), F-433.
-1. **The 3.0.0 gate list** (`roadmap.md`, D-092): groups 1 and 2 marked by Jonas, each with
-   what to do. Next: that work, then group 3's contract sentences.
+1. **The 3.0.0 gate list** (`roadmap.md`, D-092): groups 1 and 2 marked by Jonas. Left of them:
+   F-166 with F-466, F-286 (5) (6), F-205, F-392, F-300, the documents (F-232, F-020, F-247),
+   F-447, F-228 and F-259 (Jonas). Then group 3's contract sentences.
 2. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
    review of the guides and the notes.
 3. The rest of `findings.md`: by board (8MP EVK F-104 to F-107, F-113, F-155), boot time.

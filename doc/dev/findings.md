@@ -17,13 +17,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | partly fixed (`jiffy-fixes`): `der_ecsig_to_rs` now pads short r/s and is used by the CAAM (F-057). `der_ec_public_key_data` is still open |
 | | | 2026-11-13 (`ab002f9f`): `der_ec_public_key_data()` takes the key's length and reads nothing past | | |
 | | | it; OIDs match on length and bytes. What is left of F-066 is in F-410 (the point's form and length) | | |
-| F-083 | `punchboot part read` | Fails with `Error: I/O error` on jiffy, both for BOOT1 and the 512 B PB State Primary partition, in an authenticated session. Cause unknown. | Seen on the board (2026-10-22) | open |
-| | | The cause (F-190, `command-mode.md` 5.3): no board in the tree sets `READABLE` on a partition, | | |
-| | | and a bulk read without it answers an I/O error. The eMMC's BOOT0 and BOOT1 on 2.8.0 the same | | |
-| | | (was F-142). Left: which partitions a board lets a host read | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates, with F-190: a board's choice, none by default; | | |
-| | | the in-tree boards mark the partitions that can't hold a secret; an unreadable one answers | | |
-| | | NOT_SUPPORTED, not an I/O error | | |
 | F-104 | `src/drivers/ddr/dwc_ddrphy.c` `dwc_ddrphy_train` | The training results in the message block are never read. U-Boot (all i.MX8M) reads the trained critical delay differences after each 1D run and widens the rank-to-rank gaps (`DRAMTMG2` rd2wr/wr2rd, `RANKCTL`, per P-state) before the DFI init. The imx8mevk has two ranks (`MSTR.active_ranks` 3). TF-A reads these registers back at boot and restores them after retention, so it expects the bootloader to have applied the workaround. | Verified (read, and in the differential trace: U-Boot rewrites `DRAMTMG2`, `FREQ1_DRAMTMG2` and `RANKCTL` before `dfi_init_start`) | open: needs the message block layout and an imx8mevk |
 | F-106 | `src/drivers/ddr/umctl2.c` | Low power/refresh values differ from NXP's current sequence: during init `RFSHCTL3` 0x11 and `PWRCTL` 0xa8 (U-Boot: 0x1 and 0xa0, its comment says `en_dfi_dram_clk_disable = 0`; `refresh_mode` 1 is a DDR4 fine granularity setting); at the end `PWRCTL` 0x08 and `RFSHCTL3` 0x10 (U-Boot: clears only `selfref_sw`, 0x80, then `RFSHCTL3` 0 and `selfref_en`, 0x81). Punchboot also writes `DFIPHYMSTR` twice, which the board table already sets. | Verified (differential trace) | open: needs an imx8mevk |
 | F-107 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The trained PHY CSRs for TF-A are read after the DFI init and port enable; NXP reads them right after loading the PIE image, before the calibration wait and the DFI init. | Verified (differential trace) | open: needs an imx8mevk |
@@ -83,21 +76,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | partly fixed |
 | | | revoke one, although HAB has `SRK_REVOKE` there too. `work-3.0.0-plat`: it | | |
 | | | reads `SRK_REVOKE` (`imx_hab_fuses.c`); the EVK board doesn't revoke or lock. | | |
-| F-190 | `cm_main.c` | Low. IDENTIFIER_READ sends 23 bytes of `buffer[0]` unauthenticated (`rz` | Reported | open |
-| | | not cleared), the partition table 57 of every 128. `boot_jump()` can return after `disconnect()`. | | |
-| | | `bytes_to_verify -= 4096` underflows for bpak with size < 4096. A failed data read in | | |
-| | | `cmd_stream_prep_buffer` still answers OK. `block_dev` starts at 0, a valid bio. No build-time bounds | | |
-| | | (buffer size, 16 keys in `cmd_slc_read`, board name). No real board sets `BIO_FLAG_READABLE`: the cause | | |
-| | | of F-083 and F-142. | | |
-| | | `block_dev` at 0 is fixed with F-185: each session starts without a stream (`-PB_ERR_STATE`). | | |
-| | | 2026-11-13 (`50bc306f`, `6f7003d1`, `e845881a`, `5e19d5e1`, `30ca9656`): the identifier and each | | |
-| | | table entry carry only themselves and zeros, bpak's `part verify` refuses a size below a header, | | |
-| | | SLC_READ lists 16 keys at most, the buffers' bounds are static asserts; the board's name and a | | |
-| | | failed read in `cmd_stream_prep_buffer` were handled already. Left: `boot_jump()` returning after | | |
-| | | `disconnect()` (F-252's second half) and `BIO_FLAG_READABLE` (F-083) | | |
-| | | 2026-11-13 (`132f13fc`): `boot_jump()` returning after `disconnect()` is done with F-252. Left: | | |
-| | | `BIO_FLAG_READABLE` (F-083) | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: as F-083's row | | |
 | F-205 | USB, low | cdns3: `setup_pkt` shares its cache line with boot.c's callbacks and digest | Reported | open |
 | | | (invalidated per SETUP, F-081 class); `trb[128]` and `align_buffer` bounds; four waits without timeout. | | |
 | | | dwc3 rounds an OUT TRB up to the max packet: up to 511 bytes past a part in a RAM boot. | | |
@@ -175,6 +153,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | that can't align partitions | |
 | | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: NOT_SUPPORTED for an unknown command on every | | |
 | | | board, decided (D-092), in the release notes | | |
+| | | 2026-11-16 (`5e06159f`): the code had answered NOT_SUPPORTED on every board since the shared | | |
+| | | `default_command`, with a test and the changelog's line; `cm_board.c` and `command-mode.md` 5.6 no | | |
+| | | longer say every release did (D-092). The gate's part is done. Left, not gating: GPT tables that | | |
+| | | can't align partitions | | |
 | F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
 | | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
 | | | command's. Several error paths leave transfers unread the same way. | | |
@@ -223,6 +205,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: a build whose HEAD isn't the tag vX.Y.Z is | | |
 | | | version.txt + `-dev+` + the short commit (`-dirty` with changes); the wire's version stays numeric. | | |
 | | | The stack protector doesn't gate | | |
+| | | 2026-11-16 (`3e8899a2`): off its tag a build says `X.Y.Z-dev+<commit>` (`-dirty` with tracked | | |
+| | | changes) in the banner and the SPL's log (`scripts/build-version`, `pb_build_version.h`, which only | | |
+| | | what includes it is made again for); the wire, `pb,version` and the handoff keep `version.txt`. The | | |
+| | | test bench passes it in. On jiffy, the MEK and the 8MP EVK. Left, not gating: the stack protector | | |
 | F-232 | docs | The README (also the PyPI page) describes removed things (PBI, C parts and binary | Reported | open |
 | | | wheels, the auth cookie, Bebop/PICO) and lacks the 8MP EVK and RT1060. Missing: a porting guide for | | |
 | | | 3.0.0, firmware build and image signing, the A/B update flow and pbstate, the SLC and fusing procedure, | | |
@@ -488,20 +474,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | and the board that aren't in the code start with theirs. The boot's six are marked by | | |
 | | | section 3's intro, which the narrow rule doesn't read: one rule for all needs that form | | |
 | | | decided | | |
-| F-291 | `src/boot/image.c`, `dtb.c` | The image handover can't boot an image with a | Verified (code) | open |
-| | | DT part in place: `boot_dtb_grow()` opens the DT into itself at its load address (`dtb.c`, | | |
-| | | `fdt_open_into()`) and `/chosen` is patched there, which in place is the flash. On a NOR the | | |
-| | | writes are lost or fault, on the host's flash (mapped read only) pb-host would crash. Found with | | |
-| | | F-253's host tests, whose images have a kernel part only. `boot.md` 4.1 and 5.2 don't say | | |
-| | | what the image handover does with a DT in place; Firmware Handoff (5.4, F-259) copies the DT | | |
-| | | into its region and has no such problem. Until decided: refuse it before the DT is touched | | |
-| | | 2026-11-13 (`49e2ee3f`): refused before the tree is read, grown or hooked, with | | |
-| | | `-PB_ERR_NOT_SUPPORTED` and a log line (since F-254 it ended in `-PB_ERR_MEM` unless the regions | | |
-| | | cover the flash). A kernel alone in place still boots. No released configuration is refused: in | | |
-| | | place is new in 3.0.0 (D-048). Open for the decision: refuse for good, or copy the tree to RAM, and | | |
-| | | where | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): refuse for good: `boot.md` 4.1 and 5.2 say so; in | | |
-| | | place with a DT needs Firmware Handoff | | |
 | F-331 | `doc/dev/decisions.md`, `doc/architecture/boot.md` | F-292's refusal has no | Verified (code) | open |
 | | | decision entry and no contract text. `compatibility.md` asks for an entry that names what a | | |
 | | | security fix rejects and why: an image whose kernel, BL31, BL32 or generic entry part is empty | | |
@@ -588,21 +560,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`boot_ab_part_uu_to_name()`), the fixed and the chain policy have none, and the handover then | | |
 | | | writes no `pb,active-system` and an empty `system_name`. To write into 3.4, with whether a policy | | |
 | | | without systems may name its partitions | | |
-| F-348 | `doc/architecture/boot.md` 5.5, 5.6 | pb's properties in a device tree: the | Verified (code) | open |
-| | | text is silent on two things the device tree code decides. (1) Does pb own the `pb,*` names, and | | |
-| | | remove a property it has no value for (an image's placeholder, what a hook wrote)? 5.5 says pb's | | |
-| | | values win, 5.6 says "absent". The code leaves a released property it has no value for (`pb,slc` | | |
-| | | without an SLC, `pb,active-system` without a name), as every release did (D-008: an out-of-tree hook | | |
-| | | that writes `pb,active-system` itself), and removes only the new ones (`pb,boot-partition` without a | | |
-| | | partition, a new property that didn't fit). On a board without an SLC a next stage can so read a | | |
-| | | `pb,slc` that isn't pb's. (2) A new property that doesn't fit the tree is left out with a warning | | |
-| | | and the image boots (F-260): 5.6 has a next stage take an absent entry for an older pb, and nothing | | |
-| | | tells it "no room" but pb's log. To decide and write into 5.5: the namespace, and what a next stage | | |
-| | | is told when a property didn't fit | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): (1) as released: pb writes every value it has, a | | |
-| | | released property without a value stays as the image or a hook wrote it, the new ones are removed. | | |
-| | | (2) Nothing more: absent means an older pb or no room, pb's log says which; a product pads its tree. | | |
-| | | To write into 5.5 and 5.6 | | |
 | F-360 | `doc/architecture/boot.md` 3.5, 3.7, `tools/pbstate` | The contract says who sets a | Verified (code) | open |
 | | | rollback bit (3.5, rule 2) and that `boot activate` clears both, but not who else clears one, nor | | |
 | | | that both can be set (F-340). Today: `pbstate -s A`/`-s B` (`pbstate_switch_system()`) assigns | | |
@@ -668,6 +625,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | declarations: for Jonas | | |
 | | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: `pb_error_string()` defined again in the host | | |
 | | | library, with a test | | |
+| | | 2026-11-16 (`97467c25`, `ac1e034a`): `pb_error_string()` is defined again in `src/wire.c`, v2.7.1's | | |
+| | | strings and `Bad payload`, with a test (`test_wire`); 4.5 has `BAD_PAYLOAD`'s row. The gate's part | | |
+| | | is done. Left, not gating: `bio.md` 4's flags of a new partition and what a failed install leaves, | | |
+| | | the cached life cycle after an install | | |
 | F-427 | `board/jiffy`, `plat.h`, `imx_wdog.c`, `imx_rom_log.c` | Low, from F-248's package. | Reported (read) | open |
 | | | jiffy's `init()` logs its RNG's failure and doesn't call `board_report_degraded()` (`board.md` | | |
 | | | 2.3). `struct plat_status.crypto_engine` can't tell "failed" from "the platform sets none up" | | |
@@ -680,6 +641,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `board_report_degraded()` is the board's (a contract question) | |
 | | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: `plat_status` gets the RNG (none, ok, failed), | | |
 | | | reported by command mode; the boot goes on | | |
+| | | 2026-11-16 (`e6f239de`): `plat_status.rng` (none, ok, failed), the CAAM's RNG4 on the 6UL and the | | |
+| | | 8M, none on the 8X, the RT and the host; command mode's log shows it, the boot goes on | | |
+| | | (`platform.md` 2.3's row). jiffy and the 8MP EVK: `RNG ok`; the MEK `none`. The gate's part is done. | | |
+| | | Left, not gating: `wdog_armed`, a found ROM log, the 8M's event 0xd0 | | |
 | F-429 | `src/plat/imx8x/{fusebox,rot_helpers}.c` | The 8X's fuse helpers, found by the tests | Verified (test) | open |
 | | | written for them. `imx8x_is_srk_fused()` ignores a failed fuse read and tests an uninitialised | | |
 | | | value; the SLC's status and a key's revocation rest on it. `imx8x_fuse_write_srk()` doesn't | | |
@@ -697,6 +662,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | run on a board | | |
 | | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: a key in slots 4 to 31 is refused on the 8X | | |
 | | | (security before D-008). The SCFW's second write stays open | | |
+| | | 2026-11-16 (`23f85d36`): a key in slot 4 or up is refused (`-PB_ERR_KEY_REVOKED`, without a fuse | | |
+| | | read) and the build stops for a board key there (`PLAT_REFUSES_UNREVOCABLE`, `platform.md` 4.1), in | | |
+| | | the changelog's refused images. The MEK builds and boots Linux. The gate's part is done. Left: what | | |
+| | | the SCFW does with a partial word written again | | |
 | F-431 | boards, build, `imx_flexspi.c` | Low, what the wrap-up's packages left or met. The 8X boards' | Reported | open |
 | | | example password is in the image and the same on every device (`board.md` 4.4), and | | |
 | | | `<board/password.h>` is under `src/board/`, which `board.md` 6 and D-056 don't list among the | | |
@@ -728,13 +697,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
 | | | 2026-11-14: no 6ULL board for now | | |
-| F-442 | `src/plat/*/plat.c`, `src/main.c`, `src/boot/boot.c` | Every platform sets up Mbed TLS | Verified | open |
-| | | in its `plat_init()`, and `plat_status.crypto_engine` says whether the build's backends all | | |
-| | | came up, Mbed TLS among them. D-086: the core sets the software backend up, the field is | | |
-| | | the engine's alone (none, ok, failed), the boot's check the core's (`crypto.md` 2, | | |
-| | | `platform.md` 2.2, 2.3, 3.8). Left, after the review: the code and its host tests | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: done in 3.0.0; `CONFIG_PLAT_CRYPTO_ENGINE` | | |
-| | | goes too (D-086's Open (1)) | | |
 | F-443 | `src/boot/optee.c`, OP-TEE | Xen through the OP-TEE delivery | Verified (source) | open |
 | | | (Jonas: "op-tee+xen+linux"). pb's side has it: Xen follows the image handover | | |
 | | | (`boot.md` 5.2), dom0's kernel and ramdisk are module nodes in the image's DT. OP-TEE | | |

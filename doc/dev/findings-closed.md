@@ -2288,6 +2288,79 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | overrides lr) and OP-TEE 1 MiB lower (jiffy's ramoops is the last MiB). Left: F-444 | | |
 | | | 2026-11-16: F-444 is fixed in the test bench (`5d7a7f76`) and F-465 (`aa834550`): OP-TEE 4.9.0 from | | |
 | | | the part `tee` to Linux on jiffy, xtest's regression suite 112 of 112 | | |
+| F-442 | `src/plat/*/plat.c`, `src/main.c`, `src/boot/boot.c` | Every platform sets up Mbed TLS | Verified | fixed |
+| | | in its `plat_init()`, and `plat_status.crypto_engine` says whether the build's backends all | | |
+| | | came up, Mbed TLS among them. D-086: the core sets the software backend up, the field is | | |
+| | | the engine's alone (none, ok, failed), the boot's check the core's (`crypto.md` 2, | | |
+| | | `platform.md` 2.2, 2.3, 3.8). Left, after the review: the code and its host tests | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: done in 3.0.0; `CONFIG_PLAT_CRYPTO_ENGINE` | | |
+| | | goes too (D-086's Open (1)) | | |
+| | | 2026-11-16 (`8233e199`): `crypto_sw_init()` in `main()` after `plat_init()`, `crypto_sw_state()` for | | |
+| | | the boot's check (no boot when the engine or the software failed, or the build has neither), `enum | | |
+| | | plat_crypto_engine`, no `plat.c` calls `mbedtls_pb_init()`; `CONFIG_PLAT_CRYPTO_ENGINE` is gone | | |
+| | | (D-092), `test_crypto_sw` with and without Mbed TLS. The RT1060's bench 7 of 7 (`software crypto | | |
+| | | ok`); Linux on jiffy, the MEK and the 8MP EVK | | |
+| F-083 | `punchboot part read` | Fails with `Error: I/O error` on jiffy, both for BOOT1 and the 512 B PB State Primary partition, in an authenticated session. Cause unknown. | Seen on the board (2026-10-22) | fixed |
+| | | The cause (F-190, `command-mode.md` 5.3): no board in the tree sets `READABLE` on a partition, | | |
+| | | and a bulk read without it answers an I/O error. The eMMC's BOOT0 and BOOT1 on 2.8.0 the same | | |
+| | | (was F-142). Left: which partitions a board lets a host read | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates, with F-190: a board's choice, none by default; | | |
+| | | the in-tree boards mark the partitions that can't hold a secret; an unreadable one answers | | |
+| | | NOT_SUPPORTED, not an I/O error | | |
+| | | 2026-11-16 (`bc2b951f`, Jonas, D-092): `board.readable_parts`, the UUIDs a host may read, given to | | |
+| | | bio (`bio_set_readable()`) before the table is set up, so an install keeps it; the boards name pb's | | |
+| | | boot partitions and its A/B state (the MEK and the DXL only the A/B state: their pb has the example | | |
+| | | password). Any other answers NOT_SUPPORTED. The 8MP EVK: BOOT0 read back byte for byte, System A | | |
+| | | `Not supported` | | |
+| F-190 | `cm_main.c` | Low. IDENTIFIER_READ sends 23 bytes of `buffer[0]` unauthenticated (`rz` | Reported | fixed |
+| | | not cleared), the partition table 57 of every 128. `boot_jump()` can return after `disconnect()`. | | |
+| | | `bytes_to_verify -= 4096` underflows for bpak with size < 4096. A failed data read in | | |
+| | | `cmd_stream_prep_buffer` still answers OK. `block_dev` starts at 0, a valid bio. No build-time bounds | | |
+| | | (buffer size, 16 keys in `cmd_slc_read`, board name). No real board sets `BIO_FLAG_READABLE`: the cause | | |
+| | | of F-083 and F-142. | | |
+| | | `block_dev` at 0 is fixed with F-185: each session starts without a stream (`-PB_ERR_STATE`). | | |
+| | | 2026-11-13 (`50bc306f`, `6f7003d1`, `e845881a`, `5e19d5e1`, `30ca9656`): the identifier and each | | |
+| | | table entry carry only themselves and zeros, bpak's `part verify` refuses a size below a header, | | |
+| | | SLC_READ lists 16 keys at most, the buffers' bounds are static asserts; the board's name and a | | |
+| | | failed read in `cmd_stream_prep_buffer` were handled already. Left: `boot_jump()` returning after | | |
+| | | `disconnect()` (F-252's second half) and `BIO_FLAG_READABLE` (F-083) | | |
+| | | 2026-11-13 (`132f13fc`): `boot_jump()` returning after `disconnect()` is done with F-252. Left: | | |
+| | | `BIO_FLAG_READABLE` (F-083) | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: as F-083's row | | |
+| | | 2026-11-16: its last item, `BIO_FLAG_READABLE`, is F-083's fix (`bc2b951f`) | | |
+| F-291 | `src/boot/image.c`, `dtb.c` | The image handover can't boot an image with a | Verified (code) | fixed |
+| | | DT part in place: `boot_dtb_grow()` opens the DT into itself at its load address (`dtb.c`, | | |
+| | | `fdt_open_into()`) and `/chosen` is patched there, which in place is the flash. On a NOR the | | |
+| | | writes are lost or fault, on the host's flash (mapped read only) pb-host would crash. Found with | | |
+| | | F-253's host tests, whose images have a kernel part only. `boot.md` 4.1 and 5.2 don't say | | |
+| | | what the image handover does with a DT in place; Firmware Handoff (5.4, F-259) copies the DT | | |
+| | | into its region and has no such problem. Until decided: refuse it before the DT is touched | | |
+| | | 2026-11-13 (`49e2ee3f`): refused before the tree is read, grown or hooked, with | | |
+| | | `-PB_ERR_NOT_SUPPORTED` and a log line (since F-254 it ended in `-PB_ERR_MEM` unless the regions | | |
+| | | cover the flash). A kernel alone in place still boots. No released configuration is refused: in | | |
+| | | place is new in 3.0.0 (D-048). Open for the decision: refuse for good, or copy the tree to RAM, and | | |
+| | | where | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): refuse for good: `boot.md` 4.1 and 5.2 say so; in | | |
+| | | place with a DT needs Firmware Handoff | | |
+| | | 2026-11-16 (`16279942`): `boot.md` 4.1 and 5.2 say it: refused for good, in place with a DT goes | | |
+| | | through Firmware Handoff | | |
+| F-348 | `doc/architecture/boot.md` 5.5, 5.6 | pb's properties in a device tree: the | Verified (code) | fixed |
+| | | text is silent on two things the device tree code decides. (1) Does pb own the `pb,*` names, and | | |
+| | | remove a property it has no value for (an image's placeholder, what a hook wrote)? 5.5 says pb's | | |
+| | | values win, 5.6 says "absent". The code leaves a released property it has no value for (`pb,slc` | | |
+| | | without an SLC, `pb,active-system` without a name), as every release did (D-008: an out-of-tree hook | | |
+| | | that writes `pb,active-system` itself), and removes only the new ones (`pb,boot-partition` without a | | |
+| | | partition, a new property that didn't fit). On a board without an SLC a next stage can so read a | | |
+| | | `pb,slc` that isn't pb's. (2) A new property that doesn't fit the tree is left out with a warning | | |
+| | | and the image boots (F-260): 5.6 has a next stage take an absent entry for an older pb, and nothing | | |
+| | | tells it "no room" but pb's log. To decide and write into 5.5: the namespace, and what a next stage | | |
+| | | is told when a property didn't fit | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): (1) as released: pb writes every value it has, a | | |
+| | | released property without a value stays as the image or a hook wrote it, the new ones are removed. | | |
+| | | (2) Nothing more: absent means an older pb or no room, pb's log says which; a product pads its tree. | | |
+| | | To write into 5.5 and 5.6 | | |
+| | | 2026-11-16 (`16279942`): `boot.md` 5.5 says both, and 5.6's table and its absent entry follow: the | | |
+| | | released properties as released, the new ones removed without a value; no room is in pb's log only | | |
 
 ## Dependencies / vendored code
 
