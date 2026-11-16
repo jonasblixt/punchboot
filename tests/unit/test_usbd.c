@@ -438,6 +438,29 @@ static void test_serial_number_without_an_identity(void **state)
     assert_string_equal(reply_string(), NIL_UUID);
 }
 
+/* usb.md 4.5: the stack's short read is a read (an OUT endpoint) with a
+ * place for the count, one transfer at a time, into a buffer that starts a
+ * cache line (drivers.md 4); a refusal reaches no controller */
+static void test_short_read_refusals(void **state)
+{
+    size_t received = 0;
+
+    (void)state;
+
+    start(NULL);
+    enumerate();
+
+    assert_int_equal(usbd_xfer_start_short(USB_EP1_IN, buf, PACKET, &received), -PB_ERR_PARAM);
+    assert_int_equal(usbd_xfer_start_short(USB_EP2_OUT, buf, PACKET, NULL), -PB_ERR_PARAM);
+    assert_int_equal(usbd_xfer_start_short(USB_EP2_OUT, buf + 1, PACKET, &received), -PB_ERR_ALIGN);
+
+    assert_int_equal(usbd_xfer_start_short(USB_EP2_OUT, buf, PACKET, &received), PB_OK);
+    assert_int_equal(usbd_xfer_start_short(USB_EP2_OUT, buf, PACKET, &received), -PB_ERR_STATE);
+    assert_int_equal(usbd_xfer_cancel(), PB_OK);
+    assert_int_equal(usbd_xfer_start_short(USB_EP2_OUT, buf, PACKET, &received), PB_OK);
+    assert_int_equal(usbd_xfer_cancel(), PB_OK);
+}
+
 /* usb.md 2.3, 2.4: a read is done when exactly its length arrived, in as many
  * pieces as the host sends it */
 static void test_read(void **state)
@@ -1125,6 +1148,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_every_operation_is_mandatory),
         cmocka_unit_test(test_short_read_optional),
+        cmocka_unit_test(test_short_read_refusals),
         cmocka_unit_test(test_connect),
         cmocka_unit_test(test_set_configuration_value),
         cmocka_unit_test(test_descriptors),
