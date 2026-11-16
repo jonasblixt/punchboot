@@ -11,14 +11,27 @@ start of the disk instead. Both cases are covered properly here.
 from __future__ import annotations
 
 import os
+import struct
+import zlib
 from typing import TYPE_CHECKING
 
 import punchboot
 import pytest
 
-from .pbtest import DISK_BLOCKS, DISK_UUID, SYSTEM_A_UUID, sgdisk_verify
+from .pbtest import (
+    DISK_BLOCKS,
+    DISK_UUID,
+    SYSTEM_A_UUID,
+    SYSTEM_B_LBA,
+    SYSTEM_B_UUID,
+    SYSTEM_SIZE,
+    sgdisk,
+    sgdisk_verify,
+)
 
 if TYPE_CHECKING:
+    import uuid
+
     from .pbtest import Device
 
 GPT_OK = "No problems found"
@@ -78,3 +91,68 @@ def test_install_table_variant(blank_device: Device, variant: int) -> None:
 def test_install_too_large_table_variant_fails(blank_device: Device) -> None:
     with blank_device.session() as s, pytest.raises(punchboot.Error):
         s.part_table_install(DISK_UUID, 3)
+
+
+def partitions(device: Device) -> dict[uuid.UUID, tuple[int, int]]:
+    """Return the partitions pb lists, with their first and last block."""
+    with device.session() as s:
+        return {p.uuid: (p.first_block, p.last_block) for p in s.part_get_partitions()}
+
+
+def test_empty_entry_is_skipped(device: Device) -> None:
+    """bio.md 4: the partitions after a deleted one are made (F-192)."""
+    device.stop()
+    sgdisk(device.disk, "-d", "1")
+    before = device.read_blocks(0, DISK_BLOCKS)
+
+    device.start()
+
+    parts = partitions(device)
+    assert SYSTEM_A_UUID not in parts
+    assert parts[SYSTEM_B_UUID] == (SYSTEM_B_LBA, SYSTEM_B_LBA + SYSTEM_SIZE // 512 - 1)
+    device.stop()
+    assert device.read_blocks(0, DISK_BLOCKS) == before
+    device.start()
+
+
+def test_table_with_fewer_entries(blank_device: Device) -> None:
+    """A valid table of 32 entries is used as it is, boot after boot (F-191)."""
+    blank_device.stop()
+    sgdisk(blank_device.disk, "-o", "-S", "32", "-a", "1", "-n", "1:10:1087", "-n", "2:1088:65526")
+    before = blank_device.read_blocks(0, DISK_BLOCKS)
+
+    for _ in range(2):
+        blank_device.start()
+        assert sorted(partitions(blank_device).values()) == [
+            (0, DISK_BLOCKS - 1),
+            (10, 1087),
+            (1088, 65526),
+        ]
+        blank_device.stop()
+        assert blank_device.read_blocks(0, DISK_BLOCKS) == before
+
+    blank_device.start()
+
+
+def test_copies_that_differ(device: Device) -> None:
+    """Two valid copies with other entries: the primary's are used, and it is logged (F-006)."""
+    device.stop()
+    # The primary loses its first entry, the backup keeps it
+    array = bytearray(device.read_blocks(2, 32))
+    array[:128] = bytes(128)
+    header = bytearray(device.read_blocks(1, 1))
+    struct.pack_into("<I", header, 88, zlib.crc32(array))
+    struct.pack_into("<I", header, 16, 0)
+    struct.pack_into("<I", header, 16, zlib.crc32(header[:92]))
+    device.write_blocks(1, bytes(header) + bytes(array))
+    before = device.read_blocks(0, DISK_BLOCKS)
+
+    device.start()
+
+    parts = partitions(device)
+    assert SYSTEM_A_UUID not in parts
+    assert SYSTEM_B_UUID in parts
+    assert "backup GPT's entries differ" in device.log.read_text().rpartition("=== start:")[2]
+    device.stop()
+    assert device.read_blocks(0, DISK_BLOCKS) == before
+    device.start()

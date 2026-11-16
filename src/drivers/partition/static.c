@@ -16,11 +16,17 @@ static struct {
 static int
 ptbl_check(bio_dev_t dev, const struct static_part_table *table, bool is_mapped, uintptr_t base)
 {
-    size_t block_sz = bio_block_size(dev);
+    ssize_t dev_block_sz = bio_block_size(dev);
+    size_t block_sz;
     lba_t next_start_lba = 0;
 
     if (table == NULL)
         return -PB_ERR_PARAM;
+
+    if (dev_block_sz < 0)
+        return (int)dev_block_sz;
+
+    block_sz = (size_t)dev_block_sz;
 
     for (const struct static_part_table *entry = table; entry->uu != NULL; entry++) {
         if (entry->first_lba) {
