@@ -532,8 +532,7 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
 
     /* A last packet may be short: done on a short packet too, as Linux.
      * An OUT transfer of whole TRBs then has bytes missing, below */
-    if ((ep_sts & EP_STS_IOC) || (!in_xfer && (ep_sts & EP_STS_ISP)) ||
-        (ep / 2 == 0 && (ep_sts & EP_STS_ISP))) {
+    if ((ep_sts & EP_STS_IOC) || ((!in_xfer || ep / 2 == 0) && (ep_sts & EP_STS_ISP))) {
         LOG_DBG("%s: Xfer done %x", ep_to_str(ep), ep_sts);
 
         mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_ISP);
@@ -552,9 +551,17 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
                 size_t trbs = current_xfer_trb_length / sizeof(current_xfer_trb[0]) - 1;
 
                 dma_in_end(current_xfer_trb, current_xfer_trb_length);
+                /* To the TRB a short packet ended: the ones after it hold
+                 * the lengths they were armed with */
                 received = 0;
-                for (size_t n = 0; n < trbs; n++)
-                    received += current_xfer_trb[n].length & TRB_LENGTH_MASK;
+                for (size_t n = 0; n < trbs; n++) {
+                    size_t armed = MIN(expected - n * TRB_MAX_LENGTH, (size_t)TRB_MAX_LENGTH);
+                    size_t moved = current_xfer_trb[n].length & TRB_LENGTH_MASK;
+
+                    received += moved;
+                    if (moved < armed)
+                        break;
+                }
                 dma_in_begin(current_xfer_trb, current_xfer_trb_length);
             }
 
