@@ -26,7 +26,8 @@
 #define ADMA2_DESCS            512
 #define USDHC_MAX_CHUNK_BYTES  SZ_MiB(30)
 
-/* Polling timeouts, the data timeout grows with the transfer at 1 MB/s */
+/* Polling timeouts. A write's data timeout grows with the transfer at 1 MB/s,
+ * a read's is the header's IMX_USDHC_READ_TIMEOUT_us() */
 #define USDHC_CLK_TIMEOUT_us   10000
 #define USDHC_RESET_TIMEOUT_us 100000
 #define USDHC_BUSY_TIMEOUT_us  5000000
@@ -399,7 +400,14 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
     } else if (data) {
         struct pb_timeout to;
 
-        pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + cmd->block_size * cmd->blocks);
+        size_t bytes = (size_t)cmd->block_size * cmd->blocks;
+
+        /* A read's bound is the header's, which the boards size their
+         * chunks by (F-321); a write's covers the card's programming */
+        if (cmd->write)
+            pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + bytes);
+        else
+            pb_timeout_init_us(&to, IMX_USDHC_READ_TIMEOUT_us(bytes));
         do {
             state = usdhc_read(u, USDHC_INT_STATUS);
 

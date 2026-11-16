@@ -401,6 +401,29 @@ static void test_busy_timeout(void **state)
     assert_int_not_equal(bio_write(part(UU_USER), 0, 512, out), PB_OK);
 }
 
+/* A read the card never ends is -PB_ERR_TIMEOUT within the header's bound,
+ * which the boards fit their watchdog with (F-321, platform.md 3.3) */
+static void test_read_timeout(void **state)
+{
+    uint64_t start, waited;
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    usdhc_model_stall_read();
+    start = bench_now_us();
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
+    waited = bench_now_us() - start;
+    assert_true(waited >= IMX_USDHC_READ_TIMEOUT_us(sizeof(in)));
+    /* The bound and what the stop command takes after it */
+    assert_true(waited < IMX_USDHC_READ_TIMEOUT_us(sizeof(in)) + 100000);
+
+    /* 4 MiB, the largest chunk of a board today, in half a 5 s watchdog */
+    assert_true(IMX_USDHC_READ_TIMEOUT_us(SZ_MiB(4)) <= 2500000);
+
+    /* The card answers again */
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), PB_OK);
+}
+
 static void test_imx8mpevk_sd(void **state)
 {
     struct sd_model_config sd_cfg;
@@ -576,6 +599,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_dma_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_busy_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_timeout, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd, setup, teardown),

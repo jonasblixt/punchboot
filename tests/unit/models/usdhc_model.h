@@ -81,5 +81,8 @@ unsigned int usdhc_model_cmds(void);
 
 /* The next data transfer fails with an ADMA error (DMAE) */
 void usdhc_model_fail_dma(void);
+/* The next read's data never comes: no TC and no error, as a card that
+ * stopped answering */
+void usdhc_model_stall_read(void);
 
 #endif // TESTS_UNIT_MODELS_USDHC_MODEL_H
