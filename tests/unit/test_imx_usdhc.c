@@ -87,6 +87,18 @@ static const struct imx_usdhc_config imx8mpevk_sd = {
     },
 };
 
+/* The same slot on one data line at default speed: 25 MHz, 3.1 MB/s */
+static const struct imx_usdhc_config sd_one_line = {
+    .base = IMX8M_USDHC2_BASE,
+    .card_detect = true,
+    .mmc_config = {
+        .card = MMC_CARD_TYPE_SD,
+        .mode = MMC_BUS_MODE_SD_DEFAULT,
+        .width = MMC_BUS_WIDTH_1BIT,
+        .user_uu = UU_SD,
+    },
+};
+
 /* src/board/jiffy/board.c */
 static const struct imx_usdhc_config jiffy_emmc = {
     .base = IMX6UL_USDHC1_BASE,
@@ -158,10 +170,12 @@ static int teardown(void **state)
     return 0;
 }
 
-static int init_sd(const struct sd_model_config *sd_cfg, bool inserted)
+static int init_sd_on(const struct imx_usdhc_config *cfg,
+                      const struct sd_model_config *sd_cfg,
+                      bool inserted)
 {
     struct usdhc_model_config m = {
-        .base = imx8mpevk_sd.base,
+        .base = cfg->base,
         .base_clk_hz = 200000000,
         .soc = USDHC_IMX8M,
         .card = sd_model_init(sd_cfg),
@@ -170,7 +184,12 @@ static int init_sd(const struct sd_model_config *sd_cfg, bool inserted)
 
     sd_model_insert(inserted);
     usdhc_model_init(&m);
-    return imx_usdhc_init(&imx8mpevk_sd, m.base_clk_hz);
+    return imx_usdhc_init(cfg, m.base_clk_hz);
+}
+
+static int init_sd(const struct sd_model_config *sd_cfg, bool inserted)
+{
+    return init_sd_on(&imx8mpevk_sd, sd_cfg, inserted);
 }
 
 static int init(const struct imx_usdhc_config *cfg, enum usdhc_soc soc, unsigned int clk_hz)
@@ -424,6 +443,30 @@ static void test_read_timeout(void **state)
     assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), PB_OK);
 }
 
+/* On a bus slower than the header's floor the bound is the bus's: an SD card
+ * on one line at 25 MHz reads 256 KiB in 84 ms, the bound has twice that
+ * (the code review of F-321) */
+static void test_read_timeout_one_line(void **state)
+{
+    struct sd_model_config sd_cfg;
+    uint64_t start, waited;
+    uint64_t bus_us = (uint64_t)sizeof(in) * 8 * 1000000 / 25000000;
+    (void)state;
+
+    sd_model_default_config(&sd_cfg);
+    assert_int_equal(init_sd_on(&sd_one_line, &sd_cfg, true), PB_OK);
+    assert_int_equal(usdhc_model_bus()->width, 1);
+    assert_int_equal(usdhc_model_bus()->clk_hz, 25000000);
+
+    usdhc_model_stall_read();
+    start = bench_now_us();
+    assert_int_equal(bio_read(bio_get_part_by_uu(UU_SD), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
+    waited = bench_now_us() - start;
+    assert_true(IMX_USDHC_READ_ACCESS_us + 2 * bus_us > IMX_USDHC_READ_TIMEOUT_us(sizeof(in)));
+    assert_true(waited >= IMX_USDHC_READ_ACCESS_us + 2 * bus_us);
+    assert_true(waited < IMX_USDHC_READ_ACCESS_us + 2 * bus_us + 100000);
+}
+
 static void test_imx8mpevk_sd(void **state)
 {
     struct sd_model_config sd_cfg;
@@ -600,6 +643,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_dma_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_busy_timeout, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_timeout_one_line, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd, setup, teardown),

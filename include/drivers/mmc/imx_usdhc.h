@@ -39,6 +39,8 @@ struct imx_usdhc_config {
  * of an SD card's default speed on four lines (12.5 MB/s), and a twentieth
  * of the slowest rate measured on a board (jiffy's eMMC, 77 MiB/s). A board
  * checks that one chunk fits its watchdog with room (platform.md 3.3).
+ * On a bus slower than the floor (an SD card on one line, 3.1 MB/s at 25 MHz)
+ * the driver waits the access time and twice the bus's own time instead.
  */
 #define IMX_USDHC_READ_ACCESS_us   1000000ULL
 #define IMX_USDHC_READ_ns_PER_BYTE 250ULL
