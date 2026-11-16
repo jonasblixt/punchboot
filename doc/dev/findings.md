@@ -932,6 +932,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | answering it without that would lose the next packet. The other four the stack could answer alone. | | |
 | | | Also seen: a zero length and a 1024 byte packet where a command is read, each board recovers | | |
 | F-464 | `src/drivers/mmc/mmc_emmc.c`, | Boot time. On the MEK pb's init to `boot_load()` is | Seen (board) | open |
+| | | 2026-11-16, a probe on the MEK (not in the tree; Jonas: "do a test first"): before CMD0, CMD13 at RCA | | |
+| | | 1 to 16 at 400 kHz; none answers (16 timeouts, 198 ms), the full init follows as before. The card | | |
+| | | isn't in TRAN at an address pb could find: the ROM likely reads pb with the eMMC's boot operation, | | |
+| | | which never identifies the card, so the 171 ms of CMD1 are the card's own power up and can't be | | |
+| | | skipped by a take over. What is left: start CMD0 and CMD1 earlier and poll later, which has 16 ms of | | |
+| | | other init to overlap | | |
 | | the MEK | | | |
 | | | 187 ms (`boot-time-image -c`, medians of 5, 2026-11-16), of which 171 ms are the eMMC's CMD1 | | |
 | | | loop after pb's CMD0: the card answers busy that long (pb polls every 1 ms). The 8MP EVK's eMMC | | |
