@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-15 (D-089; F-453 fixed; F-402, F-320, F-322, F-213, F-280, F-081 closed)_
+_Last updated: 2026-11-16, night (F-148, F-457, F-209, F-205, F-138 fixed; D-073's stalls; guard 3)_
 
 ## Current focus
 
@@ -18,10 +18,10 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR: `e880cd49` (F-457, F-209, F-138, D-073's stalls), the bench 7 of 7. The MEK: `e880cd49`'s pb in BOOT1
-    (enabled), BOOT0 its pb of 2026-11-14; F-172 reproduced, it came back by itself. The 8MP EVK:
-    `0ac39f68`'s two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of
-    2026-11-14 in BOOT0.
+  - RT1060 from its NOR: `e880cd49`, the simple bench 7 of 7; a test pb runs from RAM over the
+    J-Link without the NOR (log 2026-11-15). The MEK: `e880cd49`'s pb in BOOT1 (enabled), BOOT0
+    its pb of 2026-11-14; F-172 reproduced, it came back by itself. The 8MP EVK: `0ac39f68`'s
+    two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of 2026-11-14 in BOOT0.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
 - **Test benches:** Linux (`testbench/`): jiffy, the 8MP EVK, the MEK and the pico8ml boot to
@@ -60,3 +60,5 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - Choices left in findings: F-140 (SDIS off: 15% faster writes on jiffy), F-283 and F-200 (the
   GPT's 512s, SEC_COUNT 0), F-406, F-411, F-180, F-227's default device.
 - Which findings gate the 3.0.0 tag; bebop's defconfig (F-033); virtio for QEMU (F-052).
+- The night's: `ep0_stall` mandatory or not (F-138); the RT's banner, 2.1 ms a boot (F-458);
+  SHA-384/512 on the RT, 3.6 KiB (F-286); `Co-Authored-By` trailers in 376 pushed commits.
