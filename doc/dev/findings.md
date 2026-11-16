@@ -17,16 +17,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | partly fixed (`jiffy-fixes`): `der_ecsig_to_rs` now pads short r/s and is used by the CAAM (F-057). `der_ec_public_key_data` is still open |
 | | | 2026-11-13 (`ab002f9f`): `der_ec_public_key_data()` takes the key's length and reads nothing past | | |
 | | | it; OIDs match on length and bytes. What is left of F-066 is in F-410 (the point's form and length) | | |
-| F-079 | `src/board/jiffy/board.c` `usdhc_emmc_setup` | Muxes NAND_DQS (ball E6) as the eMMC reset, but on jiffy R1 NAND_DQS isn't connected. The eMMC RST_n is on NAND_WP_B (ball D5, `eMMC_RST_N`, 46.4k pull-up), which pb never configures, so the eMMC never gets a hardware reset. Possibly related to F-078. | Verified (netlist) | open: check NAND_WP_B's USDHC1_RESET_B alt in the RM, and whether the eMMC has RST_n_FUNCTION enabled |
-| | | 2026-11-16, the 6UL RM (30.5.101, 30.5.106): NAND_WP_B's ALT1 is USDHC1_RESET_B (reset value ALT5, | | |
-| | | GPIO4_IO11); NAND_DQS has no uSDHC function, its ALT1 is CSI_FIELD, which pb selects. Not changed: | | |
-| | | with NAND_WP_B on ALT1 the controller drives RST_n, and RST_n_FUNCTION (EXT_CSD 162, written once) | | |
-| | | decides whether the eMMC takes it. Read it on jiffy (`mmc extcsd read` in Linux) before muxing the | | |
-| | | pad; enabling it is permanent, for Jonas. Today the pull-up holds RST_n high | | |
-| | | 2026-11-16, on jiffy (Linux, `mmc extcsd read`): RST_N_FUNCTION 0x00, the eMMC ignores RST_n | | |
-| | | (temporarily disabled, the default). Muxing NAND_WP_B to USDHC1_RESET_B changes nothing until the | | |
-| | | byte is 0x01, which is written once and for good: for Jonas. PARTITION_CONFIG 0x10 (BOOT1 enabled), | | |
-| | | BOOT_BUS_CONDITIONS 0x12 | | |
 | F-083 | `punchboot part read` | Fails with `Error: I/O error` on jiffy, both for BOOT1 and the 512 B PB State Primary partition, in an authenticated session. Cause unknown. | Seen on the board (2026-10-22) | open |
 | | | The cause (F-190, `command-mode.md` 5.3): no board in the tree sets `READABLE` on a partition, | | |
 | | | and a bulk read without it answers an I/O error. The eMMC's BOOT0 and BOOT1 on 2.8.0 the same | | |

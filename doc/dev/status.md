@@ -47,8 +47,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 ## Open questions (for Jonas)
 
-- From 2026-11-16, evening: F-079 (enable jiffy's eMMC RST_n, permanent?); a product with
-  OP-TEE on a 6UL needs Linux without its "ARM power off" idle state (F-444), for the guides?
+- From 2026-11-16, evening: a product with OP-TEE on a 6UL needs Linux without its "ARM power
+  off" idle state (F-444), for the guides?
 - From 2026-11-16: F-462 left open (Jonas): the RT's two core clock waits stay bare loops, a
   counted one faults now and then.
 - D-086 (Mbed TLS by the core) and its Open (1); then F-442's code.

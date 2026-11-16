@@ -2161,6 +2161,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | other init to overlap | | |
 | | | 2026-11-16, Jonas: close it. pb keeps its CMD0 init; the MEK's 171 ms are its card's power up after | | |
 | | | the ROM's boot read | | |
+| F-079 | `src/board/jiffy/board.c` `usdhc_emmc_setup` | Muxes NAND_DQS (ball E6) as the eMMC reset, but on jiffy R1 NAND_DQS isn't connected. The eMMC RST_n is on NAND_WP_B (ball D5, `eMMC_RST_N`, 46.4k pull-up), which pb never configures, so the eMMC never gets a hardware reset. Possibly related to F-078. | Verified (netlist) | fixed |
+| | | The status before: open: check NAND_WP_B's USDHC1_RESET_B alt in the RM, and whether the eMMC has | | |
+| | | RST_n_FUNCTION enabled | | |
+| | | 2026-11-16, the 6UL RM (30.5.101, 30.5.106): NAND_WP_B's ALT1 is USDHC1_RESET_B (reset value ALT5, | | |
+| | | GPIO4_IO11); NAND_DQS has no uSDHC function, its ALT1 is CSI_FIELD, which pb selects. Not changed: | | |
+| | | with NAND_WP_B on ALT1 the controller drives RST_n, and RST_n_FUNCTION (EXT_CSD 162, written once) | | |
+| | | decides whether the eMMC takes it. Read it on jiffy (`mmc extcsd read` in Linux) before muxing the | | |
+| | | pad; enabling it is permanent, for Jonas. Today the pull-up holds RST_n high | | |
+| | | 2026-11-16, on jiffy (Linux, `mmc extcsd read`): RST_N_FUNCTION 0x00, the eMMC ignores RST_n | | |
+| | | (temporarily disabled, the default). Muxing NAND_WP_B to USDHC1_RESET_B changes nothing until the | | |
+| | | byte is 0x01, which is written once and for good: for Jonas. PARTITION_CONFIG 0x10 (BOOT1 enabled), | | |
+| | | BOOT_BUS_CONDITIONS 0x12 | | |
+| | | 2026-11-16 (`6ba48e4f`, Jonas: fix the mux only): jiffy muxes NAND_WP_B as USDHC1_RESET_B instead of | | |
+| | | NAND_DQS; the controller holds RST_n high, RST_N_FUNCTION stays 0 (never written). On jiffy: resets, | | |
+| | | auth, 15 MB, Linux | | |
 
 ## Dependencies / vendored code
 
