@@ -332,7 +332,8 @@ device with no table on it (`board.md` 2.4).
 - **The ROM can boot from it after every reset** (`platform.md` 2.1). A driver that puts the
   medium in a mode the ROM can't start from says in its header what brings it back: the
   device's reset pin, which is the board's to wire and to configure, or a reset the platform
-  makes cold. Unverified on jiffy (F-078, F-079).
+  makes cold. On jiffy the ROM booted from the eMMC after each of 12 warm resets, with the bus
+  mode pb left; its eMMC ignores RST_n (F-078, F-079).
 - **What a driver changes on the medium for good** (an eMMC's boot bus conditions, the boot
   partition that is enabled) is named in its header, with the configuration that keeps the
   medium's own.
@@ -469,8 +470,7 @@ flash can't be made to fail a read: they skip that case.
 
 ## 9. Not yet in the code
 
-| Finding      | What                                                                        |
-| ------------ | --------------------------------------------------------------------------- |
-| F-283        | The block size asked (2.3)                                                  |
-| F-200        | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1)                |
-| F-078, F-079 | The ROM boots from the eMMC after a warm reset (5)                          |
+| Finding | What                                                         |
+| ------- | ------------------------------------------------------------ |
+| F-283   | The block size asked (2.3)                                   |
+| F-200   | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1) |
