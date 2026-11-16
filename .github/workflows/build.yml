@@ -39,6 +39,17 @@ jobs:
           BEFORE: ${{ github.event.before }}
         run: scripts/ci/compat-guard.sh
 
+  old-hosts:
+    name: Released hosts against today's device
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Old hosts must work with new devices (D-008, roadmap guard 3): the
+      # releases' punchboot from PyPI, pinned by hash, against pb-host
+      - name: punchboot 2.3.0, 2.7.0 and 2.7.1 against pb-host
+        run: scripts/pbdev run scripts/ci/old-hosts.sh
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
