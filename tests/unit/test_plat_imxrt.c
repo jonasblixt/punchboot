@@ -340,6 +340,44 @@ static void test_vdd_soc_for_600_mhz(void **state)
                      ANALOG_PLL_ARM_DIV_SELECT(88));
 }
 
+/* platform.md 3.11 (D-077): the SoC as plat_init() left it. DIGPROG
+ * 0x006C0000 is 1.0 (RM), the core PLL1 / ARM_PODF / AHB_PODF: 600 MHz at
+ * speed grade 2, 528 MHz otherwise; no SEMC. The specifics fit or are left
+ * out, and no room at all is an error */
+static void test_plat_info(void **state)
+{
+    struct pb_plat_info info;
+    char extra[64];
+    (void)state;
+
+    fake_regs_set(IMXRT_USB_ANALOG_DIGPROG, 0x006c0000);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+
+    memset(&info, 0xff, sizeof(info));
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_string_equal(info.soc, "i.MX RT1060");
+    assert_string_equal(info.rev, "1.0");
+    assert_int_equal(info.cpu_hz, 600000000);
+    assert_int_equal(info.mem_hz, 0);
+    assert_string_equal(extra, "Speed grade 2\n");
+
+    /* Too little room for the line: none of it */
+    assert_int_equal(plat_get_info(&info, extra, 4), PB_OK);
+    assert_string_equal(extra, "");
+    assert_int_equal(plat_get_info(&info, extra, 0), -PB_ERR_BUF_TOO_SMALL);
+
+    setup(NULL);
+    f.speed_grade = 1;
+    fake_regs_set(IMXRT_USB_ANALOG_DIGPROG, 0x006c0001);
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_string_equal(info.rev, "1.1");
+    assert_int_equal(info.cpu_hz, 528000000);
+    assert_string_equal(extra, "Speed grade 1\n");
+}
+
 /* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
  * crypto backend behind its driver's option: Mbed TLS with
  * CONFIG_DRIVERS_CRYPTO_MBEDTLS, once and as its last step, and nothing of
@@ -669,6 +707,7 @@ int main(void)
         cmocka_unit_test_setup(test_unique_id, setup),
         cmocka_unit_test_setup(test_unique_id_read_fails, setup),
         cmocka_unit_test_setup(test_plat_reset, setup),
+        cmocka_unit_test_setup(test_plat_info, setup),
         cmocka_unit_test_setup(test_plat_reset_before_early_init, setup),
         cmocka_unit_test_setup(test_platform_ns_uuid, setup),
         cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
