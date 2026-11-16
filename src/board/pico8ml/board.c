@@ -256,6 +256,16 @@ static const struct boot_image_region image_regions[] = {
     BOOT_IMAGE_REGION_END,
 };
 
+/* What a host may read in bulk (command-mode.md 5.3, F-083): what can't hold
+ * a secret, pb's boot partitions (pb's image, signed, not encrypted) and its
+ * A/B state */
+static const unsigned char *const readable_parts[] = {
+    PART_boot0,
+    PART_boot1,
+    PART_primary_state,
+    PART_backup_state,
+};
+
 const struct board board = {
     .name = "pico8ml",
     .slc_fuses = config_fuses,
@@ -263,6 +273,8 @@ const struct board board = {
     .console_init = pico8ml_console_init,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
+    .readable_parts = readable_parts,
+    .readable_parts_length = ARRAY_SIZE(readable_parts),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
     .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),

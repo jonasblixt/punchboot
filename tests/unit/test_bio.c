@@ -1091,6 +1091,58 @@ static void test_install_leaves_other_devices(void **state)
     ramdisk_free(second);
 }
 
+/* bio.md 2.4, command-mode.md 5.3 (F-083): the board's readable list. A
+ * device that exists gets READABLE when the list is given, a table's
+ * partition as it is made, also when an install makes it again. Nothing else
+ * gets it, and a partition doesn't inherit it from its device */
+static void test_readable_parts(void **state)
+{
+    static const unsigned char *const readable[] = { UU_DISK, UU_NEW };
+    static const unsigned char *const with_null[] = { UU_NEW, NULL };
+    static const struct layout_part first[] = {
+        { UU_NEW, 2000, 2999, "Readable" },
+        { UU_NEW2, 3000, 3999, "Not readable" },
+    };
+    static const struct layout_part grown[] = {
+        { UU_NEW, 2000, 3999, "Readable" },
+    };
+    struct fixture *f = *state;
+    bio_dev_t dev;
+
+    table_setup(f);
+    assert_int_equal(bio_set_readable(NULL, 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_set_readable(with_null, ARRAY_SIZE(with_null)), -PB_ERR_PARAM);
+    assert_int_equal(bio_set_readable(NULL, 0), PB_OK);
+    assert_false(bio_get_flags(0) & BIO_FLAG_READABLE);
+
+    assert_int_equal(bio_set_readable(readable, ARRAY_SIZE(readable)), PB_OK);
+    assert_int_equal(bio_get_flags(0), BIO_FLAG_VISIBLE | BIO_FLAG_READABLE);
+    /* Not on the list: as it was */
+    assert_int_equal(bio_get_flags(f->part), BIO_FLAG_VISIBLE | PART_FLAGS);
+
+    layout.parts = first;
+    layout.length = ARRAY_SIZE(first);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
+    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_NEW)), DISK_FLAGS | BIO_FLAG_READABLE);
+    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_NEW2)), DISK_FLAGS);
+
+    /* Its blocks changed: a new partition, readable again */
+    dev = bio_get_part_by_uu(UU_NEW);
+    layout.parts = grown;
+    layout.length = ARRAY_SIZE(grown);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 2), PB_OK);
+    assert_false(bio_valid(dev));
+    dev = bio_get_part_by_uu(UU_NEW);
+    assert_true(dev >= 0);
+    assert_int_equal(bio_get_last_block(dev), 3999);
+    assert_int_equal(bio_get_flags(dev), DISK_FLAGS | BIO_FLAG_READABLE);
+
+    /* A reset forgets the list */
+    bio_reset();
+    dev = ramdisk_attach(f->disk, UU_DISK);
+    assert_int_equal(bio_get_flags(dev), DISK_FLAGS);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -1133,6 +1185,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_install_with_a_full_pool, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_gives_back_no_flag, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_leaves_other_devices, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_readable_parts, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

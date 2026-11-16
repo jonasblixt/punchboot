@@ -366,7 +366,8 @@ command's meaning (section 7).
 |                                  | define. A host reads it as "the device is older than the command"          |
 | `NOT_AUTHENTICATED`              | The gate refused (3.2)                                                     |
 | `NOT_SUPPORTED`                  | pb defines the command and this device can't do it: the command is retired |
-|                                  | (5.8), or the build or the board lacks what it needs                       |
+|                                  | (5.8), or the build or the board lacks what it needs; a bulk read of a     |
+|                                  | partition without `READABLE` (5.3)                                         |
 | `AUTHENTICATION_FAILED`          | 3.3                                                                        |
 | `KEY_REVOKED`, `SIGNATURE_ERROR` | A key is revoked; a signature doesn't verify (3.3, `boot.md` 4.2)          |
 | `NOT_FOUND`                      | No such partition or log; no bpak header for `PART_BPAK_READ` (5.3)        |
@@ -377,7 +378,7 @@ command's meaning (section 7).
 | `PART_VERIFY_FAILED`             | The hash differs, or the partition couldn't be read (5.3)                  |
 | `BAD_PAYLOAD`                    | A boot's image whose payload doesn't have the header's hash (`boot.md`     |
 |                                  | 4.2). New in 3.0.0: a release answered `ERROR` (F-087)                     |
-| `IO_ERROR`                       | The storage failed, or the partition's flags forbid it (5.3)               |
+| `IO_ERROR`                       | The storage failed, or the partition's flags forbid a write (5.3)          |
 | `TIMEOUT`, `MEM_ERROR`, `ERROR`  | A driver's timeout; pb's memory; everything else                           |
 
 - **`INVALID_COMMAND` is never a build's answer.** A command pb defines is answered by every
@@ -506,8 +507,11 @@ visible, so no released flow changes.
 same over the partition, which is how every factory flow checks what it wrote. `READABLE`
 gates the bulk read (`STREAM_READ_BUFFER`) and nothing else. It is not a promise that a
 visible partition's content stays unknown to an authenticated host, since a hash of any
-length can be compared (F-186): a secret belongs on a hidden partition. No board in the tree
-sets `READABLE`, which is why `part read` fails on them (F-083).
+length can be compared (F-186): a secret belongs on a hidden partition. The board names the
+partitions that get `READABLE` (`board.md` 2.4), none by default; the boards in the tree name
+those that can't hold a secret, pb's boot partitions and its A/B state. A read of any other
+answers `NOT_SUPPORTED` (Jonas, D-092, F-083): every release answered `IO_ERROR`, which said
+nothing of why, and no board in the tree set the flag.
 
 | Command            | Means                                                            | Needs                  |
 | ------------------ | ---------------------------------------------------------------- | ---------------------- |

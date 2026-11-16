@@ -105,7 +105,8 @@ is on the wire (section 6).
 |                      | the board hides what it may not       |                                      |
 | `WRITABLE`           | The driver; the core takes it away    | A host may write and erase it        |
 |                      | from the device a table is on         |                                      |
-| `READABLE`           | The board                             | A host may read it in bulk           |
+| `READABLE`           | The board's list (`readable_parts`,   | A host may read it in bulk           |
+|                      | `bio_set_readable()`), by UUID        |                                      |
 | `BOOTABLE`           | The boot source policy, never a board | A candidate for a boot (`boot.md` 3) |
 |                      | (`board.md` 6) or a driver            |                                      |
 | `ERASE_BEFORE_WRITE` | The driver                            | 3.3                                  |

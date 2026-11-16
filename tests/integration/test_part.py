@@ -161,7 +161,9 @@ def test_read_partition(device: Device, tmp_path: pathlib.Path) -> None:
 
 
 def test_read_non_readable_partition_fails(device: Device, tmp_path: pathlib.Path) -> None:
-    with device.session() as s, pytest.raises(punchboot.Error):
+    # NOT_SUPPORTED: the board doesn't let a host read it. Every release
+    # answered IO_ERROR (F-083, D-092)
+    with device.session() as s, pytest.raises(punchboot.NotSupportedError):
         s.part_read(tmp_path / "out", SYSTEM_A_UUID)
 
 

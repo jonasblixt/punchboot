@@ -48,6 +48,10 @@ Partitions:
   (F-265, 2026-11-12).
 - A partition table that is installed is in effect for the commands that follow, and the
   stream ends with the install (D-070, F-194, 2026-11-13).
+- A bulk read (`part read`) of a partition the board doesn't let a host read answers
+  `NOT_SUPPORTED`. It answered `IO_ERROR`. The boards in the tree let a host read pb's boot
+  partitions and its A/B state (the MEK and the DXL EVK only the A/B state); before, no
+  partition at all (D-092, F-083).
 - A command timeout of an MMC or SD card answers `TIMEOUT`. It answered `IO_ERROR` (F-199,
   2026-11-13).
 

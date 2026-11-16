@@ -188,6 +188,10 @@ static const struct boot_ab_state_config boot_state_cfg = {
 - The board doesn't take `WRITABLE` from the device its table is on: the core does
   (`board.md` 2.4). It doesn't set `BIO_FLAG_BOOTABLE` either: the policy marks its candidates
   (`board.md` 2.5).
+- What a host may read is data: `readable_parts`, the UUIDs that get `BIO_FLAG_READABLE`, also
+  after an install (`board.md` 2.4, F-083). A board that set the flag in a hook moves the
+  UUIDs there. Without the list a host reads nothing, as with every board of 2.x, and the
+  answer is `NOT_SUPPORTED` now, not `IO_ERROR`.
 - A macro takes its module's configuration and nothing else: another module's, or NULL, doesn't
   compile. A member the board doesn't have is left out, not set to a macro of NULL.
 - The module must be in the build (section 15): a board that names one that isn't doesn't link.

@@ -201,6 +201,13 @@ The device a table is on is left visible only, for its capacity: a host writes i
 partitions, not the device (`bio.md` 2.4). The core does that for its table of any kind; a
 board that sets up another table does it for that one's device (the host, for its flash).
 
+**What a host may read** (Jonas, D-092, F-083): `readable_parts`, `readable_parts_length`, the
+UUIDs of the partitions a host may read in bulk (`command-mode.md` 5.3), a device of `init()`'s
+or a partition of any table. Only what can't hold a secret: pb's own boot partitions when its
+image has none, its A/B state. The core gives the list to bio before the table is set up, and
+a partition an install makes gets it again by its UUID. Absent: none, a host reads nothing. A
+list with an entry that is NULL fails the step.
+
 **The in place source** (`boot.md` 4.1): a partition that is memory mapped, whose image is
 verified where it is and runs there.
 
@@ -382,6 +389,7 @@ on the host:
 |                                | is open (`system.md` 4)                                                            |
 | `boot_policy`, `boot_handover` | Mandatory                                                                          |
 | `ptbl`                         | A GPT has at least one layout                                                      |
+| `readable_parts`               | Optional. No entry is NULL                                                         |
 | `password_auth`                | Mandatory with `CONFIG_CM_AUTH_PASSWORD`                                           |
 | `image_regions`                | No region is empty or wraps, and each is inside what the arch can address. None    |
 |                                | overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region (2.9) |

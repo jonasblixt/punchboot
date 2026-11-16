@@ -392,11 +392,6 @@ static int board_hw_init(void)
 static int board_late_init(void)
 {
     int rc;
-    bio_dev_t readable_part = bio_get_part_by_uu(PART_readable);
-
-    if (readable_part >= 0)
-        (void)bio_clear_set_flags(readable_part, 0, BIO_FLAG_READABLE);
-
     // For 'test_board_regs'
     // If bit 0 in register 0 is set, we should set bit 0 in register 3
     uint32_t board_reg;
@@ -563,12 +558,20 @@ static const struct boot_image_region image_regions[] = {
     BOOT_IMAGE_REGION_END,
 };
 
+/* What a host may read in bulk (command-mode.md 5.3, F-083): the test
+ * partition the integration tests read */
+static const unsigned char *const readable_parts[] = {
+    PART_readable,
+};
+
 const struct board board = {
     .name = "host test",
     .slc_fuses = config_fuses,
     .slc_fuses_length = ARRAY_SIZE(config_fuses),
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_disk, gpt_tables),
+    .readable_parts = readable_parts,
+    .readable_parts_length = ARRAY_SIZE(readable_parts),
     .boot_policy = { .ops = &host_policy_ops, .config = &boot_state_cfg },
     .late_init = board_late_init,
     .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
