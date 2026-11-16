@@ -88,8 +88,8 @@ static void clk_root_set(unsigned int root, uint32_t mux_div)
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(root), mux_div);
 }
 
-/* The PLL's lock, bounded (F-102): on the 8MP EVK it took 500 us (log
- * 2026-11-16), 10 ms */
+/* The PLL's lock, bounded (F-102): 10 ms. No 8MQ has measured it; the 8MP
+ * EVK's PLL14xx took 500 us (log 2026-11-16) */
 #define DRAM_PLL_LOCK_TIMEOUT_us 10000
 
 static int dram_pll_init(const struct dram_pll_setting *pll)

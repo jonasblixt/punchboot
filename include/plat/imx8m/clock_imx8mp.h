@@ -56,9 +56,11 @@
 #define GPC_PU_USB1_PHY                   BIT_32(2) /* PUP_REQ */
 #define GPC_PU_USB2_PHY                   BIT_32(3)
 #define GPC_PU_HSIOMIX                    BIT_32(17)
+#define GPC_PU_DDRMIX                     BIT_32(19)
 #define GPC_A53_MAPPING_USB1_PHY          BIT_32(4)
 #define GPC_A53_MAPPING_USB2_PHY          BIT_32(5)
 #define GPC_A53_MAPPING_HSIOMIX           BIT_32(19)
+#define GPC_A53_MAPPING_DDRMIX            BIT_32(21)
 #define GPC_PWRHSK_NOC2HSIO_PWRDNREQN     BIT_32(12)
 #define GPC_PWRHSK_NOC2HSIO_PWRDNACKN     BIT_32(28)
 

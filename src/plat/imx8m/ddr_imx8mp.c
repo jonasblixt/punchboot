@@ -122,20 +122,18 @@ static int dram_pll_init(const struct dram_pll_setting *pll)
  * 8MQ's registers at 0x303A00EC and 0x303A00F8 are something else here
  * (F-110). DDRMIX is powered after reset, so the request ends at once
  */
-#define IMX8MP_GPC_PU_DDRMIX          BIT_32(19)
-#define IMX8MP_GPC_A53_MAPPING_DDRMIX BIT_32(21)
-#define IMX8MP_GPC_DDRMIX_TIMEOUT_us  1000
+#define IMX8MP_GPC_DDRMIX_TIMEOUT_us 1000
 
 int imx8m_ddr_soc_power_up(void)
 {
     struct pb_timeout to;
 
-    mmio_clrsetbits_32(IMX8MP_GPC_PGC_CPU_A53_MAPPING, 0, IMX8MP_GPC_A53_MAPPING_DDRMIX);
-    mmio_clrsetbits_32(IMX8MP_GPC_PU_PGC_SW_PUP_REQ, 0, IMX8MP_GPC_PU_DDRMIX);
+    mmio_clrsetbits_32(IMX8MP_GPC_PGC_CPU_A53_MAPPING, 0, GPC_A53_MAPPING_DDRMIX);
+    mmio_clrsetbits_32(IMX8MP_GPC_PU_PGC_SW_PUP_REQ, 0, GPC_PU_DDRMIX);
 
     pb_timeout_init_us(&to, IMX8MP_GPC_DDRMIX_TIMEOUT_us);
 
-    while (mmio_read_32(IMX8MP_GPC_PU_PGC_SW_PUP_REQ) & IMX8MP_GPC_PU_DDRMIX) {
+    while (mmio_read_32(IMX8MP_GPC_PU_PGC_SW_PUP_REQ) & GPC_PU_DDRMIX) {
         if (pb_timeout_has_expired(&to)) {
             LOG_ERR("DDRMIX power up timed out");
             return -PB_ERR_TIMEOUT;
