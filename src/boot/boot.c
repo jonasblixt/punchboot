@@ -15,6 +15,7 @@
 #include <inttypes.h>
 #include <pb/arch.h>
 #include <pb/bio.h>
+#include <pb/crypto.h>
 #include <pb/device_uuid.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -391,9 +392,10 @@ static bool loaded_by_serial_download(void)
  * cycle state. The core decides, the platform only reports.
  *
  * - What the boot's security rests on refuses the boot: a TrustZone DRAM
- *   filter that is bypassed, whatever the image is, and a crypto engine of
- *   the platform's that failed (CONFIG_PLAT_CRYPTO_ENGINE). The reason is in
- *   the log, which command mode hands out.
+ *   filter that is bypassed, whatever the image is, a crypto backend that
+ *   failed, the SoC's engine or the core's software, and a build with no
+ *   backend (crypto.md 2, D-086). The reason is in the log, which command
+ *   mode hands out.
  * - What only availability rests on is reported in pb's status and the boot
  *   goes on: a watchdog that didn't arm, in a build that has one.
  * - The ROM's logs: nothing of the boot's rests on them. The platform logged
@@ -408,6 +410,7 @@ static int check_preconditions(void)
     /* What the platform leaves unset counts as failed */
     memset(&status, 0, sizeof(status));
     status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    status.crypto_engine = PLAT_CRYPTO_ENGINE_FAILED;
     plat_get_status(&status);
 
     precondition_status = 0;
@@ -423,13 +426,33 @@ static int check_preconditions(void)
         return -PB_ERR_STATE;
     }
 
-#ifdef CONFIG_PLAT_CRYPTO_ENGINE
     /* No build has a fallback that verifies the same (crypto.md 2) */
-    if (!status.crypto_engine) {
+    switch (status.crypto_engine) {
+    case PLAT_CRYPTO_ENGINE_NONE:
+    case PLAT_CRYPTO_ENGINE_OK:
+        break;
+    case PLAT_CRYPTO_ENGINE_FAILED:
+    default:
         LOG_ERR("No boot: the crypto engine failed");
         return -PB_ERR_STATE;
     }
-#endif
+
+    enum crypto_sw_state sw = crypto_sw_state();
+
+    switch (sw) {
+    case CRYPTO_SW_NONE:
+    case CRYPTO_SW_OK:
+        break;
+    case CRYPTO_SW_FAILED:
+    default:
+        LOG_ERR("No boot: the software crypto backend failed");
+        return -PB_ERR_STATE;
+    }
+
+    if (status.crypto_engine == PLAT_CRYPTO_ENGINE_NONE && sw == CRYPTO_SW_NONE) {
+        LOG_ERR("No boot: the build has no crypto backend");
+        return -PB_ERR_STATE;
+    }
 
 #ifdef CONFIG_ENABLE_WATCHDOG
     if (!status.wdog_armed) {

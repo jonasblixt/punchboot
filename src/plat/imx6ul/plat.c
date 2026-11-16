@@ -8,7 +8,6 @@
  */
 
 #include <drivers/crypto/imx_caam.h>
-#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/mmc_core.h>
@@ -299,20 +298,6 @@ const struct slc_ops plat_slc = {
     .fuse_write = imx_ocotp_fuse_write,
 };
 
-/*
- * The build's crypto backends (platform.md 2.2, crypto.md 2), each behind
- * its driver's option: the CAAM on job ring 0 with its RNG, and Mbed TLS. A
- * board that needs the software implementation turns the CAAM's option off
- * and Mbed TLS's on in its defconfig.
- *
- * Command mode can start without a backend, so a failure isn't plat_init()'s
- * error: main() would reset. A backend that failed isn't registered and no
- * image verifies: it is recorded (plat_get_status()), and the boot's
- * preconditions refuse the boot before anything is loaded (platform.md 2.3).
- *
- * Returns whether the build's backends all came up. A build without one has
- * none that works.
- */
 /* The AIPS-TZ bridges (6UL RM 14.4, 14.7), a duty of the stage in BL2's
  * place (platform.md 4.5, F-246). Out of reset MPR is 0x77000000: master 0
  * (every master but the core, the CAAM and the SDMA) and master 1 (the A7)
@@ -334,42 +319,46 @@ static void aipstz_init(void)
     }
 }
 
-static bool crypto_init(void)
+/*
+ * The SoC's crypto engine (platform.md 2.2, crypto.md 2), behind its driver's
+ * option: the CAAM on job ring 0 with its RNG. A board that needs the software
+ * implementation turns the CAAM's option off and Mbed TLS's on in its
+ * defconfig; Mbed TLS is the core's to set up (D-086).
+ *
+ * Command mode can start without it, so a failure isn't plat_init()'s error:
+ * main() would reset. An engine that failed isn't registered and verifies
+ * nothing: it is recorded (plat_get_status()), and the boot's preconditions
+ * refuse the boot before anything is loaded (platform.md 2.3).
+ */
+static enum plat_crypto_engine crypto_init(void)
 {
-    unsigned int backends = 0;
-    bool failed = false;
-    int rc = PB_OK;
-
 #ifdef CONFIG_DRIVERS_IMX_CAAM
-    rc = imx_caam_init(IMX6UL_CAAM_JR0_BASE);
-    backends++;
+    int rc = imx_caam_init(IMX6UL_CAAM_JR0_BASE);
+
+    /* The RNG is the CAAM's: not instantiated without it */
+    status.rng = PLAT_RNG_FAILED;
 
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
-        failed = true;
-    } else {
-        /* Linux can't instantiate the RNG when it runs in the normal world
-         * (platform.md 4.5). Without it Linux has no hardware RNG, which is
-         * no reason not to boot */
-        rc = imx_caam_rng_init(IMX6UL_CAAM_BASE);
-
-        if (rc != PB_OK)
-            LOG_ERR("CAAM RNG init failed (%i)", rc);
+        return PLAT_CRYPTO_ENGINE_FAILED;
     }
+
+    /* Linux can't instantiate the RNG when it runs in the normal world
+     * (platform.md 4.5). Without it Linux has no hardware RNG, which is
+     * no reason not to boot: it is recorded, for command mode's log
+     * (F-427) */
+    rc = imx_caam_rng_init(IMX6UL_CAAM_BASE);
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM RNG init failed (%i)", rc);
+    else
+        status.rng = PLAT_RNG_OK;
+
+    return PLAT_CRYPTO_ENGINE_OK;
+#else
+    status.rng = PLAT_RNG_NONE;
+    return PLAT_CRYPTO_ENGINE_NONE;
 #endif
-
-#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
-    rc = mbedtls_pb_init();
-    backends++;
-
-    if (rc != PB_OK) {
-        LOG_ERR("Mbed TLS init failed (%i)", rc);
-        failed = true;
-    }
-#endif
-
-    (void)rc;
-    return backends > 0 && !failed;
 }
 
 /*

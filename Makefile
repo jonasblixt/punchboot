@@ -123,6 +123,7 @@ src-y  += srk_fuse.c
 src-y  += src/delay.c
 src-y  += src/dma.c
 src-y  += src/crypto.c
+src-y  += src/crypto_sw.c
 src-y  += src/bio.c
 src-y  += src/device_uuid.c
 src-y  += src/wire.c

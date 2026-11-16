@@ -34,6 +34,7 @@
 #include <pb/task.h>
 #include <string.h>
 
+#include "fakes/crypto_sw.h"
 #include "fakes/plat.h"
 
 #define LEFT_BY_RESET 1
@@ -178,6 +179,7 @@ static int setup(void **state)
     (void)state;
     memset(&f, 0, sizeof(f));
     f.boot_rc = -PB_ERR;
+    fake_crypto_sw_init_calls = 0;
     return 0;
 }
 
@@ -218,6 +220,7 @@ static void test_plat_init_fails_resets(void **state)
     assert_int_equal(f.console_init_calls, 1);
     assert_int_equal(f.init_calls, 1);
     assert_int_equal(f.info_calls, 0);
+    assert_int_equal(fake_crypto_sw_init_calls, 0);
     assert_reset_only();
 }
 
@@ -231,6 +234,9 @@ static void test_platform_is_set_up_before_the_board(void **state)
     assert_int_equal(f.early_init_calls, 1);
     assert_int_equal(f.console_init_calls, 1);
     assert_int_equal(f.init_calls, 1);
+    /* crypto.md 2 (D-086): the core sets the software backend up, after
+     * plat_init() */
+    assert_int_equal(fake_crypto_sw_init_calls, 1);
     /* platform.md 3.11: the SoC is logged after plat_init(), before the board */
     assert_int_equal(f.info_calls, 1);
     assert_int_equal(f.setup_calls_at_info, 0);

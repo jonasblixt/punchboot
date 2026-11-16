@@ -10,6 +10,7 @@
 #include <boot/boot.h>
 #include <pb/arch.h>
 #include <pb/board.h>
+#include <pb/crypto.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/plat_info.h>
@@ -69,6 +70,10 @@ void main(void)
 
     if (rc != PB_OK)
         goto platform_failed;
+
+    /* The software crypto backend is the core's, on every platform (crypto.md
+     * 2, D-086). Its failure is recorded for the boot's preconditions */
+    crypto_sw_init();
 
     /* What the SoC is and runs at, for the log (platform.md 3.11, D-077) */
     plat_info_log();

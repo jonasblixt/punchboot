@@ -53,6 +53,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "fakes/crypto_sw.h"
 #include "fakes/plat.h"
 #include "fakes/ramdisk.h"
 #include "test_keys.h"
@@ -4163,9 +4164,11 @@ static void test_setup_logs_the_platforms_status(void **state)
     fake_plat_status = (struct plat_status){
         .tz_dram_filter = PLAT_TZ_DRAM_BYPASSED,
         .wdog_armed = false,
-        .crypto_engine = true,
+        .crypto_engine = PLAT_CRYPTO_ENGINE_FAILED,
         .rom_log = false,
+        .rng = PLAT_RNG_FAILED,
     };
+    fake_crypto_sw_state = CRYPTO_SW_NONE;
     fake_plat_status_calls = 0;
     host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
     host_lost(-PB_ERR_IO);
@@ -4177,9 +4180,11 @@ static void test_setup_logs_the_platforms_status(void **state)
     assert_int_equal(fake_plat_status_calls, 1);
     assert_non_null(strstr(printed,
                            "Platform: DRAM filter BYPASSED, watchdog not armed, "
-                           "crypto engine ok, ROM logs none"));
+                           "crypto engine FAILED, software crypto none, ROM logs none, "
+                           "RNG FAILED"));
 
     fake_plat_status = (struct plat_status)FAKE_PLAT_STATUS_DEFAULT;
+    fake_crypto_sw_state = CRYPTO_SW_OK;
 }
 
 /* The same for a platform where nothing failed, and for a state the build
@@ -4196,7 +4201,7 @@ static void test_setup_logs_a_good_platforms_status(void **state)
     expect_end();
     assert_non_null(strstr(printed,
                            "Platform: DRAM filter active, watchdog armed, "
-                           "crypto engine ok, ROM logs found"));
+                           "crypto engine ok, software crypto ok, ROM logs found, RNG ok"));
 
     fake_plat_status = (struct plat_status)FAKE_PLAT_STATUS_DEFAULT;
 }

@@ -6,6 +6,7 @@ pkg_check_modules(CMOCKA REQUIRED IMPORTED_TARGET cmocka)
 
 add_library(pb_unit_fakes STATIC
     fakes/assert.c
+    fakes/crypto_sw.c
     fakes/plat.c
     ${PROJECT_SOURCE_DIR}/src/log.c
     fakes/ramdisk.c
@@ -124,6 +125,29 @@ pb_unit_test(test_crypto
 # program that has a backend to run them against
 set(PB_CRYPTO_CONFORMANCE ${CMAKE_CURRENT_SOURCE_DIR}/conformance/crypto_conformance.c)
 
+# The core's software backend (crypto.md 2, D-086), with a fake Mbed TLS,
+# and again without CONFIG_DRIVERS_CRYPTO_MBEDTLS: the host's configuration
+# less that line, first on the include path. The host's configuration is
+# read once, here, for each build without an option
+pb_unit_test(test_crypto_sw SOURCES ${PROJECT_SOURCE_DIR}/src/crypto_sw.c)
+
+file(READ ${PROJECT_BINARY_DIR}/config.h PB_CONFIG_H)
+
+string(REPLACE "#define CONFIG_DRIVERS_CRYPTO_MBEDTLS 1\n" ""
+    PB_CONFIG_H_NO_MBEDTLS "${PB_CONFIG_H}")
+if(PB_CONFIG_H_NO_MBEDTLS STREQUAL PB_CONFIG_H)
+    message(FATAL_ERROR "configs/host_defconfig: CONFIG_DRIVERS_CRYPTO_MBEDTLS is not set")
+endif()
+set(PB_NO_MBEDTLS_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_mbedtls)
+file(CONFIGURE OUTPUT ${PB_NO_MBEDTLS_DIR}/config.h CONTENT "${PB_CONFIG_H_NO_MBEDTLS}" @ONLY)
+
+add_executable(test_crypto_sw_no_mbedtls test_crypto_sw.c ${PROJECT_SOURCE_DIR}/src/crypto_sw.c)
+target_include_directories(test_crypto_sw_no_mbedtls BEFORE PRIVATE ${PB_NO_MBEDTLS_DIR})
+target_include_directories(test_crypto_sw_no_mbedtls PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_crypto_sw_no_mbedtls PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_crypto_sw_no_mbedtls COMMAND test_crypto_sw_no_mbedtls)
+set_tests_properties(unit.test_crypto_sw_no_mbedtls PROPERTIES LABELS unit TIMEOUT 60)
+
 pb_unit_test(test_mbedtls
     SOURCES
         ${PB_CRYPTO_CONFORMANCE}
@@ -150,7 +174,6 @@ pb_unit_test(test_rot
 # EOL is the product's option, CONFIG_SLC_EOL (system.md 4, F-263): off by
 # default and on in configs/host_defconfig, for the tests. The build without
 # it is the host's configuration less that line, first on the include path
-file(READ ${PROJECT_BINARY_DIR}/config.h PB_CONFIG_H)
 string(REPLACE "#define CONFIG_SLC_EOL 1\n" "" PB_CONFIG_H_NO_SLC_EOL "${PB_CONFIG_H}")
 if(PB_CONFIG_H_NO_SLC_EOL STREQUAL PB_CONFIG_H)
     message(FATAL_ERROR "configs/host_defconfig: CONFIG_SLC_EOL is not set, the EOL tests need it")
@@ -280,8 +303,7 @@ pb_unit_test(test_boot SOURCES
 )
 
 # The same with a watchdog, which pb-host is built without. The boot's
-# preconditions check it, and the crypto engine of a platform that sets one
-# up, which the host is (platform.md 2.3)
+# preconditions check it (platform.md 2.3)
 add_executable(test_boot_preconditions test_boot.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
@@ -290,35 +312,11 @@ add_executable(test_boot_preconditions test_boot.c
 )
 target_compile_definitions(test_boot_preconditions PRIVATE
     CONFIG_ENABLE_WATCHDOG=1
-    CONFIG_PLAT_CRYPTO_ENGINE=1
 )
 target_include_directories(test_boot_preconditions PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_boot_preconditions PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
 add_test(NAME unit.test_boot_preconditions COMMAND test_boot_preconditions)
 set_tests_properties(unit.test_boot_preconditions PROPERTIES LABELS unit TIMEOUT 60)
-
-# And for a platform that sets no crypto engine up, which no platform in the
-# tree is since F-247: the core doesn't ask for one (platform.md 2.3). The
-# build is the host's configuration less CONFIG_PLAT_CRYPTO_ENGINE
-string(REPLACE "#define CONFIG_PLAT_CRYPTO_ENGINE 1\n" ""
-    PB_CONFIG_H_NO_CRYPTO_ENGINE "${PB_CONFIG_H}")
-if(PB_CONFIG_H_NO_CRYPTO_ENGINE STREQUAL PB_CONFIG_H)
-    message(FATAL_ERROR "The host platform doesn't select PLAT_CRYPTO_ENGINE")
-endif()
-set(PB_NO_CRYPTO_ENGINE_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_crypto_engine)
-file(CONFIGURE OUTPUT ${PB_NO_CRYPTO_ENGINE_DIR}/config.h
-    CONTENT "${PB_CONFIG_H_NO_CRYPTO_ENGINE}" @ONLY)
-add_executable(test_boot_no_crypto_engine test_boot.c
-    ${PROJECT_SOURCE_DIR}/src/bio.c
-    ${PROJECT_SOURCE_DIR}/src/boot/boot.c
-    ${PROJECT_SOURCE_DIR}/src/boot/policy.c
-    ${PROJECT_SOURCE_DIR}/src/drivers/partition/static.c
-)
-target_include_directories(test_boot_no_crypto_engine BEFORE PRIVATE ${PB_NO_CRYPTO_ENGINE_DIR})
-target_include_directories(test_boot_no_crypto_engine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(test_boot_no_crypto_engine PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
-add_test(NAME unit.test_boot_no_crypto_engine COMMAND test_boot_no_crypto_engine)
-set_tests_properties(unit.test_boot_no_crypto_engine PROPERTIES LABELS unit TIMEOUT 60)
 
 pb_unit_test(test_image_helpers SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/image_helpers.c
@@ -656,27 +654,6 @@ pb_plat_test(test_plat_imxrt
     DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
 )
 
-# The same without CONFIG_DRIVERS_CRYPTO_MBEDTLS: the platform sets a crypto
-# backend up behind its option (platform.md 2.2, F-247). The build without it
-# is the host's configuration less that line, first on the include path
-string(REPLACE "#define CONFIG_DRIVERS_CRYPTO_MBEDTLS 1\n" ""
-    PB_CONFIG_H_NO_MBEDTLS "${PB_CONFIG_H}")
-if(PB_CONFIG_H_NO_MBEDTLS STREQUAL PB_CONFIG_H)
-    message(FATAL_ERROR "configs/host_defconfig: CONFIG_DRIVERS_CRYPTO_MBEDTLS is not set")
-endif()
-set(PB_NO_MBEDTLS_DIR ${CMAKE_CURRENT_BINARY_DIR}/no_mbedtls)
-file(CONFIGURE OUTPUT ${PB_NO_MBEDTLS_DIR}/config.h CONTENT "${PB_CONFIG_H_NO_MBEDTLS}" @ONLY)
-
-pb_plat_test(test_plat_imxrt_no_mbedtls
-    TEST test_plat_imxrt.c
-    SOURCES
-        ${PROJECT_SOURCE_DIR}/src/plat/imxrt/plat.c
-        ${PROJECT_SOURCE_DIR}/src/delay.c
-        ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
-        ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
-    DEFINITIONS CONFIG_ENABLE_WATCHDOG=1 CONFIG_WATCHDOG_TIMEOUT=5
-    INCLUDES ${PB_NO_MBEDTLS_DIR}
-)
 
 # The i.MX8QXP, with the port's SCFW client: the test is the SCFW. xlat.h
 # declares the ARMv8-A enable of the MMU for plat.c
