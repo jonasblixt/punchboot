@@ -43,7 +43,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
      (the 8M's SLC sources), F-432 (the pico8ml, when it is back), F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
    review of the guides and the notes.
-2. The rest of `findings.md`: by board (8MP EVK F-104 to F-107, F-113, F-155, F-156), boot time.
+2. The rest of `findings.md`: by board (8MP EVK F-104 to F-107, F-113, F-155), boot time.
 
 ## Open questions (for Jonas)
 
