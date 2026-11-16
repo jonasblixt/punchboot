@@ -68,6 +68,28 @@ def test_an_erase_the_command_cant_carry_is_refused(first: int, last: int) -> No
     assert not erases(dev)
 
 
+@pytest.mark.parametrize(("first", "last"), [(100, 98), (100, 0), (LBA_MAX, 0)])
+def test_a_partition_that_ends_before_it_starts_is_refused(first: int, last: int) -> None:
+    # F-421: the count went negative and the erases never ended. An erase
+    # sent fails the test instead of looping
+    dev = device_with(first, last)
+    dev.on(Command.PB_CMD_PART_ERASE, RuntimeError("an erase was sent"))
+    s = punchboot.Session(transport=dev)
+
+    with pytest.raises(punchboot.ArgumentError):
+        s.part_erase(SYSTEM_A_UUID)
+    assert not erases(dev)
+
+
+def test_a_partition_of_no_blocks_sends_no_erase() -> None:
+    # Its last block one below its first: nothing to erase, as it was
+    dev = device_with(100, 99)
+    s = punchboot.Session(transport=dev)
+
+    s.part_erase(SYSTEM_A_UUID)
+    assert not erases(dev)
+
+
 def test_an_erase_whose_chunks_start_below_2_32_is_sent() -> None:
     # The last chunk starts at 2^32 - 6 and its blocks go past 2^32: the
     # command carries its first block and its count, as it always has

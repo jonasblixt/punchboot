@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 def punchboot_cli(
     device: Device, *args: str, stdin: str | None = None
 ) -> subprocess.CompletedProcess[str]:
-    # stdin is /dev/null unless the test pipes something: 'command' reads a
+    # stdin is /dev/null unless the test pipes something: 'cmd' reads a
     # stdin that isn't a terminal
     return subprocess.run(  # noqa: S603
         ["punchboot", "-t", "socket", "-s", str(device.socket), *args],  # noqa: S607
@@ -73,7 +73,7 @@ def test_error_exit_code(device: Device) -> None:
 def test_command_list(device: Device) -> None:
     # command-mode.md 5.6: the device's named commands, a name and a help
     # line each
-    result = punchboot_cli(device, "command", "list")
+    result = punchboot_cli(device, "cmd", "list")
 
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
@@ -83,15 +83,15 @@ def test_command_list(device: Device) -> None:
 
 
 def test_command_runs_by_name(device: Device) -> None:
-    result = punchboot_cli(device, "command", "test-command", "abc")
+    result = punchboot_cli(device, "cmd", "test-command", "abc")
 
     assert result.returncode == 0, result.stderr
     assert result.stdout == "Hello test-command: abc\n"
 
 
 def test_command_reads_a_piped_stdin(device: Device) -> None:
-    # D-076: echo -n data | punchboot command name
-    result = punchboot_cli(device, "command", "test-command", stdin="piped")
+    # D-076: echo -n data | punchboot cmd name
+    result = punchboot_cli(device, "cmd", "test-command", stdin="piped")
 
     assert result.returncode == 0, result.stderr
     assert result.stdout == "Hello test-command: piped\n"
@@ -99,7 +99,7 @@ def test_command_reads_a_piped_stdin(device: Device) -> None:
 
 def test_command_takes_args_before_stdin(device: Device) -> None:
     # A piped stdin is read only when there is no other request
-    result = punchboot_cli(device, "command", "test-command", "abc", stdin="piped")
+    result = punchboot_cli(device, "cmd", "test-command", "abc", stdin="piped")
 
     assert result.returncode == 0, result.stderr
     assert result.stdout == "Hello test-command: abc\n"
@@ -113,7 +113,7 @@ def test_command_text_ends_without_its_nul(monkeypatch: pytest.MonkeyPatch) -> N
     size = wire.pb_result_board(size=len(response))
     dev.on(Command.PB_CMD_BOARD_COMMAND, result(), result(response=size), response)
 
-    run = run_cli(monkeypatch, dev, "command", "test", "")
+    run = run_cli(monkeypatch, dev, "cmd", "test", "")
 
     assert run.exit_code == 0, run.output
     assert run.output == "Test command hello 0xf93ba110\n"
@@ -123,7 +123,7 @@ def test_command_request_from_a_file(device: Device, tmp_path: pathlib.Path) -> 
     request = tmp_path / "request"
     request.write_bytes(b"from a file")
 
-    result = punchboot_cli(device, "command", "test-command", "--args-from-file", str(request))
+    result = punchboot_cli(device, "cmd", "test-command", "--args-from-file", str(request))
 
     assert result.returncode == 0, result.stderr
     assert result.stdout == "Hello test-command: from a file\n"
@@ -134,7 +134,7 @@ def test_command_with_two_requests_is_an_error(device: Device, tmp_path: pathlib
     request.write_bytes(b"x")
 
     result = punchboot_cli(
-        device, "command", "test-command", "abc", "--args-from-file", str(request)
+        device, "cmd", "test-command", "abc", "--args-from-file", str(request)
     )
 
     assert result.returncode == 2
@@ -143,14 +143,14 @@ def test_command_with_two_requests_is_an_error(device: Device, tmp_path: pathlib
 
 def test_command_request_too_large(device: Device) -> None:
     # The host checks the 1024 bytes before it sends anything
-    result = punchboot_cli(device, "command", "test-command", stdin="x" * 1025)
+    result = punchboot_cli(device, "cmd", "test-command", stdin="x" * 1025)
 
     assert result.returncode == 2
     assert "The request is 1025 bytes, at most 1024" in result.stderr
 
 
 def test_unknown_command(device: Device) -> None:
-    result = punchboot_cli(device, "command", "test-unknown")
+    result = punchboot_cli(device, "cmd", "test-unknown")
 
     assert result.returncode == 1
     assert result.stderr.strip() == "Error: Not supported"
@@ -181,22 +181,22 @@ def _complete(device: Device | None, socket: str, words: str) -> list[str]:
 
 
 def test_command_names_complete(device: Device) -> None:
-    # <tab> after 'command': 'list' and the device's named commands
+    # <tab> after 'cmd': 'list' and the device's named commands
     socket = str(device.socket)
 
-    assert set(_complete(device, socket, "command ")) == {
+    assert set(_complete(device, socket, "cmd ")) == {
         "list",
         "test-command",
         "test-command2",
         "test-boot-stop",
     }
-    assert set(_complete(device, socket, "command test-c")) == {"test-command", "test-command2"}
-    assert _complete(device, socket, "command l") == ["list"]
+    assert set(_complete(device, socket, "cmd test-c")) == {"test-command", "test-command2"}
+    assert _complete(device, socket, "cmd l") == ["list"]
 
 
 def test_command_completion_without_a_device(tmp_path: pathlib.Path) -> None:
     # Nothing to ask: 'list' only, and no error
-    assert _complete(None, str(tmp_path / "no.sock"), "command ") == ["list"]
+    assert _complete(None, str(tmp_path / "no.sock"), "cmd ") == ["list"]
 
 
 def test_command_list_on_an_old_device(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -204,7 +204,7 @@ def test_command_list_on_an_old_device(monkeypatch: pytest.MonkeyPatch) -> None:
     dev = ScriptedDevice()
     dev.on(Command.PB_CMD_COMMAND_LIST, result(code=-wire.Result.PB_RESULT_INVALID_COMMAND))
 
-    run = run_cli(monkeypatch, dev, "command", "list")
+    run = run_cli(monkeypatch, dev, "cmd", "list")
 
     assert run.exit_code == 1
     assert "can't list its commands" in run.output
