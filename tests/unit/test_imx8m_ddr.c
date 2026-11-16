@@ -418,7 +418,8 @@ static void test_training_failed(void **state)
 static void test_a_stuck_poll_times_out(void **state)
 {
     const uintptr_t regs[] = {
-        DDRC_STAT_REG, DDRC_DFISTAT_REG, DDRC_SWSTAT_REG, PHY_CAL_BUSY, PHY_UCT_SHADOW_REGS,
+        DDRC_STAT_REG, DDRC_DFISTAT_REG,    DDRC_SWSTAT_REG,
+        PHY_CAL_BUSY,  PHY_UCT_SHADOW_REGS, DRAM_PLL_LOCK_REG,
     };
     (void)state;
 
