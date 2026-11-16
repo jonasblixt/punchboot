@@ -304,6 +304,17 @@ static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
     return value;
 }
 
+/* GPT1's counter runs: 100 us a read, so that a bound expires */
+static uint64_t soc_on_read(uintptr_t addr, uint64_t value)
+{
+    static uint32_t us;
+
+    if (addr == IMX6UL_GPT1_BASE + 0x24)
+        return us += 100;
+
+    return value;
+}
+
 static int setup(void **state)
 {
     (void)state;
@@ -313,6 +324,7 @@ static int setup(void **state)
     memset(calls, 0, sizeof(calls));
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
+    fake_regs_on_read = soc_on_read;
     /* The board's DCD took the TZASC out of bypass */
     fake_regs_set(IMX6UL_IOMUXC_GPR9, IOMUXC_GPR9_TZASC1_BYP);
     fake_mmu_enables = 0;
@@ -416,6 +428,23 @@ static void test_boot_reason_is_read_once_and_not_cleared(void **state)
     assert_int_equal(fake_regs_writes(IMX6UL_SRC_SRSR), 0);
 }
 
+/* F-210: the core's divide by 2 is plat_init()'s, not the ROM's: CACRR
+ * resets to divide by 1 (RM 18.6.5), which would run the core at PLL1's
+ * rate, twice its own */
+static void test_arm_podf_is_set(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMX6UL_CCM_CACRR, 0);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(fake_regs_writes(IMX6UL_CCM_CACRR), 1);
+    assert_int_equal(fake_regs_get(IMX6UL_CCM_CACRR), 1);
+
+    /* The core at half of PLL1, whichever speed grade the fake's fuses say */
+    uint32_t div = fake_regs_get(IMX6UL_CCM_ANALOG_PLL_ARM) & CCM_ANALOG_PLL_ARM_DIV_SELECT_MASK;
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_CORE), 24000000u * div / 4);
+}
+
 /* platform.md 3.11: what plat_get_info() reads, with jiffy's registers
  * (2026-11-14 and -16 on the board): a 6UL 1.2, PLL1 at 1056 MHz / 2, the
  * MMDC on PLL2's PFD2 at 396 MHz, SBMR1 0xc060: eMMC, 8 bits DDR */
@@ -484,6 +513,19 @@ static void test_get_info(void **state)
     assert_string_equal(info.soc, "unknown");
     assert_string_equal(extra, "Speed grade 2\n");
     assert_int_equal(plat_get_info(&info, extra, 0), -PB_ERR_BUF_TOO_SMALL);
+}
+
+/* A divider that doesn't take is plat_init()'s error, with the core left on
+ * the step clock (the code review of F-210) */
+static void test_arm_podf_busy(void **state)
+{
+    (void)state;
+
+    /* The timer the bound runs on */
+    assert_int_equal(plat_early_init(), PB_OK);
+    fake_regs_set(IMX6UL_CCM_CDHIPR, CCM_CDHIPR_ARM_PODF_BUSY);
+    assert_int_equal(plat_init(), -PB_ERR_TIMEOUT);
+    assert_true(fake_regs_get(IMX6UL_CCM_CCSR) & CCM_CCSR_PLL1_SW_CLK_SEL);
 }
 
 /* drivers.md 3 (F-462): the ARM PLL's lock is waited for a counted bound,
@@ -774,6 +816,7 @@ static void test_boot_source_uart_download(void **state)
     /* With the USB's clock gated its registers aren't read: no USB host */
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
+    fake_regs_on_read = soc_on_read;
     fake_regs_set(USB1_DEVICEADDR, DEVICEADDR_ADDR7);
     assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UART);
     assert_int_equal(fake_regs_reads(USB1_DEVICEADDR), 0);
@@ -1067,7 +1110,7 @@ static void test_mmu_map_regions(void **state)
     struct fake_mmap_region expected[16] = {
         { BOARD_RAM_BASE, BOARD_RAM_END - BOARD_RAM_BASE, rw_nox },
         { IMX6UL_ROM_BASE, 128 * 1024, MT_MEMORY | MT_RO | MT_EXECUTE },
-        { IMX6UL_OCRAM_BASE, 256 * 1024, MT_MEMORY | MT_RW },
+        { IMX6UL_OCRAM_BASE, IMX6UL_OCRAM_SIZE, MT_MEMORY | MT_RW }, /* Not its alias, F-437 */
         { AIPS1_ARB_BASE_ADDR, 1024 * 1024, MT_DEVICE | MT_RW },
         { AIPS2_ARB_BASE_ADDR, 1024 * 1024, MT_DEVICE | MT_RW },
     };
@@ -1120,7 +1163,9 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_clk_rate, setup),
+        cmocka_unit_test_setup(test_arm_podf_is_set, setup),
         cmocka_unit_test_setup(test_get_info, setup),
+        cmocka_unit_test_setup(test_arm_podf_busy, setup),
         cmocka_unit_test_setup(test_arm_pll_never_locks, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
