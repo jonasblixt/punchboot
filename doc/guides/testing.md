@@ -49,8 +49,8 @@ python3 tests/doc/check_docs.py              # the same, without the container
 (default: the CPUs the container may use): `PB_JOBS=6 scripts/pbdev test` keeps an 8 core
 machine's load under 8. Two runs at once each take their own `PB_JOBS`.
 
-Coverage (2026-11-14, at `63249d59` with F-230's tests, all 98 ctest tests), measured as CI does
-it (`.github/workflows/build.yml`): the coverage build above, then
+Coverage (2026-11-16, at `461cb99c`, all 124 ctest tests), measured as CI does it
+(`.github/workflows/build.yml`): the coverage build above, then
 
 ```sh
 scripts/pbdev run gcovr -r . build-host-cov --filter src/ \
@@ -58,20 +58,19 @@ scripts/pbdev run gcovr -r . build-host-cov --filter src/ \
     --exclude src/arch/host --exclude src/plat/host --exclude src/board/host --print-summary
 ```
 
-77.4% of lines (7921/10237), 77.6% of functions (652/840) and 82.5% of branches (3731/4522) of
-the files a host test compiles. 1833 of those lines are NXP's SCFW clients (`src/plat/imx8x/sci`),
-of which `test_plat_imx8x` calls a few; without them (`--exclude src/plat/imx8x/sci`) 91.8% of
-lines (7718/8404), 93.9% of functions and 86.4% of branches. At `63249d59` it was 77.0%
-(7837/10178). The 99.2% of 2026-10-22 counted the files pb-host itself compiles, before the
-drivers' and the ports' tests (F-230).
+81.3% of lines (10000/12294), 83.3% of functions (846/1016) and 84.2% of branches (4898/5817)
+of the files a host test compiles. 1833 of those lines are NXP's SCFW clients
+(`src/plat/imx8x/sci`), of which `test_plat_imx8x` calls a few; without them (`--exclude
+src/plat/imx8x/sci`) 93.4% of lines (9773/10461), 97.0% of functions and 87.2% of branches. On
+2026-11-14 it was 77.4% (7921/10237), 91.8% without them. The 99.2% of 2026-10-22 counted the
+files pb-host itself compiles, before the drivers' and the ports' tests (F-230).
 
 A file no host test compiles isn't in the figure at all. Of what the boards build these are: the
 arch code (`src/arch/armv7a`, `armv7m`, `armv8a`), the boards (`src/board/*`), the UARTs, the GPIO,
 the DWC3 and i.MX cdns3 glue, the USB PHYs and `imx_usbdcd.c`, the libc but `snprintf.c`, TF-A's
 translation tables (`src/lib/xlat_tables_v2`), `plat_imx8mp.c`, `plat_imx8mq.c` and the SCFW's IRQ
-client. No board builds the virtio drivers. The least covered of the rest: `cdns3_udc_core.c`
-25%, `usbd.c` 71%, `plat/imx8x/plat.c` 75%, `plat/imx6ul/plat.c` 77%, `mmc_sd.c` 80%,
-`imx_ci_udc.c` 81%.
+client. No board builds the virtio drivers. The least covered of the rest: `plat/imxrt/plat.c`
+76%, `dwc3_udc.c` 77%, `mmc_sd.c` 80%, `usbd.c` 82%, `mmc_emmc.c` 84%, `plat/imx8x/plat.c` 85%.
 
 A single integration test, inside `scripts/pbdev shell`:
 `pip install --no-build-isolation --no-deps . && pytest tests/integration -k install`.
