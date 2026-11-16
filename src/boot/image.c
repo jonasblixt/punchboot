@@ -10,6 +10,7 @@
 #include <arch/arch.h>
 #include <boot/dtb.h>
 #include <boot/image.h>
+#include <boot/image_helpers.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <inttypes.h>
@@ -47,16 +48,16 @@ int boot_handover_image_prepare(struct bpak_header *hdr,
     uintptr_t ramdisk_addr = 0;
     uintptr_t dtb_addr = 0;
     struct bpak_part_header *ph;
-    struct bpak_meta_header *mh;
+    uint64_t load_addr;
 
-    rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, cfg->image_bpak_id, &mh);
+    rc = boot_image_load_addr(hdr, cfg->image_bpak_id, &load_addr);
 
-    if (rc != BPAK_OK) {
+    if (rc != PB_OK) {
         LOG_ERR("Could not read boot image meta data (%i)", rc);
         return -PB_ERR_BAD_META;
     }
 
-    jump_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+    jump_addr = (uintptr_t)load_addr;
 
     LOG_INFO("Boot entry: 0x%" PRIxPTR, jump_addr);
 
@@ -71,18 +72,27 @@ int boot_handover_image_prepare(struct bpak_header *hdr,
     }
 
     if (cfg->ramdisk_bpak_id) {
-        rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, cfg->ramdisk_bpak_id, &mh);
+        rc = boot_image_load_addr(hdr, cfg->ramdisk_bpak_id, &load_addr);
 
-        if (rc != BPAK_OK) {
+        if (rc != PB_OK) {
             LOG_ERR("Could not read ramdisk load addr (%i)", rc);
             return -PB_ERR_BAD_META;
         }
 
-        ramdisk_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+        ramdisk_addr = (uintptr_t)load_addr;
         LOG_INFO("Ramdisk: %" PRIxPTR, ramdisk_addr);
     }
 
     if (cfg->dtb_bpak_id) {
+        /* In place the device tree's part is in the flash: it can't be grown
+         * there, and /chosen can't be written. Refused before the tree is
+         * touched, until it is decided whether such a tree is copied to RAM
+         * (F-291). Firmware Handoff copies it into its list (boot.md 5.4) */
+        if (boot_image_in_place()) {
+            LOG_ERR("A device tree part in place isn't supported: it can't be patched there");
+            return -PB_ERR_NOT_SUPPORTED;
+        }
+
         rc = bpak_get_part(hdr, cfg->dtb_bpak_id, &ph);
 
         if (rc != BPAK_OK) {
@@ -90,14 +100,14 @@ int boot_handover_image_prepare(struct bpak_header *hdr,
             return -PB_ERR_BAD_META;
         }
 
-        rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, cfg->dtb_bpak_id, &mh);
+        rc = boot_image_load_addr(hdr, cfg->dtb_bpak_id, &load_addr);
 
-        if (rc != BPAK_OK) {
+        if (rc != PB_OK) {
             LOG_ERR("Could not read dtb load addr meta");
             return -PB_ERR_BAD_META;
         }
 
-        dtb_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+        dtb_addr = (uintptr_t)load_addr;
         LOG_INFO("DTB: %" PRIxPTR, dtb_addr);
 
         /* Room for /chosen and pb's properties */

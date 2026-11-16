@@ -19,6 +19,7 @@
 #include <arch/arch.h>
 #include <boot/dtb.h>
 #include <boot/fh.h>
+#include <boot/image_helpers.h>
 #include <boot/pb_fh.h>
 #include <bpak/id.h>
 #include <inttypes.h>
@@ -83,7 +84,7 @@ int boot_handover_fh_init(const struct boot_handover_fh_config *cfg_in)
 static int entry_address(struct bpak_header *hdr, uintptr_t *entry)
 {
     struct bpak_part_header *part;
-    struct bpak_meta_header *mh;
+    uint64_t load_addr;
 
     if (bpak_get_part(hdr, cfg->entry_bpak_id, &part) != BPAK_OK) {
         LOG_ERR("Boot failed to find jump address");
@@ -100,12 +101,12 @@ static int entry_address(struct bpak_header *hdr, uintptr_t *entry)
     }
 
     /* The address the part was hashed at, loaded or in place */
-    if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, part->id, &mh) != BPAK_OK) {
+    if (boot_image_load_addr(hdr, part->id, &load_addr) != PB_OK) {
         LOG_ERR("No pb-load-addr for part %x", part->id);
         return -PB_ERR_BAD_META;
     }
 
-    *entry = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+    *entry = (uintptr_t)load_addr;
     return PB_OK;
 }
 
@@ -119,16 +120,15 @@ static int entry_address(struct bpak_header *hdr, uintptr_t *entry)
 static int parts_off_region(struct bpak_header *hdr)
 {
     const uint64_t region_last = FH_BASE + (FH_SIZE - 1);
-    struct bpak_meta_header *mh;
+    uint64_t addr;
 
     bpak_foreach_part(hdr, p) {
         if (!p->id)
             break;
 
-        if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh) != BPAK_OK)
+        if (boot_image_load_addr(hdr, p->id, &addr) != PB_OK)
             continue;
 
-        uint64_t addr = *bpak_get_meta_ptr(hdr, mh, uint64_t);
         uint64_t size = bpak_part_size(p);
 
         if (size == 0)

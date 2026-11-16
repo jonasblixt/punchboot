@@ -573,6 +573,70 @@ static void test_optee_arch_without_bl32(void **state)
     assert_null(bl33->next_params_info);
 }
 
+/*
+ * An optee-arch meta of 'size' bytes, with 'bytes' from its value's start:
+ * the meta's and the ones after it, where a header bpak made has zeros
+ */
+static void add_optee_arch_bytes(uint16_t size, const uint8_t bytes[8])
+{
+    struct bpak_meta_header *meta;
+
+    assert_int_equal(bpak_add_meta(hdr, ID_OPTEE, 0, 8, &meta), BPAK_OK);
+    memcpy(bpak_get_meta_ptr(hdr, meta, uint8_t), bytes, 8);
+    meta->size = size;
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+}
+
+/* BL32's spsr after a boot of an image with BL32: 0x1d3 for AArch32 */
+static uint32_t booted_bl32_spsr(void)
+{
+    assert_int_equal(boot(&cfg_bl32), PB_OK);
+    return (uint32_t)assert_jump_and_bl33(0x3c9)->next_params_info->ep_info->spsr;
+}
+
+/*
+ * F-417: optee-arch is made of the meta's own bytes, whatever its size, as
+ * a part's load address is. It was read as a u32 without a look at the
+ * size: a shorter meta took the bytes after it into the value.
+ */
+static void test_optee_arch_is_the_metas_own_bytes(void **state)
+{
+    static const uint8_t u64_32[8] = { 32, 0, 0, 0, 0, 0, 0, 0 };
+    static const uint8_t u32_32[8] = { 32, 0, 0, 0, 0xff, 0xff, 0xff, 0xff };
+    static const uint8_t short_32[8] = { 32, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    static const uint8_t none_then_32[8] = { 32, 0, 0, 0, 0, 0, 0, 0 };
+    (void)state;
+
+    /* The bpak CLI's integer encoder writes a u64: AArch32, as it was */
+    make_image(true);
+    add_optee_arch_bytes(8, u64_32);
+    assert_int_equal(booted_bl32_spsr(), 0x1d3);
+
+    /* A u32, as the tests and a raw meta have it: as it was */
+    setup(NULL);
+    make_image(true);
+    add_optee_arch_bytes(4, u32_32);
+    assert_int_equal(booted_bl32_spsr(), 0x1d3);
+
+    /* Shorter: its bytes, zero extended, and not the bytes after it. They
+     * made 0xffffff20 of it, AArch64 */
+    setup(NULL);
+    make_image(true);
+    add_optee_arch_bytes(1, short_32);
+    assert_int_equal(booted_bl32_spsr(), 0x1d3);
+
+    setup(NULL);
+    make_image(true);
+    add_optee_arch_bytes(2, short_32);
+    assert_int_equal(booted_bl32_spsr(), 0x3c5);
+
+    /* None: 0, AArch64, as without the meta. The bytes after it made 32 */
+    setup(NULL);
+    make_image(true);
+    add_optee_arch_bytes(0, none_then_32);
+    assert_int_equal(booted_bl32_spsr(), 0x3c5);
+}
+
 /* What the delivery needs isn't in the image: prepare fails, nothing jumps */
 static void test_missing_parts(void **state)
 {
@@ -772,6 +836,7 @@ int main(void)
         TFA_TEST(test_bl32_without_dt),
         TFA_TEST(test_bl32_device_tree_is_the_handovers),
         TFA_TEST(test_optee_arch_without_bl32),
+        TFA_TEST(test_optee_arch_is_the_metas_own_bytes),
         TFA_TEST(test_missing_parts),
         TFA_TEST(test_empty_bl31_or_bl32_is_refused),
         TFA_TEST(test_bl31_and_bl32_of_the_minimum),
