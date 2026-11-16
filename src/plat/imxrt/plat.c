@@ -169,7 +169,8 @@ int plat_init(void)
     /* Without it: logged, nothing of the boot's rests on it (platform.md 2.3) */
     status.rom_log = (imx_hab_log_init(&hab_log_cfg) == PB_OK);
 
-    imx_ocotp_init(IMXRT_OCOTP_BASE, IMXRT_FUSE_WORDS_PER_BANK, 0); /* No rate: no writes (F-148) */
+    imx_ocotp_init(IMXRT_OCOTP_BASE, IMXRT_FUSE_WORDS_PER_BANK, 0, 0); /* No rate: no writes (F-148)
+                                                                        */
     imx_hab_fuses_init(&hab_fuses);
     /* Read speed grade fuse */
 

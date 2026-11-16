@@ -25,9 +25,16 @@
 #define OCOTP_SCS            0x0060
 #define OCOTP_SCS_SET        0x0064
 
-/* Control register */
+/* Control register: the 6UL's, the RT's and the 8MQ's */
 #define OCOTP_CTRL_BUSY      (1 << 8)
 #define OCOTP_CTRL_ERROR     (1 << 9)
+/* The i.MX8M Plus's: ADDR is 8:0, so BUSY and ERROR are one bit higher (8MP
+ * RM 6.3.5.1.2) */
+#define OCOTP_CTRL_BUSY_8MP  (1 << 9)
+#define OCOTP_CTRL_ERROR_8MP (1 << 10)
+
+/* imx_ocotp_init()'s flags */
+#define IMX_OCOTP_CTRL_8MP   BIT(0) /* CTRL as the i.MX8M Plus has it */
 
 #define OCOTP_CTRL_WR_KEY    0x3E77
 
@@ -37,12 +44,16 @@
  * @param ipg_rate_hz The controller's ipg_clk, which a write's timing is
  *        computed from. 0 when the platform doesn't give it: the fuses are
  *        read, and a write is -PB_ERR_NOT_SUPPORTED
+ * @param flags IMX_OCOTP_*: the SoC's CTRL layout
  *
  * @return PB_OK, -PB_ERR_PARAM for words_per_bank or a rate the timing
  *         doesn't fit (above some 400 MHz). After a failed init the
  *         driver is not set up
  */
-int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz);
+int imx_ocotp_init(uintptr_t base,
+                   unsigned int words_per_bank,
+                   unsigned int ipg_rate_hz,
+                   unsigned int flags);
 /* Both -PB_ERR_STATE before an imx_ocotp_init() that worked */
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value);
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
@@ -63,6 +74,7 @@ int imx_ocotp_read_unique_id(uint32_t bank,
 
 /* The fuse address in CTRL, and its write unlock */
 #define OCOTP_CTRL_ADDR_MASK        0x7F /* The RM says 0x3F, NXP's drivers use 0x7F */
+#define OCOTP_CTRL_ADDR_MASK_8MP    0x1FF
 #define OCOTP_CTRL_WR_UNLOCK(key)   ((key) << 16)
 
 /* Timing register, in ipg_clk periods */

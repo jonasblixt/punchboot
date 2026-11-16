@@ -86,8 +86,12 @@ int imx_hab_log_init(const struct imx_hab_log_config *cfg)
     return f.hab_log_rc;
 }
 
-int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz)
+int imx_ocotp_init(uintptr_t base,
+                   unsigned int words_per_bank,
+                   unsigned int ipg_rate_hz,
+                   unsigned int flags)
 {
+    (void)flags;
     (void)base;
     (void)words_per_bank;
     (void)ipg_rate_hz;

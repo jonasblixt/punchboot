@@ -16,6 +16,11 @@
 static uintptr_t base; /* 0: not set up, every call is -PB_ERR_STATE */
 static uint32_t wpb;
 static uint32_t timing; /* 0: no ipg_clk rate, no writes */
+/* CTRL's BUSY and ERROR, and the widest address: the SoC's layout. The
+ * i.MX8M Plus has them one bit higher than the 6UL (F-467) */
+static uint32_t ctrl_busy = OCOTP_CTRL_BUSY;
+static uint32_t ctrl_error = OCOTP_CTRL_ERROR;
+static uint32_t ctrl_addr_mask = OCOTP_CTRL_ADDR_MASK;
 
 /*
  * TIMING's fields count ipg_clk periods (6UL RM 35.5.2): the relax time is
@@ -75,7 +80,10 @@ static void ocotp_dump_fuse(uint32_t bank, uint32_t row)
 }
 #endif
 
-int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank, unsigned int ipg_rate_hz)
+int imx_ocotp_init(uintptr_t base_,
+                   unsigned int words_per_bank,
+                   unsigned int ipg_rate_hz,
+                   unsigned int flags)
 {
     uint32_t timing_ = 0;
     int rc;
@@ -101,6 +109,17 @@ int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank, unsigned int ip
 
     wpb = words_per_bank;
     timing = timing_;
+
+    if (flags & IMX_OCOTP_CTRL_8MP) {
+        ctrl_busy = OCOTP_CTRL_BUSY_8MP;
+        ctrl_error = OCOTP_CTRL_ERROR_8MP;
+        ctrl_addr_mask = OCOTP_CTRL_ADDR_MASK_8MP;
+    } else {
+        ctrl_busy = OCOTP_CTRL_BUSY;
+        ctrl_error = OCOTP_CTRL_ERROR;
+        ctrl_addr_mask = OCOTP_CTRL_ADDR_MASK;
+    }
+
     base = base_;
 
 #ifdef CONFIG_IMX_OCOTP_DEBUG
@@ -134,7 +153,7 @@ static int ocotp_wait_busy(void)
 
     pb_timeout_init_us(&to, OCOTP_BUSY_TIMEOUT_us);
 
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
+    while (mmio_read_32(base + OCOTP_CTRL) & ctrl_busy) {
         if (pb_timeout_has_expired(&to)) {
             LOG_ERR("Timeout");
             return -PB_ERR_TIMEOUT;
@@ -150,7 +169,7 @@ static int ocotp_addr(uint32_t bank, uint32_t row, uint32_t *addr)
 {
     uint64_t index = (uint64_t)bank * wpb + row;
 
-    if (index > OCOTP_CTRL_ADDR_MASK) {
+    if (index > ctrl_addr_mask) {
         LOG_ERR("Fuse %" PRIu32 ", %" PRIu32 " is out of range", bank, row);
         return -PB_ERR_PARAM;
     }
@@ -185,8 +204,8 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
-    if (tmp & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
+    if (tmp & ctrl_error) {
+        mmio_write_32(base + OCOTP_CTRL_CLR, ctrl_error);
         return -PB_ERR_IO;
     }
 
@@ -199,8 +218,8 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
-    if (tmp & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
+    if (tmp & ctrl_error) {
+        mmio_write_32(base + OCOTP_CTRL_CLR, ctrl_error);
         return -PB_ERR_IO;
     }
 
@@ -217,8 +236,8 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     pb_delay_us(2);
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
-    if (tmp & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
+    if (tmp & ctrl_error) {
+        mmio_write_32(base + OCOTP_CTRL_CLR, ctrl_error);
         return -PB_ERR_IO;
     }
 
@@ -246,8 +265,8 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
-    if (tmp & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
+    if (tmp & ctrl_error) {
+        mmio_write_32(base + OCOTP_CTRL_CLR, ctrl_error);
         return -PB_ERR_IO;
     }
 
@@ -260,8 +279,8 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
         return rc;
 
     /* A locked word sets ERROR and reads 0xBADABADA */
-    if (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_ERROR) {
-        mmio_write_32(base + OCOTP_CTRL_CLR, OCOTP_CTRL_ERROR);
+    if (mmio_read_32(base + OCOTP_CTRL) & ctrl_error) {
+        mmio_write_32(base + OCOTP_CTRL_CLR, ctrl_error);
         LOG_ERR("Fuse %" PRIu32 " can't be read", addr);
         return -PB_ERR_IO;
     }
