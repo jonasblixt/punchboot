@@ -934,6 +934,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | from the first wait, while the AHB root switches to PLL2. Code fetched during that switch can read | | |
 | | | wrong; the tight loop stays in what was fetched. Not landed. A bound there must not call out: a | | |
 | | | counted loop, or the switch's wait left as it is | | |
+| | | The UARTs: pb proper's console starts after `plat_early_init()`'s timer, but the 8M SPL's before | | |
+| | | it (`imx8m_spl_console_init()`, then GPT1's gate in `imx8m_spl_dram_init()`), and the RAM log is | | |
+| | | written out then: a putc bounded through `pb_timeout_*()` would read a gated timer. A counted | | |
+| | | bound, or a console that starts after the timer | | |
 | F-463 | `src/drivers/usb/usbd.c`, `usb.md` 3.2 | Low, a contract question. The stack answers only | Verified (boards) | open |
 | | | `usb.md` 3.2's requests and stalls the rest, as written. USB 2.0 9.4 has a configured device answer | | |
 | | | more: GET_CONFIGURATION, GET_INTERFACE, GET_STATUS of the interface and of an endpoint, and | | |
