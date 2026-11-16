@@ -2327,6 +2327,10 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | `imx_ocotp_read_unique_id()` (the 8X's stays the SCFW's; the bytes, their order and the errors |
 | | unchanged), the bpak hash kind maps in one `image_hash_kind()`. `console_ops` stays: a one-member |
 | | struct can grow without breaking boards, a function argument can't (principles 6 over 8). Done |
+| F-033 | imx8mevk unfinished (`board_init` returns error, no Kconfig). Orphan defconfigs `bebop`, `pico8ml`. imxrt untouched since 2023. | closed |
+| | | The status before: open: ask Jonas | | |
+| | | 2026-11-16 (`35654093`, Jonas: remove it): `bebop_defconfig` is gone. Left: imx8mevk (F-300) | | |
+| | | Closed 2026-11-16: what is left, imx8mevk's partition table and boot, is F-300's | | |
 
 ## Build / CI / docs
 
