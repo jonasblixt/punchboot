@@ -32,6 +32,7 @@ struct fake_reg_write fake_reg_log[MAX_WRITES];
 size_t fake_reg_log_len;
 uint64_t (*fake_regs_on_write)(uintptr_t addr, uint64_t value);
 uint64_t (*fake_regs_on_read)(uintptr_t addr, uint64_t value);
+uint64_t fake_regs_overwritten;
 
 static size_t reg_index(uintptr_t addr)
 {
@@ -121,6 +122,7 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
     fake_reg_log_len++;
 
     /* Stored first: the hook may not return */
+    fake_regs_overwritten = regs[i].value;
     regs[i].value = value;
 
     if (fake_regs_on_write != NULL)
