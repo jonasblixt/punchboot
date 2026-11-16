@@ -322,6 +322,11 @@ The in place source's rules:
   partition is dropped before the header is read. What is hashed is what runs, also after a
   host wrote the partition in the same power cycle.
 - Every image released pb accepted has its parts at their load address, so none is refused.
+- **No device tree in place with the image handover** (Jonas, D-092, F-291): it grows and
+  patches the tree where it is (5.5), which in place is the flash. Such an image is refused
+  before the tree is read, with `-PB_ERR_NOT_SUPPORTED`, for good; a kernel alone boots in
+  place. In place with a device tree goes through Firmware Handoff, which copies the tree into
+  its region (5.4). No released configuration is refused: in place is new in 3.0.0 (D-048).
 
 ### 4.2 The sequence
 
@@ -437,7 +442,7 @@ The Linux boot protocol, which Xen follows too (`boot/image.h`).
 
 The board gives: the kernel's part (its load address is the entry), the DT's and the ramdisk's
 (both optional), the kernel command line and its DT hook (both optional, 5.5) and
-`set_dtb_boot_arg`. Without `set_dtb_boot_arg` all four registers are 0. The DT gets the command
+`set_dtb_boot_arg`. A DT part in place is refused (4.1). Without `set_dtb_boot_arg` all four registers are 0. The DT gets the command
 line, pb's `/chosen` (5.5) and, with a ramdisk, `linux,initrd-start` and `-end`.
 
 The encoding of the two: 32 bits each when both addresses fit, the bytes every release wrote, and
@@ -549,6 +554,14 @@ for it.
   the boot, as it did when the hook wrote it.
 - pb writes only `/chosen`: the command line, its own properties, and for the image handover
   `linux,initrd-*`. Nothing else, nothing for Xen or OP-TEE.
+- **pb's properties as released** (Jonas, D-092, F-348): pb writes every value it has. A
+  property a release wrote that pb has no value for this time (`pb,slc` without an SLC,
+  `pb,active-system` without a name) stays as the image or the hook wrote it, as in every
+  release: an out-of-tree hook may write `pb,active-system` itself (D-008). A property new in
+  3.0.0 that pb has no value for is removed, so that a next stage reads none but pb's.
+- **A new property that doesn't fit** is left out with a warning in pb's log, and the image
+  boots (F-260). A next stage isn't told: an absent entry means an older pb or no room, and
+  pb's log says which (5.6). A product that needs every entry gives its tree the room.
 - `CONFIG_BOOT_DTB_HEADROOM` (4 KiB) is the room for both.
 
 ### 5.6 pb's information
@@ -567,7 +580,7 @@ system, the partition, the mode and the image's key belong to the candidate.
 | How it was chosen      | `pb,boot-mode`, string: "normal",          | `boot_mode`: 0, 1, 2  | `boot_policy_mode()` |
 |                        | "fallback", "speculative", new             |                       |                      |
 | The life cycle         | `pb,slc`, u32, the wire's `pb_slc` values; | `slc`                 | `slc_read_status()`  |
-|                        | absent without an SLC                      |                       |                      |
+|                        | not written without an SLC (5.5)           |                       |                      |
 | The image's key        | `pb,slc-active-key`, u32 (a key id)        | `active_key`          | The header           |
 | The keys not revoked   | `pb,slc-available-keys`, u32 list (key     | `available_keys`      | The RoT              |
 |                        | ids)                                       |                       |                      |
@@ -581,7 +594,8 @@ New entries are appended (section 7). The encodings are part of what section 7 f
 pb's version is the string the wire's version command answers (`PB_CMD_BOOTLOADER_VERSION_READ`):
 `version.txt` when pb was built, "3.0.0". It tells the OS which pb booted it without command mode,
 for an inventory or a report (D-043). A next stage that needs one of the entries above looks for
-that entry, not for a version: an entry that is absent was added after the pb that booted it.
+that entry, not for a version: an entry that is absent was added after the pb that booted it,
+or didn't fit the tree (5.5).
 
 pb's status (`system.md` 3, `security.md` 4.5) is what pb couldn't do and booted anyway, so that
 the next stage can report it or act on it. A list of strings in the DT, its own idiom and
