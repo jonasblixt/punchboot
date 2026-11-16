@@ -107,6 +107,11 @@ pb_unit_test(test_linux_ramoops SOURCES
     ${PROJECT_SOURCE_DIR}/src/ramlog.c
 )
 
+# plat_info.c on a fake plat_get_info(): the text, its log, the command 'info'
+pb_unit_test(test_plat_info SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat_info.c
+)
+
 pb_unit_test(test_crypto
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/crypto.c
@@ -185,10 +190,11 @@ pb_unit_test(test_ab_state SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
 )
 
-# A/B's speculative mode (boot.md 3.6) isn't in pb-host: the host has no
-# watchdog, which CONFIG_BOOT_AB_SPECULATIVE depends on. Its test is the same
-# file and module built with the symbol, which changes nothing else in the
-# build; what A/B does with a viable candidate runs in both
+# A/B's speculative mode (boot.md 3.6) isn't in pb-host: host_defconfig has no
+# watchdog, which CONFIG_BOOT_AB_SPECULATIVE depends on (pb-host-speculative,
+# from host_speculative_defconfig, has the host's watchdog fake and the mode).
+# Its test is the same file and module built with the symbol, which changes
+# nothing else in the build; what A/B does with a viable candidate runs in both
 add_executable(test_ab_state_speculative test_ab_state.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
@@ -938,3 +944,52 @@ pb_unit_test(test_snprintf SOURCES
     ${PROJECT_SOURCE_DIR}/src/lib/libc/snprintf.c
 )
 target_compile_definitions(test_snprintf PRIVATE snprintf=pb_snprintf vsnprintf=pb_vsnprintf)
+
+# --- Coverage of what a board builds and no host test reached (F-230) ---
+
+# The i.MX6UL's HAB helpers with the 6UL's fuse map and the HABv4 driver. The
+# ROM's vector table is the test's (fakes/imx6ul_hab): its functions are
+# called through 32 bit pointers, so -no-pie
+pb_unit_test(test_imx6ul_hab SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/hab.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_hab_fuses.c
+)
+target_include_directories(test_imx6ul_hab BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/imx6ul_hab
+)
+target_compile_options(test_imx6ul_hab PRIVATE -fno-pie)
+target_link_options(test_imx6ul_hab PRIVATE -no-pie)
+
+# The i.MX8X's fuse, RoT and SLC helpers as the boards build them: without the
+# fuse dry run, the SCFW's calls faked by the test
+pb_unit_test(test_imx8x_helpers SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/fusebox.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/rot_helpers.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8x/slc_helpers.c
+)
+target_compile_definitions(test_imx8x_helpers PRIVATE CONFIG_PLAT_IMX8X=1)
+target_include_directories(test_imx8x_helpers PRIVATE ${PROJECT_SOURCE_DIR}/include/plat/imx8x)
+
+# The CAAM with the low power MDHA before era 10: no SHA-384/512. The rings
+# and the descriptors hold 32 bit addresses
+pb_unit_test(test_caam_lp256
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/crypto.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
+    LIBS pb_caam_model
+)
+target_include_directories(test_caam_lp256 BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_caam_lp256 PRIVATE -fno-pie)
+target_link_options(test_caam_lp256 PRIVATE -no-pie)
+
+# The host tools' pure parts, without a device (F-041): pytest on the
+# punchboot package, which must be installed as for the integration tests
+add_test(
+    NAME unit.python
+    COMMAND ${Python3_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}/python -q
+            -p no:cacheprovider
+)
+set_tests_properties(unit.python PROPERTIES LABELS "unit;python" TIMEOUT 120)

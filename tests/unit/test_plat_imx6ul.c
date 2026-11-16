@@ -274,6 +274,76 @@ static void test_boot_reason_is_read_once_and_not_cleared(void **state)
     assert_int_equal(fake_regs_writes(IMX6UL_SRC_SRSR), 0);
 }
 
+/* platform.md 3.11: what plat_get_info() reads, with jiffy's registers
+ * (2026-11-14 and -16 on the board): a 6UL 1.2, PLL1 at 1056 MHz / 2, the
+ * MMDC on PLL2's PFD2 at 396 MHz, SBMR1 0xc060: eMMC, 8 bits DDR */
+static void test_get_info(void **state)
+{
+    struct pb_plat_info info;
+    char extra[256];
+    (void)state;
+
+    assert_int_equal(plat_init(), PB_OK);
+    fake_regs_set(IMX6UL_USB_ANALOG_DIGPROG, 0x00640002);
+    fake_regs_set(IMX6UL_CCM_ANALOG_PLL_ARM, 88);
+    fake_regs_set(IMX6UL_CCM_CACRR, 1);
+    fake_regs_set(IMX6UL_CCM_CCSR, 0);
+    fake_regs_set(IMX6UL_CCM_ANALOG_PLL_SYS, CCM_ANALOG_PLL_SYS_DIV_SELECT);
+    fake_regs_set(IMX6UL_CCM_ANALOG_PFD_528, (24u << 16) | 27u);
+    fake_regs_set(IMX6UL_CCM_CBCMR, 1u << 21);
+    fake_regs_set(IMX6UL_CCM_CBCDR, 0);
+    fake_regs_set(IMX6UL_SRC_BASE + 0x04, 0x0000c060);
+
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_string_equal(info.soc, "i.MX6UL");
+    assert_string_equal(info.rev, "1.2");
+    assert_int_equal(info.cpu_hz, 528000000);
+    assert_int_equal(info.mem_hz, 396000000);
+    assert_non_null(strstr(extra, "Boot config: SBMR1 0x0000c060"));
+    assert_non_null(strstr(extra, "ROM eMMC boot: MMC, 8-bit DDR, normal speed, normal boot\n"));
+
+    /* The 6ULL's DIGPROG, an SD card on four lines at high speed with
+     * fast boot, the MMDC from PLL2 itself / 2 */
+    fake_regs_set(IMX6UL_USB_ANALOG_DIGPROG, 0x00650101);
+    fake_regs_set(IMX6UL_SRC_BASE + 0x04,
+                  IMX6UL_BOOT_CFG_USDHC | IMX6UL_BOOT_CFG_FAST_BOOT |
+                      IMX6UL_BOOT_CFG_MMC_HIGH_SPEED |
+                      IMX6UL_BOOT_CFG_BUS_WIDTH(IMX6UL_BOOT_BUS_4BIT));
+    fake_regs_set(IMX6UL_CCM_CBCMR, 0);
+    fake_regs_set(IMX6UL_CCM_CBCDR, 1u << 3);
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_string_equal(info.soc, "i.MX6ULL");
+    assert_string_equal(info.rev, "2.1");
+    assert_int_equal(info.mem_hz, 264000000);
+    assert_non_null(strstr(extra, "ROM eMMC boot: SD, 4-bit, high speed, fast boot\n"));
+
+    /* periph2_clk2 from the oscillator; PFD2 gated; PLL4 isn't read */
+    fake_regs_set(IMX6UL_CCM_CBCDR, CCM_CBCDR_PERIPH2_CLK_SEL);
+    fake_regs_set(IMX6UL_CCM_CBCMR, CCM_CBCMR_PERIPH2_CLK2_SEL);
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_int_equal(info.mem_hz, 24000000);
+    fake_regs_set(IMX6UL_CCM_CBCDR, 0);
+    fake_regs_set(IMX6UL_CCM_CBCMR, 1u << 21);
+    fake_regs_set(IMX6UL_CCM_ANALOG_PFD_528, (24u << 16) | BIT(23) | 27u);
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_int_equal(info.mem_hz, 0);
+    fake_regs_set(IMX6UL_CCM_CBCMR, 3u << 21);
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_int_equal(info.mem_hz, 0);
+
+    /* The core on the step clock: its rate isn't PLL1's */
+    fake_regs_set(IMX6UL_CCM_CCSR, CCM_CCSR_PLL1_SW_CLK_SEL);
+    assert_int_equal(plat_get_info(&info, extra, sizeof(extra)), PB_OK);
+    assert_int_equal(info.cpu_hz, 0);
+
+    /* Another SoC; and only whole lines go into the specifics */
+    fake_regs_set(IMX6UL_USB_ANALOG_DIGPROG, 0x00630000);
+    assert_int_equal(plat_get_info(&info, extra, 20), PB_OK);
+    assert_string_equal(info.soc, "unknown");
+    assert_string_equal(extra, "Speed grade 2\n");
+    assert_int_equal(plat_get_info(&info, extra, 0), -PB_ERR_BUF_TOO_SMALL);
+}
+
 /* platform.md 2.1: the watchdog is armed in plat_early_init() when
  * CONFIG_ENABLE_WATCHDOG is set, and only then. The WDOGs' power-down
  * counters are stopped whatever the option is */
@@ -526,6 +596,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_reset, setup),
+        cmocka_unit_test_setup(test_get_info, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
         cmocka_unit_test_setup(test_status, setup),

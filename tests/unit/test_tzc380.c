@@ -40,9 +40,12 @@ static void init_regs(uint32_t config)
 /* Runs first: the driver keeps its state between tests */
 static void test_not_initialized(void **state)
 {
+    uint64_t base, size;
+    uint32_t sp;
     (void)state;
     assert_int_equal(tzc380_configure_region(1, 0x80000000, 0x40000000, TZC380_SP_ALL),
                      -PB_ERR_STATE);
+    assert_int_equal(tzc380_get_region(1, &base, &size, &sp), -PB_ERR_STATE);
 }
 
 static void test_no_configurable_region(void **state)
@@ -69,6 +72,35 @@ static void test_configure_region(void **state)
     /* Region 0 and the others are left alone */
     assert_int_equal(REG(ATTR(0)), 0);
     assert_int_equal(REG(ATTR(2)), 0);
+}
+
+/* What a configured region reads back as (the platforms' status, F-230) */
+static void test_get_region(void **state)
+{
+    uint64_t base, size;
+    uint32_t sp;
+    (void)state;
+
+    init_regs(CONFIG_8_REGIONS_32_BIT);
+    assert_int_equal(tzc380_init((uintptr_t)regs), PB_OK);
+    assert_int_equal(
+        tzc380_configure_region(1, 0x80000000, 0x40000000, TZC380_SP_S_R | TZC380_SP_S_W), PB_OK);
+    assert_int_equal(tzc380_get_region(1, &base, &size, &sp), PB_OK);
+    assert_true(base == 0x80000000);
+    assert_true(size == 0x40000000);
+    assert_int_equal(sp, TZC380_SP_S_R | TZC380_SP_S_W);
+
+    /* Disabled subregions are part of sp; a region that isn't enabled has no size */
+    REG(ATTR(2)) = 0xf000ff3a;
+    REG(SETUP_HIGH(2)) = 0x1;
+    assert_int_equal(tzc380_get_region(2, &base, &size, &sp), PB_OK);
+    assert_true(base == UINT64_C(0x100000000));
+    assert_true(size == 0);
+    assert_int_equal(sp, 0xf000ff00);
+
+    /* Region 0 isn't configurable, and the last is 7 */
+    assert_int_equal(tzc380_get_region(0, &base, &size, &sp), -PB_ERR_PARAM);
+    assert_int_equal(tzc380_get_region(8, &base, &size, &sp), -PB_ERR_PARAM);
 }
 
 static void test_last_region_min_size(void **state)
@@ -143,10 +175,10 @@ static void test_bad_params(void **state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_not_initialized),     cmocka_unit_test(test_no_configurable_region),
-        cmocka_unit_test(test_configure_region),    cmocka_unit_test(test_last_region_min_size),
-        cmocka_unit_test(test_whole_address_space), cmocka_unit_test(test_high_address),
-        cmocka_unit_test(test_bad_params),
+        cmocka_unit_test(test_not_initialized),      cmocka_unit_test(test_no_configurable_region),
+        cmocka_unit_test(test_configure_region),     cmocka_unit_test(test_get_region),
+        cmocka_unit_test(test_last_region_min_size), cmocka_unit_test(test_whole_address_space),
+        cmocka_unit_test(test_high_address),         cmocka_unit_test(test_bad_params),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

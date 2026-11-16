@@ -13,10 +13,12 @@
 #include <boot/ab_state.h>
 #include <boot/boot.h>
 #include <boot/image.h>
+#include <boot/image_helpers.h>
 #include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/partition/static.h>
+#include <libfdt.h>
 #include <pb/bio.h>
 #include <pb/board.h>
 #include <pb/cm.h>
@@ -186,6 +188,33 @@ static const struct static_part_table nor_table[] = {
     },
 };
 
+#define HOST_DT_ID 0x56f91b86 /* bpak_id("dt") */
+
+/*
+ * The board's device tree hook (boot.md 5.5): 'bootargs' is the board's. It
+ * also writes a pb,version of its own, so that the tests see pb's value win:
+ * pb writes its properties after the hook.
+ */
+static int dt_patch(void *fdt, int offset)
+{
+    int rc = fdt_setprop_string(fdt, offset, "bootargs", "console=pb-host");
+
+    if (rc == 0)
+        rc = fdt_setprop_string(fdt, offset, "pb,version", "the board's");
+
+    return (rc == 0) ? PB_OK : -PB_ERR;
+}
+
+/*
+ * The image handover. With --dt it also names a device tree part, which then
+ * every image needs, and which an image in place can't have (F-291): the in
+ * place tests run without it. Set in init(), before the handover's init
+ */
+static struct boot_handover_image_config boot_image = {
+    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+    .dtb_patch_cb = dt_patch,
+};
+
 /*
  * For the tests of a stop in a boot that command mode started (board.md
  * 5.4): the named command 'test-boot-stop' arms one, in the hook and with
@@ -236,6 +265,45 @@ static int early_boot(void)
     return PB_OK;
 }
 
+/*
+ * With --dt the image handover names a device tree part, and the boot writes
+ * the tree it prepared to the file: what the next stage would read, pb's
+ * /chosen with it (boot.md 5.5, 5.6). The tree is where the handover left
+ * it, at the part's load address in the verified header.
+ */
+static int write_dt(void)
+{
+    const struct bpak_header *hdr = boot_image_get_bpak_header();
+    uint64_t addr;
+    const void *fdt;
+    size_t length;
+    FILE *fp;
+
+    if (host_opts.dt_path == NULL)
+        return PB_OK;
+
+    if (hdr == NULL || boot_image_load_addr((struct bpak_header *)hdr, HOST_DT_ID, &addr) != PB_OK)
+        return -PB_ERR_STATE;
+
+    fdt = (const void *)(uintptr_t)addr;
+
+    if (fdt_check_header(fdt) != 0)
+        return -PB_ERR_STATE;
+
+    length = fdt_totalsize(fdt);
+    fp = fopen(host_opts.dt_path, "wb");
+
+    if (fp == NULL)
+        return -PB_ERR_IO;
+
+    if (fwrite(fdt, 1, length, fp) != length) {
+        fclose(fp);
+        return -PB_ERR_IO;
+    }
+
+    return (fclose(fp) == 0) ? PB_OK : -PB_ERR_IO;
+}
+
 static int late_boot(uuid_t boot_part_uu)
 {
     int rc = boot_stop_take(&late_boot_stop, "late_boot");
@@ -244,6 +312,13 @@ static int late_boot(uuid_t boot_part_uu)
         return rc;
 
     LOG_DBG("Boot!");
+
+    rc = write_dt();
+
+    if (rc != PB_OK) {
+        LOG_ERR("Could not write the device tree (%i)", rc);
+        return rc;
+    }
 
     char name;
 
@@ -348,7 +423,14 @@ static int nor_init(void)
  */
 static int board_hw_init(void)
 {
-    int rc = mbedtls_pb_init();
+    int rc;
+
+    /* Before anything that can fail: the handover is set up also after a
+     * failed init() (board.md 2.1) */
+    if (host_opts.dt_path != NULL)
+        boot_image.dtb_bpak_id = HOST_DT_ID;
+
+    rc = mbedtls_pb_init();
 
     if (rc != PB_OK)
         return rc;
@@ -473,10 +555,6 @@ static const struct slc_config slc = {
     .fuses_length = ARRAY_SIZE(config_fuses),
     .fuse_read = test_fuse_read,
     .fuse_write = test_fuse_write,
-};
-
-static const struct boot_handover_image_config boot_image = {
-    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
 };
 
 static const struct boot_ab_state_config boot_state_cfg = {
