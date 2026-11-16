@@ -148,6 +148,20 @@ int hash_final(uint8_t *digest_output, size_t length);
 int hash_add_ops(const struct hash_ops *ops);
 
 /**
+ * Remove a backend's hash op's
+ *
+ * For a backend whose set-up fails after its hashes were registered: a
+ * backend that failed isn't registered (doc/interfaces/crypto.md 2). A hash
+ * the backend had open ends with it.
+ *
+ * @param[in] ops The structure given to hash_add_ops()
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_NOT_FOUND, when ops isn't registered
+ */
+int hash_remove_ops(const struct hash_ops *ops);
+
+/**
  * Verify an ECDSA signature over a digest (doc/interfaces/crypto.md 4)
  *
  * *verified is false unless the signature verified. Not while a hash is

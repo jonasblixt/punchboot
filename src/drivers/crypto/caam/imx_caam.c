@@ -1018,8 +1018,11 @@ int imx_caam_init(uintptr_t base)
 
     rc = dsa_add_ops(&caam_dsa_ops);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+        /* Nothing of a backend that failed stays registered (crypto.md 2) */
+        (void)hash_remove_ops(&caam_ops);
         return rc;
+    }
 
     caam.caam_initialized = true;
     return PB_OK;

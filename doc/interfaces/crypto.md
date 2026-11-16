@@ -71,9 +71,10 @@ with the algorithms it has (`alg_bits`).
   behind its driver's option (`CONFIG_DRIVERS_CRYPTO_MBEDTLS`), the same on every platform, and
   records whether it came up. The board's defconfig says which backends the build has. **Not
   yet in the code (F-442).**
-- **A backend that failed isn't registered.** An algorithm no backend has is
-  `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check that can't be made
-  is a no (`security.md` 4.4). A backend that failed, the engine or the software, and a build
+- **A backend that failed isn't registered.** One whose set-up fails after it registered its
+  hashes takes them back with `hash_remove_ops()`, which ends a hash it had open. An algorithm
+  no backend has is `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check
+  that can't be made is a no (`security.md` 4.4). A backend that failed, the engine or the software, and a build
   with no backend at all, refuse the boot before the load (`platform.md` 2.3, `security.md`
   4.5).
 - **A build may have several backends, and each algorithm comes from one of them** (Jonas,

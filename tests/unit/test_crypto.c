@@ -178,6 +178,31 @@ static void test_2_a_second_registration_is_refused(void **state)
     assert_int_equal(hash_init(HASH_MD5), -PB_ERR_NOT_SUPPORTED);
 }
 
+/* crypto.md 2: a backend that failed isn't registered, also when only its
+ * signatures were refused: its hashes go again (F-410) */
+static void test_2_a_backend_that_failed_halfway_isnt_registered(void **state)
+{
+    (void)state;
+
+    assert_int_equal(hash_remove_ops(&fake_hash_ops), PB_OK);
+    assert_int_equal(hash_remove_ops(&fake_hash_ops), -PB_ERR_NOT_FOUND);
+
+    /* Its hashes register, its curves are fake-dsa's */
+    assert_int_equal(mbedtls_pb_init(), -PB_ERR_PARAM);
+    assert_int_equal(hash_init(HASH_SHA256), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(hash_init(HASH_MD5), -PB_ERR_NOT_SUPPORTED);
+
+    /* A hash that was open ends with its backend */
+    assert_int_equal(hash_add_ops(&fake_hash_ops), PB_OK);
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_remove_ops(&fake_hash_ops), PB_OK);
+    uint8_t buf[4] = { 0 };
+    assert_int_equal(hash_update(buf, sizeof(buf)), -PB_ERR_STATE);
+
+    /* As it was for the tests after this one */
+    assert_int_equal(hash_add_ops(&fake_hash_ops), PB_OK);
+}
+
 static void test_hash_dispatch(void **state)
 {
     uint8_t src[16] = { 1, 2, 3 };
@@ -314,6 +339,7 @@ int main(void)
         cmocka_unit_test(test_without_providers),
         cmocka_unit_test(test_register_providers),
         cmocka_unit_test(test_2_a_second_registration_is_refused),
+        cmocka_unit_test(test_2_a_backend_that_failed_halfway_isnt_registered),
         cmocka_unit_test(test_hash_dispatch),
         cmocka_unit_test(test_3_1_no_context_after_a_failed_init),
         cmocka_unit_test(test_dsa_dispatch),

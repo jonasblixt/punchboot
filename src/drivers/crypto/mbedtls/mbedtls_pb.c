@@ -295,8 +295,14 @@ int mbedtls_pb_init(void)
 
     rc = dsa_add_ops(&mbed_dsa_ops);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+#if defined(CONFIG_MBEDTLS_MD_SHA256) || defined(CONFIG_MBEDTLS_MD_SHA384) || \
+    defined(CONFIG_MBEDTLS_MD_SHA512) || defined(CONFIG_MBEDTLS_MD_MD5)
+        /* Nothing of a backend that failed stays registered (crypto.md 2) */
+        (void)hash_remove_ops(&mbed_ops);
+#endif
         return rc;
+    }
 #endif
 
     return PB_OK;

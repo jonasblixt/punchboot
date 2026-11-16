@@ -104,6 +104,25 @@ int hash_add_ops(const struct hash_ops *ops)
     return PB_OK;
 }
 
+int hash_remove_ops(const struct hash_ops *ops)
+{
+    for (size_t i = 0; i < no_of_hash_ops; i++) {
+        if (hash_ops[i] != ops)
+            continue;
+
+        /* A context of the backend ends with it */
+        if (current_hash_ops == ops)
+            current_hash_ops = NULL;
+
+        no_of_hash_ops--;
+        memmove(&hash_ops[i], &hash_ops[i + 1], (no_of_hash_ops - i) * sizeof(hash_ops[0]));
+        hash_ops[no_of_hash_ops] = NULL;
+        return PB_OK;
+    }
+
+    return -PB_ERR_NOT_FOUND;
+}
+
 int dsa_verify(dsa_t alg,
                const uint8_t *der_signature,
                size_t signature_length,
