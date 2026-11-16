@@ -270,6 +270,21 @@ int bio_set_flags(bio_dev_t dev, uint16_t flags);
 int bio_clear_set_flags(bio_dev_t dev, uint16_t clear_flags, uint16_t set_flags);
 
 /**
+ * The partitions a host may read in bulk (bio.md 2.4, command-mode.md 5.3,
+ * F-083): every device with one of these UUIDs gets BIO_FLAG_READABLE, those
+ * that exist now and the partitions a table makes later, also by an install.
+ * The board's list, board.readable_parts, which board_setup() gives before
+ * the partition table is set up. The array is kept, not copied.
+ *
+ * @param[in] uus The UUIDs, none of them NULL
+ * @param[in] length Their number, 0 for none
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM, when the array is NULL with a length, or an entry is
+ */
+int bio_set_readable(const unsigned char *const *uus, size_t length);
+
+/**
  * Get UUID of block device
  *
  * @param[in] dev Block device handle

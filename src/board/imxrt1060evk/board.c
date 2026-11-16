@@ -405,11 +405,22 @@ static const struct boot_image_region image_regions[] = {
     BOOT_IMAGE_REGION_END,
 };
 
+/* What a host may read in bulk (command-mode.md 5.3, F-083): what can't hold
+ * a secret, pb's own partition (its image, signed, not encrypted) and its
+ * A/B state */
+static const unsigned char *const readable_parts[] = {
+    PART_NOR_PBL,
+    PART_primary_state,
+    PART_backup_state,
+};
+
 const struct board board = {
     .name = "imxrt1060evk",
     .console_init = board_console_init,
     .init = flexspi_nor_setup,
     .ptbl = PTBL_STATIC(UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068, nor_table),
+    .readable_parts = readable_parts,
+    .readable_parts_length = ARRAY_SIZE(readable_parts),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .boot_handover = BOOT_HANDOVER_FH(&boot_fh),
     .image_regions = image_regions,

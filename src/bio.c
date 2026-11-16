@@ -47,6 +47,10 @@ static unsigned int n_bios = 0;
  * changes a table, so none on the boot path */
 static unsigned int n_released;
 
+/* The partitions a host may read in bulk, the board's (bio_set_readable()) */
+static const unsigned char *const *readable_uus;
+static size_t readable_length;
+
 /* The install that runs (bio_install_partition_table()): the device whose
  * table is installed, and whether it was written */
 static struct {
@@ -80,6 +84,39 @@ void bio_reset(void)
     memset(&install, 0, sizeof(install));
     n_bios = 0;
     n_released = 0;
+    readable_uus = NULL;
+    readable_length = 0;
+}
+
+static bool is_readable(const uuid_t uu)
+{
+    for (size_t i = 0; i < readable_length; i++) {
+        if (uuid_compare(readable_uus[i], uu) == 0)
+            return true;
+    }
+
+    return false;
+}
+
+int bio_set_readable(const unsigned char *const *uus, size_t length)
+{
+    if (length > 0 && uus == NULL)
+        return -PB_ERR_PARAM;
+
+    for (size_t i = 0; i < length; i++) {
+        if (uus[i] == NULL)
+            return -PB_ERR_PARAM;
+    }
+
+    readable_uus = uus;
+    readable_length = length;
+
+    for (unsigned int i = 0; i < n_bios; i++) {
+        if (bio_pool[i].valid && is_readable(bio_pool[i].uu))
+            bio_pool[i].flags |= BIO_FLAG_READABLE;
+    }
+
+    return PB_OK;
 }
 
 /* A write or an erase of the device whose table is being installed, or of
@@ -193,6 +230,11 @@ bio_dev_t bio_allocate_parent(bio_dev_t parent,
         bio_pool[new].flags = bio_pool[parent].table_flags;
     else
         bio_pool[new].flags = bio_pool[parent].flags;
+
+    /* A table's partition gets READABLE by its UUID, the board's list, also
+     * when an install makes it again (F-083) */
+    if (is_readable(uu))
+        bio_pool[new].flags |= BIO_FLAG_READABLE;
 
     /* A partition whose UUID a released one of this device had, the one it
      * replaces or one of a table before: it starts with no flag which that

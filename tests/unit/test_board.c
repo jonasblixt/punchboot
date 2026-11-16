@@ -125,6 +125,24 @@ int bio_set_flags(bio_dev_t dev, uint16_t flags)
  * The partition table. It stands for a table of any kind: src/board.c knows
  * none. Like a driver it leaves the device with flags of its own.
  */
+/* The board's readable list (F-083): what bio got, and the calls before it */
+static struct {
+    const unsigned char *const *uus;
+    size_t length;
+    unsigned int calls;
+    char calls_before[64];
+    int rc;
+} readable;
+
+int bio_set_readable(const unsigned char *const *uus, size_t length)
+{
+    readable.uus = uus;
+    readable.length = length;
+    readable.calls++;
+    strcpy(readable.calls_before, calls);
+    return readable.rc;
+}
+
 static int ptbl_init(const struct ptbl *ptbl, bio_dev_t dev)
 {
     call("ptbl");
@@ -311,6 +329,7 @@ static int setup(void **state)
     memset(calls, 0, sizeof(calls));
     memset(&rc, 0, sizeof(rc));
     memset(&reports, 0, sizeof(reports));
+    memset(&readable, 0, sizeof(readable));
     regions_arg = NULL;
     regions_calls = 0;
     rot_cfg = NULL;
@@ -707,6 +726,43 @@ static void test_ptbl_device_flags(void **state)
             assert_int_equal(disk_flags, BIO_FLAG_VISIBLE);
         }
     }
+}
+
+/* command-mode.md 5.3 (F-083): the board's readable partitions go to bio
+ * after init(), which made the devices, and before the table makes its
+ * partitions; also without a table. A list bio refuses is a failed step */
+static void test_readable_parts(void **state)
+{
+    const unsigned char *const parts[] = { DISK_UU };
+    (void)state;
+
+    board.readable_parts = parts;
+    board.readable_parts_length = ARRAY_SIZE(parts);
+    assert_int_equal(board_setup(), PB_OK);
+    assert_int_equal(readable.calls, 1);
+    assert_ptr_equal(readable.uus, parts);
+    assert_int_equal(readable.length, 1);
+    assert_string_equal(readable.calls_before, "rot slc init ");
+
+    /* None: an empty list all the same */
+    setup(NULL);
+    assert_int_equal(board_setup(), PB_OK);
+    assert_int_equal(readable.calls, 1);
+    assert_null(readable.uus);
+    assert_int_equal(readable.length, 0);
+
+    setup(NULL);
+    board.ptbl.ops = NULL;
+    board.readable_parts = parts;
+    board.readable_parts_length = ARRAY_SIZE(parts);
+    assert_int_equal(board_setup(), PB_OK);
+    assert_int_equal(readable.calls, 1);
+
+    /* Refused: no table, and the handover is set up for command mode */
+    setup(NULL);
+    readable.rc = -PB_ERR_PARAM;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init handover boot ");
 }
 
 /* No table: init() created the partitions, or there are none */
@@ -1272,6 +1328,7 @@ int main(void)
         cmocka_unit_test_setup(test_failed_policy_sets_up_the_handover, setup),
         cmocka_unit_test_setup(test_no_partition_table, setup),
         cmocka_unit_test_setup(test_ptbl_device_flags, setup),
+        cmocka_unit_test_setup(test_readable_parts, setup),
         cmocka_unit_test_setup(test_no_ptbl, setup),
         cmocka_unit_test_setup(test_no_policy, setup),
         cmocka_unit_test_setup(test_no_policy_no_handover, setup),

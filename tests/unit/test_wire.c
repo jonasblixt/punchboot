@@ -106,12 +106,32 @@ static void test_strings(void **state)
     assert_non_null(pb_wire_slc_string(PB_SLC_EOL));
 }
 
+static void test_error_string(void **state)
+{
+    (void)state;
+
+    /* v2.7.1's strings (F-423) */
+    assert_string_equal(pb_error_string(PB_RESULT_OK), "OK");
+    assert_string_equal(pb_error_string(-PB_RESULT_ERROR), "Error");
+    assert_string_equal(pb_error_string(-PB_RESULT_AUTHENTICATION_FAILED), "Authentication failed");
+    assert_string_equal(pb_error_string(-PB_RESULT_NO_MEMORY), "Memory error");
+    assert_string_equal(pb_error_string(-PB_RESULT_KEY_REVOKED), "Invalid key, key is revoked");
+    assert_string_equal(pb_error_string(-PB_RESULT_IO_ERROR), "I/O Error");
+    assert_string_equal(pb_error_string(-PB_RESULT_BAD_PAYLOAD), "Bad payload");
+
+    /* Every code has one, and an unknown one is "" */
+    for (int r = PB_RESULT_OK; r < PB_RESULT_END; r++)
+        assert_string_not_equal(pb_error_string(-r), "");
+    assert_string_equal(pb_error_string(-PB_RESULT_END), "");
+    assert_string_equal(pb_error_string(PB_RESULT_ERROR), "");
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_init_command),  cmocka_unit_test(test_init_result),
         cmocka_unit_test(test_valid_command), cmocka_unit_test(test_requires_auth),
-        cmocka_unit_test(test_strings),
+        cmocka_unit_test(test_strings),       cmocka_unit_test(test_error_string),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

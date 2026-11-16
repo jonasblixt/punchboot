@@ -188,10 +188,12 @@ int cm_cmd_stream_read(void)
     if (stream_missing())
         return -PB_ERR_STATE;
 
+    /* Not one the board lets a host read (command-mode.md 5.3): every
+     * release answered IO_ERROR, which said nothing of why (F-083, D-092) */
     if (!(bio_get_flags(block_dev) & BIO_FLAG_READABLE)) {
         LOG_ERR("Partition may not be read");
-        pb_wire_init_result(&cm_result, -PB_RESULT_IO_ERROR);
-        return -PB_ERR_IO;
+        pb_wire_init_result(&cm_result, -PB_RESULT_NOT_SUPPORTED);
+        return -PB_ERR_NOT_SUPPORTED;
     }
 
     uint8_t *bfr;

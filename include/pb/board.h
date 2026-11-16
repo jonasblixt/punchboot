@@ -80,6 +80,12 @@ struct board {
      * at least one layout */
     struct ptbl ptbl;
 
+    /* The partitions a host may read in bulk (command-mode.md 5.3, F-083):
+     * only those that can't hold a secret, by UUID. A device or a partition
+     * of any table, also one an install makes. Absent: none */
+    const unsigned char *const *readable_parts;
+    size_t readable_parts_length;
+
     /* The boot source policy: BOOT_POLICY_FIXED(), BOOT_POLICY_CHAIN() or
      * BOOT_POLICY_AB() */
     struct boot_policy boot_policy;
