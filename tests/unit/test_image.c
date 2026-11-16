@@ -1691,6 +1691,78 @@ static void test_dtb_smaller_than_its_header_is_refused(void **state)
     assert_int_equal(patch_calls, 1);
 }
 
+/* F-411 (D-091): a header whose blocks aren't all inside the tree is
+ * refused before the tree is read or opened. fdt_open_into() trusted the
+ * offsets and sizes past the magic, the version and totalsize, and read
+ * outside the part, the payload's hash's, for some of them */
+static void test_dtb_header_lies_are_refused(void **state)
+{
+    struct bpak_part_header *part;
+    uint32_t total;
+    (void)state;
+
+    assert_int_equal(boot_handover_image_init(&cfg_dtb), PB_OK);
+    assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
+
+    for (unsigned int lie = 0; lie < 13; lie++) {
+        make_dtb("chosen");
+        total = fdt_totalsize(dtb);
+        patch_calls = 0;
+
+        switch (lie) {
+        case 0:
+            fdt_set_off_dt_struct(dtb, total + 1);
+            break;
+        case 1:
+            fdt_set_off_dt_struct(dtb, 8); /* inside the header */
+            break;
+        case 2:
+            fdt_set_size_dt_struct(dtb, total);
+            break;
+        case 3:
+            fdt_set_size_dt_struct(dtb, UINT32_MAX); /* wraps */
+            break;
+        case 4:
+            fdt_set_off_dt_strings(dtb, total + 1);
+            break;
+        case 5:
+            fdt_set_size_dt_strings(dtb, total);
+            break;
+        case 6:
+            fdt_set_size_dt_strings(dtb, UINT32_MAX);
+            break;
+        case 7:
+            fdt_set_off_mem_rsvmap(dtb, total + 8);
+            break;
+        case 8:
+            fdt_set_off_mem_rsvmap(dtb, fdt_off_mem_rsvmap(dtb) + 4); /* unaligned */
+            break;
+        case 9:
+            /* The reserve map's first entry ends past the tree */
+            fdt_set_off_mem_rsvmap(dtb, total - 8);
+            break;
+        case 10:
+            fdt_set_version(dtb, 16);
+            break;
+        case 11:
+            fdt_set_last_comp_version(dtb, 18);
+            break;
+        default:
+            fdt_set_off_mem_rsvmap(dtb, 0);
+            break;
+        }
+
+        assert_int_equal(prepare(), -PB_ERR);
+        assert_true(next.dt == 0);
+        assert_int_equal(patch_calls, 0);
+    }
+
+    /* What dtc and libfdt write boots */
+    make_dtb("chosen");
+    assert_int_equal(prepare(), PB_OK);
+    assert_int_equal(patch_calls, 1);
+}
+
 /* The handover the way src/board.c uses it: only through the board's object */
 static void test_handover_object(void **state)
 {
@@ -1775,6 +1847,7 @@ int main(void)
         IMAGE_TEST(test_dtb_headroom_overlap),
         IMAGE_TEST(test_dtb_larger_than_part),
         IMAGE_TEST(test_dtb_smaller_than_its_header_is_refused),
+        IMAGE_TEST(test_dtb_header_lies_are_refused),
         IMAGE_TEST(test_handover_object),
     };
 

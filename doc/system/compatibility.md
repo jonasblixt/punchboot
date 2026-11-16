@@ -87,7 +87,7 @@ Rule for the firmware: every image that a released bpak CLI produced and a relea
 accepted must still be accepted. The one exception is security, which comes first
 (`principles.md`): a security fix may reject what a release accepted. That needs a decision entry
 naming what is now rejected and why. D-024 is one (the header validation of bpak 1.0), D-035
-another (the custom source, `dont-hash` parts).
+another (the custom source, `dont-hash` parts), D-091 a third (a device tree whose header lies).
 
 The rule is for a build that has bpak. A product may build pb without it, once there is another
 format to build in its place (`system.md` 3, D-061): its own choice for its own devices. bpak is

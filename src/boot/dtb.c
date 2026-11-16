@@ -24,6 +24,7 @@
 #include <libfdt.h>
 #include <limits.h>
 #include <pb/pb.h>
+#include <stdbool.h>
 #include <string.h>
 
 /* [a, a + a_len) and [b, b + b_len) share a byte */
@@ -63,6 +64,47 @@ static int dtb_part(struct bpak_header *hdr, bpak_id_t dtb_id, uintptr_t *addr, 
     return PB_OK;
 }
 
+/* A block of the header's, from 'base' for 'size' bytes, after the header and
+ * inside the tree */
+static bool dtb_block_inside(uint32_t header_size, uint32_t total, uint32_t base, uint32_t size)
+{
+    return base >= header_size && base <= total && size <= total - base;
+}
+
+/*
+ * The header's every block inside the tree, as libfdt's fdt_check_header()
+ * has it since 1.4.7: the vendored 1.4.1's checks the magic and the version,
+ * and fdt_open_into() trusted the rest (F-411, D-091). The reserve map is 8
+ * byte aligned and ends (an entry of size 0) inside the tree, which
+ * fdt_open_into() counts without a bound. Version 17, which dtc writes:
+ * before it libfdt sizes the structure block by walking it, unbounded
+ */
+static int dtb_header_check(const void *fdt, uint32_t total)
+{
+    const uint32_t header_size = sizeof(struct fdt_header);
+    uint32_t rsvmap = fdt_off_mem_rsvmap(fdt);
+
+    if (fdt_version(fdt) < 17 || fdt_last_comp_version(fdt) > fdt_version(fdt))
+        return -PB_ERR;
+
+    if (!dtb_block_inside(header_size, total, fdt_off_dt_struct(fdt), fdt_size_dt_struct(fdt)) ||
+        !dtb_block_inside(header_size, total, fdt_off_dt_strings(fdt), fdt_size_dt_strings(fdt)) ||
+        !dtb_block_inside(header_size, total, rsvmap, 0) || (rsvmap % 8) != 0)
+        return -PB_ERR;
+
+    for (uint32_t off = rsvmap;; off += sizeof(struct fdt_reserve_entry)) {
+        const struct fdt_reserve_entry *e;
+
+        if (total - off < sizeof(struct fdt_reserve_entry))
+            return -PB_ERR;
+
+        e = (const struct fdt_reserve_entry *)((const char *)fdt + off);
+
+        if (fdt64_to_cpu(e->size) == 0)
+            return PB_OK;
+    }
+}
+
 /* The size of the device tree in a part of 'part_size' bytes: a device tree
  * that is inside its part */
 static int dtb_size(const void *fdt, size_t part_size, size_t *size)
@@ -82,6 +124,11 @@ static int dtb_size(const void *fdt, size_t part_size, size_t *size)
 
     if (*size > part_size) {
         LOG_ERR("Device tree (%zu bytes) is larger than its part (%zu)", *size, part_size);
+        return -PB_ERR;
+    }
+
+    if (dtb_header_check(fdt, (uint32_t)*size) != PB_OK) {
+        LOG_ERR("The device tree's header has a block outside the tree");
         return -PB_ERR;
     }
 

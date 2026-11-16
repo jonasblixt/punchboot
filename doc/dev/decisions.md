@@ -110,6 +110,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-088 | The i.MX8M boots pb in two stages, one image     | Accepted (Jonas); the code follows                 |
 | D-089 | The 8MQ SPL's USB recovery: fastboot             | In force; on the pico8ml (2026-11-15)              |
 | D-090 | The stack answers USB 2.0's standard requests    | In force; `CLEAR_FEATURE(HALT)` stays stalled      |
+| D-091 | A device tree whose header lies is refused       | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2196,3 +2197,20 @@ endpoint and `CLEAR_FEATURE(ENDPOINT_HALT)` among them; USB 2.0 9.4 has a device
   three drivers, with command mode's OUT read pending on the DWC3 and the cdns3. Jonas: keep
   it stalled. pb halts no endpoint, and a stall leaves both toggles as they were.
 - No reply a released host relies on changes: the punchboot host sends none of them.
+
+## D-091: A device tree whose header lies is refused (2026-11-16)
+
+Security before D-008 (`compatibility.md`): an image whose device tree has a header block
+outside the tree, which a release booted, is refused (F-411). Jonas: "Refuse it".
+
+- **What was trusted.** pb checked the magic, the version and `totalsize`; the vendored libfdt
+  1.4.1's `fdt_open_into()` then took the structure's, the strings' and the reserve map's
+  offsets and sizes as they were. A review's fuzz of single field lies read outside the part,
+  memory the payload's hash doesn't cover, in 45 271 of 200 000, and one wrote 44 KiB below its
+  destination. Signed input only, F-065's class.
+- **What is checked** (`dtb.c`, before the tree is read or opened): every block after the
+  header and inside `totalsize`, sizes that don't wrap, the reserve map 8 byte aligned and
+  ended inside the tree, and version 17 (libfdt before it walks the structure to size it,
+  unbounded). libfdt's own `fdt_check_header()` does most of it since 1.4.7.
+- **What it refuses**: no tree that dtc writes; a tree whose header was edited by hand or
+  broken.
