@@ -907,12 +907,4 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 
 | ID | Finding | Status |
 |---|---|---|
-| | 2026-11-14 (`65dbfd0a`, `43fa4ea4`, `683e86b5`): the `ruff-format` hook, the 13 files it changed in |
-| | a commit of their own; mypy already ran as a local hook; ruff's exclusion is the top level `doc/` |
-| | only, so `tests/doc/check_docs.py` is linted and formatted (its checks unchanged on all documents). |
-| | Done |
-| | 2026-11-14 (`8c83acc7`): the README's test instructions were right since `bd4ce676`, it lists every |
-| | kind of test now; `release-checklist.txt` follows D-003 and the publishing workflow (from master, |
-| | `version.txt` in a pull request, the tag equal to it, F-228, the test record), `build-and-test.md` |
-| | says how a release is made. Done |
 | F-052 | `src/drivers/virtio/*` has no user since `plat/qemu` was removed. Verified. | open: keep for a QEMU smoke tier, or remove |

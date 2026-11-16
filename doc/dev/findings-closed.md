@@ -1919,7 +1919,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | 2026-11-14: `tests/unit/python`, 100 pytest cases of the host tools without a device (the wire's | |
 | | packing, the error mapping, bpak detection, the CLI on a fake session), in ctest as `unit.python` | |
 | F-044 | Sphinx docs are mostly stubs, with version 1.0.0 in `conf.py`, broken header paths, and `sphinx<7`. The README test instructions are wrong (no `BOARD`). `doc/guides/release-checklist.txt` is stale. | fixed (`8c83acc7`) |
+| | 2026-11-14 (`8c83acc7`): the README's test instructions were right since `bd4ce676`, it lists every |
+| | kind of test now; `release-checklist.txt` follows D-003 and the publishing workflow (from master, |
+| | `version.txt` in a pull request, the tag equal to it, F-228, the test record), `build-and-test.md` |
+| | says how a release is made. Done |
 | F-043 | No `ruff-format` hook despite the format config. mypy only runs through pre-commit.ci. There is no `_punchboot.pyi`. | fixed (`43fa4ea4`) |
+| | 2026-11-14 (`65dbfd0a`, `43fa4ea4`, `683e86b5`): the `ruff-format` hook, the 13 files it changed in |
+| | a commit of their own; mypy already ran as a local hook; ruff's exclusion is the top level `doc/` |
+| | only, so `tests/doc/check_docs.py` is linted and formatted (its checks unchanged on all documents). |
+| | Done |
 | F-456 | The test bench's ld (Buildroot, jiffy) warns of `misc_helpers.o`: "missing .note.GNU-stack | fixed |
 | | section implies executable stack" (`src/arch/armv7a/misc_helpers.S`). In earlier logs too; the | |
 | | container's build doesn't warn | |
