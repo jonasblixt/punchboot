@@ -41,6 +41,28 @@ static uint8_t signature[512];
 #define LOAD_BOUNCE_SIZE ((size_t)CONFIG_BOOT_LOAD_CHUNK_kB * 1024)
 PB_DMA_ARRAY(uint8_t, load_bounce, LOAD_BOUNCE_SIZE);
 
+/* The image's hash as pb's kind and its digest's length: one mapping for the
+ * header's hash, the payload's and the payload's check */
+static int image_hash_kind(const struct bpak_header *hdr, hash_t *kind, size_t *length)
+{
+    switch (hdr->hash_kind) {
+    case BPAK_HASH_SHA256:
+        *kind = HASH_SHA256;
+        *length = 32;
+        return PB_OK;
+    case BPAK_HASH_SHA384:
+        *kind = HASH_SHA384;
+        *length = 48;
+        return PB_OK;
+    case BPAK_HASH_SHA512:
+        *kind = HASH_SHA512;
+        *length = 64;
+        return PB_OK;
+    default:
+        return -PB_ERR_UNKNOWN_HASH;
+    }
+}
+
 int boot_image_auth_header(struct bpak_header *hdr)
 {
     int rc;
@@ -76,22 +98,10 @@ int boot_image_auth_header(struct bpak_header *hdr)
         return rc;
     }
 
-    switch (hdr->hash_kind) {
-    case BPAK_HASH_SHA256:
-        hash_kind = HASH_SHA256;
-        digest_length = 32;
-        break;
-    case BPAK_HASH_SHA384:
-        hash_kind = HASH_SHA384;
-        digest_length = 48;
-        break;
-    case BPAK_HASH_SHA512:
-        hash_kind = HASH_SHA512;
-        digest_length = 64;
-        break;
-    default:
-        return -PB_ERR_UNKNOWN_HASH;
-    }
+    rc = image_hash_kind(hdr, &hash_kind, &digest_length);
+
+    if (rc != PB_OK)
+        return rc;
 
     rc = hash_init(hash_kind);
 
@@ -360,7 +370,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
 {
     int rc;
     uintptr_t load_addr;
-    int hash_kind;
+    hash_t hash_kind;
     size_t hash_length;
 
     rc = bpak_valid_header(hdr);
@@ -369,22 +379,10 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
         return -PB_ERR_BAD_HEADER;
     }
 
-    switch (hdr->hash_kind) {
-    case BPAK_HASH_SHA256:
-        hash_kind = HASH_SHA256;
-        hash_length = 32;
-        break;
-    case BPAK_HASH_SHA384:
-        hash_kind = HASH_SHA384;
-        hash_length = 48;
-        break;
-    case BPAK_HASH_SHA512:
-        hash_kind = HASH_SHA512;
-        hash_length = 64;
-        break;
-    default:
-        return -PB_ERR_UNKNOWN_HASH;
-    }
+    rc = image_hash_kind(hdr, &hash_kind, &hash_length);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (payload_digest_size < hash_length)
         return -PB_ERR_PARAM;
@@ -523,7 +521,7 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
                              size_t payload_digest_size)
 {
     int rc;
-    int hash_kind;
+    hash_t hash_kind;
     size_t hash_length;
 
     rc = bpak_valid_header(hdr);
@@ -532,22 +530,10 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
         return -PB_ERR_BAD_HEADER;
     }
 
-    switch (hdr->hash_kind) {
-    case BPAK_HASH_SHA256:
-        hash_kind = HASH_SHA256;
-        hash_length = 32;
-        break;
-    case BPAK_HASH_SHA384:
-        hash_kind = HASH_SHA384;
-        hash_length = 48;
-        break;
-    case BPAK_HASH_SHA512:
-        hash_kind = HASH_SHA512;
-        hash_length = 64;
-        break;
-    default:
-        return -PB_ERR_UNKNOWN_HASH;
-    }
+    rc = image_hash_kind(hdr, &hash_kind, &hash_length);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (payload_digest_size < hash_length)
         return -PB_ERR_PARAM;
@@ -592,6 +578,7 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
 int boot_image_verify_payload(struct bpak_header *hdr, uint8_t *payload_digest)
 {
     int rc;
+    hash_t hash_kind;
     size_t digest_length;
 
     rc = bpak_valid_header(hdr);
@@ -600,19 +587,10 @@ int boot_image_verify_payload(struct bpak_header *hdr, uint8_t *payload_digest)
         return -PB_ERR_BAD_HEADER;
     }
 
-    switch (hdr->hash_kind) {
-    case BPAK_HASH_SHA256:
-        digest_length = 32;
-        break;
-    case BPAK_HASH_SHA384:
-        digest_length = 48;
-        break;
-    case BPAK_HASH_SHA512:
-        digest_length = 64;
-        break;
-    default:
-        return -PB_ERR_UNKNOWN_HASH;
-    }
+    rc = image_hash_kind(hdr, &hash_kind, &digest_length);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (memcmp(hdr->payload_hash, payload_digest, digest_length) != 0) {
         return -PB_ERR_BAD_PAYLOAD;

@@ -44,8 +44,6 @@ CONFIG_IMX8X_KEY_REVOKE_MASK=0
 #
 # Boot
 #
-CONFIG_EXECUTE_IN_RAM=y
-# CONFIG_EXECUTE_IN_FLASH is not set
 
 #
 # Boot source policy: the board's data names the one it uses

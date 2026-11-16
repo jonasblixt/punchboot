@@ -57,9 +57,9 @@ void imx_uart_putc(uintptr_t base, char c);
 #define UCR3_DSR       (1 << 10)
 #define UCR4_CTSTL(x)  ((x) << 10) /* CTS trigger level */
 #define UFCR_RFDIV(x)  ((x) << 7) /* Reference clock divider */
-#define UFCR_RFDIV_1   4 /* Divide by 1 */
+#define UFCR_RFDIV_2   4 /* 100b: divide the module clock by 2 */
 #define USR2_TXDC      (1 << 3) /* Transmit complete */
 #define UESC_ESCAPE    '+' /* The escape character, the reset value */
-#define UBIR_INC       15 /* BRM incremental, with UBMR = clock / (2 * baud rate) */
+#define UBIR_INC       15 /* BRM incremental, UBMR = clock / (2 * baud rate): 2 for RFDIV */
 
 #endif // INCLUDE_DRIVERS_UART_IMX_UART_H

@@ -45,7 +45,7 @@ int imx_uart_init(uintptr_t base, unsigned int input_clock_Hz, unsigned int baud
     mmio_write_32(base + UESC, UESC_ESCAPE);
     mmio_write_32(base + UTIM, 0);
     mmio_write_32(base + UTS, 0);
-    mmio_write_32(base + UFCR, UFCR_RFDIV(UFCR_RFDIV_1));
+    mmio_write_32(base + UFCR, UFCR_RFDIV(UFCR_RFDIV_2));
     mmio_write_32(base + UBIR, UBIR_INC);
     mmio_write_32(base + UBMR, (uint32_t)(input_clock_Hz / (2 * baudrate)));
     mmio_write_32(base + UCR2, (UCR2_WS | UCR2_IRTS | UCR2_RXEN | UCR2_TXEN | UCR2_SRST));

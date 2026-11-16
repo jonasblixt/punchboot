@@ -123,12 +123,15 @@ int imx_caam_stop(void)
     return crypto.stop_rc;
 }
 
-/* The fuses */
+/* The unique id's words: what the port asked the OCOTP's driver for, and its
+ * answer. The driver makes the id of them (test_imx_ocotp.c) */
 static struct {
-    uint32_t unique[2]; /* UNIQUE_ID's two words */
-    unsigned int reads; /* imx_ocotp_read() calls */
-    unsigned int fail_at; /* The call that fails, counted from 1; 0: none */
-} fuses;
+    unsigned int calls;
+    uint32_t bank, row1, row2;
+    uint8_t *output;
+    size_t *length;
+    int rc;
+} uid;
 
 void imx_rom_log_save(const struct imx_rom_log_config *cfg)
 {
@@ -226,21 +229,19 @@ int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg
     return PB_OK;
 }
 
-/* A read that fails returns its error and leaves the value alone, as the
- * driver's does */
-int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
+int imx_ocotp_read_unique_id(uint32_t bank,
+                             uint32_t row1,
+                             uint32_t row2,
+                             uint8_t *output,
+                             size_t *length)
 {
-    if (++fuses.reads == fuses.fail_at)
-        return -PB_ERR_IO;
-
-    if (bank == IMX8M_FUSE_UNIQUE_BANK && row == IMX8M_FUSE_UNIQUE1_WORD)
-        *value = fuses.unique[0];
-    else if (bank == IMX8M_FUSE_UNIQUE_BANK && row == IMX8M_FUSE_UNIQUE2_WORD)
-        *value = fuses.unique[1];
-    else
-        *value = 0;
-
-    return PB_OK;
+    uid.calls++;
+    uid.bank = bank;
+    uid.row1 = row1;
+    uid.row2 = row2;
+    uid.output = output;
+    uid.length = length;
+    return uid.rc;
 }
 
 int tzc380_init(uintptr_t base)
@@ -321,7 +322,7 @@ static int setup(void **state)
 {
     (void)state;
     memset(&f, 0, sizeof(f));
-    memset(&fuses, 0, sizeof(fuses));
+    memset(&uid, 0, sizeof(uid));
     memset(&crypto, 0, sizeof(crypto));
     memset(calls, 0, sizeof(calls));
     fake_regs_reset();
@@ -645,69 +646,36 @@ static void test_boot_reason_is_read_once_and_not_cleared(void **state)
     assert_int_equal(fake_regs_writes(IMX8M_SRC_SRSR), 0);
 }
 
-/* platform.md 3.5, 3.7: the unique id is the two UNIQUE_ID words (bank 0,
- * words 2 and 3 on the i.MX8M Plus, F-169), the first word first, each with
- * its low byte first: eight bytes that never change, because the device's
- * UUID is made from them */
+/* platform.md 3.5, 3.7: the unique id is the two UNIQUE_ID words (bank 0, words 2 and 3 on the
+ * i.MX8M Plus, F-169), the first word first: the OCOTP's driver reads them and makes the eight
+ * bytes (test_imx_ocotp.c), which never change, because the device's UUID is
+ * made from them */
 static void test_unique_id(void **state)
 {
-    static const uint8_t expected[8] = { 0x04, 0x03, 0x02, 0x01, 0x08, 0x07, 0x06, 0x05 };
     uint8_t id[16];
     size_t length = sizeof(id);
     (void)state;
 
-    assert_int_equal(IMX8M_FUSE_UNIQUE_BANK, 0);
-    assert_int_equal(IMX8M_FUSE_UNIQUE1_WORD, 2);
-    assert_int_equal(IMX8M_FUSE_UNIQUE2_WORD, 3);
-
-    fuses.unique[0] = 0x01020304;
-    fuses.unique[1] = 0x05060708;
-    memset(id, 0xa5, sizeof(id));
-
     assert_int_equal(plat_get_unique_id(id, &length), PB_OK);
-    assert_int_equal(length, 8);
-    assert_memory_equal(id, expected, sizeof(expected));
-    assert_int_equal(id[8], 0xa5);
-    assert_int_equal(fuses.reads, 2);
+    assert_int_equal(uid.calls, 1);
+    assert_int_equal(uid.bank, 0);
+    assert_int_equal(uid.row1, 2);
+    assert_int_equal(uid.row2, 3);
+    assert_ptr_equal(uid.output, id);
+    assert_ptr_equal(uid.length, &length);
 }
 
-/* platform.md 3.5: a read that fails returns its error and writes nothing.
- * Never a partial id or one from memory that wasn't read (F-200: the error
- * was dropped and the id came from the stack) */
+/* platform.md 3.5: the driver's error is the port's (F-200) */
 static void test_unique_id_read_fails(void **state)
 {
-    uint8_t untouched[16];
     uint8_t id[16];
-    size_t length;
+    size_t length = sizeof(id);
     (void)state;
 
-    fuses.unique[0] = 0x01020304;
-    fuses.unique[1] = 0x05060708;
-    memset(untouched, 0xa5, sizeof(untouched));
-
-    for (unsigned int fail_at = 1; fail_at <= 2; fail_at++) {
-        memset(id, 0xa5, sizeof(id));
-        length = sizeof(id);
-        fuses.reads = 0;
-        fuses.fail_at = fail_at;
-
-        assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_IO);
-        assert_memory_equal(id, untouched, sizeof(id));
-        assert_int_equal(length, sizeof(id));
-    }
-}
-
-/* platform.md 3.5: a buffer that is too small is its own error, and nothing
- * is read or written */
-static void test_unique_id_buffer_too_small(void **state)
-{
-    uint8_t id[8] = { 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5, 0xa5 };
-    size_t length = 7;
-    (void)state;
-
+    uid.rc = -PB_ERR_IO;
+    assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_IO);
+    uid.rc = -PB_ERR_BUF_TOO_SMALL;
     assert_int_equal(plat_get_unique_id(id, &length), -PB_ERR_BUF_TOO_SMALL);
-    assert_int_equal(id[0], 0xa5);
-    assert_int_equal(fuses.reads, 0);
 }
 
 /* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
@@ -1005,7 +973,6 @@ int main(void)
         cmocka_unit_test_setup(test_boot_reason_is_read_once_and_not_cleared, setup),
         cmocka_unit_test_setup(test_unique_id, setup),
         cmocka_unit_test_setup(test_unique_id_read_fails, setup),
-        cmocka_unit_test_setup(test_unique_id_buffer_too_small, setup),
         cmocka_unit_test_setup(test_plat_rot_and_slc, setup),
         cmocka_unit_test_setup(test_lock_waits_for_hab, setup),
         cmocka_unit_test_setup(test_ocotp_ipg_rate, setup),
