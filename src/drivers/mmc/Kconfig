@@ -1,8 +1,7 @@
-menu "MMC Host drivers"
+menu "MMC and SD"
 
 config MMC_CORE
-    bool "Enable support for MMC"
-    default n
+    bool "MMC core (e.MMC, SD)"
 
 config MMC_CORE_MAX_DEVICES
     int "Cards"
@@ -12,19 +11,16 @@ config MMC_CORE_MAX_DEVICES
         How many cards (e.MMC, SD) the board initializes.
 
 config MMC_CORE_DEBUG_CMDS
-    bool "MMC debug commands"
+    bool "Debug: log the commands"
     depends on MMC_CORE
-    default n
 
 config MMC_CORE_DEBUG_IOS
-    bool "MMC debug R/W ops"
+    bool "Debug: log the reads and writes"
     depends on MMC_CORE
-    default n
 
 config MMC_CORE_HS200_TUNE
     bool "HS200 tuning"
     depends on MMC_CORE
-    default n
     help
         Pick the delay tap in HS200 with CMD21 tuning blocks instead of
         using the board's: every tap is tried and the middle of the widest
@@ -33,24 +29,21 @@ config MMC_CORE_HS200_TUNE
         with the board's tap, so a marginal board still boots.
 
 config MMC_CORE_OVERRIDE_BOOT_PART_SZ
-    bool "Override boot partition size"
-    default n
+    bool "Override the boot partitions' size"
     depends on MMC_CORE
     help
-        Most user want to set this to 'n'. Under some circumstances it can
-        be useful to ignore what extcsd report and forcibly set the boot partition
-        size to something else.
+        Most products leave this off. Use the size below instead of the
+        one the card's EXT_CSD reports for its boot partitions.
 
 config MMC_CORE_BOOT_PART_SZ_KiB
-    int "Override boot partition size (KiB)"
+    int "Boot partition size (KiB)"
     depends on MMC_CORE_OVERRIDE_BOOT_PART_SZ
     default 0
 
 config IMX_USDHC
+    bool "i.MX uSDHC"
     depends on SOC_FAMILY_IMX
     select MMC_CORE
-	bool "Enable support i.MX USDHC"
-    default n
 
 config IMX_USDHC_MAX_INSTANCES
     int "uSDHC controllers"

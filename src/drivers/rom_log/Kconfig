@@ -3,9 +3,7 @@
 # The i.MX boot ROM's event log (NXP AN12853)
 config DRIVERS_IMX_ROM_LOG
     bool
-    default n
 
 # The i.MX boot ROM's HABv4 event log
 config DRIVERS_IMX_HAB_LOG
     bool
-    default n

@@ -1,13 +1,18 @@
-menu "Uart"
+# Selected by the platforms whose SoC has it (platform.md 6.1)
+config HAVE_IMX_LPUART
+    bool
+
+config HAVE_IMX_UART
+    bool
+
+menu "UART"
 
 config DRIVERS_IMX_LPUART
-    bool "i.MX lpuart"
-    depends on SOC_FAMILY_IMX
-    default n
+    bool "i.MX LPUART"
+    depends on HAVE_IMX_LPUART
 
 config DRIVERS_IMX_UART
-    bool "i.MX uart"
-    depends on SOC_FAMILY_IMX
-    default n
+    bool "i.MX UART"
+    depends on HAVE_IMX_UART
 
 endmenu

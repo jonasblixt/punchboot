@@ -1,4 +1,3 @@
 # Selected by the platforms that have a TZC-380
 config DRIVERS_TZC380
     bool
-    default n
