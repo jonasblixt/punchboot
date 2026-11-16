@@ -69,7 +69,9 @@ static const mmap_region_t imx_mmap[] = {
     /* Boot ROM API*/
     MAP_REGION_FLAT(IMX6UL_ROM_BASE, (128 * 1024), MT_MEMORY | MT_RO | MT_EXECUTE),
     /* Needed for HAB*/
-    MAP_REGION_FLAT(IMX6UL_OCRAM_BASE, (256 * 1024), MT_MEMORY | MT_RW),
+    /* 128 KiB: 0x920000 to 0x97ffff is the OCRAM again, aliased (RM, the
+     * memory map), not mapped (F-437) */
+    MAP_REGION_FLAT(IMX6UL_OCRAM_BASE, IMX6UL_OCRAM_SIZE, MT_MEMORY | MT_RW),
     /* AIPS-1 */
     MAP_REGION_FLAT(AIPS1_ARB_BASE_ADDR, (1024 * 1024), MT_DEVICE | MT_RW),
     /* AIPS-2 */
@@ -508,6 +510,24 @@ int plat_init(void)
                      MMIO_POLL_PLL_LOCK) != PB_OK) {
         LOG_ERR("PLL1 doesn't lock");
         return -PB_ERR_TIMEOUT;
+    }
+
+    /* ARM_PODF divides by 2: PLL1 is twice the core's rate. CACRR resets to
+     * divide by 1 (RM 18.6.5) and the ROM leaves 2, which pb relied on: with
+     * 1 the core would run at 1056 MHz. Written while the core is on the
+     * step clock (F-210) */
+    mmio_write_32(IMX6UL_CCM_CACRR, CCM_CACRR_AR_PODF(1));
+
+    struct pb_timeout podf_to;
+
+    pb_timeout_init_us(&podf_to, 1000);
+    while (mmio_read_32(IMX6UL_CCM_CDHIPR) & CCM_CDHIPR_ARM_PODF_BUSY) {
+        /* Not back to PLL1 with a divider that may not have taken: the core
+         * would run at PLL1's rate, twice its own. It stays on the step clock */
+        if (pb_timeout_has_expired(&podf_to)) {
+            LOG_ERR("ARM_PODF busy");
+            return -PB_ERR_TIMEOUT;
+        }
     }
 
     /* Select re-connect ARM PLL */
