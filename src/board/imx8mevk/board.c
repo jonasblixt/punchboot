@@ -8,6 +8,8 @@
  */
 
 #include <boot/ab_state.h>
+#include <boot/atf.h>
+#include <boot/image.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
@@ -198,6 +200,26 @@ static const struct gpt_part_table gpt_tbl_default[] = {
     },
 };
 
+/*
+ * Linux through TF-A, as on the 8MP EVK and the pico8ml (F-300): the boot
+ * image has BL31 in the part "atf" and Linux as BL33 in "kernel"; BL31
+ * starts it at EL2 with the device tree in x0. The console is UART1,
+ * Linux's ttymxc0. Built only: no imx8mevk is on the bench
+ */
+static const struct boot_handover_image_config boot_image = {
+    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+    .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
+    .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+    .bootargs = "console=ttymxc0,115200 quiet ",
+    /* arm64 has no earlyprintk: earlycon, on stdout-path */
+    .bootargs_verbose = "console=ttymxc0,115200 earlycon ",
+    .set_dtb_boot_arg = true,
+};
+
+static const struct boot_delivery_tfa_config boot_tfa = {
+    .bl31_bpak_id = 0xa697d988, /* bpak_id("atf") */
+};
+
 static const struct gpt_table_list gpt_tables[] = {
     {
         .name = "Default",
@@ -207,12 +229,20 @@ static const struct gpt_table_list gpt_tables[] = {
     },
 };
 
+/* The A/B policy, as the 8MP EVK's (F-300) */
+static const struct boot_ab_state_config boot_state_cfg = {
+    .primary_state_part_uu = PART_primary_state,
+    .backup_state_part_uu = PART_backup_state,
+    .sys_a_uu = PART_sys_a,
+    .sys_b_uu = PART_sys_b,
+};
+
 /*
  * Where an image's parts may be loaded (board.md 2.9): the DRAM pb maps,
  * from 0x40000000 to BOARD_RAM_END, above what pb has in it: the DDR
  * controller's state and pb's buffers, then pb proper, which runs from
- * PB_ENTRY (D-088). The board has no handover yet (F-300), so nothing is
- * loaded. board_setup() checks the list against what is linked.
+ * PB_ENTRY (D-088). And the on-chip RAM the 8MQ's BL31 is linked for.
+ * board_setup() checks the list against what is linked.
  *
  * The DRAM's region and the link have one source, the board's makefile.mk
  * (platform.md 5.1): pb proper is after the buffers, so the build fails when
@@ -225,6 +255,7 @@ _Static_assert((uint64_t)PB_ENTRY >= (uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE
 static const struct boot_image_region image_regions[] = {
     /* The DRAM after pb proper (D-088) */
     BOOT_IMAGE_REGION_AFTER_PB(BOARD_RAM_END),
+    BOOT_IMAGE_REGION(IMX8MQ_BL31_BASE, IMX8MQ_BL31_SIZE),
     BOOT_IMAGE_REGION_END,
 };
 
@@ -245,6 +276,9 @@ const struct board board = {
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .readable_parts = readable_parts,
     .readable_parts_length = ARRAY_SIZE(readable_parts),
+    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
+    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_image),
+    .boot_delivery = BOOT_DELIVERY_TFA(&boot_tfa),
     .image_regions = image_regions,
 };
 
