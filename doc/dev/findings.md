@@ -915,6 +915,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | it (`imx8m_spl_console_init()`, then GPT1's gate in `imx8m_spl_dram_init()`), and the RAM log is | | |
 | | | written out then: a putc bounded through `pb_timeout_*()` would read a gated timer. A counted | | |
 | | | bound, or a console that starts after the timer | | |
+| | | 2026-11-16 (`e26f2dfc`, Jonas: counted loops): `mmio_poll_32()` (`pb/mmio_poll.h`) bounds the ARM | | |
+| | | PLL's lock on the 6UL, the 8MQ and the 8MP, the RT's PLL lock and ARM_PODF handshake, and both UARTs' | | |
+| | | waits; a PLL that doesn't lock is `plat_init()`'s or the SPL's error, a UART that doesn't send prints | | |
+| | | nothing more. On the 8MP EVK, the MEK and jiffy: the banner, command mode. Left: the RT's two waits | | |
+| | | that switch the core's own clock (the AHB root's mux, AHB_PODF): counted, pb came up in 7 and 9 of 10 | | |
+| | | RAM loads (an IACCVIOL HardFault, the stacked PC garbage with the Thumb bit clear, r0 the CCM's | | |
+| | | base), bare 20 of 20; they stay bare loops, cause unknown | | |
 | | `usb.md` 3.2 | | (boards) | |
 | | | `usb.md` 3.2's requests and stalls the rest, as written. USB 2.0 9.4 has a configured device answer | | |
 | | | more: GET_CONFIGURATION, GET_INTERFACE, GET_STATUS of the interface and of an endpoint, and | | |
