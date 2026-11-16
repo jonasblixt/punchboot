@@ -717,21 +717,35 @@ static int dwc3_udc_xfer_zlp(usb_ep_t ep)
     return dwc3_ep0_finish();
 }
 
+/*
+ * A protocol stall of endpoint 0 (usb.md 4.4, F-138): the data stage ended,
+ * SSTALL on endpoint 0, and back to the Setup stage with its TRB armed. Also
+ * what a poll does with a request usbd left unfinished
+ */
+static int dwc3_udc_ep0_stall(void)
+{
+    if (!ep0.in_control)
+        return PB_OK;
+
+    if (!ep0.aborted) {
+        LOG_DBG("Stall EP0");
+        (void)dwc3_end_transfer(USB_EP0_IN);
+        (void)dwc3_command(USB_EP0_OUT, DEPCMD_DEPSSTALL, 0, 0, 0);
+    }
+
+    ep0.aborted = true;
+    return dwc3_ep0_finish();
+}
+
 static int dwc3_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
 {
     int rc;
 
     dwc3_handle_events();
 
+    /* usbd didn't finish the last request: stall it */
     if (ep0.in_control) {
-        if (!ep0.aborted) {
-            /* usbd didn't finish the last request (unsupported): stall it */
-            LOG_DBG("Stall EP0");
-            (void)dwc3_end_transfer(USB_EP0_IN);
-            (void)dwc3_command(USB_EP0_OUT, DEPCMD_DEPSSTALL, 0, 0, 0);
-        }
-        ep0.aborted = true;
-        rc = dwc3_ep0_finish();
+        rc = dwc3_udc_ep0_stall();
         if (rc != PB_OK)
             return rc;
     }
@@ -963,6 +977,7 @@ int imx_dwc3_udc_init(uintptr_t base_)
         .set_configuration = dwc3_udc_set_configuration,
         .set_address = dwc3_udc_set_address,
         .ep0_xfer_zlp = dwc3_udc_xfer_zlp,
+        .ep0_stall = dwc3_udc_ep0_stall,
     };
 
     return usbd_init_hal_ops(&ops);
