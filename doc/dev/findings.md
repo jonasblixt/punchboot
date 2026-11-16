@@ -931,6 +931,15 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | from the first wait, while the AHB root switches to PLL2. Code fetched during that switch can read | | |
 | | | wrong; the tight loop stays in what was fetched. Not landed. A bound there must not call out: a | | |
 | | | counted loop, or the switch's wait left as it is | | |
+| F-463 | `src/drivers/usb/usbd.c`, `usb.md` 3.2 | Low, a contract question. The stack answers only | Verified (boards) | open |
+| | | `usb.md` 3.2's requests and stalls the rest, as written. USB 2.0 9.4 has a configured device answer | | |
+| | | more: GET_CONFIGURATION, GET_INTERFACE, GET_STATUS of the interface and of an endpoint, and | | |
+| | | CLEAR_FEATURE / SET_FEATURE(ENDPOINT_HALT). On the RT1060, the MEK and the 8MP EVK (pyusb, | | |
+| | | 2026-11-16) all of them stall, and `clear_halt()` of either bulk endpoint fails; each board goes on | | |
+| | | (dev show after). A host that clears a halt after an error (WinUSB's pipe reset, libusb's | | |
+| | | `clear_halt`) gets a stall. CLEAR_FEATURE(HALT) resets the data toggle, which is each controller's: | | |
+| | | answering it without that would lose the next packet. The other four the stack could answer alone. | | |
+| | | Also seen: a zero length and a 1024 byte packet where a command is read, each board recovers | | |
 
 ## Dependencies / vendored code
 
