@@ -858,6 +858,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | init on every boot: about 22 characters at 115200 baud, written synchronously (`console.c`, a log | | |
 | | | line before and after it from RAM). Left: the signature's 0.7 ms; whether the RT prints the banner | | |
 | | | (`CONFIG_PRINT_BOOT_BANNER`, D-023) for Jonas | | |
+| | | 2026-11-16, the signature's 0.7 ms: `be98eb8d`'s pb loaded to RAM over the J-Link has 25.89 ms (the | | |
+| | | table's), `b7561ea1`'s 26.5 (`boot-time-image -s 4K`, from "Key-store:" to "Authentication | | |
+| | | successful": the header's SHA-256 and the ECDSA verify). Bisected by RAM loads (nothing flashed): | | |
+| | | the first slow commit is `d00140db` (F-065), which changes nothing in that window. Ruled out: the | | |
+| | | Mbed TLS functions' addresses (the same in it and its parent), the read only data's offset (`.ro_data` | | |
+| | | moved by 0, 8, 16, 24 bytes: 26.52 each), the D-cache write-through (0.1 ms), the stack's alignment | | |
+| | | (32 since F-209, still 26.5). The commits before it vary 25.7 to 26.0. Left: what in the layout costs it | | |
 
 ## Dependencies / vendored code
 
