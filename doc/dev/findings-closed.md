@@ -2130,6 +2130,20 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-16 (`aa834550`): tee-supplicant's log: "failed to create /data/tee/", the root is read only. | | |
 | | | The add-on's root links /data to /tmp (`board/jiffy/optee-overlay`). On jiffy, the supplicant as its | | |
 | | | init script starts it: xtest's regression suite, 112 test cases and 35581 subtests, none failed | | |
+| F-460 | `src/drivers/mmc/imx_usdhc.c`, command mode | Low, from F-321. A write's data wait | Verified (code) | fixed |
+| | | is still `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us a byte: 9.2 s for command mode's 4 MiB buffer, | | |
+| | | against a 5 s watchdog. A card that stops answering in a `part write` resets the board instead of | | |
+| | | failing the command. Only command mode writes this much (the A/B state is 512 bytes). A bound needs | | |
+| | | the card's write time: R2W_FACTOR times the access time (JESD84-B51 7.3), or a measurement | | |
+| | | 2026-11-16: JESD84-B51 gives no maximum for a write: R2W_FACTOR is the typical block program time | | |
+| | | as up to 128 times the read access time (7.3.21). So the bound is a measurement, or command mode | | |
+| | | writes its buffer in pieces with a kick between (D-073's rule). Measured: jiffy 17.2 MiB/s, the | | |
+| | | MEK 15 MB in 1.1 s, the 8MP EVK 15 MB in 0.7 s | | |
+| | | 2026-11-16 (`49d38378`, Jonas: "Increase default wdt time to 10s"): `CONFIG_WATCHDOG_TIMEOUT` | | |
+| | | defaults to 10 s and the boards that had 5 s take 10; the write's bound is | | |
+| | | `IMX_USDHC_WRITE_TIMEOUT_us()` in `imx_usdhc.h`, and `IMX_USDHC_CHECK_CHUNKS()` stops a build whose | | |
+| | | command mode buffer write may not end before the watchdog. On the MEK and the 8MP EVK: 15 MB, Linux, | | |
+| | | reboot | | |
 
 ## Dependencies / vendored code
 
