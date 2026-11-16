@@ -55,6 +55,6 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - Contract sentences: `platform.md` 3.10's port rule (D-084), `usb.md` 4.2's stop (F-453),
   `platform.md` 3.3's kicks (F-320); `boot.md` F-291, F-331, F-323, F-345, F-360, F-342, F-348;
   `board.md` F-325, F-335, F-392; `command-mode.md` F-375; `bio.md` F-310; F-311.
-- Choices left in findings: F-283 and F-200 (the GPT's 512s, SEC_COUNT 0), F-406.
+- Choices left in findings: F-283 and F-200 (the GPT's 512s, SEC_COUNT 0).
 - Which findings gate the 3.0.0 tag; bebop's defconfig (F-033); virtio for QEMU (F-052).
 - `Co-Authored-By` trailers in 376 pushed commits (left for now, Jonas).

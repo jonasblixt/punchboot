@@ -633,22 +633,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | ask every policy to be safe after a failed init? (7) `boot activate` after an unreadable state | | |
 | | | writes the defaults and the activation: the board registers on the disk are lost. (8) One good copy | | |
 | | | beside an unreadable one is used and repaired | | |
-| F-406 | `src/drivers/mmc/`, `tests/`, `ab_state.c` | Low, from F-283. `mmc_init()` that fails | Reported | open |
-| | | after it registered its devices leaves them registered and pointing at a slot that is free again | | |
-| | | (`drivers.md` 2.1: nothing is registered when init fails). A card of another size at a second | | |
-| | | `mmc_init()` keeps the first one's range. `host_disk_init()` called twice leaks a descriptor | | |
-| | | (tests). `pb_boot_state_write()` with a handle that isn't one tests a flag on a negative value; the | | |
-| | | result is -PB_ERR_PARAM either way | | |
-| | | 2026-11-13 (`281e85a2`, `17d0f00d`, `9fe0a282`): every UUID is checked before the first device is | | |
-| | | registered; after a failed init the card's devices return `-PB_ERR_STATE` until an init works; a | | |
-| | | card of another size or without a partition at a second init is `-PB_ERR_IO`. Left: devices | | |
-| | | registered before the bio pool filled up stay (bio has no release), `host_disk_init()` twice, | | |
-| | | `pb_boot_state_write()` with a bad handle | | |
-| | | 2026-11-14 (`7a5c73b9`): a second `host_disk_init()` closes the first one's file | | |
-| | | 2026-11-14 (`7a898c68`): `pb_boot_state_write()` returns a bad handle's error before it looks at | |
-| | | flags. Left, for Jonas: devices registered before the bio pool filled stay; `drivers.md` 2.1 says | |
-| | | nothing stays registered, `bio.md` has no release for a driver (a porting API change): either 2.1 | |
-| | | accepts devices that answer `-PB_ERR_STATE`, as the MMC's do, or `bio.md` gets a release | |
 | F-410 | `src/drivers/crypto/caam/imx_caam.c` | From F-181's package and its review. Every buffer | Reported | open |
 | | | address is cut to 32 bits (`drivers.md` 4.2: refuse). `imx_caam_init()` empties the output ring and | | |
 | | | doesn't reset the job ring (`drivers.md` 2.1; a reset can't be tried from here). The key parser | | |
