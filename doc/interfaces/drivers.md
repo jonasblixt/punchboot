@@ -86,7 +86,9 @@ Called by whoever selects the peripheral, once its clocks, pads and power are se
 - It resets the device to a known state first: the ROM, a serial download or a boot that
   stopped before may have left it running.
 - It registers what the class's core needs (a block device, the backend's operations, the
-  controller's operations). Nothing is registered when it fails.
+  controller's operations). Nothing is registered when it fails, but a block device registered
+  before the failure: `bio` has no release (`bio.md`), so it stays, and answers every call with
+  `-PB_ERR_STATE` (F-406, Jonas).
 - **Failure** leaves the device quiet: no DMA, nothing started. What follows is the caller's:
   the platform's failure (`platform.md` 2.2) or the board's (`board.md` 2.1).
 - A driver whose class restarts it (the transport, `usb.md` 2) can be set up again after its
