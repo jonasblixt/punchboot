@@ -30,8 +30,6 @@ CONFIG_BOARD_IMXRT1060EVK_REV_A=y
 #
 # Boot
 #
-CONFIG_EXECUTE_IN_RAM=y
-# CONFIG_EXECUTE_IN_FLASH is not set
 
 #
 # Boot source policy: the board's data names the one it uses

@@ -40,8 +40,6 @@ CONFIG_IMX8X_CREATE_IMX_IMAGE=y
 #
 # Boot
 #
-CONFIG_EXECUTE_IN_RAM=y
-# CONFIG_EXECUTE_IN_FLASH is not set
 
 #
 # Boot source policy: the board's data names the one it uses

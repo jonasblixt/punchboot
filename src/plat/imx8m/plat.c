@@ -171,30 +171,8 @@ int plat_get_boot_reason(struct pb_boot_reason *reason)
 
 int plat_get_unique_id(uint8_t *output, size_t *length)
 {
-    union {
-        uint32_t uid[2];
-        uint8_t uid_bytes[8];
-    } plat_unique;
-
-    int rc;
-
-    if (*length < sizeof(plat_unique.uid_bytes))
-        return -PB_ERR_BUF_TOO_SMALL;
-
-    /* A read that fails writes nothing: the device's UUID is made of this */
-    rc = imx_ocotp_read(IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE1_WORD, &plat_unique.uid[0]);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = imx_ocotp_read(IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE2_WORD, &plat_unique.uid[1]);
-
-    if (rc != PB_OK)
-        return rc;
-
-    memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
-    *length = sizeof(plat_unique.uid_bytes);
-    return PB_OK;
+    return imx_ocotp_read_unique_id(
+        IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE1_WORD, IMX8M_FUSE_UNIQUE2_WORD, output, length);
 }
 
 void plat_reset(void)

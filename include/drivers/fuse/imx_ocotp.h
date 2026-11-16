@@ -12,6 +12,7 @@
 
 #include <pb/utils_def.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #define OCOTP_CTRL           0x0000
@@ -45,6 +46,20 @@ int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg
 /* Both -PB_ERR_STATE before an imx_ocotp_init() that worked */
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value);
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
+
+/**
+ * The SoC's unique id (platform.md 3.5) from the two fuse words that hold it,
+ * row1's first, each in memory order: 8 bytes. The bytes are the device's
+ * identity (platform.md 3.7), never to change.
+ *
+ * @return PB_OK, -PB_ERR_BUF_TOO_SMALL when *length is below 8, or
+ *         imx_ocotp_read()'s error. On an error nothing is written
+ */
+int imx_ocotp_read_unique_id(uint32_t bank,
+                             uint32_t row1,
+                             uint32_t row2,
+                             uint8_t *output,
+                             size_t *length);
 
 /* The fuse address in CTRL, and its write unlock */
 #define OCOTP_CTRL_ADDR_MASK        0x7F /* The RM says 0x3F, NXP's drivers use 0x7F */

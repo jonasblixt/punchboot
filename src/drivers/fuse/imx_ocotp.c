@@ -11,6 +11,7 @@
 #include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
+#include <string.h>
 
 static uintptr_t base; /* 0: not set up, every call is -PB_ERR_STATE */
 static uint32_t wpb;
@@ -267,6 +268,38 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 
     *value = mmio_read_32(base + OCOTP_READ_FUSE_DATA);
 
+    return PB_OK;
+}
+
+int imx_ocotp_read_unique_id(uint32_t bank,
+                             uint32_t row1,
+                             uint32_t row2,
+                             uint8_t *output,
+                             size_t *length)
+{
+    union {
+        uint32_t uid[2];
+        uint8_t uid_bytes[8];
+    } unique;
+
+    int rc;
+
+    if (*length < sizeof(unique.uid_bytes))
+        return -PB_ERR_BUF_TOO_SMALL;
+
+    /* A read that fails writes nothing: the device's UUID is made of this */
+    rc = imx_ocotp_read(bank, row1, &unique.uid[0]);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = imx_ocotp_read(bank, row2, &unique.uid[1]);
+
+    if (rc != PB_OK)
+        return rc;
+
+    memcpy(output, unique.uid_bytes, sizeof(unique.uid_bytes));
+    *length = sizeof(unique.uid_bytes);
     return PB_OK;
 }
 
