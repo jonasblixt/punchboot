@@ -242,16 +242,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `cee1b689`: pb reads region 1 back and refuses the boot when the TZASC ignored the write. On | | |
 | | | jiffy: System A to the login. Left: whether a warm reset resets the TZASC (F-455), and the CSU | | |
 | | | policy that keeps the normal world off the TZASC's registers (TRM 2.1: secure only), the secure OS's | | |
-| F-321 | `src/drivers/mmc/imx_usdhc.c`, the defconfigs | One chunk's read may wait longer | Verified (code) | open |
-| | | than the watchdog. The uSDHC's data wait is `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us per byte, and a chunk | | |
-| | | is one request: 6.0 s for 1 MiB (jiffy, imx8mpevk), 9.2 s for 4 MiB (imx8qxmek, imx8mevk, imx8dxlevk), | | |
-| | | against a `CONFIG_WATCHDOG_TIMEOUT` of 5 s (the DXL: 10 s). A card that stops answering in a read ends in | | |
-| | | a watchdog reset, not in `-PB_ERR_TIMEOUT` and the next candidate (`boot.md` 2), and for an A/B trial each | | |
-| | | reset spends an attempt. `drivers.md` 3 (D-073): the driver's header gives the longest time per unit, and | | |
-| | | the core asks in pieces that fit the watchdog with room to spare; `platform.md` 3.3: the board states one | | |
-| | | chunk on its slowest medium. No header and no board states either, and `CONFIG_BOOT_LOAD_CHUNK_kB` was | | |
-| | | chosen for speed. When the card answers, by the measured rates: a chunk takes 13 ms on jiffy (77 MiB/s), | | |
-| | | 12 ms on the 8MP EVK (87 MiB/s), 23 ms on the MEK (173 MiB/s). Read in the code, not run on a board | | |
 | F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL | Verified (on jiffy) | open |
 | | | RM (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 | | |
 | | | (supervisor only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code | | |
@@ -676,6 +666,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | keystore; the three internal keys are pinned). Left, each needing a board: no job ring reset in | | |
 | | | init, the 8M Mini SRM's verify PDB, a short hash that starts with INIT and no data. And | | |
 | | | `imx_caam_init()` leaves its hash ops registered when `dsa_add_ops()` fails | | |
+| | | 2026-11-16 (`cb8bac6d`): a backend whose `dsa_add_ops()` fails takes its hashes back | | |
+| | | (`hash_remove_ops()`, the CAAM and Mbed TLS; `test_crypto`); on the MEK and the 8MP EVK with | | |
+| | | F-321's build. Left as above: the job ring reset, the 8M Mini SRM's PDB, a short hash's INIT | | |
 | F-411 | `src/boot/dtb.c`, `src/lib/fdt` | A device tree part whose header lies about | Verified (run, host) | open |
 | | | more than `totalsize` reads outside its part: only the magic, the version and `totalsize` are | | |
 | | | checked, and `fdt_open_into()` trusts `off_dt_struct`, `off_dt_strings`, `off_mem_rsvmap` and the | | |
@@ -899,6 +892,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | watchdog daemon never starts, the hardware watchdog isn't kicked by pb's setup alone (not known why it | | |
 | | | doesn't fire). Not known: whether the CAAM state comes from Linux's run before the warm reset or from | | |
 | | | pb (its job ring 0, `imx_caam_stop()` only in `plat_lockdown()`) | | |
+| F-460 | `src/drivers/mmc/imx_usdhc.c`, command mode | Low, from F-321. A write's data wait | Verified (code) | open |
+| | | is still `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us a byte: 9.2 s for command mode's 4 MiB buffer, | | |
+| | | against a 5 s watchdog. A card that stops answering in a `part write` resets the board instead of | | |
+| | | failing the command. Only command mode writes this much (the A/B state is 512 bytes). A bound needs | | |
+| | | the card's write time: R2W_FACTOR times the access time (JESD84-B51 7.3), or a measurement | | |
 
 ## Dependencies / vendored code
 

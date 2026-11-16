@@ -420,6 +420,23 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | (`test_boot_mode`: a policy boot, a fallback, `boot part` and `boot bpak` after a fallback that | | |
 | | | failed, read from pb-host's log, F-347). `boot.md` 3 names no function for the system's name: F-345. | | |
 | | | Every board builds; not run on a board | | |
+| F-321 | `src/drivers/mmc/imx_usdhc.c`, the defconfigs | One chunk's read may wait longer | Verified (code) | fixed |
+| | | than the watchdog. The uSDHC's data wait is `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us per byte, and a chunk | | |
+| | | is one request: 6.0 s for 1 MiB (jiffy, imx8mpevk), 9.2 s for 4 MiB (imx8qxmek, imx8mevk, imx8dxlevk), | | |
+| | | against a `CONFIG_WATCHDOG_TIMEOUT` of 5 s (the DXL: 10 s). A card that stops answering in a read ends in | | |
+| | | a watchdog reset, not in `-PB_ERR_TIMEOUT` and the next candidate (`boot.md` 2), and for an A/B trial each | | |
+| | | reset spends an attempt. `drivers.md` 3 (D-073): the driver's header gives the longest time per unit, and | | |
+| | | the core asks in pieces that fit the watchdog with room to spare; `platform.md` 3.3: the board states one | | |
+| | | chunk on its slowest medium. No header and no board states either, and `CONFIG_BOOT_LOAD_CHUNK_kB` was | | |
+| | | chosen for speed. When the card answers, by the measured rates: a chunk takes 13 ms on jiffy (77 MiB/s), | | |
+| | | 12 ms on the 8MP EVK (87 MiB/s), 23 ms on the MEK (173 MiB/s). Read in the code, not run on a board | | |
+| | | 2026-11-16 (`1e5958e9`, `021dcb85`): a read waits 1 s, above an eMMC's longest access time | | |
+| | | (JESD84-B51 Table 71: 10 x (TAAC + NSAC), about 800 ms) and an SD card's 100 ms, plus 250 ns a byte | | |
+| | | (4 MB/s): 2.05 s for 4 MiB; `imx_usdhc.h` gives it, `IMX_USDHC_READ_TIMEOUT_us()`, and | | |
+| | | `IMX_USDHC_CHECK_CHUNKS()` stops a board's build when a read of its boot chunk or command mode's | | |
+| | | buffer may wait more than half the watchdog (all six fit). `test_imx_usdhc` has a card that stops | | |
+| | | in a read. On the MEK and the 8MP EVK: Linux to the login, 15 MB written and verified 3 of 3. A | | |
+| | | write keeps its bound: F-460 | | |
 | F-340 | `src/boot/ab_state.c` | Minor. A rollback to a confirmed slot assigns `error` | Verified (code) | fixed |
 | | | (`error = PB_STATE_ERROR_A_ROLLBACK`), which clears the other slot's rollback bit; `boot.md` | | |
 | | | 3.5, rule 2 sets the rolled back slot's bit. F-177's rest: speculative mode no longer writes | | |
