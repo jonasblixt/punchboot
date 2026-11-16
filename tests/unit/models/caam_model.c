@@ -442,6 +442,9 @@ static uint32_t mdha(struct ccb *ccb, const struct cmd *c)
     if (a == NULL)
         return not_modeled(c, DECO_FIFO_LOAD);
 
+    if (ccb->as == AS_INIT && c->length == 0)
+        bench_violation(SRM "MDHA", "%s: a hash is started with no data", a->name);
+
     if (!final && (c->length % a->block) != 0) {
         bench_violation(SRM "MDHA",
                         "%s: %u bytes continue a hash, which takes whole blocks",

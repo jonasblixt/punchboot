@@ -686,29 +686,25 @@ static int caam_hash_final(uint8_t *output, size_t size)
     if (size < caam.digest_size)
         return -PB_ERR_BUF_TOO_SMALL;
 
-    /* If there was no update we must still call the update function
-     * once to initialize the hash block */
-    if (caam.init) {
-        err = _hash_update(NULL, 0);
-
-        if (err != PB_OK)
-            return err;
-    }
-
-    /* That job, when the hash's updates were asynchronous */
-    err = caam_hash_join();
-
-    if (err != PB_OK)
-        return err;
-
     dma_out(caam_hash_align_buf, caam.hash_align_buf_len);
 
     caam_desc[dc++] = DESC_HDR(0);
-    caam_desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH) |
-                      ALGO_AS(FINAL);
 
-    caam_desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
-    caam_desc[dc++] = (uint32_t)(uintptr_t)caam_run_ctx;
+    /* A hash that no update started (less than a block) is one job that
+     * starts and ends it: the SRM's INIT takes data, so not an INIT of
+     * nothing and a FINAL after it (F-410). The digest is the same, also
+     * HASH_MD5_BROKEN's: the length it loses is 0 here either way */
+    if (caam.init) {
+        caam_desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH) |
+                          ALGO_AS(INIT_FINAL);
+        caam.init = false;
+    } else {
+        caam_desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH) |
+                          ALGO_AS(FINAL);
+        caam_desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
+        caam_desc[dc++] = (uint32_t)(uintptr_t)caam_run_ctx;
+    }
+
     caam_desc[dc++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
     caam_desc[dc++] = (uint32_t)(uintptr_t)caam_hash_align_buf;
     caam_desc[dc++] = (uint32_t)caam.hash_align_buf_len;

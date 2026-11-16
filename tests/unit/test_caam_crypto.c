@@ -294,6 +294,58 @@ static void test_3_known_answers(void **state)
     }
 }
 
+/* A hash with less than a block, or none, is one INIT_FINAL job (F-410):
+ * the empty message's known answers, and the broken MD5 of less than a
+ * block is MD5's, which the device's UUID rests on (D-008) */
+static void test_3_short_hashes(void **state)
+{
+    static const uint8_t empty_md5[16] = {
+        0xd4, 0x1d, 0x8c, 0xd9, 0x8f, 0x00, 0xb2, 0x04,
+        0xe9, 0x80, 0x09, 0x98, 0xec, 0xf8, 0x42, 0x7e,
+    };
+    static const uint8_t empty_sha256[32] = {
+        0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4,
+        0xc8, 0x99, 0x6f, 0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b,
+        0x93, 0x4c, 0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55,
+    };
+    static const uint8_t empty_sha384[48] = {
+        0x38, 0xb0, 0x60, 0xa7, 0x51, 0xac, 0x96, 0x38, 0x4c, 0xd9, 0x32, 0x7e,
+        0xb1, 0xb1, 0xe3, 0x6a, 0x21, 0xfd, 0xb7, 0x11, 0x14, 0xbe, 0x07, 0x43,
+        0x4c, 0x0c, 0xc7, 0xbf, 0x63, 0xf6, 0xe1, 0xda, 0x27, 0x4e, 0xde, 0xbf,
+        0xe7, 0x6f, 0x65, 0xfb, 0xd5, 0x1a, 0xd2, 0xf1, 0x48, 0x98, 0xb9, 0x5b,
+    };
+    static const uint8_t empty_sha512[64] = {
+        0xcf, 0x83, 0xe1, 0x35, 0x7e, 0xef, 0xb8, 0xbd, 0xf1, 0x54, 0x28, 0x50, 0xd6,
+        0x6d, 0x80, 0x07, 0xd6, 0x20, 0xe4, 0x05, 0x0b, 0x57, 0x15, 0xdc, 0x83, 0xf4,
+        0xa9, 0x21, 0xd3, 0x6c, 0xe9, 0xce, 0x47, 0xd0, 0xd1, 0x3c, 0x5d, 0x85, 0xf2,
+        0xb0, 0xff, 0x83, 0x18, 0xd2, 0x87, 0x7e, 0xec, 0x2f, 0x63, 0xb9, 0x31, 0xbd,
+        0x47, 0x41, 0x7a, 0x81, 0xa5, 0x38, 0x32, 0x7a, 0xf9, 0x27, 0xda, 0x3e,
+    };
+    static const uint8_t *const empty[] = {
+        empty_md5,
+        empty_sha256,
+        empty_sha384,
+        empty_sha512,
+    };
+    (void)state;
+
+    _Static_assert(ARRAY_SIZE(empty) == ARRAY_SIZE(hashes), "One empty digest per hash");
+
+    for (size_t i = 0; i < ARRAY_SIZE(hashes); i++) {
+        assert_int_equal(hash_init(hashes[i].alg), PB_OK);
+        assert_int_equal(hash_final(digest, hashes[i].length), PB_OK);
+        assert_memory_equal(digest, empty[i], hashes[i].length);
+    }
+
+    assert_int_equal(hash_init(HASH_MD5_BROKEN), PB_OK);
+    assert_int_equal(hash_update("abc", 3), PB_OK);
+    assert_int_equal(hash_final(digest, 16), PB_OK);
+    assert_memory_equal(digest, vector_md5_abc, 16);
+
+    /* INIT_FINAL loads no running context, so nothing is lost: no violation */
+    assert_bench_clean();
+}
+
 /* 3.5: 'length' is the room at digest_out. Less than the digest is
  * -PB_ERR_BUF_TOO_SMALL and nothing is written; with more, the digest's
  * bytes are written and the rest is left. The engine stored the whole digest
@@ -1036,54 +1088,51 @@ static void test_pinned_init_and_hashes(void **state)
 {
     static const char *const expected[] = {
         "IRJAR = 1",
-        "job drv2: b0800007 84430004 24540000 NULL 00000000 54200028 drv3",
+        "job drv2: b0800007 8443000c 24540000 drv3 00000003 54200020 drv4",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84430008 14200028 drv3 24540000 drv4 00000003 54200020 drv5",
+        "job drv2: b0800007 84450004 24540000 drv3 00000080 54200048 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800007 84450004 24540000 drv4 00000080 54200048 drv3",
+        "job drv2: b0800009 84450000 14200048 drv5 24540000 pattern+128 00000180 54200048 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84450000 14200048 drv3 24540000 pattern+128 00000180 54200048 drv3",
+        "job drv2: b0800009 84450000 14200048 drv5 24540000 drv3 00000080 54200048 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84450000 14200048 drv3 24540000 drv4 00000080 54200048 drv3",
+        "job drv2: b0800009 84450000 14200048 drv5 24540000 pattern+640 00000100 54200048 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84450000 14200048 drv3 24540000 pattern+640 00000100 54200048 drv3",
+        "job drv2: b0800009 84450008 14200048 drv5 24540000 drv3 00000068 54200040 drv4",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84450008 14200048 drv3 24540000 drv4 00000068 54200040 drv5",
+        "job drv2: b0800007 84440004 24540000 pattern 00000200 54200048 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800007 84440004 24540000 pattern 00000200 54200048 drv3",
+        "job drv2: b0800009 84440000 14200048 drv5 24540000 pattern+512 00000180 54200048 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84440000 14200048 drv3 24540000 pattern+512 00000180 54200048 drv3",
+        "job drv2: b0800009 84440008 14200048 drv5 24540000 drv3 00000068 54200030 drv4",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84440008 14200048 drv3 24540000 drv4 00000068 54200030 drv5",
+        "job drv2: b0800007 84400004 24540000 chunk 000000c0 54200018 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800007 84400004 24540000 chunk 000000c0 54200018 drv3",
+        "job drv2: b0800009 84400008 14200018 drv5 24540000 drv3 00000008 54200010 drv4",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84400008 14200018 drv3 24540000 drv4 00000008 54200010 drv5",
+        "job drv2: b0800007 84400004 24540000 chunk 000000c0 54200010 drv5",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800007 84400004 24540000 chunk 000000c0 54200010 drv3",
-        "ORJRR = 1",
-        "IRJAR = 1",
-        "job drv2: b0800009 84400008 14200010 drv3 24540000 drv4 00000008 54200010 drv5",
+        "job drv2: b0800009 84400008 14200010 drv5 24540000 drv3 00000008 54200010 drv4",
         "ORJRR = 1",
     };
     (void)state;
 
     pin_begin();
 
-    /* Less than a block: a job that starts the hash with no data, then the
-     * final with the block buffer */
+    /* Less than a block: one job that starts and ends the hash with the
+     * block buffer (INIT_FINAL, F-410) */
     assert_int_equal(hash_init(HASH_SHA256), PB_OK);
     assert_int_equal(hash_update("abc", 3), PB_OK);
     assert_int_equal(hash_final(digest, 32), PB_OK);
@@ -1122,31 +1171,22 @@ static void test_pinned_verifications(void **state)
 {
     static const char *const expected[] = {
         "IRJAR = 1",
-        "job drv2: b0800007 84430004 24540000 NULL 00000000 54200028 drv3",
+        "job drv2: b0800007 8443000c 24540000 drv3 00000024 54200020 drv4",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84430008 14200028 drv3 24540000 drv4 00000024 54200020 drv5",
+        "job drv2: b0880009 00400100 drv5 digest drv6 drv7 drv8 00000020 80160802",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0880009 00400100 drv6 digest drv7 drv8 drv9 00000020 80160802",
+        "job drv2: b0800007 8444000c 24540000 drv3 00000024 54200030 drv4",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800007 84440004 24540000 NULL 00000000 54200048 drv3",
+        "job drv2: b0880009 00400180 drv5 digest drv6 drv7 drv8 00000030 80160802",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0800009 84440008 14200048 drv3 24540000 drv4 00000024 54200030 drv5",
+        "job drv2: b0800007 8445000c 24540000 drv3 00000024 54200040 drv4",
         "ORJRR = 1",
         "IRJAR = 1",
-        "job drv2: b0880009 00400180 drv6 digest drv7 drv8 drv9 00000030 80160802",
-        "ORJRR = 1",
-        "IRJAR = 1",
-        "job drv2: b0800007 84450004 24540000 NULL 00000000 54200048 drv3",
-        "ORJRR = 1",
-        "IRJAR = 1",
-        "job drv2: b0800009 84450008 14200048 drv3 24540000 drv4 00000024 54200040 drv5",
-        "ORJRR = 1",
-        "IRJAR = 1",
-        "job drv2: b0880009 00400200 drv6 digest drv7 drv8 drv9 00000040 80160802",
+        "job drv2: b0880009 00400200 drv5 digest drv6 drv7 drv8 00000040 80160802",
         "ORJRR = 1",
     };
     (void)state;
@@ -1211,6 +1251,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_pinned_init_and_hashes, setup, teardown),
         cmocka_unit_test_setup_teardown(test_pinned_verifications, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_known_answers, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_3_short_hashes, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_3_update_async, setup, teardown),
         cmocka_unit_test_setup_teardown(test_3_5_final_length, setup, teardown),
         cmocka_unit_test_setup_teardown(

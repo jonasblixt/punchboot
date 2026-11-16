@@ -21,8 +21,8 @@
  *  - the rings' base and size written while a job is in them
  *  - a descriptor or the data of a job changed before the job was done:
  *    the engine reads them at any time until then (drivers.md 4.2)
- *  - a hash that is continued with data that isn't whole blocks, or without
- *    its running message length
+ *  - a hash that is started (AS = INIT) with no data, or continued with data
+ *    that isn't whole blocks, or without its running message length
  *  - what the model doesn't know: other commands, algorithms and registers
  *
  * Time is simulated (bench.h): a job takes 20 us in the engine unless the
@@ -39,9 +39,9 @@
  *
  * Where the model follows the silicon, not the manual:
  *
- *  - A hash that starts (AS = INIT) with no data is run. The manual asks
- *    for a non-zero number of blocks; punchboot starts every hash of less
- *    than a block that way, on every board
+ *  - A hash that starts (AS = INIT) with no data is run, after its
+ *    violation: punchboot started every hash of less than a block that way
+ *    until F-410, on every board, and the digests were right
  *  - The verification's PDB is the one punchboot and NXP's OP-TEE driver
  *    use: PD in bit 22 of the first word, then the pointers to the key, the
  *    hashed message, c, d and the temporary buffer, then the message
