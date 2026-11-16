@@ -88,8 +88,11 @@ static bool mailbox_pending(const struct dwc_ddrphy *phy)
  * (4000 MT/s, 1D and 2D; log 2026-11-16) the PMU's next message took at
  * most 15.1 ms, the ack and the calibration 1 us: 1 s and 10 ms
  */
-#define DDRPHY_MAIL_TIMEOUT_us 1000000
-#define DDRPHY_TIMEOUT_us      10000
+#define DDRPHY_MAIL_TIMEOUT_us     1000000
+#define DDRPHY_TIMEOUT_us          10000
+/* A whole training run: 15 to 30 ms each on the 8MP EVK. A PMU that goes on
+ * posting messages and never ends is bounded too (the code review) */
+#define DDRPHY_TRAINING_TIMEOUT_us 2000000
 
 /* Wait until the mailbox is 'pending' */
 static int mailbox_wait(const struct dwc_ddrphy *phy, bool pending, uint32_t timeout_us)
@@ -126,11 +129,10 @@ static int mailbox_get(const struct dwc_ddrphy *phy, bool wide, uint32_t *msg)
 
     dwc_ddrphy_write(phy, DDRPHY_DCTWRITEPROT, DCTWRITEPROT_ACK);
     rc = mailbox_wait(phy, false, DDRPHY_TIMEOUT_us);
-    if (rc != PB_OK)
-        return rc;
+    /* The mailbox goes back to the PMU also when it didn't take the ack */
     dwc_ddrphy_write(phy, DDRPHY_DCTWRITEPROT, DCTWRITEPROT_RELEASE);
 
-    return PB_OK;
+    return rc;
 }
 
 /* Consume a streaming message: a header with the argument count, then the arguments */
@@ -164,12 +166,21 @@ static int consume_streaming_msg(const struct dwc_ddrphy *phy)
  * -PB_ERR_IO when it failed, or a wait's timeout */
 static int wait_training_result(const struct dwc_ddrphy *phy)
 {
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, DDRPHY_TRAINING_TIMEOUT_us);
+
     for (;;) {
         uint32_t major;
         int rc = mailbox_get(phy, false, &major);
 
         if (rc != PB_OK)
             return rc;
+
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("PHY: the training doesn't end (0x%04x)", (unsigned int)major);
+            return -PB_ERR_TIMEOUT;
+        }
 
         switch (major) {
         case DDRPHY_MAIL_TRAINING_DONE:
@@ -228,6 +239,8 @@ int dwc_ddrphy_train(const struct dwc_ddrphy *phy, const struct dram_fsp_msg *fs
     rc = wait_training_result(phy);
     if (rc != PB_OK) {
         LOG_ERR("PHY training failed at %u MT/s (%i)", fsp->drate, rc);
+        /* The PMU doesn't go on running */
+        dwc_ddrphy_write(phy, DDRPHY_MICRORESET, MICRORESET_STALL);
         return rc;
     }
 

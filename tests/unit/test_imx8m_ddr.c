@@ -107,6 +107,8 @@ static unsigned int fail_run;
 static int corrupt_imem;
 /* A poll the hardware never ends (F-102): the register's 'not yet' */
 static uintptr_t stuck_reg;
+/* The PMU posts progress and never ends its training */
+static int progress_forever;
 
 static void trace_add(const char *fmt, ...)
 {
@@ -196,6 +198,9 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
         /* UctWriteProtShadow: 0 = message pending, 1 after the ack (DctWriteProt = 0) */
         return reg_get(PHY_DCT_WRITE_PROT) == 0 ? 1 : 0;
     case PHY_UCT_WRITE_ONLY: {
+        if (progress_forever)
+            return 0x0001;
+
         size_t run = mail_pos / ARRAY_SIZE(mail_script);
         const uint16_t *m = mail_script[mail_pos++ % ARRAY_SIZE(mail_script)];
         mail_hi = m[1];
@@ -338,6 +343,7 @@ static int reset_model(void **state)
     fail_run = 0;
     corrupt_imem = 0;
     stuck_reg = 0;
+    progress_forever = 0;
     return 0;
 }
 
@@ -437,6 +443,26 @@ static void test_a_stuck_poll_times_out(void **state)
     stuck_reg = 0;
 }
 
+/* A PMU that never ends its training run is a timeout too, with the PMU
+ * stalled after it (the code review of F-102) */
+static void test_training_never_ends(void **state)
+{
+    (void)state;
+
+    char needle[32];
+    const char *last = NULL;
+
+    progress_forever = 1;
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_TIMEOUT);
+
+    /* MicroReset's last write is STALL (1) */
+    (void)snprintf(needle, sizeof(needle), "w32 %08lx ", (unsigned long)PHY_REG(0xd0099));
+    for (const char *p = strstr(trace, needle); p != NULL; p = strstr(p + 1, needle))
+        last = p;
+    assert_non_null(last);
+    assert_int_equal(strncmp(last + strlen(needle), "00000001\n", 9), 0);
+}
+
 /* The firmware image does not read back from the PHY as written */
 static void test_firmware_verify_failed(void **state)
 {
@@ -512,6 +538,7 @@ int main(void)
         cmocka_unit_test_setup(test_rates_not_a_prefix, reset_model),
         cmocka_unit_test_setup(test_training_failed, reset_model),
         cmocka_unit_test_setup(test_a_stuck_poll_times_out, reset_model),
+        cmocka_unit_test_setup(test_training_never_ends, reset_model),
         cmocka_unit_test_setup(test_firmware_verify_failed, reset_model),
         cmocka_unit_test_setup(test_unsupported_data_rate, reset_model),
         cmocka_unit_test_setup(test_timing_copy_too_large, reset_model),
