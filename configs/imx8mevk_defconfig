@@ -57,7 +57,7 @@ CONFIG_BOOT_DTB_HEADROOM=4096
 #
 # Delivery: how pb starts the next stage
 #
-# CONFIG_BOOT_ATF is not set
+CONFIG_BOOT_ATF=y
 
 #
 # Loading
