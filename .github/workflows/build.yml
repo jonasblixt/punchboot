@@ -17,10 +17,22 @@ jobs:
             cmake_args: ""
           - name: sanitizers
             cmake_args: "-DPB_SANITIZE=ON"
+          # The unit tests at 32 bits, as jiffy's and the RT1060's pb (F-428).
+          # The 64-bit ports' tests are left out
+          - name: m32
+            cmake_args: "-DCMAKE_C_FLAGS=-m32 -DCMAKE_EXE_LINKER_FLAGS=-m32"
+            build_dir: build-host-m32
+            pkg_config_path: /usr/lib/i386-linux-gnu/pkgconfig
+            ctest_args: >-
+              -L unit -E test_tfa|test_plat_imx8x|test_plat_imx8m|test_mmu|test_imx8mp?_ddr|unit.python
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Unit and integration tests
+        env:
+          BUILD_DIR: ${{ matrix.build_dir || 'build-host' }}
+          PKG_CONFIG_PATH: ${{ matrix.pkg_config_path }}
+          CTEST_ARGS: ${{ matrix.ctest_args }}
         run: scripts/pbdev test ${{ matrix.cmake_args }}
 
   compat:

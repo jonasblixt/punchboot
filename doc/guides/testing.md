@@ -45,6 +45,17 @@ CTEST_ARGS="-L make" scripts/pbdev test      # only the firmware build's checks
 python3 tests/doc/check_docs.py              # the same, without the container
 ```
 
+The unit tests at 32 bits, as CI's `m32` job (F-428), jiffy's and the RT1060's word size:
+
+```sh
+BUILD_DIR=build-host-m32 PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig \
+    CTEST_ARGS="-L unit -E test_tfa|test_plat_imx8x|test_plat_imx8m|test_mmu|test_imx8mp?_ddr|unit.python" \
+    scripts/pbdev test -DCMAKE_C_FLAGS=-m32 -DCMAKE_EXE_LINKER_FLAGS=-m32
+```
+
+The 64-bit ports' tests are left out. A test's 64-bit case (an address above 4 GiB, a size a
+32-bit `size_t` can't hold) is under `#if UINTPTR_MAX == UINT64_MAX` or `SIZE_MAX`.
+
 `PB_JOBS` caps the compile jobs of a run, the firmware builds of the `make` tests included
 (default: the CPUs the container may use): `PB_JOBS=6 scripts/pbdev test` keeps an 8 core
 machine's load under 8. Two runs at once each take their own `PB_JOBS`.

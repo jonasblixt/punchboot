@@ -165,7 +165,8 @@ hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`, a ruff bump c
 ## CI (`.github/workflows/`)
 
 - `build.yml` (D-006). All jobs run through `scripts/pbdev`, so the image is built in every job:
-  - **host-tests:** default and sanitizer builds.
+  - **host-tests:** default and sanitizer builds, and the unit tests at 32 bits (`m32`, as jiffy's
+    and the RT1060's pb; the 64-bit ports' tests left out, F-428).
   - **coverage:** the gcovr summary in the job log, and the line by line HTML report as the
     `coverage` workflow artifact (D-012). Not a gate.
   - **firmware:** jiffy, imx8dxlevk, imx8mevk, imx8mpevk and imxrt1060evk `pb.bin`, and the i.MX8M's
