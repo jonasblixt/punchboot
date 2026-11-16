@@ -721,6 +721,24 @@ int cdns3_udc_core_xfer_zlp(usb_ep_t ep)
     return PB_OK;
 }
 
+/*
+ * A protocol stall of endpoint 0 (usb.md 4.4, F-138): SSTALL on endpoint 0,
+ * then the setup stage ended with ERDY and REQ_CMPL, so the host's data or
+ * status stage gets the STALL. As Linux 6.1's cdns3-ep0.c does for a request
+ * it refuses (no manual). The controller ends the stall at the next SETUP,
+ * whose transfer is armed already (poll_setup_pkt)
+ */
+int cdns3_udc_core_ep0_stall(void)
+{
+    if (!running)
+        return -PB_ERR_STATE;
+
+    select_ep(USB_EP0_OUT);
+    mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_SSTALL);
+    mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_ERDY | EP_CMD_REQ_CMPL);
+    return PB_OK;
+}
+
 int cdns3_udc_core_init(void)
 {
     uint32_t dev_ctrl_version = 0;

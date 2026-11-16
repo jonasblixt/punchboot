@@ -54,6 +54,8 @@
 #define USB_STS_INRST   BIT(10)
 #define EP_CFG_ENABLE   BIT(0)
 #define EP_CMD_EPRST    BIT(0)
+#define EP_CMD_SSTALL   BIT(1)
+#define EP_CMD_ERDY     BIT(3)
 #define EP_CMD_REQ_CMPL BIT(5)
 #define EP_CMD_DRDY     BIT(6)
 #define EP_CMD_DFLUSH   BIT(7)
@@ -766,6 +768,37 @@ static void test_setup_packet(void **state)
     }
 }
 
+/* usb.md 4.4 (F-138): a protocol stall is SSTALL on endpoint 0 OUT, then
+ * the setup stage ended with ERDY and REQ_CMPL, as Linux 6.1 does. The glue
+ * registers it; after stop it is refused */
+static void test_ep0_stall(void **state)
+{
+    size_t start = fake_reg_log_len;
+    size_t sel = SIZE_MAX;
+    size_t sstall = SIZE_MAX;
+    size_t erdy = SIZE_MAX;
+    (void)state;
+
+    assert_int_equal(cdns3_udc_core_ep0_stall(), PB_OK);
+
+    for (size_t i = start; i < fake_reg_log_len; i++) {
+        if (fake_reg_log[i].addr == EP_SEL && sel == SIZE_MAX)
+            sel = i;
+        else if (fake_reg_log[i].addr == EP_CMD && fake_reg_log[i].value == EP_CMD_SSTALL)
+            sstall = i;
+        else if (fake_reg_log[i].addr == EP_CMD &&
+                 fake_reg_log[i].value == (EP_CMD_ERDY | EP_CMD_REQ_CMPL))
+            erdy = i;
+    }
+
+    assert_true(sel < sstall);
+    assert_true(sstall < erdy);
+    assert_int_equal(fake_reg_log[sel].value, 0);
+
+    assert_int_equal(cdns3_udc_core_stop(), PB_OK);
+    assert_int_equal(cdns3_udc_core_ep0_stall(), -PB_ERR_STATE);
+}
+
 /* The transport is restarted (usb.md 4.1): the controller was reset, and
  * what it had is taken back before it is set up again */
 static void test_init_again(void **state)
@@ -792,6 +825,7 @@ static void test_stop_before_init(void **state)
     hal_ops = NULL;
     assert_int_equal(imx_cdns3_udc_init(&glue_cfg), PB_OK);
     assert_non_null(hal_ops);
+    assert_ptr_equal(hal_ops->ep0_stall, cdns3_udc_core_ep0_stall);
     assert_int_equal(hal_ops->stop(), PB_OK);
     assert_int_equal(fake_reg_log_len, 0);
 }
@@ -1014,6 +1048,7 @@ int main(void)
         cmocka_unit_test_setup(test_in_and_out_have_their_own_rings, setup),
         cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
         cmocka_unit_test_setup(test_setup_packet, setup),
+        cmocka_unit_test_setup(test_ep0_stall, setup),
         cmocka_unit_test_setup(test_init_again, setup),
         cmocka_unit_test_setup(test_a_transfer_longer_than_the_ring_is_refused, setup),
         cmocka_unit_test_setup(test_a_transfer_of_0_bytes, setup),
