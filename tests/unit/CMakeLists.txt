@@ -480,6 +480,32 @@ pb_unit_test(test_usb_transport SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/usb/usbd.c
 )
 
+# The Cadence USB3 controller's driver and its i.MX glue on a register file
+# (the PHY and the stack are the test's stubs). Its TRBs hold 32 bit
+# addresses: -no-pie keeps the ring below 4 GiB
+pb_unit_test(test_cdns3_udc SOURCES
+    ${PB_DMA_MODEL}
+    fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/cdns3_udc_core.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/imx_cdns3_udc.c
+)
+target_include_directories(test_cdns3_udc BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_cdns3_udc PRIVATE -fno-pie)
+target_link_options(test_cdns3_udc PRIVATE -no-pie)
+
+# The i.MX8X's USB3 PHY on a register file (F-205, F-468)
+pb_unit_test(test_imx_salvo_phy SOURCES
+    fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/imx_salvo_phy.c
+)
+target_include_directories(test_imx_salvo_phy BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+
 # The DWC3 controller's driver on a register file with a few lines of a
 # model, and the D-cache's (see the test). -no-pie keeps what the model
 # reads from 32 bit registers below 4 GiB

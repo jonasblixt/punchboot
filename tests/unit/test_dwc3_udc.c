@@ -50,6 +50,13 @@
  * with the Setup TRB started that TRB and the setup packet */
 #define IDLE_RANGES 3
 
+/* A transfer's buffer that is only an address, which the driver queues and
+ * cleans and never reads: room for the longest transfer */
+#define NO_BUF      ((void *)(uintptr_t)0x90000000u)
+#define NO_BUF_SIZE ((size_t)16 * 1024 * 1024)
+/* The longest transfer: one TRB's 24 bit size, in whole packets of 1024 */
+#define XFER_MAX    ((size_t)0xfffc00)
+
 static const struct usbd_hal_ops *ops;
 
 /* The TRB each endpoint was started with, and where the next event goes */
@@ -157,6 +164,7 @@ static int group_setup(void **state)
     (void)state;
 
     dcache_reset();
+    dcache_no_memory((uintptr_t)NO_BUF, NO_BUF_SIZE);
     return 0;
 }
 
@@ -284,6 +292,45 @@ static void test_bulk_transfers(void **state)
         controller_run(USB_EP1_IN, host, length);
         assert_int_equal(ops->xfer_complete(USB_EP1_IN), PB_OK);
         assert_memory_equal(buf, host, length);
+        assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+    }
+}
+
+/*
+ * usb.md 2.3, 4.3: a length above what the driver can queue is -PB_ERR_PARAM,
+ * and nothing is written. One TRB's size field has 24 bits, and an OUT
+ * transfer's size is rounded up to whole packets: the longest is 16 MiB -
+ * 1 KiB either way. A longer length was masked to 24 bits, and the transfer
+ * cut, to nothing at 16 MiB (F-287)
+ */
+static void test_a_transfer_longer_than_a_trb_is_refused(void **state)
+{
+    static const size_t too_long[] = {
+        XFER_MAX + 1, TRB_SIZE_BUFSIZ_MASK, TRB_SIZE_BUFSIZ_MASK + 1, TRB_SIZE_BUFSIZ_MASK + 513,
+        SIZE_MAX,
+    };
+    static const usb_ep_t eps[] = { USB_EP2_OUT, USB_EP1_IN };
+    uint32_t trb[4];
+    size_t writes;
+    (void)state;
+
+    configure();
+
+    for (size_t n = 0; n < ARRAY_SIZE(eps); n++) {
+        usb_ep_t ep = eps[n];
+
+        assert_int_equal(ops->xfer_start(ep, NO_BUF, XFER_MAX), PB_OK);
+        dcache_dev_read((uintptr_t)trb_addr[ep], trb, sizeof(trb));
+        assert_int_equal(trb[2] & TRB_SIZE_BUFSIZ_MASK, XFER_MAX);
+        ops->xfer_cancel(ep);
+        assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+
+        writes = fake_reg_log_len;
+
+        for (size_t i = 0; i < ARRAY_SIZE(too_long); i++)
+            assert_int_equal(ops->xfer_start(ep, NO_BUF, too_long[i]), -PB_ERR_PARAM);
+
+        assert_int_equal(fake_reg_log_len, writes);
         assert_int_equal(dma_host_in_open(), IDLE_RANGES);
     }
 }
@@ -485,6 +532,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_setup_packet, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bulk_transfers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cancel_gives_the_buffer_back, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_a_transfer_longer_than_a_trb_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_stop_and_init_again, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bus_reset_and_disconnect_are_kept, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_read_of_0_bytes_is_refused, setup, teardown),
