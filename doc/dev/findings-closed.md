@@ -2102,6 +2102,24 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | GPR1's TZASC1_BOOT_LOCK survives it, and pb never sets that bit). GPR9 has no lock (`platform.md` | | |
 | | | 4.3 (2): "where the SoC can"), so whether the normal world can clear TZASC1_BYP is the secure OS's | | |
 | | | CSU policy, not pb's | | |
+| F-078 | jiffy (hardware / boot ROM) | An SRST reset from the JTAG adapter (OpenOCD `reset`, SRSR = 1, POR) makes the boot ROM fall back to the serial downloader (`15a2:007d`) within a second, instead of booting pb from eMMC. A second clean SRST pulse did the same. A watchdog reset does too (SRSR = 0x11, after pb without WDBG was halted over JTAG, and after the `auth token` hang below). Earlier resets when the ULINK was plugged in did reboot into pb, and a power cycle does. Cause unknown. Suspect: pb leaves the eMMC in 8-bit DDR52, and a warm reset doesn't reset the eMMC. Other options: HAB, or the reset itself. `src/board/jiffy/openocd.cfg` has no `reset_config` because of this. | Seen on the board (2026-10-22) | closed: JTAG, not pb |
+| | | The status before: open: a power cycle boots pb. Forcing serial download with the boot mode buttons | | |
+| | | and resetting works (uuu loads `pb_signed_uuu.imx`), but in the downloader the ROM falls back to | | |
+| | | after a failed boot, every SDP command with a data phase (write, dcd) hangs. Hardware (jiffy R1 | | |
+| | | netlist): JTAG SRST is the `RST_N` net (POR_B, LP3470 supervisor, button PB2). The eMMC RST_n is a | | |
+| | | separate net from pad NAND_WP_B with a 46.4k pull-up, so a POR_B reset doesn't reset the eMMC (see | | |
+| | | F-079). Likely cause: the same SNVS SV1/Non-Secure state as F-080 (every warm reset after JTAG | | |
+| | | activity landed in the downloader, the one without JTAG since power-on booted; a direct test is | | |
+| | | blocked because `dev reset` needs `auth`). SNVS survives a warm reset, so HAB fails on the next boot | | |
+| | | and the ROM falls back to the downloader, where data writes then hang. A power cycle clears it. Fits | | |
+| | | every reset seen so far except one SRST at 12:26. | | |
+| | | 2026-11-16, after a power cycle with no JTAG since: 12 warm resets (3 `dev reset`, 3 watchdog resets | | |
+| | | written from Linux, 6 `reboot`s from Linux, 2 of them through OP-TEE's PSCI) all booted pb from the | | |
+| | | eMMC, which pb had left in its bus mode each time: not the eMMC (RST_N_FUNCTION 0x00, F-079). The | | |
+| | | same day one JTAG session (AHB-AP reads, no halt) latched SNVS SV0 and SV1 (Soft Fail, F-455) and the | | |
+| | | next warm reset went to the downloader. The cause is the JTAG access on the closed part, which the | | |
+| | | jiffy memory now forbids; SRST needs no `reset_config` change while JTAG isn't used. The downloader's | | |
+| | | hang in that state stays a property of the ROM | | |
 
 ## Dependencies / vendored code
 
