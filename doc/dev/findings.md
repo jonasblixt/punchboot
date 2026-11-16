@@ -56,6 +56,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | protocol stall (RM 42.5.6.3.2). On the RT1060: three unknown requests STALL in 8 ms where libusb | | |
 | | | timed out after 3 s; the simple bench 7 of 7. Left: the cdns3's and the DWC3's `ep0_stall`, an | | |
 | | | aborting SETUP seen only at the bound, EP0 IN ZLT; jiffy not run (F-455) | | |
+| | | 2026-11-16 (`36696ae7`, `c3301080`): the cdns3's `ep0_stall` (SSTALL, then ERDY and REQ_CMPL, as | | |
+| | | Linux 6.1), run on the MEK; the DWC3 stalled at its next poll already (seen on the 8MP EVK), its | | |
+| | | `ep0_stall` is that code. All three STALL an unknown request in 8 ms. Left: an aborting SETUP seen | | |
+| | | only at the bound, EP0 IN ZLT; whether `ep0_stall` is mandatory (`usb.md` 4.4 says so, the stack | | |
+| | | registers a driver without it: an out-of-tree controller keeps working), for Jonas | | |
 | F-140 | `src/drivers/usb/imx_ci_udc.c` | USBMODE.SDIS is set; the RM: in high speed every OUT packet is then answered with NYET, and it "substantially limits" throughput. Worth measuring for flashing speed. The init also writes ENDPOINTLISTADDR before USBMODE.CM, the RM (54.4.6.1) sets the mode first. `CMD_ITC(x)` cast to `uint16_t` after the shift, so ITC was always 0 (immediate; fine for a polling driver). | Verified (code, RM 54.6.33, 54.4.6.1) | open (ITC: `USBCMD_ITC(0)` since `5bd1d20e`, same value) |
 | | | 2026-11-14 (`cb747e97`, `pkg-b3-ci2` landed): USBMODE.CM is set first, as the RM; benched with F-136. | | |
 | | | Left: whether clearing SDIS raises the throughput without errors, measured on jiffy and the RT1060 | | |

@@ -217,10 +217,8 @@ The stack answers these requests and no others:
   most `wLength` and at most the descriptor; a string index the class doesn't have is
   stalled; `SET_CONFIGURATION` takes the one configuration there is, or 0,
   which deconfigures and is "lost".
-- **Any other request is stalled.** The host then goes on at once. **Not yet in the
-  code (F-138)**: on the cdns3 and the DWC3, which have no `ep0_stall` yet, nothing is
-  answered and the host waits out its timeout; the transfer that was running goes on. pb's
-  device answers what enumeration needs and no more: the other
+- **Any other request is stalled.** The host then goes on at once; the transfer that was
+  running goes on. pb's device answers what enumeration needs and no more: the other
   standard requests (`GET_CONFIGURATION`, `CLEAR_FEATURE` and the rest) are stalled too.
 - **Three that the code answers today are stalled** (Jonas, D-073): the debug descriptor,
   which gets the interface descriptor; `SET_IDLE`, a request of another class; and a string
@@ -318,9 +316,10 @@ ep0_stall(void)
 - **`set_configuration`** sets up the class's endpoints as the descriptors say and makes them
   ready; called again it starts them over.
 - **`ep0_xfer_zlp`** is the status stage, bounded.
-- **`ep0_stall`.** Stalls endpoint 0 until the next SETUP, both directions, bounded.
-  **Not yet in the code (F-138)**: the ChipIdea has it; the cdns3 and the DWC3 don't, so
-  the stack takes it as optional and leaves a refused request unanswered without it.
+- **`ep0_stall`.** Stalls endpoint 0 until the next SETUP, both directions, bounded. The
+  three controllers have it. The stack registers a driver without it, and then leaves a
+  refused request unanswered (the host waits out its timeout): mandatory or not is
+  F-138's question for Jonas.
 
 ### 4.5 Operation : xfer_start_short [optional]
 
@@ -436,7 +435,7 @@ what the code doesn't settle without the hardware.
 | controller's result              |                    |                     |                 | F-287   |
 | Endpoint 0 independent of a bulk | yes                | yes                 | yes             |         |
 | transfer                         |                    |                     |                 |         |
-| An unknown request is stalled    | yes (the RT1060)   | no                  | no              | F-138   |
+| An unknown request is stalled    | yes (the RT1060)   | yes (the 8MP EVK)   | yes (the MEK)   |         |
 | The driver's DMA objects own     | yes (`test_imx_`   | yes (`test_dwc3_`   | yes (`test_`    |         |
 | their lines                      | `ci_udc`)          | `udc`)              | `cdns3_udc`)    |         |
 | The order of clean, invalidate   | yes                | unverified          | yes             |         |
@@ -457,8 +456,8 @@ The stack and the transport:
 |                                             | the host sets an address or configures   |         |
 |                                             | the device again                         |         |
 | A restart disconnects first                 | yes (`test_cm`, `test_host_socket`)      |         |
-| Unknown requests stalled, control transfers | stalled where the controller has         | F-138   |
-| bounded                                     | `ep0_stall`; bounded                     |         |
+| Unknown requests stalled, control transfers | yes, on the three controllers; an        | F-138   |
+| bounded                                     | aborting SETUP is seen at the bound      |         |
 | A request leaves a bulk transfer alone      | yes                                      |         |
 | The socket's `connect` polls                | yes                                      |         |
 | Tested on the host                          | Command mode on the socket and on a fake | F-230   |
