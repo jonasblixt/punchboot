@@ -9,7 +9,9 @@
  *
  * Hand over the memory system (include/pb/arch.h): interrupts masked, the
  * MPU off, the D-cache cleaned and off, and empty. pb runs with the D-cache
- * on (write-through, src/arch/armv7m/entry.c).
+ * on (write-through, src/arch/armv7m/entry.c); CACR.FORCEWT is cleared
+ * again, as at reset, so the next stage's D-cache is what its MPU
+ * attributes say when it turns it on.
  *
  * As on ARMv8-A (src/arch/armv8a/cache-ops.S): the clean runs with the
  * D-cache on, and nothing writes normal memory until the invalidate after
@@ -27,8 +29,12 @@
 #define SCB_CCSIDR 0xe000ed80
 #define SCB_CSSELR 0xe000ed84
 #define MPU_CTRL   0xe000ed94
+#define MPU_RNR    0xe000ed98
+#define MPU_RASR   0xe000eda0
 #define SCB_DCISW  0xe000ef60 /* D-cache invalidate by set/way */
 #define SCB_DCCISW 0xe000ef74 /* D-cache clean and invalidate by set/way */
+#define SCB_CACR   0xe000ef9c /* Cortex-M7 L1 cache control */
+#define CACR_FORCEWT (1 << 2)
 
 /* Every set and way of the L1 D-cache through the register at r7.
  * r2: log2 of the line size, r3: the way's shift, r5: sets - 1,
@@ -49,21 +55,9 @@
     dsb
 .endm
 
-.text
-.global arch_disable_mmu
-.type arch_disable_mmu, %function
-.thumb_func
-arch_disable_mmu:
-    push    {r4-r7, lr}
-    cpsid   i
-
-    ldr     r0, =MPU_CTRL
-    movs    r1, #0
-    str     r1, [r0]
-    dsb
-    isb
-
-    /* The L1 D-cache's geometry */
+/* The L1 D-cache's geometry for dcache_all_sw: r2, r3, r5 and r6. Uses r0,
+ * r1 and r4 */
+.macro dcache_geometry
     ldr     r0, =SCB_CSSELR
     movs    r1, #0
     str     r1, [r0]
@@ -75,6 +69,62 @@ arch_disable_mmu:
     and     r2, r4, #7           /* LineSize: log2(words) - 2 */
     adds    r2, r2, #4
     clz     r3, r6
+.endm
+
+.text
+
+/*
+ * void armv7m_dcache_invalidate_all(void)
+ *
+ * Empties the L1 D-cache before pb turns it on (entry.c). A cache's
+ * contents are UNKNOWN until it is invalidated (Arm ARM), and the RT1060's
+ * ROM used the D-cache and only turned it off before it left (RM 9.5.4): a
+ * valid line it left would answer for memory written since. With the
+ * D-cache off, as the ROM leaves it, nothing of pb's is in it and each line
+ * is invalidated; were it on, each is cleaned and invalidated, so what pb
+ * pushed before is kept either way. Between the push and the pop only the
+ * SCS is accessed.
+ */
+.global armv7m_dcache_invalidate_all
+.type armv7m_dcache_invalidate_all, %function
+.thumb_func
+armv7m_dcache_invalidate_all:
+    push    {r4-r7, lr}
+    dcache_geometry
+
+    ldr     r7, =SCB_DCISW
+    ldr     r0, =SCB_CCR
+    ldr     r1, [r0]
+    tst     r1, #CCR_DC
+    beq     1f
+    ldr     r7, =SCB_DCCISW
+1:
+    dcache_all_sw
+
+    isb
+    pop     {r4-r7, pc}
+.size armv7m_dcache_invalidate_all, . - armv7m_dcache_invalidate_all
+
+.global arch_disable_mmu
+.type arch_disable_mmu, %function
+.thumb_func
+arch_disable_mmu:
+    push    {r4-r7, lr}
+    cpsid   i
+
+    ldr     r0, =MPU_CTRL
+    movs    r1, #0
+    str     r1, [r0]
+    /* And pb's one region, the stack's guard (entry.c), cleared: the next
+     * stage finds the MPU as at reset */
+    ldr     r0, =MPU_RNR
+    str     r1, [r0]
+    ldr     r0, =MPU_RASR
+    str     r1, [r0]
+    dsb
+    isb
+
+    dcache_geometry
 
     /* Off already: nothing of pb's is in it, only drop what is there */
     ldr     r0, =SCB_CCR
@@ -98,6 +148,14 @@ arch_disable_mmu:
     dcache_all_sw
 
     /* ===== End of the window ===== */
+
+    /* Write-back again where the MPU says so: pb set FORCEWT, the next
+     * stage doesn't expect it. Changed with the D-cache off and empty */
+    ldr     r0, =SCB_CACR
+    ldr     r1, [r0]
+    bic     r1, r1, #CACR_FORCEWT
+    str     r1, [r0]
+    dsb
 
     isb
     pop     {r4-r7, pc}

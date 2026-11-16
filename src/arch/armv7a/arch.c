@@ -10,8 +10,23 @@ extern char _code_start, _code_end, _data_region_start, _data_region_end, _ro_da
 
 const char *exception_strings[] = { "Undefined", "SVC", "Prefetch", "Abort", "IRQ", "FIQ" };
 
+/* ACTLR as the ROM left it, on a Cortex-A7, which pb_entry set SMP in
+ * (F-135). In .data: the BSS is cleared after pb_entry wrote it */
+#define ACTLR_SMP     BIT(6)
+#define ACTLR_NOT_SET 0xffffffffu /* Not a Cortex-A7: pb_entry left ACTLR */
+uint32_t armv7a_rom_actlr __attribute__((section(".data"))) = ACTLR_NOT_SET;
+
 void arch_init(void)
 {
+    if (armv7a_rom_actlr != ACTLR_NOT_SET) {
+        LOG_DBG("ACTLR before pb: 0x%08" PRIx32 ", now 0x%08" PRIx32,
+                armv7a_rom_actlr,
+                (uint32_t)read_actlr());
+
+        if (!(armv7a_rom_actlr & ACTLR_SMP))
+            LOG_INFO("ACTLR.SMP was clear: set (F-135)");
+    }
+
 }
 
 void exception(int id)
@@ -34,8 +49,10 @@ void arch_disable_mmu(void)
     disable_irq();
     disable_fiq();
 
-    arch_clean_cache_range(stack_start, stack_size);
-    arch_invalidate_cache_range(stack_start, stack_size);
+    /* One operation per line, DCCIMVAC: as a clean of the stack followed by
+     * an invalidate, a store the compiler put between the two calls would
+     * be in a line the invalidate drops, and lost */
+    arch_clean_invalidate_cache_range(stack_start, stack_size);
 
     /* Clean and disable the D-cache. What runs next reads with the cache
      * off what was written with it on, the boot arguments among them. */
