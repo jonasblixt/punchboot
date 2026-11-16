@@ -104,11 +104,13 @@ int imx8x_read_key_status(const struct rot_key *key)
     int rc;
     uint32_t current_revoke_bits = 0xffffffff;
 
-    /* No revoke bit of its own, and a shift by 32 is undefined. Slots 4 to
-     * 31 read as not revoked, as released (F-429) */
-    if (key->slot >= 32) {
-        LOG_ERR("Key %u has no revoke bit", key->slot);
-        return -PB_ERR_PARAM;
+    /* AHAB revokes SRK 0 to 3 only. A key in another slot could never be
+     * revoked, so it is refused as a revoked one is: no boot, no
+     * authentication, and SLC_READ lists it as revoked. v2.7.1 booted it:
+     * security before D-008 (D-092, F-429). The build refuses such a key too */
+    if (key->slot >= IMX8X_OEM_REVOKE_KEYS) {
+        LOG_ERR("Key 0x%x is refused: AHAB can't revoke slot %u", key->id, key->slot);
+        return -PB_ERR_KEY_REVOKED;
     }
 
     rc = imx8x_fuse_read(IMX8X_FUSE_REVOKE, &current_revoke_bits);
@@ -117,7 +119,7 @@ int imx8x_read_key_status(const struct rot_key *key)
         return rc;
 
     uint32_t revoke_value = (1u << key->slot);
-    uint8_t rom_key_mask = (current_revoke_bits >> 8) & 0x0f;
+    uint8_t rom_key_mask = (current_revoke_bits >> IMX8X_OEM_REVOKE_SHIFT) & 0x0f;
 
     if ((rom_key_mask & revoke_value) == revoke_value)
         return -PB_ERR_KEY_REVOKED;

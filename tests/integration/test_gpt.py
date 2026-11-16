@@ -253,6 +253,9 @@ def test_another_table_replaces_the_partitions_at_once(
             part: before[part] for part in unchanged
         }
         assert set(var1) == set(before)
+        # The new partition is readable as the old one was: the board's list
+        # names its UUID (F-083)
+        assert var1[READABLE_UUID][2] & punchboot.PartitionFlags.FLAG_READABLE
 
         # More than the old partition held, written where the new one is
         s.part_write(tmp_path / "data", READABLE_UUID)
@@ -310,7 +313,7 @@ def test_the_same_table_keeps_every_partition(device: Device, tmp_path: pathlib.
     with device.session() as s:
         s.part_write(tmp_path / "data", SYSTEM_A_UUID)
         before = listing(s)
-        # The board's late_init() made it readable: a flag no install sets
+        # The board's readable_parts made it readable (F-083)
         assert before[READABLE_UUID][2] & punchboot.PartitionFlags.FLAG_READABLE
 
         for _ in range(3):

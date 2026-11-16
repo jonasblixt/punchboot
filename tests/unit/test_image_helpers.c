@@ -570,6 +570,43 @@ static void test_regions_overlap_pb(void **state)
     assert_regions_pass(BUFFERS_END, 0x1000);
 }
 
+/* board.md 2.9 (F-392): a region after pb or after its buffers starts where
+ * the link ends them (the test's link: pb, then its buffers right after it),
+ * and ends at the end it names. One whose end is at or before that start is
+ * empty, and one after pb that reaches into the buffers overlaps them */
+static void test_regions_after_pb_and_buffers(void **state)
+{
+    static const struct boot_image_region after[] = {
+        BOOT_IMAGE_REGION_AFTER_BUFFERS(BUFFERS_END + 0x10000),
+        BOOT_IMAGE_REGION_END,
+    };
+    static const struct boot_image_region empty[] = {
+        BOOT_IMAGE_REGION_AFTER_PB(BUFFERS_START),
+        BOOT_IMAGE_REGION_END,
+    };
+    static const struct boot_image_region over_buffers[] = {
+        BOOT_IMAGE_REGION_AFTER_PB(BUFFERS_END),
+        BOOT_IMAGE_REGION_END,
+    };
+    static const struct boot_image_region before[] = {
+        BOOT_IMAGE_REGION_AFTER_BUFFERS(PB_START),
+        BOOT_IMAGE_REGION_END,
+    };
+    (void)state;
+
+    assert_int_equal(boot_image_set_regions(after), PB_OK);
+    assert_true(boot_image_in_regions(BUFFERS_END, 0x10000));
+    assert_false(boot_image_in_regions(BUFFERS_END - 1, 2));
+    assert_false(boot_image_in_regions(BUFFERS_END, 0x10001));
+
+    assert_int_equal(boot_image_set_regions(empty), -PB_ERR_PARAM);
+    assert_int_equal(boot_image_set_regions(over_buffers), -PB_ERR_PARAM);
+    assert_int_equal(boot_image_set_regions(before), -PB_ERR_PARAM);
+    assert_false(boot_image_in_regions(BUFFERS_END, 1));
+
+    assert_int_equal(boot_image_set_regions(image_regions), PB_OK);
+}
+
 static void test_regions_empty_or_wrapping(void **state)
 {
     static const struct boot_image_region none[] = { BOOT_IMAGE_REGION_END };
@@ -1573,6 +1610,7 @@ int main(void)
         IMG_TEST(test_verify_parts_without_regions),
         IMG_TEST(test_in_regions),
         IMG_TEST(test_regions_overlap_pb),
+        IMG_TEST(test_regions_after_pb_and_buffers),
         IMG_TEST(test_regions_empty_or_wrapping),
         IMG_TEST(test_regions_overlap_handover),
         IMG_TEST(test_verify_parts_in_place),

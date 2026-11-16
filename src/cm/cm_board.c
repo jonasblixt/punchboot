@@ -61,8 +61,8 @@ int cm_cmd_board(void)
     size_t response_size = response_max;
 
     /* The named command of that id (command-mode.md 5.6). An id no command
-     * has is NOT_SUPPORTED, the answer of every release to one the board
-     * didn't have */
+     * has is NOT_SUPPORTED on every board (D-092): jiffy's answer in every
+     * release; the 8X boards, the RT1060 EVK and imx8mevk answered OK */
     const struct cm_command *named = cm_command_find(board_cmd->command);
 
     if (named != NULL) {

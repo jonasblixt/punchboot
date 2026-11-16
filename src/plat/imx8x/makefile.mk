@@ -33,8 +33,9 @@ asm-y += src/plat/imx8x/reset_vector.S
 cflags-y += -mtune=cortex-a35
 
 # The key slots the SoC has a revoke bit for (platform.md 4.1): AHAB's four OEM SRK revoke bits.
-# plat_rot.revoke_slots, and the build warns for a board key above them
+# plat_rot.revoke_slots. A board key above them is refused, by the build and at run time (D-092)
 PLAT_REVOKE_SLOTS = 4
+PLAT_REFUSES_UNREVOCABLE = y
 cflags-y += -DPLAT_REVOKE_SLOTS=$(PLAT_REVOKE_SLOTS)
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x200000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x200000000

@@ -3046,7 +3046,9 @@ static void test_stream_errors(void **state)
     expect_result(-PB_RESULT_NO_MEMORY);
     expect_result(PB_RESULT_OK);
     expect_result(-PB_RESULT_IO_ERROR);
-    expect_result(-PB_RESULT_IO_ERROR);
+    /* Without READABLE: NOT_SUPPORTED, the board doesn't let a host read it.
+     * Every release answered IO_ERROR (command-mode.md 5.3, F-083, D-092) */
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
     expect_end();
 
     t.init_calls = 0;

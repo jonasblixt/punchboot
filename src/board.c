@@ -42,6 +42,15 @@ static int setup_partitions(void)
     bio_dev_t dev;
     int rc;
 
+    /* Before the table's partitions are made: each gets READABLE as it is
+     * made, the devices init() made get it now (command-mode.md 5.3) */
+    rc = bio_set_readable(board.readable_parts, board.readable_parts_length);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Board data: readable_parts");
+        return rc;
+    }
+
     if (board.ptbl.ops == NULL)
         return PB_OK;
 

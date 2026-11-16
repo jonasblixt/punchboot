@@ -216,15 +216,26 @@ static const struct gpt_table_list gpt_tables[] = {
  *
  * The DRAM's region and the link have one source, the board's makefile.mk
  * (platform.md 5.1): pb proper is after the buffers, so the build fails when
- * they grow into it, and the region starts where pb proper ends.
+ * they grow into it, and the region starts where the link ends pb proper
+ * (_pb_end, F-392): what it doesn't use of PB_SIZE is loadable.
  */
 _Static_assert((uint64_t)PB_ENTRY >= (uint64_t)PB_BUFFERS_BASE + PB_BUFFERS_SIZE,
                "pb proper (PB_ENTRY) is not after pb's buffers");
 
 static const struct boot_image_region image_regions[] = {
     /* The DRAM after pb proper (D-088) */
-    BOOT_IMAGE_REGION(PB_ENTRY + PB_SIZE, BOARD_RAM_END - (PB_ENTRY + PB_SIZE)),
+    BOOT_IMAGE_REGION_AFTER_PB(BOARD_RAM_END),
     BOOT_IMAGE_REGION_END,
+};
+
+/* What a host may read in bulk (command-mode.md 5.3, F-083): what can't hold
+ * a secret, pb's boot partitions (pb's image, signed, not encrypted) and its
+ * A/B state */
+static const unsigned char *const readable_parts[] = {
+    PART_boot0,
+    PART_boot1,
+    PART_primary_state,
+    PART_backup_state,
 };
 
 const struct board board = {
@@ -232,6 +243,8 @@ const struct board board = {
     .console_init = board_console_init,
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
+    .readable_parts = readable_parts,
+    .readable_parts_length = ARRAY_SIZE(readable_parts),
     .image_regions = image_regions,
 };
 

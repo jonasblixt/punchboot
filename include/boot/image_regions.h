@@ -32,9 +32,19 @@ struct boot_image_region {
     uint64_t size;
 };
 
-#define BOOT_IMAGE_REGION(base_, size_) { .base = (base_), .size = (size_) }
+#define BOOT_IMAGE_REGION(base_, size_)       { .base = (base_), .size = (size_) }
 /* Ends the list. Not a region: an empty one fails the list's check */
-#define BOOT_IMAGE_REGION_END           { .base = UINT64_MAX, .size = 0 }
+#define BOOT_IMAGE_REGION_END                 { .base = UINT64_MAX, .size = 0 }
+
+/* A region that starts where pb's linked image ends (_pb_end, the RAM log's
+ * end), or its buffers (_buffers_end), and ends at 'end_': the link, not a
+ * length the board reserved, holds where pb stops (board.md 2.9, F-392).
+ * Such an entry's base is one of the two values below and its size is the
+ * region's end */
+#define BOOT_IMAGE_AFTER_PB                   (UINT64_MAX - 1)
+#define BOOT_IMAGE_AFTER_BUFFERS              (UINT64_MAX - 2)
+#define BOOT_IMAGE_REGION_AFTER_PB(end_)      { .base = BOOT_IMAGE_AFTER_PB, .size = (end_) }
+#define BOOT_IMAGE_REGION_AFTER_BUFFERS(end_) { .base = BOOT_IMAGE_AFTER_BUFFERS, .size = (end_) }
 
 /**
  * Check the board's list and make it placement's (board.md 3). Once, before
