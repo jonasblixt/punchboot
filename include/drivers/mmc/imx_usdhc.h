@@ -11,6 +11,7 @@
 #define DRIVERS_MMC_IMX_USDHC
 
 #include <drivers/mmc/mmc_core.h>
+#include <pb/utils_def.h>
 
 struct imx_usdhc_config {
     uintptr_t base; /*!< Base address of USDHC controller */
@@ -36,13 +37,38 @@ struct imx_usdhc_config {
  * 10 x (TAAC + NSAC), with TAAC at most 80 ms and NSAC 25.5k clocks, about
  * 800 ms; an SD card's read timeout is 100 ms. The floor is 4 MB/s: a third
  * of an SD card's default speed on four lines (12.5 MB/s), and a twentieth
- * of the slowest rate measured on a board (jiffy's eMMC, 77 MiB/s). The core
- * reads in chunks that fit the watchdog with room (platform.md 3.3).
+ * of the slowest rate measured on a board (jiffy's eMMC, 77 MiB/s). A board
+ * checks that one chunk fits its watchdog with room (platform.md 3.3).
  */
 #define IMX_USDHC_READ_ACCESS_us   1000000ULL
 #define IMX_USDHC_READ_ns_PER_BYTE 250ULL
 #define IMX_USDHC_READ_TIMEOUT_us(bytes) \
     (IMX_USDHC_READ_ACCESS_us + ((unsigned long long)(bytes) * IMX_USDHC_READ_ns_PER_BYTE) / 1000)
+
+/*
+ * What a board that loads from a uSDHC states (platform.md 3.3, F-321): a
+ * read of one chunk, the boot's and command mode's, waits at most half its
+ * watchdog, so that a card that stops answering is -PB_ERR_TIMEOUT and the
+ * next candidate, not a watchdog reset.
+ */
+#ifdef CONFIG_ENABLE_WATCHDOG
+#define IMX_USDHC_FITS_THE_WATCHDOG(bytes) \
+    (IMX_USDHC_READ_TIMEOUT_us(bytes) <= (unsigned long long)CONFIG_WATCHDOG_TIMEOUT * 500000ULL)
+#else
+#define IMX_USDHC_FITS_THE_WATCHDOG(bytes) 1
+#endif
+
+#ifdef CONFIG_CM
+#define IMX_USDHC_CM_CHUNK_BYTES (CONFIG_CM_BUF_SIZE_KiB * 1024ULL)
+#else
+#define IMX_USDHC_CM_CHUNK_BYTES 0ULL
+#endif
+
+#define IMX_USDHC_CHECK_CHUNKS()                                                       \
+    PB_STATIC_ASSERT(IMX_USDHC_FITS_THE_WATCHDOG(CONFIG_BOOT_LOAD_CHUNK_kB * 1024ULL), \
+                     "a boot chunk's read must fit half the watchdog (F-321)");        \
+    PB_STATIC_ASSERT(IMX_USDHC_FITS_THE_WATCHDOG(IMX_USDHC_CM_CHUNK_BYTES),            \
+                     "a command mode buffer's read must fit half the watchdog (F-321)")
 
 /**
  * Initialize the usdhc mmc controller

@@ -252,7 +252,9 @@ So `CONFIG_WATCHDOG_TIMEOUT` must be longer than each of these:
   policy's report and its next (A/B writes its state).
 - From the last chunk to the kick before the jump: the final hash, the payload's check, prepare,
   `late_boot()`, `plat_lockdown()`.
-- One chunk on the slowest medium the board loads from. The board states it.
+- One chunk on the slowest medium the board loads from. The board states it: a board on the
+  uSDHC with `IMX_USDHC_CHECK_CHUNKS()`, which stops the build when a read of the boot's chunk
+  or of command mode's buffer may wait more than half the watchdog (`imx_usdhc.h`, F-321).
 - From the kick before the jump to the next stage's first kick: BL31, a secure OS, the kernel up
   to its watchdog driver. Usually the longest; the product measures it.
 - Command mode's longest stretch without a kick: one chunk, as above, a board's command between
