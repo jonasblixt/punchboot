@@ -1854,6 +1854,19 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | it asserted; `arch_disable_mmu()` clears it. On the RT1060: a store into the guard is a HardFault | | |
 | | | (CFSR 0x82, MMFAR the address) and changes nothing, one into the stack doesn't; the simple bench | | |
 | | | 7 of 7. A single overflow larger than 32 bytes past the guard isn't caught | | |
+| F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | open; the `fdt_totalsize` <= part check is done (`39276b9c`) |
+| | | Checked 2026-11-12: `CHECK_OVERLAP` is gone, and placement keeps every part inside the board's | | |
+| | | image data regions and off the other parts (F-254). Left: the load address is read as a | | |
+| | | `uint64_t` without a look at the meta's size, and `keystore_id` is only logged. Anti-rollback | | |
+| | | is `roadmap.md`'s | | |
+| | | 2026-11-13 (`d00140db`): the load address is read by one function, `boot_image_load_addr()`, from | | |
+| | | the meta's own bytes: 8 or more as before, 1 to 7 zero extended (what a release read when zeros | | |
+| | | follow, bpak's layout), none is `-PB_ERR_BAD_META` before the load. Left: `keystore_id` is only | | |
+| | | logged; `atf.c`'s `optee-arch` meta has the same unchecked read (F-417) | | |
+| | | 2026-11-14: `keystore_id` stays logged only: `boot.md` 4.4 says so, no release compared it (the | | |
+| | | check went in `7431b64f`), and a comparison would refuse images made without `--keystore-id` (id 0) | | |
+| | | or signed for another keystore with a key pb has | | |
+| | | 2026-11-16: closed, nothing left: `keystore_id` stays logged (above), F-417 is fixed (`57ad9277`) | | |
 
 ## Dependencies / vendored code
 

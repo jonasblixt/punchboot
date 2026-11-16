@@ -14,18 +14,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 
 | ID | Where | Finding | Check | Status |
 |---|---|---|---|---|
-| F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | open; the `fdt_totalsize` <= part check is done (`39276b9c`) |
-| | | Checked 2026-11-12: `CHECK_OVERLAP` is gone, and placement keeps every part inside the board's | | |
-| | | image data regions and off the other parts (F-254). Left: the load address is read as a | | |
-| | | `uint64_t` without a look at the meta's size, and `keystore_id` is only logged. Anti-rollback | | |
-| | | is `roadmap.md`'s | | |
-| | | 2026-11-13 (`d00140db`): the load address is read by one function, `boot_image_load_addr()`, from | | |
-| | | the meta's own bytes: 8 or more as before, 1 to 7 zero extended (what a release read when zeros | | |
-| | | follow, bpak's layout), none is `-PB_ERR_BAD_META` before the load. Left: `keystore_id` is only | | |
-| | | logged; `atf.c`'s `optee-arch` meta has the same unchecked read (F-417) | | |
-| | | 2026-11-14: `keystore_id` stays logged only: `boot.md` 4.4 says so, no release compared it (the | | |
-| | | check went in `7431b64f`), and a comparison would refuse images made without `--keystore-id` (id 0) | | |
-| | | or signed for another keystore with a key pb has | | |
 | F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | partly fixed (`jiffy-fixes`): `der_ecsig_to_rs` now pads short r/s and is used by the CAAM (F-057). `der_ec_public_key_data` is still open |
 | | | 2026-11-13 (`ab002f9f`): `der_ec_public_key_data()` takes the key's length and reads nothing past | | |
 | | | it; OIDs match on length and bytes. What is left of F-066 is in F-410 (the point's form and length) | | |
