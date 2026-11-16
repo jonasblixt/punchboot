@@ -14,7 +14,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   one at a time with `PB_JOBS=6` (load under 8, Jonas). CI: host tests, coverage, all boards,
   Coverity (master only).
 - **Boards (2026-11-16, evening):** all in command mode, no system enabled.
-  - jiffy: BOOT1 (enabled) `6ea4208c`'s tree, BOOT0 `2c9dee80`'s; Root B the OP-TEE add-on's
+  - jiffy: BOOT1 (enabled) `6ea4208c`'s tree, BOOT0 the OP-TEE add-on's pb; Root B the add-on's
     root. Serial download is a button held at power-up. In Linux `pbstate-pb`. No JTAG on jiffy.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb in BOOT0 and
     BOOT1, BOOT1 enabled. Never `reboot` it (F-452).
@@ -32,8 +32,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 0. **Resume here: `log/2026-11-16.md`'s last section** (the evening), then the afternoon's.
    No JTAG on jiffy (F-455). Nothing pushed since `58c9cf3e`'s rebase.
-   - OP-TEE on jiffy works with the add-on's kernel without cpuidle (F-444); its user TAs don't
-     load (F-465). Its pb (`CONFIG_BOOT_OPTEE`) is in no boot partition now.
+   - OP-TEE on jiffy: xtest's regression suite passes (F-444, F-465 fixed in the test bench);
+     `boot bpak` the add-on's `boot.bpak` with `--pretend-part` System B (log, the evening).
    - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
      resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
      TF-A's 8MQ patch could go upstream.
