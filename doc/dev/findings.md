@@ -208,6 +208,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | fuse, RoT and SLC helpers are at 100%, and `testing.md` has the figure with its date and command, a | | |
 | | | row for every test program and the files no test compiles. Left: the DWC3's driver, the virtio | | |
 | | | drivers (F-052), what `testing.md` lists as least covered | | |
+| | | 2026-11-16 (`7279a795`, `57b1f9f3`, `d0c752c8`): the 6UL's `plat_get_info()`, `tzc380_get_region()`, | | |
+| | | `plat_info.c`. 81.3% of lines, 93.4% without the SCFW clients (`testing.md`). Left: the DWC3, the | | |
+| | | virtio drivers (F-052), the rest of `testing.md`'s least covered | | |
 | F-231 | build, low | Pre-release builds identify as 3.0.0. `blobs/` is shared in the source root | Reported | open |
 | | | (pb relinks every make). pbstate is built without sanitizers. `-fno-stack-protector`, no `-Wundef`. | | |
 | | | `.gitignore` ignores `*.bin` globally, matching tracked pki files. | | |
