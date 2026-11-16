@@ -272,7 +272,11 @@ active.
 
 A fuse write reads its word back (`platform.md` 4.2, F-166). The OCOTP (the 6UL, the RT, the 8M)
 reads the array directly, READ_CTRL and READ_FUSE_DATA: the shadow registers lag until a reload
-or a reset (6UL RM 35.3.1.2, 35.3.1.3). The 8M Plus's CTRL has BUSY and ERROR one bit higher
+or a reset (6UL RM 35.3.1.2, 35.3.1.3). Not on the 8MQ from B1 (rev 2.1), which refuses a direct
+read: READ_FUSE_DATA is always 0xff0055aa (U-Boot `b3cf86c86bf`), also out of reset, which is
+how the platform tells B1 (as U-Boot's `get_cpu_rev()`, DIGPROG says 1.0). There every read is
+the word's shadow register, and a write reloads them before its read back (F-466). Not run on
+a B1: the pico8ml's 8MQ is older (its UUID isn't the magic's). The 8M Plus's CTRL has BUSY and ERROR one bit higher
 than the others' (`IMX_OCOTP_CTRL_8MP`, F-467). The 8X doesn't read back: the SCFW doesn't say
 whether `sc_misc_otp_fuse_read()` reads the array or the SECO's copy from reset, and the life
 cycle a forward commits reads the same until a reset; a read back from a copy would fail every

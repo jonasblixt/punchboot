@@ -21,6 +21,9 @@ static uint32_t timing; /* 0: no ipg_clk rate, no writes */
 static uint32_t ctrl_busy = OCOTP_CTRL_BUSY;
 static uint32_t ctrl_error = OCOTP_CTRL_ERROR;
 static uint32_t ctrl_addr_mask = OCOTP_CTRL_ADDR_MASK;
+static uint32_t ctrl_reload = OCOTP_CTRL_RELOAD_SHADOWS;
+/* A read reads the shadow registers, not the array (F-466) */
+static bool read_shadows;
 
 /*
  * TIMING's fields count ipg_clk periods (6UL RM 35.5.2): the relax time is
@@ -114,11 +117,15 @@ int imx_ocotp_init(uintptr_t base_,
         ctrl_busy = OCOTP_CTRL_BUSY_8MP;
         ctrl_error = OCOTP_CTRL_ERROR_8MP;
         ctrl_addr_mask = OCOTP_CTRL_ADDR_MASK_8MP;
+        ctrl_reload = OCOTP_CTRL_RELOAD_SHADOWS_8MP;
     } else {
         ctrl_busy = OCOTP_CTRL_BUSY;
         ctrl_error = OCOTP_CTRL_ERROR;
         ctrl_addr_mask = OCOTP_CTRL_ADDR_MASK;
+        ctrl_reload = OCOTP_CTRL_RELOAD_SHADOWS;
     }
+
+    read_shadows = (flags & IMX_OCOTP_READ_SHADOWS) != 0;
 
     base = base_;
 
@@ -176,6 +183,48 @@ static int ocotp_addr(uint32_t bank, uint32_t row, uint32_t *addr)
 
     *addr = (uint32_t)index;
     return PB_OK;
+}
+
+/* An error that an earlier access left is cleared, and is this one's */
+static int ocotp_check_error(void)
+{
+    if (mmio_read_32(base + OCOTP_CTRL) & ctrl_error) {
+        mmio_write_32(base + OCOTP_CTRL_CLR, ctrl_error);
+        return -PB_ERR_IO;
+    }
+
+    return PB_OK;
+}
+
+/*
+ * The shadow registers are read again from the array (8MQ RM 6.3.1.1.1):
+ * after a write, where reads go to them. TIMING is set, as the write set
+ * it. BUSY and RELOAD_SHADOWS clear when it is done.
+ */
+static int ocotp_reload_shadows(void)
+{
+    struct pb_timeout to;
+    int rc;
+
+    rc = ocotp_wait_busy();
+
+    if (rc == PB_OK)
+        rc = ocotp_check_error();
+
+    if (rc != PB_OK)
+        return rc;
+
+    mmio_write_32(base + OCOTP_CTRL_SET, ctrl_reload);
+    pb_timeout_init_us(&to, OCOTP_BUSY_TIMEOUT_us);
+
+    while (mmio_read_32(base + OCOTP_CTRL) & (ctrl_busy | ctrl_reload)) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Shadow reload timeout");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return ocotp_check_error();
 }
 
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
@@ -244,7 +293,17 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     /* The word is read back, from the array (6UL RM 35.3.1.2, the shadow
      * registers lag until a reload): a bit the write set that isn't there
      * didn't take, and the write fails (F-166). Bits that were set before
-     * stay set, fuses only go from 0 to 1 */
+     * stay set, fuses only go from 0 to 1. Where reads go to the shadow
+     * registers they are reloaded first (F-466) */
+    if (read_shadows) {
+        rc = ocotp_reload_shadows();
+
+        if (rc != PB_OK) {
+            LOG_ERR("Fuse %" PRIu32 ": no shadow reload (%i)", addr, rc);
+            return rc;
+        }
+    }
+
     rc = imx_ocotp_read(bank, row, &tmp);
 
     if (rc != PB_OK) {
@@ -284,6 +343,21 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
     if (tmp & ctrl_error) {
         mmio_write_32(base + OCOTP_CTRL_CLR, ctrl_error);
         return -PB_ERR_IO;
+    }
+
+    /* The 8MQ B1 refuses a direct read: its READ_FUSE_DATA is a magic. Its
+     * shadow registers have every word, as loaded at reset or by the last
+     * reload (F-466). A read locked one sets ERROR, as a direct read does */
+    if (read_shadows) {
+        tmp = mmio_read_32(base + OCOTP_SHADOW(addr));
+
+        if (ocotp_check_error() != PB_OK) {
+            LOG_ERR("Fuse %" PRIu32 " can't be read", addr);
+            return -PB_ERR_IO;
+        }
+
+        *value = tmp;
+        return PB_OK;
     }
 
     mmio_write_32(base + OCOTP_CTRL, addr);

@@ -15,28 +15,45 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define OCOTP_CTRL           0x0000
-#define OCOTP_CTRL_CLR       0x0008 /* ERROR is cleared here only (6UL RM 35.5.1) */
-#define OCOTP_TIMING         0x0010
-#define OCOTP_DATA           0x0020
-#define OCOTP_READ_CTRL      0x0030
-#define OCOTP_READ_FUSE_DATA 0x0040
-#define OCOTP_SW_STICKY      0x0050
-#define OCOTP_SCS            0x0060
-#define OCOTP_SCS_SET        0x0064
+#define OCOTP_CTRL                    0x0000
+#define OCOTP_CTRL_SET                0x0004
+#define OCOTP_CTRL_CLR                0x0008 /* ERROR is cleared here only (6UL RM 35.5.1) */
+#define OCOTP_TIMING                  0x0010
+#define OCOTP_DATA                    0x0020
+#define OCOTP_READ_CTRL               0x0030
+#define OCOTP_READ_FUSE_DATA          0x0040
+#define OCOTP_SW_STICKY               0x0050
+#define OCOTP_SCS                     0x0060
+#define OCOTP_SCS_SET                 0x0064
 
 /* Control register: the 6UL's, the RT's and the 8MQ's */
-#define OCOTP_CTRL_BUSY      (1 << 8)
-#define OCOTP_CTRL_ERROR     (1 << 9)
+#define OCOTP_CTRL_BUSY               (1 << 8)
+#define OCOTP_CTRL_ERROR              (1 << 9)
 /* The i.MX8M Plus's: ADDR is 8:0, so BUSY and ERROR are one bit higher (8MP
  * RM 6.3.5.1.2) */
-#define OCOTP_CTRL_BUSY_8MP  (1 << 9)
-#define OCOTP_CTRL_ERROR_8MP (1 << 10)
+#define OCOTP_CTRL_BUSY_8MP           (1 << 9)
+#define OCOTP_CTRL_ERROR_8MP          (1 << 10)
+
+/* RELOAD_SHADOWS, the 6UL's and the 8MQ's, and the 8M Plus's */
+#define OCOTP_CTRL_RELOAD_SHADOWS     (1 << 10)
+#define OCOTP_CTRL_RELOAD_SHADOWS_8MP (1 << 11)
+
+/* The shadow register of fuse word 'index' (8MQ RM 6.3.5.9) */
+#define OCOTP_SHADOW(index)           (0x0400 + (index) * 0x10)
+
+/* The 8MQ B1's READ_FUSE_DATA after a direct read, and out of reset: a
+ * direct read is refused there (U-Boot b3cf86c86bf, F-466) */
+#define OCOTP_READ_FUSE_DATA_B1_MAGIC 0xff0055aa
 
 /* imx_ocotp_init()'s flags */
-#define IMX_OCOTP_CTRL_8MP   BIT(0) /* CTRL as the i.MX8M Plus has it */
+#define IMX_OCOTP_CTRL_8MP            BIT(0) /* CTRL as the i.MX8M Plus has it */
+#define IMX_OCOTP_READ_SHADOWS                   \
+    BIT(1) /* Fuses are read from the shadow     \
+              registers, reloaded after a write: \
+              the 8MQ B1, which refuses a direct \
+              read (F-466) */
 
-#define OCOTP_CTRL_WR_KEY    0x3E77
+#define OCOTP_CTRL_WR_KEY 0x3E77
 
 /**
  * @param base The controller
@@ -44,7 +61,7 @@
  * @param ipg_rate_hz The controller's ipg_clk, which a write's timing is
  *        computed from. 0 when the platform doesn't give it: the fuses are
  *        read, and a write is -PB_ERR_NOT_SUPPORTED
- * @param flags IMX_OCOTP_*: the SoC's CTRL layout
+ * @param flags IMX_OCOTP_*: the SoC's CTRL layout, and where a read reads
  *
  * @return PB_OK, -PB_ERR_PARAM for words_per_bank or a rate the timing
  *         doesn't fit (above some 400 MHz). After a failed init the

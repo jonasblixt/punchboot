@@ -52,7 +52,15 @@ Partitions:
   `NOT_SUPPORTED`. It answered `IO_ERROR`. The boards in the tree let a host read pb's boot
   partitions and its A/B state (the MEK and the DXL EVK only the A/B state); before, no
   partition at all (D-092, F-083).
-- A command timeout of an MMC or SD card answers `TIMEOUT`. It answered `IO_ERROR` (F-199,
+- A command timeout of an MMC or SD card answers `TIMEOUT`.
+
+On an i.MX8MQ B1 (rev 2.1) or later:
+
+- **The device UUID is new, and each device's own.** Every release read the unique id directly
+  from the fuse array, which the B1 refuses with a fixed value: every B1 had the same UUID, and
+  the life cycle and the keys read wrong. pb reads the shadow registers there now. A token made
+  for the old UUID doesn't authenticate a B1 any more (F-466). Older 8MQs, such as the
+  pico8ml's, keep their UUID. It answered `IO_ERROR` (F-199,
   2026-11-13).
 
 Boot:
