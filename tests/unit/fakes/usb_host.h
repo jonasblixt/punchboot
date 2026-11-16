@@ -43,8 +43,6 @@ struct usb_host_config {
      * DWC3's driver. Without it the reset is handled inside the driver, as
      * the other two do: the transfer is flushed and never completes */
     bool reports_reset;
-    /* The controller has ep0_stall (F-138) */
-    bool can_stall;
 };
 
 /* What the host got for a control request */

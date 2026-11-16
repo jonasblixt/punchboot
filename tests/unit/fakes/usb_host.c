@@ -319,20 +319,6 @@ static const struct usbd_hal_ops hal_ops = {
     .set_configuration = hal_set_configuration,
     .set_address = hal_set_address,
     .ep0_xfer_zlp = hal_ep0_xfer_zlp,
-};
-
-/* The same with ep0_stall */
-static const struct usbd_hal_ops hal_ops_stall = {
-    .init = hal_init,
-    .stop = hal_stop,
-    .xfer_start = hal_xfer_start,
-    .xfer_complete = hal_xfer_complete,
-    .xfer_cancel = hal_xfer_cancel,
-    .xfer_start_short = hal_xfer_start_short,
-    .poll_setup_pkt = hal_poll_setup_pkt,
-    .set_configuration = hal_set_configuration,
-    .set_address = hal_set_address,
-    .ep0_xfer_zlp = hal_ep0_xfer_zlp,
     .ep0_stall = hal_ep0_stall,
 };
 
@@ -353,7 +339,7 @@ void usb_host_reset(const struct usb_host_config *cfg)
 
 const struct usbd_hal_ops *usb_host_hal_ops(void)
 {
-    return config.can_stall ? &hal_ops_stall : &hal_ops;
+    return &hal_ops;
 }
 
 const struct usb_host_state *usb_host_state(void)

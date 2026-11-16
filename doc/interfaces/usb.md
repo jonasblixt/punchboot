@@ -318,10 +318,9 @@ ep0_stall(void)
 - **`set_configuration`** sets up the class's endpoints as the descriptors say and makes them
   ready; called again it starts them over.
 - **`ep0_xfer_zlp`** is the status stage, bounded.
-- **`ep0_stall`.** Stalls endpoint 0 until the next SETUP, both directions, bounded. The
-  three controllers have it. The stack registers a driver without it, and then leaves a
-  refused request unanswered (the host waits out its timeout): mandatory or not is
-  F-138's question for Jonas.
+- **`ep0_stall`.** Stalls endpoint 0 until the next SETUP, both directions, bounded. It is
+  how a request the stack refuses is answered (3.2), so it is mandatory as the rest (Jonas,
+  F-138): a driver without it isn't registered. An out-of-tree controller adds it.
 
 ### 4.5 Operation : xfer_start_short [optional]
 

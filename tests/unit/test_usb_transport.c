@@ -133,6 +133,11 @@ static int fake_ep0_xfer_zlp(usb_ep_t ep)
     return PB_OK;
 }
 
+static int fake_ep0_stall(void)
+{
+    return PB_OK;
+}
+
 static const struct usbd_hal_ops fake_hal = {
     .init = fake_init,
     .stop = fake_stop,
@@ -143,6 +148,7 @@ static const struct usbd_hal_ops fake_hal = {
     .set_configuration = fake_set_configuration,
     .set_address = fake_set_address,
     .ep0_xfer_zlp = fake_ep0_xfer_zlp,
+    .ep0_stall = fake_ep0_stall,
 };
 
 /* The host sends a request without a data stage */

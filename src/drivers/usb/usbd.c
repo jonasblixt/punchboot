@@ -147,17 +147,12 @@ static int wait_for_completion(usb_ep_t ep)
 
 /*
  * A request the stack refuses is stalled, and the host then goes on at once
- * (usb.md 3.2). A controller without ep0_stall leaves it unanswered, no
- * data and no status stage, and the host waits out its timeout (F-138).
- * Neither is an error: the device goes on enumerating, or with the
- * transfer that runs, also when the stall fails.
+ * (usb.md 3.2, F-138). A stall that fails isn't an error: the device goes
+ * on enumerating, or with the transfer that runs.
  */
 static void ep0_refuse(void)
 {
     int rc;
-
-    if (hal_ops->ep0_stall == NULL)
-        return;
 
     rc = hal_ops->ep0_stall();
 
@@ -312,7 +307,7 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
      * here (usb.md 4): a driver that leaves one out isn't registered */
     if (ops == NULL || !ops->init || !ops->stop || !ops->xfer_start || !ops->xfer_complete ||
         !ops->xfer_cancel || !ops->poll_setup_pkt || !ops->set_configuration || !ops->set_address ||
-        !ops->ep0_xfer_zlp) {
+        !ops->ep0_xfer_zlp || !ops->ep0_stall) {
         return -PB_ERR_PARAM;
     }
 

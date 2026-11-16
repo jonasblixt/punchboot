@@ -148,11 +148,9 @@ static const char *reply_string(void)
     return str;
 }
 
-/* usb.md 4: every operation is mandatory but xfer_start_short (4.5) and
- * ep0_stall (4.4, F-138). A
- * driver that leaves one out isn't registered, and the stack calls nothing
- * of it: the transport has no controller (F-287: three were called
- * unchecked) */
+/* usb.md 4: every operation is mandatory but xfer_start_short (4.5),
+ * ep0_stall too (4.4, F-138). A driver that leaves one out isn't registered, and the stack calls
+ * nothing of it: the transport has no controller (F-287: three were called unchecked) */
 static void test_every_operation_is_mandatory(void **state)
 {
     typedef void (*op_t)(void);
@@ -170,9 +168,8 @@ static void test_every_operation_is_mandatory(void **state)
         usb_host_reset(NULL);
         u.ops = *usb_host_hal_ops();
 
-        /* The optional ones: without them the driver is registered */
-        if (i == offsetof(struct usbd_hal_ops, xfer_start_short) / sizeof(op_t) ||
-            i == offsetof(struct usbd_hal_ops, ep0_stall) / sizeof(op_t))
+        /* The optional one: without it the driver is registered */
+        if (i == offsetof(struct usbd_hal_ops, xfer_start_short) / sizeof(op_t))
             continue;
 
         u.op[i] = NULL;
@@ -842,40 +839,13 @@ static void unknown_requests(void)
     assert_false(usb_host_reply()->status);
 }
 
-/* usb.md 3.2, 2.2: a request the stack doesn't know is to be stalled, and
- * the host goes on; no controller can stall yet (F-138), so it is left
- * unanswered. Before the device is configured the device goes on
- * enumerating, and in a session the transfer goes on (F-422: connect
- * failed and command mode left; in a session the transfer was lost) */
-static void test_unknown_request(void **state)
+/* F-138: a request the stack doesn't know
+ * is stalled and none is left unanswered: the host goes on at once. Before
+ * the configuration and in a session (usb.md 3.2, 2.2; F-422) */
+static void test_unknown_request_stalled(void **state)
 {
     (void)state;
     start(NULL);
-
-    unknown_requests();
-    assert_int_equal(usb_host_state()->unanswered, 2);
-    enumerate();
-    assert_int_equal(usb_host_state()->unanswered, 3);
-
-    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
-    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_CONFIGURATION, 0, 0, 1);
-    assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
-    assert_false(usb_host_reply()->status);
-    usb_host_send(data, PACKET);
-    assert_int_equal(cm_transport_complete(), PB_OK);
-    assert_memory_equal(buf, data, PACKET);
-    assert_int_equal(usb_host_state()->cancel_calls, 0);
-    assert_int_equal(usb_host_state()->bulk_starts, 1);
-}
-
-/* F-138: with a controller that can stall, a request the stack doesn't know
- * is stalled and none is left unanswered: the host goes on at once. Before
- * the configuration and in a session, as without it */
-static void test_unknown_request_stalled(void **state)
-{
-    static const struct usb_host_config stalls = { .can_stall = true };
-    (void)state;
-    start(&stalls);
 
     unknown_requests();
     assert_true(usb_host_reply()->stalled);
@@ -899,9 +869,8 @@ static void test_unknown_request_stalled(void **state)
  * is answered as before, not stalled */
 static void test_set_configuration_stalled(void **state)
 {
-    static const struct usb_host_config stalls = { .can_stall = true };
     (void)state;
-    start(&stalls);
+    start(NULL);
 
     host_set_address(5);
     assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
@@ -985,9 +954,8 @@ static void test_data_stage_given_up(void **state)
  * session the transfer goes on */
 static void test_set_idle(void **state)
 {
-    static const struct usb_host_config stalls = { .can_stall = true };
     (void)state;
-    start(&stalls);
+    start(NULL);
 
     usb_host_request(USB_HOST_REQ_CLASS | USB_HOST_REQ_INTERFACE, 0x0a, 0, 0, 0);
     assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
@@ -1018,9 +986,8 @@ static void test_set_idle(void **state)
  * descriptor). The ones the class has are answered */
 static void test_unknown_string(void **state)
 {
-    static const struct usb_host_config stalls = { .can_stall = true };
     (void)state;
-    start(&stalls);
+    start(NULL);
 
     host_get_descriptor(USB_DESC_TYPE_STRING, 3, 255);
     (void)cm_transport_connect();
@@ -1070,7 +1037,6 @@ int main(void)
         cmocka_unit_test(test_setup_poll_error_is_lost),
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
-        cmocka_unit_test(test_unknown_request),
         cmocka_unit_test(test_unknown_request_stalled),
         cmocka_unit_test(test_set_configuration_stalled),
         cmocka_unit_test(test_control_transfer_given_up),

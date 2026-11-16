@@ -218,9 +218,8 @@ struct usbd_hal_ops {
     int (*set_configuration)(const struct usb_endpoint_descriptor *eps, size_t no_of_eps);
     int (*set_address)(uint16_t addr);
     int (*ep0_xfer_zlp)(usb_ep_t ep);
-    /* [optional] Stalls endpoint 0 until the next SETUP, both directions
-     * (usb.md 4.4). Without it a request the stack refuses is left
-     * unanswered and the host waits out its timeout (F-138) */
+    /* Stalls endpoint 0 until the next SETUP, both directions (usb.md 4.4,
+     * F-138): how a request the stack refuses is answered */
     int (*ep0_stall)(void);
 };
 
