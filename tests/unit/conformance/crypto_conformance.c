@@ -416,6 +416,16 @@ void crypto_4_malformed_der(void **state)
         assert_int_equal(verify(t, t->signature_length - 1, k->data, k->size, &verified),
                          -PB_ERR_ASN1);
 
+        /* A byte after it, and a SEQUENCE length that isn't what follows:
+         * the CAAM's parser is as strict as Mbed TLS's (D-092, F-286 (6)) */
+        token_begin(t);
+        signature[t->signature_length] = 0x00;
+        assert_int_equal(verify(t, t->signature_length + 1, k->data, k->size, &verified),
+                         -PB_ERR_ASN1);
+        token_begin(t);
+        signature[(t->signature[1] & 0x80) ? 2 : 1]--;
+        assert_int_equal(verify_token(t, &verified), -PB_ERR_ASN1);
+
         /* The key: not a SEQUENCE, cut short */
         memcpy(key, k->data, k->size);
         key[0] = 0x31;

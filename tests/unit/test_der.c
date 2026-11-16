@@ -196,6 +196,33 @@ static void test_ecsig_truncated(void **state)
     free(sig);
 }
 
+/* F-286 (6), D-092: as strict as Mbed TLS: the SEQUENCE's length is every
+ * byte after its header, and the INTEGERs fill it. A byte after the
+ * signature, a SEQUENCE that is longer or shorter, or room left in it after
+ * s are refused */
+static void test_ecsig_is_every_byte(void **state)
+{
+    uint8_t sig[sizeof(ecsig) + 1];
+    uint8_t r[32];
+    uint8_t s[32];
+    (void)state;
+
+    memcpy(sig, ecsig, sizeof(ecsig));
+    sig[sizeof(ecsig)] = 0x00;
+    assert_int_equal(der_ecsig_to_rs(sig, sizeof(sig), r, s, sizeof(r)), -PB_ERR_ASN1);
+
+    /* The extra byte inside the SEQUENCE, after s */
+    sig[1] = 71;
+    assert_int_equal(der_ecsig_to_rs(sig, sizeof(sig), r, s, sizeof(r)), -PB_ERR_ASN1);
+
+    ecsig[1] = 69;
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
+    ecsig[1] = 71;
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
+    make_ecsig();
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), PB_OK);
+}
+
 static void test_ecsig_bad_encoding(void **state)
 {
     uint8_t r[32];
@@ -542,6 +569,7 @@ int main(void)
         cmocka_unit_test_setup(test_ecsig_to_rs_pads_short_values, setup),
         cmocka_unit_test_setup(test_ecsig_too_large, setup),
         cmocka_unit_test_setup(test_ecsig_truncated, setup),
+        cmocka_unit_test_setup(test_ecsig_is_every_byte, setup),
         cmocka_unit_test_setup(test_ecsig_bad_encoding, setup),
         cmocka_unit_test(test_ec_public_key_data),
         cmocka_unit_test(test_ec_public_key_output_too_small),

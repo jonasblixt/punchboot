@@ -117,19 +117,33 @@ int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *
     if (rc != PB_OK)
         return rc;
 
-    /* The SEQUENCE length isn't checked against the integers, because
-     * earlier releases ignored it (D-008). Both are bounded by sig_length. */
+    /* As strict as Mbed TLS's mbedtls_ecdsa_read_signature(): the SEQUENCE
+     * is every byte after its header, and the two INTEGERs are every byte of
+     * it. A signature with bytes after it, or a SEQUENCE length that is
+     * another, verified on the CAAM in every release and was refused in
+     * software: security before D-008 (Jonas, D-092, F-286 (6)) */
     rc = asn1_size(&p, &sz);
 
     if (rc != PB_OK)
         return rc;
+
+    if (sz != (size_t)(end - p))
+        return -PB_ERR_ASN1;
 
     rc = der_integer_to_fixed(&p, end, r, length);
 
     if (rc != PB_OK)
         return rc;
 
-    return der_integer_to_fixed(&p, end, s, length);
+    rc = der_integer_to_fixed(&p, end, s, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (p != end)
+        return -PB_ERR_ASN1;
+
+    return PB_OK;
 }
 
 /* Reads the tag and the length of a DER header. The length's own bytes and

@@ -202,6 +202,11 @@ The host tools (`pip install punchboot`):
 |                                      | verified an image in memory (D-048): a board that |       |
 |                                      | used that with a device tree has no equivalent    |       |
 |                                      | yet                                               |       |
+| On the CAAM (the 6UL, the 8M, the    | It booted there: the CAAM's parser read the two   | D-092 |
+| 8X): an image or a token whose       | INTEGERs and nothing else, while Mbed TLS refused |       |
+| signature has bytes after its DER,   | it. Security comes before compatibility. bpak and |       |
+| or a SEQUENCE length that isn't what | every signer write exact DER                      |       |
+| follows                              |                                                   |       |
 | On the i.MX8X: an image signed by a  | It booted: no revoke bit covers that slot, so the | D-092 |
 | key in a slot from 4 up              | key could never be revoked. Security comes before |       |
 |                                      | compatibility. The boards in the tree use slots 0 |       |

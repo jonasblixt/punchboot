@@ -203,7 +203,9 @@ The arguments:
 
 - **The signature** is DER, an `ECDSA-Sig-Value` (two INTEGERs), as the image's header and the
   token carry it. It comes from the image or the host: every length in it is checked against
-  `signature_length`, and against the curve's size (`drivers.md` 5).
+  `signature_length`, and against the curve's size (`drivers.md` 5). It is every byte of
+  `signature_length`: the SEQUENCE's length is what follows its header and the INTEGERs fill
+  it, on every backend as in Mbed TLS (Jonas, D-092, F-286 (6)).
 - **The key** is DER, a `SubjectPublicKeyInfo`, from the keystore, which is part of pb. It is
   parsed inside `key_length` all the same (`principles.md` 2).
 - **`alg` is the key's curve as the keystore names it.** A key whose own curve is another one

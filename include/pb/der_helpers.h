@@ -10,7 +10,9 @@
  * Extract r and s values from a DER encoded signature
  *
  * Leading zero bytes are dropped and shorter values are zero padded, so that
- * r and s are big-endian values of exactly 'length' bytes.
+ * r and s are big-endian values of exactly 'length' bytes. The signature is
+ * every byte of sig_length: the SEQUENCE's length is what follows its
+ * header, and the two INTEGERs fill it (F-286).
  *
  * @param[in] sig DER bytes
  * @param[in] sig_length Number of bytes in sig, nothing past it is read
