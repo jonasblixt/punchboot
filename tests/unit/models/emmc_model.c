@@ -425,6 +425,9 @@ static void build_ext_csd(void)
     x[EXT_CSD_REL_WR_SEC_C] = 0x01;
     x[EXT_CSD_HC_WP_GRP_SIZE] = 0x01;
     x[EXT_CSD_S_A_TIMEOUT] = 0x11;
+    if (emmc.cfg.sec_count_zero && !high_capacity())
+        sec = 0;
+
     x[EXT_CSD_SEC_COUNT + 0] = sec & 0xff;
     x[EXT_CSD_SEC_COUNT + 1] = (sec >> 8) & 0xff;
     x[EXT_CSD_SEC_COUNT + 2] = (sec >> 16) & 0xff;
