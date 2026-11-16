@@ -2242,6 +2242,38 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | hash's word (`command-mode.md` 5.2); one with another bit is still refused | | |
 | | | 2026-11-16 (`44bc3310`, Jonas: size it from the CSD): a byte addressed e.MMC with SEC_COUNT 0 is | | |
 | | | sized from C_SIZE, C_SIZE_MULT and READ_BL_LEN; a device with no size is refused (`test_mmc_emmc`) | | |
+| F-283 | `src/bio.c`, its users | `bio` against `bio.md`. A length that | Verified (code) | fixed |
+| | | isn't whole blocks goes to the driver as it is (F-182). A length of 0 reaches the driver, and | | |
+| | | the MMC's returns `-PB_ERR` (`mmc_bio_xfer()` starts with `rc = -1`). No block buffer, no | | |
+| | | largest block size, and a buffer isn't checked for its | | |
+| | | lines (F-282). `bio_allocate_parent()` doesn't check the range against the parent (F-193). | | |
+| | | Nothing releases a table's partitions (F-194) or keeps a driver's second `init` from | | |
+| | | registering its devices again. 512 is written out in `gpt.c` (four places), and | | |
+| | | `ab_state.c` writes the state's 512 bytes as a block of any size. `bio.h` says `-PB_ERR_IO` | | |
+| | | for a bad parent and `-PB_TIMEOUT`; the code returns `-PB_ERR_PARAM`. No conformance suite: | | |
+| | | the RAM disk and the host's disk write exact byte counts, the drivers don't (`bio.md` 8) | | |
+| | | D-073, `bio.md` 2.6: nothing refuses a second device with a UUID that is taken; the block | | |
+| | | getters return `int`, so 2^31 blocks or more read as an error (verified in `bio.c`) | | |
+| | | 2026-11-13 (`8feab2e9`, `5fae6bda`, `e3d8f37b`, `d9f0e19a`, `4d25aeca`, `f799b8e2`, `2bc5a469`): a | | |
+| | | block above `CONFIG_BIO_MAX_BLOCK_SIZE` and a second device with a taken UUID are refused, a length | | |
+| | | of 0 doesn't reach the driver, a second `mmc_init()` registers nothing again, the block getters are | | |
+| | | 64 bits, `bio.h` names the codes, the A/B state's erase counts the device's blocks. Left: the GPT's | | |
+| | | four `512` (on a 4 KiB device the entries would sit at byte 512 of LBA 1: a real 4Kn GPT, a refusal, | | |
+| | | or that layout; for Jonas), and the rest of the conformance suite (erase, `write_done`, a write that | | |
+| | | fails half way, the FlexSPI) | | |
+| | | 2026-11-13 (`a95356ad`): one of the GPT's 512s went with the old repair path; `gpt_pmbr[512]` and | | |
+| | | three divisions (`gpt_init_tbl()` twice, `gpt_read_backup()`) are left | | |
+| | | 2026-11-14 (`b3f58c2a`): the conformance suite has an erase (exactly the blocks, 0, outside the | |
+| | | device, or `-PB_ERR_NOT_SUPPORTED`), `write_done` after a complete write, and a write that fails | |
+| | | half way (the error, nothing outside written, usable after), with a fault hook per device. It runs | |
+| | | on the RAM disk, the host's disk and flash, the e.MMC (user area and a boot partition), the SD, the | |
+| | | uSDHC and the FlexSPI model: every one conforms. Left: the GPT's `512`s (`gpt_pmbr[512]`, three | |
+| | | divisions; for Jonas) and a read that fails, in the suite | |
+| | | 2026-11-15: the suite has a read that fails (whole blocks, half a block), on the RAM disk, the | | |
+| | | e.MMC, the SD, the uSDHC and the FlexSPI; the host's files skip it. Left: the GPT's `512`s (for | | |
+| | | Jonas) | | |
+| | | 2026-11-16 (`45694b3b`, Jonas: any block size): the GPT takes the device's block size, 512 to 4096 | | |
+| | | bytes (`test_gpt`'s 4 KiB device); on jiffy, the MEK and the 8MP EVK the same partitions, Linux | | |
 
 ## Dependencies / vendored code
 
