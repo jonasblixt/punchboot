@@ -1919,6 +1919,13 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | before, 2 of 13 back within 2 s, the others 4.8 to 150 s, the 13th lost; after, 30 of 30 back in | | |
 | | | 0.9 to 1.3 s, no transport timeout. A write as soon as it enumerates (15 MiB, 4 KiB, 700 B in | | |
 | | | turns), verified: 20 of 20 | | |
+| F-461 | `src/drivers/usb/cdns3_udc_core.c` | `TRB_BURST_LENGTH()` put a bulk TRB's burst | Verified (MEK) | fixed |
+| | | in bits 23:16 of its length word; Linux 6.18 has 31:24 (`TRB_BURST_LEN`), above the length's 16:0. pb's | | |
+| | | 64 set bit 22 and left the burst at 0. Found reading Linux's driver for F-287 | | |
+| | | 2026-11-16 (`f470ba88`): bits 31:24, 64 for 512 byte packets and 16 before DEV_VER_V2, as Linux, | | |
+| | | which forces 16 there (a longer burst to an address not on 128 bytes corrupts data across 4 KiB). The | | |
+| | | MEK's controller is 0x24502: 16. On the MEK: 15 MB 3 of 3 (1.08 to 1.12 s, 1.07 s before), 100 MB | | |
+| | | verified, odd sizes, Linux to the login | | |
 
 ## Dependencies / vendored code
 

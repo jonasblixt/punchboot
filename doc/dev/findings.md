@@ -51,6 +51,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | registers a driver without it: an out-of-tree controller keeps working), for Jonas | | |
 | | | 2026-11-16 (Jonas): `ep0_stall` is mandatory; a driver without it isn't registered (`usb.md` 4.4). | | |
 | | | The host fakes always stall. Left: an aborting SETUP seen only at the bound, EP0 IN ZLT | | |
+| | | 2026-11-16: EP0 IN ZLT can't happen in the tree: no reply is whole packets and shorter than | | |
+| | | `wLength` (the strings are 20 and 74 bytes, the configuration 32, the SPL's product 28). An | | |
+| | | out-of-tree class with a 64 byte string would hit it; a fix is each controller's (Linux's | | |
+| | | `zero`: a second, empty TRB or dTD in the data stage) and a test build on three boards | | |
 | F-140 | `src/drivers/usb/imx_ci_udc.c` | USBMODE.SDIS is set; the RM: in high speed every OUT packet is then answered with NYET, and it "substantially limits" throughput. Worth measuring for flashing speed. The init also writes ENDPOINTLISTADDR before USBMODE.CM, the RM (54.4.6.1) sets the mode first. `CMD_ITC(x)` cast to `uint16_t` after the shift, so ITC was always 0 (immediate; fine for a polling driver). | Verified (code, RM 54.6.33, 54.4.6.1) | open (ITC: `USBCMD_ITC(0)` since `5bd1d20e`, same value) |
 | | | 2026-11-14 (`cb747e97`, `pkg-b3-ci2` landed): USBMODE.CM is set first, as the RM; benched with F-136. | | |
 | | | Left: whether clearing SDIS raises the throughput without errors, measured on jiffy and the RT1060 | | |
@@ -490,6 +494,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the 8MP EVK. Left: (2) a short read, (4) speed | | |
 | | | 2026-11-16 (`0ac39f68`): of (2), the DWC3 fails a transfer that a short packet ends before | | |
 | | | `length` (`-PB_ERR_IO`), as the ChipIdea; run on the 8MP EVK. Left: the cdns3's, (4) speed | | |
+| | | 2026-11-16 (`2c005bdf`): the cdns3's: its OUT TRBs had no ISP, so after a short packet the | | |
+| | | controller went on to the stop gap TRB and the transfer never ended (on the MEK a 100 byte packet | | |
+| | | from the host wedged command mode, endpoint 0 too, until a bus reset). Each OUT TRB has ISP now, | | |
+| | | EP_STS_ISP ends a bulk OUT transfer, and a count short of `length` (the controller writes back each | | |
+| | | TRB's, seen on the MEK) flushes the endpoint and is `-PB_ERR_IO`. Left: (4) speed | | |
 | F-310 | `doc/interfaces/bio.md`, `include/pb/bio.h` | `bio.md` describes five | Verified (code) | open |
 | | | functions of `bio.h` and doesn't name them: `bio_set_ios()` and `bio_set_ios_erase()` ("then | | |
 | | | the callbacks", 2.1), `bio_get_hal_flags()` (2.5 names the setter), | | |

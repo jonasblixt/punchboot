@@ -424,7 +424,7 @@ what the code doesn't settle without the hardware.
 |                                  | is an error        | packet bounces; an  |                 | F-137   |
 |                                  |                    | overflow is an      |                 |         |
 |                                  |                    | error               |                 |         |
-| OUT: a short packet is an error  | yes                | yes                 | no              | F-137,  |
+| OUT: a short packet is an error  | yes                | yes                 | yes (the MEK)   | F-137,  |
 |                                  |                    |                     |                 | F-287   |
 | A read of whole packets ends at  | yes (jiffy)        | yes (8MP EVK)       | yes (the MEK)   | F-280   |
 | its length                       |                    |                     |                 |         |
@@ -434,8 +434,8 @@ what the code doesn't settle without the hardware.
 |                                  |                    | refused             | refused         |         |
 | A length it can't queue is       | yes                | yes                 | yes             |         |
 | refused                          |                    |                     |                 |         |
-| `xfer_complete` reads the        | yes                | no                  | partly          | F-137,  |
-| controller's result              |                    |                     |                 | F-287   |
+| `xfer_complete` reads the        | yes                | no                  | partly: OUT's   | F-137,  |
+| controller's result              |                    |                     | count           | F-287   |
 | Endpoint 0 independent of a bulk | yes                | yes                 | yes             |         |
 | transfer                         |                    |                     |                 |         |
 | An unknown request is stalled    | yes (the RT1060)   | yes (the 8MP EVK)   | yes (the MEK)   |         |
