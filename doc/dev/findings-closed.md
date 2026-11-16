@@ -49,11 +49,30 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-096 | `src/plat/imx6ul/plat.c`, `src/board/jiffy/imximage.cfg` | The TZASC (TZC-380) was bypassed on the i.MX6UL: TZASC1_BYP in IOMUXC_GPR9 is cleared by a power-on reset and nothing set it, so no DDR access was checked. OP-TEE's TZASC regions had no effect: on jiffy Linux read OP-TEE's memory at 0xbe000000 with devmem. Out of bypass, OP-TEE takes a data abort reading the DTB through its non-secure mapping before its TZASC driver has run, because region 0 only lets secure accesses through. | Seen on the board (2026-10-26) | fixed (`imx6ul-tzasc`): new TZC-380 driver (`src/drivers/tzc`, selected by `PLAT_IMX6UL`); `plat_init()` opens the DDR window to both worlds in region 1, which OP-TEE replaces, and logs an error when the DCD left the TZASC bypassed (not fatal, command mode needs `plat_board_init()`). The jiffy DCD sets the bit after the MMDC setup. A warm reset keeps the bit, so the check only catches a missing DCD line after a power-on reset. Needs OP-TEE with `CFG_TZC380`, or DDR stays open in region 1 |
 | F-098 | `src/plat/imx8m/umctl2_lp4.c` `umctl2_init` (now `ddr.c`, `drivers/ddr/dwc_ddrphy.c`) | The LPDDR4 init ignored the firmware readback check (which also returned a positive `PB_ERR`, F-069) and the PHY firmware's "training failed" mail, carried on with untrained DRAM and returned `PB_OK`; `plat_init()` ignored the result anyway. | Verified (host model, `test_imx8m_ddr`) | fixed (`imx8m-dram-cleanup`): `-PB_ERR_IO`, `plat_init()` fails |
 | F-099 | `include/plat/imx8m/clock.h` | `FRAC_PLL_LOCK_MASK` and `SSCG_PLL_LOCK_MASK` were `(1 << 31)`, signed overflow (UB). Found by UBSan in `test_imx8m_ddr`. | Verified | fixed (`imx8m-dram-cleanup`) |
-| F-100 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The timing copy for TF-A in `.umctl2` (NOLOAD, 0x40000000) never writes `fsp_msg`/`fsp_msg_num`, so TF-A gets whatever DRAM held. The copy's size (~12.5 KiB for the EVK) is not checked against the 128 KiB region, and nothing pins `struct dram_timing_info` to TF-A's layout. | Verified (read) | fixed: the copy is a 128 KiB `struct dram_timing_save` and too large tables fail with `-PB_ERR_MEM`; `fsp_msg` is never read by upstream TF-A (only `fsp_table` and the tables), so harmless there |
+| F-100 | `src/plat/imx8m/ddr.c` | The timing copy for TF-A in `.umctl2` (NOLOAD, | Verified | fixed: the |
+| | `dram_save_timing` | 0x40000000) never writes `fsp_msg`/`fsp_msg_num`, so | (read) | copy is a |
+| | | TF-A gets whatever DRAM held. The copy's size (~12.5 | | 128 KiB |
+| | | KiB for the EVK) is not checked against the 128 KiB | | `struct dram_timing_save` |
+| | | region, and nothing pins `struct dram_timing_info` | | and too |
+| | | to TF-A's layout. | | large tables |
+| | | | | fail with |
+| | | | | `-PB_ERR_MEM`; |
+| | | | | `fsp_msg` is |
+| | | | | never read |
+| | | | | by upstream |
+| | | | | TF-A (only |
+| | | | | `fsp_table` |
+| | | | | and the |
+| | | | | tables), so |
+| | | | | harmless |
+| | | | | there |
 | | | 2026-11-16 (`9d0bd779`): the layout is pinned to TF-A v2.12's struct, every | | |
 | | | offset and the size (96) asserted on LP64 builds; `pb.bin` unchanged | | |
 | F-101 | `src/board/imx8mevk/lpddr4_timing.c` `umctl2_ddrc_cfg` | The last four entries write `FREQ1_DERATEEN/DERATEINT/RFSHCTL0/RFSHTMG` again with other values, overwriting the 667 MT/s settings a few lines up, while the 3200 MT/s `DERATEEN`, `DERATEINT` and `RFSHCTL0` are never written (reset values). Looks like FREQ0 values pasted onto FREQ1 names. Also `DBG1`, `SWCTL`, `PCTRL_0` in the table are written again by the code. | Verified (read); hardware effect unknown | fixed (`imx8m-dram-cleanup`, `c129bbf9`): the EVK timing is now NXP DDR tool output, which sets the FREQ0 registers and writes FREQ1 once |
-| F-102 | `src/drivers/ddr/{umctl2,dwc_ddrphy}.c`, `src/plat/imx8m/ddr_imx8mq.c` | Every poll in the DDR init (STAT, PHY mailbox, CalBusy, DFISTAT, SWSTAT, PLL lock) spins forever. A stuck PHY or bad board table hangs the board without a log. | Verified (read) | fixed |
+| F-102 | `src/drivers/ddr/{umctl2,dwc_ddrphy}.c`, | Every poll in the DDR init (STAT, PHY | Verified | fixed |
+| | `src/plat/imx8m/ddr_imx8mq.c` | mailbox, CalBusy, DFISTAT, SWSTAT, PLL lock) spins forever. A | (read) | |
+| | | stuck PHY or bad board table hangs the board without | | |
+| | | a log. | | |
 | | | 2026-11-16 (`c93a8966`, `63808be0`): measured on the 8MP EVK, the longest of each: the PMU's next | | |
 | | | message 15.1 ms (17), the PLL lock 500 us, the DFI init 18 us, the rest 1 us at most. Bounds 1 s a | | |
 | | | message, 10 ms the rest, `-PB_ERR_TIMEOUT` with a log line through `imx8m_ddr_init()`; the golden | | |
@@ -77,7 +96,14 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | F-130 | `src/drivers/usb/imx_ci_udc.c`, `src/cm/cm_main.c` `cm_write` | Intermittently (alternating `punchboot log` and `auth`: within 6-18 iterations, once not in 120) a bulk IN reply on EP1 never completes: the dTD stays Active while the host waits for the data. `cm_write` polls `xfer_complete` without a timeout or a watchdog kick, so the watchdog resets jiffy after ~5 s and the host reports `Error: Transfer`. Seen as the glitch during the boot time measurements. Cause unknown; suspect the cached dQH: `xfer_start` writes `qh->next` into a possibly stale cache line and cleans the whole 64-byte line, writing old overlay fields back over the controller's. The prime/flush/completion loops have no timeouts. | Seen on the board (2026-10-29), located with breadcrumbs | fixed (`3746bc6c`): usbmon showed the host's 1024 byte OUT stage end after 512 bytes, the dump an EP2 overlay of the previous 512 byte command transfer into `align_buffer`: `xfer_start` wrote `qh->next` into a cached dQH line filled while the endpoint was primed and its clean wrote the old active overlay back, which the controller resumed. Now the line is invalidated first and the overlay token cleared (RM 54.4.6.6.3). 0 hangs in 1000 `log`+`auth` and 1000 `log`+board command rounds (8-11 in 500 before). F-132/F-133 and SDIS were not it |
 | F-132 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_set_configuration` | An IN endpoint is enabled with bit 6 (RXR) set instead of bit 22 (TXR), so the IN data toggle is never reset on SET_CONFIGURATION. 6UL RM ENDPTCTRL1: "Whenever a configuration event is received for this Endpoint, software must write a one to this bit". | Verified (code, RM 54.6.40) | fixed (`40f82aac`), not yet run on the board |
 | F-133 | `src/drivers/usb/imx_ci_udc.c` `imx_ci_udc_set_configuration` | ENDPTCTRLn is written whole for one direction, leaving the other as type 00 (control): EP1 OUT and EP2 IN on pb's class. 6UL RM ENDPTCTRL1 note: "the unused direction type must be changed from the default control-type to any other type… leaving an unconfigured endpoint control causes undefined behavior for the data pid tracking on the active endpoint/direction". The write also clobbers the other direction if both are used (the RM asks for read-modify-write). A candidate for F-130. | Verified (code, RM 54.6.40, 54.4.6.3.2) | fixed (`afaa9c87`): read-modify-write, an unused direction is bulk; not yet run on the board |
-| F-140 | `src/drivers/usb/imx_ci_udc.c` | USBMODE.SDIS is set; the RM: in high speed every OUT packet is then answered with NYET, and it "substantially limits" throughput. Worth measuring for flashing speed. The init also writes ENDPOINTLISTADDR before USBMODE.CM, the RM (54.4.6.1) sets the mode first. `CMD_ITC(x)` cast to `uint16_t` after the shift, so ITC was always 0 (immediate; fine for a polling driver). | Verified (code, RM 54.6.33, 54.4.6.1) | fixed (`a41579b9`) |
+| F-140 | `src/drivers/usb/imx_ci_udc.c` | USBMODE.SDIS is set; the RM: in high speed every OUT | Verified | fixed |
+| | | packet is then answered with NYET, and it | (code, RM | (`a41579b9`) |
+| | | "substantially limits" throughput. Worth measuring | 54.6.33, | |
+| | | for flashing speed. The init also writes | 54.4.6.1) | |
+| | | ENDPOINTLISTADDR before USBMODE.CM, the RM | | |
+| | | (54.4.6.1) sets the mode first. `CMD_ITC(x)` cast to | | |
+| | | `uint16_t` after the shift, so ITC was always 0 | | |
+| | | (immediate; fine for a polling driver). | | |
 | | | 2026-11-14 (`cb747e97`, `pkg-b3-ci2` landed): USBMODE.CM is set first, as the RM; benched with F-136. | | |
 | | | Left: whether clearing SDIS raises the throughput without errors, measured on jiffy and the RT1060 | | |
 | | | 2026-11-15, jiffy (BOOT1, `55689509`): `part write` of 32 MiB (authentication, USB and eMMC), three | | |
@@ -91,13 +117,33 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | all verified. Left: the 8DXL, which only builds | | |
 | | | Closed 2026-11-16: run on jiffy and the RT1060; the 8DXL only builds, no board runs it | | |
 | F-141 | `tools/punchboot/usb.c` `pb_usb_read`, `pb_usb_write` | The actual length (`rx_sz`) of a bulk transfer is never checked, so a short read or write counts as complete and the host and pb can get out of step without an error. | Verified (code) | fixed (D-021): `UsbTransport` raises `TransferError` on a short transfer |
-| F-149 | `src/board/imxrt1060evk/imximage.cfg` | The DCD writes IOMUXC_GPR17 (0x400ac044 = 0x55555555) and sets GPR16 bit 2 to make all of the FlexRAM OCRAM. HAB rejects the write: `punchboot log hab` on the RT1060 EVK has a failure, invalid address (0x22) in a CSF/DCD command, for that write. So the FlexRAM keeps its fused split (256 KiB OCRAM); pb fits, since its buffers end at 0x202bf000. On an open part the ROM goes on; on a closed one the boot fails. Drop the DCD or set GPR17 from pb (the ROM's DCD address list doesn't allow IOMUXC_GPR). | Verified (board, HAB log) | fixed |
+| F-149 | `src/board/imxrt1060evk/imximage.cfg` | The DCD writes IOMUXC_GPR17 (0x400ac044 = | Verified | fixed |
+| | | 0x55555555) and sets GPR16 bit 2 to make all of the | (board, HAB | |
+| | | FlexRAM OCRAM. HAB rejects the write: | log) | |
+| | | `punchboot log hab` on the RT1060 EVK has a failure, | | |
+| | | invalid address (0x22) in a CSF/DCD command, for | | |
+| | | that write. So the FlexRAM keeps its fused split | | |
+| | | (256 KiB OCRAM); pb fits, since its buffers end at | | |
+| | | 0x202bf000. On an open part the ROM goes on; on a | | |
+| | | closed one the boot fails. Drop the DCD or set GPR17 | | |
+| | | from pb (the ROM's DCD address list doesn't allow | | |
+| | | IOMUXC_GPR). | | |
 | | | 2026-11-16 (`fe79c1da`): no DCD (the FlexRAM stays at its fused split, which `link.lds` counts | | |
 | | | on). On the RT1060 from its NOR: no DCD event in HAB's log, the simple bench 7 of 7 | | |
 | F-150 | `src/board/imx8mpevk/board.c` | The board booted with the Linux boot driver, which jumps to `kernel` at EL3; arm64 Linux needs TF-A's BL31. TF-A v2.12's 8MP BL31 takes BL33 from the `bl_params` in x0 only from OCRAM/TCM and swaps base and size in that check (below 0x960000 then), else BL31 jumps to 0x40200000 without arguments. | Code (TF-A v2.12 source) | fixed: `ac10a592` (ATF boot driver), `cb1092bb` (`bl_params` in `.data`, 0x936168), `f4f01c5b` (the system counter: BL31 hung in `udelay()` without it), `875ccea8` (no SLC), F-071. Boots to the login prompt on the EVK |
 | F-151 | jiffy on the bench (2026-10-29) | Linux froze a few seconds into the boot (no kernel message) and jiffy power-on-reset about 2.5 s later (`POR (1)`), with pb 3.0.0 and v2.7.1, the test bench and the old OP-TEE image, with or without kickstart, network or pbstate. Cause: jiffy's USB (command mode) was on the VIA VL813 hub. Plugged into the host directly, the test bench boots to the login prompt (dm-verity root, `pb,active-system` A, verified). Why the hub resets jiffy isn't known (port power switching after pb's USB disconnect?). Bisecting software ruled out: cpuidle, CAAM, usbotg1, watchdog, network, pbstate, kickstart. Userspace `devmem` aborts on every peripheral (AIPS-TZ defaults, privileged only), unrelated. | Verified (board) | closed: bench, not software |
 | F-154 | `src/drivers/crypto/caam/imx_caam.c`, i.MX8M | pb never instantiated the CAAM's RNG4. On jiffy Linux runs secure and did it itself; on the 8MP Linux runs non-secure behind TF-A and can't (`caam: failed to acquire DECO 0`, `failed to instantiate RNG`), so there was no `rng-caam` and the entropy pool filled slowly. | Verified (EVK) | fixed 2026-10-30: `imx_caam_rng_init()` instantiates both state handles with prediction resistance (Linux tears down a handle without, which needs DECO 0) and generates the secure keys; jiffy, imx8mevk, imx8mpevk call it. Both boards: `rng-caam`, RDSTA 0x40000033, crng ready at 0.15 s (8MP) / 0.27 s (jiffy). 27 ms per boot on both; every reset kind clears the CAAM. imx8mevk not tried |
-| F-156 | Linux 6.18 on the i.MX8M Plus EVK, `drivers/regulator/pca9450-regulator.c` | The PCA9450 driver registers a restart handler at priority 130, above PSCI's 129, that sends the PMIC SW_RST 0x14 (a cold reset). Every `reboot` and every panic restart (`panic=5`) power cycles the DRAM and loses ramoops, whatever `reboot=` says; pb's `log linux` then shows an older record. Only a watchdog reset (WDOG_B, warm with `nxp,wdog_b-warm-reset` in the test bench DTS) keeps it: a hang, which panics Linux on the watchdog pretimeout 2 s before the reset. Not pb. jiffy has no PMIC handler and keeps it on every path. | Verified (EVK, pb fill/check and Linux pstore) | fixed in the test bench (`1846a43e`) |
+| F-156 | Linux 6.18 on the i.MX8M | The PCA9450 driver registers a restart handler at | Verified | fixed in the |
+| | Plus EVK, | priority 130, above PSCI's 129, that sends the PMIC | (EVK, pb | test bench |
+| | `drivers/regulator/pca9450-regulator.c` | SW_RST 0x14 (a cold reset). Every `reboot` | fill/check | (`1846a43e`) |
+| | | and every panic restart (`panic=5`) power cycles the DRAM and | and Linux | |
+| | | loses ramoops, whatever `reboot=` says; pb's | pstore) | |
+| | | `log linux` then shows an older record. Only a | | |
+| | | watchdog reset (WDOG_B, warm with | | |
+| | | `nxp,wdog_b-warm-reset` in the test bench DTS) keeps | | |
+| | | it: a hang, which panics Linux on the watchdog | | |
+| | | pretimeout 2 s before the reset. Not pb. jiffy has | | |
+| | | no PMIC handler and keeps it on every path. | | |
 | | | 2026-11-16 (`1846a43e`): the test bench's kernel patch puts the handler at 128, below PSCI; TF-A's | | |
 | | | reset on the 8M Plus is WDOG_B (`IMX_WDOG_B_RESET`), warm with the DTS's property. On the EVK a | | |
 | | | marker in `/dev/kmsg` survives `reboot` (`punchboot log linux`). pb's banner still says POR | | |
@@ -1993,7 +2039,18 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | ID | Finding | Status |
 |---|---|---|
 | F-034 | Bash tests that exist but don't run: `test_config`, `test_invalid_key_index2`, `test_setup_lock`, `test_bpak_show`, `test_part_offset_write`. They use commands and tools that no longer exist. | removed with the bash suite |
-| F-035 | The same data is defined in several places: exception names (C ×1, Python ×3, before D-021), partition flags, SLC enum, and the crc32 id table (`helpers.py`, could be `zlib.crc32`). | fixed (D-021, `575c4cde`): exception names are defined once (`errors.py`), and `wire.py` mirrors the wire values checked against `abi.txt`. Left: `pbtest.py`'s `PB_CMD_*`, the crc32 table |
+| F-035 | The same data is defined in several places: exception names (C ×1, Python ×3, | fixed (D-021, |
+| | before D-021), partition flags, SLC enum, and the crc32 id table (`helpers.py`, | `575c4cde`): |
+| | could be `zlib.crc32`). | exception names are |
+| | | defined once |
+| | | (`errors.py`), and |
+| | | `wire.py` mirrors |
+| | | the wire values |
+| | | checked against |
+| | | `abi.txt`. Left: |
+| | | `pbtest.py`'s |
+| | | `PB_CMD_*`, the |
+| | | crc32 table |
 | | 2026-11-14 (`93508742`): the tests take their wire values from `wire.py`. `zlib.crc32(name, | |
 | | 0xffffffff) ^ 0xffffffff` equals `pb_id()` for every name in use and any ASCII name | |
 | | (`test_pb_id.py`): the table in `helpers.py` can go. Left: that change in `tools/` | |

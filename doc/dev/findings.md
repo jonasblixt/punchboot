@@ -31,7 +31,18 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-104 | `src/drivers/ddr/dwc_ddrphy.c` `dwc_ddrphy_train` | The training results in the message block are never read. U-Boot (all i.MX8M) reads the trained critical delay differences after each 1D run and widens the rank-to-rank gaps (`DRAMTMG2` rd2wr/wr2rd, `RANKCTL`, per P-state) before the DFI init. The imx8mevk has two ranks (`MSTR.active_ranks` 3). TF-A reads these registers back at boot and restores them after retention, so it expects the bootloader to have applied the workaround. | Verified (read, and in the differential trace: U-Boot rewrites `DRAMTMG2`, `FREQ1_DRAMTMG2` and `RANKCTL` before `dfi_init_start`) | open: needs the message block layout and an imx8mevk |
 | F-106 | `src/drivers/ddr/umctl2.c` | Low power/refresh values differ from NXP's current sequence: during init `RFSHCTL3` 0x11 and `PWRCTL` 0xa8 (U-Boot: 0x1 and 0xa0, its comment says `en_dfi_dram_clk_disable = 0`; `refresh_mode` 1 is a DDR4 fine granularity setting); at the end `PWRCTL` 0x08 and `RFSHCTL3` 0x10 (U-Boot: clears only `selfref_sw`, 0x80, then `RFSHCTL3` 0 and `selfref_en`, 0x81). Punchboot also writes `DFIPHYMSTR` twice, which the board table already sets. | Verified (differential trace) | open: needs an imx8mevk |
 | F-107 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The trained PHY CSRs for TF-A are read after the DFI init and port enable; NXP reads them right after loading the PIE image, before the calibration wait and the DFI init. | Verified (differential trace) | open: needs an imx8mevk |
-| F-110 | `src/plat/imx8m/ddr.c` `imx8m_ddr_init` (GPC) | The DDR power-up writes `GPC_PGC_CPU_0_1_MAPPING` (0x303A00EC) and `GPC_PU_PGC_SW_PUP_REQ` bit 5 (0x303A00F8), the i.MX8MQ/8MM layout, and never waits for the request to self-clear. On the i.MX8M Plus 0x303A00EC is the read-only `GPC_LPCR_CM4_AD` and 0x303A00F8 is not in the map; its PU power-up trigger is 0x303A00D8 with `DDRMIX_SW_PUP_REQ` at bit 19 (RM 5.2.10.37). NXP's 8MP DDR tool script writes the same two addresses, and the RM's own example code uses them. Harmless on the 8MP EVK: DDRMIX is powered after reset and the DRAM trains (2026-10-28). | Verified (RM, board) | partly fixed |
+| F-110 | `src/plat/imx8m/ddr.c` | The DDR power-up writes `GPC_PGC_CPU_0_1_MAPPING` | Verified | partly fixed |
+| | `imx8m_ddr_init` (GPC) | (0x303A00EC) and `GPC_PU_PGC_SW_PUP_REQ` bit 5 | (RM, board) | |
+| | | (0x303A00F8), the i.MX8MQ/8MM layout, and never | | |
+| | | waits for the request to self-clear. On the i.MX8M | | |
+| | | Plus 0x303A00EC is the read-only `GPC_LPCR_CM4_AD` | | |
+| | | and 0x303A00F8 is not in the map; its PU power-up | | |
+| | | trigger is 0x303A00D8 with `DDRMIX_SW_PUP_REQ` at | | |
+| | | bit 19 (RM 5.2.10.37). NXP's 8MP DDR tool script | | |
+| | | writes the same two addresses, and the RM's own | | |
+| | | example code uses them. Harmless on the 8MP EVK: | | |
+| | | DDRMIX is powered after reset and the DRAM trains | | |
+| | | (2026-10-28). | | |
 | | | 2026-11-16 (`277ec02b`): `imx8m_ddr_soc_power_up()` per SoC. The 8M Plus maps DDRMIX (A53 mapping | | |
 | | | bit 21) and requests it (0x303A00D8 bit 19, RM 5.2.10.37, .72), and waits for the request to clear | | |
 | | | (1 ms); on the EVK it reads clear right after the write. Three resets, 15 MB, Linux. Left: the | | |
@@ -929,7 +940,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | it (`imx8m_spl_console_init()`, then GPT1's gate in `imx8m_spl_dram_init()`), and the RAM log is | | |
 | | | written out then: a putc bounded through `pb_timeout_*()` would read a gated timer. A counted | | |
 | | | bound, or a console that starts after the timer | | |
-| F-463 | `src/drivers/usb/usbd.c`, `usb.md` 3.2 | Low, a contract question. The stack answers only | Verified (boards) | open |
+| F-463 | `src/drivers/usb/usbd.c`, | Low, a contract question. The stack answers only | Verified | open |
+| | `usb.md` 3.2 | | (boards) | |
 | | | `usb.md` 3.2's requests and stalls the rest, as written. USB 2.0 9.4 has a configured device answer | | |
 | | | more: GET_CONFIGURATION, GET_INTERFACE, GET_STATUS of the interface and of an endpoint, and | | |
 | | | CLEAR_FEATURE / SET_FEATURE(ENDPOINT_HALT). On the RT1060, the MEK and the 8MP EVK (pyusb, | | |
@@ -938,7 +950,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `clear_halt`) gets a stall. CLEAR_FEATURE(HALT) resets the data toggle, which is each controller's: | | |
 | | | answering it without that would lose the next packet. The other four the stack could answer alone. | | |
 | | | Also seen: a zero length and a 1024 byte packet where a command is read, each board recovers | | |
-| F-464 | `src/drivers/mmc/mmc_emmc.c`, the MEK | Boot time. On the MEK pb's init to `boot_load()` is | Seen (board) | open |
+| F-464 | `src/drivers/mmc/mmc_emmc.c`, | Boot time. On the MEK pb's init to `boot_load()` is | Seen (board) | open |
+| | the MEK | | | |
 | | | 187 ms (`boot-time-image -c`, medians of 5, 2026-11-16), of which 171 ms are the eMMC's CMD1 | | |
 | | | loop after pb's CMD0: the card answers busy that long (pb polls every 1 ms). The 8MP EVK's eMMC | | |
 | | | takes 6.7 ms for the same. The ROM had the card up already: taking it over in the state the ROM | | |
