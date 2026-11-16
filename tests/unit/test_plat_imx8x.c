@@ -109,7 +109,7 @@ static struct {
     int caam_rc, mbedtls_rc, stop_rc;
     unsigned int caam_inits, mbedtls_inits, stops;
     uintptr_t caam_base;
-    size_t caam_scfw_calls, caam_at, mbedtls_at;
+    size_t caam_scfw_calls, caam_at;
     unsigned int caam_mmu_enables;
 } crypto;
 
@@ -126,7 +126,6 @@ int imx_caam_init(uintptr_t base)
 int mbedtls_pb_init(void)
 {
     crypto.mbedtls_inits++;
-    crypto.mbedtls_at = fake_reg_log_len;
     return crypto.mbedtls_rc;
 }
 
@@ -421,8 +420,9 @@ static void test_status(void **state)
 
     assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_LATER_STAGE);
     assert_true(status.wdog_armed);
-    assert_true(status.crypto_engine);
+    assert_int_equal(status.crypto_engine, PLAT_CRYPTO_ENGINE_OK);
     assert_false(status.rom_log);
+    assert_int_equal(status.rng, PLAT_RNG_NONE);
 }
 
 /* platform.md 2.2, 2.3 (F-248): a watchdog the SCFW didn't arm isn't the
@@ -659,7 +659,8 @@ static void test_get_info_unknown(void **state)
 
 /* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
  * crypto backends, each behind its driver's option: the CAAM on job ring 2,
- * which the SCFW powers first (the ring and its output), and Mbed TLS.
+ * which the SCFW powers first (the ring and its output). Mbed TLS is the
+ * core's (D-086).
  *
  * Until F-247 the boards' init() did the SCFW's two calls and the CAAM's as
  * its first step, which was the first thing after plat_init(): they are
@@ -672,11 +673,11 @@ static void test_crypto_set_up_last_in_plat_init(void **state)
 
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(crypto.caam_inits, 0);
-    assert_int_equal(crypto.mbedtls_inits, 0);
 
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(crypto.caam_inits, 1);
-    assert_int_equal(crypto.mbedtls_inits, 1);
+    /* Mbed TLS is the core's (D-086) */
+    assert_int_equal(crypto.mbedtls_inits, 0);
     assert_int_equal(crypto.caam_base, IMX_CAAM_JR2_BASE);
     assert_int_equal(crypto.caam_mmu_enables, 1);
 
@@ -694,9 +695,8 @@ static void test_crypto_set_up_last_in_plat_init(void **state)
         assert_int_equal((scfw.calls[n].arg >> 16) & 0xff, SC_PM_PW_MODE_ON);
     }
 
-    /* Nothing is written after it, and Mbed TLS comes after the CAAM */
+    /* Nothing is written after it */
     assert_int_equal(crypto.caam_at, fake_reg_log_len);
-    assert_int_equal(crypto.mbedtls_at, fake_reg_log_len);
 }
 
 /* platform.md 2.2: a crypto engine that fails isn't plat_init()'s error:
@@ -706,16 +706,15 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     (void)state;
 
     crypto.caam_rc = -PB_ERR_IO;
-    crypto.mbedtls_rc = -PB_ERR_PARAM;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(crypto.caam_inits, 1);
-    assert_int_equal(crypto.mbedtls_inits, 1);
+    assert_int_equal(crypto.mbedtls_inits, 0);
 }
 
-/* platform.md 2.3, 3.8 (F-247, F-248): the platform sets the build's crypto
- * backends up, so their result is the platform's status, and the boot's
- * preconditions refuse the boot when it is false, before a candidate is
+/* platform.md 2.3, 3.8 (F-247, F-248, D-086): the platform sets the SoC's
+ * crypto engine up, so its result is the platform's status, and the boot's
+ * preconditions refuse the boot when it failed, before a candidate is
  * tried (test_boot.c) */
 static void test_status_crypto_engine(void **state)
 {
@@ -723,27 +722,27 @@ static void test_status_crypto_engine(void **state)
 
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_true(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
 
     /* The CAAM, which the boards verify with */
     setup(NULL);
     crypto.caam_rc = -PB_ERR_IO;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_false(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_FAILED);
 
-    /* Each algorithm has one backend (crypto.md 2): a build with two needs
-     * both */
+    /* Mbed TLS is the core's (crypto.md 2, D-086): the port neither sets it
+     * up nor reports it */
     setup(NULL);
     crypto.mbedtls_rc = -PB_ERR_MEM;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_false(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
 
     /* It is the state of this plat_init(), not of an earlier one */
     setup(NULL);
     assert_int_equal(plat_init(), PB_OK);
-    assert_true(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
 }
 
 /* platform.md 4.5, drivers.md 2.3, crypto.md 6 (F-286): the platform stops

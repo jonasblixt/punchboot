@@ -1,5 +1,4 @@
 #include <boot/boot.h>
-#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
@@ -272,21 +271,9 @@ int plat_init(void)
     LOG_INFO("IPG root clock = %d MHz", plat.ipg_root_clk_MHz);
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
-#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
-    /* The build's crypto backend, behind its driver's option (crypto.md 2):
-     * pb has no driver for an engine of the RT's.
-     *
-     * Command mode can start without it, so it isn't plat_init()'s error
-     * (platform.md 2.2): main() would reset. It is recorded: without a
-     * provider no image verifies, and the boot's preconditions refuse the
-     * boot before anything is loaded (platform.md 2.3) */
-    rc = mbedtls_pb_init();
-
-    if (rc != PB_OK)
-        LOG_ERR("Mbed TLS init failed (%i)", rc);
-
-    status.crypto_engine = (rc == PB_OK);
-#endif
+    /* No engine of the RT's has a driver: its crypto engine stays
+     * PLAT_CRYPTO_ENGINE_NONE, and the core sets Mbed TLS up (crypto.md 2,
+     * D-086) */
 
     return PB_OK;
 }

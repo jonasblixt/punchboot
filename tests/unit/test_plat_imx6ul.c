@@ -655,7 +655,7 @@ static void test_status(void **state)
 #else
     assert_false(status.wdog_armed);
 #endif
-    assert_true(status.crypto_engine);
+    assert_int_equal(status.crypto_engine, PLAT_CRYPTO_ENGINE_OK);
     assert_true(status.rom_log);
 }
 
@@ -936,7 +936,7 @@ static void test_unique_id_read_fails(void **state)
 
 /* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
  * crypto backends, each behind its driver's option: the CAAM on job ring 0,
- * then its RNG4 on the controller page, and Mbed TLS.
+ * then its RNG4 on the controller page. Mbed TLS is the core's (D-086).
  *
  * Until F-247 jiffy's init() did the CAAM's two calls as its first step,
  * which was the first thing after plat_init(): they are plat_init()'s last
@@ -951,7 +951,7 @@ static void test_crypto_set_up_last_in_plat_init(void **state)
     assert_string_equal(calls, "");
 
     assert_int_equal(plat_init(), PB_OK);
-    assert_string_equal(calls, "tzasc caam rng mbedtls ");
+    assert_string_equal(calls, "tzasc caam rng ");
     assert_int_equal(crypto.caam_base, IMX6UL_CAAM_JR0_BASE);
     assert_int_equal(crypto.rng_base, IMX6UL_CAAM_BASE);
     assert_int_equal(crypto.caam_mmu_enables, 1);
@@ -967,21 +967,20 @@ static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
     (void)state;
 
     crypto.caam_rc = -PB_ERR_IO;
-    crypto.mbedtls_rc = -PB_ERR_PARAM;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_string_equal(calls, "tzasc caam mbedtls ");
+    assert_string_equal(calls, "tzasc caam ");
 
     setup(NULL);
     crypto.rng_rc = -PB_ERR_TIMEOUT;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_string_equal(calls, "tzasc caam rng mbedtls ");
+    assert_string_equal(calls, "tzasc caam rng ");
 }
 
-/* platform.md 2.3, 3.8 (F-247, F-248): the platform sets the build's crypto
- * backends up, so their result is the platform's status, and the boot's
- * preconditions refuse the boot when it is false, before a candidate is
+/* platform.md 2.3, 3.8 (F-247, F-248, D-086): the platform sets the SoC's
+ * crypto engine up, so its result is the platform's status, and the boot's
+ * preconditions refuse the boot when it failed, before a candidate is
  * tried (test_boot.c). A failed RNG
  * doesn't make it false */
 static void test_status_crypto_engine(void **state)
@@ -990,34 +989,39 @@ static void test_status_crypto_engine(void **state)
 
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_true(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
+    assert_int_equal(status_now().rng, PLAT_RNG_OK);
 
-    /* The CAAM, which the boards verify with */
+    /* The CAAM, which the boards verify with. Its RNG isn't instantiated */
     setup(NULL);
     crypto.caam_rc = -PB_ERR_IO;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_false(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_FAILED);
+    assert_int_equal(status_now().rng, PLAT_RNG_FAILED);
 
-    /* Each algorithm has one backend (crypto.md 2): a build with two needs
-     * both */
+    /* Mbed TLS is the core's (crypto.md 2, D-086): the port neither sets it
+     * up nor reports it */
     setup(NULL);
     crypto.mbedtls_rc = -PB_ERR_MEM;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_false(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
 
-    /* The RNG is Linux's loss, not the boot's: the engine verifies */
+    /* The RNG is Linux's loss, not the boot's: the engine verifies, and
+     * the RNG's failure is recorded (F-427) */
     setup(NULL);
     crypto.rng_rc = -PB_ERR_TIMEOUT;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
-    assert_true(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
+    assert_int_equal(status_now().rng, PLAT_RNG_FAILED);
 
     /* It is the state of this plat_init(), not of an earlier one */
     setup(NULL);
     assert_int_equal(plat_init(), PB_OK);
-    assert_true(status_now().crypto_engine);
+    assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
+    assert_int_equal(status_now().rng, PLAT_RNG_OK);
 }
 
 /* platform.md 4.5, drivers.md 2.3, crypto.md 6 (F-286): the platform stops

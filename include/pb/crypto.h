@@ -191,4 +191,25 @@ int dsa_verify(dsa_t alg,
  */
 int dsa_add_ops(const struct dsa_ops *ops);
 
+/** A software backend's state (doc/interfaces/crypto.md 2) */
+enum crypto_sw_state {
+    CRYPTO_SW_NONE, /*!< The build has none */
+    CRYPTO_SW_OK, /*!< Set up, its operations registered */
+    CRYPTO_SW_FAILED, /*!< The build has one and it didn't come up */
+};
+
+/**
+ * Set up the build's software backend, Mbed TLS behind
+ * CONFIG_DRIVERS_CRYPTO_MBEDTLS (doc/interfaces/crypto.md 2, D-086). The
+ * core's, not a platform's: main() calls it once, right after plat_init().
+ * A failure is recorded, for the boot's preconditions, and logged: command
+ * mode starts without it.
+ */
+void crypto_sw_init(void);
+
+/**
+ * What crypto_sw_init() recorded, CRYPTO_SW_NONE before it
+ */
+enum crypto_sw_state crypto_sw_state(void);
+
 #endif
