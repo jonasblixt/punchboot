@@ -202,7 +202,9 @@ int imx8m_ddr_init(void)
     mmio_write_32(SRC_DDRC_RCR_ADDR, RCR_DOMAINS | SRC_DDRC_RCR_PHY_RESET);
     mmio_write_32(SRC_DDRC_RCR_ADDR, RCR_DOMAINS);
 
-    umctl2_enter_selfref_sw(ddrc);
+    rc = umctl2_enter_selfref_sw(ddrc);
+    if (rc != PB_OK)
+        return rc;
 
     if (mmio_read_32(ddrc + UMCTL2_MSTR) & MSTR_LPDDR4)
         mmio_write_32(DDRC_DDR_SS_GPR0, DDRC_DDR_SS_GPR0_LPDDR4);
@@ -235,12 +237,19 @@ int imx8m_ddr_init(void)
 
     /* 5. PHY Init Engine, then wait for the impedance calibration */
     dwc_ddrphy_write_cfg(&phy, t->ddrphy_pie, t->ddrphy_pie_num);
-    dwc_ddrphy_wait_calibration(&phy);
+    rc = dwc_ddrphy_wait_calibration(&phy);
+    if (rc != PB_OK)
+        return rc;
 
     LOG_DBG("ddrphy calibration done");
 
-    umctl2_dfi_init(ddrc);
-    umctl2_dfi_init_done(ddrc);
+    rc = umctl2_dfi_init(ddrc);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = umctl2_dfi_init_done(ddrc);
+    if (rc != PB_OK)
+        return rc;
     umctl2_enable_port(ddrc, 0);
 
     /* Self refresh when the DRAM is idle, as NXP's U-Boot leaves it

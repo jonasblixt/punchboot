@@ -11,6 +11,7 @@
  */
 
 #include <drivers/ddr/dwc_ddrphy.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <stdbool.h>
@@ -83,57 +84,102 @@ static bool mailbox_pending(const struct dwc_ddrphy *phy)
 }
 
 /*
+ * Every wait of the PHY's is bounded (F-102, drivers.md 3). On the 8MP EVK
+ * (4000 MT/s, 1D and 2D; log 2026-11-16) the PMU's next message took at
+ * most 15.1 ms, the ack and the calibration 1 us: 1 s and 10 ms
+ */
+#define DDRPHY_MAIL_TIMEOUT_us 1000000
+#define DDRPHY_TIMEOUT_us      10000
+
+/* Wait until the mailbox is 'pending' */
+static int mailbox_wait(const struct dwc_ddrphy *phy, bool pending, uint32_t timeout_us)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, timeout_us);
+
+    while (mailbox_pending(phy) != pending) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("PHY: %s", pending ? "no message from the PMU" : "the PMU didn't take the ack");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
+}
+
+/*
  * Wait for the PMU to post a message, read it (16 or 32 bit) and hand the
  * mailbox back to the PMU.
  */
-static uint32_t mailbox_get(const struct dwc_ddrphy *phy, bool wide)
+static int mailbox_get(const struct dwc_ddrphy *phy, bool wide, uint32_t *msg)
 {
-    uint32_t msg;
+    int rc;
 
-    while (!mailbox_pending(phy))
-        ;
+    rc = mailbox_wait(phy, true, DDRPHY_MAIL_TIMEOUT_us);
+    if (rc != PB_OK)
+        return rc;
 
-    msg = dwc_ddrphy_read(phy, DDRPHY_UCTWRITEONLYSHADOW) & 0xffff;
+    *msg = dwc_ddrphy_read(phy, DDRPHY_UCTWRITEONLYSHADOW) & 0xffff;
     if (wide)
-        msg |= (dwc_ddrphy_read(phy, DDRPHY_UCTDATWRITEONLYSHADOW) & 0xffff) << 16;
+        *msg |= (dwc_ddrphy_read(phy, DDRPHY_UCTDATWRITEONLYSHADOW) & 0xffff) << 16;
 
     dwc_ddrphy_write(phy, DDRPHY_DCTWRITEPROT, DCTWRITEPROT_ACK);
-    while (mailbox_pending(phy))
-        ;
+    rc = mailbox_wait(phy, false, DDRPHY_TIMEOUT_us);
+    if (rc != PB_OK)
+        return rc;
     dwc_ddrphy_write(phy, DDRPHY_DCTWRITEPROT, DCTWRITEPROT_RELEASE);
 
-    return msg;
+    return PB_OK;
 }
 
 /* Consume a streaming message: a header with the argument count, then the arguments */
-static void consume_streaming_msg(const struct dwc_ddrphy *phy)
+static int consume_streaming_msg(const struct dwc_ddrphy *phy)
 {
-    uint32_t header = mailbox_get(phy, true);
-    unsigned int nargs = header & 0xffff;
+    uint32_t header;
+    unsigned int nargs;
+    int rc;
 
+    rc = mailbox_get(phy, true, &header);
+    if (rc != PB_OK)
+        return rc;
+
+    nargs = header & 0xffff;
     LOG_DBG("PHY stream 0x%08x (%u args)", header, nargs);
 
     for (unsigned int i = 0; i < nargs; i++) {
-        uint32_t arg = mailbox_get(phy, true);
+        uint32_t arg;
+
+        rc = mailbox_get(phy, true, &arg);
+        if (rc != PB_OK)
+            return rc;
 
         LOG_DBG("PHY stream arg %u: 0x%08x", i, arg);
-        (void)arg;
     }
+
+    return PB_OK;
 }
 
-/* Follow the PMU's messages until training ends. Returns true on success. */
-static bool wait_training_result(const struct dwc_ddrphy *phy)
+/* Follow the PMU's messages until training ends: PB_OK when it trained,
+ * -PB_ERR_IO when it failed, or a wait's timeout */
+static int wait_training_result(const struct dwc_ddrphy *phy)
 {
     for (;;) {
-        uint32_t major = mailbox_get(phy, false);
+        uint32_t major;
+        int rc = mailbox_get(phy, false, &major);
+
+        if (rc != PB_OK)
+            return rc;
 
         switch (major) {
         case DDRPHY_MAIL_TRAINING_DONE:
-            return true;
+            return PB_OK;
         case DDRPHY_MAIL_TRAINING_FAILED:
-            return false;
+            return -PB_ERR_IO;
         case DDRPHY_MAIL_STREAMING_MSG:
-            consume_streaming_msg(phy);
+            rc = consume_streaming_msg(phy);
+            if (rc != PB_OK)
+                return rc;
             break;
         default:
             LOG_DBG("PHY training progress 0x%04x", major);
@@ -179,9 +225,10 @@ int dwc_ddrphy_train(const struct dwc_ddrphy *phy, const struct dram_fsp_msg *fs
     dwc_ddrphy_write(phy, DDRPHY_MICRORESET, MICRORESET_STALL);
     dwc_ddrphy_write(phy, DDRPHY_MICRORESET, MICRORESET_RUN);
 
-    if (!wait_training_result(phy)) {
-        LOG_ERR("PHY training failed at %u MT/s", fsp->drate);
-        return -PB_ERR_IO;
+    rc = wait_training_result(phy);
+    if (rc != PB_OK) {
+        LOG_ERR("PHY training failed at %u MT/s (%i)", fsp->drate, rc);
+        return rc;
     }
 
     dwc_ddrphy_write(phy, DDRPHY_MICRORESET, MICRORESET_STALL);
@@ -192,10 +239,20 @@ int dwc_ddrphy_train(const struct dwc_ddrphy *phy, const struct dram_fsp_msg *fs
     return PB_OK;
 }
 
-void dwc_ddrphy_wait_calibration(const struct dwc_ddrphy *phy)
+int dwc_ddrphy_wait_calibration(const struct dwc_ddrphy *phy)
 {
-    while (dwc_ddrphy_read(phy, DDRPHY_CALBUSY) & CALBUSY_BUSY)
-        ;
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, DDRPHY_TIMEOUT_us);
+
+    while (dwc_ddrphy_read(phy, DDRPHY_CALBUSY) & CALBUSY_BUSY) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("PHY: the calibration doesn't end");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
 }
 
 void dwc_ddrphy_read_csrs(const struct dwc_ddrphy *phy, struct dram_cfg_param *csrs, unsigned int n)
