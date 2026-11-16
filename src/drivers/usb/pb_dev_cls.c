@@ -134,7 +134,8 @@ static struct usb_string_descriptor *get_string_descriptor(uint8_t idx)
         uuid_unparse(device_uu, device_uu_str);
         usb_string(&usb_str_desc, device_uu_str);
     } else {
-        usb_string(&usb_str_desc, "");
+        /* An index the class doesn't have: stalled (D-073) */
+        return NULL;
     }
 
     return &usb_str_desc;

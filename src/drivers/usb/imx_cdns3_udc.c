@@ -154,6 +154,7 @@ int imx_cdns3_udc_init(const struct imx_cdns3_udc_config *cfg_)
         .set_configuration = cdns3_udc_set_configuration,
         .set_address = cdns3_udc_core_set_address,
         .ep0_xfer_zlp = cdns3_udc_core_xfer_zlp,
+        .ep0_stall = cdns3_udc_core_ep0_stall,
     };
 
     return usbd_init_hal_ops(&ops);
