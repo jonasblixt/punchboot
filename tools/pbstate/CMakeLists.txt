@@ -30,6 +30,11 @@ set(LIB_SRC_FILES
     src/pbstate.c
 )
 
+# pb's crc32() is the library's own and not zlib's, which has the same name
+# and other results: hidden, so that a program that loads zlib too gets
+# zlib's, and the library its own. The ABI is pbstate.h's functions
+set_source_files_properties(../../src/lib/crc.c PROPERTIES COMPILE_OPTIONS -fvisibility=hidden)
+
 set(LIB_PUBLIC_HEADERS
     src/pbstate.h
 )
@@ -46,7 +51,7 @@ if ((NOT PB_STATE_PRIMARY_PART STREQUAL "DEFAULT") AND
     (NOT PB_STATE_BACKUP_PART STREQUAL "DEFAULT"))
     set(TOOL_CFLAGS
         -DPRIMARY_PART="${PB_STATE_PRIMARY_PART}"
-        -DBACKUP_PART="${PB_STATE_PRIMARY_PART}"
+        -DBACKUP_PART="${PB_STATE_BACKUP_PART}"
         ${TOOL_CFLAGS}
     )
 endif()
@@ -84,7 +89,7 @@ install(
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/pbstate
 )

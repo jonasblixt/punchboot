@@ -149,6 +149,26 @@ def test_fallback_when_trial_fails_to_verify(ab_device: Device) -> None:
     assert _state(ab_device) == (STATE_B, STATE_B, 0, STATE_A)
 
 
+def test_confirming_the_fallback_keeps_the_trial(ab_device: Device) -> None:
+    """boot.md 3.5, rule 3: the trial is tried again until its attempts run out.
+
+    Also when the OS confirms the system it runs in, the fallback, after each
+    boot (F-180: that ended the trial, and the next boot rolled back).
+    """
+    ab_device.pbstate("-v", "b")
+    ab_device.pbstate("-s", "a", "-c", "3")
+    ab_device.reset()
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+
+    for attempts_left in (2, 1, 0):
+        assert ab_device.boot() == "B"
+        ab_device.pbstate("-v", "b")
+        assert _state(ab_device) == (STATE_A, STATE_B, attempts_left, 0)
+
+    assert ab_device.boot() == "B"
+    assert _state(ab_device) == (STATE_B, STATE_B, 0, STATE_A)
+
+
 def test_no_fallback_to_a_system_that_is_not_confirmed(ab_device: Device) -> None:
     # 'boot activate A' leaves only A verified: B is no fallback
     with ab_device.session() as s:

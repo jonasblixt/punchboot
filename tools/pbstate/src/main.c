@@ -9,6 +9,7 @@
 
 #include "pbstate.h"
 #include <boot/pb_state_blob.h>
+#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
 #include <stdbool.h>
@@ -34,7 +35,7 @@ static void print_help(void)
     printf("    -b, --backup  <Path>       Backup state partition\n");
     printf("\n");
     printf("Commands:\n");
-    printf("    -s, --switch <System ID>   Switch active system\n");
+    printf("    -s, --switch <a|b|none>    Switch active system, none disables both\n");
     printf("    -v, --verified <System ID> Set system to verified state\n");
     printf("    -i, --info                 Print current state\n");
     printf("    -w, --write-board-reg <0-3> <0x12341234> Write a 32-bit board register\n");
@@ -46,46 +47,73 @@ static void print_help(void)
            "to <n>\n");
 }
 
+/* What strtol() and strtoll() left after the number: only white space may
+ * follow it, as only white space may come before it (F-408) */
+static bool trailing_characters(const char *end)
+{
+    while (isspace((unsigned char)*end))
+        end++;
+
+    return *end != '\0';
+}
+
 static int print_configuration(void)
 {
-    int rc;
+    static const pbstate_system_t systems[] = { PBSTATE_SYSTEM_A, PBSTATE_SYSTEM_B };
+    int active[2];
+    int verified[2];
     uint32_t errors = 0;
-    uint32_t boot_attempts = 0;
-    printf("Punchboot status:\n\n");
-    printf("System A is %s and %s\n",
-           pbstate_is_system_active(PBSTATE_SYSTEM_A) > 0 ? "enabled" : "disabled",
-           pbstate_is_system_verified(PBSTATE_SYSTEM_A) > 0 ? "verified" : "not verified");
+    unsigned int boot_attempts = 0;
+    uint32_t regs[PB_STATE_NO_OF_BOARD_REGS];
+    int rc;
 
-    printf("System B is %s and %s\n",
-           pbstate_is_system_active(PBSTATE_SYSTEM_B) > 0 ? "enabled" : "disabled",
-           pbstate_is_system_verified(PBSTATE_SYSTEM_B) > 0 ? "verified" : "not verified");
+    /* Everything is read before anything is printed: a state that can't be
+     * read is the error, not two systems that are disabled (F-408) */
+    for (unsigned int i = 0; i < 2; i++) {
+        active[i] = pbstate_is_system_active(systems[i]);
+
+        if (active[i] < 0)
+            return active[i];
+
+        verified[i] = pbstate_is_system_verified(systems[i]);
+
+        if (verified[i] < 0)
+            return verified[i];
+    }
 
     rc = pbstate_get_errors(&errors);
 
     if (rc < 0)
         return rc;
 
-    printf("Errors : 0x%08x\n", errors);
-
     rc = pbstate_get_remaining_boot_attempts(&boot_attempts);
 
     if (rc < 0)
         return rc;
 
-    printf("Remaining boot attempts: %u\n", boot_attempts);
-    printf("\n");
-    printf("Board registers:\n");
     for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++) {
-        uint32_t reg;
-        int rc;
-
-        rc = pbstate_read_board_reg(i, &reg);
+        rc = pbstate_read_board_reg(i, &regs[i]);
 
         if (rc < 0)
             return rc;
-
-        printf("    %i: %08X\n", i, reg);
     }
+
+    printf("Punchboot status:\n\n");
+
+    for (unsigned int i = 0; i < 2; i++) {
+        printf("System %c is %s and %s\n",
+               "AB"[i],
+               active[i] > 0 ? "enabled" : "disabled",
+               verified[i] > 0 ? "verified" : "not verified");
+    }
+
+    printf("Errors : 0x%08x\n", errors);
+    printf("Remaining boot attempts: %u\n", boot_attempts);
+    printf("\n");
+    printf("Board registers:\n");
+
+    for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++)
+        printf("    %i: %08X\n", i, regs[i]);
 
     return 0;
 }
@@ -103,7 +131,8 @@ int main(int argc, char *const argv[])
     bool flag_show = false;
     bool flag_verify = false;
     bool flag_write_board_reg = false;
-    uint8_t counter = 0;
+    bool flag_count = false;
+    uint32_t counter = 0;
     unsigned int board_reg_index = 0;
     uint32_t board_reg_value = 0;
 
@@ -149,9 +178,9 @@ int main(int argc, char *const argv[])
             char *end;
 
             errno = 0;
-            tmp = strtol(optarg, &end, 0);
+            tmp = strtoll(optarg, &end, 0);
 
-            if (optarg == end) {
+            if (optarg == end || trailing_characters(end)) {
                 return EINVAL;
             }
 
@@ -164,6 +193,7 @@ int main(int argc, char *const argv[])
             }
 
             counter = (uint32_t)tmp;
+            flag_count = true;
         } break;
         case 'i':
             flag_show = true;
@@ -176,7 +206,7 @@ int main(int argc, char *const argv[])
             errno = 0;
             board_reg_index = strtol(optarg, &end, 0);
 
-            if (optarg == end) {
+            if (optarg == end || trailing_characters(end)) {
                 return EINVAL;
             }
 
@@ -186,9 +216,9 @@ int main(int argc, char *const argv[])
 
             if (optind < argc && *argv[optind] != '-') {
                 errno = 0;
-                tmp = strtol(argv[optind], &end, 0);
+                tmp = strtoll(argv[optind], &end, 0);
 
-                if (optarg == end) {
+                if (argv[optind] == end || trailing_characters(end)) {
                     return EINVAL;
                 }
 
@@ -226,6 +256,19 @@ int main(int argc, char *const argv[])
         }
     }
 
+    /* The count is the switch's: alone it was ignored (F-408) */
+    if (flag_count && !flag_switch) {
+        fprintf(stderr, "Error: -c goes with -s\n");
+        return EINVAL;
+    }
+
+    /* One command per call: of two, one was done and the other ignored
+     * without a word (F-421) */
+    if ((flag_show + flag_switch + flag_verify + flag_write_board_reg) > 1) {
+        fprintf(stderr, "Error: one command at a time: -s, -v, -w or -i\n");
+        return EINVAL;
+    }
+
 #if !defined(PRIMARY_PART) || !defined(BACKUP_PART)
     if ((primary_device_path == NULL) || (backup_device_path == NULL)) {
         fprintf(stderr, "Error: Missing required -p and -b parameters\n");
@@ -241,19 +284,28 @@ int main(int argc, char *const argv[])
     if (flag_show) {
         err = print_configuration();
     } else if (flag_switch) {
+        /* The first letter decides, as it always has for a and b, and n is
+         * none. Anything else disabled both systems, a typo too (F-221) */
         if (strncasecmp(system, "a", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_A, counter);
         else if (strncasecmp(system, "b", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_B, counter);
-        else
+        else if (strncasecmp(system, "n", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_NONE, 0);
+        else {
+            fprintf(stderr, "Error: -s takes a, b or none, not '%s'\n", system);
+            return EINVAL;
+        }
     } else if (flag_verify) {
         if (strncasecmp(system_verified, "a", 1) == 0)
             err = pbstate_set_system_verified(PBSTATE_SYSTEM_A);
         else if (strncasecmp(system_verified, "b", 1) == 0)
             err = pbstate_set_system_verified(PBSTATE_SYSTEM_B);
-        else
-            err = -1;
+        else {
+            /* It exited 1 (F-408) */
+            fprintf(stderr, "Error: -v takes a or b, not '%s'\n", system_verified);
+            return EINVAL;
+        }
     } else if (flag_write_board_reg) {
         err = pbstate_write_board_reg(board_reg_index, board_reg_value);
     }

@@ -116,19 +116,16 @@ static int open_and_load_state(bool wr)
 
     rc = read_state(fd);
 
-    if (rc != 0) {
-        goto err_close_and_release_out;
-    }
-
-    rc = verify_state();
+    if (rc == 0)
+        rc = verify_state();
 
     // If the primary state is okay, we just return the fd and won't check
     // the backup state since it will be overwritten anyway.
     if (rc == 0)
         return fd;
 
-    // If the primary state is corruptet we should try to load the
-    // backup.
+    // If the primary state can't be read or is corrupt we should try to
+    // load the backup, as pb does (F-405).
     backup_fd = open(backup_device, wr ? O_RDWR : O_RDONLY);
 
     if (backup_fd == -1) {
@@ -206,7 +203,10 @@ err_close_backup_out:
 err_close_and_release_out:
     flock(fd, LOCK_UN);
     close(fd);
-    sync(); /* Ensure that data is written to disk */
+    /* Ensure that data is written to disk. A read wrote nothing: it doesn't
+     * flush every file system on the device */
+    if (wr)
+        sync();
     return rc;
 }
 
@@ -261,7 +261,8 @@ int pbstate_is_system_verified(pbstate_system_t system)
         result = !!(state.verified & PB_STATE_B_VERIFIED);
         break;
     case PBSTATE_SYSTEM_NONE:
-        result = !!(state.enable);
+        /* No system has no verified state: a wrong question (F-180) */
+        result = -EINVAL;
         break;
     default:
         break;
@@ -437,14 +438,20 @@ int pbstate_set_system_verified(pbstate_system_t system)
     if (fd < 0)
         return fd;
 
+    /* The attempts are the enabled slot's trial: confirming it ends the
+     * trial. Confirming the other slot, the one a fallback boot runs, leaves
+     * the trial to go on until its attempts run out (boot.md 3.5, rules 1
+     * to 3) */
     switch (system) {
     case PBSTATE_SYSTEM_A:
         state.verified |= PB_STATE_A_VERIFIED;
-        state.remaining_boot_attempts = 0;
+        if (state.enable & PB_STATE_A_ENABLED)
+            state.remaining_boot_attempts = 0;
         break;
     case PBSTATE_SYSTEM_B:
         state.verified |= PB_STATE_B_VERIFIED;
-        state.remaining_boot_attempts = 0;
+        if (state.enable & PB_STATE_B_ENABLED)
+            state.remaining_boot_attempts = 0;
         break;
     case PBSTATE_SYSTEM_NONE:
         break;
