@@ -150,8 +150,7 @@ platforms and boards provide facts and hardware (D-027).
 **4.9 pb completes the SoC's isolation.** Where the SoC separates a secure world from the normal
 one and leaves part of the setup to the first mutable stage, pb does that part, checks that it
 took effect, and hands the rest over in the state the secure world's owner expects. Which
-mechanisms that means is the platform's (`platform.md` 4.3, 4.5). **Not yet in the code (F-241,
-F-246).**
+mechanisms that means is the platform's (`platform.md` 4.3, 4.5). **Not yet in the code (F-246).**
 
 **4.10 Secrets are compared whole and in constant time, and never logged** (`board.md` 4.4).
 
