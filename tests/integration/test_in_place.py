@@ -88,6 +88,12 @@ def test_no_board_has_a_device_tree_in_place() -> None:
     assert "host" in [b.parent.name for b in in_place]
     for board in in_place:
         text = board.read_text()
+        if board.parent.name == "host":
+            # The host names one only with --dt (Device(dt=True)), for the
+            # tests that read the tree it handed over (F-347). nor_device
+            # runs without it
+            assert "if (host_opts.dt_path != NULL)" in text
+            continue
         assert "BOOT_HANDOVER_IMAGE" not in text or ".dtb_bpak_id" not in text, board
 
 

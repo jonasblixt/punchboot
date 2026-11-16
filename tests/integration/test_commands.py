@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 import punchboot
 import pytest
+from punchboot import bpak, wire
 
 from .pbtest import (
     AUTH_TOKEN,
@@ -31,10 +32,10 @@ if TYPE_CHECKING:
 
     from .pbtest import Device
 
-PB_CMD_PART_BPAK_READ = 14
-PB_RESULT_NOT_FOUND = 11
-BPAK_HEADER_SIZE = 4096
-BPAK_HEADER_MAGIC = 0x42504132
+PB_CMD_PART_BPAK_READ = wire.Command.PB_CMD_PART_BPAK_READ
+PB_RESULT_NOT_FOUND = wire.Result.PB_RESULT_NOT_FOUND
+BPAK_HEADER_SIZE = bpak.BPAK_HEADER_SIZE
+BPAK_HEADER_MAGIC = bpak.BPAK_HEADER_MAGIC
 
 # 'PB State Primary', 512 bytes: no room for a bpak header
 PB_STATE_PRIMARY_UUID = uuid.UUID("f5f8c9ae-efb5-4071-9ba9-d313b082281e")

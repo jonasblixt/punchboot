@@ -9,7 +9,8 @@ Kconfig is where that is decided, so this reads Kconfig:
   check_ab_speculative_kconfig.py <source dir>
 
 It also checks that no configuration in configs/ has the mode: a device that
-boots today boots the same with this build.
+boots today boots the same with this build. The host's second configuration
+for the tests of the mode (host_speculative_defconfig) is the one that has it.
 """
 
 from __future__ import annotations
@@ -20,6 +21,9 @@ import pathlib
 import sys
 
 SYMBOL = "BOOT_AB_SPECULATIVE"
+
+# The configurations that have the mode: pb-host-speculative's
+TEST_CONFIGS = {"host_speculative_defconfig"}
 
 # What a configuration sets, and what SYMBOL then is
 CASES = [
@@ -72,10 +76,13 @@ def main() -> int:
             problems += 1
 
     for defconfig in sorted(root.glob("configs/*_defconfig")):
+        # The host's second configuration, for the tests of the mode (F-341):
+        # no device boots it, and it must have the mode
+        expected = "y" if defconfig.name in TEST_CONFIGS else "n"
         kconf = kconfiglib.Kconfig("src/Kconfig", warn=False)
         kconf.load_config(str(defconfig))
-        if kconf.syms[SYMBOL].str_value != "n":
-            say(f"{defconfig.name} has {SYMBOL}")
+        if kconf.syms[SYMBOL].str_value != expected:
+            say(f"{defconfig.name}: {SYMBOL} is {kconf.syms[SYMBOL].str_value}, not {expected}")
             problems += 1
 
     say(f"{problems} problems")
