@@ -21,6 +21,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | The cause (F-190, `command-mode.md` 5.3): no board in the tree sets `READABLE` on a partition, | | |
 | | | and a bulk read without it answers an I/O error. The eMMC's BOOT0 and BOOT1 on 2.8.0 the same | | |
 | | | (was F-142). Left: which partitions a board lets a host read | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates, with F-190: a board's choice, none by default; | | |
+| | | the in-tree boards mark the partitions that can't hold a secret; an unreadable one answers | | |
+| | | NOT_SUPPORTED, not an I/O error | | |
 | F-104 | `src/drivers/ddr/dwc_ddrphy.c` `dwc_ddrphy_train` | The training results in the message block are never read. U-Boot (all i.MX8M) reads the trained critical delay differences after each 1D run and widens the rank-to-rank gaps (`DRAMTMG2` rd2wr/wr2rd, `RANKCTL`, per P-state) before the DFI init. The imx8mevk has two ranks (`MSTR.active_ranks` 3). TF-A reads these registers back at boot and restores them after retention, so it expects the bootloader to have applied the workaround. | Verified (read, and in the differential trace: U-Boot rewrites `DRAMTMG2`, `FREQ1_DRAMTMG2` and `RANKCTL` before `dfi_init_start`) | open: needs the message block layout and an imx8mevk |
 | F-106 | `src/drivers/ddr/umctl2.c` | Low power/refresh values differ from NXP's current sequence: during init `RFSHCTL3` 0x11 and `PWRCTL` 0xa8 (U-Boot: 0x1 and 0xa0, its comment says `en_dfi_dram_clk_disable = 0`; `refresh_mode` 1 is a DDR4 fine granularity setting); at the end `PWRCTL` 0x08 and `RFSHCTL3` 0x10 (U-Boot: clears only `selfref_sw`, 0x80, then `RFSHCTL3` 0 and `selfref_en`, 0x81). Punchboot also writes `DFIPHYMSTR` twice, which the board table already sets. | Verified (differential trace) | open: needs an imx8mevk |
 | F-107 | `src/plat/imx8m/ddr.c` `dram_save_timing` | The trained PHY CSRs for TF-A are read after the DFI init and port enable; NXP reads them right after loading the PIE image, before the calibration wait and the DFI init. | Verified (differential trace) | open: needs an imx8mevk |
@@ -73,6 +76,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | platform reads the fuses back after writing them. The rules belong in | | |
 | | | `src/slc.c`. `work-3.0.0-plat`: they are; still no read-back (the 8X's | | |
 | | | life cycle may only change on reset). | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: a direct read of each word after its write, on | | |
+| | | the 6UL and the 8M, and a bit the write set that isn't there fails the command; the 8X says why it | | |
+| | | can't (its value after a reset). U-Boot reads nothing back; the 6UL RM 35.3.1.2 reads the array | | |
+| | | directly, the shadows lag until RELOAD_SHADOWS. The 8MQ B1 with F-466 | | |
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | partly fixed |
 | | | revoke one, although HAB has `SRK_REVOKE` there too. `work-3.0.0-plat`: it | | |
 | | | reads `SRK_REVOKE` (`imx_hab_fuses.c`); the EVK board doesn't revoke or lock. | | |
@@ -90,6 +97,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `disconnect()` (F-252's second half) and `BIO_FLAG_READABLE` (F-083) | | |
 | | | 2026-11-13 (`132f13fc`): `boot_jump()` returning after `disconnect()` is done with F-252. Left: | | |
 | | | `BIO_FLAG_READABLE` (F-083) | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: as F-083's row | | |
 | F-205 | USB, low | cdns3: `setup_pkt` shares its cache line with boot.c's callbacks and digest | Reported | open |
 | | | (invalidated per SETUP, F-081 class); `trb[128]` and `align_buffer` bounds; four waits without timeout. | | |
 | | | dwc3 rounds an OUT TRB up to the max packet: up to 511 bytes past a part in a RAM boot. | | |
@@ -117,6 +125,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | sent as two whole packets (324 bytes of 0xaa after it) left the buffer's bytes after 700 as they | | |
 | | | were (a 1024 byte `STREAM_WRITE_BUFFER` and `part verify`). The extra is dropped without an error, | | |
 | | | where the ChipIdea and the DWC3 fail it. Left: the salvo PHY's licence | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: the salvo PHY's init rewritten as pb's own | | |
+| | | code around the registers' offsets and values (hardware facts), without "copied from u-boot", and | | |
+| | | where the values come from. U-Boot's `cdns3-usb-phy.c` and Linux's `phy-cadence-salvo.c` are GPL-2.0+ | | |
+| | | (NXP 2019-2020) | | |
 | F-210 | arch/plat, low | v7m: CACR.FORCEWT never cleared at the handover, VTOR never set to pb's | Reported | open |
 | | | table. 6UL: PLL1 raised without writing CACRR.ARM_PODF (F-148 class), SRSR never cleared (stale reset | | |
 | | | reason). Exception policy differs per arch, v8 handlers run on the faulting stack and hang by default. | | |
@@ -161,6 +173,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | is checked (it can't fail). The boards' `early_boot()` has nothing left: the boot type is F-251's, | |
 | | | the button's status has no result. Left: the 8X boards' answer to an unknown command, GPT tables | |
 | | | that can't align partitions | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: NOT_SUPPORTED for an unknown command on every | | |
+| | | board, decided (D-092), in the release notes | | |
 | F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
 | | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
 | | | command's. Several error paths leave transfers unread the same way. | | |
@@ -176,6 +190,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (`ac00e5bf`, `c877f656`): a warning fails CI's firmware builds (`PB_WERROR=1`; all seven | | |
 | | | boards are clean from a clean build, Mbed TLS's `-Wredundant-decls` off for its sources), and the | | |
 | | | RT1060's job builds `testbench/simple`. Left: the long-lived token, the dev image, the signed images | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: PyPI's trusted publishing (Jonas sets it up on | | |
+| | | pypi.org). Signed images in CI and a pinned dev image don't | | |
 | F-230 | `doc/guides/testing.md`, `status.md` | Line coverage is 91.0% (4445/4886), not | Reported (probe) | open |
 | | | 99.2%. `imx_caam.c` 38%: `caam_ecda_verify` and the hash path 0%. Never compiled by a host test: | | |
 | | | `boot/atf.c`, `boot/simple.c`, `usbd.c`, `pb_dev_cls.c`, `partition/static.c`. No tests: `imx_ocotp.c`, | | |
@@ -204,6 +220,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | byte for byte the same); the blobs are read where they are, nothing is written to `blobs/`, | | |
 | | | and the 8M firmware isn't written again, so a second build makes nothing. Left: the version | | |
 | | | of a pre-release build, the stack protector | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: a build whose HEAD isn't the tag vX.Y.Z is | | |
+| | | version.txt + `-dev+` + the short commit (`-dirty` with changes); the wire's version stays numeric. | | |
+| | | The stack protector doesn't gate | | |
 | F-232 | docs | The README (also the PyPI page) describes removed things (PBI, C parts and binary | Reported | open |
 | | | wheels, the auth cookie, Bebop/PICO) and lacks the 8MP EVK and RT1060. Missing: a porting guide for | | |
 | | | 3.0.0, firmware build and image signing, the A/B update flow and pbstate, the SLC and fusing procedure, | | |
@@ -229,6 +248,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14 on jiffy from BOOT0 (`0715d30a`): `devmem` of the IOMUXC (0x020E0000, 0x020E4000) | | |
 | | | from Linux's user mode reads; the AIPS-TZ's own registers still abort. The OCOTP read hung | | |
 | | | (its clock, likely gated). Left: the SDMA's peripheral access, unchecked; a 6ULL | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): doesn't gate: MPR 0x77777777 trusts every master, the | | |
+| | | SDMA too; checked when a product uses it | | |
 | F-247 | `src/board/*/board.c` | The boards wire the SoC's RoT and SLC functions | Verified (code) | open |
 | | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
 | | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |
@@ -266,6 +287,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | names the cost; the test benches' images are outside it. An image in the field with a part there | | |
 | | | is refused now (D-008). For Jonas: keep the room, or start each region at the end of a link | | |
 | | | length that is made to fit (F-391), so that the linker holds the limit. Found by the review of F-254 | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: each region starts where pb's linked image and | | |
+| | | buffers end (the link script's symbols, F-391) | | |
 | F-259 | `src/boot/simple.c` | The generic handover passes r0 = the system's name, | Verified (code) | open |
 | | | r1 = the boot partition's UUID, and can't grow. `boot.md` 5.4: Arm's Firmware Handoff, a transfer | | |
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
@@ -278,6 +301,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-13: landed (`6e40e034..b1186de2`): 76 of 76 at `b1186de2`, also with the sanitizers, and the | | |
 | | | six boards build; on the RT1060 EVK the simple target's suite passes 7 of 7 with the application's | | |
 | | | `fh-*` checks. Left: the tag (the marker in `boot.md` 5.4) | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates on the specification's tag; the placeholder | | |
+| | | doesn't ship | | |
 | F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
 | | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
 | | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |
@@ -285,6 +310,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `slc_set_eol()` and SLC_SET_EOL answer NOT_SUPPORTED and reach nothing, which is what every board | | |
 | | | answered already (no port has `set_eol`). Left: each port's own end of life, or why it can't | | |
 | | | 2026-11-14, D-084: NXP's field return; a fuse, or the 8X's signed SECO message (PR #51) | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): doesn't gate: 3.0.0 ships with EOL off and | | |
+| | | NOT_SUPPORTED on every port | | |
 | F-325 | `doc/interfaces/board.md` 5.3, `include/boot/image_helpers.h` | What 5.3 doesn't say | Verified (code) | open |
 | | | about `boot_image_get_bpak_header()`, and what the code does since F-266. (1) Its header: | | |
 | | | `boot/image_helpers.h`, with the format's other functions, so a board that asks for the header | | |
@@ -378,6 +405,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | of the 256 KiB BL partition. The curves are in the build already. Not changed: for Jonas | | |
 | | | 2026-11-16 (Jonas): (10) is dropped, the RT1060 stays with SHA-256 and MD5: Mbed TLS is to be | | |
 | | | replaced, the hashes come with what replaces it | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): (10) as decided in the morning (dropped). (5) gates: | | |
+| | | the core refuses a key whose curve isn't `alg`'s, before any backend, no porting API change. (6) | | |
+| | | gates: the CAAM's parser as strict as Mbed TLS's (security before D-008) | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
 | | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |
@@ -470,6 +500,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | cover the flash). A kernel alone in place still boots. No released configuration is refused: in | | |
 | | | place is new in 3.0.0 (D-048). Open for the decision: refuse for good, or copy the tree to RAM, and | | |
 | | | where | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): refuse for good: `boot.md` 4.1 and 5.2 say so; in | | |
+| | | place with a DT needs Firmware Handoff | | |
 | F-331 | `doc/dev/decisions.md`, `doc/architecture/boot.md` | F-292's refusal has no | Verified (code) | open |
 | | | decision entry and no contract text. `compatibility.md` asks for an entry that names what a | | |
 | | | security fix rejects and why: an image whose kernel, BL31, BL32 or generic entry part is empty | | |
@@ -488,6 +520,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | gets a pointer it didn't get. To check with the board and with the images of its products: that they | | |
 | | | boot, and which BL31 it is. If they don't, the board keeps the image handover with `atf` as its entry, | | |
 | | | without a delivery, which is what it had | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): doesn't gate: the TF-A delivery ships untested, with | | |
+| | | a release note | | |
 | F-300 | `src/board/imx8mevk/board.c` | The board has a partition table and neither | Verified (code) | open |
 | | | a boot source policy nor a handover: `board_setup()` fails on the handover, nothing is bootable | | |
 | | | and nothing boots, by `boot bpak` neither. Its defconfig has `BOOT_POLICY_AB` and `BOOT_LINUX`. | | |
@@ -497,6 +531,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | and with the RoT, the SLC, `init()` and the table set up as before. Its command mode is what | | |
 | | | it was: the table can be installed and written, nothing boots. The log names both. It is the | | |
 | | | one board that fails a check of `board.md` 3, and why the check isn't at the start (F-335) | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: imx8mevk gets the 8MP EVK's setup (the A/B | | |
+| | | policy, the TF-A delivery), built only | | |
 | F-301 | `src/board/host/board.c` | The host board's boot source policy is an object | Verified (code) | open |
 | | | its board file builds by hand: A/B's functions, with an init that also sets `BIO_FLAG_BOOTABLE` | | |
 | | | on the flash's two partitions, which only `boot part` boots. `board.md` 2.5: a policy marks its | | |
@@ -507,6 +543,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14: not done, `board.md` 2.5 doesn't settle it. Proposed by the host test package: an | | |
 | | | optional list of extra bootable partitions in the policy object (a `BOOT_POLICY_AB_EXTRA(&cfg, | | |
 | | | parts)`), marked by the core after the policy's init, which keeps one policy per board. For Jonas | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): doesn't gate: an addition a 3.x can make | | |
 | F-335 | `src/board.c` | `boot_policy` and `boot_handover` are checked when their step | Verified (code) | open |
 | | | comes, after the partition table, not at the start of `board_setup()` with `rot` and `slc` | | |
 | | | (`board.md` 2 and 3, F-249). A step before them that fails hides the check: a board without a | | |
@@ -562,6 +599,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | and the image boots (F-260): 5.6 has a next stage take an absent entry for an older pb, and nothing | | |
 | | | tells it "no room" but pb's log. To decide and write into 5.5: the namespace, and what a next stage | | |
 | | | is told when a property didn't fit | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): (1) as released: pb writes every value it has, a | | |
+| | | released property without a value stays as the image or a hook wrote it, the new ones are removed. | | |
+| | | (2) Nothing more: absent means an older pb or no room, pb's log says which; a product pads its tree. | | |
+| | | To write into 5.5 and 5.6 | | |
 | F-360 | `doc/architecture/boot.md` 3.5, 3.7, `tools/pbstate` | The contract says who sets a | Verified (code) | open |
 | | | rollback bit (3.5, rule 2) and that `boot activate` clears both, but not who else clears one, nor | | |
 | | | that both can be set (F-340). Today: `pbstate -s A`/`-s B` (`pbstate_switch_system()`) assigns | | |
@@ -625,6 +666,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14 (`2530f937`): `test_part.py`'s comment. `pb_error_string()` stays declared: v2.7.1's host | | |
 | | | library defined and used it, and `compatibility.md` freezes the header's values, not its | | |
 | | | declarations: for Jonas | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: `pb_error_string()` defined again in the host | | |
+| | | library, with a test | | |
 | F-427 | `board/jiffy`, `plat.h`, `imx_wdog.c`, `imx_rom_log.c` | Low, from F-248's package. | Reported (read) | open |
 | | | jiffy's `init()` logs its RNG's failure and doesn't call `board_report_degraded()` (`board.md` | | |
 | | | 2.3). `struct plat_status.crypto_engine` can't tell "failed" from "the platform sets none up" | | |
@@ -635,6 +678,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14: the RNG item is stale: since `68e053fc` (F-247) the RNG is `plat_init()`'s and jiffy's | |
 | | | `init()` has none. Its failure is still only logged: `plat_status` has no RNG field and | |
 | | | `board_report_degraded()` is the board's (a contract question) | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: `plat_status` gets the RNG (none, ok, failed), | | |
+| | | reported by command mode; the boot goes on | | |
 | F-429 | `src/plat/imx8x/{fusebox,rot_helpers}.c` | The 8X's fuse helpers, found by the tests | Verified (test) | open |
 | | | written for them. `imx8x_is_srk_fused()` ignores a failed fuse read and tests an uninitialised | | |
 | | | value; the SLC's status and a key's revocation rest on it. `imx8x_fuse_write_srk()` doesn't | | |
@@ -650,6 +695,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | still read as not revoked (in v2.7.1 a board could map a key there and boot it: an error would | | |
 | | | refuse what a release accepted, D-008); what the SCFW does with a partial word written again. Not | | |
 | | | run on a board | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: a key in slots 4 to 31 is refused on the 8X | | |
+| | | (security before D-008). The SCFW's second write stays open | | |
 | F-431 | boards, build, `imx_flexspi.c` | Low, what the wrap-up's packages left or met. The 8X boards' | Reported | open |
 | | | example password is in the image and the same on every device (`board.md` 4.4), and | | |
 | | | `<board/password.h>` is under `src/board/`, which `board.md` 6 and D-056 don't list among the | | |
@@ -664,6 +711,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `board/password.h`, the FlexSPI's INTR check after a read or write | | |
 | | | 2026-11-14 (`b82afb8a`): the FlexSPI's INTR check after a read or a write. Left: the 8X boards' | |
 | | | password, `board/password.h` | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): doesn't gate | | |
 | F-432 | `src/plat/imx8m/plat_imx8mq.c`, `plat_imx8mp.c` | `plat_get_info()` (`platform.md` 3.11) on the | Verified (code) | open |
 | | | 8M, by the manuals only, run on no board. 8MQ: DIGPROG alone, so the B0 and B1 read the | | |
 | | | same (U-Boot also reads a ROM word and an OCOTP magic); the core's rate is the ARM PLL's by the | | |
@@ -685,6 +733,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | came up, Mbed TLS among them. D-086: the core sets the software backend up, the field is | | |
 | | | the engine's alone (none, ok, failed), the boot's check the core's (`crypto.md` 2, | | |
 | | | `platform.md` 2.2, 2.3, 3.8). Left, after the review: the code and its host tests | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: done in 3.0.0; `CONFIG_PLAT_CRYPTO_ENGINE` | | |
+| | | goes too (D-086's Open (1)) | | |
 | F-443 | `src/boot/optee.c`, OP-TEE | Xen through the OP-TEE delivery | Verified (source) | open |
 | | | (Jonas: "op-tee+xen+linux"). pb's side has it: Xen follows the image handover | | |
 | | | (`boot.md` 5.2), dom0's kernel and ramdisk are module nodes in the image's DT. OP-TEE | | |
@@ -701,6 +751,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16: the 8MP RM (Rev. 3) doesn't settle it: Table 6-35 calls 0x4C0 to 0x610 (where NXP's | | |
 | | | U-Boot has SEC_CONFIG and SRK_HASH) and 0x670 Reserved. Only its Security Reference Manual has | | |
 | | | them, which isn't on the share | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: Jonas gets the 8M's Security Reference Manual | | |
+| | | into the share; every SLC fuse's address and bit checked against it | | |
 | F-450 | `testbench/board/pico8ml/`, the pico8ml | Linux on the pico8ml went dark: silent, no reset, | Seen (board) | open |
 | | | the console's CP2105 still there. The console's receive works (a login at the prompt). | | |
 | | | (1) The BD71837's rails were turned off 30 s after boot as unused: always on since | | |
@@ -838,6 +890,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | revocations (the SLC's state). The shadow registers (`OCOTP_BANKn_WORDm`) read the fuses on every 8M. | | |
 | | | The pico8ml's UUID (`c12f1c67`) isn't the one the magic gives (`cfb7fd63`, computed), so it is likely | | |
 | | | an older revision; unread. From the check of F-166's read back (Jonas: how does U-Boot do it) | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates, with F-166: on the 8MQ B1 pb's fuse reads go | | |
+| | | to the shadow registers, reloaded after a write | | |
 
 ## Dependencies / vendored code
 

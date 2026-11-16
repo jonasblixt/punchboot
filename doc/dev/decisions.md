@@ -105,12 +105,13 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-083 | The board's keys are its `makefile.mk`'s         | In force                                           |
 | D-084 | The platform's open questions, answered          | In force                                           |
 | D-085 | Unrevocable keys, board functions, OP-TEE        | In force; Jonas reviewed it                        |
-| D-086 | The software crypto backend is the core's        | In force; the documents wait for Jonas's review    |
+| D-086 | The software crypto backend is the core's        | In force; its Open (1) closed by D-092             |
 | D-087 | A build may forbid every fuse write              | In force (Jonas: "the EVK must never write fuses") |
 | D-088 | The i.MX8M boots pb in two stages, one image     | Accepted (Jonas); the code follows                 |
 | D-089 | The 8MQ SPL's USB recovery: fastboot             | In force; on the pico8ml (2026-11-15)              |
 | D-090 | The stack answers USB 2.0's standard requests    | In force; `CLEAR_FEATURE(HALT)` stays stalled      |
 | D-091 | A device tree whose header lies is refused       | In force                                           |
+| D-092 | Which findings gate 3.0.0                        | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2214,3 +2215,23 @@ outside the tree, which a release booted, is refused (F-411). Jonas: "Refuse it"
   unbounded). libfdt's own `fdt_check_header()` does most of it since 1.4.7.
 - **What it refuses**: no tree that dtc writes; a tree whose header was edited by hand or
   broken.
+
+## D-092: Which findings gate 3.0.0, and three choices that come with them (2026-11-16)
+
+Jonas went through a draft of the open findings one at a time; the list is in `roadmap.md`
+("Which findings gate the tag"). Three of his answers change what a device does or what a
+port writes, and are recorded here.
+
+- **The 8X refuses a key in slots 4 to 31** (F-429). Security before D-008: the SECO's
+  revocation covers 4 slots, so a key in a higher slot could never be revoked. v2.7.1 booted
+  it; the in-tree boards use slots 0 to 3.
+- **The CAAM's DER signature parser is as strict as Mbed TLS's** (F-286 (6)). Security before
+  D-008: the outer SEQUENCE's length must match what follows, with nothing after it. A
+  signature with trailing bytes verified on the CAAM and not in software; bpak and every
+  signer write exact DER.
+- **An unknown board command answers NOT_SUPPORTED on every board** (F-218). The 8X boards
+  answered OK in releases, which hid a host's typo; the shared `default_command` stays and
+  the release notes name it. `board.md` 8 doesn't change: no released command changes its
+  answer.
+- **`CONFIG_PLAT_CRYPTO_ENGINE` goes in 3.0.0** (D-086's Open (1)): with the software backend
+  the core's, nothing uses it, and 3.0.0 is the release that changes the porting API.

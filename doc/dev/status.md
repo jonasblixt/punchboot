@@ -41,20 +41,21 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
      `-fno-pie` (F-454) on the pico8ml.
    - D-084's rest: EOL with data (F-263, PR #51). F-447 (the 8M's SLC sources), F-432 (the
      pico8ml, when it is back), F-433.
-1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
+1. **The 3.0.0 gate list** (`roadmap.md`, D-092): groups 1 and 2 marked by Jonas, each with
+   what to do. Next: that work, then group 3's contract sentences.
+2. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
    review of the guides and the notes.
-2. The rest of `findings.md`: by board (8MP EVK F-104 to F-107, F-113, F-155), boot time.
+3. The rest of `findings.md`: by board (8MP EVK F-104 to F-107, F-113, F-155), boot time.
 
 ## Open questions (for Jonas)
 
 - From 2026-11-16: F-462 left open (Jonas): the RT's two core clock waits stay bare loops, a
   counted one faults now and then.
-- D-086 (Mbed TLS by the core) and its Open (1); then F-442's code.
 - Review: the guides and `CHANGELOG.md` (F-232), D-074, D-070, D-066, D-056, the logs' "For
   Jonas".
 - Contract sentences: `platform.md` 3.10's port rule (D-084), `usb.md` 4.2's stop (F-453),
   `platform.md` 3.3's kicks (F-320); `boot.md` F-291, F-331, F-323, F-345, F-360, F-342, F-348;
   `board.md` F-325, F-335, F-392; `command-mode.md` F-375; `bio.md` F-310; F-311.
-- Which findings gate the 3.0.0 tag: a draft in `roadmap.md` ("Which findings gate the tag"),
-  for Jonas to mark.
+- F-447: the 8M's Security Reference Manual into the share (Jonas). F-228: PyPI's trusted
+  publishing set up on pypi.org (Jonas).
 - `Co-Authored-By` trailers in 376 pushed commits (left for now, Jonas).
