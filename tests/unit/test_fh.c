@@ -548,7 +548,8 @@ static void assert_registers(uintptr_t dt)
     /* AArch64: x0 = the device tree, x1 = the signature and the
      * convention's version, x2 = 0, x3 = the list */
     assert_true(next.arg[0] == dt);
-    assert_true(next.arg[1] == REG_X1);
+    /* A 32-bit host keeps what a uintptr_t holds of it */
+    assert_true(next.arg[1] == (uintptr_t)REG_X1);
     assert_true(next.arg[2] == 0);
     assert_true(next.arg[3] == (uintptr_t)REGION);
 #endif
