@@ -305,7 +305,8 @@ SoC facts for the driver:
   says the same), seen on the EVK: a refused access at PA 0x60000000 has FAIL_ADDRESS 0x20000000.
   Its TZC-380 has 16 regions and 33 bit addresses, enough for the 8 GiB window. The 6UL RM (52.3)
   says the DDR controller's "local addresses"; pb passes the physical base, as OP-TEE 4.9 does
-  on the 6UL (`plat-imx/tzc380.c` subtracts the DRAM base on the 8M only; F-241).
+  on the 6UL (`plat-imx/tzc380.c` subtracts the DRAM base on the 8M only), and on jiffy OP-TEE's
+  regions at physical addresses refuse the normal world (F-241, 4.5).
 - **Aliasing.** With less DRAM than the controller addresses, DRAM repeats (both RMs): region 1
   is the board's DRAM and the default region stays secure, so that the copies are covered
   (F-261). The board's DRAM is one TZC-380 region (a power of two, aligned), checked at build
@@ -367,6 +368,21 @@ keys, and CAAM's MID for OP-TEE.
 |                          |                                    | (`imx8m_setup_snvs()`): who |           |           |
 |                          |                                    | needs it, unchecked         |           |           |
 | Cortex-A7 SMP bit        | F-135 (arch)                       | -                           | -         | -         |
+
+### 4.5 A secure OS and Linux's idle states (6UL)
+
+pb's part ends at the jump; this is what a product that runs OP-TEE on the 6UL needs of the
+stages after it (F-444, seen on jiffy):
+
+- **Linux without its "ARM power off" idle state.** The 6UL's cpuidle driver
+  (`cpuidle-imx6sx.c`) powers the core down in its deepest state without the secure OS: on wake
+  up the ROM jumps to Linux's resume address in the secure state, with MVBAR UNKNOWN, and the
+  next SMC, an OP-TEE call or PSCI's reset, takes a translation fault in Monitor mode. Linux
+  then runs secure. The test bench's OP-TEE add-on leaves cpuidle out (`testbench/README.md`);
+  a product may instead have the secure OS own the idle state (PSCI's suspend).
+- **The TZASC holds OP-TEE's regions at physical addresses** (4.2): from Linux's normal world
+  a read of OP-TEE's memory, and of the TZASC's registers, is an external abort, with
+  TZASC_ENABLE unfused and GPR9's TZASC1_BYP from the DCD.
 
 ## 5. Memory
 
