@@ -2152,6 +2152,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-16, Jonas: CLEAR_FEATURE(ENDPOINT_HALT) stays stalled (D-090, `usb.md` 3.2): pb halts no | | |
 | | | endpoint, and a stall leaves the host's toggle and the controller's in step. With the three GETs | | |
 | | | answered nothing of the row is left | | |
+| F-464 | `src/drivers/mmc/mmc_emmc.c`, | Boot time. On the MEK pb's init to `boot_load()` is | Seen (board) | closed |
+| | | 2026-11-16, a probe on the MEK (not in the tree; Jonas: "do a test first"): before CMD0, CMD13 at RCA | | |
+| | | 1 to 16 at 400 kHz; none answers (16 timeouts, 198 ms), the full init follows as before. The card | | |
+| | | isn't in TRAN at an address pb could find: the ROM likely reads pb with the eMMC's boot operation, | | |
+| | | which never identifies the card, so the 171 ms of CMD1 are the card's own power up and can't be | | |
+| | | skipped by a take over. What is left: start CMD0 and CMD1 earlier and poll later, which has 16 ms of | | |
+| | | other init to overlap | | |
+| | | 2026-11-16, Jonas: close it. pb keeps its CMD0 init; the MEK's 171 ms are its card's power up after | | |
+| | | the ROM's boot read | | |
 
 ## Dependencies / vendored code
 
