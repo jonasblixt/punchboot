@@ -44,6 +44,11 @@
 /* Endpoint list address: the dQH array, 2 KiB aligned */
 #define CI_ENDPTLISTADDR             0x158
 
+/* OTG status and control: B session valid is VBUS above the session
+ * threshold, the host's supply (USB OTG 2.0 5.3) */
+#define CI_OTGSC                     0x1a4
+#define OTGSC_BSV                    BIT_32(11)
+
 /* Port status and control */
 #define CI_PORTSC1                   0x184
 #define PORTSC1_PR                   BIT_32(8) /* Port reset */
@@ -115,12 +120,15 @@
 #define DTD_TOKEN_STATUS_HALTED          BIT_32(6)
 #define DTD_TOKEN_STATUS_DATA_BUFFER_ERR BIT_32(5)
 #define DTD_TOKEN_STATUS_TRANSACTION_ERR BIT_32(3)
+#define DTD_TOKEN_STATUS_MASK            0xffu
+#define DTD_TOKEN_STATUS_ERRORS \
+    (DTD_TOKEN_STATUS_HALTED | DTD_TOKEN_STATUS_DATA_BUFFER_ERR | DTD_TOKEN_STATUS_TRANSACTION_ERR)
 
 /* Transfer descriptor buffer pointers (Table 54-63): five 4 KiB pages */
-#define DTD_NO_OF_PAGES                  5
-#define DTD_PAGE_SIZE                    4096
-#define DTD_PAGE_OFFSET_MASK             (DTD_PAGE_SIZE - 1)
-#define DTD_MAX_BYTES                    (DTD_NO_OF_PAGES * DTD_PAGE_SIZE)
+#define DTD_NO_OF_PAGES      5
+#define DTD_PAGE_SIZE        4096
+#define DTD_PAGE_OFFSET_MASK (DTD_PAGE_SIZE - 1)
+#define DTD_MAX_BYTES        (DTD_NO_OF_PAGES * DTD_PAGE_SIZE)
 
 /* Endpoint transfer descriptor (dTD, Table 54-60), 32 byte aligned */
 struct imx_ci_udc_transfer_head {

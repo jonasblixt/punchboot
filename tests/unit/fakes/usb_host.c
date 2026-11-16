@@ -19,7 +19,6 @@
 struct xfer {
     bool active; /* Started, and neither done, cancelled nor ended */
     bool reset; /* A bus reset ended it */
-    bool clobbered; /* Endpoint 0 took its place */
     uint8_t *buf;
     size_t length;
     size_t done; /* Bytes that moved */
@@ -77,22 +76,6 @@ static void pump(void)
     }
 }
 
-/* One transfer for the controller: one on endpoint 0 takes the place of a
- * bulk transfer that still runs */
-static void ep0_takes_the_transfer(void)
-{
-    if (!config.one_xfer)
-        return;
-
-    for (usb_ep_t ep = USB_EP1_OUT; ep < USB_EP_END; ep++) {
-        if (xfers[ep].active) {
-            xfers[ep].active = false;
-            xfers[ep].clobbered = true;
-            state.clobbered++;
-        }
-    }
-}
-
 static int hal_init(void)
 {
     state.init_calls++;
@@ -119,8 +102,6 @@ static int hal_xfer_start(usb_ep_t ep, void *buf, size_t length)
 
     if (!EP_IS_BULK(ep)) {
         /* The data stage of a control transfer */
-        ep0_takes_the_transfer();
-
         if (in_control && EP_IS_IN(ep) && length > 0) {
             reply.length = length < sizeof(reply.data) ? length : sizeof(reply.data);
             memcpy(reply.data, buf, reply.length);
@@ -165,12 +146,6 @@ static int hal_xfer_complete(usb_ep_t ep)
 
     if (x->reset && config.reports_reset)
         return -PB_ERR_IO;
-
-    if (x->clobbered) {
-        /* Endpoint 0's transfer is done, which is all the driver looks at */
-        x->clobbered = false;
-        return PB_OK;
-    }
 
     if (!x->active)
         return -PB_ERR_AGAIN;
@@ -244,7 +219,6 @@ static int hal_ep0_xfer_zlp(usb_ep_t ep)
 {
     int rc = next_status_rc;
 
-    ep0_takes_the_transfer();
     next_status_rc = PB_OK;
 
     if (rc != PB_OK) {
