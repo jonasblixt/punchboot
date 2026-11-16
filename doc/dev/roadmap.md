@@ -211,6 +211,10 @@ To discuss (Jonas):
   command, never replacing them (D-008). The capabilities are to tell which image formats a
   build accepts (`command-mode.md` 5.9).
 - PyPI trusted publishing (F-228).
+- SuperSpeed on the Cadence USB3 (the MEK), not now (Jonas, 2026-11-16). pb is USB 2.0 and
+  sets USB3DIS (F-172). Left for it: why the controller's SuperSpeed attempt took 1 to 150 s
+  or failed behind the VL813 (the hub, or the Salvo PHY's settings), and the driver's TODOs
+  (stream, burst, the endpoints' 1024 byte packets).
 - bpak format extensions. Only backward compatible ones (D-008).
 - Low prio: move the whole repo to `jonas@blxt.se`. The files are moved (2026-11-14: the
   copyright headers, the licenses, the Coverity upload's email). Left: rewriting the history of
