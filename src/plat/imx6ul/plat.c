@@ -22,6 +22,7 @@
 #include <pb/console.h>
 #include <pb/delay.h>
 #include <pb/mmio.h>
+#include <pb/mmio_poll.h>
 #include <pb/mmu.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -437,9 +438,14 @@ int plat_init(void)
                       CCM_ANALOG_PLL_ENABLE | CCM_ANALOG_PLL_ARM_DIV_SELECT(88));
     }
 
-    /* Wait for PLL to lock */
-    while (!(mmio_read_32(IMX6UL_CCM_ANALOG_PLL_ARM) & CCM_ANALOG_PLL_ARM_LOCK))
-        ;
+    /* Wait for PLL to lock. Not locked, the core stays on the step clock */
+    if (mmio_poll_32(IMX6UL_CCM_ANALOG_PLL_ARM,
+                     CCM_ANALOG_PLL_ARM_LOCK,
+                     CCM_ANALOG_PLL_ARM_LOCK,
+                     MMIO_POLL_PLL_LOCK) != PB_OK) {
+        LOG_ERR("PLL1 doesn't lock");
+        return -PB_ERR_TIMEOUT;
+    }
 
     /* Select re-connect ARM PLL */
     mmio_clrsetbits_32(IMX6UL_CCM_CCSR, CCM_CCSR_PLL1_SW_CLK_SEL, 0);

@@ -3,8 +3,10 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+#include <limits.h>
 #include <pb/pb.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 static void string_print(char **s, size_t n, size_t *chars_printed, const char *str)
@@ -98,14 +100,18 @@ static int unsigned_num_print(char **s,
  * %s - string format
  * %u - unsigned decimal format
  *
- * Any other format specifier ends the output where it stands: the
- * text before it is terminated, and its length is returned.
- *
  * %x - unsigned hexadecimal format, %0<width>x pads it with zeros
  *
  * It returns the number of characters that would be written if the
  * buffer was big enough. If it returns a value lower than n, the
  * whole string has been written.
+ *
+ * Any other format specifier ends the output where it stands: the
+ * text before it is terminated. What the whole text's length would be
+ * is unknown (the argument's type is), so it returns at least n, the
+ * C99 sign of a text that was cut: a caller that checks the result
+ * against n sees that it was (F-418). It used to return the length
+ * before the specifier, which looked like a whole text.
  *******************************************************************/
 int vsnprintf(char *s, size_t n, const char *fmt, va_list args)
 {
@@ -115,6 +121,8 @@ int vsnprintf(char *s, size_t n, const char *fmt, va_list args)
     size_t chars_printed = 0U;
     char padc = '\0'; /* Padding character */
     int padn; /* Number of characters to pad */
+    size_t size = n; /* The buffer's, terminator included */
+    bool cut = false; /* An unsupported specifier ended the output */
 
     if (n == 0U) {
         /* There isn't space for anything. */
@@ -184,6 +192,7 @@ snprintf_loop:
                 LOG_ERR("snprintf: specifier with ASCII"
                         " code '%d' not supported.",
                         *fmt);
+                cut = true;
                 goto out;
             }
             fmt++;
@@ -202,6 +211,12 @@ snprintf_loop:
 out:
     if (n > 0U)
         *s = '\0';
+
+    if (cut && chars_printed < size)
+        chars_printed = size;
+
+    if (chars_printed > INT_MAX)
+        return INT_MAX;
 
     return (int)chars_printed;
 }

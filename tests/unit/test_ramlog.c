@@ -20,7 +20,7 @@
 
 #include "../../src/ramlog.c"
 
-#define LOG_SIZE (CONFIG_RAMLOG_SIZE_KiB * 1024)
+#define LOG_SIZE PB_RAMLOG_DATA_SIZE
 
 static void puts_ramlog(const char *s)
 {
