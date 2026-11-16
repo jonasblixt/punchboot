@@ -26,8 +26,8 @@
 #define ADMA2_DESCS            512
 #define USDHC_MAX_CHUNK_BYTES  SZ_MiB(30)
 
-/* Polling timeouts. A write's data timeout grows with the transfer at 1 MB/s,
- * a read's is the header's IMX_USDHC_READ_TIMEOUT_us() */
+/* Polling timeouts. A data transfer's are the header's
+ * IMX_USDHC_READ_TIMEOUT_us() and IMX_USDHC_WRITE_TIMEOUT_us() */
 #define USDHC_CLK_TIMEOUT_us   10000
 #define USDHC_RESET_TIMEOUT_us 100000
 #define USDHC_BUSY_TIMEOUT_us  5000000
@@ -53,6 +53,8 @@ struct imx_usdhc {
     uintptr_t base;
     unsigned int input_clock_hz;
     bool bus_ddr_enable;
+    unsigned int bus_clock_hz; /* The card clock as set */
+    unsigned int bus_lines; /* Data lines: 1, 4 or 8 */
     struct mmc_hal hal;
 };
 
@@ -99,6 +101,22 @@ static int usdhc_sys_ctrl_pulse(struct imx_usdhc *u, uint32_t bit)
     return usdhc_wait(u, USDHC_SYS_CTRL, bit, 0, USDHC_RESET_TIMEOUT_us);
 }
 
+/* The longest a read of 'bytes' waits for its data, on the bus as it is set */
+static uint32_t usdhc_read_timeout_us(const struct imx_usdhc *u, size_t bytes)
+{
+    uint64_t bound = (uint64_t)IMX_USDHC_READ_TIMEOUT_us(bytes);
+    uint64_t bits_per_s =
+        (uint64_t)u->bus_clock_hz * (u->bus_lines ? u->bus_lines : 1) * (u->bus_ddr_enable ? 2 : 1);
+
+    if (bits_per_s != 0) {
+        uint64_t bus_us = (uint64_t)bytes * 8 * 1000000 / bits_per_s;
+
+        bound = MAX(bound, (uint64_t)IMX_USDHC_READ_ACCESS_us + 2 * bus_us);
+    }
+
+    return (uint32_t)MIN(bound, (uint64_t)UINT32_MAX - 1);
+}
+
 static int imx_usdhc_set_bus_clock(void *priv, unsigned int clk_hz)
 {
     struct imx_usdhc *u = priv;
@@ -140,8 +158,8 @@ static int imx_usdhc_set_bus_clock(void *priv, unsigned int clk_hz)
         return rc;
 
     pb_delay_us(100);
-    LOG_DBG("Actual bus rate = %u kHz",
-            (u->input_clock_hz / (pre_div * div * (u->bus_ddr_enable ? 2 : 1))) / 1000);
+    u->bus_clock_hz = u->input_clock_hz / (pre_div * div * (u->bus_ddr_enable ? 2 : 1));
+    LOG_DBG("Actual bus rate = %u kHz", u->bus_clock_hz / 1000);
     return PB_OK;
 }
 
@@ -403,11 +421,13 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
         size_t bytes = (size_t)cmd->block_size * cmd->blocks;
 
         /* A read's bound is the header's, which the boards size their
-         * chunks by (F-321); a write's covers the card's programming */
+         * chunks by (F-321), or on a bus slower than its 4 MB/s (an SD card
+         * on one line, 3.1 MB/s at 25 MHz) the access time and twice the
+         * bus's own time for the bytes. A write's covers the programming */
         if (cmd->write)
-            pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + bytes);
+            pb_timeout_init_us(&to, IMX_USDHC_WRITE_TIMEOUT_us(bytes));
         else
-            pb_timeout_init_us(&to, IMX_USDHC_READ_TIMEOUT_us(bytes));
+            pb_timeout_init_us(&to, usdhc_read_timeout_us(u, bytes));
         do {
             state = usdhc_read(u, USDHC_INT_STATUS);
 
@@ -498,22 +518,27 @@ static int imx_usdhc_set_bus_width(void *priv, enum mmc_bus_width width)
     case MMC_BUS_WIDTH_1BIT:
         dtw = DTW_1BIT;
         u->bus_ddr_enable = false;
+        u->bus_lines = 1;
         break;
     case MMC_BUS_WIDTH_4BIT:
         dtw = DTW_4BIT;
         u->bus_ddr_enable = false;
+        u->bus_lines = 4;
         break;
     case MMC_BUS_WIDTH_4BIT_DDR:
         dtw = DTW_4BIT;
         u->bus_ddr_enable = true;
+        u->bus_lines = 4;
         break;
     case MMC_BUS_WIDTH_8BIT:
         dtw = DTW_8BIT;
         u->bus_ddr_enable = false;
+        u->bus_lines = 8;
         break;
     case MMC_BUS_WIDTH_8BIT_DDR:
         dtw = DTW_8BIT;
         u->bus_ddr_enable = true;
+        u->bus_lines = 8;
         break;
     default:
         LOG_ERR("Unsupported bus width");
@@ -564,6 +589,8 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
     u->base = cfg->base;
     u->input_clock_hz = clk_hz;
     u->bus_ddr_enable = false;
+    u->bus_clock_hz = 0;
+    u->bus_lines = 1;
     u->hal = (struct mmc_hal){
         .priv = u,
         .init = imx_usdhc_setup,

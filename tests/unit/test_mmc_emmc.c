@@ -484,6 +484,26 @@ static void test_byte_addressing(void **state)
     assert_bench_clean();
 }
 
+/* F-200: a byte addressed device whose SEC_COUNT is 0 is sized from its
+ * CSD; it got 2^32 blocks, and bio let reads and writes past its end */
+static void test_byte_addressing_without_sec_count(void **state)
+{
+    static uint8_t buf[512] __aligned(PB_DMA_ALIGN);
+    const uint64_t sectors = 1024 * 1024 * 1024 / 512;
+    (void)state;
+
+    card_cfg.user_sectors = sectors;
+    card_cfg.sec_count_zero = true;
+    assert_int_equal(init(), PB_OK);
+
+    assert_int_equal(bio_get_last_block(part(UU_USER)), sectors - 1);
+    fill(buf, sizeof(buf), 6);
+    assert_int_equal(bio_write(part(UU_USER), sectors - 1, sizeof(buf), buf), PB_OK);
+    assert_int_equal(bio_read(part(UU_USER), sectors - 1, sizeof(buf), buf), PB_OK);
+    assert_int_not_equal(bio_read(part(UU_USER), sectors, sizeof(buf), buf), PB_OK);
+    assert_bench_clean();
+}
+
 static void test_boot_partitions(void **state)
 {
     static uint8_t out[8 * 1024] __aligned(PB_DMA_ALIGN);
@@ -965,6 +985,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_a_second_init_adds_no_devices, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_length_of_0_doesnt_reach_the_driver, setup, teardown),
         cmocka_unit_test_setup_teardown(test_byte_addressing, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_byte_addressing_without_sec_count, setup, teardown),
         cmocka_unit_test_setup_teardown(test_boot_partitions, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rom_handover, setup, teardown),

@@ -334,3 +334,6 @@ const struct board board = {
     .early_boot = early_boot,
     .password_auth = board_password_auth,
 };
+
+/* One chunk read from the eMMC fits the watchdog (platform.md 3.3) */
+IMX_USDHC_CHECK_CHUNKS();

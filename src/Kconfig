@@ -162,7 +162,7 @@ config ENABLE_WATCHDOG
 
 config WATCHDOG_TIMEOUT
     int "Timeout (s)"
-    default 5
+    default 10
     range 1 127
     depends on ENABLE_WATCHDOG
     help

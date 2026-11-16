@@ -234,3 +234,6 @@ const struct board board = {
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .image_regions = image_regions,
 };
+
+/* One chunk read from the eMMC fits the watchdog (platform.md 3.3) */
+IMX_USDHC_CHECK_CHUNKS();

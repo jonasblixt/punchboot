@@ -69,6 +69,8 @@ enum emmc_state {
 
 struct emmc_model_config {
     uint64_t user_sectors; /* More than 2 GiB: sector addressing (6.4.2) */
+    /* Up to 2 GiB, SEC_COUNT 0: the size is the CSD's alone (7.4.84) */
+    bool sec_count_zero;
     uint8_t boot_size_mult; /* BOOT_SIZE_MULT, 128 KiB units */
     uint8_t rpmb_size_mult; /* RPMB_SIZE_MULT, 128 KiB units */
     uint8_t device_type; /* DEVICE_TYPE [196] */
