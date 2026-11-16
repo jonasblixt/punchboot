@@ -27,6 +27,25 @@ pb_vector_table:
 .section .text
 .global pb_entry
 pb_entry:
+    /* A Cortex-A7 (MIDR 0x41xFC07x) needs ACTLR.SMP set before the caches and
+     * the MMU are enabled and before any cache or TLB maintenance: with it
+     * clear the caches are off whatever SCTLR.C says, and loads to cacheable
+     * memory aren't cached (Cortex-A7 MPCore TRM, DDI0464F, 2.4 and 4.3.31,
+     * F-135). What the ROM left is kept for arch_init()'s log. pb runs in
+     * the Secure state, where ACTLR is writable. Uses r0, r1 */
+    mrc     p15, 0, r0, c0, c0, 0
+    ldr     r1, =0xff00fff0
+    and     r0, r0, r1
+    ldr     r1, =0x4100c070
+    cmp     r0, r1
+    bne     1f
+    mrc     p15, 0, r0, c1, c0, 1
+    ldr     r1, =armv7a_rom_actlr
+    str     r0, [r1]
+    orr     r0, r0, #(1 << 6)
+    mcr     p15, 0, r0, c1, c0, 1
+    isb
+1:
 
     /* Disable MMU */
     mrc p15, 0, r1, c1, c0, 0
