@@ -13,19 +13,15 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - **Tests:** `scripts/pbdev test`, 119 suites and checks, ASan/UBSan clean; builds and tests
   one at a time with `PB_JOBS=6` (load under 8, Jonas). CI: host tests, coverage, all boards,
   Coverity (master only).
-- **Boards (2026-11-15):**
-  - jiffy (2026-11-16): a test pb (SDIS clear and a GPR1 lock clear, F-455) in BOOT0 (enabled),
-    `5d3dcda1`'s in BOOT1, pbstate none. Serial download is a button held at power-up (Jonas).
-    Power cycled by Jonas (2026-11-16, late morning). After the bit at runtime its ROM goes to a
-    downloader that hangs, and only a power cycle ends it (F-455). In Linux `pbstate-pb`, not
-    `pbstate`. Root A the bench's root image, Root B test data.
-  - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
-    SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
-    System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR: today's pb (SDIS clear, no banner), the simple bench 7 of 7; a test pb runs from RAM over the
-    J-Link without the NOR (log 2026-11-15). The MEK: `e82406c3`'s pb (USB3DIS, F-172) in BOOT0
-    (enabled), `e880cd49`'s in BOOT1; back within 1.3 s after every reset. The 8MP EVK: `cae67f28`'s
-    two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of 2026-11-14 in BOOT0.
+- **Boards (2026-11-16, afternoon):**
+  - jiffy: SNVS Soft Fail after JTAG reads (F-455), the CAAM blocked, `auth` times out: needs a
+    power cycle. BOOT0 (enabled) the morning's test pb, BOOT1 `5d3dcda1`'s. Serial download is a
+    button held at power-up. In Linux `pbstate-pb`. No JTAG on jiffy.
+  - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb in BOOT0 and
+    BOOT1, BOOT1 enabled. Never `reboot` it (F-452).
+  - RT1060: its NOR unchanged today (RAM loads over the J-Link only). The MEK: BOOT0 (enabled)
+    `f470ba88`'s tree, BOOT1 a log-only probe. The 8MP EVK: BOOT0 (enabled) `277ec02b`'s
+    two-stage pb, BOOT1 a log-only probe; its console is another session's logger (inbox file).
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
 - **Test benches:** Linux (`testbench/`): jiffy, the 8MP EVK, the MEK and the pico8ml boot to
