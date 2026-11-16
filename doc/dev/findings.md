@@ -49,6 +49,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `ep0_stall` is that code. All three STALL an unknown request in 8 ms. Left: an aborting SETUP seen | | |
 | | | only at the bound, EP0 IN ZLT; whether `ep0_stall` is mandatory (`usb.md` 4.4 says so, the stack | | |
 | | | registers a driver without it: an out-of-tree controller keeps working), for Jonas | | |
+| | | 2026-11-16 (Jonas): `ep0_stall` is mandatory; a driver without it isn't registered (`usb.md` 4.4). | | |
+| | | The host fakes always stall. Left: an aborting SETUP seen only at the bound, EP0 IN ZLT | | |
 | F-140 | `src/drivers/usb/imx_ci_udc.c` | USBMODE.SDIS is set; the RM: in high speed every OUT packet is then answered with NYET, and it "substantially limits" throughput. Worth measuring for flashing speed. The init also writes ENDPOINTLISTADDR before USBMODE.CM, the RM (54.4.6.1) sets the mode first. `CMD_ITC(x)` cast to `uint16_t` after the shift, so ITC was always 0 (immediate; fine for a polling driver). | Verified (code, RM 54.6.33, 54.4.6.1) | open (ITC: `USBCMD_ITC(0)` since `5bd1d20e`, same value) |
 | | | 2026-11-14 (`cb747e97`, `pkg-b3-ci2` landed): USBMODE.CM is set first, as the RM; benched with F-136. | | |
 | | | Left: whether clearing SDIS raises the throughput without errors, measured on jiffy and the RT1060 | | |
@@ -56,6 +58,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | runs each: 2.35 s with SDIS (13.6 MiB/s), 1.99 s without (16.1 MiB/s), every verify OK, no error in | | |
 | | | pb's log. The default stays SDIS: the RT1060 isn't measured (its writes are NOR bound, the test | | |
 | | | pb would go in its NOR), and the 8DXL can't be. For Jonas: clear it on jiffy only, or for all | | |
+| | | 2026-11-16 (Jonas): SDIS is cleared on every board (the ChipIdea: jiffy, the RT1060, the 8DXL). The | | |
+| | | RT1060 runs it from its NOR, the simple bench 7 of 7. Left: jiffy from its eMMC (it needs a power | | |
+| | | cycle first), the 8DXL only builds | | |
+| | | 2026-11-16, jiffy from BOOT0: 32 MiB writes 1.86 s without SDIS (17.2 MiB/s), 2.18 to 2.28 s with it, | | |
+| | | all verified. Left: the 8DXL, which only builds | | |
 | F-149 | `src/board/imxrt1060evk/imximage.cfg` | The DCD writes IOMUXC_GPR17 (0x400ac044 = 0x55555555) and sets GPR16 bit 2 to make all of the FlexRAM OCRAM. HAB rejects the write: `punchboot log hab` on the RT1060 EVK has a failure, invalid address (0x22) in a CSF/DCD command, for that write. So the FlexRAM keeps its fused split (256 KiB OCRAM); pb fits, since its buffers end at 0x202bf000. On an open part the ROM goes on; on a closed one the boot fails. Drop the DCD or set GPR17 from pb (the ROM's DCD address list doesn't allow IOMUXC_GPR). | Verified (board, HAB log) | open |
 | F-153 | Linux 6.18 + TF-A v2.12 on the i.MX8M Plus | Linux powers the audio mix through the GPC itself, which leaves its AIPS5 bridge at the reset defaults (TF-A configures AIPS5 only when its own SiP call powers the domain): the first access (audio mix clock driver, MU2) takes an SError. Not pb; U-Boot doesn't set AIPS5 either. Newer kernels have `drivers/bus/imx-aipstz.c` (MPR0 = 0x77777777 on probe and runtime resume) with a node in `imx8mp.dtsi`. | Verified (EVK) | worked around: the test bench's DTS disables AIPS5 (`59569a10`) |
 | F-155 | i.MX8M Plus EVK, `30be0000.ethernet` (FEC) | The FEC's PHY (address 1, reset `gpio4 2`) doesn't answer on MDIO (`MDIO device at address 1 is missing`, `Unable to connect to phy`), with the upstream DTS. The EQOS port probes. No cable was attached. | Seen on the board | open |
@@ -93,6 +100,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | fails before any request: not the stalls. Left: the device's connect (the PHY or the cdns3 after a | | |
 | | | software reset, which leaves the USB subsystem powered) or the VL813 hub's port; a USB analyser | | |
 | | | or a port reset (root on the bench host) would tell | | |
+| | | 2026-11-16, on its first port (VL813, `1-3.4.3`), console captured: two failures. (a) The host sees | | |
+| | | no connect while pb enters command mode, times out 10 s later (`Transport init error (-2)`) and resets, | | |
+| | | seven times (09:05:53 to 09:07:08). (b) Earlier: the host enumerates it, strings read, and it | | |
+| | | disconnects 8 to 9 s later, five times. After a power cycle reset 1 came back in 1.1 s, reset 2 was lost | | |
 | F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
 | | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
 | | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
@@ -459,6 +470,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16, (10)'s cost measured: the RT1060 at `25b44094` with `CONFIG_MBEDTLS_MD_SHA384` and | | |
 | | | `_SHA512` on: text 70632 to 74288 bytes (+3.6 KiB), data +640, `pb_flash.bin` 108312 to 112408 bytes | | |
 | | | of the 256 KiB BL partition. The curves are in the build already. Not changed: for Jonas | | |
+| | | 2026-11-16 (Jonas): (10) is dropped, the RT1060 stays with SHA-256 and MD5: Mbed TLS is to be | | |
+| | | replaced, the hashes come with what replaces it | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
 | | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |
@@ -836,7 +849,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | both resets ended in the downloader again, the ROM log with "Device init: fail" | | |
 | | | (0x8f010b74) for the eMMC, also with BOOT1 enabled again, until a power cycle. Not | | |
 | | | looked into: whether the ROM sees a changed boot partition only after a power cycle | | |
-| F-455 | jiffy, the TZASC's lock (F-241) | jiffy is in a reset loop, needs Jonas. A test pb | Seen (board) | open |
+| F-455 | jiffy, the TZASC's lock (F-241) | A reset loop, recovered 2026-11-16. A test pb | Seen (board) | open |
 | | | (not committed) in BOOT1 set lockdown_range (all 8 regions), lockdown_select's region_register and | | |
 | | | GPR1's TZASC1_BOOT_LOCK after pb's region 1 (DDR, both worlds), then wrote region 1 again. After | | |
 | | | the `dev reset` that started it, every boot: the CAAM's jobs time out (JRSTAR 0x40000716), the | | |
@@ -848,6 +861,37 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | it to BOOT1. Then to find out: whether a power cycle alone ends it (the test pb locks again at every | | |
 | | | boot, so likely not), why the lock stops DMA when region 1 is unchanged, and whether a warm reset | | |
 | | | resets the TZASC | | |
+| | | 2026-11-16, jiffy recovered (Jonas: serial download): `5d3dcda1`'s pb over `uuu`, BOOT1 written and | | |
+| | | verified, System A to the login from command mode. Then test pbs from RAM only (switches left on serial | | |
+| | | download, so every reset lands in the ROM). A warm reset (Linux's `reboot`, `dev reset`) resets the | | |
+| | | TZC-380: region 1 attributes 0x1c, lockdown_range and lockdown_select 0. GPR1 is not reset: | | |
+| | | TZASC1_BOOT_LOCK (bit 23) stayed set over seven warm resets, so the TZASC came out of each reset | | |
+| | | with secure_boot_lock high and lockdown_select ignored its write (TRM 3.2.4). That is the loop: the | | |
+| | | test pb's lock outlived its reset. Software clears the bit (GPR1 0x0fc61005 to 0x0f461005), a power | | |
+| | | cycle wasn't tried. With the bit high alone, `5d3dcda1`'s pb works: `auth token` (CAAM), 4 MiB written | | |
+| | | to Root B and verified (uSDHC DMA), region 1 programmed and read back. lockdown_range enabled | | |
+| | | (0x80000007) with the bit high, in either order, resets the SoC within about 1 ms (an asm probe with | | |
+| | | UART markers: DRAM loads, stores, cache clean and invalidate, the stack and the GPT all answer up to | | |
+| | | the reset; no abort is printed). The first boot's CAAM and CMD8 errors weren't seen again. For Jonas: | | |
+| | | should pb clear TZASC1_BOOT_LOCK at boot (a secure OS that sets it would then make the next pb's | | |
+| | | boot reset), or refuse the boot when it is set? The probe patch isn't committed | | |
+| | | 2026-11-16 (Jonas): pb clears it. `tzasc_init()` on the 6UL clears TZASC1_BOOT_LOCK before the TZASC | | |
+| | | is set up, with a log line | | |
+| | | 2026-11-16, the bit set while pb runs (JTAG, AHB access port, no halt) breaks the CAAM at once: | | |
+| | | `auth token` times out, IRSAR 0, ORSFR 0, JRSTAR 0, JRINTR 0x19, no TZASC fault; set from the reset on, | | |
+| | | the CAAM works. A warm reset after it lands in the ROM's serial downloader, whose `uuu` write times out, | | |
+| | | until a power cycle (not proven: the CAAM's state outlives it, the closed ROM can't authenticate). The | | |
+| | | clear isn't run on a board yet | | |
+| | | 2026-11-16, pb's `dev reset` after the bit was set at runtime: the ROM goes to serial download | | |
+| | | without trying the eMMC (its log: boot from fuses, closed, FUSE_SEL blown, serial download) and | | |
+| | | doesn't answer `uuu`. CAAM JR0 then empty and reset (not wedged), GPR1's bit cleared over JTAG doesn't | | |
+| | | help, SBMR1/2 as on a good boot, SRC_GPR10 0. What the ROM keeps across warm resets isn't known | | |
+| | | 2026-11-16, the bit set while the ROM's downloader waits (button entry): `uuu` times out and doesn't | | |
+| | | recover with the bit cleared. The bit rising after the CAAM is set up breaks it (ROM or pb); set before | | |
+| | | the ROM starts (the lockdown probe's reset) everything works. The clear covers only that case, not run | | |
+| | | 2026-11-16 (Jonas): the clear is dropped, not committed: it never ran on a board, the TRM suggests | | |
+| | | lockdown_select stays read only after a reset with the lock high whatever GPR1 says later, and a lock | | |
+| | | set at runtime breaks the CAAM before pb runs again. pb still never sets the bit | | |
 | F-458 | the RT1060's boot time | Low. The warm reset to the image's entry was 40.1 ms | Seen (board) | open |
 | | | on 2026-11-08 (`testbench/simple/README.md`), 42.3 ms at `b7561ea1` (2026-11-15, the same 5.2 KiB | | |
 | | | application, medians of 10). Not tonight's: F-148 adds 0.1 ms, F-457 1.6 ms. Which commit of the | | |
@@ -867,6 +911,23 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | Mbed TLS functions' addresses (the same in it and its parent), the read only data's offset (`.ro_data` | | |
 | | | moved by 0, 8, 16, 24 bytes: 26.52 each), the D-cache write-through (0.1 ms), the stack's alignment | | |
 | | | (32 since F-209, still 26.5). The commits before it vary 25.7 to 26.0. Left: what in the layout costs it | | |
+| | | 2026-11-16 (Jonas): the RT1060's defconfig drops the banner (`CONFIG_PRINT_BOOT_BANNER`). From its NOR, | | |
+| | | the warm reset to the entry: 41.87 ms (median of 10, was 44.0). `boot-time-image -c` needs the banner and | | |
+| | | says so. Left: the signature's 0.7 ms | | |
+| F-459 | jiffy, after Linux's `reboot` | Linux hangs in the CAAM's job ring interrupt | Seen (board) | open |
+| | | 2026-11-16, `5d3dcda1`'s pb from BOOT1 (switches on eMMC): `pbstate -s none` and `reboot` in Linux. | | |
+| | | pb's banner (wdog, 0x11), then nothing on the console, no USB, and no watchdog reset in over a | | |
+| | | minute. The same reboot to the ROM's serial downloader worked this morning, and pb from BOOT1 after a | | |
+| | | `dev reset` reached command mode twice. The ULINK isn't on USB, so no JTAG look. Not known: where pb | | |
+| | | stops (before "entering command mode": the platform, the eMMC or pbstate), why the watchdog doesn't | | |
+| | | reset it | | |
+| | | 2026-11-16, the ULINK back: it isn't pb. Halted over JTAG, the PC is in the kernel (0xc012bbd8, | | |
+| | | `__irq_exit_rcu`); of eight samples 300 ms apart, six are `caam_jr_interrupt`, `caam_jr_dequeue`, | | |
+| | | `gic_handle_irq` or `__irq_exit_rcu`: an interrupt storm from the CAAM's job ring, before userspace | | |
+| | | prints (the kernel is quiet). So pb booted System A: `pbstate -s none` hadn't taken. Linux's | | |
+| | | watchdog daemon never starts, the hardware watchdog isn't kicked by pb's setup alone (not known why it | | |
+| | | doesn't fire). Not known: whether the CAAM state comes from Linux's run before the warm reset or from | | |
+| | | pb (its job ring 0, `imx_caam_stop()` only in `plat_lockdown()`) | | |
 
 ## Dependencies / vendored code
 

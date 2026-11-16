@@ -1,6 +1,7 @@
 # Status
 
-_Last updated: 2026-11-16, night (F-148, F-457, F-209, F-205, F-138 fixed; D-073's stalls; guard 3)_
+_Last updated: 2026-11-16, morning (jiffy recovered, F-455's lock found; the night: F-148, F-457,
+F-209, F-205, F-138 fixed, D-073's stalls, guard 3)_
 
 ## Current focus
 
@@ -13,12 +14,15 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   one at a time with `PB_JOBS=6` (load under 8, Jonas). CI: host tests, coverage, all boards,
   Coverity (master only).
 - **Boards (2026-11-15):**
-  - jiffy: **stuck in a reset loop (F-455)**, a TZASC test pb in BOOT1; needs serial download
-    and `uuu` (Jonas). BOOT0 an older pb; Root A the test bench's root image, Root B test data.
+  - jiffy (2026-11-16): a test pb (SDIS clear and a GPR1 lock clear, F-455) in BOOT0 (enabled),
+    `5d3dcda1`'s in BOOT1, pbstate none. Serial download is a button held at power-up (Jonas).
+    **Needs a power cycle**: after the bit at runtime its ROM goes to a downloader that hangs
+    (F-455). In Linux `pbstate-pb`, not `pbstate`. Root A the bench's root image, Root B test data.
+    The MEK: back after a power cycle, F-172's lost state captured.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR: `e880cd49`, the simple bench 7 of 7; a test pb runs from RAM over the
+  - RT1060 from its NOR: today's pb (SDIS clear, no banner), the simple bench 7 of 7; a test pb runs from RAM over the
     J-Link without the NOR (log 2026-11-15). The MEK: `e880cd49`'s pb in BOOT1 (enabled), BOOT0
     its pb of 2026-11-14; F-172 reproduced, it came back by itself. The 8MP EVK: `cae67f28`'s
     two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of 2026-11-14 in BOOT0.
@@ -31,10 +35,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 ## Next steps
 
-0. **Resume here: `log/2026-11-15.md`**, its last section. Nothing pushed since
+0. **Resume here: `log/2026-11-16.md`**, then `log/2026-11-15.md`'s last section. Nothing pushed since
    `58c9cf3e`'s rebase.
-   - The SPL's fastboot (D-089) runs on the pico8ml, as `1209:0001` (Jonas). Left: a udev
-     rule for that id on the bench host.
    - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
      resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
      TF-A's 8MQ patch could go upstream.
@@ -60,5 +62,5 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - Choices left in findings: F-140 (SDIS off: 15% faster writes on jiffy), F-283 and F-200 (the
   GPT's 512s, SEC_COUNT 0), F-406, F-411, F-180, F-227's default device.
 - Which findings gate the 3.0.0 tag; bebop's defconfig (F-033); virtio for QEMU (F-052).
-- The night's: `ep0_stall` mandatory or not (F-138); the RT's banner, 2.1 ms a boot (F-458);
-  SHA-384/512 on the RT, 3.6 KiB (F-286); `Co-Authored-By` trailers in 376 pushed commits.
+- `Co-Authored-By` trailers in 376 pushed
+  commits (left for now, Jonas).
