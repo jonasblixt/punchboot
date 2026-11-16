@@ -925,6 +925,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`drivers.md` 3): the i.MX UART's TXDC and SRST and the LPUART's TC (the console: may run | | |
 | | | before the timer is set up); the ARM PLL's lock on the 6UL, the 8MQ, the 8MP and the RT, and the | | |
 | | | RT's CDHIPR handshakes (`platform.md`, the clock set up in `plat_init()`) | | |
+| | | 2026-11-16, the RT1060 from RAM over the J-Link: measured, the ARM PLL's lock 54 us, each CDHIPR | | |
+| | | handshake 4 to 5 us. A bounded wait through `pb_timeout_*()` (10 ms) came up 4 of 7 loads, the old | | |
+| | | loop 9 of 9: the others a HardFault, UNDEFINSTR on a valid `pop` in `plat_get_us_tick()`, called | | |
+| | | from the first wait, while the AHB root switches to PLL2. Code fetched during that switch can read | | |
+| | | wrong; the tight loop stays in what was fetched. Not landed. A bound there must not call out: a | | |
+| | | counted loop, or the switch's wait left as it is | | |
 
 ## Dependencies / vendored code
 
