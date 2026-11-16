@@ -409,6 +409,27 @@ int plat_early_init(void)
  * writes no fuse. The pico8ml's ROM leaves source 1 and IPG at AHB / 2,
  * 66.7 MHz
  */
+/*
+ * The OCOTP's flags: the 8M Plus has its own CTRL layout (F-467). The 8MQ
+ * from B1 (rev 2.1) refuses a direct read, whose READ_FUSE_DATA is the magic
+ * 0xff0055aa, also out of reset: its fuses are read from the shadow
+ * registers (F-466). U-Boot tells B1 by the same magic, its DIGPROG still
+ * says 1.0 (imx8m/soc.c, get_cpu_rev())
+ */
+static unsigned int ocotp_flags(void)
+{
+#ifdef CONFIG_PLAT_IMX8MP
+    return IMX_OCOTP_CTRL_8MP;
+#else
+    if (mmio_read_32(IMX8M_OCOTP_BASE + OCOTP_READ_FUSE_DATA) == OCOTP_READ_FUSE_DATA_B1_MAGIC) {
+        LOG_INFO("8MQ B1: fuses are read from the shadow registers");
+        return IMX_OCOTP_READ_SHADOWS;
+    }
+
+    return 0;
+#endif
+}
+
 static unsigned int ipg_rate_hz(void)
 {
     static const uint32_t ahb_src_hz[] = {
@@ -435,7 +456,7 @@ int plat_init(void)
     /* Init fusebox, its clock gate may be closed. Its fuse timing is for
      * the ipg_clk the ROM left: fuse writes (the life cycle, plat_slc) */
     mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);
-    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK, ipg_rate_hz());
+    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK, ipg_rate_hz(), ocotp_flags());
     imx_hab_fuses_init(&hab_fuses);
 
     /*

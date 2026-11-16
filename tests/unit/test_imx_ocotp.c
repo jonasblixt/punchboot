@@ -28,7 +28,8 @@
 
 #define BASE               0x021bc000u /* The 6UL's */
 #define WORDS_PER_BANK     8
-#define WORDS              128
+#define WORDS              128 /* The 6UL's ADDR reaches 128 words */
+#define MODEL_WORDS        512 /* The 8M Plus's 512 */
 #define IPG_RATE           66000000u /* jiffy's ipg_clk */
 
 #define OCOTP_CTRL_SET_    0x0004
@@ -36,7 +37,7 @@
 #define OCOTP_CTRL_TOG_    0x000c
 #define OCOTP_SCS_CLR_     0x0068
 
-#define CTRL_ADDR(ctrl)    ((ctrl) & 0x7f)
+#define CTRL_ADDR(ctrl)    ((ctrl) & m.addr_mask)
 #define CTRL_UNLOCK(ctrl)  ((ctrl) >> 16)
 
 /* CTRL reads that see BUSY after a read and after a program */
@@ -44,14 +45,29 @@
 #define PROGRAM_BUSY_READS 3
 
 static struct {
+    /* The SoC's CTRL layout: the 6UL's, or the 8M Plus's (F-467) */
+    unsigned int flags;
+    uint32_t busy;
+    uint32_t error;
+    uint32_t addr_mask;
     uint32_t ctrl; /* ADDR, ERROR and WR_UNLOCK. BUSY is busy_reads */
     uint32_t timing;
     uint32_t read_fuse_data;
     uint32_t sw_sticky;
     uint32_t scs;
     bool scs_set_ignored;
-    uint32_t otp[WORDS];
-    bool locked[WORDS];
+    uint32_t otp[MODEL_WORDS];
+    bool locked[MODEL_WORDS];
+    uint32_t no_take[MODEL_WORDS]; /* Bits a program doesn't set (F-166) */
+    /* The shadow registers: what reset or the last reload read (F-466) */
+    uint32_t shadow[MODEL_WORDS];
+    uint32_t reload; /* CTRL's RELOAD_SHADOWS */
+    bool reloading; /* Set until the reload's BUSY was seen clear */
+    unsigned int reloads;
+    unsigned int reload_busy_reads;
+    unsigned int direct_reads;
+    bool b1; /* The 8MQ B1: READ_FUSE_DATA is always the magic */
+    bool read_locked[MODEL_WORDS]; /* A read is refused, a program isn't */
     unsigned int busy_reads;
     bool programming; /* A program's BUSY hasn't been seen clear yet */
     bool postamble; /* It has, at postamble_tick */
@@ -77,8 +93,10 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
     case OCOTP_CTRL:
         if (m.busy_reads > 0) {
             m.busy_reads--;
-            return m.ctrl | OCOTP_CTRL_BUSY;
+            return m.ctrl | m.busy | (m.reloading ? m.reload : 0);
         }
+
+        m.reloading = false;
 
         if (m.programming) {
             m.programming = false;
@@ -90,16 +108,39 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
     case OCOTP_TIMING:
         return m.timing;
     case OCOTP_READ_FUSE_DATA:
-        return m.read_fuse_data;
+        return m.b1 ? OCOTP_READ_FUSE_DATA_B1_MAGIC : m.read_fuse_data;
     case OCOTP_SW_STICKY:
         return m.sw_sticky;
     case OCOTP_SCS:
         return m.scs;
     default:
-        fail_msg("OCOTP model: read of 0x%" PRIxPTR, addr);
+        break;
     }
 
+    /* A shadow register */
+    if (addr - BASE >= OCOTP_SHADOW(0) && addr - BASE < OCOTP_SHADOW(MODEL_WORDS) &&
+        (addr - BASE) % 0x10 == 0) {
+        unsigned int word = (unsigned int)((addr - BASE - OCOTP_SHADOW(0)) / 0x10);
+
+        if (m.busy_reads > 0)
+            violation("shadow read while BUSY");
+
+        if (m.locked[word] || m.read_locked[word]) {
+            m.ctrl |= m.error;
+            return 0xbadabada;
+        }
+
+        return m.shadow[word];
+    }
+
+    fail_msg("OCOTP model: read of 0x%" PRIxPTR, addr);
     return 0;
+}
+
+/* What reset loads into the shadow registers, and a reload: every word */
+static void load_shadows(void)
+{
+    memcpy(m.shadow, m.otp, sizeof(m.shadow));
 }
 
 /* An access that starts an OTP operation, or sets one up */
@@ -128,13 +169,26 @@ void fake_mmio_write(uintptr_t addr, uint64_t value64, unsigned int width)
     case OCOTP_CTRL:
         access();
         /* A plain write leaves ERROR as it is (35.5.1) */
-        m.ctrl = (value & ~(OCOTP_CTRL_BUSY | OCOTP_CTRL_ERROR)) | (m.ctrl & OCOTP_CTRL_ERROR);
+        m.ctrl = (value & ~(m.busy | m.error)) | (m.ctrl & m.error);
         break;
     case OCOTP_CTRL_SET_:
-        m.ctrl |= value & ~(OCOTP_CTRL_BUSY | OCOTP_CTRL_ERROR);
+        if (value & m.reload) {
+            access();
+
+            if (m.ctrl & m.error) {
+                violation("reload with ERROR set");
+            } else {
+                load_shadows();
+                m.reloads++;
+                m.reloading = true;
+                m.busy_reads = m.reload_busy_reads;
+            }
+        }
+
+        m.ctrl |= value & ~(m.busy | m.error | m.reload);
         break;
     case OCOTP_CTRL_CLR_:
-        m.ctrl &= ~(value & ~OCOTP_CTRL_BUSY);
+        m.ctrl &= ~(value & ~m.busy);
         break;
     case OCOTP_TIMING:
         access();
@@ -144,13 +198,13 @@ void fake_mmio_write(uintptr_t addr, uint64_t value64, unsigned int width)
         access();
         word = CTRL_ADDR(m.ctrl);
 
-        if (m.ctrl & OCOTP_CTRL_ERROR) {
+        if (m.ctrl & m.error) {
             violation("program with ERROR set");
         } else if (CTRL_UNLOCK(m.ctrl) != OCOTP_CTRL_WR_KEY || m.locked[word]) {
             /* No access, no BUSY */
-            m.ctrl |= OCOTP_CTRL_ERROR;
+            m.ctrl |= m.error;
         } else {
-            m.otp[word] |= value;
+            m.otp[word] |= value & ~m.no_take[word];
             m.programs++;
             m.timing_at_program = m.timing;
             m.busy_reads = m.program_busy_reads;
@@ -166,10 +220,12 @@ void fake_mmio_write(uintptr_t addr, uint64_t value64, unsigned int width)
         if (!(value & 1))
             break;
 
-        if (m.ctrl & OCOTP_CTRL_ERROR) {
+        m.direct_reads++;
+
+        if (m.ctrl & m.error) {
             violation("read with ERROR set");
-        } else if (m.locked[word]) {
-            m.ctrl |= OCOTP_CTRL_ERROR;
+        } else if (m.locked[word] || m.read_locked[word]) {
+            m.ctrl |= m.error;
             m.read_fuse_data = 0xbadabada;
         } else {
             m.read_fuse_data = m.otp[word];
@@ -193,14 +249,57 @@ void fake_mmio_write(uintptr_t addr, uint64_t value64, unsigned int width)
 
 #define LOCKS (OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK)
 
-static int setup(void **state)
+static void model_reset(unsigned int flags)
 {
-    (void)state;
     memset(&m, 0, sizeof(m));
+    m.flags = flags;
+
+    if (flags & IMX_OCOTP_CTRL_8MP) {
+        m.busy = OCOTP_CTRL_BUSY_8MP;
+        m.error = OCOTP_CTRL_ERROR_8MP;
+        m.reload = OCOTP_CTRL_RELOAD_SHADOWS_8MP;
+        m.addr_mask = 0x1ff;
+    } else {
+        m.busy = OCOTP_CTRL_BUSY;
+        m.error = OCOTP_CTRL_ERROR;
+        m.reload = OCOTP_CTRL_RELOAD_SHADOWS;
+        m.addr_mask = 0x7f;
+    }
+
+    m.reload_busy_reads = 4;
+
     fake_us_tick = FAKE_US_TICK_DEFAULT;
     m.program_busy_reads = PROGRAM_BUSY_READS;
     fake_us_tick_step = 1;
-    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE), PB_OK);
+}
+
+static int setup(void **state)
+{
+    (void)state;
+    model_reset(0);
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE, 0), PB_OK);
+    return 0;
+}
+
+/* The 8MQ B1: a direct read gives the magic, fuses are read from the shadow
+ * registers (F-466) */
+static int setup_b1(void **state)
+{
+    (void)state;
+    model_reset(0);
+    m.b1 = true;
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE, IMX_OCOTP_READ_SHADOWS), PB_OK);
+    return 0;
+}
+
+/* The i.MX8M Plus: ADDR 8:0, BUSY bit 9, ERROR bit 10 (8MP RM 6.3.5.1.2,
+ * F-467). The driver that took the 6UL's bits there never waited for BUSY:
+ * the model counts that as a violation */
+static int setup_8mp(void **state)
+{
+    (void)state;
+    model_reset(IMX_OCOTP_CTRL_8MP);
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE, IMX_OCOTP_CTRL_8MP), PB_OK);
     return 0;
 }
 
@@ -237,16 +336,16 @@ static void test_a_failed_init_sets_up_nothing(void **state)
     uint32_t value;
     (void)state;
 
-    assert_int_equal(imx_ocotp_init(BASE, 2, IPG_RATE), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_init(BASE, 2, IPG_RATE, m.flags), -PB_ERR_PARAM);
     assert_int_equal(imx_ocotp_read(0, 1, &value), -PB_ERR_STATE);
     assert_int_equal(imx_ocotp_write(0, 1, 1), -PB_ERR_STATE);
     assert_int_equal(imx_ocotp_lock(LOCKS, false), -PB_ERR_STATE);
 
-    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 2000000000u), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 2000000000u, m.flags), -PB_ERR_PARAM);
     assert_int_equal(imx_ocotp_read(0, 1, &value), -PB_ERR_STATE);
     assert_int_equal(m.programs, 0);
 
-    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE), PB_OK);
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, IPG_RATE, m.flags), PB_OK);
     m.otp[1] = 0x1234;
     assert_int_equal(imx_ocotp_read(0, 1, &value), PB_OK);
     assert_int_equal(value, 0x1234);
@@ -304,7 +403,7 @@ static void test_error_is_cleared(void **state)
     m.otp[10] = 0xcafe;
 
     /* Left by someone before pb */
-    m.ctrl |= OCOTP_CTRL_ERROR;
+    m.ctrl |= m.error;
     assert_int_equal(imx_ocotp_read(1, 2, &val), -PB_ERR_IO);
     assert_int_equal(imx_ocotp_read(1, 2, &val), PB_OK);
     assert_int_equal(val, 0xcafe);
@@ -450,7 +549,7 @@ static void test_unique_id_buffer_too_small(void **state)
 
 static uint32_t timing_at(unsigned int rate)
 {
-    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, rate), PB_OK);
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, rate, m.flags), PB_OK);
     m.programs = 0;
     assert_int_equal(imx_ocotp_write(0, 1, 1), PB_OK);
     assert_int_equal(m.programs, 1);
@@ -501,7 +600,7 @@ static void test_timing_without_a_rate(void **state)
     (void)state;
 
     m.otp[3] = 0x77;
-    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 0), PB_OK);
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 0, m.flags), PB_OK);
     assert_int_equal(imx_ocotp_read(0, 3, &val), PB_OK);
     assert_int_equal(val, 0x77);
     assert_int_equal(imx_ocotp_write(0, 4, 1), -PB_ERR_NOT_SUPPORTED);
@@ -509,9 +608,109 @@ static void test_timing_without_a_rate(void **state)
     assert_int_equal(m.timing, 0);
 
     /* A failed init leaves the driver not set up (F-420) */
-    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 1000000000), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_init(BASE, WORDS_PER_BANK, 1000000000, m.flags), -PB_ERR_PARAM);
     assert_int_equal(imx_ocotp_write(0, 4, 1), -PB_ERR_STATE);
     assert_int_equal(m.programs, 0);
+}
+
+/* F-166: a word is read back from the array after its write. A bit the
+ * write set that isn't there fails it, a bit that was set before doesn't
+ * count, and a read back that fails fails the write. Nothing is written
+ * again */
+static void test_write_is_read_back(void **state)
+{
+    uint32_t val = 0;
+    (void)state;
+
+    m.no_take[3] = 0x04;
+    assert_int_equal(imx_ocotp_fuse_write(3, 0x0f), -PB_ERR_IO);
+    assert_int_equal(m.otp[3], 0x0b);
+    assert_int_equal(m.programs, 1);
+
+    /* Set already, or not asked for: the write is good */
+    assert_int_equal(imx_ocotp_fuse_write(3, 0x03), PB_OK);
+    m.otp[4] = 0xf0;
+    assert_int_equal(imx_ocotp_fuse_write(4, 0x0f), PB_OK);
+    assert_int_equal(m.otp[4], 0xff);
+
+    m.read_locked[5] = true;
+    assert_int_equal(imx_ocotp_fuse_write(5, 0x01), -PB_ERR_IO);
+    assert_int_equal(m.otp[5], 0x01);
+    assert_int_equal(m.programs, 4);
+
+    /* The ERROR the refused read set is cleared: the next access works */
+    assert_int_equal(imx_ocotp_fuse_read(4, &val), PB_OK);
+    assert_int_equal(val, 0xff);
+}
+
+/* F-466: on the 8MQ B1 a read is a shadow register's, never a direct read,
+ * whose data would be the magic: the unique id too, so that each B1 has a
+ * UUID of its own. A read locked word is an error, and the next read works */
+static void test_b1_reads_the_shadows(void **state)
+{
+    uint32_t val = 0;
+    uint8_t id[8];
+    size_t length = sizeof(id);
+    (void)state;
+
+    m.otp[2] = 0x42;
+    m.otp[WORDS_PER_BANK + 1] = 0x11223344;
+    m.otp[WORDS_PER_BANK + 2] = 0x55667788;
+    m.locked[20] = true;
+    load_shadows();
+
+    assert_int_equal(imx_ocotp_read(0, 2, &val), PB_OK);
+    assert_int_equal(val, 0x42);
+    assert_int_equal(imx_ocotp_read_unique_id(1, 1, 2, id, &length), PB_OK);
+    assert_memory_equal(id, "\x44\x33\x22\x11\x88\x77\x66\x55", 8);
+
+    assert_int_equal(imx_ocotp_fuse_read(20, &val), -PB_ERR_IO);
+    assert_int_equal(imx_ocotp_fuse_read(2, &val), PB_OK);
+    assert_int_equal(val, 0x42);
+    assert_int_equal(m.direct_reads, 0);
+}
+
+/* F-466, F-166: after a write the shadows are reloaded, and the word is
+ * read back from its shadow. A reload that doesn't end fails the write */
+static void test_b1_write_reloads_the_shadows(void **state)
+{
+    uint32_t val = 0;
+    (void)state;
+
+    load_shadows();
+    assert_int_equal(imx_ocotp_fuse_write(3, 0x0f), PB_OK);
+    assert_int_equal(m.reloads, 1);
+    assert_int_equal(m.shadow[3], 0x0f);
+    assert_int_equal(imx_ocotp_fuse_read(3, &val), PB_OK);
+    assert_int_equal(val, 0x0f);
+
+    m.no_take[4] = 0x02;
+    assert_int_equal(imx_ocotp_fuse_write(4, 0x03), -PB_ERR_IO);
+    assert_int_equal(m.reloads, 2);
+
+    m.reload_busy_reads = 1000000000;
+    assert_int_equal(imx_ocotp_fuse_write(5, 0x01), -PB_ERR_TIMEOUT);
+    assert_int_equal(m.reloads, 3);
+    assert_int_equal(m.direct_reads, 0);
+    m.busy_reads = 0;
+    m.reloading = false;
+}
+
+/* F-467: the 8M Plus's ADDR has 9 bits, 512 words: an index past 0x7f is
+ * a word there, past 0x1ff refused */
+static void test_index_8mp(void **state)
+{
+    uint32_t val = 0;
+    (void)state;
+
+    m.otp[0x100] = 0xabcd;
+    assert_int_equal(imx_ocotp_fuse_read(0x100, &val), PB_OK);
+    assert_int_equal(val, 0xabcd);
+    assert_int_equal(imx_ocotp_fuse_write(0x1ff, 0x10), PB_OK);
+    assert_int_equal(m.otp[0x1ff], 0x10);
+    assert_int_equal(imx_ocotp_fuse_read(0x200, &val), -PB_ERR_PARAM);
+    assert_int_equal(imx_ocotp_fuse_write(0x200, 1), -PB_ERR_PARAM);
+    assert_int_equal(m.otp[0], 0);
 }
 
 /* drivers.md 3: a BUSY that doesn't clear is -PB_ERR_TIMEOUT, and the
@@ -558,6 +757,19 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_timing_scales_with_the_rate, setup, teardown),
         cmocka_unit_test_setup_teardown(test_timing_without_a_rate, setup, teardown),
         cmocka_unit_test_setup_teardown(test_busy_times_out, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_write_is_read_back, setup, teardown),
+        /* The same accesses with the 8M Plus's CTRL (F-467) */
+        cmocka_unit_test_setup_teardown(test_read_write, setup_8mp, teardown),
+        cmocka_unit_test_setup_teardown(test_error_is_cleared, setup_8mp, teardown),
+        cmocka_unit_test_setup_teardown(test_write_postamble, setup_8mp, teardown),
+        cmocka_unit_test_setup_teardown(test_read_of_a_locked_word, setup_8mp, teardown),
+        cmocka_unit_test_setup_teardown(test_unique_id, setup_8mp, teardown),
+        cmocka_unit_test_setup_teardown(test_busy_times_out, setup_8mp, teardown),
+        cmocka_unit_test_setup_teardown(test_index_8mp, setup_8mp, teardown),
+        cmocka_unit_test_setup_teardown(test_write_is_read_back, setup_8mp, teardown),
+        /* The 8MQ B1 (F-466) */
+        cmocka_unit_test_setup_teardown(test_b1_reads_the_shadows, setup_b1, teardown),
+        cmocka_unit_test_setup_teardown(test_b1_write_reloads_the_shadows, setup_b1, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
