@@ -33,19 +33,31 @@ jobs:
 
       # Every value frozen at the branch point must still be there (D-008).
       # compat.abi in the host tests checks that abi.txt matches the code.
-      - name: Check abi.txt and the golden bpak images against the base branch
+      - name: Check abi.txt, the golden bpak images and the transcripts against the base branch
         env:
           BASE: ${{ github.base_ref || 'master' }}
         run: |
           base="$(git merge-base HEAD "origin/$BASE")"
           python3 tests/compat/check_abi.py history tests/compat/abi.txt --against "$base"
           python3 tests/compat/check_abi.py history tests/compat/bpak/SHA256SUMS --against "$base"
-          changed="$(git diff --name-only --diff-filter=DMRT "$base" -- 'tests/compat/bpak/*.bpak')"
+          changed="$(git diff --name-only --diff-filter=DMRT "$base" -- \
+            'tests/compat/bpak/*.bpak' 'tests/compat/transcripts/*.txt')"
           if [ -n "$changed" ]; then
-            echo "Golden bpak images are never changed or removed (D-008):"
+            echo "Golden bpak images and wire transcripts are never changed or removed (D-008):"
             echo "$changed"
             exit 1
           fi
+
+  old-hosts:
+    name: Released hosts against today's device
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Old hosts must work with new devices (D-008, roadmap guard 3): the
+      # releases' punchboot from PyPI, pinned by hash, against pb-host
+      - name: punchboot 2.3.0, 2.7.0 and 2.7.1 against pb-host
+        run: scripts/pbdev run scripts/ci/old-hosts.sh
 
   coverage:
     name: Coverage
