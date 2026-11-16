@@ -689,6 +689,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (`cb8bac6d`): a backend whose `dsa_add_ops()` fails takes its hashes back | | |
 | | | (`hash_remove_ops()`, the CAAM and Mbed TLS; `test_crypto`); on the MEK and the 8MP EVK with | | |
 | | | F-321's build. Left as above: the job ring reset, the 8M Mini SRM's PDB, a short hash's INIT | | |
+| | | 2026-11-16 (`2c9dee80`): a hash that no update started is one INIT_FINAL job (6UL SRM 6.8.5.1: INIT | | |
+| | | takes a non-zero number of whole blocks, INIT/FINALIZE any size), not an INIT of nothing and a FINAL; | | |
+| | | the digests are the same, HASH_MD5_BROKEN's too. The model flags an INIT of nothing. On jiffy, the | | |
+| | | MEK and the 8MP EVK: the same UUIDs, token auth, `part verify` of 1 to 1000 bytes, Linux. Left: the | | |
+| | | job ring reset, the 8M Mini SRM's PDB | | |
 | F-411 | `src/boot/dtb.c`, `src/lib/fdt` | A device tree part whose header lies about | Verified (run, host) | open |
 | | | more than `totalsize` reads outside its part: only the magic, the version and `totalsize` are | | |
 | | | checked, and `fdt_open_into()` trusts `off_dt_struct`, `off_dt_strings`, `off_mem_rsvmap` and the | | |
