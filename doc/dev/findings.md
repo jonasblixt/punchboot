@@ -230,6 +230,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (`7279a795`, `57b1f9f3`, `d0c752c8`): the 6UL's `plat_get_info()`, `tzc380_get_region()`, | | |
 | | | `plat_info.c`. 81.3% of lines, 93.4% without the SCFW clients (`testing.md`). Left: the DWC3, the | | |
 | | | virtio drivers (F-052), the rest of `testing.md`'s least covered | | |
+| | | 2026-11-16, evening (`32ffc2a6`, `695374e6`, `78c3f951`, `8f192e86`): the 8M SPL's TZASC half | | |
+| | | (`tzasc.c` 53 to 100%), the RT's `plat_get_info()` (76 to 92%), each step of the SD's and the e.MMC's | | |
+| | | init failing (`mmc_sd.c` 80 to 89%, `mmc_emmc.c` 84 to 88%), the DWC3's Connect Done and SetAddress | | |
+| | | (77 to 81%). 82.2% of lines, 94.3% without the SCFW clients (`testing.md`). Left: the DWC3's control | | |
+| | | stages (its model has none), the virtio drivers (F-052) | | |
 | F-231 | build, low | Pre-release builds identify as 3.0.0. `blobs/` is shared in the source root | Reported | open |
 | | | (pb relinks every make). pbstate is built without sanitizers. `-fno-stack-protector`, no `-Wundef`. | | |
 | | | `.gitignore` ignores `*.bin` globally, matching tracked pki files. | | |
