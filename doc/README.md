@@ -42,6 +42,8 @@ Beside the levels, not normative:
 |           | `porting.md`            | A new board, driver or platform: the order, and where    |
 |           |                         | each rule is                                             |
 |           | `release-checklist.txt` | The steps of a release                                   |
+|           | `slc.md`                | The life cycle on a device: configure, lock, revoke      |
+|           |                         | (draft)                                                  |
 |           | `updates.md`            | A product's A/B update with `pbstate`, the OS's side     |
 |           |                         | (draft)                                                  |
 |           | `vendored.md`           | The code pb didn't write: upstream, version, licence and |
