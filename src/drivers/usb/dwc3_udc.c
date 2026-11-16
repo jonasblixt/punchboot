@@ -20,7 +20,8 @@
  *    Control-Status-3 TRB on EP0, XferComplete.
  *
  * Endpoints are physical endpoints, numbered as usb_ep_t: 2n is USB
- * endpoint n OUT, 2n + 1 is IN. Each has one TRB.
+ * endpoint n OUT, 2n + 1 is IN. Each has two TRBs: a transfer's, and an
+ * OUT transfer's bounce TRB chained to it (F-205).
  *
  * usbd waits for endpoint 0 in tight loops and treats an error during
  * enumeration as fatal, so a control transfer that a USB reset or a new
@@ -62,9 +63,9 @@
 #define DWC3_EP0_DATA_MAX       512
 
 /*
- * The longest transfer: one TRB, whose size field (BUFSIZ) has 24 bits, in
- * whole packets of up to 1024 bytes, so that an OUT transfer's size rounded
- * up to its packets still fits. 16 MiB - 1 KiB. It was masked to 24 bits,
+ * The longest transfer: one TRB, whose size field (BUFSIZ) has 24 bits, a
+ * whole number of packets of up to 1024 bytes, so that an OUT transfer and
+ * its bounce TRB together still fit. 16 MiB - 1 KiB. It was masked to 24 bits,
  * and a longer transfer was cut (F-287). At least command mode's buffer and
  * the boot's piece (usb.md 2.3)
  */
@@ -86,14 +87,24 @@ _Static_assert((size_t)CONFIG_BOOT_LOAD_CHUNK_kB * 1024 <= DWC3_XFER_MAX,
 #define USB_EP_ADDR_NUMBER_MASK 0x0f
 #define USB_EP_ADDR_DIR_IN      0x80
 
-/* One TRB per physical endpoint, each in its own cache line: a clean of one
- * must not write back a stale copy of a TRB the controller has updated */
 struct dwc3_trb {
     uint32_t bptrl;
     uint32_t bptrh;
     uint32_t size;
     uint32_t control;
-} __attribute__((packed, aligned(64)));
+} __attribute__((packed));
+
+/* Two TRBs per physical endpoint, which the controller reads one after the
+ * other, in a cache line of the endpoint's own: a clean of one endpoint's
+ * must not write back a stale copy of a TRB the controller has updated.
+ * The second is an OUT transfer's bounce TRB (F-205) */
+struct dwc3_trb_pair {
+    struct dwc3_trb trb[2];
+} __attribute__((aligned(64)));
+
+/* The largest packet: an OUT transfer's bounce buffer takes what a host
+ * sends past 'length', up to the end of its last packet */
+#define DWC3_MPS_MAX 1024
 
 struct dwc3_ep {
     bool active; /* Started, and neither completed nor ended */
@@ -124,7 +135,11 @@ static struct {
  */
 PB_DMA_ARRAY_ALIGNED(uint32_t, ev_buffer, DWC3_EV_BUFFER_ENTRIES, DWC3_EV_BUFFER_BYTES);
 PB_DMA_BUFFER(struct usb_setup_packet, setup_pkt);
-PB_DMA_ARRAY(struct dwc3_trb, trbs, USB_EP_END);
+PB_DMA_ARRAY(struct dwc3_trb_pair, trbs, USB_EP_END);
+/* Where an OUT transfer's last packet goes past 'length' (F-205): one, for
+ * the one bulk OUT transfer that runs at a time */
+PB_DMA_ARRAY(uint8_t, out_bounce, DWC3_MPS_MAX);
+static usb_ep_t out_bounce_ep = USB_EP_END; /* The endpoint that has it */
 /* Endpoint 0's data stage to the host is sent from the driver's memory: what
  * the stack answers with (a descriptor in read only data, a status on its
  * stack) is where the controller needn't reach. The i.MX8M's SPL runs in
@@ -139,10 +154,11 @@ static struct {
     bool begun;
     void *in_buf; /* An OUT transfer's buffer, NULL for none */
     size_t in_length;
+    size_t bounce; /* The bounce TRB's size, 0 for none */
 } ep_dma[USB_EP_END];
 
 /* A transfer that a short packet may end (usb.md 4.5): where its byte
- * count goes, and the TRB's size it was started with */
+ * count goes, and the 'length' it was started with */
 static struct {
     size_t *received;
     size_t size;
@@ -294,6 +310,12 @@ static void dwc3_ep_dma_end(usb_ep_t ep)
     if (ep_dma[ep].in_buf != NULL)
         dma_in_end(ep_dma[ep].in_buf, ep_dma[ep].in_length);
 
+    if (ep_dma[ep].bounce > 0) {
+        dma_in_end(out_bounce, ep_dma[ep].bounce);
+        out_bounce_ep = USB_EP_END;
+    }
+
+    ep_dma[ep].bounce = 0;
     ep_dma[ep].begun = false;
 }
 
@@ -332,18 +354,27 @@ static void dwc3_read_events(void)
         dma_in_begin(ev_buffer, sizeof(ev_buffer));
 }
 
-/* Start a one-TRB transfer of 'size' bytes into or from 'buf' ('length' of them valid) */
-static int dwc3_start_trb(usb_ep_t ep, void *buf, size_t length, size_t size, uint32_t trbctl)
+/*
+ * Start a transfer of 'size' bytes into or from 'buf' ('length' of them
+ * valid), and with 'bounce' > 0 an OUT transfer whose last 'bounce' bytes
+ * go to the driver's bounce buffer: two TRBs, chained, CSP=0, so that a
+ * short packet ends both (8MP RM Table 11-1, Figure 11-10)
+ */
+static int
+dwc3_start_trbs(usb_ep_t ep, void *buf, size_t length, size_t size, size_t bounce, uint32_t trbctl)
 {
-    struct dwc3_trb *trb = &trbs[ep];
+    struct dwc3_trb *trb = &trbs[ep].trb[0];
     uintptr_t trb_addr = (uintptr_t)trb;
     uintptr_t buf_addr = (uintptr_t)buf;
     bool has_data = (buf != NULL && length > 0);
     int rc;
 
-    /* The endpoint's transfer before this one: the TRB is the driver's to
+    /* The endpoint's transfer before this one: the TRBs are the driver's to
      * write */
     dwc3_ep_dma_end(ep);
+
+    if (bounce > 0 && (EP_IS_IN(ep) || bounce > sizeof(out_bounce) || out_bounce_ep != USB_EP_END))
+        return -PB_ERR_STATE;
 
     if (has_data && EP_IS_IN(ep))
         dma_out(buf, length);
@@ -351,18 +382,37 @@ static int dwc3_start_trb(usb_ep_t ep, void *buf, size_t length, size_t size, ui
     trb->bptrl = (uint32_t)buf_addr;
     trb->bptrh = (uint32_t)((uint64_t)buf_addr >> 32);
     trb->size = size & TRB_SIZE_BUFSIZ_MASK;
-    /* One TRB per transfer: CHN=0, LST=1, CSP=0. HWO last */
-    trb->control = TRB_CTRL_TRBCTL(trbctl) | TRB_CTRL_LST | TRB_CTRL_IOC | TRB_CTRL_HWO;
 
-    /* The controller updates the TRB, and writes an OUT transfer's buffer,
+    if (bounce > 0) {
+        struct dwc3_trb *last = &trbs[ep].trb[1];
+        uintptr_t bounce_addr = (uintptr_t)out_bounce;
+
+        last->bptrl = (uint32_t)bounce_addr;
+        last->bptrh = (uint32_t)((uint64_t)bounce_addr >> 32);
+        last->size = (uint32_t)bounce;
+        last->control = TRB_CTRL_TRBCTL(TRBCTL_NORMAL) | TRB_CTRL_LST | TRB_CTRL_IOC | TRB_CTRL_HWO;
+        /* CHN=1, LST=0, CSP=0. HWO last */
+        trb->control = TRB_CTRL_TRBCTL(trbctl) | TRB_CTRL_CHN | TRB_CTRL_HWO;
+    } else {
+        /* One TRB: CHN=0, LST=1, CSP=0. HWO last */
+        trb->control = TRB_CTRL_TRBCTL(trbctl) | TRB_CTRL_LST | TRB_CTRL_IOC | TRB_CTRL_HWO;
+    }
+
+    /* The controller updates the TRBs, and writes an OUT transfer's buffer,
      * which owns its lines (usb.md 4.3): its own until the transfer is over */
     ep_dma[ep].in_buf = (has_data && !EP_IS_IN(ep)) ? buf : NULL;
     ep_dma[ep].in_length = length;
+    ep_dma[ep].bounce = bounce;
 
     if (ep_dma[ep].in_buf != NULL)
         dma_in_begin(buf, length);
 
-    dma_in_begin(trb, sizeof(*trb));
+    if (bounce > 0) {
+        dma_in_begin(out_bounce, bounce);
+        out_bounce_ep = ep;
+    }
+
+    dma_in_begin(&trbs[ep], sizeof(trbs[ep]));
     ep_dma[ep].begun = true;
 
     eps[ep].complete = false;
@@ -384,6 +434,12 @@ static int dwc3_start_trb(usb_ep_t ep, void *buf, size_t length, size_t size, ui
     eps[ep].active = true;
 
     return PB_OK;
+}
+
+/* A transfer of one TRB */
+static int dwc3_start_trb(usb_ep_t ep, void *buf, size_t length, size_t size, uint32_t trbctl)
+{
+    return dwc3_start_trbs(ep, buf, length, size, 0, trbctl);
 }
 
 /* End an active transfer and wait for the command complete event (RM 11.2.2.7.7) */
@@ -618,15 +674,17 @@ static int dwc3_udc_xfer_start(usb_ep_t ep, void *buf, size_t length)
     }
 
     /* An OUT buffer descriptor must be a multiple of the max packet size
-     * (RM 11.2.2.5.2.3.3). The host sends at most 'length' bytes, so the
-     * rounded up size never makes the controller write past them. */
-    size_t size = length;
+     * (RM 11.2.2.5.2.3.3). It was rounded up in the caller's buffer, and a
+     * host that sent its last packet whole had the controller write up to
+     * a packet less one byte past 'length' (F-205). The rest of the last
+     * packet goes to the driver's bounce buffer, in a second TRB */
+    size_t bounce = 0;
 
-    if (!EP_IS_IN(ep))
-        size = ((length + eps[ep].mps - 1) / eps[ep].mps) * eps[ep].mps;
+    if (!EP_IS_IN(ep) && (length % eps[ep].mps) != 0)
+        bounce = eps[ep].mps - (length % eps[ep].mps);
 
-    ep_short[ep].size = size;
-    return dwc3_start_trb(ep, buf, length, size, TRBCTL_NORMAL);
+    ep_short[ep].size = length;
+    return dwc3_start_trbs(ep, buf, length, length, bounce, TRBCTL_NORMAL);
 }
 
 /* The controller ends an OUT TRB at a short packet by itself, without an
@@ -648,6 +706,8 @@ static int dwc3_udc_xfer_start_short(usb_ep_t ep, void *buf, size_t length, size
 
 static int dwc3_udc_xfer_complete(usb_ep_t ep)
 {
+    size_t bounce;
+
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
 
@@ -668,16 +728,39 @@ static int dwc3_udc_xfer_complete(usb_ep_t ep)
     if (!eps[ep].complete)
         return -PB_ERR_AGAIN;
 
+    bounce = ep_dma[ep].bounce;
+
     /* Data from the host: drop lines the CPU may have fetched during DMA,
      * and the TRB's */
     dwc3_ep_dma_end(ep);
 
+    /* The bounce TRB given back with less than its size left: the host
+     * sent past 'length', and the two sides no longer agree (usb.md 2.3).
+     * Whether the controller writes it back with its own rest or the
+     * chain's (RM Table 11-1), both are its size when nothing went there */
+    if (bounce > 0 && !(trbs[ep].trb[1].control & TRB_CTRL_HWO) &&
+        (trbs[ep].trb[1].size & TRB_SIZE_BUFSIZ_MASK) < bounce) {
+        LOG_ERR("%s: the host sent past %zu bytes", ep_to_str(ep), ep_dma[ep].in_length);
+        ep_short[ep].received = NULL;
+        return -PB_ERR_IO;
+    }
+
     if (ep_short[ep].received != NULL) {
-        size_t left = trbs[ep].size & TRB_SIZE_BUFSIZ_MASK;
+        /* The first TRB has the caller's 'length' and its BUFSIZ what the
+         * controller left of it (RM Table 11-1), chained or not: what went
+         * to the bounce buffer is past 'length' and dropped (F-205) */
+        size_t left = trbs[ep].trb[0].size & TRB_SIZE_BUFSIZ_MASK;
         size_t got = (left <= ep_short[ep].size) ? ep_short[ep].size - left : 0;
 
         *ep_short[ep].received = MIN(got, ep_dma[ep].in_length);
         ep_short[ep].received = NULL;
+    } else if (!EP_IS_IN(ep) && (trbs[ep].trb[0].size & TRB_SIZE_BUFSIZ_MASK) != 0) {
+        /* A short packet before 'length': the two sides no longer agree
+         * (usb.md 2.3, F-287) */
+        LOG_ERR("%s: %u bytes short",
+                ep_to_str(ep),
+                (unsigned int)(trbs[ep].trb[0].size & TRB_SIZE_BUFSIZ_MASK));
+        return -PB_ERR_IO;
     }
 
     return PB_OK;
@@ -692,7 +775,7 @@ static void dwc3_udc_xfer_cancel(usb_ep_t ep)
 /*
  * Status stage. usbd calls it with EP0_IN after a request without data
  * stage, and with EP0_OUT after a control read. A call when no status
- * stage is due (usbd's SetIdle asks for both) does nothing.
+ * stage is due does nothing.
  */
 static int dwc3_udc_xfer_zlp(usb_ep_t ep)
 {

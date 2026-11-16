@@ -129,25 +129,44 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
 /* The controller runs the transfer that was started on 'ep': 'stream' is
  * what the host sends on an OUT endpoint, and what it receives on an IN
  * endpoint. It gives the TRB back and reports the transfer complete */
+/* The controller moves 'length' bytes through the endpoint's TRBs, the next
+ * when one is full and has CHN (8MP RM Table 11-1), and gives back each it
+ * used. Fewer bytes than the chain holds are a short packet, which ends it
+ * (CSP=0) */
 static void controller_run(usb_ep_t ep, uint8_t *stream, size_t length)
 {
-    uint32_t trb[4];
-    uint64_t buf;
+    uint64_t addr = trb_addr[ep];
+    size_t done = 0;
 
-    assert_true(trb_addr[ep] != 0);
-    dcache_dev_read((uintptr_t)trb_addr[ep], trb, sizeof(trb));
-    assert_true(trb[3] & TRB_CTRL_HWO);
-    assert_true((trb[2] & TRB_SIZE_BUFSIZ_MASK) >= length);
-    buf = ((uint64_t)trb[1] << 32) | trb[0];
+    assert_true(addr != 0);
 
-    if (ep & 1)
-        dcache_dev_read((uintptr_t)buf, stream, length);
-    else
-        dcache_dev_write((uintptr_t)buf, stream, length);
+    for (;;) {
+        uint32_t trb[4];
+        uint64_t buf;
+        size_t n;
 
-    trb[2] -= (uint32_t)length;
-    trb[3] &= ~TRB_CTRL_HWO;
-    dcache_dev_write((uintptr_t)trb_addr[ep], trb, sizeof(trb));
+        dcache_dev_read((uintptr_t)addr, trb, sizeof(trb));
+        assert_true(trb[3] & TRB_CTRL_HWO);
+        buf = ((uint64_t)trb[1] << 32) | trb[0];
+        n = MIN(length - done, (size_t)(trb[2] & TRB_SIZE_BUFSIZ_MASK));
+
+        if (ep & 1)
+            dcache_dev_read((uintptr_t)buf, stream + done, n);
+        else
+            dcache_dev_write((uintptr_t)buf, stream + done, n);
+
+        done += n;
+        trb[2] -= (uint32_t)n;
+        trb[3] &= ~TRB_CTRL_HWO;
+        dcache_dev_write((uintptr_t)addr, trb, sizeof(trb));
+
+        if (!(trb[3] & TRB_CTRL_CHN) || done == length)
+            break;
+
+        addr += sizeof(trb);
+    }
+
+    assert_int_equal(done, length);
     post_event(EV_EP(ep, DEPEVT_XFERCOMPLETE));
 }
 
@@ -355,8 +374,9 @@ static void test_bulk_transfers(void **state)
         memset(arena, 0xee, sizeof(arena));
         assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, length), PB_OK);
         assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
-        /* The TRB and the buffer */
-        assert_int_equal(dma_host_in_open(), IDLE_RANGES + 2);
+        /* The TRBs and the buffer, and the bounce buffer for a length that
+         * isn't whole packets (F-205) */
+        assert_int_equal(dma_host_in_open(), IDLE_RANGES + 2 + (length % 512 != 0));
         controller_run(USB_EP2_OUT, host, length);
         assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
         assert_memory_equal(buf, host, length);
@@ -385,6 +405,85 @@ static void test_bulk_transfers(void **state)
  * back at the short packet with what it didn't fill in its size, and the
  * count is what arrived: a command of a few bytes, a whole packet, a
  * download's last piece */
+/* F-205: an OUT transfer is whole packets, and its length isn't: the rest
+ * of the last packet goes to the driver's bounce buffer, never past
+ * 'length' in the caller's. A host that sends the last packet whole (more
+ * than it was asked for) writes nothing past it, and the transfer is an
+ * error: the two sides no longer agree (usb.md 2.3) */
+static void test_out_writes_nothing_past_its_length(void **state)
+{
+    static const size_t lengths[] = { 1, 100, 513, 1000 };
+    uint8_t *buf = arena + LINE;
+    (void)state;
+
+    configure();
+
+    for (size_t i = 0; i < ARRAY_SIZE(lengths); i++) {
+        size_t length = lengths[i];
+        size_t packets = ((length + 511) / 512) * 512;
+
+        fill(host, packets, (unsigned int)length);
+        memset(arena, 0xee, sizeof(arena));
+        assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, length), PB_OK);
+        controller_run(USB_EP2_OUT, host, packets);
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+        assert_memory_equal(buf, host, length);
+        assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+
+        for (size_t n = LINE + length; n < sizeof(arena); n++) {
+            if (arena[n] != 0xee)
+                fail_msg("%zu bytes: byte %zu past them was written", length, n - LINE - length);
+        }
+    }
+
+    /* A short read the same, and it writes no count */
+    for (size_t i = 0; i < ARRAY_SIZE(lengths); i++) {
+        size_t length = lengths[i];
+        size_t packets = ((length + 511) / 512) * 512;
+        size_t received = SIZE_MAX;
+
+        fill(host, packets, (unsigned int)length + 3);
+        memset(arena, 0xee, sizeof(arena));
+        assert_int_equal(ops->xfer_start_short(USB_EP2_OUT, buf, length, &received), PB_OK);
+        controller_run(USB_EP2_OUT, host, packets);
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+        assert_int_equal(received, SIZE_MAX);
+        assert_int_equal(arena[LINE + length], 0xee);
+    }
+
+    /* The host sends exactly 'length': the bounce TRB isn't touched */
+    fill(host, 1000, 9);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 1000), PB_OK);
+    controller_run(USB_EP2_OUT, host, 1000);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(buf, host, 1000);
+}
+
+/* usb.md 2.3 (F-287): a short packet before 'length' in a transfer that
+ * isn't a short read is an error, -PB_ERR_IO; the next transfer runs */
+static void test_a_short_packet_is_an_error(void **state)
+{
+    uint8_t *buf = arena + LINE;
+    (void)state;
+
+    configure();
+
+    fill(host, 1024, 1);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 1024), PB_OK);
+    controller_run(USB_EP2_OUT, host, 600);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 1000), PB_OK);
+    controller_run(USB_EP2_OUT, host, 100);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 1000), PB_OK);
+    controller_run(USB_EP2_OUT, host, 1000);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(buf, host, 1000);
+}
+
 static void test_a_short_packet_ends_a_short_transfer(void **state)
 {
     static const struct {
@@ -667,6 +766,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(
             test_ep0_reply_is_sent_from_the_drivers_memory, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bulk_transfers, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_out_writes_nothing_past_its_length, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_short_packet_is_an_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_short_packet_ends_a_short_transfer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cancel_gives_the_buffer_back, setup, teardown),
         cmocka_unit_test_setup_teardown(

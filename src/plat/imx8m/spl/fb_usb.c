@@ -224,8 +224,8 @@ static int read_chunk(void)
 {
     fb.chunk = MIN(fb.proto.expect - fb.offset, (size_t)FB_USB_CHUNK);
 
-    /* The controller writes whole packets: at most to the end of the room,
-     * which is whole packets (fb_usb_start()) */
+    /* The controller writes no more than the chunk: what a host sends past
+     * it is the driver's (its bounce TRB, F-205) and an error */
     if (usbd_xfer_start_short(FB_USB_EP_OUT, fb.cfg.dest + fb.offset, fb.chunk, &fb.received) !=
         PB_OK)
         return restart();
