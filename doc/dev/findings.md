@@ -236,6 +236,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | with the boards that exist. Left: the guides' sections for F-247, F-240, F-282 and F-269, the A/B | | |
 | | | update flow and pbstate, the SLC and fusing procedure, SECURITY.md; `process.md` 2, `AGENTS.md` and | | |
 | | | `roadmap.md` still list the guides as to write | | |
+| | | 2026-11-16: `guides/updates.md`, the A/B update flow and pbstate, a draft from `boot.md` 3.5 to | | |
+| | | 3.7 and 5.6 and `pbstate`'s options, for Jonas | | |
 | F-241 | `plat/imx6ul/plat.c` | `tzasc_init()`: A failure is only logged: nothing tells | Verified (code, RM) | open |
 | | | the boot driver that the TZASC is bypassed. Region 1 gets the physical DDR base, while 6UL RM 52.3 says the | | |
 | | | TZASC sees the DDR controller's "local addresses": check with OP-TEE that its memory is protected. GPR9 has | | |
