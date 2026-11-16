@@ -72,7 +72,7 @@ Boards in the tree:
 | NXP i.MX8QXP MEK       | imx8x (i.MX8QXP) | Boots Linux through TF-A                                       |
 | TechNexion PICO-IMX8MQ | imx8m (i.MX8MQ)  | Boots Linux through TF-A, HAB closed (in bring-up)             |
 | NXP i.MX RT1060 EVK    | imxrt            | Boots a bare metal application, A/B from its NOR               |
-| NXP i.MX8MQ EVK        | imx8m (i.MX8MQ)  | Builds, no boot path yet (F-300)                               |
+| NXP i.MX8MQ EVK        | imx8m (i.MX8MQ)  | Builds, A/B and Linux through TF-A; not run on a board         |
 | NXP i.MX8DXL EVK       | imx8x (i.MX8DXL) | Builds, not run on a board                                     |
 
 Jiffy: https://github.com/jonasblixt/jiffy
@@ -234,6 +234,8 @@ the board's name.
 The punchboot CLI is used for interacting with the command mode. A summary of the features available:
 
 - Update the bootloader itself (`part write`, `part verify`)
+- Read back what the board lets a host read (`part read`): on the boards in the tree pb's
+  boot partitions and its A/B state
 - Manually start system A or B (`boot partition`)
 - Activate boot partitions (`boot enable`, `boot disable`, `boot status`)
 - Load image to ram and execute it (`boot bpak`)
