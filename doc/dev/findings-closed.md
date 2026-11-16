@@ -1854,7 +1854,7 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | it asserted; `arch_disable_mmu()` clears it. On the RT1060: a store into the guard is a HardFault | | |
 | | | (CFSR 0x82, MMFAR the address) and changes nothing, one into the stack doesn't; the simple bench | | |
 | | | 7 of 7. A single overflow larger than 32 bytes past the guard isn't caught | | |
-| F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | open; the `fdt_totalsize` <= part check is done (`39276b9c`) |
+| F-065 | `src/boot/*`, `utils_def.h:150` | Hardening, signed input only: `CHECK_OVERLAP` can wrap; no check that load regions are in RAM or that parts don't overlap each other; load-addr meta read as u64 without a size check; `linux.c` doesn't check `fdt_totalsize <= dtb part`; `keystore_id` never compared; no anti-rollback counter. | Reported | fixed |
 | | | Checked 2026-11-12: `CHECK_OVERLAP` is gone, and placement keeps every part inside the board's | | |
 | | | image data regions and off the other parts (F-254). Left: the load address is read as a | | |
 | | | `uint64_t` without a look at the meta's size, and `keystore_id` is only logged. Anti-rollback | | |
