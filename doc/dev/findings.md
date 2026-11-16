@@ -256,16 +256,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the ROM log's event 0xd0 as USB (from AN12853, never seen in a board's log), the RT SBMR2's BMOD | | |
 | | | 0b01. Left: the RT's blank IVT at the NOR's start, which needs an AHB read of the FlexSPI window in | | |
 | | | every boot and a bench first. Not run on a board | | |
-| F-392 | `src/board/{jiffy,imx8qxmek,imx8dxlevk,imx8mpevk,imx8mevk}/board.c` | The boards' image | Verified (code) | open |
-| | | data regions (F-254) leave out DRAM that nothing of pb's is in and that every release loaded into: | | |
-| | | jiffy 0x80038000 to 0x80101000 and 0x81847000 to 0x82000000; the MEK and the DXL 0x80053000 to | | |
-| | | 0x80080000 and 0x85826000 to 0x86000000; the 8M boards 0x40020000 to 0x40060000 and 0x40885000 to | | |
-| | | 0x41060000 (what is linked on 2026-11-12). It is the room pb and its buffers grow in, and D-055 | | |
-| | | names the cost; the test benches' images are outside it. An image in the field with a part there | | |
-| | | is refused now (D-008). For Jonas: keep the room, or start each region at the end of a link | | |
-| | | length that is made to fit (F-391), so that the linker holds the limit. Found by the review of F-254 | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: each region starts where pb's linked image and | | |
-| | | buffers end (the link script's symbols, F-391) | | |
 | F-259 | `src/boot/simple.c` | The generic handover passes r0 = the system's name, | Verified (code) | open |
 | | | r1 = the boot partition's UUID, and can't grow. `boot.md` 5.4: Arm's Firmware Handoff, a transfer | | |
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
@@ -385,6 +375,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): (10) as decided in the morning (dropped). (5) gates: | | |
 | | | the core refuses a key whose curve isn't `alg`'s, before any backend, no porting API change. (6) | | |
 | | | gates: the CAAM's parser as strict as Mbed TLS's (security before D-008) | | |
+| | | 2026-11-16 (`2c5b03fb`, `8c38c2b2`): (5) the core reads the key's curve (`der_ec_public_key_data()`) | | |
+| | | before any backend, another curve is `-PB_ERR_PARAM` (`crypto.md` 4); (6) `der_ecsig_to_rs()` takes | | |
+| | | every byte, the SEQUENCE's length and the INTEGERs fill it, as Mbed TLS; the conformance suite has | | |
+| | | both on both backends, the changelog's refused images (6). jiffy's token, Linux on jiffy, the MEK | | |
+| | | and the 8MP EVK, the RT1060's bench 7 of 7. The gate's parts are done. Left, not gating: (5)'s | | |
+| | | `md_length`, which `crypto.md` 4 ties to the tokens' check | | |
 | F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
 | | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
 | | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |

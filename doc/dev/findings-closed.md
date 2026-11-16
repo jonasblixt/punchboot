@@ -2397,6 +2397,20 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-16 (`51402cad`): `IMX_OCOTP_CTRL_8MP`, which the 8M platform passes for the 8M Plus; the | | |
 | | | register model runs the read and write tests in both layouts. The 8MP EVK reads the same UUID and | | |
 | | | life cycle, Linux to the login | | |
+| F-392 | `src/board/{jiffy,imx8qxmek,imx8dxlevk,imx8mpevk,imx8mevk}/board.c` | The boards' image | Verified (code) | fixed |
+| | | data regions (F-254) leave out DRAM that nothing of pb's is in and that every release loaded into: | | |
+| | | jiffy 0x80038000 to 0x80101000 and 0x81847000 to 0x82000000; the MEK and the DXL 0x80053000 to | | |
+| | | 0x80080000 and 0x85826000 to 0x86000000; the 8M boards 0x40020000 to 0x40060000 and 0x40885000 to | | |
+| | | 0x41060000 (what is linked on 2026-11-12). It is the room pb and its buffers grow in, and D-055 | | |
+| | | names the cost; the test benches' images are outside it. An image in the field with a part there | | |
+| | | is refused now (D-008). For Jonas: keep the room, or start each region at the end of a link | | |
+| | | length that is made to fit (F-391), so that the linker holds the limit. Found by the review of F-254 | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: each region starts where pb's linked image and | | |
+| | | buffers end (the link script's symbols, F-391) | | |
+| | | 2026-11-16 (`f3493d4f`, Jonas, D-092): `BOOT_IMAGE_REGION_AFTER_PB(end)` and `_AFTER_BUFFERS(end)` | | |
+| | | start at `_pb_end` and `_buffers_end`; jiffy's, the 8X boards' and the 8M boards' regions use them, | | |
+| | | so what pb doesn't use of `PB_SIZE` is loadable again and a pb that grows takes its room from the | | |
+| | | region (`board.md` 2.9). Linux on jiffy, the MEK and the 8MP EVK | | |
 
 ## Dependencies / vendored code
 
