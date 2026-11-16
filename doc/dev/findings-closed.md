@@ -2030,6 +2030,26 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | which forces 16 there (a longer burst to an address not on 128 bytes corrupts data across 4 KiB). The | | |
 | | | MEK's controller is 0x24502: 16. On the MEK: 15 MB 3 of 3 (1.08 to 1.12 s, 1.07 s before), 100 MB | | |
 | | | verified, odd sizes, Linux to the login | | |
+| F-459 | jiffy, after Linux's `reboot` | Linux hangs in the CAAM's job ring interrupt | Seen (board) | closed |
+| | | 2026-11-16, `5d3dcda1`'s pb from BOOT1 (switches on eMMC): `pbstate -s none` and `reboot` in Linux. | | |
+| | | pb's banner (wdog, 0x11), then nothing on the console, no USB, and no watchdog reset in over a | | |
+| | | minute. The same reboot to the ROM's serial downloader worked this morning, and pb from BOOT1 after a | | |
+| | | `dev reset` reached command mode twice. The ULINK isn't on USB, so no JTAG look. Not known: where pb | | |
+| | | stops (before "entering command mode": the platform, the eMMC or pbstate), why the watchdog doesn't | | |
+| | | reset it | | |
+| | | 2026-11-16, the ULINK back: it isn't pb. Halted over JTAG, the PC is in the kernel (0xc012bbd8, | | |
+| | | `__irq_exit_rcu`); of eight samples 300 ms apart, six are `caam_jr_interrupt`, `caam_jr_dequeue`, | | |
+| | | `gic_handle_irq` or `__irq_exit_rcu`: an interrupt storm from the CAAM's job ring, before userspace | | |
+| | | prints (the kernel is quiet). So pb booted System A: `pbstate -s none` hadn't taken. Linux's | | |
+| | | watchdog daemon never starts, the hardware watchdog isn't kicked by pb's setup alone (not known why it | | |
+| | | doesn't fire). Not known: whether the CAAM state comes from Linux's run before the warm reset or from | | |
+| | | pb (its job ring 0, `imx_caam_stop()` only in `plat_lockdown()`) | | |
+| | | 2026-11-16, after Jonas's power cycle, no JTAG since it: `99af2639`'s pb from BOOT1, System A enabled | | |
+| | | with `pbstate -s a`, then Linux's `reboot` three times: pb booted System A each time and Linux reached | | |
+| | | the login, the CAAM's job ring 0 with 7 interrupts, the rest 0. Also `boot partition` after a warm | | |
+| | | reset from Linux. The storm came after a day of test pbs that set GPR1's TZASC1_BOOT_LOCK at runtime, | | |
+| | | which breaks the CAAM (F-455) in a way a warm reset doesn't clear; that is the likely cause. Reopen | | |
+| | | if it comes back after a power cycle | | |
 
 ## Dependencies / vendored code
 

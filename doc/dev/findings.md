@@ -24,6 +24,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | with NAND_WP_B on ALT1 the controller drives RST_n, and RST_n_FUNCTION (EXT_CSD 162, written once) | | |
 | | | decides whether the eMMC takes it. Read it on jiffy (`mmc extcsd read` in Linux) before muxing the | | |
 | | | pad; enabling it is permanent, for Jonas. Today the pull-up holds RST_n high | | |
+| | | 2026-11-16, on jiffy (Linux, `mmc extcsd read`): RST_N_FUNCTION 0x00, the eMMC ignores RST_n | | |
+| | | (temporarily disabled, the default). Muxing NAND_WP_B to USDHC1_RESET_B changes nothing until the | | |
+| | | byte is 0x01, which is written once and for good: for Jonas. PARTITION_CONFIG 0x10 (BOOT1 enabled), | | |
+| | | BOOT_BUS_CONDITIONS 0x12 | | |
 | F-083 | `punchboot part read` | Fails with `Error: I/O error` on jiffy, both for BOOT1 and the 512 B PB State Primary partition, in an authenticated session. Cause unknown. | Seen on the board (2026-10-22) | open |
 | | | The cause (F-190, `command-mode.md` 5.3): no board in the tree sets `READABLE` on a partition, | | |
 | | | and a bulk read without it answers an I/O error. The eMMC's BOOT0 and BOOT1 on 2.8.0 the same | | |
@@ -171,6 +175,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | LDOs as the ROM sets them (jiffy: ARM and SOC 1.175 V). Left: the exception policy | | |
 | | | 2026-11-16, the code review (`2009ad7d`): a busy ARM_PODF is `-PB_ERR_TIMEOUT`, the core left | | |
 | | | on the step clock, not switched back to PLL1 | | |
+| | | 2026-11-16, on jiffy (`99af2639`'s pb in BOOT1): `plat_init()` passes with the ARM_PODF write, Linux | | |
+| | | to the login five times (warm resets). Linux's cpufreq runs the core at 396 MHz and rewrites CACRR | | |
+| | | (0x1 read from Linux), so pb's value isn't seen from there. Left: the exception policy | | |
 | F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
 | F-218 | boards, low | `IMX8X_FUSE_DRY_RUN` doesn't gate | Reported | open |
@@ -907,20 +914,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (`59e4ed41`): Mbed TLS's bignum and ECP files at -O2 (pb is -Os): the signature 22.56 | | |
 | | | ms (26.58 before), the warm reset to the entry 37.98 ms (41.87), 4.4 KiB more of pb. The 2.2 ms | | |
 | | | of the week are more than made up; which commit added them stays unknown | | |
-| F-459 | jiffy, after Linux's `reboot` | Linux hangs in the CAAM's job ring interrupt | Seen (board) | open |
-| | | 2026-11-16, `5d3dcda1`'s pb from BOOT1 (switches on eMMC): `pbstate -s none` and `reboot` in Linux. | | |
-| | | pb's banner (wdog, 0x11), then nothing on the console, no USB, and no watchdog reset in over a | | |
-| | | minute. The same reboot to the ROM's serial downloader worked this morning, and pb from BOOT1 after a | | |
-| | | `dev reset` reached command mode twice. The ULINK isn't on USB, so no JTAG look. Not known: where pb | | |
-| | | stops (before "entering command mode": the platform, the eMMC or pbstate), why the watchdog doesn't | | |
-| | | reset it | | |
-| | | 2026-11-16, the ULINK back: it isn't pb. Halted over JTAG, the PC is in the kernel (0xc012bbd8, | | |
-| | | `__irq_exit_rcu`); of eight samples 300 ms apart, six are `caam_jr_interrupt`, `caam_jr_dequeue`, | | |
-| | | `gic_handle_irq` or `__irq_exit_rcu`: an interrupt storm from the CAAM's job ring, before userspace | | |
-| | | prints (the kernel is quiet). So pb booted System A: `pbstate -s none` hadn't taken. Linux's | | |
-| | | watchdog daemon never starts, the hardware watchdog isn't kicked by pb's setup alone (not known why it | | |
-| | | doesn't fire). Not known: whether the CAAM state comes from Linux's run before the warm reset or from | | |
-| | | pb (its job ring 0, `imx_caam_stop()` only in `plat_lockdown()`) | | |
 | F-460 | `src/drivers/mmc/imx_usdhc.c`, command mode | Low, from F-321. A write's data wait | Verified (code) | open |
 | | | is still `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us a byte: 9.2 s for command mode's 4 MiB buffer, | | |
 | | | against a 5 s watchdog. A card that stops answering in a `part write` resets the board instead of | | |
