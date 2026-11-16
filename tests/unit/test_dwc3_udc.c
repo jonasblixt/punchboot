@@ -408,7 +408,8 @@ static void test_bulk_transfers(void **state)
 /* F-205: an OUT transfer is whole packets, and its length isn't: the rest
  * of the last packet goes to the driver's bounce buffer, never past
  * 'length' in the caller's. A host that sends the last packet whole (more
- * than it was asked for) writes nothing past it */
+ * than it was asked for) writes nothing past it, and the transfer is an
+ * error: the two sides no longer agree (usb.md 2.3) */
 static void test_out_writes_nothing_past_its_length(void **state)
 {
     static const size_t lengths[] = { 1, 100, 513, 1000 };
@@ -425,7 +426,7 @@ static void test_out_writes_nothing_past_its_length(void **state)
         memset(arena, 0xee, sizeof(arena));
         assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, length), PB_OK);
         controller_run(USB_EP2_OUT, host, packets);
-        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
         assert_memory_equal(buf, host, length);
         assert_int_equal(dma_host_in_open(), IDLE_RANGES);
 
@@ -435,7 +436,7 @@ static void test_out_writes_nothing_past_its_length(void **state)
         }
     }
 
-    /* A short read the same: the count is what the caller's buffer got */
+    /* A short read the same, and it writes no count */
     for (size_t i = 0; i < ARRAY_SIZE(lengths); i++) {
         size_t length = lengths[i];
         size_t packets = ((length + 511) / 512) * 512;
@@ -445,10 +446,17 @@ static void test_out_writes_nothing_past_its_length(void **state)
         memset(arena, 0xee, sizeof(arena));
         assert_int_equal(ops->xfer_start_short(USB_EP2_OUT, buf, length, &received), PB_OK);
         controller_run(USB_EP2_OUT, host, packets);
-        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
-        assert_int_equal(received, length);
+        assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+        assert_int_equal(received, SIZE_MAX);
         assert_int_equal(arena[LINE + length], 0xee);
     }
+
+    /* The host sends exactly 'length': the bounce TRB isn't touched */
+    fill(host, 1000, 9);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 1000), PB_OK);
+    controller_run(USB_EP2_OUT, host, 1000);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(buf, host, 1000);
 }
 
 /* usb.md 2.3 (F-287): a short packet before 'length' in a transfer that
