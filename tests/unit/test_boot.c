@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fakes/crypto_sw.h"
 #include "fakes/plat.h"
 #include "fakes/ramdisk.h"
 
@@ -780,6 +781,7 @@ static void reset_fakes(struct fixture *f)
     /* Nothing of the platform's failed */
     fake_plat_status = (struct plat_status)FAKE_PLAT_STATUS_DEFAULT;
     fake_plat_status_calls = 0;
+    fake_crypto_sw_state = CRYPTO_SW_OK;
     /* A platform that can't tell where pb was loaded from */
     fake_boot_source_rc = -PB_ERR_NOT_SUPPORTED;
     fake_boot_source = PB_BOOT_SOURCE_UNKNOWN;
@@ -1994,22 +1996,43 @@ static void test_status_of_the_board_is_not_asked_for_a_refused_boot(void **stat
     assert_int_equal(fake.degraded_calls, 0);
 }
 
-/* platform.md 2.3: a crypto engine that failed refuses the boot, where the
- * platform is the one that sets it up (CONFIG_PLAT_CRYPTO_ENGINE, every
- * platform in the tree since F-247): nothing verifies the image. Without the
- * option the platform reports none, and the boot goes on */
+/* platform.md 2.3, crypto.md 2 (D-086): a crypto backend that failed
+ * refuses the boot, the SoC's engine or the core's software, and so does a
+ * build with neither: nothing would verify the image. Either one alone boots.
+ * A state the core has no name for is a no (security.md 4.4) */
 static void test_precondition_crypto_engine(void **state)
 {
-    (void)state;
+    static const struct {
+        enum plat_crypto_engine engine;
+        enum crypto_sw_state sw;
+        bool boots;
+    } cases[] = {
+        { PLAT_CRYPTO_ENGINE_OK, CRYPTO_SW_OK, true },
+        { PLAT_CRYPTO_ENGINE_OK, CRYPTO_SW_NONE, true },
+        { PLAT_CRYPTO_ENGINE_NONE, CRYPTO_SW_OK, true },
+        { PLAT_CRYPTO_ENGINE_NONE, CRYPTO_SW_NONE, false },
+        { PLAT_CRYPTO_ENGINE_FAILED, CRYPTO_SW_OK, false },
+        { PLAT_CRYPTO_ENGINE_FAILED, CRYPTO_SW_NONE, false },
+        { PLAT_CRYPTO_ENGINE_OK, CRYPTO_SW_FAILED, false },
+        { PLAT_CRYPTO_ENGINE_NONE, CRYPTO_SW_FAILED, false },
+        { (enum plat_crypto_engine)(PLAT_CRYPTO_ENGINE_FAILED + 1), CRYPTO_SW_OK, false },
+        { PLAT_CRYPTO_ENGINE_OK, (enum crypto_sw_state)(CRYPTO_SW_FAILED + 1), false },
+    };
+    struct fixture *f = *state;
 
-    fake_plat_status.crypto_engine = false;
-#ifdef CONFIG_PLAT_CRYPTO_ENGINE
-    assert_refused_before_anything(boot(NULL));
-#else
-    assert_int_equal(boot_load(NULL), PB_OK);
-    assert_int_equal(fake.prepare_calls, 1);
-    assert_int_equal(fake.last_info.status, 0);
-#endif
+    for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+        reset_fakes(f);
+        fake_plat_status.crypto_engine = cases[i].engine;
+        fake_crypto_sw_state = cases[i].sw;
+
+        if (cases[i].boots) {
+            assert_int_equal(boot_load(NULL), PB_OK);
+            assert_int_equal(fake.prepare_calls, 1);
+            assert_int_equal(fake.last_info.status, 0);
+        } else {
+            assert_refused_before_anything(boot(NULL));
+        }
+    }
 }
 
 /* platform.md 2.3 (F-247): a crypto engine that didn't come up is known before
@@ -2019,21 +2042,20 @@ static void test_precondition_crypto_engine(void **state)
  * started, and checked in every boot: the next one, with an engine, goes on */
 static void test_precondition_crypto_engine_spends_no_attempt(void **state)
 {
-#ifdef CONFIG_PLAT_CRYPTO_ENGINE
     struct fixture *f = *state;
 
-    fake_plat_status.crypto_engine = false;
+    fake_plat_status.crypto_engine = PLAT_CRYPTO_ENGINE_FAILED;
     assert_refused_before_anything(boot(NULL));
     assert_int_equal(fake.next_calls, 0);
     assert_int_equal(fake.report_calls, 0);
 
     reset_fakes(f);
-    fake_plat_status.crypto_engine = false;
+    fake_plat_status.crypto_engine = PLAT_CRYPTO_ENGINE_FAILED;
     boot_clear_set_flags(0, BOOT_FLAG_CMD);
     assert_refused_before_anything(boot_load((unsigned char *)UU_SYS_A));
 
     reset_fakes(f);
-    fake_plat_status.crypto_engine = false;
+    fake_plat_status.crypto_engine = PLAT_CRYPTO_ENGINE_FAILED;
     assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
     boot_configure_load_cb(fake_read_cb, fake_result_cb);
     boot_clear_set_flags(0, BOOT_FLAG_CMD);
@@ -2044,9 +2066,6 @@ static void test_precondition_crypto_engine_spends_no_attempt(void **state)
     assert_int_equal(boot_load(NULL), PB_OK);
     assert_int_equal(fake.next_calls, 1);
     assert_int_equal(fake.prepare_calls, 1);
-#else
-    (void)state;
-#endif
 }
 
 /* platform.md 2.3: nothing of the boot's rests on the ROM's logs. Without

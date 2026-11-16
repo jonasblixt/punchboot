@@ -8,7 +8,6 @@
  */
 
 #include <board_defs.h>
-#include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <errno.h>
 #include <pb/console.h>
@@ -146,9 +145,6 @@ int plat_early_init(void)
     return PB_OK;
 }
 
-/* Whether plat_init() set the crypto backend up */
-static bool crypto_engine;
-
 /*
  * Fuses can be read from here on (platform.md 2.2), as a SoC's are: a file of
  * their own, not on the disk, so that they don't depend on its partition
@@ -179,17 +175,7 @@ int plat_init(void)
         return rc;
     }
 
-#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
-    /* The crypto backend, behind its option (platform.md 2.2, crypto.md 2).
-     * Command mode can start without it, so it isn't plat_init()'s error:
-     * it is recorded, and the boot's preconditions refuse the boot (2.3) */
-    rc = mbedtls_pb_init();
-
-    if (rc != PB_OK)
-        LOG_ERR("Mbed TLS init failed (%i)", rc);
-
-    crypto_engine = (rc == PB_OK);
-#endif
+    /* No crypto engine: the core sets Mbed TLS up (crypto.md 2, D-086) */
 
     return PB_OK;
 }
@@ -331,7 +317,7 @@ void plat_get_status(struct plat_status *status)
     status->tz_dram_filter = host_opts.dram_filter_bypassed ? PLAT_TZ_DRAM_BYPASSED
                                                             : PLAT_TZ_DRAM_NONE;
     status->wdog_armed = false;
-    status->crypto_engine = crypto_engine;
+    status->crypto_engine = PLAT_CRYPTO_ENGINE_NONE;
     status->rom_log = false;
 }
 

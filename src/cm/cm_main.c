@@ -13,6 +13,7 @@
 #include "cm_internal.h"
 #include <boot/linux_ramoops.h>
 #include <pb/command.h>
+#include <pb/crypto.h>
 #include <pb/delay.h>
 #include <pb/device_uuid.h>
 #include <pb/plat.h>
@@ -528,21 +529,40 @@ static void log_plat_status(void)
         [PLAT_TZ_DRAM_ACTIVE] = "active",
         [PLAT_TZ_DRAM_BYPASSED] = "BYPASSED",
     };
+    static const char *const engines[] = {
+        [PLAT_CRYPTO_ENGINE_NONE] = "none",
+        [PLAT_CRYPTO_ENGINE_OK] = "ok",
+        [PLAT_CRYPTO_ENGINE_FAILED] = "FAILED",
+    };
+    static const char *const software[] = {
+        [CRYPTO_SW_NONE] = "none",
+        [CRYPTO_SW_OK] = "ok",
+        [CRYPTO_SW_FAILED] = "FAILED",
+    };
     struct plat_status status;
     const char *filter = "unknown";
+    const char *engine = "unknown";
+    const char *sw = "unknown";
 
     /* What the platform leaves unset counts as failed, as for the boot */
     memset(&status, 0, sizeof(status));
     status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
+    status.crypto_engine = PLAT_CRYPTO_ENGINE_FAILED;
     plat_get_status(&status);
 
     if ((size_t)status.tz_dram_filter < ARRAY_SIZE(filters))
         filter = filters[status.tz_dram_filter];
+    if ((size_t)status.crypto_engine < ARRAY_SIZE(engines))
+        engine = engines[status.crypto_engine];
+    if ((size_t)crypto_sw_state() < ARRAY_SIZE(software))
+        sw = software[crypto_sw_state()];
 
-    LOG_INFO("Platform: DRAM filter %s, watchdog %s, crypto engine %s, ROM logs %s",
+    LOG_INFO("Platform: DRAM filter %s, watchdog %s, crypto engine %s, software crypto %s, "
+             "ROM logs %s",
              filter,
              status.wdog_armed ? "armed" : "not armed",
-             status.crypto_engine ? "ok" : "none",
+             engine,
+             sw,
              status.rom_log ? "found" : "none");
 }
 

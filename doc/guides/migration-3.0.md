@@ -1163,6 +1163,11 @@ What `platform.md` 2.2, 4.1 and 4.2 ask of a board, and the branch does:
 - `imx_caam_init()` and `imx_caam_rng_init()` leave the board's `init()`: `plat_init()` sets up
   the SoC's crypto engine and RNG behind a Kconfig option. A board that needs the software
   implementation turns the option off in its defconfig.
+- A platform out of the tree (D-086, D-092): Mbed TLS is the core's, set up in `main()` right
+  after `plat_init()`, so its `plat_init()` calls `mbedtls_pb_init()` no more.
+  `plat_status.crypto_engine` is `enum plat_crypto_engine`, the SoC's engine alone
+  (`PLAT_CRYPTO_ENGINE_NONE` without one); it was a `bool` for all the build's backends. Its
+  Kconfig drops `select PLAT_CRYPTO_ENGINE`: the symbol is gone.
 
 ### 19.2 `pb/dma.h`
 

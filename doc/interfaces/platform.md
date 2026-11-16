@@ -21,12 +21,9 @@ Each entry says what it does, from when it may be called ("valid from") and what
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker here and updates the port's conformance table (`plat-imx.md`).
 
-**Open (1), for Jonas's review (D-086):** `CONFIG_PLAT_CRYPTO_ENGINE`, which a platform
-selects to have the boot check `crypto_engine` (`src/plat/Kconfig`, F-247), says nothing once
-the field has `PLAT_CRYPTO_ENGINE_NONE`: the core checks every platform. Proposed: it stays
-through 3.x, selected and unused, so that an out-of-tree platform's `select` still resolves,
-and goes in 4.0.
-Jonas: Ok.
+`CONFIG_PLAT_CRYPTO_ENGINE`, which a platform selected to have the boot check `crypto_engine`
+(F-247), is gone in 3.0.0 (Jonas, D-092): with `PLAT_CRYPTO_ENGINE_NONE` the core checks every
+platform. An out-of-tree platform drops its `select`.
 What the review decided and added, as written into the text:
 
 | Item                             | Rule                                                            | By           |
@@ -150,7 +147,7 @@ Called once by `main()`, after `board.console_init()`. When it returns PB_OK:
 - The SoC's crypto engine and hardware RNG are set up when their Kconfig option is on. A board
   that needs the software implementation turns the option off in its defconfig. How they are
   handed to the next stage is 4.5. A software backend is not the platform's: the core sets it
-  up after `plat_init()` (`crypto.md` 2, D-086). **Not yet in the code (F-442).**
+  up after `plat_init()` (`crypto.md` 2, D-086).
 - `plat_rot` and `plat_slc` can be used.
 - The state of everything 2.3 checks is known (`plat_get_status()`).
 
@@ -360,11 +357,12 @@ struct plat_status {
 
 `crypto_engine` is the SoC's engine alone (D-086): whether the build has a software backend, and
 whether it came up, is the core's (`crypto.md` 2). It was a `bool` that said whether the build's
-backends, Mbed TLS among them, all came up. **Not yet in the code (F-442).**
+backends, Mbed TLS among them, all came up.
 
 What `plat_init()` recorded (2.2), for the boot's preconditions (2.3) and for command mode, which
 shows it in its log. Valid from `plat_init()`. A platform without a field's feature reports it as
-absent (`PLAT_TZ_DRAM_NONE`, `false`). New fields come with a row in 2.3.
+absent (`PLAT_TZ_DRAM_NONE`, `false`, `PLAT_CRYPTO_ENGINE_NONE`). New fields come with a row
+in 2.3.
 
 ### 3.9 Function : plat_get_boot_source() [mandatory when the ROM has a serial downloader]
 

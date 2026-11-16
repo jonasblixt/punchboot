@@ -155,6 +155,7 @@ set(PB_CORE_SOURCES
     src/log_source.c
     src/plat_info.c
     src/crypto.c
+    src/crypto_sw.c
     src/delay.c
     src/dma.c
     src/device_uuid.c

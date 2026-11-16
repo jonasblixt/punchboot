@@ -269,13 +269,14 @@ Unit tests, by module under test:
 |                                               | (`drivers.md` 4)             | the same suite                   |
 | `test_crypto.c`, `test_mbedtls.c`             | `crypto.c`, `mbedtls_pb.c`   | providers / none (real keys and  |
 |                                               |                              | the auth token)                  |
+| `test_crypto_sw.c`,                           | `crypto_sw.c`, the core's    | Mbed TLS                         |
+| `test_crypto_sw_no_mbedtls`                   | software backend, with and   |                                  |
+|                                               | without Mbed TLS             |                                  |
 | `test_rot.c`, `test_device_uuid.c`            | `rot.c`, `slc.c`,            | board callbacks, unique id       |
 |                                               | `device_uuid.c`              |                                  |
 | `test_ab_state.c`, `test_boot.c`,             | `ab_state.c`, `boot.c`;      | ramdisk, image helpers, boot     |
 | `test_ab_state_speculative`,                  | again with speculative       | driver. In place: `static.c`,    |
-| `test_boot_preconditions`,                    | mode, with a watchdog and    | the ramdisk's memory as the map  |
-| `test_boot_no_crypto_engine`                  | a crypto engine, and for a   |                                  |
-|                                               | platform with no engine      |                                  |
+| `test_boot_preconditions`                     | mode, and with a watchdog    | the ramdisk's memory as the map  |
 | `test_pbstate.c`                              | `tools/pbstate`'s            | `sync()`, which counts; two      |
 |                                               | `pbstate.c` (libpbstate)     | files in a temporary directory   |
 |                                               |                              | are the copies                   |
@@ -318,11 +319,10 @@ Unit tests, by module under test:
 | `mmap_whole_pages.c`                          | `pb/mmu.h`'s macros: a board | compiled only                    |
 |                                               | region that isn't whole      |                                  |
 |                                               | pages doesn't build          |                                  |
-| `test_plat_imxrt.c`,                          | `plat/imxrt/plat.c`,         | the SoC's registers in a         |
-| `test_plat_imxrt_no_mbedtls`                  | `imx_gpt.c`, `imx_wdog.c`:   | register file; the fuses, the    |
+| `test_plat_imxrt.c`                           | `plat/imxrt/plat.c`,         | the SoC's registers in a         |
+|                                               | `imx_gpt.c`, `imx_wdog.c`:   | register file; the fuses, the    |
 |                                               | the port against             | HAB, Mbed TLS                    |
-|                                               | `platform.md`, with and      |                                  |
-|                                               | without Mbed TLS             |                                  |
+|                                               | `platform.md`                |                                  |
 | `test_plat_imx8x.c`                           | `plat/imx8x/plat.c`, its     | a model of the SCFW behind its   |
 |                                               | SCFW client (`sci/`),        | messaging unit; the fuses, the   |
 |                                               | `imx_gpt.c`                  | RoT and SLC helpers, the MMU     |

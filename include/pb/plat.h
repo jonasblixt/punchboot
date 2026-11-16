@@ -63,17 +63,24 @@ enum plat_tz_dram_filter {
                                 accesses, or pb's set up of it failed */
 };
 
+/** The SoC's crypto engine, not a software backend (doc/interfaces/platform.md
+ * 3.8, D-086) */
+enum plat_crypto_engine {
+    PLAT_CRYPTO_ENGINE_NONE, /*!< No engine, or its option is off */
+    PLAT_CRYPTO_ENGINE_OK, /*!< Set up, its operations registered */
+    PLAT_CRYPTO_ENGINE_FAILED, /*!< Its option is on and it didn't come up */
+};
+
 /**
  * What plat_init() recorded of what it couldn't fail on, for the boot's
  * preconditions and for command mode's log (doc/interfaces/platform.md 2.3,
  * 3.8). A platform without a field's feature reports it as absent:
- * PLAT_TZ_DRAM_NONE, false.
+ * PLAT_TZ_DRAM_NONE, false, PLAT_CRYPTO_ENGINE_NONE.
  */
 struct plat_status {
     enum plat_tz_dram_filter tz_dram_filter;
     bool wdog_armed; /*!< false also without CONFIG_ENABLE_WATCHDOG */
-    bool crypto_engine; /*!< The crypto backends plat_init() sets up work;
-                             false when the build has none */
+    enum plat_crypto_engine crypto_engine; /*!< The SoC's engine only */
     bool rom_log; /*!< The ROM's logs were found */
 };
 

@@ -69,8 +69,8 @@ with the algorithms it has (`alg_bits`).
   engine is set up in `plat_init()`, behind its Kconfig option (`platform.md` 2.2). A software
   backend is no part of a SoC: the core sets it up in `main()` right after `plat_init()`,
   behind its driver's option (`CONFIG_DRIVERS_CRYPTO_MBEDTLS`), the same on every platform, and
-  records whether it came up. The board's defconfig says which backends the build has. **Not
-  yet in the code (F-442).**
+  records whether it came up (`crypto_sw_init()`, `crypto_sw_state()`). The board's defconfig
+  says which backends the build has.
 - **A backend that failed isn't registered.** One whose set-up fails after it registered its
   hashes takes them back with `hash_remove_ops()`, which ends a hash it had open. An algorithm
   no backend has is `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check

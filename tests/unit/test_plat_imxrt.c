@@ -9,9 +9,6 @@
  * (doc/interfaces/platform.md), with the SoC's registers in a register file
  * (fakes/regs.h). The GPT's and the WDOG's drivers are the real ones; the
  * fuses, the HAB and Mbed TLS are fakes.
- *
- * Built twice: with CONFIG_DRIVERS_CRYPTO_MBEDTLS, as the RT1060 EVK has
- * it, and without (test_plat_imxrt_no_mbedtls).
  */
 
 #include <setjmp.h>
@@ -55,11 +52,8 @@
 
 static struct {
     bool pll_stuck; /* The ARM PLL never locks */
-    int mbedtls_rc;
     int hab_log_rc;
     unsigned int mbedtls_inits;
-    /* The register log's length when mbedtls_pb_init() was called */
-    size_t mbedtls_at;
     uint32_t speed_grade;
     unsigned int log_time_starts;
     /* The register log's length when log_time_start() was called */
@@ -79,11 +73,11 @@ static struct {
 /* A write that resets the SoC leaves the code under test through here */
 static jmp_buf soc_reset;
 
+/* The core's to call (crypto.md 2, D-086): the port never does */
 int mbedtls_pb_init(void)
 {
     f.mbedtls_inits++;
-    f.mbedtls_at = fake_reg_log_len;
-    return f.mbedtls_rc;
+    return PB_OK;
 }
 
 int imx_hab_log_init(const struct imx_hab_log_config *cfg)
@@ -207,30 +201,10 @@ static struct plat_status status_now(void)
     return status;
 }
 
-/* platform.md 2.2: plat_init() returns an error only when what command mode
- * needs is missing, and main() then resets. A crypto engine that failed
- * isn't that: PB_OK, and it is recorded (3.8, F-248), so that the boot is
- * refused before anything is loaded */
-static void test_plat_init_succeeds_without_the_crypto_engine(void **state)
-{
-    (void)state;
-
-    assert_int_equal(plat_early_init(), PB_OK);
-    f.mbedtls_rc = -PB_ERR_MEM;
-    assert_int_equal(plat_init(), PB_OK);
-    assert_false(status_now().crypto_engine);
-
-#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
-    /* And it is the state of this plat_init(), not of an earlier one */
-    f.mbedtls_rc = PB_OK;
-    assert_int_equal(plat_init(), PB_OK);
-    assert_true(status_now().crypto_engine);
-#endif
-}
-
 /* platform.md 3.8: what plat_init() recorded. The Cortex-M7 has no
- * TrustZone, the watchdog is armed (the test is built with the option), the
- * crypto engine is the platform's Mbed TLS, and the ROM's log is the HAB's */
+ * TrustZone, the watchdog is armed (the test is built with the option), no
+ * crypto engine has a driver (Mbed TLS is the core's, D-086), and the ROM's
+ * log is the HAB's */
 static void test_status(void **state)
 {
     struct plat_status status;
@@ -242,12 +216,7 @@ static void test_status(void **state)
 
     assert_int_equal(status.tz_dram_filter, PLAT_TZ_DRAM_NONE);
     assert_true(status.wdog_armed);
-#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
-    assert_true(status.crypto_engine);
-#else
-    /* A build without a backend has none that works (platform.md 3.8) */
-    assert_false(status.crypto_engine);
-#endif
+    assert_int_equal(status.crypto_engine, PLAT_CRYPTO_ENGINE_NONE);
     assert_true(status.rom_log);
 }
 
@@ -401,24 +370,15 @@ static void test_clock_waits_are_bounded(void **state)
     assert_true(fake_regs_reads(IMXRT_CCM_CDHIPR) >= MMIO_POLL_HANDSHAKE);
 }
 
-/* platform.md 2.2, crypto.md 2 (F-247): plat_init() sets up the build's
- * crypto backend behind its driver's option: Mbed TLS with
- * CONFIG_DRIVERS_CRYPTO_MBEDTLS, once and as its last step, and nothing of
- * it in a build without the option */
-static void test_crypto_backend_behind_its_option(void **state)
+/* crypto.md 2 (D-086): the software backend is the core's, set up after
+ * plat_init(). The port doesn't touch it, whatever the build has */
+static void test_crypto_backend_is_the_cores(void **state)
 {
     (void)state;
 
     assert_int_equal(plat_early_init(), PB_OK);
-    assert_int_equal(f.mbedtls_inits, 0);
     assert_int_equal(plat_init(), PB_OK);
-
-#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS
-    assert_int_equal(f.mbedtls_inits, 1);
-    assert_int_equal(f.mbedtls_at, fake_reg_log_len);
-#else
     assert_int_equal(f.mbedtls_inits, 0);
-#endif
 }
 
 /* platform.md 2.1 (F-416): GPT1's bus and serial gates (CCGR1's CG10 and
@@ -718,11 +678,10 @@ int main(void)
         cmocka_unit_test_setup(test_vdd_soc_for_600_mhz, setup),
         cmocka_unit_test_setup(test_clock_waits_are_bounded, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),
-        cmocka_unit_test_setup(test_plat_init_succeeds_without_the_crypto_engine, setup),
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_rom_log_missing, setup),
         cmocka_unit_test_setup(test_boot_source, setup),
-        cmocka_unit_test_setup(test_crypto_backend_behind_its_option, setup),
+        cmocka_unit_test_setup(test_crypto_backend_is_the_cores, setup),
         cmocka_unit_test_setup(test_tick_from_early_init, setup),
         cmocka_unit_test_setup(test_tick_not_restarted_by_plat_init, setup),
         cmocka_unit_test_setup(test_boot_reason_kinds, setup),

@@ -17,12 +17,12 @@
 
 /* A platform where nothing failed: no TrustZone, the watchdog armed, a
  * crypto engine that works, the ROM's logs found */
-#define FAKE_PLAT_STATUS_DEFAULT             \
-    {                                        \
-        .tz_dram_filter = PLAT_TZ_DRAM_NONE, \
-        .wdog_armed = true,                  \
-        .crypto_engine = true,               \
-        .rom_log = true,                     \
+#define FAKE_PLAT_STATUS_DEFAULT                \
+    {                                           \
+        .tz_dram_filter = PLAT_TZ_DRAM_NONE,    \
+        .wdog_armed = true,                     \
+        .crypto_engine = PLAT_CRYPTO_ENGINE_OK, \
+        .rom_log = true,                        \
     }
 
 /* Value returned by the next plat_get_us_tick() */
