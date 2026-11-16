@@ -88,8 +88,8 @@ const struct board board = {
 ```
 
 - `init()` keeps the hardware the boot needs: the storage. The crypto engine and its RNG are
-  the platform's (section 19.1). It returns an error only for what the boot can't go on without; the rest is
-  logged and reported with `board_report_degraded()` (`board.md` 2.3).
+  the platform's (section 19.1). It returns an error only for what the boot can't go on
+  without; the rest is logged and reported with `board_report_degraded()` (`board.md` 2.3).
 - A step that fails stops the boot and not command mode (`board.md` 2.1). In 2.x a failed
   `board_init()` left command mode without a boot driver.
 - `console_init()` runs before `plat_init()`: it uses nothing `plat_init()` sets up

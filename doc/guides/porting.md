@@ -87,7 +87,8 @@ functions a SoC has: `plat-imx.md` 4.1.
    (`platform.md` 4.1, 4.2): on jiffy's 6UL the HABv4 driver's (`imx_hab_*`). The board names
    none of their functions (F-247).
 3. The configuration fuses are data, `slc_fuses` and `slc_fuses_length`: the boot device and
-   what else the product fuses. jiffy: boot from the eMMC on uSDHC1, and take the boot configuration from the fuses.
+   what else the product fuses. jiffy: boot from the eMMC on uSDHC1, and take the boot
+   configuration from the fuses.
 4. `CONFIG_SRK_FUSE` names the hash of the keys pb itself is signed with. The signed build
    checks it against the platform's SRK table and stops when they differ (F-213).
 
