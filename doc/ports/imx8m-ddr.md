@@ -364,7 +364,7 @@ Next, roughly in order of value:
 2. **Timeouts on every poll (F-102): done.** Measured on the 8MP EVK (log 2026-11-16): the PMU's
    next message 15.1 ms at most, the PLL lock 500 us, the rest 18 us at most. Bounds: 1 s a
    message, 10 ms the rest; `-PB_ERR_TIMEOUT` through `imx8m_ddr_init()`.
-3. **TF-A handover (F-100).** `fsp_msg`/`fsp_msg_num` in the copy are never written (`.umctl2` is
+3. **TF-A handover (F-100): done** (the layout pinned, 2026-11-16). `fsp_msg`/`fsp_msg_num` in the copy are never written (`.umctl2` is
    NOLOAD, so they are whatever DRAM holds). Pin the struct layout with `_Static_assert`s on the
    aarch64 offsets. (The size is checked now.)
 4. **Name the message block.** The fsp tables are raw DMEM offsets (`0x54003` is the data rate,
