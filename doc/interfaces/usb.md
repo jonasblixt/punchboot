@@ -448,8 +448,7 @@ what the code doesn't settle without the hardware.
 | the last IN packets              | the host's ACK)    |                     | BUFFEMPTY       |         |
 | The serial number is read        | yes                | yes                 | yes (the MEK,   |         |
 |                                  |                    |                     | 2026-11-09)     |         |
-| Runs on the bench                | jiffy, the RT1060  | the 8MP EVK         | the MEK; resets | F-172   |
-|                                  |                    |                     | on some writes  |         |
+| Runs on the bench                | jiffy, the RT1060  | the 8MP EVK         | the MEK         |         |
 
 The stack and the transport:
 
@@ -483,4 +482,3 @@ checklist's last item.
 | F-138        | Endpoint 0: stall and bounds (3.2)                                          |
 | F-205        | Every wait is bounded (4)                                                   |
 | F-140        | The ChipIdea's set up against its reference manual                          |
-| F-172        | Writes that reset the MEK                                                   |

@@ -1867,6 +1867,41 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | check went in `7431b64f`), and a comparison would refuse images made without `--keystore-id` (id 0) | | |
 | | | or signed for another keystore with a key pb has | | |
 | | | 2026-11-16: closed, nothing left: `keystore_id` stays logged (above), F-417 is fixed (`57ad9277`) | | |
+| F-172 | `src/drivers/usb/cdns3_udc_core.c` (the MEK) | Writes reset the MEK now and then: a | Verified | fixed |
+| | | small `part write` after a large one, or the first write right after the board | | |
+| | | comes up ("Generic error", then the board resets, a watchdog reset into the ROM | | |
+| | | loader in serial download mode). Seen with and without the EP0 fix (F-159), from | | |
+| | | RAM (uuu) and from eMMC. Waiting ~5 s after it enumerates and a `dev show` before | | |
+| | | the write helped. The cdns3 bulk path's TODOs (TRB count, burst, TRBERR) are the | | |
+| | | suspects. A reset with garbage in the enabled boot partition leaves the MEK dead | | |
+| | | until SW2 is set to serial download. | | |
+| | | 2026-11-16, the MEK with `ad44621b`'s pb (USB3, cdns3) from BOOT1, to Mass storage: 15 MB, 4 KiB | | |
+| | | and 700 B writes in turns, each verified, 30 of 30. Then `dev reset`, a write as soon as it | | |
+| | | enumerates (no wait, no `dev show`), 10 times: the 10th, 4 KiB, failed. The host saw the device | | |
+| | | connect and disconnect every 1 to 2 s until 00:06:32, then nothing. Since, at every boot | | |
+| | | `cm_main_task: Transport init error (-2)` (a timeout, about 10 s) and a software reset: the USB | | |
+| | | doesn't enumerate across pb's resets, the hub port isn't disabled. It came back by itself at | | |
+| | | 00:08:44, about 2 minutes later, after a software reset like the others; `dev show` answers. | | |
+| | | Not known: whether the MEK's USB3 PHY or the VL813 hub's port was stuck. Boot partitions untouched | | |
+| | | 2026-11-16, with the console captured (`e880cd49`'s pb): the write doesn't cause it. After a | | |
+| | | `dev reset` the MEK boots, and the host sees no device on its port (no connect in the kernel log): | | |
+| | | `Transport init error (-2)` 10 s later, a software reset, again, until the port sees it, 20 s to | | |
+| | | 2 min later. The host's write fails because the device is gone; a `punchboot list` right after | | |
+| | | the reset can still show it. Resets alone, `dev show` after each: lost at the 2nd with 8 s between | | |
+| | | them, at the 1st with 1 s (this night; 8 of 8 on 2026-11-15, 9 then a loss earlier tonight). It | | |
+| | | fails before any request: not the stalls. Left: the device's connect (the PHY or the cdns3 after a | | |
+| | | software reset, which leaves the USB subsystem powered) or the VL813 hub's port; a USB analyser | | |
+| | | or a port reset (root on the bench host) would tell | | |
+| | | 2026-11-16, on its first port (VL813, `1-3.4.3`), console captured: two failures. (a) The host sees | | |
+| | | no connect while pb enters command mode, times out 10 s later (`Transport init error (-2)`) and resets, | | |
+| | | seven times (09:05:53 to 09:07:08). (b) Earlier: the host enumerates it, strings read, and it | | |
+| | | disconnects 8 to 9 s later, five times. After a power cycle reset 1 came back in 1.1 s, reset 2 was lost | | |
+| | | 2026-11-16, fixed (`e82406c3`): the cdns3 core left USB_CONF's USB3DIS clear, so the controller | | |
+| | | tried for a SuperSpeed link at every init although pb is USB 2.0. Set before DEVEN, as Linux's | | |
+| | | `cdns3_gadget_udc_start()` for a high speed gadget. `dev reset` then `dev show`, 2 s apart: | | |
+| | | before, 2 of 13 back within 2 s, the others 4.8 to 150 s, the 13th lost; after, 30 of 30 back in | | |
+| | | 0.9 to 1.3 s, no transport timeout. A write as soon as it enumerates (15 MiB, 4 KiB, 700 B in | | |
+| | | turns), verified: 20 of 20 | | |
 
 ## Dependencies / vendored code
 

@@ -1,7 +1,7 @@
 # Status
 
-_Last updated: 2026-11-16, morning (jiffy recovered, F-455's lock found; the night: F-148, F-457,
-F-209, F-205, F-138 fixed, D-073's stalls, guard 3)_
+_Last updated: 2026-11-16, late morning (F-172 fixed: the cdns3's USB3DIS; jiffy power cycled;
+the night: F-148, F-457, F-209, F-205, F-138 fixed, D-073's stalls, guard 3)_
 
 ## Current focus
 
@@ -16,15 +16,15 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 - **Boards (2026-11-15):**
   - jiffy (2026-11-16): a test pb (SDIS clear and a GPR1 lock clear, F-455) in BOOT0 (enabled),
     `5d3dcda1`'s in BOOT1, pbstate none. Serial download is a button held at power-up (Jonas).
-    **Needs a power cycle**: after the bit at runtime its ROM goes to a downloader that hangs
-    (F-455). In Linux `pbstate-pb`, not `pbstate`. Root A the bench's root image, Root B test data.
-    The MEK: back after a power cycle, F-172's lost state captured.
+    Power cycled by Jonas (2026-11-16, late morning). After the bit at runtime its ROM goes to a
+    downloader that hangs, and only a power cycle ends it (F-455). In Linux `pbstate-pb`, not
+    `pbstate`. Root A the bench's root image, Root B test data.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
   - RT1060 from its NOR: today's pb (SDIS clear, no banner), the simple bench 7 of 7; a test pb runs from RAM over the
-    J-Link without the NOR (log 2026-11-15). The MEK: `e880cd49`'s pb in BOOT1 (enabled), BOOT0
-    its pb of 2026-11-14; F-172 reproduced, it came back by itself. The 8MP EVK: `cae67f28`'s
+    J-Link without the NOR (log 2026-11-15). The MEK: `e82406c3`'s pb (USB3DIS, F-172) in BOOT0
+    (enabled), `e880cd49`'s in BOOT1; back within 1.3 s after every reset. The 8MP EVK: `cae67f28`'s
     two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of 2026-11-14 in BOOT0.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
@@ -48,7 +48,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
      (the 8M's SLC sources), F-432 (the pico8ml, when it is back), F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
    review of the guides and the notes.
-2. The rest of `findings.md`: by board (8MP EVK F-100 to F-110, F-155, F-156; MEK F-172),
+2. The rest of `findings.md`: by board (8MP EVK F-100 to F-110, F-155, F-156),
    JTAG (F-078 to F-090), boot time.
 
 ## Open questions (for Jonas)
