@@ -625,7 +625,8 @@ int fn(const uint8_t *request, size_t request_size, uint8_t *response, size_t *r
   (`cmd list`) and no command's name. The set up checks the list (2.1): a name outside
   the set, two names with one id, the name `list`, or a list larger than a buffer.
 - **`BOARD_COMMAND`** looks the id up in the list. An id that isn't there is
-  `NOT_SUPPORTED`, the answer of every release to an id the board didn't have.
+  `NOT_SUPPORTED` on every board (D-092): jiffy's answer in every release; the 8X boards, the
+  RT1060 EVK and imx8mevk answered OK, which hid a host's typo.
 - **`COMMAND_LIST`** sends the result with the number of entries n, then n entries of 128
   bytes in the list's order, when n isn't 0. An entry: the name and the help line, each NUL
   padded to 32 and 80 bytes, then 16 reserved bytes of zero. No id: the host computes it. A
