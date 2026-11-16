@@ -229,7 +229,8 @@ can change by mistake that a device in the field relies on. Then check:
   DCD and refuses too (`doc/interfaces/platform.md` 2.3, 2026-11-14).
 - **The images in the field against the table above**: every part inside the board's image
   data regions, the entry's part there and not empty, no `dont-hash` part. The boards in the
-  tree leave out the DRAM next to pb and its buffers, which 2.x loaded into (F-392).
+  tree start their regions where pb's link and its buffers end, so the DRAM 2.x loaded into is
+  in them (F-392).
 - **The revoke slot of each key.** The board's key map is gone, and key n of the board's
   `VERIFY_KEY<n>` is in slot n: a key must keep the fuse bit it had (D-027, D-083).
 - **Whatever loads pb with the ROM's serial downloader** and expects it to boot from storage:

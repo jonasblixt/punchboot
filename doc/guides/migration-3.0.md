@@ -411,14 +411,15 @@ static const struct boot_image_region image_regions[] = {
 - No region holds anything of pb's: `board_setup()` checks the list against what is linked,
   before any image is read. A list that fails is a failed step with `-PB_ERR_PARAM`
   (`board.md` 3).
-- Where pb runs in DRAM the regions go round it, as above. A region starts where pb's region
-  or its buffers' ends, from the values in `makefile.mk` (section 15), which the link uses too:
-  the link fails when pb or its buffers grow into a region.
+- Where pb runs in DRAM the regions go round it. `BOOT_IMAGE_REGION_AFTER_PB(end)` and
+  `BOOT_IMAGE_REGION_AFTER_BUFFERS(end)` start where the link ends pb and its buffers
+  (`_pb_end`, `_buffers_end`), so what pb doesn't use of its room is loadable and a pb that
+  grows takes its room from the region (F-392).
 - SoC memory that a part is linked for is named in the platform header: the MEK lists BL31's
   place as `IMX8X_ATF_BASE` and `IMX8X_ATF_SIZE` (`platform.md` 5.3).
 - The list covers every load address of the product's images in the field, and is only made
-  larger afterwards (`board.md` 8). The boards in the tree leave out the room next to pb and
-  its buffers, which 2.x loaded into (F-392).
+  larger afterwards (`board.md` 8). The boards in the tree start theirs where pb's link and its
+  buffers end, so the room next to pb that 2.x loaded into is in them (F-392).
 
 Rests on: D-055, `board.md` 2.9 and 3, `boot.md` 4.3.
 

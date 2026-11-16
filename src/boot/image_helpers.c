@@ -152,6 +152,27 @@ static bool region_is_end(const struct boot_image_region *r)
     return r->base == UINT64_MAX && r->size == 0;
 }
 
+/* The region's start and size: a region after pb or after its buffers
+ * starts where the link ends them, and its size field is its end (F-392).
+ * One that ends before it starts is empty */
+static void region_bounds(const struct boot_image_region *r, uint64_t *base, uint64_t *size)
+{
+    uint64_t start;
+
+    if (r->base == BOOT_IMAGE_AFTER_PB) {
+        start = pb_end;
+    } else if (r->base == BOOT_IMAGE_AFTER_BUFFERS) {
+        start = buffers_end;
+    } else {
+        *base = r->base;
+        *size = r->size;
+        return;
+    }
+
+    *base = start;
+    *size = (r->size > start) ? r->size - start : 0;
+}
+
 int boot_image_set_regions(const struct boot_image_region *regions)
 {
     /* What no region may hold, [start, end). The check of a part names none
@@ -179,18 +200,22 @@ int boot_image_set_regions(const struct boot_image_region *regions)
         return PB_OK;
 
     for (unsigned int i = 0; !region_is_end(&regions[i]); i++) {
-        const struct boot_image_region *r = &regions[i];
-        /* The last byte: a region may end where the address space does */
-        uint64_t last = r->base + (r->size - 1);
+        uint64_t base;
+        uint64_t size;
 
-        if (r->size == 0 || last < r->base || (uintptr_t)last != last) {
+        region_bounds(&regions[i], &base, &size);
+
+        /* The last byte: a region may end where the address space does */
+        uint64_t last = base + (size - 1);
+
+        if (size == 0 || last < base || (uintptr_t)last != last) {
             LOG_ERR("Board data: image region %u is empty, wraps or is above the arch's addresses",
                     i);
             return -PB_ERR_PARAM;
         }
 
         for (size_t k = 0; k < ARRAY_SIZE(kept); k++) {
-            if (kept[k].start < kept[k].end && r->base < kept[k].end && kept[k].start <= last) {
+            if (kept[k].start < kept[k].end && base < kept[k].end && kept[k].start <= last) {
                 LOG_ERR("Board data: image region %u overlaps %s", i, kept[k].name);
                 return -PB_ERR_PARAM;
             }
@@ -207,8 +232,13 @@ bool boot_image_in_regions(uint64_t addr, uint64_t size)
         return false;
 
     for (const struct boot_image_region *r = image_regions; !region_is_end(r); r++) {
+        uint64_t base;
+        uint64_t length;
+
+        region_bounds(r, &base, &length);
+
         /* Without a sum of the range's, so nothing wraps */
-        if (addr >= r->base && size <= r->size && addr - r->base <= r->size - size)
+        if (addr >= base && size <= length && addr - base <= length - size)
             return true;
     }
 

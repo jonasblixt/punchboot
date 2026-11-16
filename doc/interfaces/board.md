@@ -355,7 +355,10 @@ static const struct boot_image_region board_image_regions[] = {
   Nothing else is checked for a part.
 - A region holds nothing of pb's: not `pb`, not `buffers`, not the Firmware Handoff region
   (2.7), not `bl_params`' region where the platform has one (`platform.md` 5.3). Where pb runs
-  in DRAM, the region starts above it.
+  in DRAM, the region starts where the link ends pb: `BOOT_IMAGE_REGION_AFTER_PB(end)` and
+  `BOOT_IMAGE_REGION_AFTER_BUFFERS(end)` start at `_pb_end` and `_buffers_end` and end at
+  `end` (Jonas, D-092, F-392). What pb doesn't use of its room (`PB_SIZE`) is loadable, as
+  in 2.x, and a pb that grows takes its room from the region, not from a part's bytes.
 - A region is memory pb can write: the board's DRAM, SoC memory the platform header names for
   it (`platform.md` 5.3), or a `PB_MAP_MEMORY_RW` region of the board's (2.8). The core doesn't
   check that: a load into what isn't mapped faults, and pb resets.
