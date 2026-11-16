@@ -28,6 +28,13 @@ enum pb_results {
     PB_RESULT_END, /* Sentinel */
 };
 
+/**
+ * Translates a result to a string, as v2.7.1's host library did
+ *
+ * @param[in] result PB_RESULT_OK or a negative PB_RESULT_* value
+ *
+ * @return a string, "" for a value it doesn't know
+ */
 const char *pb_error_string(int result);
 
 #endif // INCLUDE_PB_ERROR_H_
