@@ -37,7 +37,7 @@ def host_id(host: pathlib.Path) -> str:
 
 @pytest.fixture(params=OLD_HOSTS, ids=[host_id(h) for h in OLD_HOSTS])
 def old_host(request: pytest.FixtureRequest) -> pathlib.Path:
-    """A released host's punchboot tool."""
+    """Return a released host's punchboot tool."""
     host: pathlib.Path = request.param
     return host
 
