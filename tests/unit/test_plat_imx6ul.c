@@ -312,6 +312,17 @@ static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
     return value;
 }
 
+/* GPT1's counter runs: 100 us a read, so that a bound expires */
+static uint64_t soc_on_read(uintptr_t addr, uint64_t value)
+{
+    static uint32_t us;
+
+    if (addr == IMX6UL_GPT1_BASE + 0x24)
+        return us += 100;
+
+    return value;
+}
+
 static int setup(void **state)
 {
     (void)state;
@@ -321,6 +332,7 @@ static int setup(void **state)
     memset(calls, 0, sizeof(calls));
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
+    fake_regs_on_read = soc_on_read;
     /* The board's DCD took the TZASC out of bypass */
     fake_regs_set(IMX6UL_IOMUXC_GPR9, IOMUXC_GPR9_TZASC1_BYP);
     fake_mmu_enables = 0;
@@ -509,6 +521,19 @@ static void test_get_info(void **state)
     assert_string_equal(info.soc, "unknown");
     assert_string_equal(extra, "Speed grade 2\n");
     assert_int_equal(plat_get_info(&info, extra, 0), -PB_ERR_BUF_TOO_SMALL);
+}
+
+/* A divider that doesn't take is plat_init()'s error, with the core left on
+ * the step clock (the code review of F-210) */
+static void test_arm_podf_busy(void **state)
+{
+    (void)state;
+
+    /* The timer the bound runs on */
+    assert_int_equal(plat_early_init(), PB_OK);
+    fake_regs_set(IMX6UL_CCM_CDHIPR, CCM_CDHIPR_ARM_PODF_BUSY);
+    assert_int_equal(plat_init(), -PB_ERR_TIMEOUT);
+    assert_true(fake_regs_get(IMX6UL_CCM_CCSR) & CCM_CCSR_PLL1_SW_CLK_SEL);
 }
 
 /* platform.md 2.1: the watchdog is armed in plat_early_init() when
@@ -785,6 +810,7 @@ static void test_boot_source_uart_download(void **state)
     /* With the USB's clock gated its registers aren't read: no USB host */
     fake_regs_reset();
     fake_regs_on_write = soc_on_write;
+    fake_regs_on_read = soc_on_read;
     fake_regs_set(USB1_DEVICEADDR, DEVICEADDR_ADDR7);
     assert_int_equal(boot_source_now(), PB_BOOT_SOURCE_UART);
     assert_int_equal(fake_regs_reads(USB1_DEVICEADDR), 0);
@@ -1105,6 +1131,7 @@ int main(void)
         cmocka_unit_test_setup(test_clk_rate, setup),
         cmocka_unit_test_setup(test_arm_podf_is_set, setup),
         cmocka_unit_test_setup(test_get_info, setup),
+        cmocka_unit_test_setup(test_arm_podf_busy, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),

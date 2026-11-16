@@ -497,9 +497,11 @@ int plat_init(void)
 
     pb_timeout_init_us(&podf_to, 1000);
     while (mmio_read_32(IMX6UL_CCM_CDHIPR) & CCM_CDHIPR_ARM_PODF_BUSY) {
+        /* Not back to PLL1 with a divider that may not have taken: the core
+         * would run at PLL1's rate, twice its own. It stays on the step clock */
         if (pb_timeout_has_expired(&podf_to)) {
             LOG_ERR("ARM_PODF busy");
-            break;
+            return -PB_ERR_TIMEOUT;
         }
     }
 
