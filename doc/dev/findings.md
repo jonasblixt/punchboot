@@ -156,6 +156,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-15 (`b7561ea1`): on the RT1060 with pb at `b3901579` the simple bench passes 7 of 7, the | | |
 | | | application now checks CACR.FORCEWT clear at its entry, and VTOR at its table. Left as above: the | | |
 | | | exception policy, the 6UL's PLL1 and ARM_PODF (jiffy, F-455) | | |
+| | | 2026-11-16 (`5618697d`): the 6UL writes ARM_PODF (divide by 2) on the step clock and waits for | | |
+| | | CDHIPR's busy bit; CACRR resets to divide by 1 (RM 18.6.5), jiffy's ROM leaves 1 (read over JTAG). | | |
+| | | `test_plat_imx6ul`. Not run on jiffy yet. Not done: speed grade 2's 696 MHz has no VDD_ARM_CAP in | | |
+| | | the data sheets on the share (IEC Rev 2.2, CEC: 528 MHz at 1.15 V at most), and pb leaves the | | |
+| | | LDOs as the ROM sets them (jiffy: ARM and SOC 1.175 V). Left: the exception policy | | |
 | F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
 | F-218 | boards, low | `IMX8X_FUSE_DRY_RUN` doesn't gate | Reported | open |
@@ -865,6 +870,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (Jonas): the clear is dropped, not committed: it never ran on a board, the TRM suggests | | |
 | | | lockdown_select stays read only after a reset with the lock high whatever GPR1 says later, and a lock | | |
 | | | set at runtime breaks the CAAM before pb runs again. pb still never sets the bit | | |
+| | | 2026-11-16, after Jonas's power cycle: one OpenOCD `init` and AHB-AP reads (no halt) on jiffy, | | |
+| | | then `auth token` timed out. SNVS_HPSR 0x8000b300: the SSM in Soft Fail (it read 0x8000bb00, | | |
+| | | Non-Secure, in the morning's broken state); HPSVSR 0x80000003: SV0 and SV1 latched. JTAG activity | | |
+| | | on the closed part looks like the security violation that blocks the CAAM, and every earlier | | |
+| | | "the bit breaks the CAAM" set the bit over JTAG; it would also be F-078's and F-459's warm resets | | |
+| | | into the downloader. Not proven: whether auth worked before the reads. To check after a power | | |
+| | | cycle: auth, one JTAG read, auth again | | |
 | F-458 | the RT1060's boot time | Low. The warm reset to the image's entry was 40.1 ms | Seen (board) | open |
 | | | on 2026-11-08 (`testbench/simple/README.md`), 42.3 ms at `b7561ea1` (2026-11-15, the same 5.2 KiB | | |
 | | | application, medians of 10). Not tonight's: F-148 adds 0.1 ms, F-457 1.6 ms. Which commit of the | | |
