@@ -169,6 +169,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `test_plat_imx6ul`. Not run on jiffy yet. Not done: speed grade 2's 696 MHz has no VDD_ARM_CAP in | | |
 | | | the data sheets on the share (IEC Rev 2.2, CEC: 528 MHz at 1.15 V at most), and pb leaves the | | |
 | | | LDOs as the ROM sets them (jiffy: ARM and SOC 1.175 V). Left: the exception policy | | |
+| | | 2026-11-16, the code review (`2009ad7d`): a busy ARM_PODF is `-PB_ERR_TIMEOUT`, the core left | | |
+| | | on the step clock, not switched back to PLL1 | | |
 | F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
 | F-218 | boards, low | `IMX8X_FUSE_DRY_RUN` doesn't gate | Reported | open |
@@ -518,6 +520,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | from the host wedged command mode, endpoint 0 too, until a bus reset). Each OUT TRB has ISP now, | | |
 | | | EP_STS_ISP ends a bulk OUT transfer, and a count short of `length` (the controller writes back each | | |
 | | | TRB's, seen on the MEK) flushes the endpoint and is `-PB_ERR_IO`. Left: (4) speed | | |
+| | | 2026-11-16, the day's code review (`8d4457da`, `715820c3`): a start clears EP_STS_ISP, which | | |
+| | | a cancelled short transfer left for the next one to end on; the count stops at the short TRB | | |
 | F-310 | `doc/interfaces/bio.md`, `include/pb/bio.h` | `bio.md` describes five | Verified (code) | open |
 | | | functions of `bio.h` and doesn't name them: `bio_set_ios()` and `bio_set_ios_erase()` ("then | | |
 | | | the callbacks", 2.1), `bio_get_hal_flags()` (2.5 names the setter), | | |

@@ -78,6 +78,8 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | message, 10 ms the rest, `-PB_ERR_TIMEOUT` with a log line through `imx8m_ddr_init()`; the golden | | |
 | | | traces unchanged, a stuck register per poll in `test_imx8m_ddr`. On the 8MP EVK: three resets, | | |
 | | | 15 MB twice, Linux. Not run: the 8MQ's PLL. The other unbounded waits: F-462 | | |
+| | | 2026-11-16, the code review (`abf197e7`): a training run has 2 s, a failed run stalls the PMU | | |
+| | | and gives the mailbox back | | |
 | F-105 | `src/plat/imx8m/ddr.c`, `ddr_imx8mq.c` | The DDR init never sets the CCM `DRAM_APB_CLK_ROOT` and `DRAM_SEL_CFG`. NXP's current code (U-Boot master) sets the DRAM APB clock to sys PLL1 / 4 before configuring the controller, and after every DRAM PLL change selects the PLL as DRAM clock (`DRAM_SEL_CFG` source 0) and the APB clock to / 5. Punchboot relies on the reset/ROM state. | Verified (differential trace against U-Boot, 2026-10-28) | fixed (`imx8m-dram-cleanup`, `410f767c`): `ddr_imx8mq.c` sets DRAM_APB_CLK_ROOT and DRAM_SEL_CFG as NXP's DDR tool does, and DRAM_ALT_CLK_ROOT for PHY bypass |
 | F-112 | `src/drivers/usb/dwc3_udc.c` | The DWC3 device driver had never run (imx8mevk isn't in the lab) and didn't follow the RM's device programming model: every EP0 OUT TRB was Control-Setup (also the status stage), data stages were Normal TRBs, status stages started without waiting for XferNotReady(Status), a USB reset left the control transfer hanging (no timeouts: the watchdog reset the 8MP EVK during enumeration), EP0/1 used FIFO 1 and 64 bytes before connect done, connect done didn't reconfigure EP0, DCFG.DEVSPD was never set, End Transfer had no transfer resource index (never saved) nor ForceRM/CmdIOC, the FIFO sizes were overwritten with magic values, IN endpoints used the physical number as TX FIFO, field macros didn't parenthesize their argument, TRBs shared cache lines. | Verified (RM 11.2.2.5, board) | fixed (`imx8m-dram-cleanup`): rewritten from RM 11.2.2.5/11.2.2.7, named fields in `dwc3_udc_private.h`. On the 8MP EVK: enumeration, `dev show`, `part list`, 4 MiB writes with device-side verify. Not exercised yet: a USB reset during a bulk transfer, EP0 stall, full speed hosts |
 | F-114 | `src/plat/imx8m/plat.c` | The OCOTP clock gate (CCGR34) was never opened: on the i.MX8M Plus EVK the unique ID read as 0, so the device UUID was all zeros and the USB serial garbage. | Verified (board) | fixed (`imx8m-dram-cleanup`): opened before `imx_ocotp_init()` (reading only) |
@@ -512,6 +514,8 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | buffer may wait more than half the watchdog (all six fit). `test_imx_usdhc` has a card that stops | | |
 | | | in a read. On the MEK and the 8MP EVK: Linux to the login, 15 MB written and verified 3 of 3. A | | |
 | | | write keeps its bound: F-460 | | |
+| | | 2026-11-16, the code review (`5efb4ab4`): on a bus slower than 4 MB/s (an SD card on one | | |
+| | | line) a read waits the access time and twice the bus's time; the boards' buses keep the bound | | |
 | F-340 | `src/boot/ab_state.c` | Minor. A rollback to a confirmed slot assigns `error` | Verified (code) | fixed |
 | | | (`error = PB_STATE_ERROR_A_ROLLBACK`), which clears the other slot's rollback bit; `boot.md` | | |
 | | | 3.5, rule 2 sets the rolled back slot's bit. F-177's rest: speculative mode no longer writes | | |
