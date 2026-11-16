@@ -78,11 +78,14 @@ SECTIONS
         *(.rel.dyn .rel.iplt)
     } > ram
 
-    /* .rela.data: what an object's -Os .data needs relocated. Like the rest,
-     * nothing of it may reach pb (the ASSERT below) */
+    /* .rela.data: what an object's -Os .data needs relocated. .rela.text.*
+     * and .rela.rodata.*: what aarch64 ld makes, empty, for non-PIE code that
+     * refers to the link scripts' symbols (F-454). Like the rest, nothing of
+     * it may reach pb (the ASSERT below) */
     .rela.dyn :
     {
         *(.rela.dyn .rela.iplt .rela.got .rela.data .rela.data.*)
+        *(.rela.text .rela.text.* .rela.rodata .rela.rodata.*)
     } > ram
 
     .data :

@@ -2,6 +2,7 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/ramlog.h>
+#include <pb_build_version.h>
 #include <stdio.h>
 
 static const struct console_ops *ops;
@@ -94,7 +95,7 @@ void console_init(uintptr_t base_, const struct console_ops *ops_)
 
     /* The reason is filled in also when the platform couldn't read it */
     (void)plat_get_boot_reason(&reason);
-    printf("\n\rPB " PB_VERSION ", %s (0x%" PRIx32 ")\n\r", reason.name, reason.raw);
+    printf("\n\rPB " PB_BUILD_VERSION ", %s (0x%" PRIx32 ")\n\r", reason.name, reason.raw);
 #endif
 }
 
