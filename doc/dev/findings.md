@@ -713,29 +713,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-14: the RNG item is stale: since `68e053fc` (F-247) the RNG is `plat_init()`'s and jiffy's | |
 | | | `init()` has none. Its failure is still only logged: `plat_status` has no RNG field and | |
 | | | `board_report_degraded()` is the board's (a contract question) | |
-| F-428 | tests, link scripts, defconfigs | Low, from the host test and the link packages. A | Reported | open |
-| | | `-m32` host job needs `gcc-multilib` and the 32-bit cmocka in `docker/` (the emulated addresses | | |
-| | | fit in 32 bits). `bio.md` 4 still says the host board's fuse box keeps a handle from | | |
-| | | `late_init()`, and a comment in `tests/unit/CMakeLists.txt` that the host has no watchdog. The | | |
-| | | RT's `.ARM.exidx`, `.iplt` and `.rel.dyn` are orphan sections. `src/link_flash.lds` names a | | |
-| | | `flash` region no platform defines and has none of F-239's checks. The DXL's DRAM is 3 GiB in | | |
-| | | its `makefile.mk` and 1 GiB on the board. The six defconfigs aren't what `olddefconfig` writes. | | |
-| | | `platform.md` 5.3's "everything pb links is in one of the two" doesn't hold for the 8X's stub, | | |
-| | | by design. (`PB_SIZE` is in 5.1's table since D-079.) | | |
-| | | 2026-11-14 (`ffc45fbb`, `a628c583`, `7f83a314`, `323a4e45`, `a241ef81`): the DXL EVK's DRAM is 1 | |
-| | | GiB; `link.lds` places every section (`.ARM.exidx` where it was, `.iplt`/`.rel.dyn`/`.rela.dyn` | |
-| | | asserted empty) and ld runs with `--orphan-handling=warn`, clean on all six; `link_flash.lds` and | |
-| | | `CONFIG_EXECUTE_IN_FLASH` are gone (the build stops on the option); the six defconfigs are what | |
-| | | `olddefconfig` writes, each board's resolved `.config` unchanged; `bio.md` 4's handle example and | |
-| | | the unit tests' watchdog comment follow the code. Only the DXL's `pb.bin` changed. Left: the `-m32` | |
-| | | job; 5.3 and the 8X's stub stay by design. New from it: F-436 | |
-| | | 2026-11-16, an `-m32` trial (the dev image with `gcc-multilib` and `libcmocka-dev:i386`, in a | | |
-| | | throwaway container): 114 unit tests build, 15 fail. Those read are the tests' 64-bit cases, not | | |
-| | | a 32-bit bug: `test_bpak` (a part of 2^62 bytes, refused where it doesn't fit `size_t`), | | |
-| | | `test_image_helpers` (regions at the top of a 64-bit space), `test_fh` (AArch64's x1 on a 32-bit | | |
-| | | host), `test_image` (an initrd above 4 GiB). The rest are 64-bit ports (the 8M, the 8X, the | | |
-| | | ARMv8 MMU, TF-A). A job needs those cases under `#if UINTPTR_MAX == UINT64_MAX` and the 64-bit | | |
-| | | ports' tests left out, and the two packages in `docker/` | | |
 | F-429 | `src/plat/imx8x/{fusebox,rot_helpers}.c` | The 8X's fuse helpers, found by the tests | Verified (test) | open |
 | | | written for them. `imx8x_is_srk_fused()` ignores a failed fuse read and tests an uninitialised | | |
 | | | value; the SLC's status and a key's revocation rest on it. `imx8x_fuse_write_srk()` doesn't | | |
