@@ -13,6 +13,7 @@
 #include <pb/dma.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
@@ -75,9 +76,18 @@ static uint32_t prng_state;
 
 static struct gpt_primary_tbl primary __aligned(64);
 static struct gpt_backup_tbl backup __aligned(64);
-/* Read by a device: it owns its cache lines (bio.md 3.1) */
-static uint8_t gpt_pmbr[512] __aligned(PB_DMA_ALIGN);
+/* One block of the device's: the protective MBR's, or a header's. Both are
+ * one block of the device's size, of which they use the first 512 bytes
+ * (UEFI 2.10 5.2.3, 5.3.2); GPT takes blocks of 512 to 4096 bytes here
+ * (F-283). Read by a device: it owns its cache lines (bio.md 3.1) */
+#define GPT_BLOCK_MAX 4096
+static uint8_t gpt_block[GPT_BLOCK_MAX] __aligned(PB_DMA_ALIGN);
+#define gpt_pmbr gpt_block
 static bio_dev_t gpt_dev;
+/* The backup's blocks, as read or written: its array's first, which its
+ * header gives, and its header's */
+static lba_t backup_first_lba;
+static lba_t backup_hdr_lba;
 static const struct gpt_table_list *tables;
 static size_t tables_length;
 
@@ -152,6 +162,31 @@ static int gpt_is_valid(struct gpt_header *hdr, struct gpt_part_hdr *part)
     return PB_OK;
 }
 
+/* The blocks that the header's partition array takes on the device */
+static uint32_t gpt_array_blocks(bio_dev_t dev, const struct gpt_header *hdr)
+{
+    const uint32_t block_sz = (uint32_t)bio_block_size(dev);
+
+    return (hdr->no_of_parts * (uint32_t)sizeof(struct gpt_part_hdr) + block_sz - 1) / block_sz;
+}
+
+/* An entry of the table on the medium is input (bio.md 4): a partition is
+ * made of it only when its blocks are in the device, which also means that
+ * they fit lba_t, the first isn't after the last, and none is one of the
+ * table's own: the protective MBR, the primary header and its array at the
+ * start of the device, the backup's array and its header at the end. */
+static bool gpt_entry_is_valid(bio_dev_t dev, const struct gpt_part_hdr *part)
+{
+    const uint64_t last_lba = (uint64_t)bio_get_last_block(dev);
+    const uint64_t primary_end = 1 + gpt_array_blocks(dev, &primary.hdr);
+
+    if (part->first_lba > part->last_lba || part->last_lba > last_lba)
+        return false;
+
+    return part->first_lba > primary_end &&
+           (part->last_lba < backup_first_lba || part->first_lba > backup_hdr_lba);
+}
+
 static int gpt_init_tbl(bio_dev_t dev)
 {
     struct gpt_header *hdr = &primary.hdr;
@@ -169,10 +204,12 @@ static int gpt_init_tbl(bio_dev_t dev)
     hdr->current_lba = 1;
     hdr->no_of_parts = 128;
 
-    hdr->first_lba =
-        (hdr->current_lba + 1 + (hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
+    hdr->first_lba = hdr->current_lba + 1 + gpt_array_blocks(dev, hdr);
     hdr->backup_lba = last_lba;
-    hdr->last_lba = (last_lba - (hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
+    /* The last usable block is the one before the backup's array (F-064).
+     * Releases up to 2.8.0 wrote the array's own first block here: such a
+     * table is read and repaired as it is */
+    hdr->last_lba = (last_lba - gpt_array_blocks(dev, hdr)) - 1;
     hdr->entries_start_lba = primary.hdr.current_lba + 1;
     hdr->part_entry_sz = sizeof(struct gpt_part_hdr);
 
@@ -199,7 +236,10 @@ gpt_add_part(int part_idx, unsigned int no_of_blocks, const uuid_t type_uuid, co
 
     part->last_lba = part->first_lba + no_of_blocks - 1;
 
-    if (part->last_lba >= primary.hdr.last_lba)
+    /* A partition may end on the last usable block: the layouts that fit
+     * are the ones that fitted when the header named one block more and the
+     * block it named was refused */
+    if (part->last_lba > primary.hdr.last_lba)
         return -PB_ERR_MEM;
 
     if (strlen(part_name) > GPT_PART_NAME_MAX_SIZE)
@@ -221,22 +261,34 @@ gpt_add_part(int part_idx, unsigned int no_of_blocks, const uuid_t type_uuid, co
     return PB_OK;
 }
 
-static int gpt_write_tbl(bio_dev_t dev)
+/* A copy's CRCs, after it was put together: the array's, then the header's */
+static void gpt_update_crc(struct gpt_header *hdr, const struct gpt_part_hdr *part)
 {
-    uint32_t crc_tmp = 0;
-    uint32_t err = 0;
+    hdr->part_array_crc = efi_crc32(part, sizeof(struct gpt_part_hdr) * hdr->no_of_parts);
+    hdr->hdr_crc = 0;
+    hdr->hdr_crc = efi_crc32(hdr, sizeof(struct gpt_header) - GPT_HEADER_RSZ);
+}
 
-    /* Calculate CRC32 for header and part table */
-    primary.hdr.hdr_crc = 0;
-    primary.hdr.part_array_crc =
-        efi_crc32((uint8_t *)primary.part, (sizeof(struct gpt_part_hdr) * primary.hdr.no_of_parts));
+/* A protective MBR, or another MBR that names the GPT (a hybrid one): pb
+ * needs none, and doesn't replace one that is there */
+static bool gpt_pmbr_is_valid(void)
+{
+    if (gpt_pmbr[MBR_SIGNATURE] != 0x55 || gpt_pmbr[MBR_SIGNATURE + 1] != 0xAA)
+        return false;
 
-    crc_tmp = efi_crc32((uint8_t *)&primary.hdr, (sizeof(struct gpt_header) - GPT_HEADER_RSZ));
+    for (unsigned int i = 0; i < 4; i++) {
+        if (gpt_pmbr[MBR_PART_TYPE + i * 16] == MBR_TYPE_GPT_PROTECTIVE)
+            return true;
+    }
 
-    primary.hdr.hdr_crc = crc_tmp;
+    return false;
+}
 
-    /* Write protective MBR */
-    memset(gpt_pmbr, 0, sizeof(gpt_pmbr));
+static int gpt_write_pmbr(bio_dev_t dev)
+{
+    int rc;
+
+    memset(gpt_pmbr, 0, bio_block_size(dev));
 
     /* CHS start 0/0/2, CHS end 0xFFFFFF (beyond CHS), from LBA 1 */
     gpt_pmbr[MBR_PART_CHS_START + 1] = 2;
@@ -252,47 +304,218 @@ static int gpt_write_tbl(bio_dev_t dev)
     gpt_pmbr[MBR_SIGNATURE] = 0x55;
     gpt_pmbr[MBR_SIGNATURE + 1] = 0xAA;
 
-    err = bio_write(dev, 0, sizeof(gpt_pmbr), gpt_pmbr);
+    rc = bio_write(dev, 0, bio_block_size(dev), gpt_pmbr);
 
-    if (err != PB_OK) {
+    if (rc != PB_OK)
         LOG_ERR("Writing protective MBR failed");
-        return err;
+
+    return rc;
+}
+
+/* A header, in its block: the first 512 bytes, the rest of the block 0 */
+static int gpt_write_hdr(bio_dev_t dev, lba_t lba, const struct gpt_header *hdr)
+{
+    memset(gpt_block, 0, bio_block_size(dev));
+    memcpy(gpt_block, hdr, sizeof(*hdr));
+    return bio_write(dev, lba, bio_block_size(dev), gpt_block);
+}
+
+static int gpt_read_hdr(bio_dev_t dev, lba_t lba, struct gpt_header *hdr)
+{
+    int rc = bio_read(dev, lba, bio_block_size(dev), gpt_block);
+
+    if (rc == PB_OK)
+        memcpy(hdr, gpt_block, sizeof(*hdr));
+
+    return rc;
+}
+
+/* Writes the primary: its header and the blocks its array takes. Its place
+ * is LBA 1, where it is read: never the LBA a header from the medium gives
+ * for itself (bio.md 4) */
+static int gpt_write_primary(bio_dev_t dev)
+{
+    int rc;
+    const size_t array_sz = (size_t)gpt_array_blocks(dev, &primary.hdr) * bio_block_size(dev);
+
+    gpt_update_crc(&primary.hdr, primary.part);
+
+    LOG_DBG("writing primary gpt tbl to lba 1");
+
+    /* The array, then the header that makes it valid, as the backup's */
+    rc = bio_write(dev, 2, array_sz, primary.part);
+
+    if (rc == PB_OK)
+        rc = gpt_write_hdr(dev, 1, &primary.hdr);
+
+    if (rc != PB_OK)
+        LOG_ERR("error writing primary gpt table (%i)", rc);
+
+    return rc;
+}
+
+/* Writes the backup where its header, which the caller made, says: the
+ * array's blocks, as many as the entries take, and then the header that
+ * makes them valid */
+static int gpt_write_backup(bio_dev_t dev)
+{
+    int rc;
+    const size_t array_sz = (size_t)gpt_array_blocks(dev, &backup.hdr) * bio_block_size(dev);
+
+    gpt_update_crc(&backup.hdr, backup.part);
+
+    LOG_INFO("Writing backup GPT tbl to LBA %" PRIu64, backup.hdr.entries_start_lba);
+
+    rc = bio_write(dev, (lba_t)backup.hdr.entries_start_lba, array_sz, backup.part);
+
+    if (rc != PB_OK) {
+        LOG_ERR("error writing backup gpt array (%i)", rc);
+        return rc;
     }
 
-    /* Write primary GPT Table */
-    LOG_DBG("writing primary gpt tbl to lba %" PRIu64, primary.hdr.current_lba);
+    backup_first_lba = (lba_t)backup.hdr.entries_start_lba;
+    backup_hdr_lba = (lba_t)backup.hdr.current_lba;
 
-    err = bio_write(dev, primary.hdr.current_lba, sizeof(primary), &primary);
+    return gpt_write_hdr(dev, backup_hdr_lba, &backup.hdr);
+}
 
-    if (err != PB_OK) {
-        LOG_ERR("error writing primary gpt table (%i)", err);
-        return err;
-    }
-
-    /* Configure backup GPT table */
+/* Makes the backup of the primary, with its header in block 'hdr_lba' and
+ * its array before it */
+static void gpt_make_backup(bio_dev_t dev, lba_t hdr_lba)
+{
     memcpy(&backup.hdr, &primary.hdr, sizeof(struct gpt_header));
     memcpy(backup.part, primary.part, (sizeof(struct gpt_part_hdr) * primary.hdr.no_of_parts));
 
-    uint64_t last_lba = bio_get_last_block(dev);
+    backup.hdr.backup_lba = 1;
+    backup.hdr.current_lba = hdr_lba;
+    backup.hdr.entries_start_lba = hdr_lba - gpt_array_blocks(dev, &backup.hdr);
+}
 
-    struct gpt_header *hdr = &backup.hdr;
+/* A new table: the protective MBR and both copies */
+static int gpt_write_tbl(bio_dev_t dev)
+{
+    int rc;
 
-    hdr->backup_lba = primary.hdr.current_lba;
-    hdr->current_lba = last_lba;
-    hdr->entries_start_lba =
-        (last_lba - ((hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / bio_block_size(dev)));
+    rc = gpt_write_pmbr(dev);
 
-    hdr->hdr_crc = 0;
-    hdr->part_array_crc =
-        efi_crc32((uint8_t *)backup.part, sizeof(struct gpt_part_hdr) * backup.hdr.no_of_parts);
+    if (rc != PB_OK)
+        return rc;
 
-    crc_tmp = efi_crc32((uint8_t *)hdr, sizeof(struct gpt_header) - GPT_HEADER_RSZ);
-    backup.hdr.hdr_crc = crc_tmp;
+    rc = gpt_write_primary(dev);
 
-    /* Write backup GPT table */
-    LOG_INFO("Writing backup GPT tbl to LBA %" PRIu64, backup.hdr.entries_start_lba);
+    if (rc != PB_OK)
+        return rc;
 
-    return bio_write(dev, backup.hdr.entries_start_lba, sizeof(backup), &backup);
+    gpt_make_backup(dev, (lba_t)bio_get_last_block(dev));
+
+    return gpt_write_backup(dev);
+}
+
+/* Reads the backup whose header is in block 'hdr_lba', and its array from
+ * where the header says. 'valid' is whether both are. The return value is
+ * the reads': a copy that can't be read isn't a bad one. */
+static int gpt_read_backup(bio_dev_t dev, lba_t hdr_lba, bool *valid)
+{
+    int rc;
+    const lba_t array_lba = hdr_lba - sizeof(backup.part) / bio_block_size(dev);
+
+    *valid = false;
+
+    /* The header, and the array of 128 entries before it, where every tool
+     * puts it */
+    rc = bio_read(dev, array_lba, sizeof(backup.part), backup.part);
+
+    if (rc == PB_OK)
+        rc = gpt_read_hdr(dev, hdr_lba, &backup.hdr);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (gpt_has_valid_header(&backup.hdr) != PB_OK)
+        return PB_OK;
+
+    /* The array's place is input: after the primary's header, before its
+     * own, all of it */
+    const uint64_t first_lba = backup.hdr.entries_start_lba;
+    const uint32_t blocks = gpt_array_blocks(dev, &backup.hdr);
+
+    if (first_lba < 2 || first_lba > hdr_lba || blocks > hdr_lba - first_lba) {
+        LOG_ERR("Backup array at %" PRIu64 ", %u blocks", first_lba, blocks);
+        return PB_OK;
+    }
+
+    /* A table of fewer entries has its array closer to the header */
+    if (first_lba != array_lba) {
+        rc = bio_read(dev, (lba_t)first_lba, (size_t)blocks * bio_block_size(dev), backup.part);
+
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    if (gpt_has_valid_part_array(&backup.hdr, backup.part) != PB_OK)
+        return PB_OK;
+
+    backup_first_lba = (lba_t)first_lba;
+    backup_hdr_lba = hdr_lba;
+    *valid = true;
+
+    return PB_OK;
+}
+
+/* Where the valid primary says that its backup's header is. A place for a
+ * backup: its 33 blocks can be read, and written there its array is in the
+ * device, after the primary's, and takes no block the primary calls usable.
+ * The header a release wrote calls the array's first block usable (F-064),
+ * so that one is allowed. */
+static bool gpt_backup_place_is_valid(bio_dev_t dev)
+{
+    const uint64_t hdr_lba = primary.hdr.backup_lba;
+    const uint64_t blocks = gpt_array_blocks(dev, &primary.hdr);
+
+    /* A header is one block */
+    if (hdr_lba > (uint64_t)bio_get_last_block(dev) ||
+        hdr_lba <= sizeof(backup.part) / bio_block_size(dev) + 1)
+        return false;
+
+    return hdr_lba - blocks > 1 + blocks && hdr_lba - blocks >= primary.hdr.last_lba;
+}
+
+/* The primary is bad and the backup is valid: the primary is written, and
+ * nothing else (bio.md 4). Its place is what the backup gives: the header in
+ * LBA 1, the array after it, before the first block the backup calls usable
+ * and before the backup's own. */
+static int gpt_repair_primary(bio_dev_t dev)
+{
+    int rc;
+    const uint64_t array_end = 1 + gpt_array_blocks(dev, &backup.hdr);
+
+    if (backup.hdr.backup_lba != 1 || array_end >= backup.hdr.first_lba ||
+        array_end >= backup_first_lba) {
+        LOG_ERR("The backup gives no place for the primary");
+        return -PB_ERR;
+    }
+
+    memcpy(&primary.hdr, &backup.hdr, sizeof(struct gpt_header));
+    memcpy(primary.part, backup.part, (sizeof(struct gpt_part_hdr) * backup.hdr.no_of_parts));
+
+    primary.hdr.backup_lba = backup_hdr_lba;
+    primary.hdr.current_lba = 1;
+    primary.hdr.entries_start_lba = primary.hdr.current_lba + 1;
+
+    /* What made the primary bad may have taken the protective MBR too */
+    rc = bio_read(dev, 0, bio_block_size(dev), gpt_pmbr);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (!gpt_pmbr_is_valid()) {
+        rc = gpt_write_pmbr(dev);
+
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    return gpt_write_primary(dev);
 }
 
 static int gpt_install_partition_table(bio_dev_t dev, int variant)
@@ -334,6 +557,8 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
     int rc;
     uuid_t uu;
     char name[37];
+    bool primary_valid;
+    bool backup_valid;
 
     LOG_INFO("Init");
 
@@ -342,6 +567,18 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
     if (default_tables == NULL || length == 0) {
         LOG_ERR("No layout");
         return -PB_ERR_PARAM;
+    }
+
+    /* A block of 512 to 4096 bytes, a power of two (F-283): a header and the
+     * protective MBR are one block, the array whole blocks */
+    ssize_t block_size = bio_block_size(dev);
+
+    if (block_size < 0)
+        return (int)block_size;
+
+    if (block_size < 512 || block_size > GPT_BLOCK_MAX || (block_size & (block_size - 1)) != 0) {
+        LOG_ERR("No GPT on blocks of %zd bytes", block_size);
+        return -PB_ERR_NOT_SUPPORTED;
     }
 
     gpt_dev = dev;
@@ -353,96 +590,89 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
     if (rc != PB_OK)
         return rc;
 
-    /* Read primary and backup GPT headers and parition tables */
-    rc = bio_read(dev, 1, sizeof(primary), &primary);
+    /* Read primary and backup GPT headers and parition tables. The backup's
+     * header is in the device's last block */
+    rc = gpt_read_hdr(dev, 1, &primary.hdr);
+
+    if (rc == PB_OK)
+        rc = bio_read(dev, 2, sizeof(primary.part), primary.part);
 
     if (rc != PB_OK)
         return rc;
 
-    size_t backup_lba = bio_get_last_block(dev) - ((128 * sizeof(struct gpt_part_hdr)) / 512);
+    primary_valid = (gpt_is_valid(&primary.hdr, primary.part) == PB_OK);
 
-    rc = bio_read(dev, backup_lba, sizeof(backup), &backup);
+    rc = gpt_read_backup(dev, (lba_t)bio_get_last_block(dev), &backup_valid);
 
     if (rc != PB_OK)
         return rc;
 
-    if (gpt_is_valid(&primary.hdr, primary.part) != PB_OK) {
+    /* A repair writes only the copy that is bad, and only at the place the
+     * good copy gives (bio.md 4): power lost in the repair leaves the good
+     * copy as it was */
+    if (!primary_valid) {
         LOG_ERR("Primary GPT table is corrupt or missing,"
                 " trying to recover backup");
 
-        if (gpt_has_valid_header(&backup.hdr) != PB_OK) {
-            LOG_ERR("Invalid backup GPT header, unable to recover");
-            return -PB_ERR;
-        }
-
-        if (gpt_has_valid_part_array(&backup.hdr, backup.part) != PB_OK) {
-            LOG_ERR("Invalid backup GPT part array, unable to recover");
+        if (!backup_valid) {
+            LOG_ERR("Invalid backup GPT, unable to recover");
             return -PB_ERR;
         }
 
         LOG_ERR("Recovering from backup GPT tables");
 
-        memcpy(&primary.hdr, &backup.hdr, sizeof(struct gpt_header));
-        memcpy(primary.part, backup.part, (sizeof(struct gpt_part_hdr) * backup.hdr.no_of_parts));
-
-        primary.hdr.backup_lba = bio_get_last_block(dev);
-        primary.hdr.current_lba = 1;
-        primary.hdr.entries_start_lba = primary.hdr.current_lba + 1;
-
-        LOG_DBG("no_of_parts = %u", primary.hdr.no_of_parts);
-
-        if (gpt_write_tbl(dev) != PB_OK) {
+        if (gpt_repair_primary(dev) != PB_OK) {
             LOG_ERR("Could not update primary GPT table, unable to recover");
             return -PB_ERR;
         }
-    }
-
-    if (gpt_is_valid(&backup.hdr, backup.part) != PB_OK) {
+    } else if (!backup_valid) {
         LOG_ERR("Backup GPT table is corrupt or missing,"
                 " trying to recover from primary");
 
-        if (gpt_has_valid_header(&primary.hdr) != PB_OK) {
-            LOG_ERR("Invalid primary GPT header, unable to recover");
+        if (!gpt_backup_place_is_valid(dev)) {
+            LOG_ERR("The primary gives no place for the backup");
             return -PB_ERR;
         }
 
-        if (gpt_has_valid_part_array(&primary.hdr, primary.part) != PB_OK) {
-            LOG_ERR("Invalid primary GPT part array, unable to recover");
-            return -PB_ERR;
+        /* A primary that names another block than the last one for its
+         * backup: an image that was written to a larger device. Its backup
+         * is read where it says */
+        if (primary.hdr.backup_lba != (uint64_t)bio_get_last_block(dev)) {
+            rc = gpt_read_backup(dev, (lba_t)primary.hdr.backup_lba, &backup_valid);
+
+            if (rc != PB_OK)
+                return rc;
         }
 
-        LOG_ERR("Recovering from primary GPT tables");
+        if (!backup_valid) {
+            LOG_ERR("Recovering from primary GPT tables");
 
-        memcpy(&backup.hdr, &primary.hdr, sizeof(struct gpt_header));
-        memcpy(backup.part, primary.part, (sizeof(struct gpt_part_hdr) * primary.hdr.no_of_parts));
+            gpt_make_backup(dev, (lba_t)primary.hdr.backup_lba);
 
-        backup.hdr.backup_lba = 1;
-        backup.hdr.current_lba = bio_get_last_block(dev);
-        backup.hdr.entries_start_lba =
-            (backup.hdr.current_lba -
-             ((backup.hdr.no_of_parts * sizeof(struct gpt_part_hdr)) / 512));
-
-        if (gpt_write_tbl(dev) != PB_OK) {
-            LOG_ERR("Could not update GPT table, unable to recover");
-            return -PB_ERR;
+            if (gpt_write_backup(dev) != PB_OK) {
+                LOG_ERR("Could not update GPT table, unable to recover");
+                return -PB_ERR;
+            }
         }
     }
 
-    /* Note/TODO: We check that both primary and backup tables are OK,
-     * but we don't compare them. It's possible that we could have two
-     * tables with correct checksum's but they disagree with each other
-     * regarding partition layout.
-     *
-     * We here asume that if both checksum's are OK the primary table contains
-     * the thruth
-     *
-     * It's likely not worth the extra boot up time to compare the tables.
-     */
+    /* Both copies are valid here. They are compared (F-006): when their
+     * entries differ, after an install or another tool's update that was cut
+     * off between the two, the primary's are the table, as in every release,
+     * and it is logged that the backup isn't a copy of it. Comparing costs
+     * no read: the headers hold the arrays' CRCs. */
+    if (primary.hdr.no_of_parts != backup.hdr.no_of_parts ||
+        primary.hdr.part_array_crc != backup.hdr.part_array_crc) {
+        LOG_ERR("The backup GPT's entries differ from the primary's, the primary's are used");
+    }
 
-    for (struct gpt_part_hdr *p = primary.part;
-         p < &primary.part[primary.hdr.no_of_parts] && p->first_lba;
-         p++) {
+    for (struct gpt_part_hdr *p = primary.part; p < &primary.part[primary.hdr.no_of_parts]; p++) {
         int n = 0;
+
+        /* An empty entry is skipped, and the ones after it are made (bio.md 4) */
+        if (p->first_lba == 0)
+            continue;
+
         uuid_to_guid(p->uuid, uu);
 
         for (int i = 0; i < 36; i++) {
@@ -451,8 +681,24 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
         }
 
         name[36] = 0;
-        bio_dev_t new_dev =
-            bio_allocate_parent(dev, p->first_lba, p->last_lba, bio_block_size(dev), uu, name);
+
+        /* An entry that fails is skipped and logged, and the others are
+         * made (bio.md 4) */
+        if (!gpt_entry_is_valid(dev, p)) {
+            LOG_ERR("Entry skipped, %s: %" PRIu64 " - %" PRIu64, name, p->first_lba, p->last_lba);
+            continue;
+        }
+
+        bio_dev_t new_dev = bio_allocate_parent(
+            dev, (lba_t)p->first_lba, (lba_t)p->last_lba, bio_block_size(dev), uu, name);
+
+        /* The core refuses what a device can't be: an entry whose UUID is
+         * taken (bio.md 2.6). The first one keeps the name */
+        if (new_dev == -PB_ERR_PARAM) {
+            LOG_ERR("Entry refused, %s", name);
+            continue;
+        }
+
         if (new_dev < 0) {
             LOG_ERR("bio alloc failed (%i)", new_dev);
             return new_dev;
