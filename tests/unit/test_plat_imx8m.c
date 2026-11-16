@@ -226,8 +226,12 @@ int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs)
 /* The ipg_clk rate plat_init() gave the OCOTP, for its fuse timing */
 static unsigned int ocotp_ipg_hz;
 
-int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank, unsigned int ipg_rate_hz)
+int imx_ocotp_init(uintptr_t base,
+                   unsigned int words_per_bank,
+                   unsigned int ipg_rate_hz,
+                   unsigned int flags)
 {
+    (void)flags;
     (void)base;
     (void)words_per_bank;
     ocotp_ipg_hz = ipg_rate_hz;
