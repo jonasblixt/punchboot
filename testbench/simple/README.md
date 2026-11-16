@@ -134,7 +134,7 @@ The signature is two thirds of it. Bigger images add their read and hash:
 1.275 V for 600 MHz and waits for the DCDC: 1.6 ms of it. The build before
 that and F-148 had 42.4 ms; the week's other 2.2 ms are F-458.
 
-2026-11-16, pb at `ecdd323b`: 37.98 ms. Mbed TLS's curve and big number code is built at -O2
+2026-11-16, pb at `59e4ed41`: 37.98 ms. Mbed TLS's curve and big number code is built at -O2
 on a pb at -Os: the signature takes 22.6 ms instead of 26.6, for 4.4 KiB more of pb (F-458).
 The same morning, without it and without the banner: 41.87 ms.
 

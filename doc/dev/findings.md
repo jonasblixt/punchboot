@@ -889,7 +889,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (Jonas): the RT1060's defconfig drops the banner (`CONFIG_PRINT_BOOT_BANNER`). From its NOR, | | |
 | | | the warm reset to the entry: 41.87 ms (median of 10, was 44.0). `boot-time-image -c` needs the banner and | | |
 | | | says so. Left: the signature's 0.7 ms | | |
-| | | 2026-11-16 (`ecdd323b`): Mbed TLS's bignum and ECP files at -O2 (pb is -Os): the signature 22.56 | | |
+| | | 2026-11-16 (`59e4ed41`): Mbed TLS's bignum and ECP files at -O2 (pb is -Os): the signature 22.56 | | |
 | | | ms (26.58 before), the warm reset to the entry 37.98 ms (41.87), 4.4 KiB more of pb. The 2.2 ms | | |
 | | | of the week are more than made up; which commit added them stays unknown | | |
 | F-459 | jiffy, after Linux's `reboot` | Linux hangs in the CAAM's job ring interrupt | Seen (board) | open |

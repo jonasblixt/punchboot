@@ -1366,7 +1366,7 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | host), `test_image` (an initrd above 4 GiB). The rest are 64-bit ports (the 8M, the 8X, the | | |
 | | | ARMv8 MMU, TF-A). A job needs those cases under `#if UINTPTR_MAX == UINT64_MAX` and the 64-bit | | |
 | | | ports' tests left out, and the two packages in `docker/` | | |
-| | | 2026-11-16 (`2ea33cc9`, `b53ecf16`): the tests' 64-bit cases guarded, and CI's `m32` host test | | |
+| | | 2026-11-16 (`2ea33cc9`, `9c6b825a`): the tests' 64-bit cases guarded, and CI's `m32` host test | | |
 | | | job (the dev image has the two packages): 103 of 103 unit tests at 32 bits | | |
 | F-430 | `src/plat/imx6ul/hab.c` | Low. The loop over the HAB's failure events starts its index | Verified (test) | fixed (`7d279797`, `572c808c`, `f4d1278b`) |
 | | | where the warnings ended: with one warning and one failure the failure is asked for at index 1 | | |

@@ -19,7 +19,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
     button held at power-up. In Linux `pbstate-pb`. No JTAG on jiffy.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb in BOOT0 and
     BOOT1, BOOT1 enabled. Never `reboot` it (F-452).
-  - RT1060: its NOR `ecdd323b`'s pb (no DCD, the curve code at -O2: 37.98 ms to the entry), the
+  - RT1060: its NOR `59e4ed41`'s pb (no DCD, the curve code at -O2: 37.98 ms to the entry), the
     simple bench 7 of 7. The MEK: BOOT0
     (enabled) `f470ba88`'s tree, BOOT1 a log-only probe. The 8MP EVK: BOOT0 (enabled)
     `277ec02b`'s two-stage pb, BOOT1 a log-only probe, System A the F-156 kernel; its console is
