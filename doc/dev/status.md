@@ -1,7 +1,7 @@
 # Status
 
-_Last updated: 2026-11-16, late morning (F-172 fixed: the cdns3's USB3DIS; jiffy power cycled;
-the night: F-148, F-457, F-209, F-205, F-138 fixed, D-073's stalls, guard 3)_
+_Last updated: 2026-11-16, afternoon (unattended: F-321, F-102, F-461 fixed, F-287's cdns3, F-410,
+F-210's ARM_PODF; jiffy in SNVS Soft Fail after JTAG, waits for a power cycle)_
 
 ## Current focus
 
@@ -35,7 +35,9 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 ## Next steps
 
-0. **Resume here: `log/2026-11-16.md`**, then `log/2026-11-15.md`'s last section. Nothing pushed since
+0. **Resume here: `log/2026-11-16.md`'s last section** (the afternoon), then
+   `log/2026-11-15.md`'s last section. jiffy: power cycle, then auth and today's pb (F-210).
+   No JTAG on jiffy (F-455). Nothing pushed since
    `58c9cf3e`'s rebase.
    - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
      resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
