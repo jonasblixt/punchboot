@@ -71,17 +71,26 @@ enum plat_crypto_engine {
     PLAT_CRYPTO_ENGINE_FAILED, /*!< Its option is on and it didn't come up */
 };
 
+/** The SoC's hardware RNG, which pb instantiates for a next stage in the
+ * normal world (doc/interfaces/platform.md 3.8, 4.5, F-427) */
+enum plat_rng {
+    PLAT_RNG_NONE, /*!< Not pb's to set up, or its option is off */
+    PLAT_RNG_OK, /*!< Instantiated */
+    PLAT_RNG_FAILED, /*!< Its option is on and it isn't instantiated */
+};
+
 /**
  * What plat_init() recorded of what it couldn't fail on, for the boot's
  * preconditions and for command mode's log (doc/interfaces/platform.md 2.3,
  * 3.8). A platform without a field's feature reports it as absent:
- * PLAT_TZ_DRAM_NONE, false, PLAT_CRYPTO_ENGINE_NONE.
+ * PLAT_TZ_DRAM_NONE, false, PLAT_CRYPTO_ENGINE_NONE, PLAT_RNG_NONE.
  */
 struct plat_status {
     enum plat_tz_dram_filter tz_dram_filter;
     bool wdog_armed; /*!< false also without CONFIG_ENABLE_WATCHDOG */
     enum plat_crypto_engine crypto_engine; /*!< The SoC's engine only */
     bool rom_log; /*!< The ROM's logs were found */
+    enum plat_rng rng; /*!< The boot goes on without it */
 };
 
 /**

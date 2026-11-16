@@ -519,7 +519,8 @@ _Static_assert(CONFIG_CM_TRANSPORT_READY_TIMEOUT >= 1 &&
 /*
  * What the platform recorded (platform.md 3.8), in the log, where a host
  * reads it without a UART: the state behind a boot that was refused, and
- * what a boot would go on without. Nothing of it is on the wire.
+ * what a boot would go on without, such as the RNG (F-427). Nothing of it is
+ * on the wire.
  */
 static void log_plat_status(void)
 {
@@ -534,6 +535,11 @@ static void log_plat_status(void)
         [PLAT_CRYPTO_ENGINE_OK] = "ok",
         [PLAT_CRYPTO_ENGINE_FAILED] = "FAILED",
     };
+    static const char *const rngs[] = {
+        [PLAT_RNG_NONE] = "none",
+        [PLAT_RNG_OK] = "ok",
+        [PLAT_RNG_FAILED] = "FAILED",
+    };
     static const char *const software[] = {
         [CRYPTO_SW_NONE] = "none",
         [CRYPTO_SW_OK] = "ok",
@@ -543,11 +549,13 @@ static void log_plat_status(void)
     const char *filter = "unknown";
     const char *engine = "unknown";
     const char *sw = "unknown";
+    const char *rng = "unknown";
 
     /* What the platform leaves unset counts as failed, as for the boot */
     memset(&status, 0, sizeof(status));
     status.tz_dram_filter = PLAT_TZ_DRAM_BYPASSED;
     status.crypto_engine = PLAT_CRYPTO_ENGINE_FAILED;
+    status.rng = PLAT_RNG_FAILED;
     plat_get_status(&status);
 
     if ((size_t)status.tz_dram_filter < ARRAY_SIZE(filters))
@@ -556,14 +564,17 @@ static void log_plat_status(void)
         engine = engines[status.crypto_engine];
     if ((size_t)crypto_sw_state() < ARRAY_SIZE(software))
         sw = software[crypto_sw_state()];
+    if ((size_t)status.rng < ARRAY_SIZE(rngs))
+        rng = rngs[status.rng];
 
     LOG_INFO("Platform: DRAM filter %s, watchdog %s, crypto engine %s, software crypto %s, "
-             "ROM logs %s",
+             "ROM logs %s, RNG %s",
              filter,
              status.wdog_armed ? "armed" : "not armed",
              engine,
              sw,
-             status.rom_log ? "found" : "none");
+             status.rom_log ? "found" : "none",
+             rng);
 }
 
 /* The set up, on the task's first call (command-mode.md 2.1) */

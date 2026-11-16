@@ -218,6 +218,7 @@ static void test_status(void **state)
     assert_true(status.wdog_armed);
     assert_int_equal(status.crypto_engine, PLAT_CRYPTO_ENGINE_NONE);
     assert_true(status.rom_log);
+    assert_int_equal(status.rng, PLAT_RNG_NONE);
 }
 
 /* platform.md 2.3: without the HAB's log the platform goes on and records it */

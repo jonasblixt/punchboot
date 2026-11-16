@@ -302,6 +302,9 @@ static enum plat_crypto_engine crypto_init(void)
 #ifdef CONFIG_DRIVERS_IMX_CAAM
     int rc = imx_caam_init(IMX8M_CAAM_JR0_BASE);
 
+    /* The RNG is the CAAM's: not instantiated without it */
+    status.rng = PLAT_RNG_FAILED;
+
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
         return PLAT_CRYPTO_ENGINE_FAILED;
@@ -309,14 +312,18 @@ static enum plat_crypto_engine crypto_init(void)
 
     /* Linux can't instantiate the RNG when it runs in the normal world
      * (platform.md 4.5). Without it Linux has no hardware RNG, which is
-     * no reason not to boot */
+     * no reason not to boot: it is recorded, for command mode's log
+     * (F-427) */
     rc = imx_caam_rng_init(IMX8M_CAAM_BASE);
 
     if (rc != PB_OK)
         LOG_ERR("CAAM RNG init failed (%i)", rc);
+    else
+        status.rng = PLAT_RNG_OK;
 
     return PLAT_CRYPTO_ENGINE_OK;
 #else
+    status.rng = PLAT_RNG_NONE;
     return PLAT_CRYPTO_ENGINE_NONE;
 #endif
 }

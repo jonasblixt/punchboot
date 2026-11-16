@@ -784,13 +784,15 @@ static void test_status_crypto_engine(void **state)
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
+    assert_int_equal(status_now().rng, PLAT_RNG_OK);
 
-    /* The CAAM, which the boards verify with */
+    /* The CAAM, which the boards verify with. Its RNG isn't instantiated */
     setup(NULL);
     crypto.caam_rc = -PB_ERR_IO;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_FAILED);
+    assert_int_equal(status_now().rng, PLAT_RNG_FAILED);
 
     /* Mbed TLS is the core's (crypto.md 2, D-086): the port neither sets it
      * up nor reports it */
@@ -800,17 +802,20 @@ static void test_status_crypto_engine(void **state)
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
 
-    /* The RNG is Linux's loss, not the boot's: the engine verifies */
+    /* The RNG is Linux's loss, not the boot's: the engine verifies, and
+     * the RNG's failure is recorded (F-427) */
     setup(NULL);
     crypto.rng_rc = -PB_ERR_TIMEOUT;
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
+    assert_int_equal(status_now().rng, PLAT_RNG_FAILED);
 
     /* It is the state of this plat_init(), not of an earlier one */
     setup(NULL);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().crypto_engine, PLAT_CRYPTO_ENGINE_OK);
+    assert_int_equal(status_now().rng, PLAT_RNG_OK);
 }
 
 /* platform.md 4.5, drivers.md 2.3, crypto.md 6 (F-286): the platform stops

@@ -178,6 +178,8 @@ The conditions are sorted by what rests on them (`security.md` 4.5):
 | The watchdog didn't arm         | Availability                 | Boots, and reports `watchdog-not-armed` in pb's |
 | (with `CONFIG_ENABLE_WATCHDOG`) |                              | status (`boot.md` 5.6)                          |
 | The ROM's logs are missing      | Nothing of the boot's        | Logged only                                     |
+| The hardware RNG isn't          | The next stage's randomness, | Boots; in command mode's log (F-427)            |
+| instantiated (4.5)              | none of pb's                 |                                                 |
 
 - **The same rule in every life cycle state**, without a development override: a development
   board is where a bypassed filter goes unnoticed (F-096).
@@ -347,11 +349,18 @@ enum plat_crypto_engine {
     PLAT_CRYPTO_ENGINE_FAILED, /* its option is on and it didn't come up */
 };
 
+enum plat_rng {
+    PLAT_RNG_NONE,   /* not pb's to set up (4.5), or its option is off */
+    PLAT_RNG_OK,     /* instantiated */
+    PLAT_RNG_FAILED, /* its option is on and it isn't instantiated */
+};
+
 struct plat_status {
     enum plat_tz_dram_filter tz_dram_filter;
     bool wdog_armed;          /* false also without CONFIG_ENABLE_WATCHDOG */
     enum plat_crypto_engine crypto_engine; /* the SoC's engine only, not a software backend */
     bool rom_log;             /* the ROM's logs were found */
+    enum plat_rng rng;        /* the hardware RNG, for a next stage (4.5, F-427) */
 };
 ```
 
@@ -361,8 +370,8 @@ backends, Mbed TLS among them, all came up.
 
 What `plat_init()` recorded (2.2), for the boot's preconditions (2.3) and for command mode, which
 shows it in its log. Valid from `plat_init()`. A platform without a field's feature reports it as
-absent (`PLAT_TZ_DRAM_NONE`, `false`, `PLAT_CRYPTO_ENGINE_NONE`). New fields come with a row
-in 2.3.
+absent (`PLAT_TZ_DRAM_NONE`, `false`, `PLAT_CRYPTO_ENGINE_NONE`, `PLAT_RNG_NONE`). New fields
+come with a row in 2.3.
 
 ### 3.9 Function : plat_get_boot_source() [mandatory when the ROM has a serial downloader]
 

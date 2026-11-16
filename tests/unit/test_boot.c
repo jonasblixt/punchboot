@@ -2080,6 +2080,25 @@ static void test_precondition_rom_log(void **state)
     assert_int_equal(fake.last_info.status, 0);
 }
 
+/* platform.md 2.3 (F-427): the RNG is the next stage's, nothing of the
+ * boot's rests on it. Without it the boot goes on, and command mode's log
+ * has it */
+static void test_precondition_rng(void **state)
+{
+    static const enum plat_rng rngs[] = { PLAT_RNG_NONE,
+                                          PLAT_RNG_FAILED,
+                                          (enum plat_rng)(PLAT_RNG_FAILED + 1) };
+    struct fixture *f = *state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(rngs); i++) {
+        reset_fakes(f);
+        fake_plat_status.rng = rngs[i];
+        assert_int_equal(boot_load(NULL), PB_OK);
+        assert_int_equal(fake.prepare_calls, 1);
+        assert_int_equal(fake.last_info.status, 0);
+    }
+}
+
 static void test_early_boot_abort(void **state)
 {
     (void)state;
@@ -3016,6 +3035,7 @@ int main(void)
         BOOT_TEST(test_precondition_crypto_engine),
         BOOT_TEST(test_precondition_crypto_engine_spends_no_attempt),
         BOOT_TEST(test_precondition_rom_log),
+        BOOT_TEST(test_precondition_rng),
         BOOT_TEST(test_early_boot_abort),
         BOOT_TEST(test_late_boot_error),
         BOOT_TEST(test_lockdown_error),

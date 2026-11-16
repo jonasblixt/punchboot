@@ -422,6 +422,7 @@ static void test_status(void **state)
     assert_true(status.wdog_armed);
     assert_int_equal(status.crypto_engine, PLAT_CRYPTO_ENGINE_OK);
     assert_false(status.rom_log);
+    assert_int_equal(status.rng, PLAT_RNG_NONE);
 }
 
 /* platform.md 2.2, 2.3 (F-248): a watchdog the SCFW didn't arm isn't the

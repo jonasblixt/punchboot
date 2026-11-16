@@ -319,6 +319,7 @@ void plat_get_status(struct plat_status *status)
     status->wdog_armed = false;
     status->crypto_engine = PLAT_CRYPTO_ENGINE_NONE;
     status->rom_log = false;
+    status->rng = PLAT_RNG_NONE;
 }
 
 int plat_lockdown(void)

@@ -381,6 +381,7 @@ void plat_get_status(struct plat_status *status)
 #endif
     status->crypto_engine = crypto_engine;
     status->rom_log = false;
+    status->rng = PLAT_RNG_NONE; /* The SECO's (plat-imx.md 4.4) */
 }
 
 /*

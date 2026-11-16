@@ -16,13 +16,14 @@
 #define FAKE_US_TICK_DEFAULT 0x12345678
 
 /* A platform where nothing failed: no TrustZone, the watchdog armed, a
- * crypto engine that works, the ROM's logs found */
+ * crypto engine that works, the ROM's logs found, the RNG instantiated */
 #define FAKE_PLAT_STATUS_DEFAULT                \
     {                                           \
         .tz_dram_filter = PLAT_TZ_DRAM_NONE,    \
         .wdog_armed = true,                     \
         .crypto_engine = PLAT_CRYPTO_ENGINE_OK, \
         .rom_log = true,                        \
+        .rng = PLAT_RNG_OK,                     \
     }
 
 /* Value returned by the next plat_get_us_tick() */
