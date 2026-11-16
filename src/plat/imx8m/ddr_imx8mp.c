@@ -20,6 +20,7 @@
  * i.MX8MQ.
  */
 
+#include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <plat/imx8m/clock_imx8mp.h>
@@ -84,8 +85,14 @@ static void clk_root_set(unsigned int root, uint32_t mux_div)
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(root), mux_div);
 }
 
-static void dram_pll_init(const struct dram_pll_setting *pll)
+/* The PLL's lock, bounded (F-102): on the 8MP EVK it took 500 us (log
+ * 2026-11-16), 10 ms */
+#define DRAM_PLL_LOCK_TIMEOUT_us 10000
+
+static int dram_pll_init(const struct dram_pll_setting *pll)
 {
+    struct pb_timeout to;
+
     /* Output from the reference while the PLL is held in reset */
     mmio_clrsetbits_32(IMX8MP_DRAM_PLL_GNRL_CTL, 0, PLL14XX_BYPASS);
     mmio_clrsetbits_32(IMX8MP_DRAM_PLL_GNRL_CTL, PLL14XX_RST, 0);
@@ -95,10 +102,45 @@ static void dram_pll_init(const struct dram_pll_setting *pll)
 
     mmio_clrsetbits_32(IMX8MP_DRAM_PLL_GNRL_CTL, 0, PLL14XX_RST);
 
-    while (!(mmio_read_32(IMX8MP_DRAM_PLL_GNRL_CTL) & PLL14XX_LOCK))
-        ;
+    pb_timeout_init_us(&to, DRAM_PLL_LOCK_TIMEOUT_us);
+
+    while (!(mmio_read_32(IMX8MP_DRAM_PLL_GNRL_CTL) & PLL14XX_LOCK)) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("The DRAM PLL doesn't lock");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 
     mmio_clrsetbits_32(IMX8MP_DRAM_PLL_GNRL_CTL, PLL14XX_BYPASS, 0);
+
+    return PB_OK;
+}
+
+/*
+ * DDRMIX through the 8M Plus's GPC (RM 5.2.10.37 and .72): mapped to the
+ * A53s, then its power up request, which clears when the domain is up. The
+ * 8MQ's registers at 0x303A00EC and 0x303A00F8 are something else here
+ * (F-110). DDRMIX is powered after reset, so the request ends at once
+ */
+#define IMX8MP_GPC_DDRMIX_TIMEOUT_us 1000
+
+int imx8m_ddr_soc_power_up(void)
+{
+    struct pb_timeout to;
+
+    mmio_clrsetbits_32(IMX8MP_GPC_PGC_CPU_A53_MAPPING, 0, GPC_A53_MAPPING_DDRMIX);
+    mmio_clrsetbits_32(IMX8MP_GPC_PU_PGC_SW_PUP_REQ, 0, GPC_PU_DDRMIX);
+
+    pb_timeout_init_us(&to, IMX8MP_GPC_DDRMIX_TIMEOUT_us);
+
+    while (mmio_read_32(IMX8MP_GPC_PU_PGC_SW_PUP_REQ) & GPC_PU_DDRMIX) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("DDRMIX power up timed out");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
 }
 
 int imx8m_ddr_soc_set_clock(unsigned int drate)
@@ -106,7 +148,11 @@ int imx8m_ddr_soc_set_clock(unsigned int drate)
     for (unsigned int i = 0; i < ARRAY_SIZE(dram_pll_settings); i++) {
         if (dram_pll_settings[i].drate == drate) {
             clk_root_set(DRAM_APB_CLK_ROOT, DRAM_APB_CLK_PLL);
-            dram_pll_init(&dram_pll_settings[i]);
+            int rc = dram_pll_init(&dram_pll_settings[i]);
+
+            if (rc != PB_OK)
+                return rc;
+
             mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_CLR(DRAM_SEL_CFG), DRAM_SEL_CFG_BYPASS);
             return PB_OK;
         }
