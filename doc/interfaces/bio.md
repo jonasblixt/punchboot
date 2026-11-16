@@ -86,8 +86,8 @@ A partition table makes partitions with `bio_allocate_parent()` (section 4). A p
 One per device, from the driver: 512 bytes on MMC and SD, the erase sector on a NOR (4 KiB on
 the RT1060 EVK's).
 
-- **A user asks `bio_block_size()`** and never assumes 512. **Not yet in the code (F-283)**:
-  the GPT has 512 written out in four places.
+- **A user asks `bio_block_size()`** and never assumes 512. The GPT takes blocks of 512 to
+  4096 bytes: the protective MBR and each header one block, the array whole blocks (F-283).
 - **The largest block is `CONFIG_BIO_MAX_BLOCK_SIZE`** (4 KiB), the size of the core's block
   buffer (3.1). A device with a larger one is refused at registration.
 - A format that puts something at a fixed byte position (bpak's header in a partition's last
@@ -437,8 +437,8 @@ The partition tables:
 | Requirement                     | GPT              | Static | Finding |
 | ------------------------------- | ---------------- | ------ | ------- |
 | Every entry checked             | yes (`test_gpt`) | partly |         |
-| The device's block size         | no: 512 in four  | yes    | F-283   |
-|                                 | places           |        |         |
+| The device's block size         | yes, 512 to 4096 | yes    | F-283   |
+|                                 | (`test_gpt`)     |        |         |
 | Repair writes only the bad copy | yes (`test_gpt`) | n/a    |         |
 | An installed table in effect    | yes (`test_gpt`, | n/a    |         |
 |                                 | `test_bio`)      |        |         |
@@ -471,6 +471,4 @@ flash can't be made to fail a read: they skip that case.
 
 ## 9. Not yet in the code
 
-| Finding | What                       |
-| ------- | -------------------------- |
-| F-283   | The block size asked (2.3) |
+Nothing: the contract is in the code (2026-11-16).
