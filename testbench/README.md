@@ -456,8 +456,9 @@ The `Image` isn't compressed on arm64: pb reads the eMMC (HS200) at 173 MiB/s
 and hashes with the CAAM at 313 MiB/s, so the 15 MB `boot.bpak` loads and
 verifies in ~100 ms (`../scripts/boot-time-image -s 10,15 -l 0x80200000`), the
 ECDSA P-256 signature in the CAAM 1.3 ms; ~6 ms per MB of `Image`.
-`boot-time-image`'s reset timing doesn't work on the MEK yet: after a reset the
-host takes ~22 s to enumerate it (F-159).
+`boot-time-image -c` on the MEK (2026-11-16, since F-172's fix it enumerates in about 1 s):
+the reset to pb's banner 170.75 ms, pb's init to `boot_load()` 187 ms, 171 ms of which are the
+eMMC's CMD1 loop after pb's CMD0 (F-464).
 
 ## Adding a board
 

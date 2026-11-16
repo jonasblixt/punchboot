@@ -938,6 +938,12 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `clear_halt`) gets a stall. CLEAR_FEATURE(HALT) resets the data toggle, which is each controller's: | | |
 | | | answering it without that would lose the next packet. The other four the stack could answer alone. | | |
 | | | Also seen: a zero length and a 1024 byte packet where a command is read, each board recovers | | |
+| F-464 | `src/drivers/mmc/mmc_emmc.c`, the MEK | Boot time. On the MEK pb's init to `boot_load()` is | Seen (board) | open |
+| | | 187 ms (`boot-time-image -c`, medians of 5, 2026-11-16), of which 171 ms are the eMMC's CMD1 | | |
+| | | loop after pb's CMD0: the card answers busy that long (pb polls every 1 ms). The 8MP EVK's eMMC | | |
+| | | takes 6.7 ms for the same. The ROM had the card up already: taking it over in the state the ROM | | |
+| | | left it (TRAN, the ROM's RCA and bus mode) instead of CMD0 would save the 171 ms there, at the | | |
+| | | cost of an init path that depends on the ROM. For Jonas. The reset to pb's banner is 170.75 ms | | |
 
 ## Dependencies / vendored code
 
