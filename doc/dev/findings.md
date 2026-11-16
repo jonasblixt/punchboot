@@ -676,13 +676,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | halted isn't asked again; a flush that doesn't complete fails the init. `test_caam_jr_reset`. On the | | |
 | | | MEK, the 8MP EVK and jiffy: resets, auth, 15 MB verified, Linux and the verify after its `reboot`. | | |
 | | | Left: the 8M Mini SRM's verify PDB (no 8M Mini) | | |
-| F-411 | `src/boot/dtb.c`, `src/lib/fdt` | A device tree part whose header lies about | Verified (run, host) | open |
-| | | more than `totalsize` reads outside its part: only the magic, the version and `totalsize` are | | |
-| | | checked, and `fdt_open_into()` trusts `off_dt_struct`, `off_dt_strings`, `off_mem_rsvmap` and the | | |
-| | | two sizes. Of 200 000 single field lies 45 271 read outside the part (memory the payload's hash | | |
-| | | doesn't cover) and one wrote 44 KiB below its destination. Signed input only, F-065's class; the | | |
-| | | image handover has it in place. Refusing such a tree refuses an image a release took: a decision | | |
-| | | (D-008), for Jonas. Found by the review of F-259 | | |
 | F-423 | `error.h`, `bio.md` 4, `cm_main.c`, `command-mode.md` 4.5 | Low, from command mode's | Reported (read) | open |
 | | | second package. `include/pb-tools/error.h` declares `pb_error_string()`, which nothing defines. | | |
 | | | `bio.md` 4 doesn't say which flags a new partition of an installed table starts with (the code: | | |

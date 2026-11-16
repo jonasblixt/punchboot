@@ -2197,6 +2197,16 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | first. Left: nothing of the row that isn't a choice of Jonas's | | |
 | | | 2026-11-16 (`77c7876e`, Jonas: every command stops): with several devices and no `-u` no command | | |
 | | | connects; it lists the devices and asks for `-u` (`test_cli.py`) | | |
+| F-411 | `src/boot/dtb.c`, `src/lib/fdt` | A device tree part whose header lies about | Verified (run, host) | fixed |
+| | | more than `totalsize` reads outside its part: only the magic, the version and `totalsize` are | | |
+| | | checked, and `fdt_open_into()` trusts `off_dt_struct`, `off_dt_strings`, `off_mem_rsvmap` and the | | |
+| | | two sizes. Of 200 000 single field lies 45 271 read outside the part (memory the payload's hash | | |
+| | | doesn't cover) and one wrote 44 KiB below its destination. Signed input only, F-065's class; the | | |
+| | | image handover has it in place. Refusing such a tree refuses an image a release took: a decision | | |
+| | | (D-008), for Jonas. Found by the review of F-259 | | |
+| | | 2026-11-16 (`e86c97c9`, D-091, Jonas: "Refuse it"): `dtb.c` checks every header block inside the | | |
+| | | tree, the reserve map's end, version 17, before the tree is read; `test_image`'s lies are refused. On | | |
+| | | jiffy, the MEK and the 8MP EVK: Linux | | |
 
 ## Dependencies / vendored code
 
