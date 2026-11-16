@@ -48,7 +48,11 @@ static int usdhc_emmc_setup(void)
         IMX6UL_PIN(NAND_CE0_B, MUX_ALT(1), IMX_PAD_KEEP), /* DATA5 */
         IMX6UL_PIN(NAND_CE1_B, MUX_ALT(1), IMX_PAD_KEEP), /* DATA6 */
         IMX6UL_PIN(NAND_CLE, MUX_ALT(1), IMX_PAD_KEEP), /* DATA7 */
-        IMX6UL_PIN(NAND_DQS, MUX_ALT(1), IMX_PAD_KEEP), /* RESET */
+        /* RESET: the eMMC's RST_n is NAND_WP_B on jiffy R1 (NAND_DQS isn't
+         * connected; its ALT1 is CSI_FIELD, F-079). The controller drives it
+         * high (SYS_CTRL IPP_RST_N resets to 1), and the card ignores it
+         * while RST_N_FUNCTION is 0, which pb never writes */
+        IMX6UL_PIN(NAND_WP_B, MUX_ALT(1), IMX_PAD_KEEP),
     };
 
     imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
