@@ -67,37 +67,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | partly fixed |
 | | | revoke one, although HAB has `SRK_REVOKE` there too. `work-3.0.0-plat`: it | | |
 | | | reads `SRK_REVOKE` (`imx_hab_fuses.c`); the EVK board doesn't revoke or lock. | | |
-| F-205 | USB, low | cdns3: `setup_pkt` shares its cache line with boot.c's callbacks and digest | Reported | open |
-| | | (invalidated per SETUP, F-081 class); `trb[128]` and `align_buffer` bounds; four waits without timeout. | | |
-| | | dwc3 rounds an OUT TRB up to the max packet: up to 511 bytes past a part in a RAM boot. | | |
-| | | `imx_ci_udc.c:193`: `align_length` never cleared (F-131). `imx_salvo_phy.c`: register table from U-Boot | | |
-| | | (GPL-2.0+) in a BSD file (F-108 class). | | |
-| | | 2026-11-13: `align_length` is done with F-131. Still there, and certain by reading: a cdns3 transfer | | |
-| | | of exactly 128 TRBs writes `trb[128]`, and `ep0_xfer_start()` copies into the 512 byte | | |
-| | | `align_buffer` unbounded | | |
-| | | 2026-11-14 (`e46baba4`): the cdns3's setup packet and rings own their lines. Left: the bulk ring's | | |
-| | | and the bounce buffer's bounds, four waits without a timeout | | |
-| | | 2026-11-14 (`660ee49d`): the cdns3's bulk ring takes 127 TRBs at most (15.75 MiB), a longer transfer | |
-| | | is `-PB_ERR_PARAM`; a reply on endpoint 0 longer than the 512 byte bounce buffer is refused; the | |
-| | | core's three waits are bounded (`IN_RST` 100 ms, the status stage 50 ms by USB 2.0 9.2.6.4, `DFLUSH` | |
-| | | 1 ms), the glue's is F-281's; a cancel whose flush times out refuses the next bulk transfer until | |
-| | | `init`. Bounds from Linux 6.1, no manual. Left: the DWC3's OUT rounding, the salvo PHY's licence. | |
-| | | Not run on a board | |
-| | | 2026-11-16 (`ce6deb95`): the DWC3's OUT rounding: the rest of the last packet goes to a bounce | | |
-| | | buffer in a second, chained TRB (CSP=0, 8MP RM Table 11-1), nothing past `length`; a test has a | | |
-| | | host that sends its last packet whole. On the 8MP EVK: odd-sized writes 7 of 7, `boot bpak` of 15 MB | | |
-| | | and Linux. Left: the salvo PHY's licence; the cdns3's past `length` unverified | | |
-| | | 2026-11-16 (`cae67f28`): bytes past `length` in the bounce TRB are `-PB_ERR_IO`. Unverified on a | | |
-| | | board: a short read's count when a short packet ends inside the first TRB with a bounce TRB | | |
-| | | queued (the 8M SPL's fastboot, an odd last chunk and a host that sends less) | | |
-| | | 2026-11-16, on the MEK (`f470ba88`): the cdns3 writes nothing past `length`: a 700 byte buffer | | |
-| | | sent as two whole packets (324 bytes of 0xaa after it) left the buffer's bytes after 700 as they | | |
-| | | were (a 1024 byte `STREAM_WRITE_BUFFER` and `part verify`). The extra is dropped without an error, | | |
-| | | where the ChipIdea and the DWC3 fail it. Left: the salvo PHY's licence | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: the salvo PHY's init rewritten as pb's own | | |
-| | | code around the registers' offsets and values (hardware facts), without "copied from u-boot", and | | |
-| | | where the values come from. U-Boot's `cdns3-usb-phy.c` and Linux's `phy-cadence-salvo.c` are GPL-2.0+ | | |
-| | | (NXP 2019-2020) | | |
 | F-210 | arch/plat, low | v7m: CACR.FORCEWT never cleared at the handover, VTOR never set to pb's | Reported | open |
 | | | table. 6UL: PLL1 raised without writing CACRR.ARM_PODF (F-148 class), SRSR never cleared (stale reset | | |
 | | | reason). Exception policy differs per arch, v8 handlers run on the faulting stack and hang by default. | | |
@@ -481,17 +450,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | without a delivery, which is what it had | | |
 | | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): doesn't gate: the TF-A delivery ships untested, with | | |
 | | | a release note | | |
-| F-300 | `src/board/imx8mevk/board.c` | The board has a partition table and neither | Verified (code) | open |
-| | | a boot source policy nor a handover: `board_setup()` fails on the handover, nothing is bootable | | |
-| | | and nothing boots, by `boot bpak` neither. Its defconfig has `BOOT_POLICY_AB` and `BOOT_LINUX`. | | |
-| | | With F-033: finish the board (a policy, `BOOT_POLICY_AB()` or `BOOT_POLICY_FIXED()`, and a | | |
-| | | handover) or drop it. `board.md` 2.5 and 3: both are mandatory. Since F-249 they are checked: | | |
-| | | `board_setup()` fails on the policy's check, one step earlier, with `-PB_ERR_PARAM` as before | | |
-| | | and with the RoT, the SLC, `init()` and the table set up as before. Its command mode is what | | |
-| | | it was: the table can be installed and written, nothing boots. The log names both. It is the | | |
-| | | one board that fails a check of `board.md` 3, and why the check isn't at the start (F-335) | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: imx8mevk gets the 8MP EVK's setup (the A/B | | |
-| | | policy, the TF-A delivery), built only | | |
 | F-301 | `src/board/host/board.c` | The host board's boot source policy is an object | Verified (code) | open |
 | | | its board file builds by hand: A/B's functions, with an init that also sets `BIO_FLAG_BOOTABLE` | | |
 | | | on the flash's two partitions, which only `boot part` boots. `board.md` 2.5: a policy marks its | | |

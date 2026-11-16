@@ -2411,6 +2411,62 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | start at `_pb_end` and `_buffers_end`; jiffy's, the 8X boards' and the 8M boards' regions use them, | | |
 | | | so what pb doesn't use of `PB_SIZE` is loadable again and a pb that grows takes its room from the | | |
 | | | region (`board.md` 2.9). Linux on jiffy, the MEK and the 8MP EVK | | |
+| F-205 | USB, low | cdns3: `setup_pkt` shares its cache line with boot.c's callbacks and digest | Reported | fixed |
+| | | (invalidated per SETUP, F-081 class); `trb[128]` and `align_buffer` bounds; four waits without timeout. | | |
+| | | dwc3 rounds an OUT TRB up to the max packet: up to 511 bytes past a part in a RAM boot. | | |
+| | | `imx_ci_udc.c:193`: `align_length` never cleared (F-131). `imx_salvo_phy.c`: register table from U-Boot | | |
+| | | (GPL-2.0+) in a BSD file (F-108 class). | | |
+| | | 2026-11-13: `align_length` is done with F-131. Still there, and certain by reading: a cdns3 transfer | | |
+| | | of exactly 128 TRBs writes `trb[128]`, and `ep0_xfer_start()` copies into the 512 byte | | |
+| | | `align_buffer` unbounded | | |
+| | | 2026-11-14 (`e46baba4`): the cdns3's setup packet and rings own their lines. Left: the bulk ring's | | |
+| | | and the bounce buffer's bounds, four waits without a timeout | | |
+| | | 2026-11-14 (`660ee49d`): the cdns3's bulk ring takes 127 TRBs at most (15.75 MiB), a longer transfer | |
+| | | is `-PB_ERR_PARAM`; a reply on endpoint 0 longer than the 512 byte bounce buffer is refused; the | |
+| | | core's three waits are bounded (`IN_RST` 100 ms, the status stage 50 ms by USB 2.0 9.2.6.4, `DFLUSH` | |
+| | | 1 ms), the glue's is F-281's; a cancel whose flush times out refuses the next bulk transfer until | |
+| | | `init`. Bounds from Linux 6.1, no manual. Left: the DWC3's OUT rounding, the salvo PHY's licence. | |
+| | | Not run on a board | |
+| | | 2026-11-16 (`ce6deb95`): the DWC3's OUT rounding: the rest of the last packet goes to a bounce | | |
+| | | buffer in a second, chained TRB (CSP=0, 8MP RM Table 11-1), nothing past `length`; a test has a | | |
+| | | host that sends its last packet whole. On the 8MP EVK: odd-sized writes 7 of 7, `boot bpak` of 15 MB | | |
+| | | and Linux. Left: the salvo PHY's licence; the cdns3's past `length` unverified | | |
+| | | 2026-11-16 (`cae67f28`): bytes past `length` in the bounce TRB are `-PB_ERR_IO`. Unverified on a | | |
+| | | board: a short read's count when a short packet ends inside the first TRB with a bounce TRB | | |
+| | | queued (the 8M SPL's fastboot, an odd last chunk and a host that sends less) | | |
+| | | 2026-11-16, on the MEK (`f470ba88`): the cdns3 writes nothing past `length`: a 700 byte buffer | | |
+| | | sent as two whole packets (324 bytes of 0xaa after it) left the buffer's bytes after 700 as they | | |
+| | | were (a 1024 byte `STREAM_WRITE_BUFFER` and `part verify`). The extra is dropped without an error, | | |
+| | | where the ChipIdea and the DWC3 fail it. Left: the salvo PHY's licence | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: the salvo PHY's init rewritten as pb's own | | |
+| | | code around the registers' offsets and values (hardware facts), without "copied from u-boot", and | | |
+| | | where the values come from. U-Boot's `cdns3-usb-phy.c` and Linux's `phy-cadence-salvo.c` are GPL-2.0+ | | |
+| | | (NXP 2019-2020) | | |
+| | | 2026-11-17 (`96fee38b`): pb's own table of register numbers and values, in named groups, the same 69 | | |
+| | | writes in the same order; the header says where the values come from, no "copied from u-boot". | | |
+| | | `test_imx_salvo_phy`. Found while checking it: F-468. The MEK: USB3, 32 MiB written and verified, | | |
+| | | Linux | | |
+| F-300 | `src/board/imx8mevk/board.c` | The board has a partition table and neither | Verified (code) | fixed |
+| | | a boot source policy nor a handover: `board_setup()` fails on the handover, nothing is bootable | | |
+| | | and nothing boots, by `boot bpak` neither. Its defconfig has `BOOT_POLICY_AB` and `BOOT_LINUX`. | | |
+| | | With F-033: finish the board (a policy, `BOOT_POLICY_AB()` or `BOOT_POLICY_FIXED()`, and a | | |
+| | | handover) or drop it. `board.md` 2.5 and 3: both are mandatory. Since F-249 they are checked: | | |
+| | | `board_setup()` fails on the policy's check, one step earlier, with `-PB_ERR_PARAM` as before | | |
+| | | and with the RoT, the SLC, `init()` and the table set up as before. Its command mode is what | | |
+| | | it was: the table can be installed and written, nothing boots. The log names both. It is the | | |
+| | | one board that fails a check of `board.md` 3, and why the check isn't at the start (F-335) | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: imx8mevk gets the 8MP EVK's setup (the A/B | | |
+| | | policy, the TF-A delivery), built only | | |
+| | | 2026-11-17 (`8f6211f1`, Jonas, D-092): `BOOT_POLICY_AB()`, the image handover on ttymxc0, | | |
+| | | `BOOT_DELIVERY_TFA()` and the 8MQ's BL31 region, `CONFIG_BOOT_ATF`; `board.md`'s table. Built only | | |
+| F-468 | `src/drivers/usb/imx_salvo_phy.c` | The salvo PHY's VCOCAL_ITER_TMR | Verified (U-Boot, Cadence) | fixed |
+| | | The i.MX8X's USB3 PHY's VCO calibration iteration timer, CMN_PLL0_VCOCAL_ITER_TMR, was written at | | |
+| | | register 0x0088 (`(0x0088 * 4)`), which is CMN_PLL0_VCOCAL_PLLCNT_START in Cadence's PHY maps; the | | |
+| | | timer stayed at its reset value and 0x0088 got 0x0018. NXP's driver for the PHY (U-Boot's | | |
+| | | `drivers/phy/cdns3-usb-phy.c`) and Cadence's Torrent and the 8QM's HDMI PHY have the timer at | | |
+| | | 0x0085. Since the driver came in (`bf965ce9`, 2023). Found by the rewrite of F-205 | | |
+| | | 2026-11-17 (`fd7cbda5`): 0x0085. The MEK: USB3 command mode, a 32 MiB write and verify (2.1 s), | | |
+| | | three resets, Linux | | |
 
 ## Dependencies / vendored code
 
