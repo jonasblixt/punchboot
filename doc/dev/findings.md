@@ -916,6 +916,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | written out then: a putc bounded through `pb_timeout_*()` would read a gated timer. A counted | | |
 | | | bound, or a console that starts after the timer | | |
 | F-463 | `src/drivers/usb/usbd.c`, | Low, a contract question. The stack answers only | Verified | open |
+| | | 2026-11-16 (`04fa339b`, `61b8e600`, D-090, Jonas: "Answer them"): the three GETs answered, on the | | |
+| | | MEK, the 8MP EVK and the RT1060; a reply at most wLength and wLength 0 without a data stage (a | | |
+| | | bugfix). Left: `CLEAR_FEATURE(ENDPOINT_HALT)`, which resets the endpoint's data toggle: a controller | | |
+| | | operation in the ChipIdea, the DWC3 and the cdns3 | | |
 | | `usb.md` 3.2 | | (boards) | |
 | | | `usb.md` 3.2's requests and stalls the rest, as written. USB 2.0 9.4 has a configured device answer | | |
 | | | more: GET_CONFIGURATION, GET_INTERFACE, GET_STATUS of the interface and of an endpoint, and | | |
