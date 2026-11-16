@@ -25,5 +25,10 @@ BR2_PACKAGE_OPTEE_TEST=y
 # The kernel's TEE driver, on top of jiffy's fragments
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/linux.fragment $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/jiffy/linux.fragment $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/jiffy/linux-optee.fragment"
 
+# tee-supplicant keeps OP-TEE's REE file system in /data/tee, and without it
+# no TA loads (F-465): the root is read only, so /data is /tmp, and secure
+# storage doesn't outlive a boot
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/rootfs-overlay $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/jiffy/optee-overlay"
+
 # punchboot with the delivery
 BR2_TARGET_PUNCHBOOT_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/jiffy/punchboot-optee.fragment"
