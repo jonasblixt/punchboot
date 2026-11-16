@@ -830,6 +830,14 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | takes 6.7 ms for the same. The ROM had the card up already: taking it over in the state the ROM | | |
 | | | left it (TRAN, the ROM's RCA and bus mode) instead of CMD0 would save the 171 ms there, at the | | |
 | | | cost of an init path that depends on the ROM. For Jonas. The reset to pb's banner is 170.75 ms | | |
+| F-466 | `src/drivers/fuse/imx_ocotp.c`, the 8MQ | On the i.MX8MQ B1 pb reads no fuse | Reported | open |
+| | | right: `imx_ocotp_read()` reads the OTP array directly (READ_CTRL, READ_FUSE_DATA), and on the 8MQ | | |
+| | | from rev 2.1 READ_FUSE_DATA always returns the magic 0xff0055aa (U-Boot `b3cf86c86bf`, "reading from | | |
+| | | fuse box is not allowed", which turned `fuse_sense()` off for it). pb reads every 8M fuse that way: | | |
+| | | the unique id (the device's UUID would be the same on every B1), SEC_CONFIG, the SRK hash and the | | |
+| | | revocations (the SLC's state). The shadow registers (`OCOTP_BANKn_WORDm`) read the fuses on every 8M. | | |
+| | | The pico8ml's UUID (`c12f1c67`) isn't the one the magic gives (`cfb7fd63`, computed), so it is likely | | |
+| | | an older revision; unread. From the check of F-166's read back (Jonas: how does U-Boot do it) | | |
 
 ## Dependencies / vendored code
 
