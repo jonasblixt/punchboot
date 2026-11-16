@@ -139,6 +139,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-16 (`cae67f28`): bytes past `length` in the bounce TRB are `-PB_ERR_IO`. Unverified on a | | |
 | | | board: a short read's count when a short packet ends inside the first TRB with a bounce TRB | | |
 | | | queued (the 8M SPL's fastboot, an odd last chunk and a host that sends less) | | |
+| | | 2026-11-16, on the MEK (`f470ba88`): the cdns3 writes nothing past `length`: a 700 byte buffer | | |
+| | | sent as two whole packets (324 bytes of 0xaa after it) left the buffer's bytes after 700 as they | | |
+| | | were (a 1024 byte `STREAM_WRITE_BUFFER` and `part verify`). The extra is dropped without an error, | | |
+| | | where the ChipIdea and the DWC3 fail it. Left: the salvo PHY's licence | | |
 | F-210 | arch/plat, low | v7m: CACR.FORCEWT never cleared at the handover, VTOR never set to pb's | Reported | open |
 | | | table. 6UL: PLL1 raised without writing CACRR.ARM_PODF (F-148 class), SRSR never cleared (stale reset | | |
 | | | reason). Exception policy differs per arch, v8 handlers run on the faulting stack and hang by default. | | |
