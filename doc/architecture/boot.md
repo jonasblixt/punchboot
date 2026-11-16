@@ -288,9 +288,9 @@ The A/B state is `struct pb_boot_state` (`include/boot/pb_state_blob.h`), 512 by
 partitions: the primary is written first, the backup second. Its format is fixed (section 7): an
 extension takes a field from `rz[]`, where zero means today's behaviour. The four board registers
 (`board_regs[]`) are the board's, and part of the format. `pbstate` is the OS's side
-and isn't Linux specific. **Not yet in the code (roadmap, F-180)**: one
+and isn't Linux specific. **Not yet in the code (roadmap)**: one
 freestanding core shared by pb and `pbstate` (Linux, Zephyr, bare metal; the simple target's copy
-goes), the other policies in `pbstate`, the fixes of the A/B review.
+goes), the other policies in `pbstate`.
 
 ## 4. Load and verify
 
@@ -700,5 +700,4 @@ Like the wire (D-008, `compatibility.md`):
 | Finding | What                                                                         |
 | ------- | ---------------------------------------------------------------------------- |
 | F-259   | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
-| F-180   | The A/B review's fixes, `pbstate`                                            |
 | F-441   | The delivery through OP-TEE (5.7): run on jiffy, from the test bench         |
