@@ -64,15 +64,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `zero`: a second, empty TRB or dTD in the data stage) and a test build on three boards | | |
 | F-153 | Linux 6.18 + TF-A v2.12 on the i.MX8M Plus | Linux powers the audio mix through the GPC itself, which leaves its AIPS5 bridge at the reset defaults (TF-A configures AIPS5 only when its own SiP call powers the domain): the first access (audio mix clock driver, MU2) takes an SError. Not pb; U-Boot doesn't set AIPS5 either. Newer kernels have `drivers/bus/imx-aipstz.c` (MPR0 = 0x77777777 on probe and runtime resume) with a node in `imx8mp.dtsi`. | Verified (EVK) | worked around: the test bench's DTS disables AIPS5 (`59569a10`) |
 | F-155 | i.MX8M Plus EVK, `30be0000.ethernet` (FEC) | The FEC's PHY (address 1, reset `gpio4 2`) doesn't answer on MDIO (`MDIO device at address 1 is missing`, `Unable to connect to phy`), with the upstream DTS. The EQOS port probes. No cable was attached. | Seen on the board | open |
-| F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | partly fixed |
-| | | platform: the 6UL locks only from CONFIGURATION, the 8X from any state. No | | |
-| | | platform reads the fuses back after writing them. The rules belong in | | |
-| | | `src/slc.c`. `work-3.0.0-plat`: they are; still no read-back (the 8X's | | |
-| | | life cycle may only change on reset). | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: a direct read of each word after its write, on | | |
-| | | the 6UL and the 8M, and a bit the write set that isn't there fails the command; the 8X says why it | | |
-| | | can't (its value after a reset). U-Boot reads nothing back; the 6UL RM 35.3.1.2 reads the array | | |
-| | | directly, the shadows lag until RELOAD_SHADOWS. The 8MQ B1 with F-466 | | |
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | partly fixed |
 | | | revoke one, although HAB has `SRK_REVOKE` there too. `work-3.0.0-plat`: it | | |
 | | | reads `SRK_REVOKE` (`imx_hab_fuses.c`); the EVK board doesn't revoke or lock. | | |
@@ -844,16 +835,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | takes 6.7 ms for the same. The ROM had the card up already: taking it over in the state the ROM | | |
 | | | left it (TRAN, the ROM's RCA and bus mode) instead of CMD0 would save the 171 ms there, at the | | |
 | | | cost of an init path that depends on the ROM. For Jonas. The reset to pb's banner is 170.75 ms | | |
-| F-466 | `src/drivers/fuse/imx_ocotp.c`, the 8MQ | On the i.MX8MQ B1 pb reads no fuse | Reported | open |
-| | | right: `imx_ocotp_read()` reads the OTP array directly (READ_CTRL, READ_FUSE_DATA), and on the 8MQ | | |
-| | | from rev 2.1 READ_FUSE_DATA always returns the magic 0xff0055aa (U-Boot `b3cf86c86bf`, "reading from | | |
-| | | fuse box is not allowed", which turned `fuse_sense()` off for it). pb reads every 8M fuse that way: | | |
-| | | the unique id (the device's UUID would be the same on every B1), SEC_CONFIG, the SRK hash and the | | |
-| | | revocations (the SLC's state). The shadow registers (`OCOTP_BANKn_WORDm`) read the fuses on every 8M. | | |
-| | | The pico8ml's UUID (`c12f1c67`) isn't the one the magic gives (`cfb7fd63`, computed), so it is likely | | |
-| | | an older revision; unread. From the check of F-166's read back (Jonas: how does U-Boot do it) | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates, with F-166: on the 8MQ B1 pb's fuse reads go | | |
-| | | to the shadow registers, reloaded after a write | | |
 
 ## Dependencies / vendored code
 

@@ -2361,6 +2361,42 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | To write into 5.5 and 5.6 | | |
 | | | 2026-11-16 (`16279942`): `boot.md` 5.5 says both, and 5.6's table and its absent entry follow: the | | |
 | | | released properties as released, the new ones removed without a value; no room is in pb's log only | | |
+| F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | fixed |
+| | | platform: the 6UL locks only from CONFIGURATION, the 8X from any state. No | | |
+| | | platform reads the fuses back after writing them. The rules belong in | | |
+| | | `src/slc.c`. `work-3.0.0-plat`: they are; still no read-back (the 8X's | | |
+| | | life cycle may only change on reset). | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: a direct read of each word after its write, on | | |
+| | | the 6UL and the 8M, and a bit the write set that isn't there fails the command; the 8X says why it | | |
+| | | can't (its value after a reset). U-Boot reads nothing back; the 6UL RM 35.3.1.2 reads the array | | |
+| | | directly, the shadows lag until RELOAD_SHADOWS. The 8MQ B1 with F-466 | | |
+| | | 2026-11-16 (`6f268b85`): `imx_ocotp_write()` reads the word back from the array after the postamble, | | |
+| | | a bit it set that isn't there is `-PB_ERR_IO` (`platform.md` 4.2); on the 6UL, the RT and the 8M, | | |
+| | | the 8MQ B1 through its reloaded shadows (F-466). The 8X says why it doesn't (`fusebox.c`, | | |
+| | | `plat-imx.md` 4.1). The register model's tests; not run on a board: no fuse is written on the | | |
+| | | bench's boards | | |
+| F-466 | `src/drivers/fuse/imx_ocotp.c`, the 8MQ | On the i.MX8MQ B1 pb reads no fuse | Reported | fixed |
+| | | right: `imx_ocotp_read()` reads the OTP array directly (READ_CTRL, READ_FUSE_DATA), and on the 8MQ | | |
+| | | from rev 2.1 READ_FUSE_DATA always returns the magic 0xff0055aa (U-Boot `b3cf86c86bf`, "reading from | | |
+| | | fuse box is not allowed", which turned `fuse_sense()` off for it). pb reads every 8M fuse that way: | | |
+| | | the unique id (the device's UUID would be the same on every B1), SEC_CONFIG, the SRK hash and the | | |
+| | | revocations (the SLC's state). The shadow registers (`OCOTP_BANKn_WORDm`) read the fuses on every 8M. | | |
+| | | The pico8ml's UUID (`c12f1c67`) isn't the one the magic gives (`cfb7fd63`, computed), so it is likely | | |
+| | | an older revision; unread. From the check of F-166's read back (Jonas: how does U-Boot do it) | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates, with F-166: on the 8MQ B1 pb's fuse reads go | | |
+| | | to the shadow registers, reloaded after a write | | |
+| | | 2026-11-16 (`ef6dd2ca`): `IMX_OCOTP_READ_SHADOWS`, every read a shadow register's, a write reloads | | |
+| | | them before its read back; the 8M platform passes it on an 8MQ whose READ_FUSE_DATA is the magic out | | |
+| | | of reset (U-Boot's `get_cpu_rev()`). The changelog names the B1's new UUID. Not run on a B1 | | |
+| F-467 | `src/drivers/fuse/imx_ocotp.c`, the 8M Plus | The 8M Plus's OCOTP CTRL bits | Verified (RM, U-Boot) | fixed |
+| | | The i.MX8M Plus's HW_OCOTP_CTRL has ADDR in 8:0, BUSY at bit 9, ERROR at 10, RELOAD_SHADOWS at 11 | | |
+| | | (8MP RM 6.3.5.1.2; U-Boot's `mxc_ocotp.c` has them for `CONFIG_IMX8MP`); the driver took the 6UL's | | |
+| | | (BUSY 8, ERROR 9) on every SoC. On the 8M Plus it never waited for BUSY, took BUSY for ERROR and | | |
+| | | never saw an ERROR: a read that still ran was `-PB_ERR_IO`, a locked word's 0xBADABADA a value, and | | |
+| | | a write could start before the last one ended. Found by checking U-Boot's driver for F-466 | | |
+| | | 2026-11-16 (`51402cad`): `IMX_OCOTP_CTRL_8MP`, which the 8M platform passes for the 8M Plus; the | | |
+| | | register model runs the read and write tests in both layouts. The 8MP EVK reads the same UUID and | | |
+| | | life cycle, Linux to the login | | |
 
 ## Dependencies / vendored code
 
