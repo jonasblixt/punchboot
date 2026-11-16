@@ -422,7 +422,9 @@ what the code doesn't settle without the hardware.
 | reported                         | unplug where VBUS  |                     | speed, kept     | F-363   |
 |                                  | reaches it         |                     |                 |         |
 | OUT: nothing past `length`       | yes; an overflow   | yes, the last       | unverified      | F-205,  |
-|                                  | is an error        | packet bounces      |                 | F-137   |
+|                                  | is an error        | packet bounces; an  |                 | F-137   |
+|                                  |                    | overflow is an      |                 |         |
+|                                  |                    | error               |                 |         |
 | OUT: a short packet is an error  | yes                | yes                 | no              | F-137,  |
 |                                  |                    |                     |                 | F-287   |
 | A read of whole packets ends at  | yes (jiffy)        | yes (8MP EVK)       | yes (the MEK)   | F-280   |
