@@ -89,7 +89,8 @@ The keys (D-085, F-439, 2026-11-14):
   device before 3.0.0 reports none, which says nothing about its keys.
 - `SLC_REVOKE_KEY` on such a key answers `NOT_SUPPORTED` on every platform. The i.MX8X
   answered `INVALID_ARGUMENT`.
-- The build warns for a board key in such a slot.
+- The build warns for a board key in such a slot. On the i.MX8X such a key is refused: the
+  build stops, and the device treats it as revoked (D-092, F-429).
 
 Named commands (D-076, 2026-11-13):
 
@@ -189,6 +190,10 @@ The host tools (`pip install punchboot`):
 |                                      | verified an image in memory (D-048): a board that |       |
 |                                      | used that with a device tree has no equivalent    |       |
 |                                      | yet                                               |       |
+| On the i.MX8X: an image signed by a  | It booted: no revoke bit covers that slot, so the | D-092 |
+| key in a slot from 4 up              | key could never be revoked. Security comes before |       |
+|                                      | compatibility. The boards in the tree use slots 0 |       |
+|                                      | to 3                                              |       |
 | On the DXL EVK: an image without the | It booted: 2.x started the part `atf` and named   | F-295 |
 | part `kernel`                        | no BL33. The board in the tree now goes through   |       |
 |                                      | TF-A with `kernel` as BL33. Not run on a board    |       |

@@ -384,14 +384,14 @@ static void test_lock(void **state)
     assert_int_equal(scfw.forwards, 2);
 }
 
-/* The key state: SRK n is revoked by bit 8 + n of the revoke word. Slots
- * 4 to 31, past the four SRKs, read as not revoked; 32 and up are an error */
+/* The key state: SRK n is revoked by bit 8 + n of the revoke word. A key
+ * in a slot past the four SRKs is refused as revoked (D-092, F-429) */
 static void test_key_status(void **state)
 {
     struct rot_key key = { .id = 0xa90f9680, .slot = 0 };
     (void)state;
 
-    for (key.slot = 0; key.slot < 8; key.slot++)
+    for (key.slot = 0; key.slot < 4; key.slot++)
         assert_int_equal(imx8x_read_key_status(&key), PB_OK);
 
     scfw.fuses[IMX8X_FUSE_REVOKE] = 0xffff00ff & ~(1u << 9);
@@ -406,26 +406,20 @@ static void test_key_status(void **state)
     key.slot = 3;
     assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_KEY_REVOKED);
 
-    /* Bits 12-15 aren't SRKs: slot 4 is never revoked. Kept as released
-     * (v2.7.1 boots a key a board mapped past SRK3): an error here would
-     * refuse its images (F-429, D-008) */
-    scfw.fuses[IMX8X_FUSE_REVOKE] = 0xf000;
-    key.slot = 4;
-    assert_int_equal(imx8x_read_key_status(&key), PB_OK);
-    key.slot = 31;
-    assert_int_equal(imx8x_read_key_status(&key), PB_OK);
+    /* Slots 4 and up have no revoke bit: refused whatever the fuses say,
+     * without a read (v2.7.1 booted such a key; security before D-008).
+     * Bits 12-15 aren't SRKs, and no shift by 32 or more */
+    for (uint32_t revoke = 0; revoke < 2; revoke++) {
+        scfw.fuses[IMX8X_FUSE_REVOKE] = revoke ? 0xffffffff : 0;
+        unsigned int reads = scfw.reads;
+        static const uint32_t slots[] = { 4, 5, 15, 16, 31, 32, 33, UINT32_MAX };
 
-    /* No bit at 32 and up, and no shift by 32 or more: SRK0's bit, set
-     * here, isn't slot 32's (F-429) */
-    scfw.fuses[IMX8X_FUSE_REVOKE] = 0xffffffff;
-    key.slot = 32;
-    assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_PARAM);
-    scfw.fuses[IMX8X_FUSE_REVOKE] = 0;
-    assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_PARAM);
-    key.slot = 33;
-    assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_PARAM);
-    key.slot = UINT32_MAX;
-    assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_PARAM);
+        for (size_t i = 0; i < sizeof(slots) / sizeof(slots[0]); i++) {
+            key.slot = slots[i];
+            assert_int_equal(imx8x_read_key_status(&key), -PB_ERR_KEY_REVOKED);
+        }
+        assert_int_equal(scfw.reads, reads);
+    }
 
     scfw.read_fails_at = scfw.reads + 1;
     key.slot = 0;

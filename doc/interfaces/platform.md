@@ -457,6 +457,11 @@ and command mode reports it (`command-mode.md` 5.2, D-085). The build warns for 
 support yet revokes none anyway). A platform's `makefile.mk` gives the same count as
 `PLAT_REVOKE_SLOTS`, for the warning; its `plat.c` asserts that the two agree.
 
+A platform may refuse such a key instead: its `read_key_status` returns -PB_ERR_KEY_REVOKED
+for it, whatever its fuses, and its `makefile.mk` sets `PLAT_REFUSES_UNREVOCABLE`, so the build
+fails for a board key there. The i.MX8X does (D-092): its slots past SRK 3 were usable in 2.x
+(security before D-008).
+
 ### 4.2 Data : plat_slc [mandatory]
 
 ```c
