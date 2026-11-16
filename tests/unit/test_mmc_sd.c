@@ -253,6 +253,82 @@ static void test_a_card_of_another_size_is_refused(void **state)
     assert_bench_clean();
 }
 
+/* The model's HAL, of which the n-th call (a request, a clock or a width)
+ * fails, counted from 1; 0 fails none and counts them */
+static struct mmc_hal faulty_hal;
+static const struct mmc_hal *model_hal;
+static unsigned int hal_calls;
+static unsigned int hal_fail_at;
+
+static int hal_fault(void)
+{
+    return (++hal_calls == hal_fail_at) ? -PB_ERR_IO : PB_OK;
+}
+
+static int faulty_request(void *priv, struct mmc_cmd *cmd)
+{
+    return hal_fault() ? -PB_ERR_IO : model_hal->request(priv, cmd);
+}
+
+static int faulty_clock(void *priv, unsigned int clk_hz)
+{
+    return hal_fault() ? -PB_ERR_IO : model_hal->set_bus_clock(priv, clk_hz);
+}
+
+static int faulty_width(void *priv, enum mmc_bus_width width)
+{
+    return hal_fault() ? -PB_ERR_IO : model_hal->set_bus_width(priv, width);
+}
+
+static int init_failing_at(unsigned int n)
+{
+    struct bus_card *card;
+
+    bio_reset();
+    mmc_reset();
+    sd_model_free();
+    card = sd_model_init(&card_cfg);
+    model_hal = hal_model_init(card, CHUNK_BYTES);
+    faulty_hal = *model_hal;
+    faulty_hal.request = faulty_request;
+    faulty_hal.set_bus_clock = faulty_clock;
+    faulty_hal.set_bus_width = faulty_width;
+    hal_calls = 0;
+    hal_fail_at = n;
+    return mmc_init(&faulty_hal, &dev_cfg, NULL);
+}
+
+/* drivers.md 2.1: whichever step of the init fails, the init fails and
+ * registers no device, or it gets over the step and the card works: no
+ * error is taken for a success, none leaves a device half set up */
+static void test_each_step_of_the_init_fails(void **state)
+{
+    unsigned int steps;
+    unsigned int failed = 0;
+    (void)state;
+
+    assert_int_equal(init_failing_at(0), PB_OK);
+    steps = hal_calls;
+    assert_true(steps > 10);
+
+    for (unsigned int n = 1; n <= steps; n++) {
+        int rc = init_failing_at(n);
+
+        if (rc != PB_OK) {
+            assert_true(bio_get_part_by_uu(UU_SD) < 0);
+            failed++;
+        } else {
+            read_write(0);
+        }
+
+        /* And no rule of the card's broken on the way */
+        assert_bench_clean();
+    }
+
+    /* Most steps can't be got over */
+    assert_true(failed > steps / 2);
+}
+
 static void test_slow_power_up(void **state)
 {
     (void)state;
@@ -298,6 +374,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_a_second_init_adds_no_devices, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_card_of_another_size_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_slow_power_up, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_each_step_of_the_init_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_no_card, setup, teardown),
         cmocka_unit_test_setup_teardown(test_data_errors, setup, teardown),
         BIO_CONFORMANCE_TESTS(conformance_setup, teardown),

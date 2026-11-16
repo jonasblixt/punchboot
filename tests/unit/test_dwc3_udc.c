@@ -10,9 +10,11 @@
  * caller's when the controller has run a transfer (drivers.md 4, usb.md 4.3
  * and 4.4). The controller is a register file and a few lines of a model:
  * a command ends at once, a started transfer is one TRB whose bytes the
- * test moves, and an event is a word in the event buffer. Nothing of the
- * bus, of the control transfer's stages beyond the setup packet, or of the
- * registers' timing: that is the bench's (usb.md 8).
+ * test moves, and an event is a word in the event buffer. Of a control
+ * transfer's stages the host runs the status stage and a zero length packet
+ * as soon as they are started, and the test posts the XferNotReady events
+ * that ask for them. Nothing of the bus or of the registers' timing: that
+ * is the bench's (usb.md 8).
  *
  * The model reads and writes RAM behind the model of the D-cache
  * (fakes/dcache.h): a clean or an invalidate that is missing is a wrong
@@ -48,14 +50,18 @@
 
 /* Of the driver's memory a controller that runs has the event buffer, and
  * with the Setup TRB started that TRB and the setup packet */
-#define IDLE_RANGES 3
+#define IDLE_RANGES   3
+/* After a control transfer that ended on endpoint 0 IN's TRB: that TRB is
+ * given back when the endpoint is next started, or at a stop (drivers.md
+ * 4.2: the CPU doesn't touch it in between) */
+#define EP0_IN_RANGES (IDLE_RANGES + 1)
 
 /* A transfer's buffer that is only an address, which the driver queues and
  * cleans and never reads: room for the longest transfer */
-#define NO_BUF      ((void *)(uintptr_t)0x90000000u)
-#define NO_BUF_SIZE ((size_t)16 * 1024 * 1024)
+#define NO_BUF        ((void *)(uintptr_t)0x90000000u)
+#define NO_BUF_SIZE   ((size_t)16 * 1024 * 1024)
 /* The longest transfer: one TRB's 24 bit size, in whole packets of 1024 */
-#define XFER_MAX    ((size_t)0xfffc00)
+#define XFER_MAX      ((size_t)0xfffc00)
 
 static const struct usbd_hal_ops *ops;
 
@@ -68,6 +74,12 @@ static uint32_t ev_pending; /* Bytes of events the driver hasn't handled */
  * neighbour on each side */
 static uint8_t arena[4096 + 2 * LINE] __aligned(LINE);
 static uint8_t host[4096];
+
+/* The host's side of endpoint 0's status stage (ep0_host_runs()): on, and
+ * the TRBCTL of each TRB started on endpoint 0, in order */
+static bool ep0_host;
+static unsigned int ep0_trbctl[8];
+static unsigned int n_ep0_trbctl;
 
 int usbd_init_hal_ops(const struct usbd_hal_ops *ops_)
 {
@@ -90,6 +102,33 @@ static void post_event(uint32_t ev)
     ev_write = (ev_write + 1) % EV_ENTRIES;
     ev_pending += 4;
     fake_regs_set(BASE + DWC3_GEVNTCOUNT, ev_pending);
+}
+
+static void post_event(uint32_t ev);
+
+/* A TRB started on endpoint 0: its TRBCTL is recorded, and the host runs a
+ * status stage or a zero length packet at once. After the zero length
+ * packet that ends a control read's data stage the host asks for the status
+ * stage, on endpoint 0 OUT (RM 11.2.2.5.4.2) */
+static void ep0_host_runs(usb_ep_t ep, uint64_t addr)
+{
+    uint32_t trb[4];
+    unsigned int ctl;
+
+    dcache_dev_read((uintptr_t)addr, trb, sizeof(trb));
+    ctl = (trb[3] & TRB_CTRL_TRBCTL_MASK) >> TRB_CTRL_TRBCTL_SHIFT;
+    assert_true(n_ep0_trbctl < ARRAY_SIZE(ep0_trbctl));
+    ep0_trbctl[n_ep0_trbctl++] = ctl;
+
+    if (ctl == TRBCTL_CONTROL_STATUS2 || ctl == TRBCTL_CONTROL_STATUS3 ||
+        (ctl == TRBCTL_NORMAL && (trb[2] & TRB_SIZE_BUFSIZ_MASK) == 0)) {
+        trb[3] &= ~TRB_CTRL_HWO;
+        dcache_dev_write((uintptr_t)addr, trb, sizeof(trb));
+        post_event(EV_EP(ep, DEPEVT_XFERCOMPLETE));
+        if (ctl == TRBCTL_NORMAL)
+            post_event(EV_EP(USB_EP0_OUT, DEPEVT_XFERNOTREADY) |
+                       (DEPEVT_CTRL_STAGE_STATUS << DEPEVT_STATUS_SHIFT));
+    }
 }
 
 /* What the registers do with a write: a soft reset and a command end at
@@ -116,6 +155,8 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
         if ((value & DEPCMD_CMDTYP_MASK) == DEPCMD_DEPSTRTXFER) {
             trb_addr[ep] = (fake_regs_get(BASE + DWC3_DEPCMDPAR0(ep)) << 32) |
                            fake_regs_get(BASE + DWC3_DEPCMDPAR1(ep));
+            if (ep0_host && (ep == USB_EP0_OUT || ep == USB_EP0_IN))
+                ep0_host_runs(ep, trb_addr[ep]);
         } else if ((value & DEPCMD_CMDTYP_MASK) == DEPCMD_DEPENDXFER && (value & DEPCMD_CMDIOC)) {
             post_event(EV_EP(ep, DEPEVT_EPCMDCMPLT));
         }
@@ -199,6 +240,8 @@ static int setup(void **state)
     memset(trb_addr, 0, sizeof(trb_addr));
     ev_write = 0;
     ev_pending = 0;
+    ep0_host = false;
+    n_ep0_trbctl = 0;
     ops = NULL;
 
     assert_int_equal(imx_dwc3_udc_init(BASE), PB_OK);
@@ -627,6 +670,155 @@ static void read_ok(void)
     assert_memory_equal(arena + LINE, host, 512);
 }
 
+/* RM 11.2.2.5.1.3 and .4: Connect Done puts the RAM clock on the bus clock
+ * and modifies endpoint 0, both directions, to the high and full speed
+ * control packet of 64 bytes; SetAddress writes DCFG's address, which a USB
+ * reset puts back to 0 */
+static void test_connect_done_and_the_address(void **state)
+{
+    struct usb_setup_packet pkt;
+    (void)state;
+
+    fake_regs_set(BASE + DWC3_GCTL, GCTL_RAMCLKSEL(2));
+    fake_regs_set(BASE + DWC3_DSTS, DSTS_DEVCTRLHLT | DWC3_SPEED_HIGH);
+    post_device_event(DEVT_CONNECTDONE);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(fake_regs_get(BASE + DWC3_GCTL) & GCTL_RAMCLKSEL_MASK,
+                     GCTL_RAMCLKSEL(GCTL_RAMCLKSEL_BUS_CLK));
+
+    for (usb_ep_t ep = USB_EP0_OUT; ep <= USB_EP0_IN; ep++) {
+        uint32_t p0 = (uint32_t)fake_regs_get(BASE + DWC3_DEPCMDPAR0(ep));
+
+        assert_int_equal(fake_regs_get(BASE + DWC3_DEPCMD(ep)) & DEPCMD_CMDTYP_MASK, DEPCMD_DEPCFG);
+        assert_int_equal(p0 & DEPCFG_P0_CONFIG_ACT_MASK,
+                         DEPCFG_P0_CONFIG_ACT(DEPCFG_CONFIG_ACT_MODIFY));
+        assert_int_equal(p0 & DEPCFG_P0_MPS_MASK, DEPCFG_P0_MPS(64));
+    }
+
+    assert_int_equal(ops->set_address(7), PB_OK);
+    assert_int_equal(fake_regs_get(BASE + DWC3_DCFG) & DCFG_DEVADDR_MASK, DCFG_DEVADDR(7));
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(fake_regs_get(BASE + DWC3_DCFG) & DCFG_DEVADDR_MASK, 0);
+}
+
+static void post_not_ready(usb_ep_t ep, unsigned int stage)
+{
+    post_event(EV_EP(ep, DEPEVT_XFERNOTREADY) | (stage << DEPEVT_STATUS_SHIFT));
+}
+
+/* The host sends a setup packet, which the driver reads */
+static void host_setup(uint8_t request_type, uint8_t request, uint16_t length)
+{
+    const struct usb_setup_packet sent = {
+        .bRequestType = request_type,
+        .bRequest = request,
+        .wLength = length,
+    };
+    uint8_t packet[sizeof(sent)];
+    struct usb_setup_packet pkt;
+
+    memcpy(packet, &sent, sizeof(packet));
+    controller_run(USB_EP0_OUT, packet, sizeof(packet));
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+    assert_memory_equal(&pkt, &sent, sizeof(pkt));
+}
+
+static void assert_ep0_trbs(const unsigned int *ctl, unsigned int n)
+{
+    assert_int_equal(n_ep0_trbctl, n);
+    for (unsigned int i = 0; i < n; i++)
+        assert_int_equal(ep0_trbctl[i], ctl[i]);
+}
+
+/* RM 11.2.2.5.4: a control transfer's status stage. Without a data stage
+ * the status is IN, a Status2 TRB once the host asked for it (XferNotReady,
+ * Status); after a control read's data stage it is OUT, a Status3 TRB. The
+ * setup stage is armed again after it, and the driver has given back what
+ * the transfer had of its memory */
+static void test_ep0_status_stage(void **state)
+{
+    static const unsigned int no_data[] = { TRBCTL_CONTROL_STATUS2, TRBCTL_CONTROL_SETUP };
+    static const unsigned int read[] = {
+        TRBCTL_CONTROL_DATA,
+        TRBCTL_CONTROL_STATUS3,
+        TRBCTL_CONTROL_SETUP,
+    };
+    static uint8_t descriptor[18];
+    (void)state;
+
+    ep0_host = true;
+
+    /* SET_ADDRESS: no data stage */
+    host_setup(0, 5, 0);
+    post_not_ready(USB_EP0_IN, DEPEVT_CTRL_STAGE_STATUS);
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_IN), PB_OK);
+    assert_ep0_trbs(no_data, ARRAY_SIZE(no_data));
+    assert_int_equal(dma_host_in_open(), EP0_IN_RANGES);
+
+    /* GET_DESCRIPTOR, 18 bytes: the data stage, then the status */
+    n_ep0_trbctl = 0;
+    fill(descriptor, sizeof(descriptor), 9);
+    host_setup(0x80, 6, sizeof(descriptor));
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, descriptor, sizeof(descriptor)), PB_OK);
+    controller_run(USB_EP0_IN, host, sizeof(descriptor));
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
+    assert_memory_equal(host, descriptor, sizeof(descriptor));
+    post_not_ready(USB_EP0_OUT, DEPEVT_CTRL_STAGE_STATUS);
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_OUT), PB_OK);
+    assert_ep0_trbs(read, ARRAY_SIZE(read));
+    assert_int_equal(dma_host_in_open(), EP0_IN_RANGES);
+}
+
+/* RM 11.2.2.5.4.2 (F-138): a control read whose data is whole packets and
+ * shorter than wLength, which the host goes on asking for (XferNotReady,
+ * Data): the driver ends it with a zero length packet, then runs the status
+ * stage */
+static void test_ep0_zero_length_packet(void **state)
+{
+    static const unsigned int trbs[] = {
+        TRBCTL_CONTROL_DATA,
+        TRBCTL_NORMAL,
+        TRBCTL_CONTROL_STATUS3,
+        TRBCTL_CONTROL_SETUP,
+    };
+    static uint8_t reply[64];
+    (void)state;
+
+    ep0_host = true;
+    fill(reply, sizeof(reply), 4);
+    host_setup(0x80, 6, 255);
+    assert_int_equal(ops->xfer_start(USB_EP0_IN, reply, sizeof(reply)), PB_OK);
+    controller_run(USB_EP0_IN, host, sizeof(reply));
+    assert_int_equal(ops->xfer_complete(USB_EP0_IN), PB_OK);
+    post_not_ready(USB_EP0_IN, DEPEVT_CTRL_STAGE_DATA);
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_OUT), PB_OK);
+    assert_ep0_trbs(trbs, ARRAY_SIZE(trbs));
+    assert_memory_equal(host, reply, sizeof(reply));
+    assert_int_equal(dma_host_in_open(), EP0_IN_RANGES);
+}
+
+/* A host that never asks for the status stage: the driver gives the control
+ * transfer up after its bound, ends what it started on endpoint 0 and arms
+ * the setup stage again; the next setup packet is read */
+static void test_ep0_status_stage_given_up(void **state)
+{
+    static const unsigned int trbs[] = { TRBCTL_CONTROL_SETUP };
+    (void)state;
+
+    ep0_host = true;
+    host_setup(0, 9, 0);
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_IN), PB_OK);
+    assert_ep0_trbs(trbs, ARRAY_SIZE(trbs));
+    assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+
+    n_ep0_trbctl = 0;
+    host_setup(0, 5, 0);
+    post_not_ready(USB_EP0_IN, DEPEVT_CTRL_STAGE_STATUS);
+    assert_int_equal(ops->ep0_xfer_zlp(USB_EP0_IN), PB_OK);
+    assert_int_equal(ep0_trbctl[0], TRBCTL_CONTROL_STATUS2);
+}
+
 /* usb.md 2.2, 2.4, 4.3: a USB reset or a disconnect of a configured device
  * ends the bulk transfer that runs with -PB_ERR_IO, and with none running it
  * is kept for the next that is started or polled, on every bulk endpoint,
@@ -774,6 +966,10 @@ int main(void)
             test_a_transfer_longer_than_a_trb_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_stop_and_init_again, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bus_reset_and_disconnect_are_kept, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_connect_done_and_the_address, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ep0_status_stage, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ep0_zero_length_packet, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ep0_status_stage_given_up, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_read_of_0_bytes_is_refused, setup, teardown),
     };
 

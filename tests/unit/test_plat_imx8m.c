@@ -68,6 +68,11 @@ static struct {
     int tzc_region_rc;
     uint64_t tzc_region_base, tzc_region_size;
     uint32_t tzc_region_sp;
+    /* The SPL's calls (tzasc.c): the region it configured */
+    bool spl;
+    unsigned int tzc_set_region;
+    uint64_t tzc_set_base, tzc_set_size;
+    uint32_t tzc_set_sp;
 } f;
 
 /* What plat_init() sets up after the clocks, in order */
@@ -263,12 +268,14 @@ int tzc380_get_region(unsigned int region, uint64_t *region_base, uint64_t *size
 /* The SPL's (spl/spl.c, tzasc.c): pb proper never sets the TZASC up */
 int tzc380_configure_region(unsigned int region, uint64_t region_base, uint64_t size, uint32_t sp)
 {
-    (void)region;
-    (void)region_base;
-    (void)size;
-    (void)sp;
-    fail_msg("pb proper configured a TZASC region");
-    return -PB_ERR;
+    if (!f.spl)
+        fail_msg("pb proper configured a TZASC region");
+
+    f.tzc_set_region = region;
+    f.tzc_set_base = region_base;
+    f.tzc_set_size = size;
+    f.tzc_set_sp = sp;
+    return PB_OK;
 }
 
 /* The variant's part (plat_imx8mp.c): the 8MP EVK's values */
@@ -450,6 +457,48 @@ static void test_status_tzasc_not_enabled(void **state)
     assert_int_equal(plat_early_init(), PB_OK);
     assert_int_equal(plat_init(), PB_OK);
     assert_int_equal(status_now().tz_dram_filter, PLAT_TZ_DRAM_ACTIVE);
+}
+
+/* A GPR10 whose TZASC_EN an earlier lock froze at 0 */
+static uint64_t gpr10_locked_off(uintptr_t addr, uint64_t value)
+{
+    if (addr == IMX8M_IOMUXC_GPR10)
+        return value & ~(uint64_t)GPR10_TZASC_EN;
+    return value;
+}
+
+/* The SPL's half (tzasc.c, D-088): the enable and ID_SWAP_BYPASS, then the
+ * locks, read back; an enable that doesn't take is the SPL's error. Region 1
+ * is the board's DRAM counted from the DDR window's start, to both worlds,
+ * on a TZC-380 that answered */
+static void test_spl_tzasc(void **state)
+{
+    const uint32_t bits = GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS;
+    const uint32_t locks = GPR10_LOCK_TZASC_EN | GPR10_LOCK_TZASC_ID_SWAP;
+    (void)state;
+
+    f.spl = true;
+    fake_regs_set(IMX8M_IOMUXC_GPR10, 0);
+    assert_int_equal(imx8m_tzasc_enable(), PB_OK);
+    assert_int_equal(fake_regs_get(IMX8M_IOMUXC_GPR10), bits | locks);
+    assert_int_equal(fake_regs_writes(IMX8M_IOMUXC_GPR10), 2);
+
+    fake_regs_set(IMX8M_IOMUXC_GPR10, GPR10_LOCK_TZASC_EN);
+    fake_regs_on_write = gpr10_locked_off;
+    assert_int_equal(imx8m_tzasc_enable(), -PB_ERR_STATE);
+    fake_regs_on_write = NULL;
+
+    assert_int_equal(imx8m_tzasc_open_dram(), PB_OK);
+    assert_int_equal(f.tzc_set_region, 1);
+    assert_int_equal(f.tzc_set_base, 0); /* BOARD_RAM_BASE is the window's start */
+    assert_int_equal(f.tzc_set_size, SZ_GiB(1));
+    assert_int_equal(f.tzc_set_sp, TZC380_SP_ALL);
+
+    /* No TZC-380: no region */
+    f.tzc_set_region = 0;
+    f.tzc_init_rc = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(imx8m_tzasc_open_dram(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(f.tzc_set_region, 0);
 }
 
 /* The same when region 1 isn't what the SPL is to set up: the TZC-380 not
@@ -965,6 +1014,7 @@ int main(void)
         cmocka_unit_test_setup(test_status, setup),
         cmocka_unit_test_setup(test_status_tzasc_not_enabled, setup),
         cmocka_unit_test_setup(test_status_tzasc_region_not_open, setup),
+        cmocka_unit_test_setup(test_spl_tzasc, setup),
         cmocka_unit_test_setup(test_status_rom_logs_missing, setup),
         cmocka_unit_test_setup(test_boot_source_serial_download, setup),
         cmocka_unit_test_setup(test_boot_source_not_a_download, setup),
