@@ -20,7 +20,8 @@ With -c TTY (the board's console) it also resets the board RUNS times and
 times the reset to pb's banner on the console from the host (the boot ROM
 and pb's first instructions), and pb's init up to boot_load() from the RAM
 log. The board must stop in command mode after a reset: no active boot
-partition.
+partition. The banner is CONFIG_PRINT_BOOT_BANNER, off in the RT1060's
+defconfig (F-458).
 
 Runs on the host. Needs the punchboot Python package (tools/punchboot, the
 host library) and the bpak Python package, openssl for -k, the board in
@@ -294,6 +295,8 @@ class Console:
                 times += [time.monotonic()] * len(data)
         if b"entering command mode" not in text:
             fail("no 'entering command mode' on the console after the reset")
+        if b"PB " not in text:
+            fail("no banner on the console: -c needs pb built with CONFIG_PRINT_BOOT_BANNER")
         return (times[text.index(b"PB ")] - t_reset) * 1000
 
 
