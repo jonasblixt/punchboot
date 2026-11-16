@@ -74,6 +74,17 @@ static const uint8_t tuning_blk_pattern_8bit[] = {
  * The CSD TRAN_SPEED (bits 103:96, JESD84-B51 7.3.10), the clock limit of the
  * backward compatible timing. 0 if the field holds a reserved value.
  */
+/* CSD bits hi..lo, at most 32 of them: csd[3] holds bits 127:96 */
+static uint32_t csd_bits(const uint32_t csd[4], unsigned int hi, unsigned int lo)
+{
+    uint32_t value = 0;
+
+    for (unsigned int bit = hi + 1; bit-- > lo;)
+        value = (value << 1) | ((csd[bit / 32] >> (bit % 32)) & 1);
+
+    return value;
+}
+
 static unsigned int csd_tran_speed_hz(const uint32_t csd[4])
 {
     /* Bits 6:3, the multiplier times 10 */
@@ -874,6 +885,22 @@ int mmc_emmc_setup(struct mmc_device *dev)
                   (uint32_t)dev->ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
                   (uint32_t)dev->ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
                   (uint32_t)dev->ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
+
+    /* A byte addressed device (up to 2 GiB) may report SEC_COUNT 0: its size
+     * is the CSD's, (C_SIZE + 1) * 2^(C_SIZE_MULT + 2) * 2^READ_BL_LEN bytes
+     * (JESD84-B51 7.3.12, 7.3.17, 7.3.5). It was 2^32 blocks (F-200) */
+    if (dev->blocks == 0 && !dev->block_addressing) {
+        uint64_t bytes = (uint64_t)(csd_bits(dev->csd, 73, 62) + 1)
+                         << (csd_bits(dev->csd, 49, 47) + 2 + csd_bits(dev->csd, 83, 80));
+
+        dev->blocks = (uint32_t)(bytes / MMC_BLOCK_SIZE);
+    }
+
+    /* No size: no range to give the user area (bio.md 2.1) */
+    if (dev->blocks == 0) {
+        LOG_ERR("The user area has no size");
+        return -PB_ERR_IO;
+    }
 
     /*
      * In blocks, from 128 KiB units. 0 is a partition the device doesn't
