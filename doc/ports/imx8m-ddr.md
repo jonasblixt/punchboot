@@ -361,9 +361,9 @@ Next, roughly in order of value:
 1. **Align with NXP's current sequence (F-104, F-106, F-107)**, one finding per commit with an updated
    golden trace, once an imx8mevk (or an 8MP board, where the same code runs) can confirm it.
 
-2. **Timeouts on every poll (F-102).** STAT, the mailbox, CalBusy, DFISTAT, SWSTAT and the PLL lock
-   spin forever. A hang here is a dead board with no log. Use `plat_get_us_tick()`; the training
-   runs take a while each, so the timeouts need a measurement on hardware.
+2. **Timeouts on every poll (F-102): done.** Measured on the 8MP EVK (log 2026-11-16): the PMU's
+   next message 15.1 ms at most, the PLL lock 500 us, the rest 18 us at most. Bounds: 1 s a
+   message, 10 ms the rest; `-PB_ERR_TIMEOUT` through `imx8m_ddr_init()`.
 3. **TF-A handover (F-100).** `fsp_msg`/`fsp_msg_num` in the copy are never written (`.umctl2` is
    NOLOAD, so they are whatever DRAM holds). Pin the struct layout with `_Static_assert`s on the
    aarch64 offsets. (The size is checked now.)

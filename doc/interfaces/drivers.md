@@ -147,7 +147,7 @@ command mode started, the transport is gone by then and pb resets (`board.md` 5.
 - **Every wait is bounded.** A loop that waits for the device has a timeout and returns
   `-PB_ERR_TIMEOUT`. The bound is the driver's constant, with its source next to it: the IP
   block's manual, the medium's standard, or a measurement. **Not yet in the code
-  (F-102)**: section 8 says where each driver stands.
+  (F-462)**: the UARTs' waits; section 8 says where each driver stands.
 - **No driver kicks the watchdog**, and neither do `pb_delay_*()` and `pb_timeout_*()`
   (`platform.md` 3.3): a driver that polls for ever must not keep the board alive. The core
   kicks between a driver's calls, once per chunk.
@@ -383,8 +383,8 @@ class asks beyond them is in its own table (`bio.md` 8, `crypto.md` 9, `usb.md` 
 | ChipIdea                | yes                   | yes (`test_imx_ci_udc`) | yes              |              |
 | DWC3                    | yes                   | yes (`test_dwc3_udc`)   | yes              |              |
 | Cadence USB3            | yes                   | yes (`test_cdns3_udc`)  | yes, not run     | F-204        |
-| The DRAM controller and | no                    | n/a                     | n/a              | F-102        |
-| PHY                     |                       |                         |                  |              |
+| The DRAM controller and | yes: 1 s a message,   | n/a                     | n/a              |              |
+| PHY                     | 10 ms the rest        |                         |                  |              |
 | virtio (in no build)    | yes: 1 s              | partly                  | none             | F-052        |
 
 Every driver with DMA goes through `pb/dma.h` and includes no arch header, but virtio, which is

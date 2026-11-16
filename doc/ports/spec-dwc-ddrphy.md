@@ -109,5 +109,5 @@ Read `DDRPHY_CALBUSY` until `CALBUSY_BUSY` is 0. No writes.
 
 ## Not required
 
-Timeouts on the polls (open as F-102), decoding streaming messages into text, reading training
+Decoding streaming messages into text, reading training
 results from the message block (F-104).
