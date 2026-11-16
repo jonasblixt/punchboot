@@ -17,6 +17,7 @@
 
 #include <cmocka.h>
 
+#include "test_keys.h"
 #include <drivers/crypto/mbedtls.h>
 #include <pb/crypto.h>
 #include <pb/pb.h>
@@ -30,10 +31,12 @@ static struct {
     size_t final_length;
 } calls;
 
+static int fake_init_rc;
+
 static int fake_init(hash_t alg)
 {
     calls.init_alg = alg;
-    return PB_OK;
+    return fake_init_rc;
 }
 
 static int fake_update(const void *buf, size_t length)
@@ -129,13 +132,15 @@ static void test_without_providers(void **state)
     assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
                                 buf,
                                 sizeof(buf),
-                                buf,
-                                sizeof(buf),
+                                test_key_p256,
+                                sizeof(test_key_p256),
                                 HASH_SHA256,
                                 digest,
                                 sizeof(digest),
                                 &verified),
                      -PB_ERR_NOT_SUPPORTED);
+    /* crypto.md 4: false until the signature verified */
+    assert_false(verified);
 }
 
 static void test_register_providers(void **state)
@@ -147,8 +152,56 @@ static void test_register_providers(void **state)
 
     /* CONFIG_CRYPTO_MAX_HASH_OPS and _DSA_OPS are 1 in the host build */
     assert_int_equal(hash_add_ops(&other_hash_ops), -PB_ERR_MEM);
-    assert_int_equal(dsa_add_ops(&fake_dsa_ops), -PB_ERR_MEM);
-    assert_int_equal(mbedtls_pb_init(), -PB_ERR_MEM);
+}
+
+/* crypto.md 2: an algorithm comes from one backend. A second registration of
+ * it is refused, whole, and the first backend stays the algorithm's: the
+ * first registered was used, silently (F-286 (12)) */
+static void test_2_a_second_registration_is_refused(void **state)
+{
+    static const struct hash_ops sha384_too = {
+        .name = "sha384-too",
+        .alg_bits = HASH_SHA384 | HASH_SHA512,
+        .init = fake_init,
+        .update = fake_update,
+        .final = fake_final,
+    };
+    (void)state;
+
+    assert_int_equal(hash_add_ops(&sha384_too), -PB_ERR_PARAM);
+    assert_int_equal(hash_add_ops(&fake_hash_ops), -PB_ERR_PARAM);
+    assert_int_equal(dsa_add_ops(&fake_dsa_ops), -PB_ERR_PARAM);
+    /* A software backend that has the same algorithms */
+    assert_int_equal(mbedtls_pb_init(), -PB_ERR_PARAM);
+
+    /* Nothing of them was registered */
+    assert_int_equal(hash_init(HASH_SHA512), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(hash_init(HASH_MD5), -PB_ERR_NOT_SUPPORTED);
+}
+
+/* crypto.md 2: a backend that failed isn't registered, also when only its
+ * signatures were refused: its hashes go again (F-410) */
+static void test_2_a_backend_that_failed_halfway_isnt_registered(void **state)
+{
+    (void)state;
+
+    assert_int_equal(hash_remove_ops(&fake_hash_ops), PB_OK);
+    assert_int_equal(hash_remove_ops(&fake_hash_ops), -PB_ERR_NOT_FOUND);
+
+    /* Its hashes register, its curves are fake-dsa's */
+    assert_int_equal(mbedtls_pb_init(), -PB_ERR_PARAM);
+    assert_int_equal(hash_init(HASH_SHA256), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(hash_init(HASH_MD5), -PB_ERR_NOT_SUPPORTED);
+
+    /* A hash that was open ends with its backend */
+    assert_int_equal(hash_add_ops(&fake_hash_ops), PB_OK);
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_remove_ops(&fake_hash_ops), PB_OK);
+    uint8_t buf[4] = { 0 };
+    assert_int_equal(hash_update(buf, sizeof(buf)), -PB_ERR_STATE);
+
+    /* As it was for the tests after this one */
+    assert_int_equal(hash_add_ops(&fake_hash_ops), PB_OK);
 }
 
 static void test_hash_dispatch(void **state)
@@ -181,30 +234,167 @@ static void test_hash_dispatch(void **state)
     assert_int_equal(hash_update(src, sizeof(src)), -PB_ERR_STATE);
 }
 
+/* crypto.md 3.1: when hash_init() fails there is no context, whatever was
+ * open before (F-286 (1)) */
+static void test_3_1_no_context_after_a_failed_init(void **state)
+{
+    uint8_t src[16] = { 0 };
+    uint8_t digest[48];
+    (void)state;
+
+    /* The backend's init fails */
+    fake_init_rc = -PB_ERR_IO;
+    assert_int_equal(hash_init(HASH_SHA256), -PB_ERR_IO);
+    fake_init_rc = PB_OK;
+    assert_int_equal(hash_update(src, sizeof(src)), -PB_ERR_STATE);
+    assert_int_equal(hash_update_async(src, sizeof(src)), -PB_ERR_STATE);
+    assert_int_equal(hash_copy_update(src, src, sizeof(src)), -PB_ERR_STATE);
+    assert_int_equal(hash_final(digest, sizeof(digest)), -PB_ERR_STATE);
+
+    /* Not one algorithm: -PB_ERR_PARAM, and the backend isn't asked */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    calls.init_alg = 0;
+    assert_int_equal(hash_init(HASH_SHA256 | HASH_SHA384), -PB_ERR_PARAM);
+    assert_int_equal(hash_init(0), -PB_ERR_PARAM);
+    assert_int_equal(calls.init_alg, 0);
+    assert_int_equal(hash_update(src, sizeof(src)), -PB_ERR_STATE);
+
+    /* An algorithm no backend has */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_init(HASH_MD5), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(hash_final(digest, sizeof(digest)), -PB_ERR_STATE);
+}
+
 static void test_dsa_dispatch(void **state)
 {
     uint8_t sig[1] = { 0 };
-    uint8_t key[1] = { 0 };
+    const uint8_t *key = test_key_p256;
+    const size_t key_length = sizeof(test_key_p256);
     uint8_t md[32] = { 0 };
     bool verified = false;
     (void)state;
 
-    assert_int_equal(
-        dsa_verify(
-            DSA_EC_SECP384r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA256, md, 32, &verified),
-        -PB_ERR_NOT_SUPPORTED);
+    /* A P-384 key, which no backend here has */
+    assert_int_equal(dsa_verify(DSA_EC_SECP384r1,
+                                sig,
+                                sizeof(sig),
+                                test_key_p384,
+                                sizeof(test_key_p384),
+                                HASH_SHA256,
+                                md,
+                                32,
+                                &verified),
+                     -PB_ERR_NOT_SUPPORTED);
 
     assert_int_equal(
         dsa_verify(
-            DSA_EC_SECP256r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA384, md, 32, &verified),
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, key_length, HASH_SHA384, md, 32, &verified),
         PB_OK);
     assert_true(verified);
     assert_int_equal(verify_alg, HASH_SHA384);
 
     assert_int_equal(
-        dsa_verify(DSA_EC_SECP256r1, sig, 2, key, sizeof(key), HASH_SHA256, md, 32, &verified),
+        dsa_verify(DSA_EC_SECP256r1, sig, 2, key, key_length, HASH_SHA256, md, 32, &verified),
         PB_OK);
     assert_false(verified);
+}
+
+/* crypto.md 4 (D-092, F-286 (5)): alg is the keystore's name for the key's
+ * curve, and the core refuses a key whose own curve is another one, before
+ * any backend sees it. A key that doesn't parse is -PB_ERR_ASN1, a curve pb
+ * doesn't know -PB_ERR_NOT_SUPPORTED */
+static void test_4_the_keys_curve_is_alg(void **state)
+{
+    uint8_t sig[1] = { 0 };
+    uint8_t md[32] = { 0 };
+    uint8_t other_curve[sizeof(test_key_p256)];
+    bool verified = true;
+    (void)state;
+
+    verify_alg = 0;
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                sig,
+                                sizeof(sig),
+                                test_key_p384,
+                                sizeof(test_key_p384),
+                                HASH_SHA256,
+                                md,
+                                32,
+                                &verified),
+                     -PB_ERR_PARAM);
+    assert_false(verified);
+
+    /* Cut short, and the curve's OID another one's (secp256k1's last byte) */
+    verified = true;
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                sig,
+                                sizeof(sig),
+                                test_key_p256,
+                                sizeof(test_key_p256) - 1,
+                                HASH_SHA256,
+                                md,
+                                32,
+                                &verified),
+                     -PB_ERR_ASN1);
+    assert_false(verified);
+
+    memcpy(other_curve, test_key_p256, sizeof(other_curve));
+    other_curve[22] = 0x0a;
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                sig,
+                                sizeof(sig),
+                                other_curve,
+                                sizeof(other_curve),
+                                HASH_SHA256,
+                                md,
+                                32,
+                                &verified),
+                     -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(verify_alg, 0);
+}
+
+/* crypto.md 4: not while a hash is open. The core refuses, the backend isn't
+ * asked, and the next hash_init() ends the hash that was given up
+ * (F-286 (13)) */
+static void test_4_not_while_a_hash_is_open(void **state)
+{
+    uint8_t sig[1] = { 0 };
+    const uint8_t *key = test_key_p256;
+    const size_t key_length = sizeof(test_key_p256);
+    uint8_t src[16] = { 0 };
+    uint8_t md[32] = { 0 };
+    bool verified = true;
+    (void)state;
+
+    verify_alg = 0;
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(
+        dsa_verify(
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, key_length, HASH_SHA256, md, 32, &verified),
+        -PB_ERR_STATE);
+    assert_false(verified);
+
+    /* A hash that was given up after an update is open too */
+    assert_int_equal(hash_update(src, sizeof(src)), PB_OK);
+    verified = true;
+    assert_int_equal(
+        dsa_verify(
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, key_length, HASH_SHA256, md, 32, &verified),
+        -PB_ERR_STATE);
+    assert_false(verified);
+    assert_int_equal(verify_alg, 0);
+
+    /* As a verification does it: a hash from its start to its end, then
+     * the signature */
+    assert_int_equal(hash_init(HASH_SHA256), PB_OK);
+    assert_int_equal(hash_update(src, sizeof(src)), PB_OK);
+    assert_int_equal(hash_final(md, sizeof(md)), PB_OK);
+    assert_int_equal(
+        dsa_verify(
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, key_length, HASH_SHA256, md, 32, &verified),
+        PB_OK);
+    assert_true(verified);
+    assert_int_equal(verify_alg, HASH_SHA256);
 }
 
 int main(void)
@@ -212,8 +402,13 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_without_providers),
         cmocka_unit_test(test_register_providers),
+        cmocka_unit_test(test_2_a_second_registration_is_refused),
+        cmocka_unit_test(test_2_a_backend_that_failed_halfway_isnt_registered),
         cmocka_unit_test(test_hash_dispatch),
+        cmocka_unit_test(test_3_1_no_context_after_a_failed_init),
         cmocka_unit_test(test_dsa_dispatch),
+        cmocka_unit_test(test_4_not_while_a_hash_is_open),
+        cmocka_unit_test(test_4_the_keys_curve_is_alg),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -68,7 +68,8 @@ pb_unit_test(test_wire SOURCES
     ${PROJECT_SOURCE_DIR}/src/wire.c
 )
 
-pb_unit_test(test_der)
+# With the internal keystore, whose keys the parser must take
+pb_unit_test(test_der LIBS pb_keystore)
 
 pb_unit_test(test_tzc380 SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/tzc/tzc380.c
@@ -119,8 +120,13 @@ pb_unit_test(test_crypto
     LIBS pb_mbedtls
 )
 
+# The crypto backends' conformance tests (crypto.md 9), linked by every test
+# program that has a backend to run them against
+set(PB_CRYPTO_CONFORMANCE ${CMAKE_CURRENT_SOURCE_DIR}/conformance/crypto_conformance.c)
+
 pb_unit_test(test_mbedtls
     SOURCES
+        ${PB_CRYPTO_CONFORMANCE}
         ${PROJECT_SOURCE_DIR}/src/crypto.c
         ${PROJECT_SOURCE_DIR}/src/drivers/crypto/mbedtls/mbedtls_pb.c
     LIBS pb_mbedtls pb_keystore
@@ -128,6 +134,11 @@ pb_unit_test(test_mbedtls
 target_compile_definitions(test_mbedtls PRIVATE
     PB_AUTH_TOKEN_PATH="${PROJECT_SOURCE_DIR}/tests/02e49231-756e-35ee-a982-378e5ba866a9.token"
 )
+# The library's hash calls go through the test, which can fail them
+foreach(call md5_starts md5_update md5_finish sha256_starts sha256_update sha256_finish
+             sha512_starts sha512_update sha512_finish)
+    target_link_options(test_mbedtls PRIVATE -Wl,--wrap=mbedtls_${call})
+endforeach()
 
 pb_unit_test(test_rot
     SOURCES
@@ -855,6 +866,7 @@ target_compile_definitions(test_mmc_emmc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 # e.MMC model on its bus. DMA addresses are 32 bits: -no-pie keeps the
 # buffers below 4 GiB.
 pb_unit_test(test_imx_caam SOURCES
+    ${PB_DMA_MODEL}
     ${PROJECT_SOURCE_DIR}/src/crypto.c
     ${PROJECT_SOURCE_DIR}/src/delay.c
     ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
@@ -865,6 +877,33 @@ target_include_directories(test_imx_caam BEFORE PRIVATE
 # The job ring holds 32 bit addresses
 target_compile_options(test_imx_caam PRIVATE -fno-pie)
 target_link_options(test_imx_caam PRIVATE -no-pie)
+
+# A model of the CAAM's job ring, hashing and signature verification (see
+# models/caam_model.h). It computes with Mbed TLS
+add_library(pb_caam_model STATIC
+    models/bench.c
+    models/caam_model.c
+)
+target_include_directories(pb_caam_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(pb_caam_model PUBLIC pb_lib pb_mbedtls PkgConfig::CMOCKA)
+
+# The CAAM driver's hash and verification through the crypto API, against
+# crypto.md and the model, which reads and writes RAM behind the D-cache's
+# model (drivers.md 4). The rings and the descriptors hold 32 bit addresses
+pb_unit_test(test_caam_crypto
+    SOURCES
+        ${PB_CRYPTO_CONFORMANCE}
+        ${PB_DMA_MODEL}
+        ${PROJECT_SOURCE_DIR}/src/crypto.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
+    LIBS pb_caam_model pb_keystore
+)
+target_include_directories(test_caam_crypto BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_caam_crypto PRIVATE -fno-pie)
+target_link_options(test_caam_crypto PRIVATE -no-pie)
 
 pb_unit_test(test_imx_usdhc
     SOURCES
@@ -974,6 +1013,7 @@ target_include_directories(test_imx8x_helpers PRIVATE ${PROJECT_SOURCE_DIR}/incl
 # and the descriptors hold 32 bit addresses
 pb_unit_test(test_caam_lp256
     SOURCES
+        ${PB_DMA_MODEL}
         ${PROJECT_SOURCE_DIR}/src/crypto.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
@@ -984,6 +1024,22 @@ target_include_directories(test_caam_lp256 BEFORE PRIVATE
 )
 target_compile_options(test_caam_lp256 PRIVATE -fno-pie)
 target_link_options(test_caam_lp256 PRIVATE -no-pie)
+
+# The CAAM's job ring reset at init (F-410): an earlier user's job flushed,
+# a flush that never completes. Its own program: one init per program
+pb_unit_test(test_caam_jr_reset
+    SOURCES
+        ${PB_DMA_MODEL}
+        ${PROJECT_SOURCE_DIR}/src/crypto.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
+    LIBS pb_caam_model
+)
+target_include_directories(test_caam_jr_reset BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_caam_jr_reset PRIVATE -fno-pie)
+target_link_options(test_caam_jr_reset PRIVATE -no-pie)
 
 # The host tools' pure parts, without a device (F-041): pytest on the
 # punchboot package, which must be installed as for the integration tests

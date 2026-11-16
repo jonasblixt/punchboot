@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include "fakes/plat.h"
+#include "test_keys.h"
 
 /* Must match the --defsym values in CMakeLists.txt */
 #define PB_START      0x40000000
@@ -89,12 +90,11 @@ int rot_read_key_status(key_id_t id)
 
 int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size_t *der_data_length)
 {
-    static const uint8_t der[] = { 0x30 };
     (void)id;
 
+    /* A real key: the core reads its curve (F-286) */
     *dsa_kind = DSA_EC_SECP256r1;
-    *der_data = der;
-    *der_data_length = sizeof(der);
+    *der_data = test_key(DSA_EC_SECP256r1, der_data_length);
     return fake.get_key_rc;
 }
 
