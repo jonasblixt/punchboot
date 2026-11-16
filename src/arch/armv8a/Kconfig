@@ -2,7 +2,6 @@
 config ARMV8_RESET_ON_EXCEPTION
     bool "Reset after an unhandled exception"
     depends on ARCH_ARMV8
-    default n
     help
         After printing an unhandled exception, call plat_reset() instead
         of hanging. Without it, only the watchdog or a debugger ends the

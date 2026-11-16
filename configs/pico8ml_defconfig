@@ -8,6 +8,8 @@ CONFIG_IMX_UART_BAUDRATE=115200
 CONFIG_IMX_OCOTP_BASE=0x30350000
 CONFIG_IMX_OCOTP_WORDS_PER_BANK=4
 # CONFIG_IMX_OCOTP_DEBUG is not set
+CONFIG_MAX_MMAP_REGIONS=32
+CONFIG_MAX_XLAT_TABLES=32
 
 #
 # imx8m configuration
@@ -49,6 +51,7 @@ CONFIG_IMX8M_KEY_INDEX=0
 CONFIG_IMX8M_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
 CONFIG_IMX8M_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
 # end of Output image
+# CONFIG_SLC_NO_FUSE_WRITES is not set
 
 #
 # Generic options
@@ -89,3 +92,13 @@ CONFIG_TRANSPORT_READY_TIMEOUT=10
 # end of Command mode transport configuration
 
 # CONFIG_BEARSSL is not set
+#
+# Hacks
+#
+
+#
+# Development hacks: never in a product's build
+#
+# CONFIG_HACK_PEEK is not set
+# end of Hacks
+

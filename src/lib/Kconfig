@@ -1,27 +1,29 @@
 menu "Library"
 
 config LIB_DER_HELPERS
-    bool "(ASN.1) DER Helpers"
+    bool "ASN.1 DER helpers"
     default y
 
 config LIB_FDT
-    bool "Device tree support"
+    bool "Device tree library (libfdt)"
     default y
+    help
+        Selected by the handovers that pass a device tree on; a board may
+        use it too.
 
+# The translation tables (xlat_tables_v2), which the platforms on an arch
+# with an MMU set it up with: no switch, as they don't build without them
 config LIB_XLAT_TBLS
-    bool "Enable MMU support library"
-    default y
+    bool
 
 config LIB_XLAT_TBLS_ARMV7
-    bool "MMU armv7a"
-    depends on ARCH_ARMV7
+    bool
+    default y if ARCH_ARMV7
     select LIB_XLAT_TBLS
-    default y
 
 config LIB_XLAT_TBLS_ARMV8
-    bool "MMU armv8a"
-    depends on ARCH_ARMV8
+    bool
+    default y if ARCH_ARMV8
     select LIB_XLAT_TBLS
-    default y
 
 endmenu

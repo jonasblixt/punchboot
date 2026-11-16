@@ -1,11 +1,9 @@
-menu "Partition table drivers"
+menu "Partition tables"
 
 config PARTITION_GPT
-	bool "Enable support for GPT partitions"
-    default n
+    bool "GPT"
 
 config PARTITION_STATIC
-	bool "Enable support for static partition tables"
-    default n
+    bool "Static table"
 
 endmenu

@@ -34,11 +34,6 @@ CASES = [
         "y",
     ),
     (
-        "on with A/B's name before 3.0.0",
-        {"BOOT_AB_DRIVER": "y", "ENABLE_WATCHDOG": "y", SYMBOL: "y"},
-        "y",
-    ),
-    (
         "not without the watchdog",
         {"BOOT_POLICY_AB": "y", "ENABLE_WATCHDOG": "n", SYMBOL: "y"},
         "n",

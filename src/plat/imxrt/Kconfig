@@ -1,31 +1,15 @@
-choice IMXRT_CM_USB
-    bool "Command mode's USB port"
-    depends on PLAT_IMXRT && CM
-    help
-        The USB device port command mode uses. plat_cm_init() sets up its
-        clocks, its PHY and its controller when command mode starts
-        (platform.md 3.10).
-
-config IMXRT_CM_USB_OTG1
-    bool "USB OTG1"
-    select DRIVER_USB_DEVICE
-    select DRIVER_USB_PB_CLS
-    select DRIVER_IMX_USB2_PHY
-    select DRIVER_IMX_CI_UDC
-endchoice
-
 menu "Output image"
     depends on PLAT_IMXRT
 
 config IMXRT_CREATE_IMX_IMAGE
-    bool "Create imx-image"
+    bool "Create pb.imx"
     default y
     help
         pb.imx, pb.bin with the image header the boot ROM reads
         (plat-imx.md 6).
 
 config IMXRT_CREATE_FLASH_IMAGE
-    bool "Create flash image"
+    bool "Create pb_flash.bin"
     default y
     depends on IMXRT_CREATE_IMX_IMAGE
     help

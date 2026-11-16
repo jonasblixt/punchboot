@@ -1,8 +1,7 @@
-menu "Memory Controller Drivers"
+menu "Memory controllers"
 
 config IMX_FLEXSPI
+    bool "i.MX FlexSPI NOR"
     depends on SOC_FAMILY_IMX
-	bool "Enable support i.MX FlexSPI NOR Driver"
-    default n
 
 endmenu
