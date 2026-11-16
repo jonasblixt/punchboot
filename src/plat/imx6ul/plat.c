@@ -487,6 +487,22 @@ int plat_init(void)
     while (!(mmio_read_32(IMX6UL_CCM_ANALOG_PLL_ARM) & CCM_ANALOG_PLL_ARM_LOCK))
         ;
 
+    /* ARM_PODF divides by 2: PLL1 is twice the core's rate. CACRR resets to
+     * divide by 1 (RM 18.6.5) and the ROM leaves 2, which pb relied on: with
+     * 1 the core would run at 1056 MHz. Written while the core is on the
+     * step clock (F-210) */
+    mmio_write_32(IMX6UL_CCM_CACRR, CCM_CACRR_AR_PODF(1));
+
+    struct pb_timeout podf_to;
+
+    pb_timeout_init_us(&podf_to, 1000);
+    while (mmio_read_32(IMX6UL_CCM_CDHIPR) & CCM_CDHIPR_ARM_PODF_BUSY) {
+        if (pb_timeout_has_expired(&podf_to)) {
+            LOG_ERR("ARM_PODF busy");
+            break;
+        }
+    }
+
     /* Select re-connect ARM PLL */
     mmio_clrsetbits_32(IMX6UL_CCM_CCSR, CCM_CCSR_PLL1_SW_CLK_SEL, 0);
 

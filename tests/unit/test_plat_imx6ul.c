@@ -424,6 +424,23 @@ static void test_boot_reason_is_read_once_and_not_cleared(void **state)
     assert_int_equal(fake_regs_writes(IMX6UL_SRC_SRSR), 0);
 }
 
+/* F-210: the core's divide by 2 is plat_init()'s, not the ROM's: CACRR
+ * resets to divide by 1 (RM 18.6.5), which would run the core at PLL1's
+ * rate, twice its own */
+static void test_arm_podf_is_set(void **state)
+{
+    (void)state;
+
+    fake_regs_set(IMX6UL_CCM_CACRR, 0);
+    assert_int_equal(plat_init(), PB_OK);
+    assert_int_equal(fake_regs_writes(IMX6UL_CCM_CACRR), 1);
+    assert_int_equal(fake_regs_get(IMX6UL_CCM_CACRR), 1);
+
+    /* The core at half of PLL1, whichever speed grade the fake's fuses say */
+    uint32_t div = fake_regs_get(IMX6UL_CCM_ANALOG_PLL_ARM) & CCM_ANALOG_PLL_ARM_DIV_SELECT_MASK;
+    assert_int_equal(imx6ul_clk_rate(IMX6UL_CLK_CORE), 24000000u * div / 4);
+}
+
 /* platform.md 2.1: the watchdog is armed in plat_early_init() when
  * CONFIG_ENABLE_WATCHDOG is set, and only then. The WDOGs' power-down
  * counters are stopped whatever the option is */
@@ -1016,6 +1033,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_plat_reset, setup),
         cmocka_unit_test_setup(test_clk_rate, setup),
+        cmocka_unit_test_setup(test_arm_podf_is_set, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),

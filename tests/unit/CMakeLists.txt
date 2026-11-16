@@ -745,6 +745,7 @@ pb_plat_test(test_plat_imx6ul
         fakes/board.c
         ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/plat.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS
@@ -762,6 +763,7 @@ pb_plat_test(test_plat_imx6ul_no_wdog
         fakes/board.c
         ${PROJECT_SOURCE_DIR}/src/mmu.c
         ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/plat.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/timer/imx_gpt.c
         ${PROJECT_SOURCE_DIR}/src/drivers/wdog/imx_wdog.c
     DEFINITIONS

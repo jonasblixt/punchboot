@@ -14,6 +14,10 @@
 #define CCM_CACRR_AR_PODF_MASK             (0x7 << CCM_CACRR_AR_PODF_SHIFT)
 #define CCM_CACRR_AR_PODF(x)               ((x << CCM_CACRR_AR_PODF_SHIFT) & CCM_CACRR_AR_PODF_MASK)
 
+/* RM 18.6.17: set while a divider change is handed over */
+#define IMX6UL_CCM_CDHIPR                  (0x020C4048)
+#define CCM_CDHIPR_ARM_PODF_BUSY           BIT(16)
+
 #define IMX6UL_CCM_CSCMR1                  (0x020C401C)
 #define CCM_CSCMR1_ACLK_EIM_SLOW_SEL_SHIFT (29)
 #define CCM_CSCMR1_ACLK_EIM_SLOW_SEL_MASK  (0x3 << CCM_CSCMR1_ACLK_EIM_SLOW_SEL_SHIFT)
