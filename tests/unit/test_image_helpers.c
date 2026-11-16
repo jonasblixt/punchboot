@@ -411,41 +411,45 @@ static void test_verify_parts_across_two_regions(void **state)
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
 }
 
+/* The last byte of the address space: a region's and a part's addresses
+ * are uintptr_t's when they are used */
+#define ADDR_TOP ((uint64_t)UINTPTR_MAX)
+
 /* An address range that wraps is in no region, wherever its end lands */
 static void test_verify_parts_wraps(void **state)
 {
-    /* The last 64 KiB of the address space, which a 64-bit arch can have */
+    /* The last 64 KiB of the address space */
     static const struct boot_image_region top[] = {
         BOOT_IMAGE_REGION(REGION_A, REGION_A_SIZE),
-        BOOT_IMAGE_REGION(UINT64_MAX - 0xffff, 0x10000),
+        BOOT_IMAGE_REGION(ADDR_TOP - 0xffff, 0x10000),
         BOOT_IMAGE_REGION_END,
     };
     (void)state;
 
-    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 511, 1024);
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, ADDR_TOP - 511, 1024);
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
 
     /* Wraps into a region: its end is FREE_RAM + 0x1000 */
-    make_header(BPAK_HASH_SHA256, UINT64_MAX - 0xfff, (size_t)FREE_RAM + 0x2000, 0, 0);
+    make_header(BPAK_HASH_SHA256, ADDR_TOP - 0xfff, (size_t)FREE_RAM + 0x2000, 0, 0);
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
 
     assert_int_equal(boot_image_set_regions(top), PB_OK);
 
     /* To the last byte there is */
-    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 1023, 1024);
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, ADDR_TOP - 1023, 1024);
     assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
 
     /* One byte further wraps, out of the region it starts in */
-    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, UINT64_MAX - 1022, 1024);
+    make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, ADDR_TOP - 1022, 1024);
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
-    make_header(BPAK_HASH_SHA256, UINT64_MAX - 0xfff, (size_t)FREE_RAM + 0x2000, 0, 0);
+    make_header(BPAK_HASH_SHA256, ADDR_TOP - 0xfff, (size_t)FREE_RAM + 0x2000, 0, 0);
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
 
     /* Two parts over each other at the last byte there is: the end of both
      * is 0, their last bytes are compared */
-    make_header(BPAK_HASH_SHA256, UINT64_MAX - 1023, 1024, UINT64_MAX - 511, 512);
+    make_header(BPAK_HASH_SHA256, ADDR_TOP - 1023, 1024, ADDR_TOP - 511, 512);
     assert_int_equal(boot_image_verify_parts(hdr), -PB_ERR_MEM);
-    make_header(BPAK_HASH_SHA256, UINT64_MAX - 1023, 512, UINT64_MAX - 511, 512);
+    make_header(BPAK_HASH_SHA256, ADDR_TOP - 1023, 512, ADDR_TOP - 511, 512);
     assert_int_equal(boot_image_verify_parts(hdr), PB_OK);
 }
 
@@ -573,13 +577,13 @@ static void test_regions_empty_or_wrapping(void **state)
 
     assert_regions_fail(FREE_RAM, 0);
     assert_regions_fail(0, 0);
-    assert_regions_fail(UINT64_MAX - 0xfff, 0x1001);
-    assert_regions_fail(FREE_RAM, UINT64_MAX);
-    assert_regions_fail(UINT64_MAX, 2);
+    assert_regions_fail(ADDR_TOP - 0xfff, 0x1001);
+    assert_regions_fail(FREE_RAM, ADDR_TOP);
+    assert_regions_fail(ADDR_TOP, 2);
 
     /* Memory at address 0, and to the last byte there is */
     assert_regions_pass(0, 0x20000);
-    assert_regions_pass(UINT64_MAX - 0xfff, 0x1000);
+    assert_regions_pass(ADDR_TOP - 0xfff, 0x1000);
 
     /* A list without regions passes, and loads nothing */
     assert_int_equal(boot_image_set_regions(none), PB_OK);
@@ -670,7 +674,10 @@ static void test_verify_parts_in_place_outside(void **state)
         { FLASH_BASE + FLASH_SIZE, 512 },
         /* Larger than the range */
         { FLASH_BASE, FLASH_SIZE + 512 },
+#if SIZE_MAX == UINT64_MAX
+        /* A 32-bit size_t can't hold it: bpak_valid_header() refuses it there */
         { FLASH_BASE + 512, (size_t)1 << 62 },
+#endif
         /* The address and the size wrap in 64 bits: to 0, and to inside the range */
         { UINT64_MAX - 511, 512 },
         { UINT64_MAX - 100, 512 },

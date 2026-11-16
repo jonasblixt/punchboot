@@ -1289,6 +1289,10 @@ static void test_initrd_above_4_gib(void **state)
 {
     (void)state;
 
+#if UINTPTR_MAX != UINT64_MAX
+    /* No such address: the regions refuse the part before it loads */
+    skip();
+#endif
     check_initrd(0x880000000,
                  0x2000,
                  (const uint8_t[]){ 0x00, 0x00, 0x00, 0x08, 0x80, 0x00, 0x00, 0x00 },
