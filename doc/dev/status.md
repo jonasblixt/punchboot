@@ -37,8 +37,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
    - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
      resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
      TF-A's 8MQ patch could go upstream.
-   - Not yet on a board (log 2026-11-14): the RT1060's entry (F-210, F-207), the 8M's lockdown
-     (D-084), the 8MP's USB2 and the 8DXL's OTG1 (F-402), `-fno-pie` (F-454) on the pico8ml.
+   - Not yet on a board (log 2026-11-14): the 8MP's USB2 and the 8DXL's OTG1 (F-402),
+     `-fno-pie` (F-454) on the pico8ml.
    - D-084's rest: EOL with data (F-263, PR #51). F-447 (the 8M's SLC sources), F-432 (the
      pico8ml, when it is back), F-433.
 1. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
