@@ -481,4 +481,3 @@ checklist's last item.
 |              | the controller's (2.3, 4.3)                                                 |
 | F-138        | Endpoint 0: stall and bounds (3.2)                                          |
 | F-205        | Every wait is bounded (4)                                                   |
-| F-140        | The ChipIdea's set up against its reference manual                          |

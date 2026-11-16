@@ -57,18 +57,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `wLength` (the strings are 20 and 74 bytes, the configuration 32, the SPL's product 28). An | | |
 | | | out-of-tree class with a 64 byte string would hit it; a fix is each controller's (Linux's | | |
 | | | `zero`: a second, empty TRB or dTD in the data stage) and a test build on three boards | | |
-| F-140 | `src/drivers/usb/imx_ci_udc.c` | USBMODE.SDIS is set; the RM: in high speed every OUT packet is then answered with NYET, and it "substantially limits" throughput. Worth measuring for flashing speed. The init also writes ENDPOINTLISTADDR before USBMODE.CM, the RM (54.4.6.1) sets the mode first. `CMD_ITC(x)` cast to `uint16_t` after the shift, so ITC was always 0 (immediate; fine for a polling driver). | Verified (code, RM 54.6.33, 54.4.6.1) | open (ITC: `USBCMD_ITC(0)` since `5bd1d20e`, same value) |
-| | | 2026-11-14 (`cb747e97`, `pkg-b3-ci2` landed): USBMODE.CM is set first, as the RM; benched with F-136. | | |
-| | | Left: whether clearing SDIS raises the throughput without errors, measured on jiffy and the RT1060 | | |
-| | | 2026-11-15, jiffy (BOOT1, `55689509`): `part write` of 32 MiB (authentication, USB and eMMC), three | | |
-| | | runs each: 2.35 s with SDIS (13.6 MiB/s), 1.99 s without (16.1 MiB/s), every verify OK, no error in | | |
-| | | pb's log. The default stays SDIS: the RT1060 isn't measured (its writes are NOR bound, the test | | |
-| | | pb would go in its NOR), and the 8DXL can't be. For Jonas: clear it on jiffy only, or for all | | |
-| | | 2026-11-16 (Jonas): SDIS is cleared on every board (the ChipIdea: jiffy, the RT1060, the 8DXL). The | | |
-| | | RT1060 runs it from its NOR, the simple bench 7 of 7. Left: jiffy from its eMMC (it needs a power | | |
-| | | cycle first), the 8DXL only builds | | |
-| | | 2026-11-16, jiffy from BOOT0: 32 MiB writes 1.86 s without SDIS (17.2 MiB/s), 2.18 to 2.28 s with it, | | |
-| | | all verified. Left: the 8DXL, which only builds | | |
 | F-149 | `src/board/imxrt1060evk/imximage.cfg` | The DCD writes IOMUXC_GPR17 (0x400ac044 = 0x55555555) and sets GPR16 bit 2 to make all of the FlexRAM OCRAM. HAB rejects the write: `punchboot log hab` on the RT1060 EVK has a failure, invalid address (0x22) in a CSF/DCD command, for that write. So the FlexRAM keeps its fused split (256 KiB OCRAM); pb fits, since its buffers end at 0x202bf000. On an open part the ROM goes on; on a closed one the boot fails. Drop the DCD or set GPR17 from pb (the ROM's DCD address list doesn't allow IOMUXC_GPR). | Verified (board, HAB log) | open |
 | F-153 | Linux 6.18 + TF-A v2.12 on the i.MX8M Plus | Linux powers the audio mix through the GPC itself, which leaves its AIPS5 bridge at the reset defaults (TF-A configures AIPS5 only when its own SiP call powers the domain): the first access (audio mix clock driver, MU2) takes an SError. Not pb; U-Boot doesn't set AIPS5 either. Newer kernels have `drivers/bus/imx-aipstz.c` (MPR0 = 0x77777777 on probe and runtime resume) with a node in `imx8mp.dtsi`. | Verified (EVK) | worked around: the test bench's DTS disables AIPS5 (`59569a10`) |
 | F-155 | i.MX8M Plus EVK, `30be0000.ethernet` (FEC) | The FEC's PHY (address 1, reset `gpio4 2`) doesn't answer on MDIO (`MDIO device at address 1 is missing`, `Unable to connect to phy`), with the upstream DTS. The EQOS port probes. No cable was attached. | Seen on the board | open |
