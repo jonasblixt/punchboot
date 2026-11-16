@@ -182,6 +182,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `roadmap.md` still list the guides as to write | | |
 | | | 2026-11-16: `guides/updates.md`, the A/B update flow and pbstate, a draft from `boot.md` 3.5 to | | |
 | | | 3.7 and 5.6 and `pbstate`'s options, for Jonas | | |
+| | | 2026-11-17 (`fb129240`, `c794b914`, `96d7340a`): the guides' F-247 parts, the README's imx8mevk and | | |
+| | | `part read`, `guides/slc.md` (the life cycle on a device, a draft for Jonas), the changelog's Known | | |
+| | | section. Left: SECURITY.md (its contact is Jonas's to choose), the guides' F-240, F-282 and F-269 | | |
+| | | sections, Jonas's review of the drafts | | |
 | F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL | Verified (on jiffy) | open |
 | | | RM (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 | | |
 | | | (supervisor only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code | | |
@@ -196,18 +200,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (its clock, likely gated). Left: the SDMA's peripheral access, unchecked; a 6ULL | | |
 | | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): doesn't gate: MPR 0x77777777 trusts every master, the | | |
 | | | SDMA too; checked when a product uses it | | |
-| F-247 | `src/board/*/board.c` | The boards wire the SoC's RoT and SLC functions | Verified (code) | open |
-| | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
-| | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |
-| | | crypto engine in `plat_init()` behind a Kconfig option (`platform.md` 2.2, 4.1, 4.2) | | |
-| | | 2026-11-14 (`7c67ddee`..`c4cfdf05`): in the code. `struct board` has no `rot` and no `slc`, it has | | |
-| | | `slc_fuses` and `slc_fuses_length`; `pb/plat.h` declares `plat_rot` and `plat_slc`, each port's | | |
-| | | tables what its boards had (pinned per port); the CAAM and its RNG (the 6UL, the 8M), the CAAM with | | |
-| | | its SCFW power requests (the 8X) and Mbed TLS (the RT, the host) are set up last in `plat_init()`, | | |
-| | | and nothing else moved on any board. A crypto engine that didn't come up refuses the boot before a | | |
-| | | candidate (`PLAT_CRYPTO_ENGINE`, selected by every port), so an A/B trial spends no attempt. Left | | |
-| | | open for the guides only: the migration guide's 18.1 and its sections 1 and 13, the porting guide's | | |
-| | | 2.3 and 2.4 still describe it as to come. Not run on a board | | |
 | F-251 | `src/board/{imxrt1060evk,imx8qxmek,imx8dxlevk}` | The serial download | Verified (code) | open |
 | | | check is in the boards: the 8X reads the SCU's boot type in `early_boot`. The RT had two in a | | |
 | | | `late_boot` that was never called, removed with F-264 and to come back in its | | |
@@ -795,6 +787,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | ID | Finding | Status |
 |---|---|---|
 | F-020 | Mbed TLS pinned to 3.4.0 (EOL). The file list in `src/drivers/crypto/mbedtls/makefile.mk` is tied to that release. `mbedtls_config.h` enables MD5/BASE64/PKCS1_V21, which are unused. Corrected 2026-11-12: MD5 is used, for the device's UUID (`uuid3.c`, `crypto.md` 5); BASE64 and PKCS1_V21 unchecked. | open |
+| | | 2026-11-17 (`fb129240`): `vendored.md` and the release notes' Known section record 3.4.0's state: no | | |
+| | | fixes upstream since 3.5.0, shipped in the RT1060 EVK's builds, to be replaced (Jonas, 2026-11-16). | | |
+| | | The gate's part is done. Left: the replacement | | |
 | | 2026-11-13 (`a1c5a80f`): BASE64 and PKCS1_V21 are off; neither was compiled into a build, the | |
 | | RT1060's `pb.bin` is the same with and without. Left: the pin to 3.4.0 | |
 | | 2026-11-14 (`7e1e5ba9`): the record is `doc/guides/vendored.md`: each component's files, upstream, |

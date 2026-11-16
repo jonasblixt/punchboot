@@ -2467,6 +2467,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 0x0085. Since the driver came in (`bf965ce9`, 2023). Found by the rewrite of F-205 | | |
 | | | 2026-11-17 (`fd7cbda5`): 0x0085. The MEK: USB3 command mode, a 32 MiB write and verify (2.1 s), | | |
 | | | three resets, Linux | | |
+| F-247 | `src/board/*/board.c` | The boards wire the SoC's RoT and SLC functions | Verified (code) | fixed |
+| | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
+| | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |
+| | | crypto engine in `plat_init()` behind a Kconfig option (`platform.md` 2.2, 4.1, 4.2) | | |
+| | | 2026-11-14 (`7c67ddee`..`c4cfdf05`): in the code. `struct board` has no `rot` and no `slc`, it has | | |
+| | | `slc_fuses` and `slc_fuses_length`; `pb/plat.h` declares `plat_rot` and `plat_slc`, each port's | | |
+| | | tables what its boards had (pinned per port); the CAAM and its RNG (the 6UL, the 8M), the CAAM with | | |
+| | | its SCFW power requests (the 8X) and Mbed TLS (the RT, the host) are set up last in `plat_init()`, | | |
+| | | and nothing else moved on any board. A crypto engine that didn't come up refuses the boot before a | | |
+| | | candidate (`PLAT_CRYPTO_ENGINE`, selected by every port), so an A/B trial spends no attempt. Left | | |
+| | | open for the guides only: the migration guide's 18.1 and its sections 1 and 13, the porting guide's | | |
+| | | 2.3 and 2.4 still describe it as to come. Not run on a board | | |
+| | | 2026-11-17 (`fb129240`): the migration guide's 19.1 is a before and an after from v2.7.1's jiffy, | | |
+| | | its sections 1 and 13 and the example name `slc_fuses`; the porting guide's 2.3, 2.4 and step 8 say | | |
+| | | what the code does. With F-442 (`8233e199`) Mbed TLS is the core's | | |
 
 ## Dependencies / vendored code
 
