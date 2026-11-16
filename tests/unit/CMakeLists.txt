@@ -108,6 +108,11 @@ pb_unit_test(test_linux_ramoops SOURCES
     ${PROJECT_SOURCE_DIR}/src/ramlog.c
 )
 
+# plat_info.c on a fake plat_get_info(): the text, its log, the command 'info'
+pb_unit_test(test_plat_info SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat_info.c
+)
+
 pb_unit_test(test_crypto
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/crypto.c

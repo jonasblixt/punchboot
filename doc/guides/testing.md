@@ -347,6 +347,8 @@ Unit tests, by module under test:
 | `test_snprintf.c`                             | pb's `snprintf()`,           | none                             |
 |                                               | `vsnprintf()` (as `pb_*`)    |                                  |
 | `test_tzc380.c`                               | `tzc380.c`                   | a register file in RAM           |
+| `test_plat_info.c`                            | `plat_info.c`: the text, its | a fake `plat_get_info()`         |
+|                                               | log, the command `info`      |                                  |
 | `test_imx_iomuxc.c`                           | `imx_iomuxc.c`: the pin      | `fakes/mmio`, records writes     |
 |                                               | tables                       |                                  |
 | `test_imx_ocotp.c`                            | `imx_ocotp.c`                | a model of the OCOTP (6UL RM 35) |
