@@ -2274,6 +2274,20 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | Jonas) | | |
 | | | 2026-11-16 (`45694b3b`, Jonas: any block size): the GPT takes the device's block size, 512 to 4096 | | |
 | | | bytes (`test_gpt`'s 4 KiB device); on jiffy, the MEK and the 8MP EVK the same partitions, Linux | | |
+| F-441 | `src/boot/`, `board/jiffy`, `testbench/` | The delivery through OP-TEE on ARMv7-A | Verified | fixed |
+| | | (`boot.md` 5.7, D-085) doesn't exist: OP-TEE is booted as the kernel's part, with a fixed | | |
+| | | `CFG_NS_ENTRY_ADDR`. Left, after the review: the delivery, its host test, jiffy's board, a | | |
+| | | test bench add-on with OP-TEE (13.1 of 2026-11-14), and F-241's check from Linux on it | | |
+| | | 2026-11-14 (`f6eb8eae`, `ffc9a813`): the delivery (`boot/optee.h`, `CONFIG_BOOT_OPTEE`, `takes()` | | |
+| | | in the delivery's ops), jiffy's board data behind the option, `test_optee`; the test bench's | | |
+| | | add-ons, `make BOARD=jiffy ADDON=optee`. Left: the bench (OP-TEE 4.9.0 to Linux on jiffy, xtest, | | |
+| | | the plain `boot.bpak` directly), then F-241's check from Linux | | |
+| | | 2026-11-14, on jiffy (pb from BOOT1): OP-TEE 4.9.0 starts from the part `tee` and enters Linux at | | |
+| | | pb's entry, Linux mounts Root B and starts tee-supplicant; the plain `boot.bpak` boots Linux | | |
+| | | directly. Two fixes in the add-on: `CFG_NS_ENTRY_ADDR=n` (OP-TEE's i.MX default, 0x80800000, | | |
+| | | overrides lr) and OP-TEE 1 MiB lower (jiffy's ramoops is the last MiB). Left: F-444 | | |
+| | | 2026-11-16: F-444 is fixed in the test bench (`5d7a7f76`) and F-465 (`aa834550`): OP-TEE 4.9.0 from | | |
+| | | the part `tee` to Linux on jiffy, xtest's regression suite 112 of 112 | | |
 
 ## Dependencies / vendored code
 

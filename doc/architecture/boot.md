@@ -700,4 +700,3 @@ Like the wire (D-008, `compatibility.md`):
 | Finding | What                                                                         |
 | ------- | ---------------------------------------------------------------------------- |
 | F-259   | Firmware Handoff (5.4): the tag of pb's structure, which isn't allocated yet |
-| F-441   | The delivery through OP-TEE (5.7): run on jiffy, from the test bench         |

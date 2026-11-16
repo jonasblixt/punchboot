@@ -680,18 +680,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | bench: jiffy 6UL 1.2, 528 MHz, 396 MHz (the ROM's MMDC clock, RM Table 8-43); the RT1060 | | |
 | | | 1.0, 600 MHz at speed grade 2. Left: a 6ULL | | |
 | | | 2026-11-14: no 6ULL board for now | | |
-| F-441 | `src/boot/`, `board/jiffy`, `testbench/` | The delivery through OP-TEE on ARMv7-A | Verified | open |
-| | | (`boot.md` 5.7, D-085) doesn't exist: OP-TEE is booted as the kernel's part, with a fixed | | |
-| | | `CFG_NS_ENTRY_ADDR`. Left, after the review: the delivery, its host test, jiffy's board, a | | |
-| | | test bench add-on with OP-TEE (13.1 of 2026-11-14), and F-241's check from Linux on it | | |
-| | | 2026-11-14 (`f6eb8eae`, `ffc9a813`): the delivery (`boot/optee.h`, `CONFIG_BOOT_OPTEE`, `takes()` | | |
-| | | in the delivery's ops), jiffy's board data behind the option, `test_optee`; the test bench's | | |
-| | | add-ons, `make BOARD=jiffy ADDON=optee`. Left: the bench (OP-TEE 4.9.0 to Linux on jiffy, xtest, | | |
-| | | the plain `boot.bpak` directly), then F-241's check from Linux | | |
-| | | 2026-11-14, on jiffy (pb from BOOT1): OP-TEE 4.9.0 starts from the part `tee` and enters Linux at | | |
-| | | pb's entry, Linux mounts Root B and starts tee-supplicant; the plain `boot.bpak` boots Linux | | |
-| | | directly. Two fixes in the add-on: `CFG_NS_ENTRY_ADDR=n` (OP-TEE's i.MX default, 0x80800000, | | |
-| | | overrides lr) and OP-TEE 1 MiB lower (jiffy's ramoops is the last MiB). Left: F-444 | | |
 | F-442 | `src/plat/*/plat.c`, `src/main.c`, `src/boot/boot.c` | Every platform sets up Mbed TLS | Verified | open |
 | | | in its `plat_init()`, and `plat_status.crypto_engine` says whether the build's backends all | | |
 | | | came up, Mbed TLS among them. D-086: the core sets the software backend up, the field is | | |
