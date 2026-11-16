@@ -114,7 +114,7 @@ return at once; `cm_transport_complete()` says when it is done.
 - **A read is done when exactly `length` bytes arrived**, and nothing is written past them.
   Fewer bytes at the end of the host's transfer (a short packet) is an error: the two sides
   no longer agree (`command-mode.md` 4.4). **Not yet in the code (F-205, F-287)**: no
-  controller reports a short read, and one writes up to a packet past the buffer.
+  controller reports a short read, and the cdns3's writes past the buffer are unverified.
 - **A read that is whole packets ends at its length**, and what the host sent beyond it stays
   for the next read. `BOOT_BPAK`'s parts rest on it: the host splits a part into transfers of
   its own size, the device reads it in pieces of `CONFIG_BOOT_LOAD_CHUNK_kB`, and on both
@@ -420,8 +420,8 @@ what the code doesn't settle without the hardware.
 | A bus reset and an unplug are    | yes, kept; an      | yes, kept           | yes, at high    | F-287,  |
 | reported                         | unplug where VBUS  |                     | speed, kept     | F-363   |
 |                                  | reaches it         |                     |                 |         |
-| OUT: nothing past `length`       | yes; an overflow   | no: rounded up to a | unverified      | F-205,  |
-|                                  | is an error        | packet              |                 | F-137   |
+| OUT: nothing past `length`       | yes; an overflow   | yes, the last       | unverified      | F-205,  |
+|                                  | is an error        | packet bounces      |                 | F-137   |
 | OUT: a short packet is an error  | yes                | no                  | no              | F-137,  |
 |                                  |                    |                     |                 | F-287   |
 | A read of whole packets ends at  | yes (jiffy)        | yes (8MP EVK)       | yes (the MEK)   | F-280   |
