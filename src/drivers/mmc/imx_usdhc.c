@@ -26,8 +26,8 @@
 #define ADMA2_DESCS            512
 #define USDHC_MAX_CHUNK_BYTES  SZ_MiB(30)
 
-/* Polling timeouts. A write's data timeout grows with the transfer at 1 MB/s,
- * a read's is the header's IMX_USDHC_READ_TIMEOUT_us() */
+/* Polling timeouts. A data transfer's are the header's
+ * IMX_USDHC_READ_TIMEOUT_us() and IMX_USDHC_WRITE_TIMEOUT_us() */
 #define USDHC_CLK_TIMEOUT_us   10000
 #define USDHC_RESET_TIMEOUT_us 100000
 #define USDHC_BUSY_TIMEOUT_us  5000000
@@ -425,7 +425,7 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
          * on one line, 3.1 MB/s at 25 MHz) the access time and twice the
          * bus's own time for the bytes. A write's covers the programming */
         if (cmd->write)
-            pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + bytes);
+            pb_timeout_init_us(&to, IMX_USDHC_WRITE_TIMEOUT_us(bytes));
         else
             pb_timeout_init_us(&to, usdhc_read_timeout_us(u, bytes));
         do {

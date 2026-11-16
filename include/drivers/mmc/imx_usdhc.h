@@ -48,6 +48,15 @@ struct imx_usdhc_config {
     (IMX_USDHC_READ_ACCESS_us + ((unsigned long long)(bytes) * IMX_USDHC_READ_ns_PER_BYTE) / 1000)
 
 /*
+ * A write's data wait: 5 s and 1 us a byte (1 MB/s), for the card's
+ * programming. JESD84-B51 gives no maximum for a write (7.3.21: R2W_FACTOR
+ * is typical), so this is what a card that works takes with room, not a
+ * limit of the card's (F-460)
+ */
+#define IMX_USDHC_WRITE_ACCESS_us         5000000ULL
+#define IMX_USDHC_WRITE_TIMEOUT_us(bytes) (IMX_USDHC_WRITE_ACCESS_us + (unsigned long long)(bytes))
+
+/*
  * What a board that loads from a uSDHC states (platform.md 3.3, F-321): a
  * read of one chunk, the boot's and command mode's, waits at most half its
  * watchdog, so that a card that stops answering is -PB_ERR_TIMEOUT and the
@@ -56,8 +65,14 @@ struct imx_usdhc_config {
 #ifdef CONFIG_ENABLE_WATCHDOG
 #define IMX_USDHC_FITS_THE_WATCHDOG(bytes) \
     (IMX_USDHC_READ_TIMEOUT_us(bytes) <= (unsigned long long)CONFIG_WATCHDOG_TIMEOUT * 500000ULL)
+/* A write of command mode's buffer ends before the watchdog, whose n s are
+ * at least n s on every port (F-460): a card that stops answering fails the
+ * command rather than reset the board */
+#define IMX_USDHC_WRITE_FITS_THE_WATCHDOG(bytes) \
+    (IMX_USDHC_WRITE_TIMEOUT_us(bytes) < (unsigned long long)CONFIG_WATCHDOG_TIMEOUT * 1000000ULL)
 #else
-#define IMX_USDHC_FITS_THE_WATCHDOG(bytes) 1
+#define IMX_USDHC_FITS_THE_WATCHDOG(bytes)       1
+#define IMX_USDHC_WRITE_FITS_THE_WATCHDOG(bytes) 1
 #endif
 
 #ifdef CONFIG_CM
@@ -66,11 +81,13 @@ struct imx_usdhc_config {
 #define IMX_USDHC_CM_CHUNK_BYTES 0ULL
 #endif
 
-#define IMX_USDHC_CHECK_CHUNKS()                                                       \
-    PB_STATIC_ASSERT(IMX_USDHC_FITS_THE_WATCHDOG(CONFIG_BOOT_LOAD_CHUNK_kB * 1024ULL), \
-                     "a boot chunk's read must fit half the watchdog (F-321)");        \
-    PB_STATIC_ASSERT(IMX_USDHC_FITS_THE_WATCHDOG(IMX_USDHC_CM_CHUNK_BYTES),            \
-                     "a command mode buffer's read must fit half the watchdog (F-321)")
+#define IMX_USDHC_CHECK_CHUNKS()                                                         \
+    PB_STATIC_ASSERT(IMX_USDHC_FITS_THE_WATCHDOG(CONFIG_BOOT_LOAD_CHUNK_kB * 1024ULL),   \
+                     "a boot chunk's read must fit half the watchdog (F-321)");          \
+    PB_STATIC_ASSERT(IMX_USDHC_FITS_THE_WATCHDOG(IMX_USDHC_CM_CHUNK_BYTES),              \
+                     "a command mode buffer's read must fit half the watchdog (F-321)"); \
+    PB_STATIC_ASSERT(IMX_USDHC_WRITE_FITS_THE_WATCHDOG(IMX_USDHC_CM_CHUNK_BYTES),        \
+                     "a command mode buffer's write must end before the watchdog (F-460)")
 
 /**
  * Initialize the usdhc mmc controller
