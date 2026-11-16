@@ -76,8 +76,13 @@ static uint32_t prng_state;
 
 static struct gpt_primary_tbl primary __aligned(64) __dram_bss;
 static struct gpt_backup_tbl backup __aligned(64) __dram_bss;
-/* Read by a device: it owns its cache lines (bio.md 3.1) */
-static uint8_t gpt_pmbr[512] __aligned(PB_DMA_ALIGN);
+/* One block of the device's: the protective MBR's, or a header's. Both are
+ * one block of the device's size, of which they use the first 512 bytes
+ * (UEFI 2.10 5.2.3, 5.3.2); GPT takes blocks of 512 to 4096 bytes here
+ * (F-283). Read by a device: it owns its cache lines (bio.md 3.1) */
+#define GPT_BLOCK_MAX 4096
+static uint8_t gpt_block[GPT_BLOCK_MAX] __aligned(PB_DMA_ALIGN);
+#define gpt_pmbr gpt_block
 static bio_dev_t gpt_dev;
 /* The backup's blocks, as read or written: its array's first, which its
  * header gives, and its header's */
@@ -199,13 +204,12 @@ static int gpt_init_tbl(bio_dev_t dev)
     hdr->current_lba = 1;
     hdr->no_of_parts = 128;
 
-    hdr->first_lba =
-        (hdr->current_lba + 1 + (hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
+    hdr->first_lba = hdr->current_lba + 1 + gpt_array_blocks(dev, hdr);
     hdr->backup_lba = last_lba;
     /* The last usable block is the one before the backup's array (F-064).
      * Releases up to 2.8.0 wrote the array's own first block here: such a
      * table is read and repaired as it is */
-    hdr->last_lba = (last_lba - (hdr->no_of_parts * sizeof(struct gpt_part_hdr)) / 512) - 1;
+    hdr->last_lba = (last_lba - gpt_array_blocks(dev, hdr)) - 1;
     hdr->entries_start_lba = primary.hdr.current_lba + 1;
     hdr->part_entry_sz = sizeof(struct gpt_part_hdr);
 
@@ -284,7 +288,7 @@ static int gpt_write_pmbr(bio_dev_t dev)
 {
     int rc;
 
-    memset(gpt_pmbr, 0, sizeof(gpt_pmbr));
+    memset(gpt_pmbr, 0, bio_block_size(dev));
 
     /* CHS start 0/0/2, CHS end 0xFFFFFF (beyond CHS), from LBA 1 */
     gpt_pmbr[MBR_PART_CHS_START + 1] = 2;
@@ -300,10 +304,28 @@ static int gpt_write_pmbr(bio_dev_t dev)
     gpt_pmbr[MBR_SIGNATURE] = 0x55;
     gpt_pmbr[MBR_SIGNATURE + 1] = 0xAA;
 
-    rc = bio_write(dev, 0, sizeof(gpt_pmbr), gpt_pmbr);
+    rc = bio_write(dev, 0, bio_block_size(dev), gpt_pmbr);
 
     if (rc != PB_OK)
         LOG_ERR("Writing protective MBR failed");
+
+    return rc;
+}
+
+/* A header, in its block: the first 512 bytes, the rest of the block 0 */
+static int gpt_write_hdr(bio_dev_t dev, lba_t lba, const struct gpt_header *hdr)
+{
+    memset(gpt_block, 0, bio_block_size(dev));
+    memcpy(gpt_block, hdr, sizeof(*hdr));
+    return bio_write(dev, lba, bio_block_size(dev), gpt_block);
+}
+
+static int gpt_read_hdr(bio_dev_t dev, lba_t lba, struct gpt_header *hdr)
+{
+    int rc = bio_read(dev, lba, bio_block_size(dev), gpt_block);
+
+    if (rc == PB_OK)
+        memcpy(hdr, gpt_block, sizeof(*hdr));
 
     return rc;
 }
@@ -320,7 +342,11 @@ static int gpt_write_primary(bio_dev_t dev)
 
     LOG_DBG("writing primary gpt tbl to lba 1");
 
-    rc = bio_write(dev, 1, sizeof(struct gpt_header) + array_sz, &primary);
+    /* The array, then the header that makes it valid, as the backup's */
+    rc = bio_write(dev, 2, array_sz, primary.part);
+
+    if (rc == PB_OK)
+        rc = gpt_write_hdr(dev, 1, &primary.hdr);
 
     if (rc != PB_OK)
         LOG_ERR("error writing primary gpt table (%i)", rc);
@@ -350,7 +376,7 @@ static int gpt_write_backup(bio_dev_t dev)
     backup_first_lba = (lba_t)backup.hdr.entries_start_lba;
     backup_hdr_lba = (lba_t)backup.hdr.current_lba;
 
-    return bio_write(dev, backup_hdr_lba, sizeof(struct gpt_header), &backup.hdr);
+    return gpt_write_hdr(dev, backup_hdr_lba, &backup.hdr);
 }
 
 /* Makes the backup of the primary, with its header in block 'hdr_lba' and
@@ -391,13 +417,16 @@ static int gpt_write_tbl(bio_dev_t dev)
 static int gpt_read_backup(bio_dev_t dev, lba_t hdr_lba, bool *valid)
 {
     int rc;
-    const lba_t array_lba = hdr_lba - ((128 * sizeof(struct gpt_part_hdr)) / 512);
+    const lba_t array_lba = hdr_lba - sizeof(backup.part) / bio_block_size(dev);
 
     *valid = false;
 
     /* The header, and the array of 128 entries before it, where every tool
-     * puts it: one read */
-    rc = bio_read(dev, array_lba, sizeof(backup), &backup);
+     * puts it */
+    rc = bio_read(dev, array_lba, sizeof(backup.part), backup.part);
+
+    if (rc == PB_OK)
+        rc = gpt_read_hdr(dev, hdr_lba, &backup.hdr);
 
     if (rc != PB_OK)
         return rc;
@@ -445,7 +474,7 @@ static bool gpt_backup_place_is_valid(bio_dev_t dev)
 
     /* A header is one block */
     if (hdr_lba > (uint64_t)bio_get_last_block(dev) ||
-        hdr_lba <= sizeof(backup) / sizeof(struct gpt_header))
+        hdr_lba <= sizeof(backup.part) / bio_block_size(dev) + 1)
         return false;
 
     return hdr_lba - blocks > 1 + blocks && hdr_lba - blocks >= primary.hdr.last_lba;
@@ -474,7 +503,7 @@ static int gpt_repair_primary(bio_dev_t dev)
     primary.hdr.entries_start_lba = primary.hdr.current_lba + 1;
 
     /* What made the primary bad may have taken the protective MBR too */
-    rc = bio_read(dev, 0, sizeof(gpt_pmbr), gpt_pmbr);
+    rc = bio_read(dev, 0, bio_block_size(dev), gpt_pmbr);
 
     if (rc != PB_OK)
         return rc;
@@ -600,6 +629,18 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
         return -PB_ERR_PARAM;
     }
 
+    /* A block of 512 to 4096 bytes, a power of two (F-283): a header and the
+     * protective MBR are one block, the array whole blocks */
+    ssize_t block_size = bio_block_size(dev);
+
+    if (block_size < 0)
+        return (int)block_size;
+
+    if (block_size < 512 || block_size > GPT_BLOCK_MAX || (block_size & (block_size - 1)) != 0) {
+        LOG_ERR("No GPT on blocks of %zd bytes", block_size);
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
     gpt_dev = dev;
     tables = default_tables;
     tables_length = length;
@@ -611,7 +652,10 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
 
     /* Read primary and backup GPT headers and parition tables. The backup's
      * header is in the device's last block */
-    rc = bio_read(dev, 1, sizeof(primary), &primary);
+    rc = gpt_read_hdr(dev, 1, &primary.hdr);
+
+    if (rc == PB_OK)
+        rc = bio_read(dev, 2, sizeof(primary.part), primary.part);
 
     if (rc != PB_OK)
         return rc;

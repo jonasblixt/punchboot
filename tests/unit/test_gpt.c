@@ -302,6 +302,57 @@ static void seal(struct fixture *f, lba_t hdr_lba, lba_t array_lba)
         hdr, HDR_PART_ARRAY_CRC, crc32(~0L, ramdisk_block(f->disk, array_lba), length) ^ ~0UL);
 }
 
+/* F-283: GPT on blocks of 4 KiB, as UEFI has it: the protective MBR and a
+ * header one block each, the 128 entries' 16 KiB four blocks. The 512s were
+ * the 512 byte device's */
+static const struct gpt_part_table tbl_4k[] = {
+    { .uu = UU_SYS_A, .description = "System A", .size = SZ_KiB(512) },
+    { .uu = UU_STATE, .description = "State", .size = SZ_KiB(4) },
+};
+static const struct gpt_table_list tables_4k[] = {
+    { .name = "4K", .variant = 0, .table = tbl_4k, .table_length = 2 },
+};
+
+static void test_blocks_of_4_kib(void **state)
+{
+    const size_t blocks = 8192; /* 32 MiB */
+    struct ramdisk *disk = ramdisk_new_block_size(blocks, 4096);
+    bio_dev_t dev;
+    (void)state;
+
+    assert_non_null(disk);
+    bio_reset();
+    dev = ramdisk_attach(disk, UU_DISK);
+    assert_true(dev >= 0);
+    (void)gpt_ptbl_init(dev, tables_4k, ARRAY_SIZE(tables_4k));
+    assert_int_equal(bio_install_partition_table((unsigned char *)UU_DISK, 0), PB_OK);
+
+    /* MBR 0, header 1, the array 2 to 5; the backup's array the four
+     * blocks before its header, the last */
+    assert_int_equal(ramdisk_block(disk, 0)[510], 0x55);
+    assert_int_equal(ramdisk_block(disk, 0)[511], 0xaa);
+    assert_memory_equal(ramdisk_block(disk, 1), "EFI PART", 8);
+    assert_memory_equal(ramdisk_block(disk, blocks - 1), "EFI PART", 8);
+    assert_int_equal(get_hdr_field(ramdisk_block(disk, 1), HDR_FIRST_USABLE), 6);
+    assert_int_equal(get_hdr_field(ramdisk_block(disk, 1), HDR_LAST_USABLE), blocks - 6);
+    assert_int_equal(get_hdr_field(ramdisk_block(disk, blocks - 1), HDR_ENTRIES_LBA), blocks - 5);
+
+    bio_reset();
+    dev = ramdisk_attach(disk, UU_DISK);
+    assert_int_equal(gpt_ptbl_init(dev, tables_4k, ARRAY_SIZE(tables_4k)), PB_OK);
+    assert_part(UU_SYS_A, 6, 6 + 128 - 1, "System A");
+    assert_part(UU_STATE, 6 + 128, 6 + 128, "State");
+
+    /* A primary that's gone is the backup's again */
+    memset(ramdisk_block(disk, 1), 0, 4096);
+    bio_reset();
+    dev = ramdisk_attach(disk, UU_DISK);
+    assert_int_equal(gpt_ptbl_init(dev, tables_4k, ARRAY_SIZE(tables_4k)), PB_OK);
+    assert_memory_equal(ramdisk_block(disk, 1), "EFI PART", 8);
+    assert_part(UU_SYS_A, 6, 6 + 128 - 1, "System A");
+    ramdisk_free(disk);
+}
+
 /* bio.md 4: an empty entry is skipped, and the others are made (F-192).
  * What 'sgdisk -d 1' leaves: the first entry is zeros in both copies. */
 static void test_empty_entry_is_skipped(void **state)
@@ -575,18 +626,19 @@ static void test_repair_writes_only_the_bad_copy(void **state)
     install_and_reboot(f, 0);
     installed = snapshot(f);
 
-    /* The primary's header: one write, the header and its array */
+    /* The primary's header: its array, then the header (F-283: one block
+     * each of the device's size) */
     memset(ramdisk_block(f->disk, PRIMARY_HDR), 0, RAMDISK_BLOCK_SIZE);
     f->disk->writes = 0;
     assert_int_equal(boot(f), PB_OK);
-    assert_int_equal(f->disk->writes, 1);
+    assert_int_equal(f->disk->writes, 2);
     assert_disk_equal(f, installed);
 
     /* The primary's array */
     ramdisk_block(f->disk, PRIMARY_ARRAY)[0] ^= 1;
     f->disk->writes = 0;
     assert_int_equal(boot(f), PB_OK);
-    assert_int_equal(f->disk->writes, 1);
+    assert_int_equal(f->disk->writes, 2);
     assert_disk_equal(f, installed);
 
     /* The backup: its array, then its header */
@@ -601,7 +653,7 @@ static void test_repair_writes_only_the_bad_copy(void **state)
     memset(ramdisk_block(f->disk, 0), 0x17, 2 * RAMDISK_BLOCK_SIZE);
     f->disk->writes = 0;
     assert_int_equal(boot(f), PB_OK);
-    assert_int_equal(f->disk->writes, 2);
+    assert_int_equal(f->disk->writes, 3);
     assert_disk_equal(f, installed);
 
     /* And left when it is another tool's: a second partition in it */
@@ -609,7 +661,7 @@ static void test_repair_writes_only_the_bad_copy(void **state)
     memset(ramdisk_block(f->disk, PRIMARY_HDR), 0, RAMDISK_BLOCK_SIZE);
     f->disk->writes = 0;
     assert_int_equal(boot(f), PB_OK);
-    assert_int_equal(f->disk->writes, 1);
+    assert_int_equal(f->disk->writes, 2);
     assert_int_equal(ramdisk_block(f->disk, 0)[446 + 16 + 4], 0x83);
 
     /* A valid table is never written */
@@ -1222,6 +1274,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_blank_disk_has_no_partitions, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_default_table, setup, teardown),
+        cmocka_unit_test(test_blocks_of_4_kib),
         cmocka_unit_test_setup_teardown(test_install_largest_partition, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_too_large_partition_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_unknown_variant_fails, setup, teardown),
