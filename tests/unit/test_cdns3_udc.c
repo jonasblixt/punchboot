@@ -61,6 +61,7 @@
 #define EP_CMD_DFLUSH   BIT(7)
 #define EP_STS_SETUP    BIT(0)
 #define EP_STS_IOC      BIT(2)
+#define EP_STS_ISP      BIT(3)
 #define EP_STS_DBUSY    BIT(9)
 #define EP_STS_BUFEMPTY BIT(10) /* BUFFEMPTY */
 #define ISTS_CFGRESI    BIT(26)
@@ -238,8 +239,11 @@ static void assert_stopped(void)
 
 /* The controller runs the ring of 'ep': 'stream' is what the host sends on
  * an OUT endpoint, and what it receives on an IN endpoint. It stops at the
- * first TRB whose cycle bit is clear. Returns the bytes that moved */
-static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
+ * first TRB whose cycle bit is clear, and on OUT at a short packet: the
+ * host sent 'sent' bytes. A TRB's length (bits 16:0) is written back with
+ * what moved, which Linux's cdns3 driver adds up as the request's actual
+ * length. Returns the bytes that moved */
+static size_t controller_run_sent(usb_ep_t ep, uint8_t *stream, size_t size, size_t sent)
 {
     uintptr_t trb_addr = traddr[ep];
     bool in = (ep % 2) != 0;
@@ -259,16 +263,29 @@ static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
         length = trb[1] & 0x1ffff;
         assert_true(pos + length <= size);
 
+        if (!in && pos + length > sent)
+            length = sent - pos;
+
         if (in)
             dcache_dev_read(trb[0], stream + pos, length);
         else
             dcache_dev_write(trb[0], stream + pos, length);
 
+        trb[1] = (trb[1] & ~0x1ffffu) | (uint32_t)length;
+        dcache_dev_write(trb_addr + n * TRB_SIZE, trb, sizeof(trb));
         pos += length;
+
+        if (!in && pos == sent)
+            return pos;
     }
 
     fail_msg("A ring without an end");
     return 0;
+}
+
+static size_t controller_run(usb_ep_t ep, uint8_t *stream, size_t size)
+{
+    return controller_run_sent(ep, stream, size, size);
 }
 
 static void fill(uint8_t *p, size_t length, unsigned int seed)
@@ -671,6 +688,54 @@ static void test_bulk_transfers(void **state)
     }
 }
 
+/* usb.md 2.3: a read is done when exactly 'length' bytes arrived; a short
+ * packet before that is an error (F-287). It ended the transfer with PB_OK,
+ * and the caller took a buffer whose end the host never sent. In one TRB and
+ * in the last of several */
+static void test_a_short_packet_is_an_error(void **state)
+{
+    /* The length, what the host sends, and what the controller reports: a
+     * short packet in the last TRB raises both, before it only ISP (the IOC
+     * is the last TRB's) */
+    static const struct {
+        size_t length;
+        size_t sent;
+        uint32_t sts;
+    } cases[] = {
+        { 512, 100, EP_STS_IOC | EP_STS_ISP },
+        { 3 * TRB_MAX_LENGTH, 3 * TRB_MAX_LENGTH - 100, EP_STS_IOC | EP_STS_ISP },
+        { 3 * TRB_MAX_LENGTH, TRB_MAX_LENGTH + 100, EP_STS_ISP },
+    };
+
+    uint8_t *buf = arena + LINE;
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+        size_t length = cases[i].length;
+        uint32_t trb[3];
+
+        fill(host, length, 7);
+        assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, length), PB_OK);
+
+        /* Each OUT TRB asks for the short packet's interrupt (TRB_ISP) */
+        dcache_dev_read(traddr[USB_EP2_OUT], trb, sizeof(trb));
+        assert_true(trb[2] & BIT(2));
+
+        assert_int_equal(controller_run_sent(USB_EP2_OUT, host, length, cases[i].sent),
+                         cases[i].sent);
+        fake_regs_set(EP_STS, cases[i].sts);
+        assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+        assert_int_equal(dma_host_in_open(), 2);
+
+        /* The next transfer works */
+        assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, length), PB_OK);
+        assert_int_equal(controller_run(USB_EP2_OUT, host, length), length);
+        fake_regs_set(EP_STS, EP_STS_IOC);
+        assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), PB_OK);
+        assert_memory_equal(buf, host, length);
+    }
+}
+
 /* F-434: an endpoint stays after its transfer's last TRB, and with
  * CONF_DMULT it takes a TRB written there later as its own. After a result
  * on IN, the next OUT transfer's TRBs are not where the IN endpoint is: with
@@ -1045,6 +1110,7 @@ int main(void)
         cmocka_unit_test(test_stop_before_init),
         cmocka_unit_test_setup(test_the_terminating_trb_is_cleaned, setup),
         cmocka_unit_test_setup(test_bulk_transfers, setup),
+        cmocka_unit_test_setup(test_a_short_packet_is_an_error, setup),
         cmocka_unit_test_setup(test_in_and_out_have_their_own_rings, setup),
         cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
         cmocka_unit_test_setup(test_setup_packet, setup),

@@ -130,10 +130,12 @@ struct cdns_trb {
 } __packed;
 
 #define TRB_MAX_LENGTH      (127 * 1024) // (130048)
+#define TRB_LENGTH_MASK     0x1ffff
 #define TRB_BURST_LENGTH(x) ((x & 0xFF) << 16)
 
 #define TRB_FLAG_CYCLE      BIT(0)
 #define TRB_FLAG_TOGGLE     BIT(1)
+#define TRB_FLAG_ISP        BIT(2) /* Interrupt on a short packet */
 #define TRB_FLAG_CHAIN      BIT(4)
 #define TRB_FLAG_IOC        BIT(5)
 #define TRB_TYPE(x)         ((x) << 10)
@@ -436,6 +438,13 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
         trb_p->length = (uint32_t)chunk | TRB_BURST_LENGTH(64);
         trb_p->flags = TRB_FLAG_CYCLE | TRB_TYPE(TRB_TYPE_NORMAL);
 
+        /* A short packet ends the transfer with EP_STS_ISP, as Linux's
+         * cdns3 driver asks for. Without it the controller went on to the
+         * next TRB, the stop gap at the end, and the transfer never ended
+         * (F-287) */
+        if (!in_xfer)
+            trb_p->flags |= TRB_FLAG_ISP;
+
         bytes_to_xfer -= chunk;
         buf_p += chunk;
 
@@ -516,8 +525,10 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
         mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);
     }
 
-    /* EP0's last packet may be short: done on a short packet too, as Linux */
-    if ((ep_sts & EP_STS_IOC) || (ep / 2 == 0 && (ep_sts & EP_STS_ISP))) {
+    /* A last packet may be short: done on a short packet too, as Linux.
+     * An OUT transfer of whole TRBs then has bytes missing, below */
+    if ((ep_sts & EP_STS_IOC) || (!in_xfer && (ep_sts & EP_STS_ISP)) ||
+        (ep / 2 == 0 && (ep_sts & EP_STS_ISP))) {
         LOG_DBG("%s: Xfer done %x", ep_to_str(ep), ep_sts);
 
         mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_ISP);
@@ -527,12 +538,45 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
             if (in_xfer)
                 ep0_dma_end(true);
         } else if (ep == current_xfer_ep) {
+            size_t expected = current_xfer_length;
+            size_t received = expected;
+
+            /* The controller writes back what each TRB moved, as Linux's
+             * cdns3 driver reads it (the request's actual length) */
+            if (!in_xfer && current_xfer_dma) {
+                size_t trbs = current_xfer_trb_length / sizeof(current_xfer_trb[0]) - 1;
+
+                dma_in_end(current_xfer_trb, current_xfer_trb_length);
+                received = 0;
+                for (size_t n = 0; n < trbs; n++)
+                    received += current_xfer_trb[n].length & TRB_LENGTH_MASK;
+                dma_in_begin(current_xfer_trb, current_xfer_trb_length);
+            }
+
+            /* A short packet before 'length': the two sides no longer agree
+             * (usb.md 2.3, F-287). The TRBs after it are still armed: the
+             * endpoint is flushed before its buffer is the caller's again */
+            if (received != expected) {
+                LOG_ERR("%s: %zu of %zu bytes", ep_to_str(ep), received, expected);
+                mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DFLUSH);
+
+                if (wait_for(CDNS_USB_EP_CMD, EP_CMD_DFLUSH, 0, CDNS_FLUSH_TIMEOUT_us) != PB_OK) {
+                    /* As xfer_cancel: the transfer stays the controller's */
+                    LOG_ERR("%s: flush timeout", ep_to_str(ep));
+                    xfer_flush_failed = true;
+                    return -PB_ERR_IO;
+                }
+            }
+
             /* The ring, and what an OUT transfer wrote */
             xfer_dma_end();
 
             current_xfer_ep = -1;
             current_xfer_buf = NULL;
             current_xfer_length = 0;
+
+            if (received != expected)
+                return -PB_ERR_IO;
         }
 
         return PB_OK;
