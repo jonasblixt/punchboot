@@ -1948,6 +1948,12 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | ID | Finding | Status |
 |---|---|---|
 | F-034 | Bash tests that exist but don't run: `test_config`, `test_invalid_key_index2`, `test_setup_lock`, `test_bpak_show`, `test_part_offset_write`. They use commands and tools that no longer exist. | removed with the bash suite |
+| F-035 | The same data is defined in several places: exception names (C ×1, Python ×3, before D-021), partition flags, SLC enum, and the crc32 id table (`helpers.py`, could be `zlib.crc32`). | fixed (D-021, `575c4cde`): exception names are defined once (`errors.py`), and `wire.py` mirrors the wire values checked against `abi.txt`. Left: `pbtest.py`'s `PB_CMD_*`, the crc32 table |
+| | 2026-11-14 (`93508742`): the tests take their wire values from `wire.py`. `zlib.crc32(name, | |
+| | 0xffffffff) ^ 0xffffffff` equals `pb_id()` for every name in use and any ASCII name | |
+| | (`test_pb_id.py`): the table in `helpers.py` can go. Left: that change in `tools/` | |
+| | 2026-11-14 (`575c4cde`): `pb_id()` is `zlib.crc32` without its inversions; the table is gone. Left: | |
+| | nothing known | |
 | F-146 | `src/boot/atf.c` (+ `atf-interface/`, ~1,050 lines) is never compiled: no defconfig sets `BOOT_ATF`. Its `/chosen` patching duplicates `linux.c` (with F-071). Keep for an 8MP TF-A handover, or remove. | closed: kept, the 8MP EVK boots with it (`ac10a592`), warnings fixed (`8ceeea5a`); the duplicated `/chosen` code waits for Jonas' boot review |
 | F-031 | Stale `-I src/libc/include/...` in the armv7a/armv8a makefiles. The gcovr excludes still name `bearssl` and `src/fdt`. | fixed (`45a13b44`): the three -I paths; the gcovr excludes were gone since `5e336062` |
 | F-030 | libc files never compiled: `memcpy.c`, `strncmp.c`, `strlcpy.c`, `strnlen.c`, `strrchr.c`. Also `xlat_tables_v2/aarch32/nonlpae_tables.c`. | fixed (`6a2828b7`) |
@@ -1960,6 +1966,17 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | `pb_wire_command_string()` and `pb_wire_slc_string()`, which have returned "" since 1.0.0 and are | |
 | | left | |
 | F-145 | De-duplication left from the 2026-10-29 slimming review (D-020): board boilerplate (default GPT table and `partitions.h` byte-identical in 5 boards, the same `board_init` sequence and 3 dev keys in all, cm `.tops` in 6), ~900 lines; the write/read/check/print block 42 times in `tools/punchboot/api_*.c` and the validate/call/exception pattern 28 times in `python_wrapper.c`, ~550; `plat_mmu_init` and `plat_get_unique_id` near-identical in imx6ul/imx8m/imx8x; the bpak hash-kind switch 4 times in `image_helpers.c`; one-provider crypto ops tables; `test_mmc_core.c`'s own fake card vs the card models. Porting API: `arch_init()` empty everywhere, single-member `console_ops`, `board_init(struct imx*_platform *)` (imx8m struct empty), cm `command`/`status` stubs in 4 boards. | fixed (`ad8fc10d`, `f2b40630`) |
+| | Checked 2026-11-12: gone with D-026 are the boards' `board_init` sequence and signature and | |
+| | their cm `.tops`; a shared default layout was tried and moved back (Jonas, D-026). One ops | |
+| | table per crypto backend is the contract's (D-071). The MMU set up is F-158 and F-269. Left: | |
+| | `plat_get_unique_id` per port, the hash-kind switch (4 times), `arch_init()` (empty in every | |
+| | arch; D-065 gives it the line size's check), `console_ops` | |
+| | 2026-11-14 (`b745abe9`): `arch_init()` checks the D-cache's line against `PB_DMA_ALIGN` (D-065). | |
+| | Left: `plat_get_unique_id` per port, the hash-kind switch, `console_ops` | |
+| | 2026-11-14 (`ad8fc10d`, `f2b40630`): the 6UL's, the 8M's and the RT's unique id is |
+| | `imx_ocotp_read_unique_id()` (the 8X's stays the SCFW's; the bytes, their order and the errors |
+| | unchanged), the bpak hash kind maps in one `image_hash_kind()`. `console_ops` stays: a one-member |
+| | struct can grow without breaking boards, a function argument can't (principles 6 over 8). Done |
 
 ## Build / CI / docs
 

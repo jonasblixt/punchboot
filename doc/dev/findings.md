@@ -975,23 +975,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | board in `src/board/`; which boards to keep | |
 | | 2026-11-15: the pico8ml is a board again (`9ea656f2`) and boots Linux through TF-A in the | |
 | | test bench (`f2b29c88`). Left: `bebop_defconfig`, imx8mevk (F-300) | |
-| F-035 | The same data is defined in several places: exception names (C ×1, Python ×3, before D-021), partition flags, SLC enum, and the crc32 id table (`helpers.py`, could be `zlib.crc32`). | partly fixed (D-021): exception names are defined once (`errors.py`), and `wire.py` mirrors the wire values checked against `abi.txt`. Left: `pbtest.py`'s `PB_CMD_*`, the crc32 table |
-| | 2026-11-14 (`93508742`): the tests take their wire values from `wire.py`. `zlib.crc32(name, | |
-| | 0xffffffff) ^ 0xffffffff` equals `pb_id()` for every name in use and any ASCII name | |
-| | (`test_pb_id.py`): the table in `helpers.py` can go. Left: that change in `tools/` | |
-| | 2026-11-14 (`575c4cde`): `pb_id()` is `zlib.crc32` without its inversions; the table is gone. Left: | |
-| | nothing known | |
-| | 2026-11-14 (`ad8fc10d`, `f2b40630`): the 6UL's, the 8M's and the RT's unique id is |
-| | `imx_ocotp_read_unique_id()` (the 8X's stays the SCFW's; the bytes, their order and the errors |
-| | unchanged), the bpak hash kind maps in one `image_hash_kind()`. `console_ops` stays: a one-member |
-| | struct can grow without breaking boards, a function argument can't (principles 6 over 8). Done |
-| | Checked 2026-11-12: gone with D-026 are the boards' `board_init` sequence and signature and | |
-| | their cm `.tops`; a shared default layout was tried and moved back (Jonas, D-026). One ops | |
-| | table per crypto backend is the contract's (D-071). The MMU set up is F-158 and F-269. Left: | |
-| | `plat_get_unique_id` per port, the hash-kind switch (4 times), `arch_init()` (empty in every | |
-| | arch; D-065 gives it the line size's check), `console_ops` | |
-| | 2026-11-14 (`b745abe9`): `arch_init()` checks the D-cache's line against `PB_DMA_ALIGN` (D-065). | |
-| | Left: `plat_get_unique_id` per port, the hash-kind switch, `console_ops` | |
 
 ## Build / CI / docs
 
