@@ -185,8 +185,9 @@ int imx8m_ddr_init(void)
     /* 1. Hold the controller and PHY in reset, power up, clock */
     imx8m_ddr_soc_reset();
 
-    mmio_write_32(GPC_PGC_CPU_0_1_MAPPING, GPC_PGC_CPU_0_1_MAPPING_ALL);
-    mmio_clrsetbits_32(GPC_PU_PGC_SW_PUP_REQ, 0, GPC_PU_PGC_SW_PUP_REQ_DDR1);
+    rc = imx8m_ddr_soc_power_up();
+    if (rc != PB_OK)
+        return rc;
 
     rc = imx8m_ddr_soc_set_clock(drate);
     if (rc != PB_OK)

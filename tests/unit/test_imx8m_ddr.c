@@ -186,6 +186,12 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
         return 0;
     case DRAM_PLL_LOCK_REG:
         return reg_get(addr) | PLL_LOCK;
+#ifdef CONFIG_PLAT_IMX8MP
+    case 0x303A00D8UL:
+        /* GPC_PU_PGC_SW_PUP_REQ: DDRMIX's request clears at once, it is up
+         * after reset (F-110, seen on the EVK) */
+        return reg_get(addr) & ~(1u << 19);
+#endif
     case PHY_UCT_SHADOW_REGS:
         /* UctWriteProtShadow: 0 = message pending, 1 after the ack (DctWriteProt = 0) */
         return reg_get(PHY_DCT_WRITE_PROT) == 0 ? 1 : 0;

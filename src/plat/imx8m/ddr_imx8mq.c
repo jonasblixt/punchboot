@@ -133,6 +133,15 @@ static int dram_pll_init(const struct dram_pll_setting *pll)
     return PB_OK;
 }
 
+/* The i.MX8MQ's layout (mm.h), as before F-110: unchanged, and without a
+ * wait for the request to clear, which no 8MQ board has run */
+int imx8m_ddr_soc_power_up(void)
+{
+    mmio_write_32(GPC_PGC_CPU_0_1_MAPPING, GPC_PGC_CPU_0_1_MAPPING_ALL);
+    mmio_clrsetbits_32(GPC_PU_PGC_SW_PUP_REQ, 0, GPC_PU_PGC_SW_PUP_REQ_DDR1);
+    return PB_OK;
+}
+
 int imx8m_ddr_soc_set_clock(unsigned int drate)
 {
     for (unsigned int i = 0; i < ARRAY_SIZE(dram_pll_settings); i++) {
