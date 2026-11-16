@@ -19,7 +19,6 @@
 /* Defines for commands in setup packets */
 #define USB_GET_DESCRIPTOR    0x8006
 #define USB_SET_CONFIGURATION 0x0009
-#define USB_SET_IDLE          0x210A
 #define USB_SET_FEATURE       0x0003
 #define USB_SET_ADDRESS       0x0005
 #define USB_GET_STATUS        0x8000
@@ -217,9 +216,6 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         } else if (setup->wValue == USB_DESC_VALUE(USB_DESC_TYPE_CONFIG, 0)) {
             length = MIN(setup->wLength, cls_config->desc->config.wTotalLength);
             rc = ep0_tx(&cls_config->desc->config, length);
-        } else if (setup->wValue == USB_DESC_VALUE(USB_DESC_TYPE_DEBUG, 0)) {
-            length = MIN(setup->wLength, (uint16_t)cls_config->desc->interface.bLength);
-            rc = ep0_tx(&cls_config->desc->interface, length);
         } else if ((setup->wValue & USB_DESC_TYPE_MASK) ==
                    USB_DESC_VALUE(USB_DESC_TYPE_STRING, 0)) {
             uint8_t str_desc_idx = (uint8_t)(setup->wValue & USB_DESC_INDEX_MASK);
@@ -233,8 +229,14 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
             } else {
                 struct usb_string_descriptor *str_desc =
                     cls_config->get_string_descriptor(str_desc_idx);
-                length = MIN(setup->wLength, (uint16_t)str_desc->bLength);
-                rc = ep0_tx(str_desc, length);
+
+                /* An index the class doesn't have (NULL): refused (D-073) */
+                if (str_desc == NULL) {
+                    rc = ep0_unknown(setup);
+                } else {
+                    length = MIN(setup->wLength, (uint16_t)str_desc->bLength);
+                    rc = ep0_tx(str_desc, length);
+                }
             }
         } else {
             rc = ep0_unknown(setup);
@@ -279,14 +281,6 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
             break;
         }
         enumerated = true;
-    } break;
-    case USB_SET_IDLE: {
-        /* A request without a data stage: one status stage, IN (USB 2.0
-         * 8.5.3). Answered as it was; D-073 has it stalled, which no
-         * controller can yet (F-287) */
-        LOG_DBG("Set idle");
-        hal_ops->ep0_xfer_zlp(USB_EP0_IN);
-        rc = PB_OK;
     } break;
     case USB_GET_STATUS: {
         LOG_DBG("Get status");

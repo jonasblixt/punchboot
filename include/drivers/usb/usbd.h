@@ -200,6 +200,8 @@ struct usbd_descriptors {
 
 struct usbd_cls_config {
     const struct usbd_descriptors *desc;
+    /* The string of an index, or NULL for an index the class doesn't have,
+     * which is refused (D-073) */
     struct usb_string_descriptor *(*get_string_descriptor)(uint8_t index);
 };
 

@@ -148,7 +148,11 @@ static struct usb_string_descriptor *get_string_descriptor(uint8_t index)
 {
     static struct usb_string_descriptor desc;
     static const char product[] = "Punchboot SPL";
-    size_t n = (index == 1) ? sizeof(product) - 1 : 0;
+    size_t n = sizeof(product) - 1;
+
+    /* An index the class doesn't have: stalled (D-073) */
+    if (index != 1)
+        return NULL;
 
     memset(&desc, 0, sizeof(desc));
     desc.bLength = (uint8_t)(n * 2 + 2);
