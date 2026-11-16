@@ -166,8 +166,10 @@ static uint64_t on_write(uintptr_t addr, uint64_t value)
         return value;
     case USB_ISTS:
     case EP_ISTS:
-    case EP_STS:
         return 0;
+    case EP_STS:
+        /* Write one to clear: what isn't written stays */
+        return fake_regs_overwritten & ~value;
     case USB_CONF:
         if (value & CONF_DEVDS) {
             for (size_t ep = 0; ep < ARRAY_SIZE(buffered_reads); ep++) {
@@ -740,6 +742,28 @@ static void test_a_short_packet_is_an_error(void **state)
     }
 }
 
+/* A short packet's status isn't the next transfer's: a transfer given up
+ * after its short packet left EP_STS_ISP, and the next one ended at once with
+ * PB_OK on it, its buffer not yet written */
+static void test_a_stale_short_packet_ends_nothing(void **state)
+{
+    uint8_t *buf = arena + LINE;
+    (void)state;
+
+    fill(host, 512, 3);
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    assert_int_equal(controller_run_sent(USB_EP2_OUT, host, 512, 100), 100);
+    fake_regs_set(EP_STS, EP_STS_IOC | EP_STS_ISP);
+    cdns3_udc_core_xfer_cancel(USB_EP2_OUT);
+
+    assert_int_equal(cdns3_udc_core_xfer_start(USB_EP2_OUT, buf, 512), PB_OK);
+    assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), -PB_ERR_AGAIN);
+    assert_int_equal(controller_run(USB_EP2_OUT, host, 512), 512);
+    fake_regs_set(EP_STS, EP_STS_IOC);
+    assert_int_equal(cdns3_udc_core_xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(buf, host, 512);
+}
+
 /* F-434: an endpoint stays after its transfer's last TRB, and with
  * CONF_DMULT it takes a TRB written there later as its own. After a result
  * on IN, the next OUT transfer's TRBs are not where the IN endpoint is: with
@@ -1115,6 +1139,7 @@ int main(void)
         cmocka_unit_test_setup(test_the_terminating_trb_is_cleaned, setup),
         cmocka_unit_test_setup(test_bulk_transfers, setup),
         cmocka_unit_test_setup(test_a_short_packet_is_an_error, setup),
+        cmocka_unit_test_setup(test_a_stale_short_packet_ends_nothing, setup),
         cmocka_unit_test_setup(test_in_and_out_have_their_own_rings, setup),
         cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
         cmocka_unit_test_setup(test_setup_packet, setup),

@@ -370,7 +370,7 @@ static int ep0_xfer_start(void *buf, size_t length, bool in_xfer)
     }
 
     select_ep(in_xfer ? USB_EP0_IN : USB_EP0_OUT);
-    mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_TRBERR);
+    mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_ISP | EP_STS_TRBERR);
     mmio_write_32(base + CDNS_USB_EP_TRADDR, (uint32_t)(uintptr_t)trb_p);
     mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);
 
@@ -484,7 +484,7 @@ int cdns3_udc_core_xfer_start(usb_ep_t ep, void *buf, size_t length)
     current_xfer_dma = true;
 
     select_ep(ep);
-    mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_TRBERR);
+    mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_ISP | EP_STS_TRBERR);
     mmio_write_32(base + CDNS_USB_EP_TRADDR, (uint32_t)(uintptr_t)trb);
     mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);
 
