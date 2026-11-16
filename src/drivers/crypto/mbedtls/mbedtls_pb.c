@@ -12,6 +12,7 @@
 #include <stdlib.h>
 
 #include <drivers/crypto/mbedtls.h>
+#include <mbedtls/ecp.h>
 #include <mbedtls/error.h>
 #include <mbedtls/md.h>
 #include <mbedtls/md5.h>
@@ -38,111 +39,155 @@ static union {
 
 static hash_t current_hash;
 
+/* What a call of the library returned, as the backend's result */
+static int mbedtls_result(int rc)
+{
+    if (rc != 0) {
+        LOG_ERR("Mbed TLS: -0x%04x", (unsigned int)-rc);
+        return -PB_ERR_IO;
+    }
+
+    return PB_OK;
+}
+
 static int mbedtls_hash_init(hash_t pb_alg)
 {
+    int rc;
+
     current_hash = pb_alg;
 
     switch (pb_alg) {
 #if defined(CONFIG_MBEDTLS_MD_SHA512)
     case HASH_SHA512:
         mbedtls_sha512_init(&mbed_hash.sha512);
-        mbedtls_sha512_starts(&mbed_hash.sha512, 0);
+        rc = mbedtls_sha512_starts(&mbed_hash.sha512, 0);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA384)
     case HASH_SHA384:
         mbedtls_sha512_init(&mbed_hash.sha512);
-        mbedtls_sha512_starts(&mbed_hash.sha512, 1);
+        rc = mbedtls_sha512_starts(&mbed_hash.sha512, 1);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA256)
     case HASH_SHA256:
         mbedtls_sha256_init(&mbed_hash.sha256);
-        mbedtls_sha256_starts(&mbed_hash.sha256, 0);
+        rc = mbedtls_sha256_starts(&mbed_hash.sha256, 0);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_MD5)
     case HASH_MD5:
         mbedtls_md5_init(&mbed_hash.md5);
-        mbedtls_md5_starts(&mbed_hash.md5);
+        rc = mbedtls_md5_starts(&mbed_hash.md5);
         break;
 #endif
     default:
         return -PB_ERR_PARAM;
     }
 
-    return PB_OK;
+    return mbedtls_result(rc);
 }
 
 static int mbedtls_hash_update(const void *buf, size_t length)
 {
+    int rc;
+
     switch (current_hash) {
 #if defined(CONFIG_MBEDTLS_MD_SHA512)
     case HASH_SHA512:
-        mbedtls_sha512_update(&mbed_hash.sha512, (const unsigned char *)buf, length);
+        rc = mbedtls_sha512_update(&mbed_hash.sha512, (const unsigned char *)buf, length);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA384)
     case HASH_SHA384:
-        mbedtls_sha512_update(&mbed_hash.sha512, (const unsigned char *)buf, length);
+        rc = mbedtls_sha512_update(&mbed_hash.sha512, (const unsigned char *)buf, length);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA256)
     case HASH_SHA256:
-        mbedtls_sha256_update(&mbed_hash.sha256, (const unsigned char *)buf, length);
+        rc = mbedtls_sha256_update(&mbed_hash.sha256, (const unsigned char *)buf, length);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_MD5)
     case HASH_MD5:
-        mbedtls_md5_update(&mbed_hash.md5, (const unsigned char *)buf, length);
+        rc = mbedtls_md5_update(&mbed_hash.md5, (const unsigned char *)buf, length);
         break;
 #endif
     default:
         return -PB_ERR_PARAM;
     }
 
-    return PB_OK;
+    return mbedtls_result(rc);
 }
 
 static int mbedtls_hash_final(uint8_t *output, size_t size)
 {
+    int rc;
+
     switch (current_hash) {
 #if defined(CONFIG_MBEDTLS_MD_SHA512)
     case HASH_SHA512:
         if (size < 64)
             return -PB_ERR_BUF_TOO_SMALL;
-        mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *)output);
+        rc = mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *)output);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA384)
     case HASH_SHA384:
         if (size < 48)
             return -PB_ERR_BUF_TOO_SMALL;
-        mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *)output);
+        rc = mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *)output);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_SHA256)
     case HASH_SHA256:
         if (size < 32)
             return -PB_ERR_BUF_TOO_SMALL;
-        mbedtls_sha256_finish(&mbed_hash.sha256, (unsigned char *)output);
+        rc = mbedtls_sha256_finish(&mbed_hash.sha256, (unsigned char *)output);
         break;
 #endif
 #if defined(CONFIG_MBEDTLS_MD_MD5)
     case HASH_MD5:
         if (size < 16)
             return -PB_ERR_BUF_TOO_SMALL;
-        mbedtls_md5_finish(&mbed_hash.md5, (unsigned char *)output);
+        rc = mbedtls_md5_finish(&mbed_hash.md5, (unsigned char *)output);
         break;
 #endif
     default:
         return -PB_ERR_PARAM;
     }
 
-    return PB_OK;
+    return mbedtls_result(rc);
 }
 
 #ifdef CONFIG_MBEDTLS_ECDSA
+/* An Mbed TLS error is a high-level code plus, sometimes, a low-level one */
+#define PB_MBEDTLS_HIGH_LEVEL(rc) (-((-(rc)) & 0xff80))
+
+/* What the library said of a key that didn't parse, as crypto.md 4 has it */
+static int mbedtls_key_result(int rc)
+{
+    if (PB_MBEDTLS_HIGH_LEVEL(rc) == MBEDTLS_ERR_PK_UNKNOWN_NAMED_CURVE)
+        return -PB_ERR_NOT_SUPPORTED;
+    if (PB_MBEDTLS_HIGH_LEVEL(rc) == MBEDTLS_ERR_PK_ALLOC_FAILED)
+        return -PB_ERR_IO;
+    return -PB_ERR_ASN1;
+}
+
+/* What the library said of a signature, as crypto.md 4 has it: one that
+ * parses and doesn't verify is -PB_ERR_SIGNATURE */
+static int mbedtls_verify_result(int rc)
+{
+    if (rc == MBEDTLS_ERR_ECP_VERIFY_FAILED)
+        return -PB_ERR_SIGNATURE;
+    if (PB_MBEDTLS_HIGH_LEVEL(rc) == MBEDTLS_ERR_ECP_BAD_INPUT_DATA ||
+        rc == MBEDTLS_ERR_PK_SIG_LEN_MISMATCH)
+        return -PB_ERR_ASN1;
+    if (rc == MBEDTLS_ERR_PK_BAD_INPUT_DATA)
+        return -PB_ERR_PARAM;
+    return -PB_ERR_IO;
+}
+
 static int mbed_ecda_verify(const uint8_t *der_signature,
                             size_t signature_length,
                             const uint8_t *der_key,
@@ -187,8 +232,9 @@ static int mbed_ecda_verify(const uint8_t *der_signature,
 #else
         const char *mbedtls_error_str = "";
 #endif
-        LOG_ERR("Verify failed %s (%i)", mbedtls_error_str, rc);
-        return -PB_ERR_SIGNATURE;
+        LOG_ERR("Key: %s (-0x%04x)", mbedtls_error_str, (unsigned int)-rc);
+        mbedtls_pk_free(&ctx);
+        return mbedtls_key_result(rc);
     }
 
     rc = mbedtls_pk_verify(&ctx, md_type, md, md_length, der_signature, signature_length);
@@ -198,9 +244,10 @@ static int mbed_ecda_verify(const uint8_t *der_signature,
     if (rc == 0) {
         *verified = true;
         return PB_OK;
-    } else {
-        return -PB_ERR_SIGNATURE;
     }
+
+    LOG_ERR("Verify failed (-0x%04x)", (unsigned int)-rc);
+    return mbedtls_verify_result(rc);
 }
 #endif
 
@@ -248,8 +295,14 @@ int mbedtls_pb_init(void)
 
     rc = dsa_add_ops(&mbed_dsa_ops);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+#if defined(CONFIG_MBEDTLS_MD_SHA256) || defined(CONFIG_MBEDTLS_MD_SHA384) || \
+    defined(CONFIG_MBEDTLS_MD_SHA512) || defined(CONFIG_MBEDTLS_MD_MD5)
+        /* Nothing of a backend that failed stays registered (crypto.md 2) */
+        (void)hash_remove_ops(&mbed_ops);
+#endif
         return rc;
+    }
 #endif
 
     return PB_OK;

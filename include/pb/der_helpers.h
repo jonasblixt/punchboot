@@ -10,7 +10,9 @@
  * Extract r and s values from a DER encoded signature
  *
  * Leading zero bytes are dropped and shorter values are zero padded, so that
- * r and s are big-endian values of exactly 'length' bytes.
+ * r and s are big-endian values of exactly 'length' bytes. The signature is
+ * every byte of sig_length: the SEQUENCE's length is what follows its
+ * header, and the two INTEGERs fill it (F-286).
  *
  * @param[in] sig DER bytes
  * @param[in] sig_length Number of bytes in sig, nothing past it is read
@@ -27,7 +29,13 @@ int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *
 /**
  * Extract public key data from a DER encoded key
  *
- * @param[in] pub_key_der DER bytes
+ * Every length in the key is checked against 'pub_key_der_length'. The point
+ * is uncompressed, with no unused bits, and its x and y are of the curve's
+ * length; 'output' gets x and y.
+ *
+ * @param[in] pub_key_der DER bytes, a SubjectPublicKeyInfo
+ * @param[in] pub_key_der_length Number of bytes in pub_key_der, nothing past
+ *              it is read
  * @param[out] output Raw key output
  * @param[in] output_length Length of output buffer
  * @param[out] key_kind Decoded key type
@@ -38,6 +46,7 @@ int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *
  *        -PB_ERR_NOT_SUPPORTED, on un-supported key types
  */
 int der_ec_public_key_data(const uint8_t *pub_key_der,
+                           size_t pub_key_der_length,
                            uint8_t *output,
                            size_t output_length,
                            dsa_t *key_kind);

@@ -68,12 +68,14 @@ struct dsa_ops {
 
 /**
  * Initialize the hashing context. The crypto API only supports one running
- * context, calling this function will reset the context.
+ * context, calling this function will reset the context. When it fails there
+ * is no context.
  *
  * param[in] alg Hashing algorithm to use
  *
  * @return PB_OK on success,
- *        -PB_ERR_PARAM, on invalid hash alg
+ *        -PB_ERR_PARAM, when alg isn't one algorithm
+ *        -PB_ERR_NOT_SUPPORTED, when no backend has the algorithm
  */
 int hash_init(hash_t alg);
 
@@ -133,15 +135,43 @@ int hash_final(uint8_t *digest_output, size_t length);
 /**
  * Register hash op's
  *
- * Used by drivers to expose hashing functions.
+ * Used by drivers to expose hashing functions. Each algorithm comes from one
+ * backend (doc/interfaces/crypto.md 2): nothing is registered when another
+ * backend has one of the algorithms.
  *
  * @param[in] ops Hashing op's structure
  *
- * @return PB_OK on success
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM, when another backend registered one of the algorithms
+ *        -PB_ERR_MEM, when CONFIG_CRYPTO_MAX_HASH_OPS backends are registered
  */
 int hash_add_ops(const struct hash_ops *ops);
 
-/* DSA interface */
+/**
+ * Remove a backend's hash op's
+ *
+ * For a backend whose set-up fails after its hashes were registered: a
+ * backend that failed isn't registered (doc/interfaces/crypto.md 2). A hash
+ * the backend had open ends with it.
+ *
+ * @param[in] ops The structure given to hash_add_ops()
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_NOT_FOUND, when ops isn't registered
+ */
+int hash_remove_ops(const struct hash_ops *ops);
+
+/**
+ * Verify an ECDSA signature over a digest (doc/interfaces/crypto.md 4)
+ *
+ * *verified is false unless the signature verified. Not while a hash is
+ * open: a hash that was given up is ended by the next hash_init().
+ *
+ * @return PB_OK when the signature verified,
+ *        -PB_ERR_STATE, while a hash is open
+ *        -PB_ERR_NOT_SUPPORTED, when no backend has the curve
+ *        or the backend's error
+ */
 int dsa_verify(dsa_t alg,
                const uint8_t *der_signature,
                size_t signature_length,
@@ -152,6 +182,13 @@ int dsa_verify(dsa_t alg,
                size_t md_length,
                bool *verified);
 
+/**
+ * Register signature verification, as hash_add_ops()
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM, when another backend registered one of the curves
+ *        -PB_ERR_MEM, when CONFIG_CRYPTO_MAX_DSA_OPS backends are registered
+ */
 int dsa_add_ops(const struct dsa_ops *ops);
 
 #endif

@@ -117,93 +117,137 @@ int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *
     if (rc != PB_OK)
         return rc;
 
-    /* The SEQUENCE length isn't checked against the integers, because
-     * earlier releases ignored it (D-008). Both are bounded by sig_length. */
+    /* As strict as Mbed TLS's mbedtls_ecdsa_read_signature(): the SEQUENCE
+     * is every byte after its header, and the two INTEGERs are every byte of
+     * it. A signature with bytes after it, or a SEQUENCE length that is
+     * another, verified on the CAAM in every release and was refused in
+     * software: security before D-008 (Jonas, D-092, F-286 (6)) */
     rc = asn1_size(&p, &sz);
 
     if (rc != PB_OK)
         return rc;
+
+    if (sz != (size_t)(end - p))
+        return -PB_ERR_ASN1;
 
     rc = der_integer_to_fixed(&p, end, r, length);
 
     if (rc != PB_OK)
         return rc;
 
-    return der_integer_to_fixed(&p, end, s, length);
+    rc = der_integer_to_fixed(&p, end, s, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (p != end)
+        return -PB_ERR_ASN1;
+
+    return PB_OK;
 }
 
+/* Reads the tag and the length of a DER header. The length's own bytes and
+ * the 'length' bytes that follow them are before end */
+static int der_header(const uint8_t **p, const uint8_t *end, uint8_t tag, size_t *length)
+{
+    int rc;
+
+    if (*p >= end || *(*p)++ != tag)
+        return -PB_ERR_ASN1;
+
+    rc = asn1_length_fits(*p, end);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = asn1_size(p, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (*length > (size_t)(end - *p))
+        return -PB_ERR_ASN1;
+
+    return PB_OK;
+}
+
+/* The OIDs above are strings: their last byte isn't the OID's */
+#define OID_IS(p, length, oid) ((length) == sizeof(oid) - 1 && memcmp((p), (oid), (length)) == 0)
+
 int der_ec_public_key_data(const uint8_t *pub_key_der,
+                           size_t pub_key_der_length,
                            uint8_t *output,
                            size_t output_length,
                            dsa_t *key_kind)
 {
     size_t s;
+    size_t coordinate;
     int rc;
     const uint8_t *p = pub_key_der;
+    const uint8_t *end = pub_key_der + pub_key_der_length;
 
-    if (*p++ != 0x30)
+    /* SubjectPublicKeyInfo */
+    rc = der_header(&p, end, 0x30, &s);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* AlgorithmIdentifier */
+    rc = der_header(&p, end, 0x30, &s);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* The algorithm: id-ecPublicKey */
+    rc = der_header(&p, end, 0x06, &s);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (!OID_IS(p, s, ec_identifier))
         return -PB_ERR_ASN1;
 
-    rc = asn1_size(&p, &s);
+    p += s;
 
-    if (rc != 0)
+    /* Its parameters: the named curve */
+    rc = der_header(&p, end, 0x06, &s);
+
+    if (rc != PB_OK)
         return rc;
 
-    if (*p++ != 0x30)
-        return -PB_ERR_ASN1;
-
-    rc = asn1_size(&p, &s);
-
-    if (rc != 0)
-        return rc;
-
-    if (*p++ != 0x06)
-        return -1;
-
-    rc = asn1_size(&p, &s);
-
-    if (rc != 0)
-        return rc;
-
-    if (memcmp(p, ec_identifier, s) == 0) {
-        p += s;
-
-        if (*p++ != 0x06)
-            return -1;
-
-        rc = asn1_size(&p, &s);
-
-        if (rc != 0)
-            return rc;
-
-        if (memcmp(p, secp256r1_oid, s) == 0)
-            *key_kind = DSA_EC_SECP256r1;
-        else if (memcmp(p, secp384r1_oid, s) == 0)
-            *key_kind = DSA_EC_SECP384r1;
-        else if (memcmp(p, secp521r1_oid, s) == 0)
-            *key_kind = DSA_EC_SECP521r1;
-        else
-            return -PB_ERR_NOT_IMPLEMENTED;
-
-        p += s;
-
-        if (*p++ != 0x03)
-            return -1;
-
-        rc = asn1_size(&p, &s);
-
-        if (rc != 0)
-            return rc;
-
-        p += 2; /* Skip unused bits and compression point */
-        s -= 2;
-
-        if (s > output_length)
-            return -PB_ERR_BUF_TOO_SMALL;
-        memcpy(output, p, s);
+    if (OID_IS(p, s, secp256r1_oid)) {
+        *key_kind = DSA_EC_SECP256r1;
+        coordinate = 32;
+    } else if (OID_IS(p, s, secp384r1_oid)) {
+        *key_kind = DSA_EC_SECP384r1;
+        coordinate = 48;
+    } else if (OID_IS(p, s, secp521r1_oid)) {
+        *key_kind = DSA_EC_SECP521r1;
+        coordinate = 66;
     } else {
-        return -PB_ERR_ASN1;
+        return -PB_ERR_NOT_IMPLEMENTED;
     }
 
+    p += s;
+
+    /* subjectPublicKey, a BIT STRING: the number of unused bits, the point's
+     * form, then the point. No unused bits, the uncompressed form (SEC 1
+     * 2.3.3) and x and y of the curve's length: what Mbed TLS writes, and
+     * bpak writes every key of a keystore so */
+    rc = der_header(&p, end, 0x03, &s);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (s != 2 + 2 * coordinate || p[0] != 0x00 || p[1] != 0x04)
+        return -PB_ERR_ASN1;
+
+    p += 2;
+    s -= 2;
+
+    if (s > output_length)
+        return -PB_ERR_BUF_TOO_SMALL;
+
+    memcpy(output, p, s);
     return PB_OK;
 }

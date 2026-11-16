@@ -9,6 +9,7 @@
 
 #include <inttypes.h>
 #include <pb/crypto.h>
+#include <pb/der_helpers.h>
 #include <pb/pb.h>
 #include <string.h>
 
@@ -20,12 +21,23 @@ static const struct hash_ops *current_hash_ops; /* Currently active context */
 
 int hash_init(hash_t alg)
 {
+    int rc;
+
     current_hash_ops = NULL;
+
+    /* One algorithm, not none and not several */
+    if (alg == 0 || (alg & (alg - 1)) != 0)
+        return -PB_ERR_PARAM;
 
     for (int i = 0; i < CONFIG_CRYPTO_MAX_HASH_OPS; i++) {
         if (hash_ops[i] && (hash_ops[i]->alg_bits & alg)) {
-            current_hash_ops = hash_ops[i];
-            return current_hash_ops->init(alg);
+            rc = hash_ops[i]->init(alg);
+
+            /* When it fails there is no context (crypto.md 3.1) */
+            if (rc == PB_OK)
+                current_hash_ops = hash_ops[i];
+
+            return rc;
         }
     }
 
@@ -75,6 +87,15 @@ int hash_final(uint8_t *digest_output, size_t length)
 
 int hash_add_ops(const struct hash_ops *ops)
 {
+    /* An algorithm comes from one backend: a second registration of it is a
+     * mistake of the build, and nothing of it is registered (crypto.md 2) */
+    for (size_t i = 0; i < no_of_hash_ops; i++) {
+        if (hash_ops[i]->alg_bits & ops->alg_bits) {
+            LOG_ERR("%s: 0x%x is %s's", ops->name, ops->alg_bits, hash_ops[i]->name);
+            return -PB_ERR_PARAM;
+        }
+    }
+
     if (no_of_hash_ops >= CONFIG_CRYPTO_MAX_HASH_OPS)
         return -PB_ERR_MEM;
 
@@ -82,6 +103,25 @@ int hash_add_ops(const struct hash_ops *ops)
     hash_ops[no_of_hash_ops++] = ops;
 
     return PB_OK;
+}
+
+int hash_remove_ops(const struct hash_ops *ops)
+{
+    for (size_t i = 0; i < no_of_hash_ops; i++) {
+        if (hash_ops[i] != ops)
+            continue;
+
+        /* A context of the backend ends with it */
+        if (current_hash_ops == ops)
+            current_hash_ops = NULL;
+
+        no_of_hash_ops--;
+        memmove(&hash_ops[i], &hash_ops[i + 1], (no_of_hash_ops - i) * sizeof(hash_ops[0]));
+        hash_ops[no_of_hash_ops] = NULL;
+        return PB_OK;
+    }
+
+    return -PB_ERR_NOT_FOUND;
 }
 
 int dsa_verify(dsa_t alg,
@@ -95,6 +135,33 @@ int dsa_verify(dsa_t alg,
                bool *verified)
 {
     const struct dsa_ops *ops = NULL;
+
+    /* False until a backend's own computation says otherwise */
+    *verified = false;
+
+    /* Not while a hash is open, whichever backends the build has. One that
+     * was given up is ended by the next hash_init(), and every verification
+     * hashes first (crypto.md 3.1 and 4) */
+    if (current_hash_ops != NULL)
+        return -PB_ERR_STATE;
+
+    /* alg is the keystore's name for the key's curve, and the key's own
+     * curve must be it, before any backend sees the key (crypto.md 4,
+     * D-092, F-286): a backend took the curve from the key and alg only
+     * chose the backend. A key that doesn't parse is -PB_ERR_ASN1 */
+    uint8_t point[2 * 66];
+    dsa_t key_alg;
+    int rc = der_ec_public_key_data(der_key, key_length, point, sizeof(point), &key_alg);
+
+    if (rc == -PB_ERR_NOT_IMPLEMENTED)
+        return -PB_ERR_NOT_SUPPORTED;
+    if (rc != PB_OK)
+        return rc;
+
+    if (key_alg != alg) {
+        LOG_ERR("The key is 0x%x, not 0x%x", key_alg, alg);
+        return -PB_ERR_PARAM;
+    }
 
     for (size_t i = 0; i < CONFIG_CRYPTO_MAX_DSA_OPS; i++) {
         if (dsa_ops[i] && (dsa_ops[i]->alg_bits & alg)) {
@@ -112,6 +179,14 @@ int dsa_verify(dsa_t alg,
 
 int dsa_add_ops(const struct dsa_ops *ops)
 {
+    /* As hash_add_ops() */
+    for (size_t i = 0; i < no_of_dsa_ops; i++) {
+        if (dsa_ops[i]->alg_bits & ops->alg_bits) {
+            LOG_ERR("%s: 0x%x is %s's", ops->name, ops->alg_bits, dsa_ops[i]->name);
+            return -PB_ERR_PARAM;
+        }
+    }
+
     if (no_of_dsa_ops >= CONFIG_CRYPTO_MAX_DSA_OPS)
         return -PB_ERR_MEM;
 

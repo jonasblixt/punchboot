@@ -17,6 +17,7 @@
 
 #include <cmocka.h>
 
+#include "fakes/dcache.h"
 #include "fakes/plat.h"
 #include <drivers/crypto/imx_caam.h>
 #include <pb/pb.h>
@@ -30,6 +31,8 @@
 #define ORJRR         (JR0 + 0x0034)
 #define ORSFR         (JR0 + 0x003c)
 #define JRSTAR        (JR0 + 0x0044)
+#define JRINTR        (JR0 + 0x004c)
+#define JRCR          (JR0 + 0x006c)
 #define RNG_VERSION   (JR0 + 0x0ef8)
 #define CTPR_MS       (JR0 + 0x0fa8)
 #define CCBVID        (JR0 + 0x0fe4)
@@ -73,21 +76,40 @@ static struct {
     unsigned int nr_ops;
     unsigned int fail_inst; /* Instantiations that fail before one works */
     bool hang; /* Jobs never complete */
+    bool late; /* The next job runs, and its completion stays out */
+    uint32_t late_status;
 } model;
 
 #define REG(off) (regs[(off) / 4])
 
-static uint32_t *ptr(uint32_t addr)
+/* The engine reads and writes RAM, behind the driver's cache
+ * (fakes/dcache.h): an entry or a descriptor the driver didn't clean, and
+ * an output entry in a line the driver has dirty, fail the test */
+static void complete(uint32_t status)
 {
-    return (uint32_t *)(uintptr_t)addr;
+    dcache_dev_write_32(REG(ORBAR_LS), dcache_dev_read_32(REG(IRBAR_LS)));
+    dcache_dev_write_32(REG(ORBAR_LS) + 4, status);
+    REG(JRSTAR) = status;
+    REG(ORSFR) = 1;
+}
+
+/* The completion of the job that was late */
+static void complete_late(void)
+{
+    complete(model.late_status);
 }
 
 /* Runs the descriptor and writes the output ring entry */
 static void run_job(void)
 {
-    uint32_t *desc = ptr(*ptr(REG(IRBAR_LS)));
-    uint32_t len = desc[0] & 0x7f;
+    uint32_t desc_addr = dcache_dev_read_32(REG(IRBAR_LS));
+    uint32_t desc[16];
+    uint32_t len;
     uint32_t status = 0;
+
+    dcache_dev_read(desc_addr, desc, sizeof(desc));
+    len = desc[0] & 0x7f;
+    assert_true(len <= ARRAY_SIZE(desc));
 
     assert_int_equal(desc[0] >> 27, 0x16); /* Job descriptor header */
     model.jobs++;
@@ -144,12 +166,13 @@ static void run_job(void)
         }
     }
 
-    uint32_t *out = ptr(REG(ORBAR_LS));
+    if (model.late) {
+        model.late = false;
+        model.late_status = status;
+        return;
+    }
 
-    out[0] = *ptr(REG(IRBAR_LS));
-    out[1] = status;
-    REG(JRSTAR) = status;
-    REG(ORSFR) = 1;
+    complete(status);
 }
 
 uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
@@ -181,6 +204,12 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
     case ORJRR:
         REG(ORSFR) = 0;
         break;
+    case JRCR:
+        /* A flush, complete at once with no job in the engine (HALT 10b),
+         * then the reset. The register is write only */
+        if (value & 1)
+            REG(JRINTR) = (REG(JRINTR) & (3 << 2)) ? 0 : (2 << 2);
+        break;
     case RTSDCTL:
         /* Only in program mode, and only while no state handle is instantiated */
         assert_true(REG(RTMCTL) & RTMCTL_PRGM);
@@ -195,18 +224,6 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
     default:
         REG(off) = (uint32_t)value;
     }
-}
-
-void arch_invalidate_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
-}
-
-void arch_clean_cache_range(uintptr_t start, size_t len)
-{
-    (void)start;
-    (void)len;
 }
 
 /* An era 9 CAAM with RNG4 and two state handles, as on the i.MX8M */
@@ -241,6 +258,9 @@ static void test_not_initialized(void **state)
 {
     (void)state;
     assert_int_equal(imx_caam_rng_init((uintptr_t)regs), -PB_ERR_STATE);
+    /* drivers.md 2.3: a stop before init is no error, and writes nothing */
+    assert_int_equal(imx_caam_stop(), PB_OK);
+    assert_int_equal(REG(IRBAR_LS), 0);
     assert_int_equal(imx_caam_init((uintptr_t)regs + JR0), PB_OK);
 }
 
@@ -334,6 +354,31 @@ static void test_job_timeout(void **state)
     fake_us_tick_step = 1000;
     assert_int_equal(imx_caam_rng_init((uintptr_t)regs), -PB_ERR_TIMEOUT);
     assert_int_equal(model.kicks, 1);
+
+    /* The job ends after all: the next call takes its completion first */
+    model.hang = false;
+    run_job();
+    assert_int_equal(imx_caam_rng_init((uintptr_t)regs), PB_OK);
+    assert_int_equal(REG(RDSTA), RDSTA_ALL);
+}
+
+/* A job that doesn't end, of a state handle that shows instantiated all the
+ * same: the next handle's job isn't added behind it, into the descriptor it
+ * may still read */
+static void test_job_timeout_handle_instantiated(void **state)
+{
+    (void)state;
+    model.late = true;
+    fake_us_tick_step = 1000;
+    assert_int_equal(imx_caam_rng_init((uintptr_t)regs), -PB_ERR_TIMEOUT);
+    assert_int_equal(REG(RDSTA), RDSTA_IF0 | RDSTA_PR0 | RDSTA_SKVN);
+    assert_int_equal(model.jobs, 1);
+
+    /* When it has ended the other handle is instantiated */
+    complete_late();
+    assert_int_equal(imx_caam_rng_init((uintptr_t)regs), PB_OK);
+    assert_int_equal(REG(RDSTA), RDSTA_ALL);
+    assert_int_equal(model.jobs, 2);
 }
 
 static void test_one_state_handle(void **state)
@@ -392,6 +437,7 @@ int main(void)
         cmocka_unit_test_setup(test_entropy_delay_kept, setup),
         cmocka_unit_test_setup(test_entropy_gives_up, setup),
         cmocka_unit_test_setup(test_job_timeout, setup),
+        cmocka_unit_test_setup(test_job_timeout_handle_instantiated, setup),
         cmocka_unit_test_setup(test_one_state_handle, setup),
         cmocka_unit_test_setup(test_no_rng4, setup),
         cmocka_unit_test_setup(test_era10, setup),
