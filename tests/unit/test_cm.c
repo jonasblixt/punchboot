@@ -56,6 +56,7 @@
 #include "fakes/crypto_sw.h"
 #include "fakes/plat.h"
 #include "fakes/ramdisk.h"
+#include "test_keys.h"
 
 /* pb_id(): CRC32 of the name, without the inversions */
 static uint32_t command_id(const char *name)
@@ -582,11 +583,10 @@ int rot_read_key_status(key_id_t id)
 
 int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size_t *der_data_length)
 {
-    static const uint8_t der[] = { 0x30 };
     (void)id;
+    /* A real key of the curve: the core reads it (F-286) */
     *dsa_kind = sec.key_kind;
-    *der_data = der;
-    *der_data_length = sizeof(der);
+    *der_data = test_key(sec.key_kind, der_data_length);
     return sec.get_key_rc;
 }
 

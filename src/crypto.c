@@ -9,6 +9,7 @@
 
 #include <inttypes.h>
 #include <pb/crypto.h>
+#include <pb/der_helpers.h>
 #include <pb/pb.h>
 #include <string.h>
 
@@ -143,6 +144,24 @@ int dsa_verify(dsa_t alg,
      * hashes first (crypto.md 3.1 and 4) */
     if (current_hash_ops != NULL)
         return -PB_ERR_STATE;
+
+    /* alg is the keystore's name for the key's curve, and the key's own
+     * curve must be it, before any backend sees the key (crypto.md 4,
+     * D-092, F-286): a backend took the curve from the key and alg only
+     * chose the backend. A key that doesn't parse is -PB_ERR_ASN1 */
+    uint8_t point[2 * 66];
+    dsa_t key_alg;
+    int rc = der_ec_public_key_data(der_key, key_length, point, sizeof(point), &key_alg);
+
+    if (rc == -PB_ERR_NOT_IMPLEMENTED)
+        return -PB_ERR_NOT_SUPPORTED;
+    if (rc != PB_OK)
+        return rc;
+
+    if (key_alg != alg) {
+        LOG_ERR("The key is 0x%x, not 0x%x", key_alg, alg);
+        return -PB_ERR_PARAM;
+    }
 
     for (size_t i = 0; i < CONFIG_CRYPTO_MAX_DSA_OPS; i++) {
         if (dsa_ops[i] && (dsa_ops[i]->alg_bits & alg)) {

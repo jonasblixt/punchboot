@@ -207,8 +207,9 @@ The arguments:
 - **The key** is DER, a `SubjectPublicKeyInfo`, from the keystore, which is part of pb. It is
   parsed inside `key_length` all the same (`principles.md` 2).
 - **`alg` is the key's curve as the keystore names it.** A key whose own curve is another one
-  is refused, `-PB_ERR_PARAM`: the keystore and the key must agree. **Not yet in the code
-  (F-286)**: `alg` only selects the backend.
+  is refused, `-PB_ERR_PARAM`: the keystore and the key must agree. The core checks it before
+  any backend sees the key (Jonas, D-092, F-286), with `der_ec_public_key_data()`: a key that
+  doesn't parse there is `-PB_ERR_ASN1`, a curve pb doesn't know `-PB_ERR_NOT_SUPPORTED`.
 - **`md` and `md_length`** are the digest and its length. `md_length` is exactly the digest
   size of `md_alg`; anything else is `-PB_ERR_PARAM`, from the core (Jonas, D-073). A backend
   uses the leftmost bits the curve takes, as ECDSA defines. `md` is read only and may be

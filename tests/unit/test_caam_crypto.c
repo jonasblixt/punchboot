@@ -31,6 +31,7 @@
 #include "fakes/dcache.h"
 #include "models/bench.h"
 #include "models/caam_model.h"
+#include "test_keys.h"
 #include <drivers/crypto/imx_caam.h>
 #include <pb/crypto.h>
 #include <pb/dma.h>
@@ -1241,9 +1242,16 @@ static void test_stop(void **state)
 
     /* Nothing starts after it */
     assert_int_equal(hash_init(HASH_SHA256), -PB_ERR_STATE);
-    assert_int_equal(
-        dsa_verify(DSA_EC_SECP256r1, buf, 1, buf, 1, HASH_SHA256, digest, 32, &verified),
-        -PB_ERR_STATE);
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                buf,
+                                1,
+                                test_key_p256,
+                                sizeof(test_key_p256),
+                                HASH_SHA256,
+                                digest,
+                                32,
+                                &verified),
+                     -PB_ERR_STATE);
     assert_false(verified);
     assert_true(caam_model_idle());
 }

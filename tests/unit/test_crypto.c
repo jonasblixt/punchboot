@@ -17,6 +17,7 @@
 
 #include <cmocka.h>
 
+#include "test_keys.h"
 #include <drivers/crypto/mbedtls.h>
 #include <pb/crypto.h>
 #include <pb/pb.h>
@@ -131,8 +132,8 @@ static void test_without_providers(void **state)
     assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
                                 buf,
                                 sizeof(buf),
-                                buf,
-                                sizeof(buf),
+                                test_key_p256,
+                                sizeof(test_key_p256),
                                 HASH_SHA256,
                                 digest,
                                 sizeof(digest),
@@ -267,27 +268,89 @@ static void test_3_1_no_context_after_a_failed_init(void **state)
 static void test_dsa_dispatch(void **state)
 {
     uint8_t sig[1] = { 0 };
-    uint8_t key[1] = { 0 };
+    const uint8_t *key = test_key_p256;
+    const size_t key_length = sizeof(test_key_p256);
     uint8_t md[32] = { 0 };
     bool verified = false;
     (void)state;
 
-    assert_int_equal(
-        dsa_verify(
-            DSA_EC_SECP384r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA256, md, 32, &verified),
-        -PB_ERR_NOT_SUPPORTED);
+    /* A P-384 key, which no backend here has */
+    assert_int_equal(dsa_verify(DSA_EC_SECP384r1,
+                                sig,
+                                sizeof(sig),
+                                test_key_p384,
+                                sizeof(test_key_p384),
+                                HASH_SHA256,
+                                md,
+                                32,
+                                &verified),
+                     -PB_ERR_NOT_SUPPORTED);
 
     assert_int_equal(
         dsa_verify(
-            DSA_EC_SECP256r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA384, md, 32, &verified),
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, key_length, HASH_SHA384, md, 32, &verified),
         PB_OK);
     assert_true(verified);
     assert_int_equal(verify_alg, HASH_SHA384);
 
     assert_int_equal(
-        dsa_verify(DSA_EC_SECP256r1, sig, 2, key, sizeof(key), HASH_SHA256, md, 32, &verified),
+        dsa_verify(DSA_EC_SECP256r1, sig, 2, key, key_length, HASH_SHA256, md, 32, &verified),
         PB_OK);
     assert_false(verified);
+}
+
+/* crypto.md 4 (D-092, F-286 (5)): alg is the keystore's name for the key's
+ * curve, and the core refuses a key whose own curve is another one, before
+ * any backend sees it. A key that doesn't parse is -PB_ERR_ASN1, a curve pb
+ * doesn't know -PB_ERR_NOT_SUPPORTED */
+static void test_4_the_keys_curve_is_alg(void **state)
+{
+    uint8_t sig[1] = { 0 };
+    uint8_t md[32] = { 0 };
+    uint8_t other_curve[sizeof(test_key_p256)];
+    bool verified = true;
+    (void)state;
+
+    verify_alg = 0;
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                sig,
+                                sizeof(sig),
+                                test_key_p384,
+                                sizeof(test_key_p384),
+                                HASH_SHA256,
+                                md,
+                                32,
+                                &verified),
+                     -PB_ERR_PARAM);
+    assert_false(verified);
+
+    /* Cut short, and the curve's OID another one's (secp256k1's last byte) */
+    verified = true;
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                sig,
+                                sizeof(sig),
+                                test_key_p256,
+                                sizeof(test_key_p256) - 1,
+                                HASH_SHA256,
+                                md,
+                                32,
+                                &verified),
+                     -PB_ERR_ASN1);
+    assert_false(verified);
+
+    memcpy(other_curve, test_key_p256, sizeof(other_curve));
+    other_curve[22] = 0x0a;
+    assert_int_equal(dsa_verify(DSA_EC_SECP256r1,
+                                sig,
+                                sizeof(sig),
+                                other_curve,
+                                sizeof(other_curve),
+                                HASH_SHA256,
+                                md,
+                                32,
+                                &verified),
+                     -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(verify_alg, 0);
 }
 
 /* crypto.md 4: not while a hash is open. The core refuses, the backend isn't
@@ -296,7 +359,8 @@ static void test_dsa_dispatch(void **state)
 static void test_4_not_while_a_hash_is_open(void **state)
 {
     uint8_t sig[1] = { 0 };
-    uint8_t key[1] = { 0 };
+    const uint8_t *key = test_key_p256;
+    const size_t key_length = sizeof(test_key_p256);
     uint8_t src[16] = { 0 };
     uint8_t md[32] = { 0 };
     bool verified = true;
@@ -306,7 +370,7 @@ static void test_4_not_while_a_hash_is_open(void **state)
     assert_int_equal(hash_init(HASH_SHA256), PB_OK);
     assert_int_equal(
         dsa_verify(
-            DSA_EC_SECP256r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA256, md, 32, &verified),
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, key_length, HASH_SHA256, md, 32, &verified),
         -PB_ERR_STATE);
     assert_false(verified);
 
@@ -315,7 +379,7 @@ static void test_4_not_while_a_hash_is_open(void **state)
     verified = true;
     assert_int_equal(
         dsa_verify(
-            DSA_EC_SECP256r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA256, md, 32, &verified),
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, key_length, HASH_SHA256, md, 32, &verified),
         -PB_ERR_STATE);
     assert_false(verified);
     assert_int_equal(verify_alg, 0);
@@ -327,7 +391,7 @@ static void test_4_not_while_a_hash_is_open(void **state)
     assert_int_equal(hash_final(md, sizeof(md)), PB_OK);
     assert_int_equal(
         dsa_verify(
-            DSA_EC_SECP256r1, sig, sizeof(sig), key, sizeof(key), HASH_SHA256, md, 32, &verified),
+            DSA_EC_SECP256r1, sig, sizeof(sig), key, key_length, HASH_SHA256, md, 32, &verified),
         PB_OK);
     assert_true(verified);
     assert_int_equal(verify_alg, HASH_SHA256);
@@ -344,6 +408,7 @@ int main(void)
         cmocka_unit_test(test_3_1_no_context_after_a_failed_init),
         cmocka_unit_test(test_dsa_dispatch),
         cmocka_unit_test(test_4_not_while_a_hash_is_open),
+        cmocka_unit_test(test_4_the_keys_curve_is_alg),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

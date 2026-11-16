@@ -1,8 +1,9 @@
 menu "Library"
 
+# The core reads a key's curve with them (crypto.md 4, F-286): every build
+# has them
 config LIB_DER_HELPERS
-    bool "ASN.1 DER helpers"
-    default y
+    def_bool y
 
 config LIB_FDT
     bool "Device tree library (libfdt)"
