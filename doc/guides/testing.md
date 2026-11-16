@@ -382,6 +382,10 @@ Unit tests, by module under test:
 | `test_caam_lp256.c`                           | `imx_caam.c` on a CAAM with  | the CAAM model                   |
 |                                               | MDHA LP256 before era 10: no |                                  |
 |                                               | SHA-384/512                  |                                  |
+| `test_caam_jr_reset.c`                        | `imx_caam.c`'s job ring      | the CAAM model                   |
+|                                               | reset at init: an earlier    |                                  |
+|                                               | user's job flushed, a flush  |                                  |
+|                                               | that never completes         |                                  |
 | `test_imx_flexspi.c`                          | `imx_flexspi.c` and bio      | a NOR flash behind the           |
 |                                               | against `bio.md` 3, the      | controller's registers           |
 |                                               | conformance tests            |                                  |

@@ -693,6 +693,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the digests are the same, HASH_MD5_BROKEN's too. The model flags an INIT of nothing. On jiffy, the | | |
 | | | MEK and the 8MP EVK: the same UUIDs, token auth, `part verify` of 1 to 1000 bytes, Linux. Left: the | | |
 | | | job ring reset, the 8M Mini SRM's PDB | | |
+| | | 2026-11-16 (`6ea4208c`): the job ring is flushed and reset at init, as Linux's `caam_reset_hw_jr()` | | |
+| | | (SRM: JRCR_JRa), the earlier user's output ring emptied while the flush waits; a ring left halting or | | |
+| | | halted isn't asked again; a flush that doesn't complete fails the init. `test_caam_jr_reset`. On the | | |
+| | | MEK, the 8MP EVK and jiffy: resets, auth, 15 MB verified, Linux and the verify after its `reboot`. | | |
+| | | Left: the 8M Mini SRM's verify PDB (no 8M Mini) | | |
 | F-411 | `src/boot/dtb.c`, `src/lib/fdt` | A device tree part whose header lies about | Verified (run, host) | open |
 | | | more than `totalsize` reads outside its part: only the magic, the version and `totalsize` are | | |
 | | | checked, and `fdt_open_into()` trusts `off_dt_struct`, `off_dt_strings`, `off_mem_rsvmap` and the | | |
