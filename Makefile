@@ -97,6 +97,10 @@ cflags-y += -Waggregate-return
 # An #if on a macro that isn't defined is 0 without a word: a Kconfig bool
 # that is off isn't defined, so it is #ifdef or defined() (F-231)
 cflags-y += -Wundef
+# CI's firmware builds fail on a warning (F-228): PB_WERROR=1
+ifeq ($(PB_WERROR),1)
+cflags-y += -Werror
+endif
 
 # Bootloader
 src-y   = src/main.c

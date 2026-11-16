@@ -39,6 +39,10 @@ src-$(CONFIG_MBEDTLS_MD_SHA384) += ${MBEDTLS_DIR}/library/sha512.c
 src-$(CONFIG_MBEDTLS_MD_MD5) += ${MBEDTLS_DIR}/library/md5.c
 src-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += src/drivers/crypto/mbedtls/mbedtls_pb.c
 
+# Mbed TLS 3.4.0's PSA headers declare psa_set_key_domain_parameters() twice
+# (crypto_struct.h and crypto_extra.h): its own warning, not pb's
+$(BUILD_DIR)/$(MBEDTLS_DIR)/library/%.o: cflags-y += -Wno-redundant-decls
+
 cflags-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += -DMBEDTLS_CONFIG_FILE=\"$(shell readlink -f src/drivers/crypto/mbedtls/mbedtls_config.h)\"
 cflags-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += -I${MBEDTLS_DIR}/include
 

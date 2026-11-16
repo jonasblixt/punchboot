@@ -85,6 +85,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Build
+        # A warning fails the build (F-228)
+        env:
+          PB_WERROR: 1
         run: scripts/pbdev firmware ${{ matrix.board }}
 
   coverity:

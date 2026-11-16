@@ -171,7 +171,8 @@ hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`, a ruff bump c
   - **firmware:** jiffy, imx8dxlevk, imx8mevk, imx8mpevk and imxrt1060evk `pb.bin`, and the i.MX8M's
     `spl.bin` (`binaries`). The i.MX8M boards are built
     with placeholder DDR training firmware (`IMX8M_FW_DIR` points `build-firmware.sh` at the real
-    one, inside the repository): a compile check only.
+    one, inside the repository): a compile check only. A warning fails the build (`PB_WERROR=1`,
+    which a local build can set too); Mbed TLS's own `-Wredundant-decls` is off for its sources.
   - **coverity:** cov-build of jiffy inside the container. Only on pushes to master in
     jonasblixt/punchboot, because it needs `COVERITY_SCAN_TOKEN`.
 - `punchboot-tools.yml`: the package is pure Python (D-021), so `pipx run build` makes one
