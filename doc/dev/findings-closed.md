@@ -2225,6 +2225,23 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | accepts devices that answer `-PB_ERR_STATE`, as the MMC's do, or `bio.md` gets a release | |
 | | | 2026-11-16 (`defb02b7`, Jonas: accept it in 2.1): `drivers.md` 2.1 has a block device a failed init | | |
 | | | leaves answer -PB_ERR_STATE; the MMC's do (`test_a_full_pool_leaves_no_working_device`) | | |
+| F-200 | storage, low | `imx_hab_fuses.c:159`: a partly programmed SRK word is refused as already | Reported | fixed |
+| | | fused. `mmc_core.c`: `mmc_wait_state()` and `mmc_bio_xfer()` (`max_chunk_bytes == 0`) can loop forever; | | |
+| | | a zero BOOT_MULT gives a 2^32 block bio. `imx_usdhc.c`: ADMA2 addresses truncated to 32 bits. | | |
+| | | `plat_get_unique_id()` (6UL, 8M, RT) ignores `imx_ocotp_read()` errors: the device UUID comes from | | |
+| | | uninitialised stack. | | |
+| | | 2026-11-13: `mmc_bio_xfer()` with `max_chunk_bytes == 0` ends with -PB_ERR_PARAM since F-182, where | | |
+| | | it looped | | |
+| | | 2026-11-13 (`af45e648`, `507e30fd`, `74d45226`): `plat_get_unique_id()` returns a failed fuse read's | | |
+| | | error on the 6UL, 8M and RT and writes nothing; a readable device's bytes are pinned | | |
+| | | 2026-11-13 (`71dc3341`, `1ebcd9ac`, `c826b62d`): `mmc_wait_state()` gives up after its timeout, a | | |
+| | | boot or RPMB partition of size 0 gets no device, a DMA address above 4 GiB is `-PB_ERR_PARAM`. Left: | | |
+| | | the SRK word (the fuse package), and an e.MMC user area with SEC_COUNT 0, which still gets 2^32 | | |
+| | | blocks (refusing it could stop a small byte addressed e.MMC that boots today; for Jonas) | | |
+| | | 2026-11-13 (`d8d98609`): a partly programmed SRK word is completed when its bits are a subset of the | | |
+| | | hash's word (`command-mode.md` 5.2); one with another bit is still refused | | |
+| | | 2026-11-16 (`44bc3310`, Jonas: size it from the CSD): a byte addressed e.MMC with SEC_COUNT 0 is | | |
+| | | sized from C_SIZE, C_SIZE_MULT and READ_BL_LEN; a device with no size is refused (`test_mmc_emmc`) | | |
 
 ## Dependencies / vendored code
 

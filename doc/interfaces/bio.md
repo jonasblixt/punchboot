@@ -385,11 +385,12 @@ suite" is the conformance suite below.
 | --------------------------- | ------------------ | ----------------- | ------------------- | ------- |
 | A second `init` adds no     | yes (`test_mmc_`   | yes: it fails,    | yes: it fails, the  |         |
 | devices                     | `emmc`, `_sd`)     | the UUID is taken | UUID is taken       |         |
-| The medium's size checked   | partly: a boot or  | n/a (the board's) | n/a                 | F-200   |
+| The medium's size checked   | yes: a boot or     | n/a (the board's) | n/a                 | F-200   |
 |                             | RPMB size of 0 is  |                   |                     |         |
 |                             | no device; the     |                   |                     |         |
 |                             | user area's        |                   |                     |         |
-|                             | SEC_COUNT 0 isn't  |                   |                     |         |
+|                             | SEC_COUNT 0 is the |                   |                     |         |
+|                             | CSD's size         |                   |                     |         |
 |                             | (`test_mmc_emmc`)  |                   |                     |         |
 | Exactly `length` bytes of   | yes                | yes (`test_imx_`  | yes                 |         |
 | the buffer                  |                    | `flexspi`)        |                     |         |
@@ -470,7 +471,6 @@ flash can't be made to fail a read: they skip that case.
 
 ## 9. Not yet in the code
 
-| Finding | What                                                         |
-| ------- | ------------------------------------------------------------ |
-| F-283   | The block size asked (2.3)                                   |
-| F-200   | Sizes from the card: the e.MMC user area's SEC_COUNT 0 (2.1) |
+| Finding | What                       |
+| ------- | -------------------------- |
+| F-283   | The block size asked (2.3) |
