@@ -16,6 +16,7 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/ramlog.h>
+#include <pb_build_version.h>
 #include <plat/imx8m/imx8m.h>
 #include <stddef.h>
 #include <string.h>
@@ -212,7 +213,7 @@ void spl_main(void)
     ramlog_init();
 #endif
     imx8m_spl_console_init();
-    LOG_INFO("SPL " PB_VERSION);
+    LOG_INFO("SPL " PB_BUILD_VERSION);
 
     if (imx8m_spl_dram_init() == PB_OK && load(&hdr, &limits) == PB_OK &&
         imx8m_spl_hab_authenticate(IMX8MP_HAB_RVT_BASE, &hdr) == PB_OK) {

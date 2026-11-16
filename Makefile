@@ -53,6 +53,20 @@ value_file = $(shell f=$(BUILD_DIR)/value/$(1); v='$(subst ','\'',$($(1)))'; \
                  [ -f $$f ] && [ "$$(cat $$f)" = "$$v" ] || printf '%s\n' "$$v" > $$f; \
                  echo $$f)
 
+# The build's version for a person to read, in the banner and the SPL's log
+# (F-231): version.txt on its tag, otherwise <version>-dev+<commit>[-dirty]
+# (scripts/build-version). The wire, pb,version and pb's handoff structure
+# carry PB_VERSION, the numbers only. $(BUILD_DIR)/pb_build_version.h is
+# rewritten only when the version changes, so only what includes it is made
+# again on a new commit (the dependency files name it).
+PB_BUILD_VERSION ?= $(shell scripts/build-version . $(PB_VERSION))
+pb_hash := \#
+PB_BUILD_VERSION_H := $(shell f=$(BUILD_DIR)/pb_build_version.h; \
+                 v='$(pb_hash)define PB_BUILD_VERSION "$(PB_BUILD_VERSION)"'; \
+                 mkdir -p $(BUILD_DIR); \
+                 [ -f $$f ] && [ "$$(cat $$f)" = "$$v" ] || printf '%s\n' "$$v" > $$f; \
+                 echo $$f)
+
 cflags-y   = -std=c99
 cflags-y  += -O$(call unquote,$(CONFIG_OPTIMIZE))
 cflags-$(CONFIG_DEBUG_SYMBOLS) += -g

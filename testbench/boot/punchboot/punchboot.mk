@@ -42,6 +42,10 @@ PUNCHBOOT_MAKE_OPTS = \
 	BPAK=$(HOST_DIR)/bin/bpak \
 	Q=
 
+# The banner's version from the sources' git (F-231): Buildroot's copy has none
+PUNCHBOOT_MAKE_OPTS += PB_BUILD_VERSION=$(shell \
+	$(PB_TESTBENCH_PUNCHBOOT_SRCDIR)/scripts/build-version $(PB_TESTBENCH_PUNCHBOOT_SRCDIR))
+
 # The i.MX8MQ's image is made with NXP's mkimage for the i.MX8M, which
 # host-imx-mkimage installs as mkimage_imx8; the others with U-Boot's
 ifeq ($(BR2_TARGET_PUNCHBOOT_IMX8MQ_MKIMAGE),y)

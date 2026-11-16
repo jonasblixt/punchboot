@@ -60,6 +60,11 @@ target_compile_options(pb_host_flags INTERFACE
     -include ${CMAKE_CURRENT_SOURCE_DIR}/src/plat/host/compat.h
 )
 
+# The banner's version (F-231): the firmware's Makefile writes the commit into
+# it, the host build has the numbers
+file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/pb_build_version.h
+     CONTENT "#define PB_BUILD_VERSION PB_VERSION\n")
+
 target_compile_definitions(pb_host_flags INTERFACE
     PB_VERSION="${PB_VERSION}"
     LOGLEVEL=3

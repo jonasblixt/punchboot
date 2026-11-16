@@ -187,3 +187,9 @@ hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`, a ruff bump c
 A release is made from master (D-003): `version.txt` is bumped in a pull request, then the tag
 `vX.Y.Z` on master publishes the package to PyPI (`punchboot-tools.yml` above). The steps, the
 test record among them, are in `doc/guides/release-checklist.txt`.
+
+A firmware build says which commit it is (F-231): on the tag `vX.Y.Z` with no tracked file
+changed its banner and the SPL's log say `X.Y.Z`, any other build `X.Y.Z-dev+<commit>`, with
+`-dirty` when a tracked file is changed (`scripts/build-version`; `PB_BUILD_VERSION=` on the
+make command line sets it). The wire's version command, `pb,version` and pb's handoff structure
+say `X.Y.Z`, `version.txt` alone (`boot.md` 5.6).
