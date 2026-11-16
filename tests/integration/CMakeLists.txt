@@ -15,3 +15,10 @@ set_tests_properties(integration PROPERTIES
     TIMEOUT 600
     ENVIRONMENT PB_HOST_BIN=$<TARGET_FILE:pb-host>
 )
+# scripts/ci/host-test.sh builds pbstate with the sanitizers too. One test
+# preloads zlib before it and one loads libpbstate into Python: ASan refuses
+# both, its runtime isn't the first library there
+if(PB_SANITIZE)
+    set_property(TEST integration APPEND PROPERTY
+        ENVIRONMENT ASAN_OPTIONS=verify_asan_link_order=0)
+endif()

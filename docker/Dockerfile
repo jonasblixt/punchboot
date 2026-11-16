@@ -69,3 +69,14 @@ RUN python3 -m venv /opt/venv \
 ENV PATH=/opt/pb/bin:/opt/venv/bin:$PATH \
     LD_LIBRARY_PATH=/opt/pb/lib \
     HOME=/tmp/home
+
+# The host's unit tests at 32 bits too (CI's m32 host tests, F-428): jiffy and
+# the RT1060 are 32-bit. gcc -m32 needs the i386 libc and gcc's 32-bit runtime;
+# not gcc-multilib, which conflicts with the cross compilers and removes them.
+# The i386 CMocka is found with PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig
+RUN dpkg --add-architecture i386 \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        lib32gcc-14-dev \
+        libc6-dev-i386 \
+        libcmocka-dev:i386 \
+    && rm -rf /var/lib/apt/lists/*

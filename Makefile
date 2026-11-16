@@ -105,6 +105,10 @@ cflags-y += -Wmissing-prototypes
 cflags-y += -Wpointer-arith
 cflags-y += -Wredundant-decls
 cflags-y += -Waggregate-return
+# CI's firmware builds fail on a warning (F-228): PB_WERROR=1
+ifeq ($(PB_WERROR),1)
+cflags-y += -Werror
+endif
 
 # Bootloader
 src-y   = src/main.c

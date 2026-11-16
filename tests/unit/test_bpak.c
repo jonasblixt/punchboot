@@ -350,11 +350,20 @@ static void test_valid_header_rejects_part_sizes(void **state)
     /* Sizes that overflow size_t/off_t, alone or added up */
     a->size = UINT64_MAX - (BPAK_PART_ALIGN - 1);
     assert_int_equal(bpak_valid_header(hdr), -BPAK_SIZE_ERROR);
+#if SIZE_MAX == UINT64_MAX
+    /* Two parts that fit a 64-bit size_t alone, not added up */
     a->size = (uint64_t)1 << 62;
     assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
     assert_int_equal(bpak_add_part(hdr, ID_DTB, &b), BPAK_OK);
     b->size = (uint64_t)1 << 62;
     assert_int_equal(bpak_valid_header(hdr), -BPAK_SIZE_ERROR);
+#else
+    /* A 32-bit size_t: a part of 4 GiB doesn't fit it */
+    a->size = (uint64_t)1 << 32;
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_SIZE_ERROR);
+    a->size = 512;
+    assert_int_equal(bpak_add_part(hdr, ID_DTB, &b), BPAK_OK);
+#endif
     b->size = 512;
     assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
 
