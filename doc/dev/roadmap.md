@@ -46,6 +46,52 @@ Collected 2026-11-12 from the documents and the decisions. The list is mine and 
 - **A changelog**: the release checklist's step 2 names one and there is none (F-232). The
   checklist itself is stale (F-044).
 
+### Which findings gate the tag (a draft, for Jonas)
+
+Drafted 2026-11-16 from the 64 open findings (Jonas: "Draft the list"). Nothing gates until
+Jonas has marked it; a finding not named here doesn't gate.
+
+**1. Gate: what a shipped board gets wrong, what security rests on, the release's own**
+
+- F-263: EOL on each port (NXP's field return), or the reason a port can't.
+- F-429: the 8X's key slots 4 to 31 read as not revoked; what the SCFW does with a word
+  written twice.
+- F-166: no fuse is read back after it is written.
+- F-246: the 6UL SDMA's peripheral access, unchecked.
+- F-286: the RT1060 registers SHA-256 and MD5 while its keystore has P-384 and P-521 keys.
+- F-083, F-190: which partitions a board lets a host read (`part read` answers an I/O error
+  on every board).
+- F-205: the salvo PHY's register table is U-Boot's (GPL-2.0+) in a BSD file.
+- F-447: the 8M's SLC rests on public sources, not its Security Reference Manual.
+- F-392: an image with a part in the boards' image regions' end is refused now (D-008).
+- F-218: the 8X boards' answer to an unknown command changed from OK (`board.md` 8).
+- F-295: the DXL EVK moved to the TF-A delivery: its products' images, unchecked.
+- F-300: imx8mevk builds and can't boot: finish it or drop it from the release.
+- F-232, F-228, F-231, F-020: the README and the changelog, the PyPI token, a pre-release's
+  version, the Mbed TLS record. F-247: the guides' sections on it.
+
+**2. Gate: the porting API and the formats, which only a major release changes (D-031)**
+
+- F-442 (D-086): Mbed TLS set up by the core, not each platform.
+- F-431: `board/password.h` under `src/board/`, outside the headers a board includes.
+- F-301: extra bootable partitions in the policy object (`BOOT_POLICY_AB_EXTRA`).
+- F-427: an RNG failure in `plat_status`.
+- F-423: `pb_error_string()` declared in a frozen header.
+- F-291: the image handover in place with a device tree: refuse for good or copy to RAM.
+- F-348: pb's device tree properties' namespace, and what a next stage is told when one
+  didn't fit (`boot.md` 7 freezes them).
+- F-259: the Firmware Handoff tag, which waits for the specification.
+
+**3. Don't gate**
+
+- The contracts' sentences that no code waits for: F-210 (the exception policy), F-282,
+  F-310, F-311, F-323, F-325, F-331, F-335, F-342, F-345, F-360, F-403.
+- Boards not on the bench: F-104, F-106, F-107 (imx8mevk), F-110 (8MQ), F-214 (EVKC), F-432,
+  F-433 (8MQ, 6ULL), F-410's 8M Mini.
+- The test bench's Linux and OP-TEE: F-153, F-155, F-443, F-450, F-452, F-455.
+- Low, or a later improvement: F-066, F-113, F-135, F-138, F-167, F-226, F-230, F-251, F-287,
+  F-375, F-458, F-462.
+
 ## Compatibility guards (D-008, `compatibility.md`)
 
 `compatibility.md` cites this list as "roadmap Phase 1". In order of value per effort:
