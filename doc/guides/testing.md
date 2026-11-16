@@ -418,6 +418,9 @@ Unit tests, by module under test:
 | `test_imx_ci_udc.c`                           | `imx_ci_udc.c`: what it      | register file; models of the     |
 |                                               | queues and what the caller   | controller's side of a transfer  |
 |                                               | gets back                    | and of the cache                 |
+| `test_imx_salvo_phy.c`                        | `imx_salvo_phy.c`: the       | register file                    |
+|                                               | writes, VCOCAL_ITER_TMR at   |                                  |
+|                                               | 0x0085 (F-468)               |                                  |
 | `test_cdns3_udc.c`                            | `cdns3_udc_core.c`: the TRBs | register file                    |
 |                                               | of a bulk transfer and what  |                                  |
 |                                               | is cleaned from the cache    |                                  |

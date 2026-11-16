@@ -856,6 +856,16 @@ target_include_directories(test_cdns3_udc BEFORE PRIVATE
 target_compile_options(test_cdns3_udc PRIVATE -fno-pie)
 target_link_options(test_cdns3_udc PRIVATE -no-pie)
 
+# The i.MX8X's USB3 PHY on a register file (F-205, F-468)
+pb_unit_test(test_imx_salvo_phy SOURCES
+    fakes/regs.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/usb/imx_salvo_phy.c
+)
+target_include_directories(test_imx_salvo_phy BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+
 # The DWC3 controller's driver on a register file with a few lines of a
 # model, and the D-cache's (see the test). -no-pie keeps what the model
 # reads from 32 bit registers below 4 GiB
