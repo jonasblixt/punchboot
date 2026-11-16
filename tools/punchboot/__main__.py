@@ -142,7 +142,19 @@ def _open_session(**kwargs: Any) -> Session:  # noqa: ANN401
 
 def pb_session(f: TFunc) -> TFunc:
     """Punchboot Session setup decorator."""
+    return _session(f, irreversible=False)
 
+
+def pb_session_irreversible(f: TFunc) -> TFunc:
+    """Session setup for a command that can't be undone: the slc writes.
+
+    As every command, with more than one device attached and none named it
+    lists them and asks for -u (F-227); its message says why it matters most.
+    """
+    return _session(f, irreversible=True)
+
+
+def _session(f: TFunc, *, irreversible: bool) -> TFunc:
     @click.pass_context
     def new_func(ctx: click.Context, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         device_uuid: uuid.UUID | None = ctx.obj["device-uuid"]
@@ -153,10 +165,16 @@ def pb_session(f: TFunc) -> TFunc:
                 logger.debug("Using USB transport")
                 if device_uuid is None:
                     attached = list_usb_devices()
+                    # No command picks one of several devices (F-227): a write
+                    # on the first one found may be on the wrong board
                     if len(attached) > 1:
-                        click.echo(
-                            f"Warning: More than one device is attached, using: {attached[0]}"
+                        devices = "".join(f"\n  {uu}" for uu in attached)
+                        why = "This can't be undone: " if irreversible else ""
+                        msg = (
+                            f"More than one device is attached:{devices}\n"
+                            f"{why}name the device with -u"
                         )
+                        raise click.ClickException(msg)
                 return ctx.invoke(f, _open_session(device_uuid=device_uuid), *args, **kwargs)
             if transport == "socket":
                 if device_uuid is not None:
@@ -471,10 +489,14 @@ def part_verify(_ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pat
     s.part_verify(file, part_uuid)
 
 
-@cli.group()
+# Deprecated since 3.0.0: 'board command' is 'cmd <name>', and what 'board
+# status' answered is in 'cmd info' (D-077). The group stays, hidden from the
+# help and from tab completion, so that the scripts of earlier releases keep
+# working (D-008). Don't add to it.
+@cli.group(hidden=True)
 @click.pass_context
 def board(_ctx: click.Context) -> None:
-    """Board specific commands."""
+    """Board specific commands (deprecated, see 'cmd')."""
 
 
 @board.command("command")
@@ -504,7 +526,9 @@ def board_command(
     out_fmt: str,
     args_from_file: pathlib.Path | None,
 ) -> None:
-    """Execute a board specific command."""
+    """Execute a board specific command (deprecated, see 'cmd')."""
+    # Deprecated with the 'board' group: a 2.x board command by its id or
+    # name. 'cmd' runs a named command; this one stays as released.
     board_command: int | str = 0
     board_args: bytes = b""
 
@@ -555,7 +579,7 @@ def _command_request(args: str | None, args_from_file: pathlib.Path | None) -> b
     return request
 
 
-@cli.command("command")
+@cli.command("cmd")
 @click.argument("command", type=str, shell_complete=_command_completion)
 @click.argument("args", type=str, required=False)
 @click.option(
@@ -587,7 +611,7 @@ def named_command(
     The request is ARGS, the contents of --args-from-file, or stdin when
     neither is given and stdin isn't a terminal:
 
-        echo -n data | punchboot command some-command
+        echo -n data | punchboot cmd some-command
 
     In a script whose stdin stays open, give ARGS or use < /dev/null.
     """
@@ -616,7 +640,9 @@ def named_command(
 @pb_session
 @click.pass_context
 def board_status(_ctx: click.Context, s: Session) -> None:
-    """Read board status."""
+    """Read board status (deprecated, see 'cmd info')."""
+    # Deprecated with the 'board' group: 'cmd info' has what the boards'
+    # status printed (D-077). It stays as released.
     click.echo(s.board_read_status())
 
 
@@ -736,7 +762,7 @@ def slc_show(_ctx: click.Context, s: Session) -> None:
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
-@pb_session
+@pb_session_irreversible
 @click.pass_context
 def slc_configure(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC configure."""
@@ -748,7 +774,7 @@ def slc_configure(_ctx: click.Context, s: Session, force: bool) -> None:
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
-@pb_session
+@pb_session_irreversible
 @click.pass_context
 def slc_lock(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC configuration lock."""
@@ -760,7 +786,7 @@ def slc_lock(_ctx: click.Context, s: Session, force: bool) -> None:
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
-@pb_session
+@pb_session_irreversible
 @click.pass_context
 def slc_eol(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC end of life."""
@@ -773,7 +799,7 @@ def slc_eol(_ctx: click.Context, s: Session, force: bool) -> None:
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
-@pb_session
+@pb_session_irreversible
 @click.pass_context
 def slc_revoke_key(_ctx: click.Context, s: Session, key_id: str, force: bool) -> None:
     """Revoke a key."""

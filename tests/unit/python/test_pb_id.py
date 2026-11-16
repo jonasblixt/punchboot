@@ -1,11 +1,11 @@
 """pb_id(), the ids of names (bpak ids, keys, logs, commands), against zlib.
 
-helpers.py has its own CRC32 table. pb's and bpak's C code compute the same
-CRC32 without its inversions (src/log_source.c, bpak's id.h). F-035 asks
-whether zlib.crc32() gives the same ids: not as it is, it inverts at the start
-and at the end. With both inversions undone it gives the same id for every
-name in use, and for any ASCII name. For text outside Latin-1 it doesn't:
-pb_id() takes each character's code point modulo 256, zlib takes bytes.
+pb's and bpak's C code compute a CRC32 without its inversions over the
+name's bytes (src/log_source.c, bpak's id.h). zlib.crc32() inverts at the
+start and at the end; with both inversions undone it gives the same id for
+every name in use, and for any ASCII name. A name that isn't ASCII is its
+UTF-8 bytes, as the device's C string and the bpak CLI's argument have it
+(F-430): pb_id() took each character's code point modulo 256.
 """
 
 from __future__ import annotations
@@ -73,8 +73,25 @@ def test_every_ascii_name(length: int) -> None:
         assert punchboot.pb_id(name) == zlib_id(name), repr(name)
 
 
-def test_outside_latin1_differs_from_utf8() -> None:
-    # The character's code point modulo 256, not its UTF-8 bytes
-    name = "k€y"
-    assert punchboot.pb_id(name) != zlib.crc32(name.encode(), 0xFFFFFFFF) ^ 0xFFFFFFFF
-    assert punchboot.pb_id(name) == zlib_id("k\xacy")
+def device_id(data: bytes) -> int:
+    """Compute the device's pb_id() of a C string's bytes, bit by bit."""
+    crc = 0
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            crc = (crc >> 1) ^ (0xEDB88320 if crc & 1 else 0)
+    return crc
+
+
+@pytest.mark.parametrize("name", ["k€y", "nyckel-å", "é"])
+def test_not_ascii_is_its_utf8_bytes(name: str) -> None:
+    # F-430: the device's C string, and the bpak CLI's argument, is the
+    # name's UTF-8 bytes. pb_id() took each code point modulo 256 ("k€y"
+    # had the id of the bytes 6b ac 79)
+    assert punchboot.pb_id(name) == device_id(name.encode())
+    assert punchboot.pb_id(name) != device_id(bytes(ord(ch) & 0xFF for ch in name))
+
+
+def test_device_id_is_pb_id_for_ascii() -> None:
+    for name in ("pb", "list", "kernel", "test-command", "pb-load-addr"):
+        assert device_id(name.encode()) == punchboot.pb_id(name), name

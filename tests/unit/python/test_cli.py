@@ -162,6 +162,27 @@ def test_slc_lock_asks_first() -> None:
     assert FakeSession.calls == [("slc_set_configuration_lock", ())]
 
 
+def test_board_is_hidden() -> None:
+    # Deprecated (cmd and cmd info): not in the help or in tab completion,
+    # and still there for the scripts of earlier releases
+    result = run("--help")
+    assert result.exit_code == 0, result.output
+    assert "cmd" in result.output
+    assert "board" not in result.output
+
+    ctx = cli_main.cli.make_context("punchboot", [], resilient_parsing=True)
+    names = [c.value for c in cli_main.cli.shell_complete(ctx, "")]
+    assert "cmd" in names
+    assert "board" not in names
+    assert [c.value for c in cli_main.cli.shell_complete(ctx, "bo")] == ["boot"]
+
+    FakeSession.result = "Board status OK!"
+    result = run(*SOCKET, "board", "status")
+    assert result.exit_code == 0, result.output
+    assert result.output == "Board status OK!\n"
+    assert FakeSession.calls == [("board_read_status", ())]
+
+
 @pytest.mark.parametrize(
     ("argument", "sent"), [("0xc72b6e9e", 0xC72B6E9E), ("test-command", "test-command")]
 )
@@ -189,25 +210,110 @@ def test_board_command_args_or_file(tmp_path: pathlib.Path) -> None:
 
 
 def test_named_command_request(tmp_path: pathlib.Path) -> None:
-    result = run(*SOCKET, "command", "test", "hello")
+    result = run(*SOCKET, "cmd", "test", "hello")
     assert result.exit_code == 0, result.output
     assert FakeSession.calls == [("command_run", ("test", b"hello"))]
 
     # From stdin when it isn't a terminal
     FakeSession.calls = []
-    result = run(*SOCKET, "command", "test", stdin=b"piped")
+    result = run(*SOCKET, "cmd", "test", stdin=b"piped")
     assert FakeSession.calls == [("command_run", ("test", b"piped"))]
 
     # At most 1024 bytes (command-mode.md 5.6)
     request = tmp_path / "request"
     request.write_bytes(bytes(1024))
     FakeSession.calls = []
-    result = run(*SOCKET, "command", "test", "--args-from-file", str(request))
+    result = run(*SOCKET, "cmd", "test", "--args-from-file", str(request))
     assert result.exit_code == 0, result.output
 
     request.write_bytes(bytes(1025))
     FakeSession.calls = []
-    result = run(*SOCKET, "command", "test", "--args-from-file", str(request))
+    result = run(*SOCKET, "cmd", "test", "--args-from-file", str(request))
     assert result.exit_code == 2
     assert "at most 1024" in result.output
     assert FakeSession.calls == []
+
+
+TWO_DEVICES = [str(uuid.UUID(int=1)), str(uuid.UUID(int=2))]
+SLC_WRITES = [
+    ("slc", "configure", "--force"),
+    ("slc", "lock", "--force"),
+    ("slc", "eol", "--force"),
+    ("slc", "revoke-key", "0x1234", "--force"),
+]
+
+
+@pytest.fixture
+def two_devices(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli_main, "list_usb_devices", lambda: list(TWO_DEVICES))
+
+
+@pytest.mark.usefixtures("two_devices")
+@pytest.mark.parametrize("args", SLC_WRITES, ids=lambda a: a[1])
+def test_slc_write_with_two_devices_and_no_uuid_is_refused(args: tuple[str, ...]) -> None:
+    # F-227: the first device was used, for a write that can't be undone
+    result = run(*args)
+
+    assert result.exit_code == 1
+    assert "More than one device is attached" in result.output
+    for uu in TWO_DEVICES:
+        assert uu in result.output
+    assert "-u" in result.output
+    assert FakeSession.opened == []
+    assert FakeSession.calls == []
+
+
+@pytest.mark.usefixtures("two_devices")
+@pytest.mark.parametrize("args", SLC_WRITES, ids=lambda a: a[1])
+def test_slc_write_with_two_devices_and_a_uuid(
+    monkeypatch: pytest.MonkeyPatch, args: tuple[str, ...]
+) -> None:
+    result = run("-u", TWO_DEVICES[1], *args)
+
+    assert result.exit_code == 0, result.output
+    assert FakeSession.opened == [{"device_uuid": uuid.UUID(TWO_DEVICES[1])}]
+    assert len(FakeSession.calls) == 1
+
+    # PB_DEVICE_UUID names it too
+    FakeSession.opened = []
+    monkeypatch.setenv("PB_DEVICE_UUID", TWO_DEVICES[0])
+    result = run(*args)
+    assert result.exit_code == 0, result.output
+    assert FakeSession.opened == [{"device_uuid": uuid.UUID(TWO_DEVICES[0])}]
+
+
+@pytest.mark.parametrize("args", SLC_WRITES, ids=lambda a: a[1])
+def test_slc_write_with_one_device_uses_it(
+    monkeypatch: pytest.MonkeyPatch, args: tuple[str, ...]
+) -> None:
+    monkeypatch.setattr(cli_main, "list_usb_devices", lambda: TWO_DEVICES[:1])
+    result = run(*args)
+
+    assert result.exit_code == 0, result.output
+    assert "More than one" not in result.output
+    assert FakeSession.opened == [{"device_uuid": None}]
+    assert len(FakeSession.calls) == 1
+
+
+@pytest.mark.usefixtures("two_devices")
+@pytest.mark.parametrize(
+    "args", [("slc", "show"), ("dev", "show"), ("part", "list"), ("dev", "reset")]
+)
+def test_other_commands_with_two_devices_are_refused(args: tuple[str, ...]) -> None:
+    # F-227 (Jonas): they used the first device found, with a warning
+    result = run(*args)
+
+    assert result.exit_code == 1
+    assert "More than one device is attached" in result.output
+    for uu in TWO_DEVICES:
+        assert uu in result.output
+    assert "name the device with -u" in result.output
+    assert "can't be undone" not in result.output
+    assert FakeSession.opened == []
+    assert FakeSession.calls == []
+
+    # Named, it opens that one
+    FakeSession.result = []
+    run("-u", TWO_DEVICES[1], *args)
+    assert FakeSession.opened == [{"device_uuid": uuid.UUID(TWO_DEVICES[1])}]
+    assert FakeSession.calls
