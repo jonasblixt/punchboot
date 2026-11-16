@@ -115,6 +115,91 @@ static void fill(uint8_t *buf, size_t len, unsigned int seed)
         buf[i] = (uint8_t)(i * 7 + seed + (i >> 9));
 }
 
+/* The model's HAL, of which the n-th call (a request, a clock, a width or a
+ * tap) fails, counted from 1; 0 fails none and counts them */
+static struct mmc_hal faulty_hal;
+static const struct mmc_hal *model_hal;
+static unsigned int hal_calls;
+static unsigned int hal_fail_at;
+
+static bool hal_fault(void)
+{
+    return ++hal_calls == hal_fail_at;
+}
+
+static int faulty_request(void *priv, struct mmc_cmd *cmd)
+{
+    return hal_fault() ? -PB_ERR_IO : model_hal->request(priv, cmd);
+}
+
+static int faulty_clock(void *priv, unsigned int clk_hz)
+{
+    return hal_fault() ? -PB_ERR_IO : model_hal->set_bus_clock(priv, clk_hz);
+}
+
+static int faulty_width(void *priv, enum mmc_bus_width width)
+{
+    return hal_fault() ? -PB_ERR_IO : model_hal->set_bus_width(priv, width);
+}
+
+static int faulty_tap(void *priv, unsigned int tap)
+{
+    return hal_fault() ? -PB_ERR_IO : model_hal->set_delay_tap(priv, tap);
+}
+
+static int init_failing_at(unsigned int n)
+{
+    bio_reset();
+    mmc_reset();
+    emmc_model_free();
+    card = emmc_model_init(&card_cfg);
+    model_hal = hal_model_init(card, CHUNK_BYTES);
+    faulty_hal = *model_hal;
+    faulty_hal.request = faulty_request;
+    faulty_hal.set_bus_clock = faulty_clock;
+    faulty_hal.set_bus_width = faulty_width;
+    if (model_hal->set_delay_tap != NULL)
+        faulty_hal.set_delay_tap = faulty_tap;
+    hal_calls = 0;
+    hal_fail_at = n;
+    return mmc_init(&faulty_hal, &dev_cfg, &mmc);
+}
+
+/* drivers.md 2.1: whichever step of the init fails (HS200, its tuning and
+ * the partitions), the init fails and registers no device, or it gets over
+ * the step and the user area reads what was written; no rule of the card's
+ * is broken on the way */
+static void test_each_step_of_the_init_fails(void **state)
+{
+    static uint8_t out[4096];
+    static uint8_t in[sizeof(out)] __aligned(PB_DMA_ALIGN);
+    unsigned int steps;
+    unsigned int failed = 0;
+    (void)state;
+
+    assert_int_equal(init_failing_at(0), PB_OK);
+    steps = hal_calls;
+    assert_true(steps > 10);
+    fill(out, sizeof(out), 5);
+
+    for (unsigned int n = 1; n <= steps; n++) {
+        int rc = init_failing_at(n);
+
+        if (rc != PB_OK) {
+            assert_int_equal(devices(), 0);
+            failed++;
+        } else {
+            assert_int_equal(bio_write(part(UU_USER), 8, sizeof(out), out), PB_OK);
+            assert_int_equal(bio_read(part(UU_USER), 8, sizeof(in), in), PB_OK);
+            assert_memory_equal(out, in, sizeof(in));
+        }
+
+        assert_bench_clean();
+    }
+
+    assert_true(failed > 0);
+}
+
 /* The block device conformance tests (bio.md 8) on the user area and on a
  * boot partition, the one device with a write_done, through mmc_core and the
  * card model: each ends without a violation. No erase (bio.md 3.3) */
@@ -950,6 +1035,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_hs200, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ddr52, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ddr52_4bit, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_each_step_of_the_init_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_tuning, setup, teardown),
         cmocka_unit_test_setup_teardown(test_tuning_narrow, setup, teardown),
         cmocka_unit_test_setup_teardown(test_tuning_gap, setup, teardown),
