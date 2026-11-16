@@ -31,6 +31,8 @@
 #define ORJRR         (JR0 + 0x0034)
 #define ORSFR         (JR0 + 0x003c)
 #define JRSTAR        (JR0 + 0x0044)
+#define JRINTR        (JR0 + 0x004c)
+#define JRCR          (JR0 + 0x006c)
 #define RNG_VERSION   (JR0 + 0x0ef8)
 #define CTPR_MS       (JR0 + 0x0fa8)
 #define CCBVID        (JR0 + 0x0fe4)
@@ -201,6 +203,12 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
         break;
     case ORJRR:
         REG(ORSFR) = 0;
+        break;
+    case JRCR:
+        /* A flush, complete at once with no job in the engine (HALT 10b),
+         * then the reset. The register is write only */
+        if (value & 1)
+            REG(JRINTR) = (REG(JRINTR) & (3 << 2)) ? 0 : (2 << 2);
         break;
     case RTSDCTL:
         /* Only in program mode, and only while no state handle is instantiated */

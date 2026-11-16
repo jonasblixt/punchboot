@@ -67,6 +67,16 @@
 #define CAAM_ORJRR_JR              0x0034 /* Output ring jobs removed */
 #define CAAM_ORSFR_JR              0x003c /* Output ring slots full */
 #define CAAM_JRSTAR_JR             0x0044 /* Job ring output status */
+#define CAAM_JRINTR_JR             0x004c /* Job ring interrupt status */
+#define CAAM_JRCR_JR               0x006c /* Job ring command */
+
+#define CAAM_JRCR_RESET            BIT(0) /* A flush, and once halted a reset */
+#define CAAM_JRINTR_HALT_MASK      (3 << 2)
+#define CAAM_JRINTR_HALT_RUNNING   0
+#define CAAM_JRINTR_HALT_DONE      (2 << 2) /* The flush (or a park) is complete */
+/* What a reset takes after its flush: Linux's caam_reset_hw_jr() polls 100000
+ * times */
+#define CAAM_JR_RESET_TIMEOUT_us   10000
 
 /* Version registers, aliased in every job ring page */
 #define CAAM_CCBVID                0x0fe4
@@ -886,6 +896,59 @@ static void caam_take_back(void)
     caam.ring_set_up = false;
 }
 
+/*
+ * The job ring's flush and reset (SRM: JRCR_JRa), as Linux's
+ * caam_reset_hw_jr(). The flush ends the jobs in progress with an error and
+ * writes them to the output ring, the earlier user's, and waits while that
+ * ring is full: it is emptied here as the flush goes. Its jobs are nobody's
+ * now. The reset clears the ring's registers but its bases, sizes and
+ * configuration, which a ring with no job in it may be given (JRINTR_JRa's
+ * error types). A ring that an earlier user left halting, or halted, isn't
+ * asked again: the next RESET would be the reset
+ */
+static int caam_jr_reset(void)
+{
+    struct pb_timeout to;
+    uint32_t full;
+
+    if ((mmio_read_32(caam.base + CAAM_JRINTR_JR) & CAAM_JRINTR_HALT_MASK) ==
+        CAAM_JRINTR_HALT_RUNNING)
+        mmio_write_32(caam.base + CAAM_JRCR_JR, CAAM_JRCR_RESET);
+
+    pb_timeout_init_us(&to, CAAM_JOB_TIMEOUT_ms * 1000);
+
+    for (;;) {
+        full = mmio_read_32(caam.base + CAAM_ORSFR_JR) & CAAM_ORSFR_ORSF_MASK;
+
+        if (full != 0) {
+            LOG_INFO("%" PRIu32 " completion(s) of an earlier user", full);
+            mmio_write_32(caam.base + CAAM_ORJRR_JR, full);
+        }
+
+        if ((mmio_read_32(caam.base + CAAM_JRINTR_JR) & CAAM_JRINTR_HALT_MASK) ==
+            CAAM_JRINTR_HALT_DONE)
+            break;
+
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("The job ring's flush timed out, JRINTR = %08" PRIx32,
+                    mmio_read_32(caam.base + CAAM_JRINTR_JR));
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    mmio_write_32(caam.base + CAAM_JRCR_JR, CAAM_JRCR_RESET);
+    pb_timeout_init_us(&to, CAAM_JR_RESET_TIMEOUT_us);
+
+    while (mmio_read_32(caam.base + CAAM_JRCR_JR) & CAAM_JRCR_RESET) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("The job ring's reset timed out");
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
+}
+
 int imx_caam_stop(void)
 {
     int rc;
@@ -958,18 +1021,12 @@ int imx_caam_init(uintptr_t base)
              caam.ver_maj,
              caam.ver_min);
 
-    /* What an earlier user of the job ring left in its output ring (the ROM,
-     * a stage before pb) is taken out first: a ring's base and size are only
-     * written with no job in the ring (SRM: ORSFR_JRa, ORJRR_JRa, and the
-     * error types of JRINTR_JRa). A job of that user's that is still in the
-     * engine completes into the ring below, and caam_wait_for_job() tells it
-     * by its descriptor */
-    uint32_t left = mmio_read_32(caam.base + CAAM_ORSFR_JR) & CAAM_ORSFR_ORSF_MASK;
+    /* The job ring starts from its reset (drivers.md 2.1): what an earlier
+     * user left in it (the ROM, a stage before pb) ends there */
+    rc = caam_jr_reset();
 
-    if (left != 0) {
-        LOG_INFO("%" PRIu32 " completion(s) left in the output ring", left);
-        mmio_write_32(caam.base + CAAM_ORJRR_JR, left);
-    }
+    if (rc != PB_OK)
+        return rc;
 
     /* Initialize job rings, one entry each. From here on the engine writes
      * the output's entry */

@@ -52,12 +52,21 @@
 #define JRINTR            0x04c
 #define JRCFGR_MS         0x050
 #define JRCFGR_LS         0x054
+#define JRCR              0x06c
 #define CCBVID            0xfe4
 #define CHAVID_LS         0xfec
 #define CAAMVID_MS        0xff8
 #define PAGE_SIZE         0x1000
 
 #define RING_SIZE_MASK    0x3ff
+
+/* JRCR: RESET flushes, and once the flush is complete resets. JRINTR's HALT */
+#define JRCR_RESET        1u
+#define JRCR_PARK         2u
+#define HALT_RUNNING      0u
+#define HALT_FLUSHING     1u
+#define HALT_DONE         2u
+#define JRINTR_HALT(halt) ((uint32_t)(halt) << 2)
 
 /* Commands, CTYPE in bits 31-27 */
 #define CTYPE(word)       ((word) >> 27)
@@ -208,6 +217,8 @@ static struct {
     uint64_t free_at; /* When the engine was done with the job before */
     uint32_t job_us;
     bool hang;
+    unsigned int halt; /* HALT_*: a flush asked for, and done */
+    bool flush_stuck;
     bool fail_next;
     uint32_t fail_status;
     unsigned int jobs_done;
@@ -763,7 +774,7 @@ static void advance(void)
     do {
         progress = false;
 
-        while (m.in_ring > 0 && m.n_jobs < JOBS_MAX) {
+        while (m.halt == HALT_RUNNING && m.in_ring > 0 && m.n_jobs < JOBS_MAX) {
             job_take(now);
             progress = true;
         }
@@ -812,6 +823,37 @@ static void advance(void)
             progress = true;
         }
     } while (progress);
+
+    /* Every job ended and in the output ring */
+    if (m.halt == HALT_FLUSHING && m.n_jobs == 0 && !m.flush_stuck)
+        m.halt = HALT_DONE;
+}
+
+/* A flush ends the jobs in the engine with an error, also one that hangs */
+static void flush(void)
+{
+    m.halt = HALT_FLUSHING;
+    m.hang = false;
+
+    for (unsigned int n = 0; n < m.n_jobs; n++) {
+        if (!m.jobs[n].done) {
+            m.jobs[n].status = CAAM_STATUS_FLUSHED;
+            m.jobs[n].started = true;
+            m.jobs[n].done = true;
+        }
+    }
+}
+
+/* Every register of the ring but its bases, sizes and configuration */
+static void reset(void)
+{
+    m.irsar = 0;
+    m.in_ring = 0;
+    m.rindex = 0;
+    m.orsfr = 0;
+    m.windex = 0;
+    m.jrstar = 0;
+    m.halt = HALT_RUNNING;
 }
 
 void caam_model_init(const struct caam_model_config *cfg)
@@ -839,7 +881,11 @@ uint32_t caam_model_read(uintptr_t addr)
     switch (off) {
     case IRBAR_MS:
     case ORBAR_MS:
+        return 0;
     case JRINTR:
+        return JRINTR_HALT(m.halt);
+    case JRCR:
+        /* Write only; the reset is done at once here */
         return 0;
     case IRBAR_LS:
         return m.irbar;
@@ -938,6 +984,20 @@ void caam_model_write(uintptr_t addr, uint32_t value)
         break;
     case JRINTR:
         break;
+    case JRCR:
+        if (value & ~(JRCR_RESET | JRCR_PARK))
+            bench_violation(SRM "JRCR", "0x%08x has bits JRCR doesn't", value);
+        if ((value & JRCR_PARK) && !(value & JRCR_RESET))
+            bench_violation(SRM "registers", "not modeled: a park");
+        if (!(value & JRCR_RESET))
+            break;
+        if (m.halt == HALT_RUNNING)
+            flush();
+        else if (m.halt == HALT_DONE)
+            reset();
+        else
+            bench_violation(SRM "JRCR", "a reset before the flush is complete");
+        break;
     case JRCFGR_MS:
     case JRCFGR_LS:
         m.jrcfgr[(off - JRCFGR_MS) / 4] = value;
@@ -957,6 +1017,26 @@ void caam_model_job_time(uint32_t us)
 void caam_model_hang(bool hang)
 {
     m.hang = hang;
+}
+
+void caam_model_flush_stuck(bool stuck)
+{
+    m.flush_stuck = stuck;
+}
+
+void caam_model_earlier_job(uint32_t *ring)
+{
+    struct job *job;
+
+    caam_model_earlier_stage(ring, 0);
+    assert_true(m.n_jobs < JOBS_MAX);
+    static uint32_t descriptor[2];
+
+    job = &m.jobs[m.n_jobs++];
+    memset(job, 0, sizeof(*job));
+    job->addr = (uint32_t)(uintptr_t)descriptor;
+    job->started = true;
+    job->done_at = UINT64_MAX;
 }
 
 void caam_model_fail_next_job(uint32_t status)

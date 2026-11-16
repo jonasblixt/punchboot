@@ -257,9 +257,10 @@ static void assert_verdicts(void)
     }
 }
 
-/* drivers.md 2.1: init starts from a known state. A completion that the
- * stage before left in the job ring is taken out before the ring is set up
- * again, which the engine allows only with no job in it (F-181) */
+/* drivers.md 2.1: init starts from a known state. The job ring is flushed
+ * and reset (F-410), and a completion that the stage before left in it is
+ * taken out, before the ring is set up again, which the engine allows only
+ * with no job in it (F-181). test_caam_jr_reset.c has a job in flight */
 static void test_2_1_init_empties_the_ring(void **state)
 {
     (void)state;
@@ -1012,6 +1013,8 @@ static const char *register_name(uint32_t reg)
         return "ORSR";
     case 0x034:
         return "ORJRR";
+    case 0x06c:
+        return "JRCR";
     default:
         return "?";
     }
@@ -1073,10 +1076,11 @@ static void assert_events(const struct caam_model_event *e,
 /* The addresses are named in the order they appear, init's first */
 static void pin_begin(void)
 {
-    /* The completion the stage before left is taken out, then the rings of
-     * one entry each are set up */
+    /* The job ring's flush, which takes out the completion the stage before
+     * left, its reset, then the rings of one entry each (F-410) */
     static const char *const expected[] = {
-        "ORJRR = 1", "IRBAR_LS = drv0", "ORBAR_LS = drv1", "IRSR = 1", "ORSR = 1",
+        "JRCR = 1",        "ORJRR = 1", "JRCR = 1", "IRBAR_LS = drv0",
+        "ORBAR_LS = drv1", "IRSR = 1",  "ORSR = 1",
     };
 
     n_driver_addresses = 0;

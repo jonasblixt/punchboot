@@ -1199,6 +1199,22 @@ target_include_directories(test_caam_lp256 BEFORE PRIVATE
 target_compile_options(test_caam_lp256 PRIVATE -fno-pie)
 target_link_options(test_caam_lp256 PRIVATE -no-pie)
 
+# The CAAM's job ring reset at init (F-410): an earlier user's job flushed,
+# a flush that never completes. Its own program: one init per program
+pb_unit_test(test_caam_jr_reset
+    SOURCES
+        ${PB_DMA_MODEL}
+        ${PROJECT_SOURCE_DIR}/src/crypto.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
+    LIBS pb_caam_model
+)
+target_include_directories(test_caam_jr_reset BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_caam_jr_reset PRIVATE -fno-pie)
+target_link_options(test_caam_jr_reset PRIVATE -no-pie)
+
 # The host tools' pure parts, without a device (F-041): pytest on the
 # punchboot package, which must be installed as for the integration tests
 add_test(

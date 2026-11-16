@@ -53,9 +53,16 @@
  * a running context without its message length continues (HASH_MD5_BROKEN;
  * here: from a length of 0, with a violation).
  *
+ * The job ring's flush and reset (JRCR): the flush ends the jobs in the
+ * engine with CAAM_STATUS_FLUSHED and puts them in the output ring as room
+ * allows; jobs in the input ring stay there; JRINTR's HALT reads complete once
+ * the engine is empty. The reset then clears the ring but its bases, sizes
+ * and configuration, at once. A reset before the flush is complete is a
+ * violation.
+ *
  * Not modeled: the RNG (test_imx_caam.c has a model of its own), the job
- * ring's flush and reset, interrupts, scatter/gather tables, shared
- * descriptors, more than one job ring.
+ * ring's park, interrupts, scatter/gather tables, shared descriptors, more
+ * than one job ring.
  *
  * The addresses in a ring and in a descriptor are 32 bits: tests link with
  * -no-pie and use static buffers.
@@ -72,6 +79,8 @@
 #define CAAM_STATUS_DECO_WDOG    0x4000001cu /* DECO: watchdog timeout */
 #define CAAM_STATUS_MDHA_MODE    0x20000041u /* CCB, MDHA: mode error */
 #define CAAM_STATUS_MDHA_SIZE    0x20000042u /* CCB, MDHA: data size error */
+/* A job that a flush ended. The SRM gives no code here: the model's own */
+#define CAAM_STATUS_FLUSHED      0x7000000fu
 #define CAAM_STATUS_INDEX(index) ((uint32_t)(index) << 8) /* The descriptor's word */
 
 struct caam_model_config {
@@ -105,6 +114,14 @@ void caam_model_foreign_completion(uint32_t status);
 /* An earlier stage used the job ring, with an output ring of one entry at
  * 'ring' (two words), and left a completion in it. Before the driver's init */
 void caam_model_earlier_stage(uint32_t *ring, uint32_t status);
+
+/* A flush that never completes, until called with false */
+void caam_model_flush_stuck(bool stuck);
+
+/* An earlier stage left a completion in its output ring of one entry at
+ * 'ring' (as caam_model_earlier_stage()) and a job in the engine that doesn't
+ * end by itself: a flush ends it, into that ring once there is room */
+void caam_model_earlier_job(uint32_t *ring);
 
 /* Jobs that are done, since caam_model_init() */
 unsigned int caam_model_jobs_done(void);
