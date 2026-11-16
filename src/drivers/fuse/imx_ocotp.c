@@ -241,6 +241,22 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
         return -PB_ERR_IO;
     }
 
+    /* The word is read back, from the array (6UL RM 35.3.1.2, the shadow
+     * registers lag until a reload): a bit the write set that isn't there
+     * didn't take, and the write fails (F-166). Bits that were set before
+     * stay set, fuses only go from 0 to 1 */
+    rc = imx_ocotp_read(bank, row, &tmp);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Fuse %" PRIu32 " can't be read back (%i)", addr, rc);
+        return rc;
+    }
+
+    if ((tmp & value) != value) {
+        LOG_ERR("Fuse %" PRIu32 ": wrote 0x%08" PRIx32 ", reads 0x%08" PRIx32, addr, value, tmp);
+        return -PB_ERR_IO;
+    }
+
     return PB_OK;
 }
 

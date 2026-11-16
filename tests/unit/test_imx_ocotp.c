@@ -58,6 +58,8 @@ static struct {
     bool scs_set_ignored;
     uint32_t otp[MODEL_WORDS];
     bool locked[MODEL_WORDS];
+    uint32_t no_take[MODEL_WORDS]; /* Bits a program doesn't set (F-166) */
+    bool read_locked[MODEL_WORDS]; /* A read is refused, a program isn't */
     unsigned int busy_reads;
     bool programming; /* A program's BUSY hasn't been seen clear yet */
     bool postamble; /* It has, at postamble_tick */
@@ -156,7 +158,7 @@ void fake_mmio_write(uintptr_t addr, uint64_t value64, unsigned int width)
             /* No access, no BUSY */
             m.ctrl |= m.error;
         } else {
-            m.otp[word] |= value;
+            m.otp[word] |= value & ~m.no_take[word];
             m.programs++;
             m.timing_at_program = m.timing;
             m.busy_reads = m.program_busy_reads;
@@ -174,7 +176,7 @@ void fake_mmio_write(uintptr_t addr, uint64_t value64, unsigned int width)
 
         if (m.ctrl & m.error) {
             violation("read with ERROR set");
-        } else if (m.locked[word]) {
+        } else if (m.locked[word] || m.read_locked[word]) {
             m.ctrl |= m.error;
             m.read_fuse_data = 0xbadabada;
         } else {
@@ -548,6 +550,36 @@ static void test_timing_without_a_rate(void **state)
     assert_int_equal(m.programs, 0);
 }
 
+/* F-166: a word is read back from the array after its write. A bit the
+ * write set that isn't there fails it, a bit that was set before doesn't
+ * count, and a read back that fails fails the write. Nothing is written
+ * again */
+static void test_write_is_read_back(void **state)
+{
+    uint32_t val = 0;
+    (void)state;
+
+    m.no_take[3] = 0x04;
+    assert_int_equal(imx_ocotp_fuse_write(3, 0x0f), -PB_ERR_IO);
+    assert_int_equal(m.otp[3], 0x0b);
+    assert_int_equal(m.programs, 1);
+
+    /* Set already, or not asked for: the write is good */
+    assert_int_equal(imx_ocotp_fuse_write(3, 0x03), PB_OK);
+    m.otp[4] = 0xf0;
+    assert_int_equal(imx_ocotp_fuse_write(4, 0x0f), PB_OK);
+    assert_int_equal(m.otp[4], 0xff);
+
+    m.read_locked[5] = true;
+    assert_int_equal(imx_ocotp_fuse_write(5, 0x01), -PB_ERR_IO);
+    assert_int_equal(m.otp[5], 0x01);
+    assert_int_equal(m.programs, 4);
+
+    /* The ERROR the refused read set is cleared: the next access works */
+    assert_int_equal(imx_ocotp_fuse_read(4, &val), PB_OK);
+    assert_int_equal(val, 0xff);
+}
+
 /* F-467: the 8M Plus's ADDR has 9 bits, 512 words: an index past 0x7f is
  * a word there, past 0x1ff refused */
 static void test_index_8mp(void **state)
@@ -609,6 +641,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_timing_scales_with_the_rate, setup, teardown),
         cmocka_unit_test_setup_teardown(test_timing_without_a_rate, setup, teardown),
         cmocka_unit_test_setup_teardown(test_busy_times_out, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_write_is_read_back, setup, teardown),
         /* The same accesses with the 8M Plus's CTRL (F-467) */
         cmocka_unit_test_setup_teardown(test_read_write, setup_8mp, teardown),
         cmocka_unit_test_setup_teardown(test_error_is_cleared, setup_8mp, teardown),
@@ -617,6 +650,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_unique_id, setup_8mp, teardown),
         cmocka_unit_test_setup_teardown(test_busy_times_out, setup_8mp, teardown),
         cmocka_unit_test_setup_teardown(test_index_8mp, setup_8mp, teardown),
+        cmocka_unit_test_setup_teardown(test_write_is_read_back, setup_8mp, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -21,6 +21,14 @@ void imx8x_fuse_init(sc_ipc_t ipc_)
     ipc = ipc_;
 }
 
+/*
+ * Unlike the OCOTP's driver (F-166) the 8X reads no word back after its
+ * write. The SCFW's sc_misc_otp_fuse_read() doesn't say whether it reads the
+ * array or a copy the SECO took at reset, and on the 8X the life cycle a
+ * forward commits reads the same until a reset: a read back from a copy
+ * would fail every write that took. What was written is read after the next
+ * reset (slc show).
+ */
 int imx8x_fuse_write(uint32_t addr, uint32_t value)
 {
     sc_err_t err;

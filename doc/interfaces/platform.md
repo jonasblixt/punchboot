@@ -481,6 +481,11 @@ the platform's fuse index macro (`<P>_FUSE()`). `board_setup()` passes both to `
 rules (the order of the states, D-011, F-166) are the core's, in `slc.c`; the platform only reads
 and writes fuses.
 
+`fuse_write` reads the word back after the write, from the array and not from a copy taken at
+reset, and fails with `-PB_ERR_IO` when a bit it set isn't there (Jonas, D-092, F-166); the
+command that wrote fails with it. A SoC that can't read back says why in its port's document:
+the i.MX8X, whose SCFW doesn't say what its read returns before a reset (`plat-imx.md`).
+
 `set_eol`: every port implements EOL, as the SoC's own end of life state, or its document says
 why the SoC can't (`system.md` 4). A product chooses it with a Kconfig option, off by default.
 **Not yet in the code (F-263)**: only the host platform has it.

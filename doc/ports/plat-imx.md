@@ -270,6 +270,14 @@ failure (`imx_hab_no_failure()`): warnings pass, the 8MQ's ROM reports one for t
 pico8ml (HAB open, SRK fused): `slc show` reads CONFIGURATION and the three development keys
 active.
 
+A fuse write reads its word back (`platform.md` 4.2, F-166). The OCOTP (the 6UL, the RT, the 8M)
+reads the array directly, READ_CTRL and READ_FUSE_DATA: the shadow registers lag until a reload
+or a reset (6UL RM 35.3.1.2, 35.3.1.3). The 8M Plus's CTRL has BUSY and ERROR one bit higher
+than the others' (`IMX_OCOTP_CTRL_8MP`, F-467). The 8X doesn't read back: the SCFW doesn't say
+whether `sc_misc_otp_fuse_read()` reads the array or the SECO's copy from reset, and the life
+cycle a forward commits reads the same until a reset; a read back from a copy would fail every
+write that took. Its writes are read after the next reset (`slc show`).
+
 ### 4.2 The TrustZone DRAM filter
 
 | Port   | pb's part                                                            | Protects the enable      | Then   |
