@@ -30,6 +30,31 @@ _reset:
 
 master_cpu:
 
+    /* A Cortex-A53 or Cortex-A35 (MIDR_EL1 implementer 0x41, part 0xd03 or
+     * 0xd04) needs CPUECTLR_EL1.SMPEN set before the caches and the MMU are
+     * enabled and before any cache or TLB maintenance, also in a system of
+     * one core (Arm's TRMs; U-Boot's ARMV8_SET_SMPEN). The i.MX8M's and the
+     * i.MX8X's ROM leave it clear, and TF-A's reset handler sets it only
+     * after pb. What they left is kept for arch_init()'s log (F-469). pb runs
+     * at EL3. Uses x0 to x2 */
+    mrs     x0, midr_el1
+    ubfx    x1, x0, #24, #8
+    cmp     x1, #0x41
+    b.ne    1f
+    ubfx    x1, x0, #4, #12
+    cmp     x1, #0xd03
+    b.eq    2f
+    cmp     x1, #0xd04
+    b.ne    1f
+2:
+    mrs     x0, S3_1_C15_C2_1
+    ldr     x2, =armv8a_rom_cpuectlr
+    str     x0, [x2]
+    orr     x0, x0, #(1 << 6)
+    msr     S3_1_C15_C2_1, x0
+    isb
+1:
+
     /* Enable caches */
     mrs     x9, sctlr_el3
     orr     x9, x9, #(1<<12) /* Enable icache */
@@ -42,6 +67,18 @@ master_cpu:
             | SCTLR_SA_BIT | SCTLR_A_BIT | SCTLR_DSSBS_BIT))
     msr    sctlr_el3, x0
     isb
+
+    /* Empty the data and unified caches, by set/way to the level of
+     * coherency, before the MMU and the D-cache are turned on
+     * (plat_mmu_init()) (F-207). Their contents are UNKNOWN until
+     * invalidated (Arm ARM), and on the i.MX8M the ROM runs on this core
+     * with the MMU on and the D-cache on during the image's authentication,
+     * off after it, unless DCACHE_DIS is fused (8MP RM 6.1.4.4): a valid
+     * line left would answer for memory written since. SCTLR_EL3.M and
+     * .C are clear from here, data accesses are Device and allocate
+     * nothing, so nothing of pb's is in them. Uses x0-x17, no stack */
+    mov     x0, #DCISW
+    bl      dcsw_op_all
 
 .L__do_bss:
     ldr     x9, =_zero_region_start

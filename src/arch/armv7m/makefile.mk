@@ -12,7 +12,8 @@ cflags-y += -I include/libc/aarch32
 
 ldflags-y += -Tsrc/arch/armv7m/link.lds
 ldflags-y += -L${shell dirname "`$(CROSS_COMPILE)gcc $(ARCHFLAGS) --print-libgcc-file-name`"}
-ldflags-y += --defsym=PB_SECTION_ALIGNMENT=8
+# 32: the MPU's smallest region, the stack's guard below it (F-209)
+ldflags-y += --defsym=PB_SECTION_ALIGNMENT=32
 
 LIBS += -lgcc
 

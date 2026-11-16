@@ -5,8 +5,21 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 
+/* CPUECTLR_EL1 as the ROM left it, on a Cortex-A53 or A35, which _reset
+ * set SMPEN in (F-469). In .data: the BSS is cleared after _reset wrote it */
+#define CPUECTLR_SMPEN    BIT(6)
+#define CPUECTLR_NOT_READ UINT64_MAX /* Another core: _reset left it */
+uint64_t armv8a_rom_cpuectlr __attribute__((section(".data"))) = CPUECTLR_NOT_READ;
+
 void arch_init(void)
 {
+    if (armv8a_rom_cpuectlr != CPUECTLR_NOT_READ) {
+        LOG_DBG("CPUECTLR_EL1 before pb: 0x%016" PRIx64, armv8a_rom_cpuectlr);
+
+        if (!(armv8a_rom_cpuectlr & CPUECTLR_SMPEN))
+            LOG_DBG("CPUECTLR_EL1.SMPEN was clear: set (F-469)");
+    }
+
 }
 
 /* Generic exception handler */
