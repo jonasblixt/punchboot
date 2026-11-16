@@ -2144,6 +2144,14 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `IMX_USDHC_WRITE_TIMEOUT_us()` in `imx_usdhc.h`, and `IMX_USDHC_CHECK_CHUNKS()` stops a build whose | | |
 | | | command mode buffer write may not end before the watchdog. On the MEK and the 8MP EVK: 15 MB, Linux, | | |
 | | | reboot | | |
+| F-463 | `src/drivers/usb/usbd.c`, | Low, a contract question. The stack answers only | Verified | fixed |
+| | | 2026-11-16 (`04fa339b`, `61b8e600`, D-090, Jonas: "Answer them"): the three GETs answered, on the | | |
+| | | MEK, the 8MP EVK and the RT1060; a reply at most wLength and wLength 0 without a data stage (a | | |
+| | | bugfix). Left: `CLEAR_FEATURE(ENDPOINT_HALT)`, which resets the endpoint's data toggle: a controller | | |
+| | | operation in the ChipIdea, the DWC3 and the cdns3 | | |
+| | | 2026-11-16, Jonas: CLEAR_FEATURE(ENDPOINT_HALT) stays stalled (D-090, `usb.md` 3.2): pb halts no | | |
+| | | endpoint, and a stall leaves the host's toggle and the controller's in step. With the three GETs | | |
+| | | answered nothing of the row is left | | |
 
 ## Dependencies / vendored code
 
