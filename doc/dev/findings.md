@@ -815,6 +815,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | SRK_REVOKE unknown (the 8MP's keys can't be revoked). Verify on a part that can be spent: a | | |
 | | | revocation on an 8MQ (the pico8ml is the only 8MQ on the bench), the 8MP's fuses in its | | |
 | | | Security Reference Manual (NDA) | | |
+| | | 2026-11-16: the 8MP RM (Rev. 3) doesn't settle it: Table 6-35 calls 0x4C0 to 0x610 (where NXP's | | |
+| | | U-Boot has SEC_CONFIG and SRK_HASH) and 0x670 Reserved. Only its Security Reference Manual has | | |
+| | | them, which isn't on the share | | |
 | F-450 | `testbench/board/pico8ml/`, the pico8ml | Linux on the pico8ml went dark: silent, no reset, | Seen (board) | open |
 | | | the console's CP2105 still there. The console's receive works (a login at the prompt). | | |
 | | | (1) The BD71837's rails were turned off 30 s after boot as unused: always on since | | |
