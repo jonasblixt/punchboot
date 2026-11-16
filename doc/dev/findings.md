@@ -924,6 +924,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | against a 5 s watchdog. A card that stops answering in a `part write` resets the board instead of | | |
 | | | failing the command. Only command mode writes this much (the A/B state is 512 bytes). A bound needs | | |
 | | | the card's write time: R2W_FACTOR times the access time (JESD84-B51 7.3), or a measurement | | |
+| | | 2026-11-16: JESD84-B51 gives no maximum for a write: R2W_FACTOR is the typical block program time | | |
+| | | as up to 128 times the read access time (7.3.21). So the bound is a measurement, or command mode | | |
+| | | writes its buffer in pieces with a kick between (D-073's rule). Measured: jiffy 17.2 MiB/s, the | | |
+| | | MEK 15 MB in 1.1 s, the 8MP EVK 15 MB in 0.7 s | | |
 | F-462 | `src/drivers/uart/`, `src/plat/*/plat*.c` | Low, from F-102. Waits without a bound | Verified (read) | open |
 | | | (`drivers.md` 3): the i.MX UART's TXDC and SRST and the LPUART's TC (the console: may run | | |
 | | | before the timer is set up); the ARM PLL's lock on the 6UL, the 8MQ, the 8MP and the RT, and the | | |
