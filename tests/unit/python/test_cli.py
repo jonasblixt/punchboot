@@ -299,11 +299,21 @@ def test_slc_write_with_one_device_uses_it(
 @pytest.mark.parametrize(
     "args", [("slc", "show"), ("dev", "show"), ("part", "list"), ("dev", "reset")]
 )
-def test_other_commands_with_two_devices_use_the_first(args: tuple[str, ...]) -> None:
-    # As they did: a warning, and the first device
-    FakeSession.result = []
+def test_other_commands_with_two_devices_are_refused(args: tuple[str, ...]) -> None:
+    # F-227 (Jonas): they used the first device found, with a warning
     result = run(*args)
 
-    assert f"Warning: More than one device is attached, using: {TWO_DEVICES[0]}" in result.output
-    assert FakeSession.opened == [{"device_uuid": None}]
+    assert result.exit_code == 1
+    assert "More than one device is attached" in result.output
+    for uu in TWO_DEVICES:
+        assert uu in result.output
+    assert "name the device with -u" in result.output
+    assert "can't be undone" not in result.output
+    assert FakeSession.opened == []
+    assert FakeSession.calls == []
+
+    # Named, it opens that one
+    FakeSession.result = []
+    run("-u", TWO_DEVICES[1], *args)
+    assert FakeSession.opened == [{"device_uuid": uuid.UUID(TWO_DEVICES[1])}]
     assert FakeSession.calls

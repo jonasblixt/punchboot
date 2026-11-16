@@ -148,8 +148,8 @@ def pb_session(f: TFunc) -> TFunc:
 def pb_session_irreversible(f: TFunc) -> TFunc:
     """Session setup for a command that can't be undone: the slc writes.
 
-    With more than one device attached and none named, the CLI doesn't pick
-    the first: it lists them and asks for -u (F-227).
+    As every command, with more than one device attached and none named it
+    lists them and asks for -u (F-227); its message says why it matters most.
     """
     return _session(f, irreversible=True)
 
@@ -165,17 +165,16 @@ def _session(f: TFunc, *, irreversible: bool) -> TFunc:
                 logger.debug("Using USB transport")
                 if device_uuid is None:
                     attached = list_usb_devices()
-                    if len(attached) > 1 and irreversible:
+                    # No command picks one of several devices (F-227): a write
+                    # on the first one found may be on the wrong board
+                    if len(attached) > 1:
                         devices = "".join(f"\n  {uu}" for uu in attached)
+                        why = "This can't be undone: " if irreversible else ""
                         msg = (
                             f"More than one device is attached:{devices}\n"
-                            "This can't be undone: name the device with -u"
+                            f"{why}name the device with -u"
                         )
                         raise click.ClickException(msg)
-                    if len(attached) > 1:
-                        click.echo(
-                            f"Warning: More than one device is attached, using: {attached[0]}"
-                        )
                 return ctx.invoke(f, _open_session(device_uuid=device_uuid), *args, **kwargs)
             if transport == "socket":
                 if device_uuid is not None:
