@@ -295,6 +295,19 @@ static int hal_ep0_xfer_zlp(usb_ep_t ep)
     return PB_OK;
 }
 
+static int hal_ep0_stall(void)
+{
+    state.stalls++;
+
+    /* The host's data or status stage gets a STALL: the request is over */
+    if (in_control) {
+        reply.stalled = true;
+        in_control = false;
+    }
+
+    return PB_OK;
+}
+
 static const struct usbd_hal_ops hal_ops = {
     .init = hal_init,
     .stop = hal_stop,
@@ -306,6 +319,7 @@ static const struct usbd_hal_ops hal_ops = {
     .set_configuration = hal_set_configuration,
     .set_address = hal_set_address,
     .ep0_xfer_zlp = hal_ep0_xfer_zlp,
+    .ep0_stall = hal_ep0_stall,
 };
 
 void usb_host_reset(const struct usb_host_config *cfg)

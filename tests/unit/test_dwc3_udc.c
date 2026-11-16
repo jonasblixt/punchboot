@@ -251,6 +251,49 @@ static void test_setup_packet(void **state)
     }
 }
 
+/* usb.md 4.4 (F-138): ep0_stall stalls the request at once (SSTALL on
+ * endpoint 0) and arms the next SETUP; with no request it does nothing */
+static void test_ep0_stall(void **state)
+{
+    static const struct usb_setup_packet request = { .bRequestType = 0xc0,
+                                                     .bRequest = 0x55,
+                                                     .wLength = 8 };
+    struct usb_setup_packet pkt;
+    uint8_t packet[sizeof(pkt)];
+    size_t start;
+    size_t sstall = 0;
+    (void)state;
+
+    assert_non_null(ops->ep0_stall);
+    start = fake_reg_log_len;
+    assert_int_equal(ops->ep0_stall(), PB_OK);
+    assert_int_equal(fake_reg_log_len, start);
+
+    memcpy(packet, &request, sizeof(packet));
+    controller_run(USB_EP0_OUT, packet, sizeof(packet));
+    assert_int_equal(ops->poll_setup_pkt(&pkt), PB_OK);
+
+    start = fake_reg_log_len;
+    assert_int_equal(ops->ep0_stall(), PB_OK);
+
+    for (size_t i = start; i < fake_reg_log_len; i++) {
+        if (fake_reg_log[i].addr == BASE + DWC3_DEPCMD(USB_EP0_OUT) &&
+            (fake_reg_log[i].value & DEPCMD_CMDTYP_MASK) == DEPCMD_DEPSSTALL)
+            sstall++;
+    }
+
+    assert_int_equal(sstall, 1);
+    assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+
+    /* Nothing left for the poll to stall */
+    start = fake_reg_log_len;
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+
+    for (size_t i = start; i < fake_reg_log_len; i++)
+        assert_false(fake_reg_log[i].addr == BASE + DWC3_DEPCMD(USB_EP0_OUT) &&
+                     (fake_reg_log[i].value & DEPCMD_CMDTYP_MASK) == DEPCMD_DEPSSTALL);
+}
+
 /* usb.md 5, D-089: endpoint 0's data stage to the host is sent from the
  * driver's own memory, not from where the stack has its answer: a
  * descriptor in read only data or a status on its stack, which in the
@@ -620,6 +663,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_setup_packet, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ep0_stall, setup, teardown),
         cmocka_unit_test_setup_teardown(
             test_ep0_reply_is_sent_from_the_drivers_memory, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bulk_transfers, setup, teardown),

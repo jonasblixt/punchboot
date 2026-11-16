@@ -7,6 +7,7 @@
 int cdns3_udc_core_init(void);
 int cdns3_udc_core_stop(void);
 int cdns3_udc_core_xfer_zlp(usb_ep_t ep);
+int cdns3_udc_core_ep0_stall(void);
 int cdns3_udc_core_set_address(uint16_t addr);
 int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_t no_of_eps);
 int cdns3_udc_core_poll_setup_pkt(struct usb_setup_packet *pkt);

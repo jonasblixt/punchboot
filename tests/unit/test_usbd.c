@@ -148,10 +148,9 @@ static const char *reply_string(void)
     return str;
 }
 
-/* usb.md 4: every operation is mandatory but xfer_start_short (4.5). A
- * driver that leaves one out isn't registered, and the stack calls nothing
- * of it: the transport has no controller (F-287: three were called
- * unchecked) */
+/* usb.md 4: every operation is mandatory but xfer_start_short (4.5),
+ * ep0_stall too (4.4, F-138). A driver that leaves one out isn't registered, and the stack calls
+ * nothing of it: the transport has no controller (F-287: three were called unchecked) */
 static void test_every_operation_is_mandatory(void **state)
 {
     typedef void (*op_t)(void);
@@ -169,7 +168,7 @@ static void test_every_operation_is_mandatory(void **state)
         usb_host_reset(NULL);
         u.ops = *usb_host_hal_ops();
 
-        /* The optional one: without it the driver is registered (4.5) */
+        /* The optional one: without it the driver is registered */
         if (i == offsetof(struct usbd_hal_ops, xfer_start_short) / sizeof(op_t))
             continue;
 
@@ -822,8 +821,8 @@ static void test_disconnect(void **state)
  * another index */
 static void unknown_requests(void)
 {
-    /* GET_CONFIGURATION */
-    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_CONFIGURATION, 0, 0, 1);
+    /* SYNCH_FRAME, of an isochronous endpoint pb doesn't have */
+    usb_host_request(USB_HOST_REQ_IN | USB_HOST_REQ_ENDPOINT, USB_HOST_SYNCH_FRAME, 0, 0x81, 2);
     assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
     assert_true(usb_host_reply()->taken);
     assert_false(usb_host_reply()->status);
@@ -840,30 +839,162 @@ static void unknown_requests(void)
     assert_false(usb_host_reply()->status);
 }
 
-/* usb.md 3.2, 2.2: a request the stack doesn't know is to be stalled, and
- * the host goes on; no controller can stall yet (F-138), so it is left
- * unanswered. Before the device is configured the device goes on
- * enumerating, and in a session the transfer goes on (F-422: connect
- * failed and command mode left; in a session the transfer was lost) */
-static void test_unknown_request(void **state)
+/* F-138: a request the stack doesn't know
+ * is stalled and none is left unanswered: the host goes on at once. Before
+ * the configuration and in a session (usb.md 3.2, 2.2; F-422) */
+static void test_unknown_request_stalled(void **state)
 {
     (void)state;
     start(NULL);
 
     unknown_requests();
-    assert_int_equal(usb_host_state()->unanswered, 2);
+    assert_true(usb_host_reply()->stalled);
+    assert_int_equal(usb_host_state()->stalls, 3);
+    assert_int_equal(usb_host_state()->unanswered, 0);
     enumerate();
-    assert_int_equal(usb_host_state()->unanswered, 3);
+    assert_int_equal(usb_host_state()->unanswered, 0);
 
     assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
-    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_CONFIGURATION, 0, 0, 1);
+    usb_host_request(USB_HOST_REQ_IN | USB_HOST_REQ_ENDPOINT, USB_HOST_SYNCH_FRAME, 0, 0x81, 2);
     assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
-    assert_false(usb_host_reply()->status);
+    assert_true(usb_host_reply()->stalled);
     usb_host_send(data, PACKET);
     assert_int_equal(cm_transport_complete(), PB_OK);
     assert_memory_equal(buf, data, PACKET);
+    assert_int_equal(usb_host_state()->stalls, 4);
     assert_int_equal(usb_host_state()->cancel_calls, 0);
-    assert_int_equal(usb_host_state()->bulk_starts, 1);
+}
+
+/* A standard request: before the device is configured connect polls
+ * endpoint 0, in a session the read that is waited for does */
+static bool in_session;
+
+static void host_standard_in(uint8_t recipient, uint8_t request, uint16_t index, uint16_t length)
+{
+    usb_host_request(USB_HOST_REQ_IN | recipient, request, 0, index, length);
+    if (in_session)
+        assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    else
+        (void)cm_transport_connect();
+}
+
+static void assert_stalled(void)
+{
+    assert_true(usb_host_reply()->taken);
+    assert_true(usb_host_reply()->stalled);
+}
+
+/* usb.md 3.2, USB 2.0 9.4 (F-463): GET_CONFIGURATION, GET_INTERFACE and
+ * GET_STATUS of the device, the interface and the endpoints are answered.
+ * Before the device is configured the configuration is 0, and the interface
+ * and the bulk endpoints are request errors, stalled; endpoint 0 is always
+ * there. A reply is at most wLength */
+static void test_standard_requests(void **state)
+{
+    static const uint8_t zero[2] = { 0, 0 };
+    (void)state;
+
+    start(NULL);
+    in_session = false;
+
+    host_standard_in(0, USB_HOST_GET_CONFIGURATION, 0, 1);
+    assert_answered(1);
+    assert_int_equal(usb_host_reply()->data[0], 0);
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_INTERFACE, 0, 1);
+    assert_stalled();
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_STATUS, 0, 2);
+    assert_stalled();
+    host_standard_in(USB_HOST_REQ_ENDPOINT, USB_HOST_GET_STATUS, 0x81, 2);
+    assert_stalled();
+    host_standard_in(USB_HOST_REQ_ENDPOINT, USB_HOST_GET_STATUS, 0x80, 2);
+    assert_answered(2);
+    assert_memory_equal(usb_host_reply()->data, zero, 2);
+
+    enumerate();
+    in_session = true;
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+
+    host_standard_in(0, USB_HOST_GET_CONFIGURATION, 0, 1);
+    assert_answered(1);
+    assert_int_equal(usb_host_reply()->data[0], 1);
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_INTERFACE, 0, 1);
+    assert_answered(1);
+    assert_int_equal(usb_host_reply()->data[0], 0);
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_INTERFACE, 1, 1);
+    assert_stalled();
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_STATUS, 0, 2);
+    assert_answered(2);
+    assert_memory_equal(usb_host_reply()->data, zero, 2);
+
+    for (uint16_t ep = 0; ep < 0x100; ep++) {
+        bool known = ((ep & 0x7f) == 0) || ep == 0x81 || ep == 0x02;
+
+        host_standard_in(USB_HOST_REQ_ENDPOINT, USB_HOST_GET_STATUS, ep, 2);
+        if (known) {
+            assert_answered(2);
+            assert_memory_equal(usb_host_reply()->data, zero, 2);
+        } else {
+            assert_stalled();
+        }
+    }
+
+    /* At most wLength: one byte of a status, none of a configuration */
+    host_standard_in(0, USB_HOST_GET_STATUS, 0, 1);
+    assert_answered(1);
+    host_standard_in(0, USB_HOST_GET_CONFIGURATION, 0, 0);
+    assert_answered(0);
+
+    /* None of it disturbed the read */
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(buf, data, PACKET);
+    assert_int_equal(usb_host_state()->unanswered, 0);
+}
+
+/* usb.md 3.2: a reply is at most wLength, and a request of wLength 0 has no
+ * data stage, its status is IN. GET_STATUS sent its two bytes whatever the
+ * host asked for, and wLength 0 got an empty data stage */
+static void test_reply_at_most_wlength(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_STATUS, 0, 0, 1);
+    (void)cm_transport_connect();
+    assert_answered(1);
+
+    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_STATUS, 0, 0, 0);
+    (void)cm_transport_connect();
+    assert_answered(0);
+    assert_int_equal(usb_host_reply()->status_ep, USB_EP0_IN);
+
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 0);
+    (void)cm_transport_connect();
+    assert_answered(0);
+    assert_int_equal(usb_host_reply()->status_ep, USB_EP0_IN);
+}
+
+/* F-138: a configuration the device doesn't have is stalled; what is known
+ * is answered as before, not stalled */
+static void test_set_configuration_stalled(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    host_set_address(5);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_false(usb_host_reply()->stalled);
+
+    host_set_configuration(2);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_true(usb_host_reply()->stalled);
+    assert_false(usb_host_state()->configured);
+
+    host_set_configuration(1);
+    assert_int_equal(cm_transport_connect(), PB_OK);
+    assert_answered(0);
+    assert_false(usb_host_reply()->stalled);
+    assert_int_equal(usb_host_state()->stalls, 1);
 }
 
 /* usb.md 2.2, 3.2: a host that leaves a control transfer before the device
@@ -925,12 +1056,11 @@ static void test_data_stage_given_up(void **state)
     fake_us_tick_step = step;
 }
 
-/* SET_IDLE, a request of another class without a data stage: answered as
- * it was (D-073 has it stalled, which no controller can yet), with one
- * status stage, IN. F-422: the stack asked for an OUT status stage after
- * it, which the host never sends (the ChipIdea waited for it), and then
- * returned an error: connect failed and command mode left, and in a
- * session the transfer was lost */
+/* D-073: SET_IDLE, a request of another class, is refused: stalled, and
+ * without a stall left unanswered like any other. F-422: once answered,
+ * the stack asked for an OUT status stage after it, which the host never
+ * sends; neither the stall nor the refusal sends a status stage. In a
+ * session the transfer goes on */
 static void test_set_idle(void **state)
 {
     (void)state;
@@ -938,30 +1068,31 @@ static void test_set_idle(void **state)
 
     usb_host_request(USB_HOST_REQ_CLASS | USB_HOST_REQ_INTERFACE, 0x0a, 0, 0, 0);
     assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
-    assert_answered(0);
-    assert_int_equal(usb_host_reply()->status_ep, USB_EP0_IN);
+    assert_true(usb_host_reply()->stalled);
+    assert_false(usb_host_reply()->status);
     assert_int_equal(usb_host_state()->stray_status, 0);
 
-    /* For contrast: a request with a data stage IN has its status OUT */
-    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 18);
-    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
-    assert_int_equal(usb_host_reply()->status_ep, USB_EP0_OUT);
-
-    /* In a session it leaves the transfer alone */
     enumerate();
     assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
     usb_host_request(USB_HOST_REQ_CLASS | USB_HOST_REQ_INTERFACE, 0x0a, 0, 0, 0);
     assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
-    assert_answered(0);
+    assert_true(usb_host_reply()->stalled);
     usb_host_send(data, PACKET);
     assert_int_equal(cm_transport_complete(), PB_OK);
     assert_int_equal(usb_host_state()->stray_status, 0);
     assert_int_equal(usb_host_state()->unanswered, 0);
+
+    /* Without a stall: unanswered */
+    start(NULL);
+    usb_host_request(USB_HOST_REQ_CLASS | USB_HOST_REQ_INTERFACE, 0x0a, 0, 0, 0);
+    assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
+    assert_false(usb_host_reply()->status);
+    assert_int_equal(usb_host_state()->stray_status, 0);
 }
 
-/* D-073: a string index the class doesn't have is answered with an empty
- * string, where usb.md 3.2 would stall it: no controller can stall. This
- * pins today's answer */
+/* D-073: a string index the class doesn't have, and the debug descriptor,
+ * are stalled, where they were answered (an empty string, the interface
+ * descriptor). The ones the class has are answered */
 static void test_unknown_string(void **state)
 {
     (void)state;
@@ -969,13 +1100,23 @@ static void test_unknown_string(void **state)
 
     host_get_descriptor(USB_DESC_TYPE_STRING, 3, 255);
     (void)cm_transport_connect();
-    assert_answered(2);
-    assert_int_equal(usb_host_reply()->data[0], 2);
-    assert_int_equal(usb_host_reply()->data[1], USB_DESC_TYPE_STRING);
+    assert_true(usb_host_reply()->stalled);
+    assert_false(usb_host_reply()->status);
 
     host_get_descriptor(USB_DESC_TYPE_STRING, 0xed, 255);
     (void)cm_transport_connect();
-    assert_answered(2);
+    assert_true(usb_host_reply()->stalled);
+
+    host_get_descriptor(USB_DESC_TYPE_DEBUG, 0, 255);
+    (void)cm_transport_connect();
+    assert_true(usb_host_reply()->stalled);
+
+    host_get_descriptor(USB_DESC_TYPE_STRING, 1, 255);
+    (void)cm_transport_connect();
+    assert_false(usb_host_reply()->stalled);
+    assert_true(usb_host_reply()->status);
+    assert_int_equal(usb_host_reply()->data[1], USB_DESC_TYPE_STRING);
+    assert_int_equal(usb_host_state()->stalls, 3);
     assert_int_equal(usb_host_state()->unanswered, 0);
 }
 
@@ -1005,7 +1146,10 @@ int main(void)
         cmocka_unit_test(test_setup_poll_error_is_lost),
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
-        cmocka_unit_test(test_unknown_request),
+        cmocka_unit_test(test_unknown_request_stalled),
+        cmocka_unit_test(test_reply_at_most_wlength),
+        cmocka_unit_test(test_standard_requests),
+        cmocka_unit_test(test_set_configuration_stalled),
         cmocka_unit_test(test_control_transfer_given_up),
         cmocka_unit_test(test_data_stage_given_up),
         cmocka_unit_test(test_set_idle),

@@ -30,6 +30,7 @@
 #define USB_HOST_REQ_VENDOR        0x40
 #define USB_HOST_REQ_CLASS         0x20
 #define USB_HOST_REQ_INTERFACE     0x01
+#define USB_HOST_REQ_ENDPOINT      0x02
 
 /* bRequest (USB 2.0 Table 9-4) */
 #define USB_HOST_GET_STATUS        0x00
@@ -37,6 +38,8 @@
 #define USB_HOST_GET_DESCRIPTOR    0x06
 #define USB_HOST_GET_CONFIGURATION 0x08
 #define USB_HOST_SET_CONFIGURATION 0x09
+#define USB_HOST_GET_INTERFACE     0x0a
+#define USB_HOST_SYNCH_FRAME       0x0c
 
 struct usb_host_config {
     /* A bus reset ends a bulk transfer that runs with -PB_ERR_IO, as the
@@ -49,6 +52,7 @@ struct usb_host_config {
 struct usb_host_reply {
     bool taken; /* poll_setup_pkt gave the SETUP to the stack */
     bool status; /* The status stage was done: the request is answered */
+    bool stalled; /* Endpoint 0 was stalled: the request is refused */
     usb_ep_t status_ep; /* The status stage's direction */
     size_t length; /* The data stage's bytes */
     uint8_t data[512];
@@ -63,6 +67,7 @@ struct usb_host_state {
     int set_address_calls;
     int set_configuration_calls;
     int unanswered; /* Requests the stack took and didn't answer */
+    int stalls; /* ep0_stall calls */
     int stray_status; /* Status stages with no control transfer to end */
     bool attached; /* On the bus: between init and stop */
     bool configured; /* The bulk endpoints are set up */

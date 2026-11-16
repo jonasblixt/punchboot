@@ -1012,6 +1012,39 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
     return PB_OK;
 }
 
+/*
+ * A protocol stall of endpoint 0 (RT1060 RM 42.5.6.3.2, 42.7.39): both
+ * directions in one read-modify-write of ENDPTCTRL0, which keeps the
+ * endpoint's type. The controller clears them at the next SETUP, and while
+ * it handles one it clears them again: the write is repeated until both
+ * read back set or a new SETUP has arrived, which ends the request anyway.
+ * Bounded (F-138)
+ */
+static int imx_ci_udc_ep0_stall(void)
+{
+    const uint32_t stall = ENDPTCTRL_TXS | ENDPTCTRL_RXS;
+    struct pb_timeout to;
+    int rc;
+
+    rc = pb_timeout_init_us(&to, IMX_CI_UDC_ENDPT_TIMEOUT_us);
+
+    if (rc != PB_OK)
+        return rc;
+
+    do {
+        mmio_clrsetbits_32(imx_ci_udc_base + CI_ENDPTCTRL(0), 0, stall);
+
+        if ((mmio_read_32(imx_ci_udc_base + CI_ENDPTCTRL(0)) & stall) == stall)
+            return PB_OK;
+
+        if (mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT) & ENDPTSETUPSTAT_EP(0))
+            return PB_OK;
+    } while (!pb_timeout_has_expired(&to));
+
+    LOG_ERR("EP0 stall: timeout");
+    return -PB_ERR_TIMEOUT;
+}
+
 static int imx_ci_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
 {
     int rc;
@@ -1198,6 +1231,7 @@ int imx_ci_udc_init(uintptr_t base)
         .set_configuration = imx_ci_udc_set_configuration,
         .set_address = imx_ci_udc_set_address,
         .ep0_xfer_zlp = imx_ci_udc_xfer_zlp,
+        .ep0_stall = imx_ci_udc_ep0_stall,
     };
 
     return usbd_init_hal_ops(&ops);

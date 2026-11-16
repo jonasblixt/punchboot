@@ -19,10 +19,13 @@
 /* Defines for commands in setup packets */
 #define USB_GET_DESCRIPTOR    0x8006
 #define USB_SET_CONFIGURATION 0x0009
-#define USB_SET_IDLE          0x210A
 #define USB_SET_FEATURE       0x0003
 #define USB_SET_ADDRESS       0x0005
 #define USB_GET_STATUS        0x8000
+#define USB_GET_STATUS_IFACE  0x8100
+#define USB_GET_STATUS_EP     0x8200
+#define USB_GET_CONFIGURATION 0x8008
+#define USB_GET_INTERFACE     0x810a
 #define USB_GET_VENDOR        0xc001
 
 static const struct usbd_hal_ops *hal_ops;
@@ -147,12 +150,20 @@ static int wait_for_completion(usb_ep_t ep)
 }
 
 /*
- * A request the stack doesn't know is to be stalled, and the host then goes
- * on at once (usb.md 3.2). No controller can stall yet (F-138): it is left
- * unanswered, no data and no status stage, and the host waits out its
- * timeout. It is no error: the device goes on enumerating, or with the
- * transfer that runs.
+ * A request the stack refuses is stalled, and the host then goes on at once
+ * (usb.md 3.2, F-138). A stall that fails isn't an error: the device goes
+ * on enumerating, or with the transfer that runs.
  */
+static void ep0_refuse(void)
+{
+    int rc;
+
+    rc = hal_ops->ep0_stall();
+
+    if (rc != PB_OK)
+        LOG_ERR("EP0 stall failed (%i)", rc);
+}
+
 static int ep0_unknown(const struct usb_setup_packet *setup)
 {
     LOG_ERR("EP0 unhandled request %x %x, value 0x%x, index 0x%x, %ub",
@@ -161,12 +172,18 @@ static int ep0_unknown(const struct usb_setup_packet *setup)
             setup->wValue,
             setup->wIndex,
             setup->wLength);
+    ep0_refuse();
     return PB_OK;
 }
 
 static int ep0_tx(const void *bfr, size_t length)
 {
     int rc;
+
+    /* A request of wLength 0 has no data stage, and its status stage is IN
+     * (USB 2.0 8.5.3, 9.3.5) */
+    if (length == 0)
+        return hal_ops->ep0_xfer_zlp(USB_EP0_IN);
 
     rc = hal_ops->xfer_start(USB_EP0_IN, (void *)bfr, length);
 
@@ -181,11 +198,38 @@ static int ep0_tx(const void *bfr, size_t length)
     return hal_ops->ep0_xfer_zlp(USB_EP0_OUT);
 }
 
+/* An endpoint the device has in its state (USB 2.0 9.4.5): endpoint 0 always,
+ * the configuration's once it is configured */
+static bool known_endpoint(uint16_t address)
+{
+    const struct usbd_descriptors *desc = cls_config->desc;
+
+    if ((address & ~(uint16_t)USB_EP_ADDR_IN) == 0)
+        return true;
+
+    if (!enumerated)
+        return false;
+
+    for (unsigned int n = 0; n < desc->interface.bNumEndpoints; n++) {
+        if (desc->eps[n].bEndpointAddress == address)
+            return true;
+    }
+
+    return false;
+}
+
+/* The interface there is, once the device is configured (USB 2.0 9.4.4, 9.4.5) */
+static bool known_interface(uint16_t index)
+{
+    return enumerated && index == cls_config->desc->interface.bInterfaceNumber;
+}
+
 static int usbd_enumerate(struct usb_setup_packet *setup)
 {
     int rc = -PB_ERR;
     uint16_t length = 0;
     uint16_t device_status = 0;
+    uint8_t value = 0;
     uint16_t request;
 
     request = (setup->bRequestType << 8) | setup->bRequest;
@@ -203,9 +247,6 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         } else if (setup->wValue == USB_DESC_VALUE(USB_DESC_TYPE_CONFIG, 0)) {
             length = MIN(setup->wLength, cls_config->desc->config.wTotalLength);
             rc = ep0_tx(&cls_config->desc->config, length);
-        } else if (setup->wValue == USB_DESC_VALUE(USB_DESC_TYPE_DEBUG, 0)) {
-            length = MIN(setup->wLength, (uint16_t)cls_config->desc->interface.bLength);
-            rc = ep0_tx(&cls_config->desc->interface, length);
         } else if ((setup->wValue & USB_DESC_TYPE_MASK) ==
                    USB_DESC_VALUE(USB_DESC_TYPE_STRING, 0)) {
             uint8_t str_desc_idx = (uint8_t)(setup->wValue & USB_DESC_INDEX_MASK);
@@ -219,8 +260,14 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
             } else {
                 struct usb_string_descriptor *str_desc =
                     cls_config->get_string_descriptor(str_desc_idx);
-                length = MIN(setup->wLength, (uint16_t)str_desc->bLength);
-                rc = ep0_tx(str_desc, length);
+
+                /* An index the class doesn't have (NULL): refused (D-073) */
+                if (str_desc == NULL) {
+                    rc = ep0_unknown(setup);
+                } else {
+                    length = MIN(setup->wLength, (uint16_t)str_desc->bLength);
+                    rc = ep0_tx(str_desc, length);
+                }
             }
         } else {
             rc = ep0_unknown(setup);
@@ -247,9 +294,9 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         }
 
         if (setup->wValue != cls_config->desc->config.bConfigurationValue) {
-            /* Refused: nothing is set up and there is no status stage. It
-             * is to be stalled, which no controller can yet (F-138) */
+            /* Refused: nothing is set up, and it is stalled (F-138) */
             LOG_ERR("No configuration %u", setup->wValue);
+            ep0_refuse();
             rc = PB_OK;
             break;
         }
@@ -266,17 +313,36 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         }
         enumerated = true;
     } break;
-    case USB_SET_IDLE: {
-        /* A request without a data stage: one status stage, IN (USB 2.0
-         * 8.5.3). Answered as it was; D-073 has it stalled, which no
-         * controller can yet (F-287) */
-        LOG_DBG("Set idle");
-        hal_ops->ep0_xfer_zlp(USB_EP0_IN);
-        rc = PB_OK;
-    } break;
-    case USB_GET_STATUS: {
+    /* USB 2.0 9.4: pb never halts an endpoint, has no remote wakeup and
+     * reports no self power, so a status is two zero bytes, and its one
+     * interface has alternate setting 0. A reply is at most wLength (usb.md
+     * 3.2); an interface or an endpoint the device doesn't have in its state
+     * is a request error, stalled (F-463) */
+    case USB_GET_STATUS:
+    case USB_GET_STATUS_IFACE:
+    case USB_GET_STATUS_EP: {
         LOG_DBG("Get status");
-        rc = ep0_tx(&device_status, sizeof(device_status));
+        if ((request == USB_GET_STATUS_IFACE && !known_interface(setup->wIndex)) ||
+            (request == USB_GET_STATUS_EP && !known_endpoint(setup->wIndex))) {
+            rc = ep0_unknown(setup);
+            break;
+        }
+        length = MIN(setup->wLength, (uint16_t)sizeof(device_status));
+        rc = ep0_tx(&device_status, length);
+    } break;
+    case USB_GET_CONFIGURATION: {
+        /* 0 before the device is configured */
+        value = enumerated ? cls_config->desc->config.bConfigurationValue : 0;
+        length = MIN(setup->wLength, (uint16_t)sizeof(value));
+        rc = ep0_tx(&value, length);
+    } break;
+    case USB_GET_INTERFACE: {
+        if (!known_interface(setup->wIndex)) {
+            rc = ep0_unknown(setup);
+            break;
+        }
+        length = MIN(setup->wLength, (uint16_t)sizeof(value));
+        rc = ep0_tx(&value, length);
     } break;
     case USB_GET_VENDOR: {
         LOG_DBG("Get vendor specific descriptor");
@@ -304,7 +370,7 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
      * here (usb.md 4): a driver that leaves one out isn't registered */
     if (ops == NULL || !ops->init || !ops->stop || !ops->xfer_start || !ops->xfer_complete ||
         !ops->xfer_cancel || !ops->poll_setup_pkt || !ops->set_configuration || !ops->set_address ||
-        !ops->ep0_xfer_zlp) {
+        !ops->ep0_xfer_zlp || !ops->ep0_stall) {
         return -PB_ERR_PARAM;
     }
 
