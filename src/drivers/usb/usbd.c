@@ -176,6 +176,11 @@ static int ep0_tx(const void *bfr, size_t length)
 {
     int rc;
 
+    /* A request of wLength 0 has no data stage, and its status stage is IN
+     * (USB 2.0 8.5.3, 9.3.5) */
+    if (length == 0)
+        return hal_ops->ep0_xfer_zlp(USB_EP0_IN);
+
     rc = hal_ops->xfer_start(USB_EP0_IN, (void *)bfr, length);
 
     if (rc != PB_OK)
@@ -279,7 +284,9 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
     } break;
     case USB_GET_STATUS: {
         LOG_DBG("Get status");
-        rc = ep0_tx(&device_status, sizeof(device_status));
+        /* At most wLength (usb.md 3.2) */
+        length = MIN(setup->wLength, (uint16_t)sizeof(device_status));
+        rc = ep0_tx(&device_status, length);
     } break;
     case USB_GET_VENDOR: {
         LOG_DBG("Get vendor specific descriptor");

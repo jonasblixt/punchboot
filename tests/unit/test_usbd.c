@@ -888,6 +888,29 @@ static void test_unknown_request_stalled(void **state)
     assert_int_equal(usb_host_state()->cancel_calls, 0);
 }
 
+/* usb.md 3.2: a reply is at most wLength, and a request of wLength 0 has no
+ * data stage, its status is IN. GET_STATUS sent its two bytes whatever the
+ * host asked for, and wLength 0 got an empty data stage */
+static void test_reply_at_most_wlength(void **state)
+{
+    (void)state;
+    start(NULL);
+
+    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_STATUS, 0, 0, 1);
+    (void)cm_transport_connect();
+    assert_answered(1);
+
+    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_STATUS, 0, 0, 0);
+    (void)cm_transport_connect();
+    assert_answered(0);
+    assert_int_equal(usb_host_reply()->status_ep, USB_EP0_IN);
+
+    host_get_descriptor(USB_DESC_TYPE_DEVICE, 0, 0);
+    (void)cm_transport_connect();
+    assert_answered(0);
+    assert_int_equal(usb_host_reply()->status_ep, USB_EP0_IN);
+}
+
 /* F-138: a configuration the device doesn't have is stalled; what is known
  * is answered as before, not stalled */
 static void test_set_configuration_stalled(void **state)
@@ -1062,6 +1085,7 @@ int main(void)
         cmocka_unit_test(test_start_error),
         cmocka_unit_test(test_disconnect),
         cmocka_unit_test(test_unknown_request_stalled),
+        cmocka_unit_test(test_reply_at_most_wlength),
         cmocka_unit_test(test_set_configuration_stalled),
         cmocka_unit_test(test_control_transfer_given_up),
         cmocka_unit_test(test_data_stage_given_up),
