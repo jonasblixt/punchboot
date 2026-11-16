@@ -35,6 +35,7 @@
 
 /* Registers and bits */
 #define CDNS_USB_CONF                      (0x20000)
+#define CONF_USB3DIS                       BIT(3)
 #define CONF_DMULT                         BIT(9)
 #define CONF_DEV_EN                        BIT(14)
 #define CONF_DEVDS                         BIT(15)
@@ -793,6 +794,14 @@ int cdns3_udc_core_init(void)
     mmio_write_32(base + CDNS_USB_CONF, CONF_CLK2OFFDS | CONF_CLK3OFFDS | CONF_L1DS);
 
     mmio_write_32(base + CDNS_USB_CONF, CONF_U1DS | CONF_U2DS);
+
+    /* High speed only (pb's descriptors are USB 2.0): the SuperSpeed side is
+     * disabled before the device is enabled, as Linux 6.18's
+     * cdns3_gadget_udc_start() does for a gadget whose max_speed is high
+     * speed. With it enabled the controller tries for a SuperSpeed link, and
+     * on the MEK the host saw it at high speed after 1 to 150 s, or not
+     * before pb's 10 s ready timeout (F-172) */
+    mmio_write_32(base + CDNS_USB_CONF, CONF_USB3DIS);
 
     /* Configure DMA for multiple transfers. When the DMA has completed the
      * current trb or trb chain it will look at the next trb index for a valid
