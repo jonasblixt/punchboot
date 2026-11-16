@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 /* The SoC's clock gates and PLLs, after the common gates (plat_<soc>.c) */
-void imx8m_soc_clock_init(void);
+int imx8m_soc_clock_init(void);
 
 /* Command mode's USB port (platform.md 3.10): USB1 on both SoCs, or the
  * i.MX8M Plus's USB2. Its ROM's serial downloader uses either (8MP RM 6.1.7),

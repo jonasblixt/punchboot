@@ -112,7 +112,10 @@ int imx8m_spl_dram_init(void)
     mmio_write_32(CCM_CCGR_SET(CCGR_IOMUX1), CCGR_CLK_ON_MASK);
     mmio_write_32(CCM_CCGR_SET(CCGR_IOMUX2), CCGR_CLK_ON_MASK);
     mmio_write_32(CCM_CCGR_SET(CCGR_IOMUX3), CCGR_CLK_ON_MASK);
-    imx8m_soc_clock_init();
+    rc = imx8m_soc_clock_init();
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Out of bypass before DRAM is used (platform.md 4.3). A failure isn't
      * the SPL's: pb proper finds it, records it, and no boot goes on */

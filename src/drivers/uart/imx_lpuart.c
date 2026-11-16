@@ -11,6 +11,8 @@
 
 #include <drivers/uart/imx_lpuart.h>
 #include <pb/mmio.h>
+#include <pb/mmio_poll.h>
+#include <stdbool.h>
 
 #define VERID                 0x0
 #define LPPARAM               0x4
@@ -102,10 +104,18 @@ static void lpuart_setbrg(uintptr_t base, unsigned int rate, int baudrate)
     mmio_write_32(base + BAUD, tmp);
 }
 
+/* A transmitter that never finished a character: the console prints nothing
+ * more rather than wait the bound for each (F-462) */
+static bool stuck;
+
 void imx_lpuart_putc(uintptr_t base, char c)
 {
-    while (!(mmio_read_32(base + STAT) & US1_TC))
-        ;
+    /* Counted, not timed: the console may print before the timer runs
+     * (drivers.md 3) */
+    if (stuck || mmio_poll_32(base + STAT, US1_TC, US1_TC, MMIO_POLL_UART_CHAR) != PB_OK) {
+        stuck = true;
+        return;
+    }
 
     mmio_write_32(base + DATA, c);
 }
@@ -120,5 +130,6 @@ int imx_lpuart_init(uintptr_t base, unsigned int input_clock_Hz, unsigned int ba
     mmio_clrsetbits_32(base + CTRL,
                        LPUART_CTRL_PE_MASK | LPUART_CTRL_PT_MASK | LPUART_CTRL_M_MASK,
                        CTRL_RE | CTRL_TE);
+    stuck = false;
     return 0;
 }

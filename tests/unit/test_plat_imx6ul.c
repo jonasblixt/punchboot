@@ -31,6 +31,7 @@
 #include <drivers/tzc/tzc380.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
+#include <pb/mmio_poll.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/rot.h>
@@ -127,6 +128,7 @@ static struct {
     uint64_t tzc_base;
     uint64_t tzc_size;
     uint32_t tzc_sp;
+    bool pll_stuck; /* The ARM PLL never locks */
 } f;
 
 void imx_rom_log_save(const struct imx_rom_log_config *cfg)
@@ -298,7 +300,7 @@ void log_prefix(const char *level, const char *func)
 static uint64_t soc_on_write(uintptr_t addr, uint64_t value)
 {
     /* The ARM PLL locks at once */
-    if (addr == IMX6UL_CCM_ANALOG_PLL_ARM)
+    if (addr == IMX6UL_CCM_ANALOG_PLL_ARM && !f.pll_stuck)
         return value | CCM_ANALOG_PLL_ARM_LOCK;
 
     /* The GPT's software reset ends by itself */
@@ -534,6 +536,20 @@ static void test_arm_podf_busy(void **state)
     fake_regs_set(IMX6UL_CCM_CDHIPR, CCM_CDHIPR_ARM_PODF_BUSY);
     assert_int_equal(plat_init(), -PB_ERR_TIMEOUT);
     assert_true(fake_regs_get(IMX6UL_CCM_CCSR) & CCM_CCSR_PLL1_SW_CLK_SEL);
+}
+
+/* drivers.md 3 (F-462): the ARM PLL's lock is waited for a counted bound,
+ * and one that never locks is plat_init()'s error, with the core left on the
+ * step clock */
+static void test_arm_pll_never_locks(void **state)
+{
+    (void)state;
+
+    f.pll_stuck = true;
+    assert_int_equal(plat_early_init(), PB_OK);
+    assert_int_equal(plat_init(), -PB_ERR_TIMEOUT);
+    assert_true(fake_regs_get(IMX6UL_CCM_CCSR) & CCM_CCSR_PLL1_SW_CLK_SEL);
+    assert_int_equal(fake_regs_reads(IMX6UL_CCM_ANALOG_PLL_ARM), MMIO_POLL_PLL_LOCK);
 }
 
 /* platform.md 2.1: the watchdog is armed in plat_early_init() when
@@ -1132,6 +1148,7 @@ int main(void)
         cmocka_unit_test_setup(test_arm_podf_is_set, setup),
         cmocka_unit_test_setup(test_get_info, setup),
         cmocka_unit_test_setup(test_arm_podf_busy, setup),
+        cmocka_unit_test_setup(test_arm_pll_never_locks, setup),
         cmocka_unit_test_setup(test_wdog_kick, setup),
         cmocka_unit_test_setup(test_wdog_armed_by_the_option, setup),
         cmocka_unit_test_setup(test_gpt1_gates_opened_before_the_timer, setup),

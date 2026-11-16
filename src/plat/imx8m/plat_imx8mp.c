@@ -12,8 +12,10 @@
  * USB port, USB1 or USB2.
  */
 
+#include <inttypes.h>
 #include <pb/delay.h>
 #include <pb/mmio.h>
+#include <pb/mmio_poll.h>
 #include <pb/pb.h>
 #include <plat/imx8m/clock_imx8mp.h>
 #include <plat/imx8m/imx8m.h>
@@ -114,24 +116,32 @@ int imx8m_soc_cm_usb_power_up(void)
 }
 #endif
 
-/* Start a PLL14xx with its reset dividers, unless it is running already */
-static void pll14xx_start(uintptr_t gen_ctrl)
+/* Start a PLL14xx with its reset dividers, unless it is running already.
+ * Not locked, it stays bypassed */
+static int pll14xx_start(uintptr_t gen_ctrl)
 {
     if (mmio_read_32(gen_ctrl) & PLL14XX_LOCK)
-        return;
+        return PB_OK;
 
     mmio_clrsetbits_32(gen_ctrl, 0, PLL14XX_RST);
 
-    while (!(mmio_read_32(gen_ctrl) & PLL14XX_LOCK))
-        ;
+    if (mmio_poll_32(gen_ctrl, PLL14XX_LOCK, PLL14XX_LOCK, MMIO_POLL_PLL_LOCK) != PB_OK) {
+        LOG_ERR("PLL at 0x%" PRIxPTR " doesn't lock", gen_ctrl);
+        return -PB_ERR_TIMEOUT;
+    }
 
     mmio_clrsetbits_32(gen_ctrl, PLL14XX_BYPASS, 0);
+    return PB_OK;
 }
 
-void imx8m_soc_clock_init(void)
+int imx8m_soc_clock_init(void)
 {
-    pll14xx_start(IMX8MP_SYS_PLL1_GEN_CTRL);
-    pll14xx_start(IMX8MP_SYS_PLL2_GEN_CTRL);
+    int rc = pll14xx_start(IMX8MP_SYS_PLL1_GEN_CTRL);
+
+    if (rc != PB_OK)
+        return rc;
+
+    return pll14xx_start(IMX8MP_SYS_PLL2_GEN_CTRL);
 }
 
 /* CCM_ANALOG_DIGPROG is at 0x800 on the i.MX8M Plus, not at the 8MQ's 0x6C

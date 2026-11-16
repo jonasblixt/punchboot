@@ -11,6 +11,7 @@
  */
 
 #include <pb/mmio.h>
+#include <pb/mmio_poll.h>
 #include <pb/pb.h>
 #include <plat/imx8m/imx8m.h>
 
@@ -30,7 +31,7 @@ int imx8m_soc_cm_usb_power_up(void)
 }
 #endif
 
-void imx8m_soc_clock_init(void)
+int imx8m_soc_clock_init(void)
 {
     mmio_write_32(CCM_CCGR_SET(CCGR_IOMUX4), CCGR_CLK_ON_MASK);
 
@@ -52,8 +53,12 @@ void imx8m_soc_clock_init(void)
     /* unbypass the clock */
     mmio_clrsetbits_32(ARM_PLL_CFG0, FRAC_PLL_BYPASS_MASK, 0);
 
-    while (!(mmio_read_32(ARM_PLL_CFG0) & FRAC_PLL_LOCK_MASK))
-        ;
+    /* Not locked, the core stays on the bypass clock */
+    if (mmio_poll_32(ARM_PLL_CFG0, FRAC_PLL_LOCK_MASK, FRAC_PLL_LOCK_MASK, MMIO_POLL_PLL_LOCK) !=
+        PB_OK) {
+        LOG_ERR("The ARM PLL doesn't lock");
+        return -PB_ERR_TIMEOUT;
+    }
 
     mmio_clrsetbits_32(ARM_PLL_CFG0, FRAC_PLL_NEWDIV_VAL_MASK, 0);
 
@@ -70,6 +75,7 @@ void imx8m_soc_clock_init(void)
                            SSCG_PLL_DIV4_CLKE_MASK | SSCG_PLL_DIV5_CLKE_MASK |
                            SSCG_PLL_DIV6_CLKE_MASK | SSCG_PLL_DIV8_CLKE_MASK |
                            SSCG_PLL_DIV10_CLKE_MASK | SSCG_PLL_DIV20_CLKE_MASK);
+    return PB_OK;
 }
 
 const char *imx8m_soc_name(void)
