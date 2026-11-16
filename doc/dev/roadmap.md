@@ -55,9 +55,10 @@ Collected 2026-11-12 from the documents and the decisions. The list is mine and 
 2. Done for bpak 0.9.3 and 1.0.1: golden images in `tests/compat/bpak/`, booted from RAM and
    from a partition by `test_compat.py`, plus pinned ids and the Python mirrors. Still open:
    images from older bpak CLIs (0.5-0.8 need Mbed TLS 2.x to build).
-3. Old hosts against the current device: a CI job installs released `punchboot` wheels from
-   PyPI (1.0.0 and up, as available: the floor, D-035) and runs a read-mostly subset of the
-   integration tests against today's pb-host.
+3. Done for 2.3.0, 2.7.0 and 2.7.1 (`scripts/ci/old-hosts.sh`, `test_old_hosts.py`, the CI
+   `old-hosts` job): released `punchboot` wheels from PyPI, pinned by hash, run a read-mostly
+   set and writes against today's pb-host. Open: 2.0.0 to 2.2.0 (no wheel for Python 3.13) and
+   1.x (not on PyPI), down to the floor (D-035).
 4. Recorded transcripts: raw command/response bytes for each command, captured once. Done
    (D-021, `test_transcripts.py`): served by a fake device to the current host library (new
    host → old device). Open: replayed against pb-host (old host → new device), and, from the

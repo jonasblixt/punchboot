@@ -143,9 +143,16 @@ the same way. New images that old firmware can't read are fine only if they are 
   same values. The CI `compat` job fails if a transcript is changed or deleted. To cover more,
   add a scenario. Transfer sizes inside a segment are not recorded (a socket is a byte stream);
   over USB they matter where a transfer ends in a short packet.
-- Not covered yet: old hosts against the current device (roadmap Phase 1, item 3), replaying the
-  host side of the transcripts against pb-host (old host → new device), and behaviour, which only
-  tests and review catch (F-075 changed what a zero means, not a layout).
+- **Released hosts against the current device** (old host → new device, roadmap guard 3).
+  `scripts/ci/old-hosts.sh` installs punchboot 2.3.0, 2.7.0 and 2.7.1 from PyPI, each pinned by
+  its wheel's hash, and `test_old_hosts.py` runs their command line tool against pb-host over its
+  socket: `dev show`, `part list`, writes and verifies of 1 to 100003 bytes and a wrong file,
+  `board status`, `boot status`, `slc show`, `boot enable` and `disable`, `boot bpak` of a golden
+  image, `dev reset`. The CI `old-hosts` job runs it. 2.0.0 to 2.2.0 have no wheel for the
+  container's Python 3.13, 1.x isn't on PyPI.
+- Not covered yet: the releases before 2.3.0, replaying the host side of the transcripts against
+  pb-host, and behaviour, which only tests and review catch (F-075 changed what a zero means, not
+  a layout).
 
 If a frozen value really has to change, that is a new decision entry first, never a quiet edit.
 
