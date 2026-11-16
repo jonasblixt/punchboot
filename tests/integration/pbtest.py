@@ -335,21 +335,30 @@ class Device:
     def pbstate(self, *args: str) -> str:
         """Run the pbstate tool on the A/B state partitions of the disk image.
 
-        Like on a target, where pbstate runs from Linux.
+        Like on a target, where pbstate runs from Linux. Fails when the tool does.
         """
+        result = self.pbstate_run(*args)
+        result.check_returncode()
+        return result.stdout
+
+    def pbstate_run(
+        self, *args: str, env: dict[str, str] | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        """Run the pbstate tool as pbstate() does, and return how it ended."""
         primary = self.workdir / "pb_state_primary"
         backup = self.workdir / "pb_state_backup"
         primary.write_bytes(self.read_blocks(PRIMARY_STATE_LBA))
         backup.write_bytes(self.read_blocks(BACKUP_STATE_LBA))
         result = subprocess.run(  # noqa: S603
             [pbstate_binary(), "-p", str(primary), "-b", str(backup), *args],
-            check=True,
+            check=False,
             capture_output=True,
             text=True,
+            env=env,
         )
         self.write_blocks(PRIMARY_STATE_LBA, primary.read_bytes())
         self.write_blocks(BACKUP_STATE_LBA, backup.read_bytes())
-        return result.stdout
+        return result
 
 
 # Wire protocol, include/pb-tools/wire.h
