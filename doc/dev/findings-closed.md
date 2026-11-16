@@ -2050,6 +2050,58 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | reset from Linux. The storm came after a day of test pbs that set GPR1's TZASC1_BOOT_LOCK at runtime, | | |
 | | | which breaks the CAAM (F-455) in a way a warm reset doesn't clear; that is the likely cause. Reopen | | |
 | | | if it comes back after a power cycle | | |
+| F-444 | OP-TEE on jiffy, `plat/imx6ul/plat.c` | An SMC from Linux, after OP-TEE's driver | Seen (board) | fixed |
+| | | probed (`optee_bus_scan`, and the PSCI reset at a reboot), takes a prefetch abort in Monitor mode | | |
+| | | at OP-TEE's own monitor vector (0xbdf00c48), handled by Linux's vector: "Bad mode in prefetch | | |
+| | | abort handler"; Linux then hangs, the watchdog doesn't reset it (SRST over the ULINK does). The | | |
+| | | first SMCs of the probe work. Candidates: F-241's TZASC region 1 at the DRAM's physical base, | | |
+| | | where the RM has the controller's local addresses; OP-TEE's own TZC-380 and CSU set up after | | |
+| | | pb's; what jiffy's own test bench sets and this add-on doesn't (`CFG_NXP_CAAM`, | | |
+| | | `CFG_IMX_SNVS_NS_ACCESS`) | | |
+| | | 2026-11-16, found on jiffy: not the TZASC and not Linux's memory. A print in Linux's `bad_mode()` | | |
+| | | gave IFSR 0x005 (a section translation fault) at 0x00b48c28, the faulting PC, while OP-TEE isn't | | |
+| | | relocated (no `kaslr-seed` in the DT, the seed is 0) and its SMC vector is 0xbdf00c48: MVBAR had | | |
+| | | changed (0x85b48820 in the boot of 2026-11-14). OP-TEE writes MVBAR only at its init and at its own | | |
+| | | resume. Linux's cpuidle (`cpuidle-imx6sx.c`, the 6UL's) has an "ARM power off" state, 2160 entries by | | |
+| | | then: the core powers down without OP-TEE, and on wake up the ROM jumps to Linux's resume address in | | |
+| | | the secure state, MVBAR UNKNOWN after the power up. Linux then reads the TZASC's registers itself. | | |
+| | | Fixed in the test bench (`5d7a7f76`): the add-on's kernel has no cpuidle. On jiffy: the bus scan at | | |
+| | | 23 s, xtest regression 1001 to 1003 (25 subtests) at 37 s, PSCI's reset twice, no fault. A product | | |
+| | | that runs OP-TEE on a 6UL needs the same, or OP-TEE's PSCI suspend for idle; pb has no part in it. | | |
+| | | The user TAs don't load (F-465) | | |
+| | | The proof that Linux ran secure: with cpuidle, "Linux" read OP-TEE's 0xbdf00c48 and the TZASC's | | |
+| | | registers (0x1F07); without it, from the normal world, both are an external abort (bus error). So the | | |
+| | | TZASC enforces OP-TEE's regions, programmed at physical addresses, on jiffy (F-241), with | | |
+| | | TZASC_ENABLE (fuse 0x460 bit 28) not blown: GPR9's TZASC1_BYP from the DCD is enough | | |
+| F-241 | `plat/imx6ul/plat.c` | `tzasc_init()`: A failure is only logged: nothing tells | Verified | closed |
+| | | the boot driver that the TZASC is bypassed. Region 1 gets the physical DDR base, while 6UL RM 52.3 says the | | |
+| | | TZASC sees the DDR controller's "local addresses": check with OP-TEE that its memory is protected. GPR9 has | | |
+| | | no lock bit (RM p. 1277), so the secure OS's CSU policy decides whether the normal world can bypass it; the | | |
+| | | TZASC_ENABLE fuse (RM p. 209) makes the ROM enable it. GPR1 TZASC1_BOOT_LOCK unread (TZC-380 TRM, DDI0431, | | |
+| | | not on the share) | | |
+| | | 2026-11-14 (`cf79ee28`): a `tzasc_init()` that fails is recorded as bypassed and refuses the boot | | |
+| | | (F-248). Left, each needing a board or OP-TEE: region 1 gets the physical DDR base, GPR9 has no | | |
+| | | lock, TZASC1_BOOT_LOCK is unread | | |
+| | | 2026-11-14, D-084: the TZC-380 TRM goes on the share | | |
+| | | 2026-11-15, the TZC-380 TRM (DDI0431C) in the Library: TZASC1_BOOT_LOCK drives the TZC-380's | | |
+| | | secure_boot_lock input. With it high, lockdown_select is read only, and so are the registers it | | |
+| | | selects and the regions lockdown_range names, until the TZASC is reset (TRM 2.2.8, 3.2.3, 3.2.4). | | |
+| | | OP-TEE 4.9 programs region 1 at DDR's physical address on the 6UL, as pb does (only the 8M | | |
+| | | subtracts the DRAM base), and writes and checks lockdown_range and lockdown_select, but never sets | | |
+| | | TZASC1_BOOT_LOCK: its lockdown has no effect. pb must not set it, OP-TEE's checks would then fail. | | |
+| | | `cee1b689`: pb reads region 1 back and refuses the boot when the TZASC ignored the write. On | | |
+| | | jiffy: System A to the login. Left: whether a warm reset resets the TZASC (F-455), and the CSU | | |
+| | | policy that keeps the normal world off the TZASC's registers (TRM 2.1: secure only), the secure OS's | | |
+| | | 2026-11-16, on jiffy with OP-TEE (F-444): OP-TEE's regions at physical addresses (region 2 secure | | |
+| | | only over 0xbdf00000) refuse a read from Linux's normal world at 0xbdf00c48 (external abort), so the | | |
+| | | TZASC sees DDR at its physical address (RM 52.3's "local addresses" are those on the 6UL). The | | |
+| | | TZASC's registers (0x021D0000) are refused to the normal world too, so the SoC keeps it off them | | |
+| | | already. TZASC_ENABLE (fuse 0x460 bit 28) isn't blown on jiffy: GPR9's bit from the DCD is enough. | | |
+| | | Left: whether a warm reset resets the TZASC (F-455) | | |
+| | | Closed 2026-11-16: the warm reset is answered in F-455 (it resets the TZC-380's regions and lockdown; | | |
+| | | GPR1's TZASC1_BOOT_LOCK survives it, and pb never sets that bit). GPR9 has no lock (`platform.md` | | |
+| | | 4.3 (2): "where the SoC can"), so whether the normal world can clear TZASC1_BYP is the secure OS's | | |
+| | | CSU policy, not pb's | | |
 
 ## Dependencies / vendored code
 

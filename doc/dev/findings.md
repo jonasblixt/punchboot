@@ -255,25 +255,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `roadmap.md` still list the guides as to write | | |
 | | | 2026-11-16: `guides/updates.md`, the A/B update flow and pbstate, a draft from `boot.md` 3.5 to | | |
 | | | 3.7 and 5.6 and `pbstate`'s options, for Jonas | | |
-| F-241 | `plat/imx6ul/plat.c` | `tzasc_init()`: A failure is only logged: nothing tells | Verified (code, RM) | open |
-| | | the boot driver that the TZASC is bypassed. Region 1 gets the physical DDR base, while 6UL RM 52.3 says the | | |
-| | | TZASC sees the DDR controller's "local addresses": check with OP-TEE that its memory is protected. GPR9 has | | |
-| | | no lock bit (RM p. 1277), so the secure OS's CSU policy decides whether the normal world can bypass it; the | | |
-| | | TZASC_ENABLE fuse (RM p. 209) makes the ROM enable it. GPR1 TZASC1_BOOT_LOCK unread (TZC-380 TRM, DDI0431, | | |
-| | | not on the share) | | |
-| | | 2026-11-14 (`cf79ee28`): a `tzasc_init()` that fails is recorded as bypassed and refuses the boot | | |
-| | | (F-248). Left, each needing a board or OP-TEE: region 1 gets the physical DDR base, GPR9 has no | | |
-| | | lock, TZASC1_BOOT_LOCK is unread | | |
-| | | 2026-11-14, D-084: the TZC-380 TRM goes on the share | | |
-| | | 2026-11-15, the TZC-380 TRM (DDI0431C) in the Library: TZASC1_BOOT_LOCK drives the TZC-380's | | |
-| | | secure_boot_lock input. With it high, lockdown_select is read only, and so are the registers it | | |
-| | | selects and the regions lockdown_range names, until the TZASC is reset (TRM 2.2.8, 3.2.3, 3.2.4). | | |
-| | | OP-TEE 4.9 programs region 1 at DDR's physical address on the 6UL, as pb does (only the 8M | | |
-| | | subtracts the DRAM base), and writes and checks lockdown_range and lockdown_select, but never sets | | |
-| | | TZASC1_BOOT_LOCK: its lockdown has no effect. pb must not set it, OP-TEE's checks would then fail. | | |
-| | | `cee1b689`: pb reads region 1 back and refuses the boot when the TZASC ignored the write. On | | |
-| | | jiffy: System A to the login. Left: whether a warm reset resets the TZASC (F-455), and the CSU | | |
-| | | policy that keeps the normal world off the TZASC's registers (TRM 2.1: secure only), the secure OS's | | |
 | F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL | Verified (on jiffy) | open |
 | | | RM (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 | | |
 | | | (supervisor only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code | | |
@@ -804,14 +785,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`core/arch/arm/kernel/boot.c:152`: `mon_spsr` is `CPSR_MODE_SVC` and `CPSR_I`); Xen | | |
 | | | on AArch32 is entered in Hyp. Needs OP-TEE to return to Non-secure Hyp (the A7 has the virtualization | | |
 | | | extensions), then a Xen build for the 6UL and OP-TEE's virtualization for its guests | | |
-| F-444 | OP-TEE on jiffy, `plat/imx6ul/plat.c` | An SMC from Linux, after OP-TEE's driver | Seen (board) | open |
-| | | probed (`optee_bus_scan`, and the PSCI reset at a reboot), takes a prefetch abort in Monitor mode | | |
-| | | at OP-TEE's own monitor vector (0xbdf00c48), handled by Linux's vector: "Bad mode in prefetch | | |
-| | | abort handler"; Linux then hangs, the watchdog doesn't reset it (SRST over the ULINK does). The | | |
-| | | first SMCs of the probe work. Candidates: F-241's TZASC region 1 at the DRAM's physical base, | | |
-| | | where the RM has the controller's local addresses; OP-TEE's own TZC-380 and CSU set up after | | |
-| | | pb's; what jiffy's own test bench sets and this add-on doesn't (`CFG_NXP_CAAM`, | | |
-| | | `CFG_IMX_SNVS_NS_ACCESS`) | | |
 | F-447 | `include/plat/imx8m/fusebox.h` | The i.MX8M's SLC (2026-11-14) rests on public sources | Reported | open |
 | | | that don't all agree: the 8MQ's SRK_REVOKE at bank 9 word 3 is its RM's OCOTP register, while its | | |
 | | | fuse map calls 0x670 reserved; the 8M Plus's SEC_CONFIG and SRK_HASH are NXP's U-Boot's, its | | |
@@ -954,6 +927,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | takes 6.7 ms for the same. The ROM had the card up already: taking it over in the state the ROM | | |
 | | | left it (TRAN, the ROM's RCA and bus mode) instead of CMD0 would save the 171 ms there, at the | | |
 | | | cost of an init path that depends on the ROM. For Jonas. The reset to pb's banner is 170.75 ms | | |
+| F-465 | `testbench/`, jiffy's OP-TEE add-on | No user TA loads: every xtest | Seen (board) | open |
+| | | case that opens one (regression_1004, the pkcs11 suite) fails with TEE_ERROR_STORAGE_NOT_AVAILABLE | | |
+| | | (0xf0100003), ldelf in `copy_section_headers`. In `ldelf_syscalls.c` that is the last TA store's | | |
+| | | answer (secure storage), after the REE store's open found nothing; the TAs are in `/lib/optee_armtz` | | |
+| | | (27, the crypt TA's `cb3e5ba0-...ta` too) and tee-supplicant runs. The PTA cases pass (regression | | |
+| | | 1001 to 1003). Not looked at: the supplicant's side (its log), the TAs' signing key against OP-TEE's | | |
+| | | (the TAs are of 2026-11-14's build). Test bench only, not pb | | |
 
 ## Dependencies / vendored code
 
