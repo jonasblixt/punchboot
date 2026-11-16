@@ -147,12 +147,25 @@ static int wait_for_completion(usb_ep_t ep)
 }
 
 /*
- * A request the stack doesn't know is to be stalled, and the host then goes
- * on at once (usb.md 3.2). No controller can stall yet (F-138): it is left
- * unanswered, no data and no status stage, and the host waits out its
- * timeout. It is no error: the device goes on enumerating, or with the
- * transfer that runs.
+ * A request the stack refuses is stalled, and the host then goes on at once
+ * (usb.md 3.2). A controller without ep0_stall leaves it unanswered, no
+ * data and no status stage, and the host waits out its timeout (F-138).
+ * Neither is an error: the device goes on enumerating, or with the
+ * transfer that runs, also when the stall fails.
  */
+static void ep0_refuse(void)
+{
+    int rc;
+
+    if (hal_ops->ep0_stall == NULL)
+        return;
+
+    rc = hal_ops->ep0_stall();
+
+    if (rc != PB_OK)
+        LOG_ERR("EP0 stall failed (%i)", rc);
+}
+
 static int ep0_unknown(const struct usb_setup_packet *setup)
 {
     LOG_ERR("EP0 unhandled request %x %x, value 0x%x, index 0x%x, %ub",
@@ -161,6 +174,7 @@ static int ep0_unknown(const struct usb_setup_packet *setup)
             setup->wValue,
             setup->wIndex,
             setup->wLength);
+    ep0_refuse();
     return PB_OK;
 }
 
@@ -247,9 +261,9 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         }
 
         if (setup->wValue != cls_config->desc->config.bConfigurationValue) {
-            /* Refused: nothing is set up and there is no status stage. It
-             * is to be stalled, which no controller can yet (F-138) */
+            /* Refused: nothing is set up, and it is stalled (F-138) */
             LOG_ERR("No configuration %u", setup->wValue);
+            ep0_refuse();
             rc = PB_OK;
             break;
         }

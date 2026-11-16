@@ -43,12 +43,15 @@ struct usb_host_config {
      * DWC3's driver. Without it the reset is handled inside the driver, as
      * the other two do: the transfer is flushed and never completes */
     bool reports_reset;
+    /* The controller has ep0_stall (F-138) */
+    bool can_stall;
 };
 
 /* What the host got for a control request */
 struct usb_host_reply {
     bool taken; /* poll_setup_pkt gave the SETUP to the stack */
     bool status; /* The status stage was done: the request is answered */
+    bool stalled; /* Endpoint 0 was stalled: the request is refused */
     usb_ep_t status_ep; /* The status stage's direction */
     size_t length; /* The data stage's bytes */
     uint8_t data[512];
@@ -63,6 +66,7 @@ struct usb_host_state {
     int set_address_calls;
     int set_configuration_calls;
     int unanswered; /* Requests the stack took and didn't answer */
+    int stalls; /* ep0_stall calls */
     int stray_status; /* Status stages with no control transfer to end */
     bool attached; /* On the bus: between init and stop */
     bool configured; /* The bulk endpoints are set up */
