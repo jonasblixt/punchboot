@@ -60,6 +60,7 @@ static int setup(void **state)
 
     bench_reset();
     bio_reset();
+    mmc_reset();
     emmc_model_default_config(&card_cfg);
     hal_model_set_window(0, 127);
     hal_model_set_gap(1, 0);
@@ -95,6 +96,15 @@ static bio_dev_t part(const unsigned char *uu)
 
     assert_true(d >= 0);
     return d;
+}
+
+static unsigned int devices(void)
+{
+    unsigned int n = 0;
+
+    for (bio_dev_t d = 0; d < CONFIG_BIO_MAX_DEVS; d++)
+        n += bio_valid(d) ? 1 : 0;
+    return n;
 }
 
 static void fill(uint8_t *buf, size_t len, unsigned int seed)
@@ -202,6 +212,10 @@ static void test_tuning_fails(void **state)
     assert_int_equal(init(), PB_OK);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
     assert_int_equal(hal_model_bus()->clk_hz, 52000000);
+    /* F-419: the switch back is sent at 52 MHz, where the tap doesn't
+     * matter, not at 200 MHz on a tap that just failed */
+    assert_int_equal(emmc_model_switch_clk_hz(EXT_CSD_HS_TIMING), 52000000);
+    assert_int_equal(hal_model_tap(), 0); /* The board's */
     assert_int_equal(bio_read(part(UU_USER), 0, sizeof(buf), buf), PB_OK);
     assert_bench_clean();
 }
@@ -220,10 +234,27 @@ static void test_hs400_enhanced_strobe(void **state)
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0x86);
 }
 
+/* F-116: a device without Enhanced Strobe (STROBE_SUPPORT 0, 7.4.67) gets
+ * -PB_ERR_NOT_SUPPORTED before it is switched, where HS_TIMING was set to
+ * HS and the BUS_WIDTH switch then failed */
+static void test_hs400_es_not_supported(void **state)
+{
+    (void)state;
+
+    dev_cfg.mode = MMC_BUS_MODE_HS400;
+    dev_cfg.width = MMC_BUS_WIDTH_8BIT_DDR_STROBE;
+    card_cfg.strobe_support = 0;
+
+    assert_int_equal(init(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
+    assert_bench_clean();
+}
+
 /* HS400 without Enhanced Strobe: tuned in HS200 first, 6.6.2.3 */
 static void test_hs400(void **state)
 {
-    SKIP_OPEN("F-116");
+    static uint8_t buf[4096];
     (void)state;
 
     dev_cfg.mode = MMC_BUS_MODE_HS400;
@@ -231,7 +262,58 @@ static void test_hs400(void **state)
 
     assert_int_equal(init(), PB_OK);
     assert_bench_clean();
+    assert_true(emmc_model_cmd_count(MMC_CMD_SEND_TUNING_BLOCK_HS200) > 0);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 3);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 6);
+    assert_int_equal(hal_model_bus()->clk_hz, 200000000);
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(buf), buf), PB_OK);
+    assert_bench_clean();
+}
+
+/* HS400's tuning fails: high speed on the 8 bit bus with the board's tap,
+ * as HS200 does */
+static void test_hs400_tuning_fails(void **state)
+{
+    static uint8_t buf[4096];
+    (void)state;
+
+    dev_cfg.mode = MMC_BUS_MODE_HS400;
+    dev_cfg.width = MMC_BUS_WIDTH_8BIT_DDR;
+    hal_model_set_window(1, 0);
+
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 2);
+    assert_int_equal(hal_model_bus()->clk_hz, 52000000);
+    assert_int_equal(emmc_model_switch_clk_hz(EXT_CSD_HS_TIMING), 52000000); /* F-419 */
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(buf), buf), PB_OK);
+    assert_bench_clean();
+}
+
+/* F-419: HS400 is on the 8 bit DDR bus (6.6.2.3). A board that asks for it
+ * on another width gets -PB_ERR_PARAM before the card is switched, where an
+ * SDR width reached HS_TIMING 3 */
+static void test_hs400_on_an_sdr_bus_is_refused(void **state)
+{
+    static const enum mmc_bus_width widths[] = {
+        MMC_BUS_WIDTH_1BIT,
+        MMC_BUS_WIDTH_4BIT,
+        MMC_BUS_WIDTH_8BIT,
+        MMC_BUS_WIDTH_4BIT_DDR,
+    };
+
+    (void)state;
+
+    dev_cfg.mode = MMC_BUS_MODE_HS400;
+    for (size_t i = 0; i < ARRAY_SIZE(widths); i++) {
+        dev_cfg.width = widths[i];
+        assert_int_equal(init(), -PB_ERR_PARAM);
+        assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+        assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
+        assert_int_equal(emmc_model_cmd_count(MMC_CMD_SWITCH), 0);
+        assert_int_equal(devices(), 0);
+    }
+    assert_bench_clean();
 }
 
 /* The device has no HS200: the host must check DEVICE_TYPE, 6.6.2.2 */
@@ -273,6 +355,33 @@ static void test_read_write(void **state)
     assert_int_equal(bio_read(part(UU_USER), last, 512, in), PB_OK);
     assert_memory_equal(out, in, 512);
 
+    assert_bench_clean();
+}
+
+/* bio.md 2.1 (F-283): a device is registered once. The card is set up again
+ * on the same controller, and its four devices are the ones it had, with
+ * the flags they have by now */
+static void test_a_second_init_adds_no_devices(void **state)
+{
+    static uint8_t out[512];
+    static uint8_t in[512];
+    bio_dev_t user;
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(devices(), 4);
+    user = part(UU_USER);
+    assert_int_equal(bio_clear_set_flags(user, BIO_FLAG_WRITABLE, BIO_FLAG_READABLE), PB_OK);
+    fill(out, sizeof(out), 11);
+    assert_int_equal(bio_write(user, 9, sizeof(out), out), PB_OK);
+
+    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, &mmc), PB_OK);
+    assert_int_equal(devices(), 4);
+    assert_int_equal(part(UU_USER), user);
+    assert_int_equal(bio_get_flags(user), BIO_FLAG_VISIBLE | BIO_FLAG_READABLE);
+    assert_int_equal(bio_read(user, 9, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+    assert_int_equal(bio_read(part(UU_BOOT0), 0, sizeof(in), in), PB_OK);
     assert_bench_clean();
 }
 
@@ -495,8 +604,286 @@ static void test_power_off(void **state)
 
     assert_int_equal(init(), PB_OK);
     assert_int_equal(mmc_power_off(mmc), PB_OK);
-    emmc_model_power_cycle();
     assert_bench_clean();
+}
+
+/* drivers.md 3 (F-200): a device that answers CMD13 ready but never reaches
+ * Transfer state after CMD7 fails the init with -PB_ERR_TIMEOUT, within
+ * the wait's bound, where mmc_wait_state() polled it for ever */
+static void test_wait_state_is_bounded(void **state)
+{
+    (void)state;
+
+    card = emmc_model_init(&card_cfg);
+    emmc_model_stuck(EMMC_STBY, true);
+    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), -PB_ERR_TIMEOUT);
+    assert_true(bench_now_us() < 1000000);
+    assert_int_equal(emmc_model_cmd_count(MMC_CMD_SEND_EXT_CSD), 0);
+}
+
+/* bio.md 2.1 (F-200): BOOT_SIZE_MULT 0 is a device without boot partitions,
+ * RPMB_SIZE_MULT 0 one without RPMB. Neither gets a device, where both got
+ * one of 2^32 blocks (0 * 256 - 1 as the last block) */
+static void test_no_boot_partitions(void **state)
+{
+    static uint8_t out[4096];
+    static uint8_t in[sizeof(out)];
+    (void)state;
+
+    card_cfg.boot_size_mult = 0;
+    card_cfg.rpmb_size_mult = 0;
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(devices(), 1);
+    assert_true(bio_get_part_by_uu(UU_BOOT0) < 0);
+    assert_true(bio_get_part_by_uu(UU_BOOT1) < 0);
+    assert_true(bio_get_part_by_uu(UU_RPMB) < 0);
+    assert_int_equal(bio_get_last_block(part(UU_USER)), card_cfg.user_sectors - 1);
+
+    fill(out, sizeof(out), 5);
+    assert_int_equal(bio_write(part(UU_USER), 64, sizeof(out), out), PB_OK);
+    assert_int_equal(bio_read(part(UU_USER), 64, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+    assert_bench_clean();
+}
+
+/* drivers.md 3 (F-281): after a transfer the card's state is polled until
+ * it is back in Transfer state, for a bounded time. A card that stays in
+ * Programming, ready for data, fails the write with -PB_ERR_TIMEOUT */
+static void test_state_after_a_transfer_is_bounded(void **state)
+{
+    static uint8_t out[512];
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    uint64_t start = bench_now_us();
+
+    emmc_model_stuck(EMMC_PRG, true);
+    assert_int_equal(bio_write(part(UU_USER), 0, sizeof(out), out), -PB_ERR_TIMEOUT);
+    assert_true(bench_now_us() - start < 2000000);
+}
+
+/* drivers.md 3 (F-281): after a CMD6 the card's state is polled while it
+ * is in Programming, for no longer than the switch's EXT_CSD time. A card
+ * that stays there fails the partition switch with -PB_ERR_TIMEOUT, and
+ * nothing is read */
+static void test_switch_wait_is_bounded(void **state)
+{
+    static uint8_t in[512];
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    unsigned int blocks = emmc_model_blocks_read();
+    uint64_t start = bench_now_us();
+
+    emmc_model_stuck(EMMC_PRG, true);
+    assert_int_equal(bio_read(part(UU_BOOT0), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
+    assert_int_equal(emmc_model_blocks_read(), blocks);
+    /* PARTITION_SWITCH_TIME is 30 ms on the model */
+    assert_true(bench_now_us() - start < 200000);
+}
+
+/* drivers.md 3 (F-281): a card that never says it is ready for data is a
+ * timeout, -PB_ERR_TIMEOUT, not an I/O error */
+static void test_not_ready_is_a_timeout(void **state)
+{
+    static uint8_t in[512];
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    emmc_model_stuck(EMMC_TRAN, false);
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
+}
+
+#define UU_OTHER \
+    (const unsigned char *)"\x5c\x0e\x31\x7a\x60\x2b\x4f\x18\x9d\x43\xa1\x07\xee\x58\x12\x6b"
+
+/* drivers.md 2.1 (F-419): two of the card's devices with one UUID in the
+ * board's configuration. The init fails before the first device is
+ * registered, where it registered BOOT0, BOOT1 and the RPMB and then failed
+ * on the user area. A UUID of a partition the card doesn't have gets no
+ * device and collides with nothing, as before */
+static void test_one_uuid_for_two_devices(void **state)
+{
+    (void)state;
+
+    dev_cfg.user_uu = UU_BOOT0;
+    assert_int_equal(init(), -PB_ERR_PARAM);
+    assert_int_equal(devices(), 0);
+
+    dev_cfg.user_uu = UU_USER;
+    dev_cfg.boot1_uu = UU_BOOT0;
+    assert_int_equal(init(), -PB_ERR_PARAM);
+    assert_int_equal(devices(), 0);
+
+    dev_cfg.boot1_uu = UU_BOOT1;
+    dev_cfg.rpmb_uu = UU_USER;
+    assert_int_equal(init(), -PB_ERR_PARAM);
+    assert_int_equal(devices(), 0);
+
+    /* No RPMB on the card: its UUID is no device's */
+    card_cfg.rpmb_size_mult = 0;
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(devices(), 3);
+    assert_int_equal(bio_get_hal_flags(part(UU_USER)), BIT(3)); /* The user area's */
+    assert_bench_clean();
+}
+
+/* F-419: mmc_reset() forgets every card, so a test starts from none
+ * whatever the tests before it left: every slot is used by a card of its
+ * own controller, and after the reset a fifth controller gets one */
+static void test_reset_frees_the_slots(void **state)
+{
+    static struct mmc_hal hals[CONFIG_MMC_CORE_MAX_DEVICES + 1];
+    static unsigned char uus[CONFIG_MMC_CORE_MAX_DEVICES + 1][16];
+    static struct mmc_device_config cfgs[CONFIG_MMC_CORE_MAX_DEVICES + 1];
+    const size_t last = CONFIG_MMC_CORE_MAX_DEVICES;
+    uuid_t uu;
+    (void)state;
+
+    card_cfg.boot_size_mult = 0;
+    card_cfg.rpmb_size_mult = 0;
+    card = emmc_model_init(&card_cfg);
+
+    for (size_t i = 0; i <= last; i++) {
+        hals[i] = *hal_model_init(card, CHUNK_BYTES);
+        hals[i].priv = &hals[i];
+        uus[i][0] = 0xcc;
+        uus[i][1] = (unsigned char)i;
+        cfgs[i] = dev_cfg;
+        cfgs[i].user_uu = uus[i];
+    }
+
+    for (size_t i = 0; i < last; i++)
+        assert_int_equal(mmc_init(&hals[i], &cfgs[i], NULL), PB_OK);
+    assert_int_equal(mmc_init(&hals[last], &cfgs[last], NULL), -PB_ERR_MEM);
+    assert_int_equal(mmc_get_boot_part_config(uu), PB_OK);
+
+    bio_reset();
+    mmc_reset();
+    assert_int_equal(mmc_get_boot_part_config(uu), -PB_ERR_STATE);
+    assert_int_equal(mmc_init(&hals[last], &cfgs[last], NULL), PB_OK);
+    assert_true(bio_get_part_by_uu(uus[last]) >= 0);
+    assert_bench_clean();
+}
+
+/* drivers.md 2.1 (F-406): nothing is registered when init fails. Another
+ * device has the RPMB's UUID: the init fails before it registers BOOT0 and
+ * BOOT1, where it left them registered */
+static void test_a_failed_init_registers_nothing(void **state)
+{
+    (void)state;
+
+    assert_true(bio_allocate(0, 7, 512, UU_RPMB, "Other") >= 0);
+    assert_int_equal(init(), -PB_ERR_PARAM);
+    assert_int_equal(devices(), 1);
+    assert_true(bio_get_part_by_uu(UU_BOOT0) < 0);
+    assert_true(bio_get_part_by_uu(UU_BOOT1) < 0);
+    assert_true(bio_get_part_by_uu(UU_USER) < 0);
+}
+
+/* F-406: the pool is full after BOOT1. bio can't release a device, so the
+ * two that were registered stay, and fail with -PB_ERR_STATE: the card's
+ * slot isn't given to another card while they name it */
+static void test_a_full_pool_leaves_no_working_device(void **state)
+{
+    static uint8_t in[512];
+    (void)state;
+
+    for (unsigned int i = 0; i < CONFIG_BIO_MAX_DEVS - 2; i++) {
+        unsigned char uu[16] = { 0xaa, (unsigned char)i };
+
+        assert_true(bio_allocate(0, 7, 512, uu, "Other") >= 0);
+    }
+    assert_int_equal(init(), -PB_ERR_MEM);
+    assert_int_equal(bio_read(part(UU_BOOT0), 0, sizeof(in), in), -PB_ERR_STATE);
+    assert_int_equal(bio_write(part(UU_BOOT1), 0, sizeof(in), in), -PB_ERR_STATE);
+    assert_bench_clean();
+}
+
+/* drivers.md 2.1 (F-406): a second init of the card fails. Its devices,
+ * from the first one, keep their slot and fail with -PB_ERR_STATE, also
+ * when another controller's card is set up after it; where the slot was
+ * free and the next card's init took it, and the devices read that card.
+ * A third init that works brings them back */
+static void test_a_failed_second_init_keeps_the_slot(void **state)
+{
+    static struct mmc_hal hal_b;
+    static uint8_t out[512];
+    static uint8_t in[512];
+    struct mmc_device_config cfg_b = dev_cfg;
+    bio_dev_t user;
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    user = part(UU_USER);
+    fill(out, sizeof(out), 21);
+    assert_int_equal(bio_write(user, 3, sizeof(out), out), PB_OK);
+
+    emmc_model_fail_cmd(MMC_CMD_ALL_SEND_CID, EMMC_FAULT_NO_RESPONSE);
+    assert_int_not_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), PB_OK);
+    assert_int_equal(bio_read(user, 3, sizeof(in), in), -PB_ERR_STATE);
+
+    /* Another controller, with a card of its own UUIDs */
+    hal_b = *hal_model_init(card, CHUNK_BYTES);
+    hal_b.priv = &hal_b;
+    cfg_b.boot0_uu = NULL;
+    cfg_b.boot1_uu = NULL;
+    cfg_b.rpmb_uu = NULL;
+    cfg_b.user_uu = UU_OTHER;
+    card_cfg.boot_size_mult = 0;
+    card_cfg.rpmb_size_mult = 0;
+    card = emmc_model_init(&card_cfg);
+    assert_int_equal(mmc_init(&hal_b, &cfg_b, NULL), PB_OK);
+    assert_int_equal(bio_read(user, 3, sizeof(in), in), -PB_ERR_STATE);
+    assert_int_equal(bio_read(part(UU_OTHER), 3, sizeof(in), in), PB_OK);
+
+    /* The first controller's card again */
+    emmc_model_default_config(&card_cfg);
+    card = emmc_model_init(&card_cfg);
+    emmc_model_write(EMMC_PART_USER, 3, out, 1);
+    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), PB_OK);
+    assert_int_equal(part(UU_USER), user);
+    assert_int_equal(bio_read(user, 3, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+}
+
+/* bio.md 2.1 (F-406): the range is what the medium has. Another card of
+ * another size behind the same controller fails a second init with
+ * -PB_ERR_IO, where the devices kept the first card's range; they fail
+ * until an init works */
+static void test_a_card_of_another_size_is_refused(void **state)
+{
+    static uint8_t in[512];
+    bio_dev_t user;
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    user = part(UU_USER);
+
+    card_cfg.user_sectors *= 2;
+    assert_int_equal(init(), -PB_ERR_IO);
+    assert_int_equal(devices(), 4);
+    assert_int_equal(bio_get_last_block(user), card_cfg.user_sectors / 2 - 1);
+    assert_int_equal(bio_read(user, 0, sizeof(in), in), -PB_ERR_STATE);
+
+    /* Another size of boot partition */
+    card_cfg.user_sectors /= 2;
+    card_cfg.boot_size_mult *= 2;
+    assert_int_equal(init(), -PB_ERR_IO);
+
+    /* No boot partitions or RPMB, where the devices have them */
+    card_cfg.boot_size_mult = 0;
+    assert_int_equal(init(), -PB_ERR_IO);
+    emmc_model_default_config(&card_cfg);
+    card_cfg.rpmb_size_mult = 0;
+    assert_int_equal(init(), -PB_ERR_IO);
+    emmc_model_default_config(&card_cfg);
+    card_cfg.boot_size_mult *= 2;
+
+    /* The first card back */
+    card_cfg.boot_size_mult /= 2;
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(bio_read(user, 0, sizeof(in), in), PB_OK);
 }
 
 int main(void)
@@ -512,8 +899,12 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400_enhanced_strobe, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_tuning_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_es_not_supported, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_on_an_sdr_bus_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_second_init_adds_no_devices, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_length_of_0_doesnt_reach_the_driver, setup, teardown),
         cmocka_unit_test_setup_teardown(test_byte_addressing, setup, teardown),
         cmocka_unit_test_setup_teardown(test_boot_partitions, setup, teardown),
@@ -531,6 +922,17 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_cmd6_times_not_defined, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ext_csd_at_tran_speed, setup, teardown),
         cmocka_unit_test_setup_teardown(test_tran_speed_20mhz, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_wait_state_is_bounded, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_no_boot_partitions, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_state_after_a_transfer_is_bounded, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_switch_wait_is_bounded, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_not_ready_is_a_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_failed_init_registers_nothing, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_full_pool_leaves_no_working_device, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_failed_second_init_keeps_the_slot, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_card_of_another_size_is_refused, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_one_uuid_for_two_devices, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_reset_frees_the_slots, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

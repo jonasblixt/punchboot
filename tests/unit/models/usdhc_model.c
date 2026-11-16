@@ -172,6 +172,7 @@ static struct {
     uint64_t busy_deadline_us;
     unsigned int cmds;
     bool fail_dma;
+    bool stall_read;
     bool rsp3_pending; /* The auto CMD12 response, in CMD_RSP3 at rsp3_at_us */
     uint32_t rsp3;
     uint64_t rsp3_at_us;
@@ -588,6 +589,12 @@ static void run_data(void)
         return;
     }
 
+    /* A card that stopped answering: no data, no TC, no error */
+    if (read && m.stall_read) {
+        m.stall_read = false;
+        return;
+    }
+
     total = adma_walk(&n_segs);
     if (total < 0) {
         latch(INT_DMAE);
@@ -818,4 +825,9 @@ unsigned int usdhc_model_cmds(void)
 void usdhc_model_fail_dma(void)
 {
     m.fail_dma = true;
+}
+
+void usdhc_model_stall_read(void)
+{
+    m.stall_read = true;
 }

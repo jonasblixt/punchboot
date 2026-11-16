@@ -26,6 +26,7 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <string.h>
+#include <sys/mman.h>
 
 /* A test of an open bug, it runs once the finding is fixed (testing.md) */
 #define SKIP_OPEN(finding)                             \
@@ -144,6 +145,7 @@ static int setup(void **state)
 
     bench_reset();
     bio_reset();
+    mmc_reset();
     emmc_model_default_config(&card_cfg);
     window.on = false;
     return 0;
@@ -356,6 +358,29 @@ static void test_busy_timeout(void **state)
     assert_int_not_equal(bio_write(part(UU_USER), 0, 512, out), PB_OK);
 }
 
+/* A read the card never ends is -PB_ERR_TIMEOUT within the header's bound,
+ * which the boards fit their watchdog with (F-321, platform.md 3.3) */
+static void test_read_timeout(void **state)
+{
+    uint64_t start, waited;
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    usdhc_model_stall_read();
+    start = bench_now_us();
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
+    waited = bench_now_us() - start;
+    assert_true(waited >= IMX_USDHC_READ_TIMEOUT_us(sizeof(in)));
+    /* The bound and what the stop command takes after it */
+    assert_true(waited < IMX_USDHC_READ_TIMEOUT_us(sizeof(in)) + 100000);
+
+    /* 4 MiB, the largest chunk of a board today, in half a 5 s watchdog */
+    assert_true(IMX_USDHC_READ_TIMEOUT_us(SZ_MiB(4)) <= 2500000);
+
+    /* The card answers again */
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), PB_OK);
+}
+
 static void test_imx8mpevk_sd(void **state)
 {
     struct sd_model_config sd_cfg;
@@ -377,6 +402,101 @@ static void test_imx8mpevk_sd(void **state)
     assert_int_equal(bio_read(d, 12345, sizeof(in), in), PB_OK);
     assert_memory_equal(out, in, sizeof(in));
     assert_int_equal(bio_read(d, 7, 512, in), PB_OK);
+    assert_bench_clean();
+}
+
+/* Physical layer 1.x: CMD8 gets no response (F-199). The controller's
+ * command timeout is how mmc_sd.c tells the card's version, so the driver
+ * returns it as -PB_ERR_TIMEOUT, not as an I/O error (drivers.md 3) */
+static void test_imx8mpevk_sd_v1(void **state)
+{
+    struct sd_model_config sd_cfg;
+    bio_dev_t d;
+    (void)state;
+
+    sd_model_default_config(&sd_cfg);
+    sd_cfg.sectors = 256 * 1024 * 2; /* 256 MiB */
+    sd_cfg.v1 = true;
+    assert_int_equal(init_sd(&sd_cfg, true), PB_OK);
+    assert_int_equal(sd_model_speed(), SD_DEFAULT_SPEED); /* SD_SPEC 1.0 has no CMD6 */
+    assert_true(usdhc_model_bus()->clk_hz <= 25000000);
+
+    d = bio_get_part_by_uu(UU_SD);
+    assert_true(d >= 0);
+    assert_int_equal(bio_get_last_block(d), sd_cfg.sectors - 1);
+    fill(out, sizeof(out), 9);
+    assert_int_equal(bio_write(d, 77, sizeof(out), out), PB_OK);
+    sd_model_read(77, check, sizeof(check) / 512);
+    assert_memory_equal(out, check, sizeof(out));
+    assert_int_equal(bio_read(d, 77, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+    assert_bench_clean();
+}
+
+/* drivers.md 4.2 (F-200): ADMA2's addresses are 32 bits. A buffer above
+ * 4 GiB is refused with -PB_ERR_PARAM before a command is sent, where its
+ * address was truncated and the controller moved the data elsewhere. On the
+ * host an anonymous mapping is above 4 GiB */
+static void test_buffer_above_4gib_is_refused(void **state)
+{
+    const size_t len = 64 * 1024;
+    (void)state;
+
+    uint8_t *high = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+    assert_true(high != MAP_FAILED);
+    if ((uint64_t)(uintptr_t)high < (1ULL << 32)) {
+        munmap(high, len);
+        skip();
+    }
+    memset(high, 0x5a, len);
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    unsigned int cmds = usdhc_model_cmds();
+
+    assert_int_equal(bio_read(part(UU_USER), 0, len, high), -PB_ERR_PARAM);
+    assert_int_equal(bio_write(part(UU_USER), 0, len, high), -PB_ERR_PARAM);
+    assert_int_equal(bio_read(part(UU_USER), 0, 512, high), -PB_ERR_PARAM);
+    assert_int_equal(usdhc_model_cmds(), cmds);
+    assert_int_equal(high[0], 0x5a);
+    munmap(high, len);
+
+    /* The next transfer works */
+    read_write();
+    assert_bench_clean();
+}
+
+/* F-116: the driver has no HS400 (no strobe DLL, no HS400 mode): a board
+ * that asks for it gets -PB_ERR_NOT_SUPPORTED before the card is switched,
+ * where the card was switched to HS400's bus width and the driver then
+ * refused the width (Enhanced Strobe), or HS400 ran without tuning */
+static void test_hs400_is_refused(void **state)
+{
+#define HS400_CONFIG(bus_width)                                       \
+    {                                                                 \
+        .base = IMX8M_USDHC3_BASE, .delay_tap = 35,                   \
+        .mmc_config = {                                               \
+            .mode = MMC_BUS_MODE_HS400,                               \
+            .width = (bus_width),                                     \
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8, \
+            .boot0_uu = UU_BOOT0,                                     \
+            .boot1_uu = UU_BOOT1,                                     \
+            .user_uu = UU_USER,                                       \
+            .rpmb_uu = UU_RPMB,                                       \
+        },                                                            \
+    }
+    static const struct imx_usdhc_config es = HS400_CONFIG(MMC_BUS_WIDTH_8BIT_DDR_STROBE);
+    static const struct imx_usdhc_config ddr = HS400_CONFIG(MMC_BUS_WIDTH_8BIT_DDR);
+    (void)state;
+
+    assert_int_equal(init(&es, USDHC_IMX8M, 200000000), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
+    assert_true(bio_get_part_by_uu(UU_USER) < 0);
+
+    assert_int_equal(init(&ddr, USDHC_IMX8M, 200000000), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
     assert_bench_clean();
 }
 
@@ -416,6 +536,8 @@ static void test_imx8mpevk_tuning_fails(void **state)
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
     assert_int_equal((usdhc_model_read(IMX8M_USDHC3_BASE + 0x60) >> 9) & 0x7f, 35);
+    /* F-419: the switch back at 52 MHz, not at 200 MHz on a failed tap */
+    assert_true(emmc_model_switch_clk_hz(EXT_CSD_HS_TIMING) <= 52000000);
     read_write();
     assert_bench_clean();
 }
@@ -434,10 +556,14 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_dma_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_busy_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_timeout, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_imx8mpevk_sd_v1, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_no_sd, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_buffer_above_4gib_is_refused, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_is_refused, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

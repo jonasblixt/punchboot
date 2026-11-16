@@ -82,7 +82,7 @@ static uint64_t csd_blocks(const uint32_t csd[4])
 /* CMD55 and an application command */
 static int sd_app_cmd(struct mmc_device *dev, struct mmc_cmd *cmd)
 {
-    int rc = mmc_send_cmd_r1(dev, MMC_CMD_APP_CMD, dev->rca << RCA_SHIFT_OFFSET);
+    int rc = mmc_send_cmd_r1(dev, MMC_CMD_APP_CMD, (uint32_t)dev->rca << RCA_SHIFT_OFFSET);
 
     if (rc != PB_OK)
         return rc;
@@ -213,24 +213,37 @@ static int sd_select_speed(struct mmc_device *dev)
 static int sd_bio_read(bio_dev_t bdev, lba_t lba, size_t length, void *buf)
 {
     struct mmc_device *dev = (struct mmc_device *)bio_get_private(bdev);
+    int rc = mmc_bio_ready(dev);
 
+    if (rc != PB_OK)
+        return rc;
     return mmc_bio_xfer(dev, lba, length, (uintptr_t)buf, false);
 }
 
 static int sd_bio_write(bio_dev_t bdev, lba_t lba, size_t length, const void *buf)
 {
     struct mmc_device *dev = (struct mmc_device *)bio_get_private(bdev);
+    int rc = mmc_bio_ready(dev);
 
+    if (rc != PB_OK)
+        return rc;
     return mmc_bio_xfer(dev, lba, length, (uintptr_t)buf, true);
 }
 
 static int sd_add_bio(struct mmc_device *dev)
 {
-    bio_dev_t d = bio_allocate(0, dev->blocks - 1, MMC_BLOCK_SIZE, dev->cfg->user_uu, "SD");
+    bio_dev_t d;
     int rc;
+
+    rc = mmc_bio_check(dev, dev->cfg->user_uu, dev->blocks - 1);
+    if (rc != 0)
+        return (rc > 0) ? PB_OK : rc;
+
+    d = bio_allocate(0, dev->blocks - 1, MMC_BLOCK_SIZE, dev->cfg->user_uu, "SD");
 
     if (d < 0)
         return d;
+    dev->registered = true;
 
     rc = bio_set_flags(d, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
     if (rc < 0)
@@ -300,7 +313,8 @@ int mmc_sd_setup(struct mmc_device *dev)
         return rc;
     dev->rca = resp[0] >> SD_R6_RCA_SHIFT;
 
-    rc = mmc_send_cmd(dev, MMC_CMD_SEND_CSD, dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R2, resp);
+    rc = mmc_send_cmd(
+        dev, MMC_CMD_SEND_CSD, (uint32_t)dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R2, resp);
     if (rc != PB_OK)
         return rc;
     memcpy(dev->csd, resp, sizeof(dev->csd));
@@ -310,7 +324,8 @@ int mmc_sd_setup(struct mmc_device *dev)
     if (rc != PB_OK)
         return rc;
 
-    rc = mmc_send_cmd(dev, MMC_CMD_SELECT_CARD, dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R1b, NULL);
+    rc = mmc_send_cmd(
+        dev, MMC_CMD_SELECT_CARD, (uint32_t)dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R1b, NULL);
     if (rc != PB_OK)
         return rc;
 

@@ -339,6 +339,20 @@ pb_unit_test(test_mmc_core SOURCES
 )
 target_compile_definitions(test_mmc_core PRIVATE CONFIG_MMC_CORE_MAX_DEVICES=1)
 
+# The same with CONFIG_MMC_CORE_DEBUG_IOS: test_debug_ios checks its log
+add_executable(test_mmc_core_debug_ios test_mmc_core.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
+)
+target_compile_definitions(test_mmc_core_debug_ios PRIVATE
+    CONFIG_MMC_CORE_MAX_DEVICES=1 CONFIG_MMC_CORE_DEBUG_IOS=1)
+target_include_directories(test_mmc_core_debug_ios PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_mmc_core_debug_ios PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_mmc_core_debug_ios COMMAND test_mmc_core_debug_ios)
+set_tests_properties(unit.test_mmc_core_debug_ios PROPERTIES LABELS unit TIMEOUT 60)
+
 # The i.MX8M LPDDR4 init with the imx8mevk timing, against a device model
 # behind a fake pb/mmio.h (see the test)
 pb_unit_test(test_imx8m_ddr SOURCES
@@ -445,6 +459,21 @@ target_compile_options(test_imx_usdhc PRIVATE -fno-pie)
 target_compile_definitions(test_imx_usdhc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 target_link_options(test_imx_usdhc PRIVATE -no-pie)
 
+# The MMC drivers with no log level compiled in (LOGLEVEL 0, no RAM log): no
+# variable is left that only a log line uses (F-397), with -Werror
+foreach(src mmc_core mmc_emmc mmc_sd imx_usdhc)
+    add_test(NAME unit.mmc_log_disabled_${src}
+        COMMAND ${CMAKE_C_COMPILER} -std=gnu99 -fsyntax-only -Wall -Wextra -Werror
+                -include ${PROJECT_SOURCE_DIR}/src/plat/host/compat.h
+                -DLOGLEVEL=0 -DCONFIG_MMC_CORE_HS200_TUNE=1 -DCONFIG_MMC_CORE_MAX_DEVICES=1
+                -DCONFIG_IMX_USDHC_MAX_INSTANCES=1
+                -I${CMAKE_CURRENT_BINARY_DIR}/log_disabled -I${PROJECT_SOURCE_DIR}/include
+                -I${PROJECT_SOURCE_DIR}/src/arch/host/include
+                ${PROJECT_SOURCE_DIR}/src/drivers/mmc/${src}.c
+    )
+    set_tests_properties(unit.mmc_log_disabled_${src} PROPERTIES LABELS unit TIMEOUT 60)
+endforeach()
+
 pb_unit_test(test_imx_hab_fuses SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_hab_fuses.c
 )
@@ -452,3 +481,17 @@ pb_unit_test(test_imx_hab_fuses SOURCES
 pb_unit_test(test_imx_ocotp SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_ocotp.c
 )
+# The virtio block driver against a model of a legacy virtio-mmio device,
+# without PIE: the driver hands the device 32-bit addresses
+pb_unit_test(test_virtio_block SOURCES
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/virtio/virtio_block.c
+)
+target_include_directories(test_virtio_block BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/cdefs
+)
+target_compile_options(test_virtio_block PRIVATE -fno-pie)
+target_link_options(test_virtio_block PRIVATE -no-pie)
+

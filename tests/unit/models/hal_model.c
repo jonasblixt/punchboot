@@ -202,6 +202,8 @@ const struct mmc_hal *hal_model_init(struct bus_card *c, size_t max_chunk_bytes)
         .set_delay_tap = hal_set_delay_tap,
         .delay_taps = HAL_TAPS,
         .max_chunk_bytes = max_chunk_bytes,
+        .hs400 = true,
+        .hs400_es = true,
     };
     return &hal;
 }
