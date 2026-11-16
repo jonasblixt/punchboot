@@ -511,16 +511,17 @@ uint32_t umctl2_dfimisc(uintptr_t base);
  * Allow reads and writes, but put the (not yet initialized) SDRAM in self
  * refresh by software, with auto refresh off, and wait for it.
  */
-void umctl2_enter_selfref_sw(uintptr_t base);
+int umctl2_enter_selfref_sw(uintptr_t base);
 
-/* Start the DFI init (DFIMISC.dfi_init_start) and wait for it to complete */
-void umctl2_dfi_init(uintptr_t base);
+/* Start the DFI init (DFIMISC.dfi_init_start) and wait for it to complete.
+ * Each of these waits is bounded: -PB_ERR_TIMEOUT (F-102) */
+int umctl2_dfi_init(uintptr_t base);
 
 /*
  * After the DFI init: set dfi_init_complete_en, leave self refresh, allow
  * PHY initiated updates, wait for normal operation and enable auto refresh.
  */
-void umctl2_dfi_init_done(uintptr_t base);
+int umctl2_dfi_init_done(uintptr_t base);
 
 void umctl2_enable_port(uintptr_t base, unsigned int port);
 

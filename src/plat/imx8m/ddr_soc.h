@@ -15,6 +15,9 @@
 /* Hold the DDR controller and PHY in reset */
 void imx8m_ddr_soc_reset(void);
 
+/* Power up DDRMIX through the GPC, the SoC's own registers (F-110) */
+int imx8m_ddr_soc_power_up(void);
+
 /* Set the DRAM clock (PLL, or bypass mode where the SoC has it) for 'drate' MT/s */
 int imx8m_ddr_soc_set_clock(unsigned int drate);
 

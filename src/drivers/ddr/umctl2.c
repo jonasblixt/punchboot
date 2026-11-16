@@ -21,7 +21,9 @@
  */
 
 #include <drivers/ddr/umctl2.h>
+#include <pb/delay.h>
 #include <pb/mmio.h>
+#include <pb/pb.h>
 
 /* STAT in self refresh entered through PWRCTL.selfref_sw, as in NXP's code */
 #define STAT_SELFREF_MASK \
@@ -50,7 +52,29 @@ uint32_t umctl2_dfimisc(uintptr_t base)
     return UMCTL2_VAL(DFIMISC_DFI_FREQUENCY, freq) | DFIMISC_CTL_IDLE_EN;
 }
 
-void umctl2_enter_selfref_sw(uintptr_t base)
+/*
+ * Every wait of the controller's is bounded (F-102, drivers.md 3). On the
+ * 8MP EVK each took at most 18 us (the DFI init; log 2026-11-16): 10 ms
+ */
+#define UMCTL2_TIMEOUT_us 10000
+
+static int umctl2_wait(uintptr_t base, uint32_t off, uint32_t mask, uint32_t value, const char *what)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, UMCTL2_TIMEOUT_us);
+
+    while ((mmio_read_32(base + off) & mask) != value) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("DDRC: no %s (0x%x: 0x%08x)", what, off, mmio_read_32(base + off));
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+
+    return PB_OK;
+}
+
+int umctl2_enter_selfref_sw(uintptr_t base)
 {
     mmio_write_32(base + UMCTL2_DBG1, 0);
     mmio_write_32(base + UMCTL2_RFSHCTL3,
@@ -59,20 +83,21 @@ void umctl2_enter_selfref_sw(uintptr_t base)
                   PWRCTL_DIS_CAM_DRAIN_SELFREF | PWRCTL_SELFREF_SW |
                       PWRCTL_EN_DFI_DRAM_CLK_DISABLE);
 
-    while ((mmio_read_32(base + UMCTL2_STAT) & STAT_SELFREF_MASK) != STAT_SELFREF_BY_SW)
-        ;
+    return umctl2_wait(base, UMCTL2_STAT, STAT_SELFREF_MASK, STAT_SELFREF_BY_SW, "self refresh");
 }
 
-void umctl2_dfi_init(uintptr_t base)
+int umctl2_dfi_init(uintptr_t base)
 {
     umctl2_write_quasi_dynamic(base, UMCTL2_DFIMISC, umctl2_dfimisc(base) | DFIMISC_DFI_INIT_START);
 
-    while (!(mmio_read_32(base + UMCTL2_DFISTAT) & DFISTAT_DFI_INIT_COMPLETE))
-        ;
+    return umctl2_wait(
+        base, UMCTL2_DFISTAT, DFISTAT_DFI_INIT_COMPLETE, DFISTAT_DFI_INIT_COMPLETE, "DFI init");
 }
 
-void umctl2_dfi_init_done(uintptr_t base)
+int umctl2_dfi_init_done(uintptr_t base)
 {
+    int rc;
+
     /* Stop the DFI init, set dfi_init_complete_en and leave self refresh */
     mmio_write_32(base + UMCTL2_SWCTL, 0);
     mmio_write_32(base + UMCTL2_DFIMISC, umctl2_dfimisc(base));
@@ -82,18 +107,24 @@ void umctl2_dfi_init_done(uintptr_t base)
 
     mmio_write_32(base + UMCTL2_DFIPHYMSTR, DFIPHYMSTR_DFI_PHYMSTR_EN);
 
-    while (!(mmio_read_32(base + UMCTL2_SWSTAT) & SWSTAT_SW_DONE_ACK))
-        ;
+    rc = umctl2_wait(base, UMCTL2_SWSTAT, SWSTAT_SW_DONE_ACK, SWSTAT_SW_DONE_ACK, "sw_done_ack");
+    if (rc != PB_OK)
+        return rc;
 
     mmio_write_32(base + UMCTL2_DFIPHYMSTR, DFIPHYMSTR_DFI_PHYMSTR_EN);
 
     /* Wait for STAT.operating_mode normal (bits [1:0], as in NXP's code) */
-    while ((mmio_read_32(base + UMCTL2_STAT) & STAT_OPERATING_MODE_LOW_MASK) !=
-           STAT_OPERATING_MODE_NORMAL)
-        ;
+    rc = umctl2_wait(base,
+                     UMCTL2_STAT,
+                     STAT_OPERATING_MODE_LOW_MASK,
+                     STAT_OPERATING_MODE_NORMAL,
+                     "normal operation");
+    if (rc != PB_OK)
+        return rc;
 
     /* Enable auto refresh */
     mmio_write_32(base + UMCTL2_RFSHCTL3, UMCTL2_VAL(RFSHCTL3_REFRESH_MODE, 1));
+    return PB_OK;
 }
 
 void umctl2_enable_port(uintptr_t base, unsigned int port)

@@ -129,12 +129,13 @@ void dwc_ddrphy_write_cfg(const struct dwc_ddrphy *phy,
  * One training run: load the firmware and the message block, run the PMU
  * and wait for its result. The DRAM clock must already be set for
  * fsp->drate. Returns -PB_ERR_IO if the firmware doesn't read back or the
- * training fails.
+ * training fails, -PB_ERR_TIMEOUT if the PMU stops answering.
  */
 int dwc_ddrphy_train(const struct dwc_ddrphy *phy, const struct dram_fsp_msg *fsp);
 
-/* Wait for the impedance calibration (after loading the PIE image) */
-void dwc_ddrphy_wait_calibration(const struct dwc_ddrphy *phy);
+/* Wait for the impedance calibration (after loading the PIE image), at
+ * most 10 ms: -PB_ERR_TIMEOUT */
+int dwc_ddrphy_wait_calibration(const struct dwc_ddrphy *phy);
 
 /* Read back CSRs, e.g. the trained ones, into csrs[].val */
 void dwc_ddrphy_read_csrs(const struct dwc_ddrphy *phy,

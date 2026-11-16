@@ -38,9 +38,40 @@
 #include <pb/pb.h>
 #include <plat/imx8m/dram.h>
 #include <plat/imx8m/imx8m.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "ddr_soc.h"
+
+/*
+ * TF-A reads the copy as its own struct dram_timing_info (TF-A v2.12,
+ * plat/imx/imx8m/include/dram.h, and struct dram_cfg_param there), at
+ * aarch64: the layout is pinned to it (F-100). The fields pb fills and TF-A
+ * doesn't read (fsp_msg) keep their place too
+ */
+#if UINTPTR_MAX == UINT64_MAX
+PB_STATIC_ASSERT(sizeof(struct dram_cfg_param) == 8, "TF-A's dram_cfg_param");
+PB_STATIC_ASSERT(offsetof(struct dram_cfg_param, val) == 4, "TF-A's dram_cfg_param");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, ddrc_cfg) == 0, "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, ddrc_cfg_num) == 8, "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, ddrphy_cfg) == 16, "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, ddrphy_cfg_num) == 24,
+                 "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, fsp_msg) == 32, "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, fsp_msg_num) == 40, "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, ddrphy_trained_csr) == 48,
+                 "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, ddrphy_trained_csr_num) == 56,
+                 "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, ddrphy_pie) == 64, "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, ddrphy_pie_num) == 72,
+                 "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(offsetof(struct dram_timing_info, fsp_table) == 76, "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(sizeof(((struct dram_timing_info *)0)->fsp_table) == 16,
+                 "TF-A's dram_timing_info");
+PB_STATIC_ASSERT(sizeof(struct dram_timing_info) == 96, "TF-A's dram_timing_info");
+#endif
 
 extern uint32_t _binary_blobs_lpddr4_pmu_train_1d_imem_bin_start;
 extern uint32_t _binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start;
@@ -185,8 +216,9 @@ int imx8m_ddr_init(void)
     /* 1. Hold the controller and PHY in reset, power up, clock */
     imx8m_ddr_soc_reset();
 
-    mmio_write_32(GPC_PGC_CPU_0_1_MAPPING, GPC_PGC_CPU_0_1_MAPPING_ALL);
-    mmio_clrsetbits_32(GPC_PU_PGC_SW_PUP_REQ, 0, GPC_PU_PGC_SW_PUP_REQ_DDR1);
+    rc = imx8m_ddr_soc_power_up();
+    if (rc != PB_OK)
+        return rc;
 
     rc = imx8m_ddr_soc_set_clock(drate);
     if (rc != PB_OK)
@@ -202,7 +234,9 @@ int imx8m_ddr_init(void)
     mmio_write_32(SRC_DDRC_RCR_ADDR, RCR_DOMAINS | SRC_DDRC_RCR_PHY_RESET);
     mmio_write_32(SRC_DDRC_RCR_ADDR, RCR_DOMAINS);
 
-    umctl2_enter_selfref_sw(ddrc);
+    rc = umctl2_enter_selfref_sw(ddrc);
+    if (rc != PB_OK)
+        return rc;
 
     if (mmio_read_32(ddrc + UMCTL2_MSTR) & MSTR_LPDDR4)
         mmio_write_32(DDRC_DDR_SS_GPR0, DDRC_DDR_SS_GPR0_LPDDR4);
@@ -235,12 +269,19 @@ int imx8m_ddr_init(void)
 
     /* 5. PHY Init Engine, then wait for the impedance calibration */
     dwc_ddrphy_write_cfg(&phy, t->ddrphy_pie, t->ddrphy_pie_num);
-    dwc_ddrphy_wait_calibration(&phy);
+    rc = dwc_ddrphy_wait_calibration(&phy);
+    if (rc != PB_OK)
+        return rc;
 
     LOG_DBG("ddrphy calibration done");
 
-    umctl2_dfi_init(ddrc);
-    umctl2_dfi_init_done(ddrc);
+    rc = umctl2_dfi_init(ddrc);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = umctl2_dfi_init_done(ddrc);
+    if (rc != PB_OK)
+        return rc;
     umctl2_enable_port(ddrc, 0);
 
     /* Self refresh when the DRAM is idle, as NXP's U-Boot leaves it

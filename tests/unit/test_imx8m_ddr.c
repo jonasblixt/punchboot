@@ -105,6 +105,10 @@ static uint16_t fail_mail;
 static unsigned int fail_run;
 /* Firmware readback from the PHY IMEM is corrupted */
 static int corrupt_imem;
+/* A poll the hardware never ends (F-102): the register's 'not yet' */
+static uintptr_t stuck_reg;
+/* The PMU posts progress and never ends its training */
+static int progress_forever;
 
 static void trace_add(const char *fmt, ...)
 {
@@ -158,6 +162,21 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
         }
     }
 
+    if (stuck_reg != 0 && addr == stuck_reg) {
+        switch (addr) {
+        case DDRC_STAT_REG:
+            /* Neither self refresh by software nor normal operation */
+            return 0;
+        case PHY_CAL_BUSY:
+            return 1;
+        case PHY_UCT_SHADOW_REGS:
+            /* No message, then no ack: the PMU stopped */
+            return 1;
+        default:
+            return 0;
+        }
+    }
+
     switch (addr) {
     case DDRC_STAT_REG:
         /* Self refresh (by software) while selfref_sw is set, else normal */
@@ -169,10 +188,19 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
         return 0;
     case DRAM_PLL_LOCK_REG:
         return reg_get(addr) | PLL_LOCK;
+#ifdef CONFIG_PLAT_IMX8MP
+    case 0x303A00D8UL:
+        /* GPC_PU_PGC_SW_PUP_REQ: DDRMIX's request clears at once, it is up
+         * after reset (F-110, seen on the EVK) */
+        return reg_get(addr) & ~(1u << 19);
+#endif
     case PHY_UCT_SHADOW_REGS:
         /* UctWriteProtShadow: 0 = message pending, 1 after the ack (DctWriteProt = 0) */
         return reg_get(PHY_DCT_WRITE_PROT) == 0 ? 1 : 0;
     case PHY_UCT_WRITE_ONLY: {
+        if (progress_forever)
+            return 0x0001;
+
         size_t run = mail_pos / ARRAY_SIZE(mail_script);
         const uint16_t *m = mail_script[mail_pos++ % ARRAY_SIZE(mail_script)];
         mail_hi = m[1];
@@ -201,6 +229,22 @@ void fake_mmio_write(uintptr_t addr, uint64_t value, unsigned int width)
 void pb_delay_ms(uint32_t delay)
 {
     trace_add("delay_ms %u\n", delay);
+}
+
+/* The polls' bounds (F-102), not in the trace: a timeout expires after
+ * this many checks, as if that much time went by */
+#define FAKE_TIMEOUT_CHECKS 1000
+
+int pb_timeout_init_us(struct pb_timeout *timeout, uint32_t timeout_us)
+{
+    timeout->ts_start = 0;
+    timeout->timeout_us = timeout_us;
+    return PB_OK;
+}
+
+bool pb_timeout_has_expired(struct pb_timeout *timeout)
+{
+    return ++timeout->ts_start >= FAKE_TIMEOUT_CHECKS;
 }
 
 void pb_delay_us(uint32_t delay)
@@ -298,6 +342,8 @@ static int reset_model(void **state)
     fail_mail = 0;
     fail_run = 0;
     corrupt_imem = 0;
+    stuck_reg = 0;
+    progress_forever = 0;
     return 0;
 }
 
@@ -380,6 +426,43 @@ static void test_training_failed(void **state)
     }
 }
 
+/* F-102: a poll the hardware never ends is -PB_ERR_TIMEOUT, not a hang */
+static void test_a_stuck_poll_times_out(void **state)
+{
+    const uintptr_t regs[] = {
+        DDRC_STAT_REG, DDRC_DFISTAT_REG,    DDRC_SWSTAT_REG,
+        PHY_CAL_BUSY,  PHY_UCT_SHADOW_REGS, DRAM_PLL_LOCK_REG,
+    };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(regs); i++) {
+        reset_model(NULL);
+        stuck_reg = regs[i];
+        assert_int_equal(imx8m_ddr_init(), -PB_ERR_TIMEOUT);
+    }
+    stuck_reg = 0;
+}
+
+/* A PMU that never ends its training run is a timeout too, with the PMU
+ * stalled after it (the code review of F-102) */
+static void test_training_never_ends(void **state)
+{
+    (void)state;
+
+    char needle[32];
+    const char *last = NULL;
+
+    progress_forever = 1;
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_TIMEOUT);
+
+    /* MicroReset's last write is STALL (1) */
+    (void)snprintf(needle, sizeof(needle), "w32 %08lx ", (unsigned long)PHY_REG(0xd0099));
+    for (const char *p = strstr(trace, needle); p != NULL; p = strstr(p + 1, needle))
+        last = p;
+    assert_non_null(last);
+    assert_int_equal(strncmp(last + strlen(needle), "00000001\n", 9), 0);
+}
+
 /* The firmware image does not read back from the PHY as written */
 static void test_firmware_verify_failed(void **state)
 {
@@ -454,6 +537,8 @@ int main(void)
         cmocka_unit_test_setup(test_boot_rate_only, reset_model),
         cmocka_unit_test_setup(test_rates_not_a_prefix, reset_model),
         cmocka_unit_test_setup(test_training_failed, reset_model),
+        cmocka_unit_test_setup(test_a_stuck_poll_times_out, reset_model),
+        cmocka_unit_test_setup(test_training_never_ends, reset_model),
         cmocka_unit_test_setup(test_firmware_verify_failed, reset_model),
         cmocka_unit_test_setup(test_unsupported_data_rate, reset_model),
         cmocka_unit_test_setup(test_timing_copy_too_large, reset_model),
