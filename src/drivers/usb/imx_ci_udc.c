@@ -1128,14 +1128,13 @@ static int imx_ci_udc_init_internal(void)
      * each (42.7.33). The setup lockout is off: the driver uses the
      * tripwire (42.5.6.4.2.1).
      *
-     * Stream disable (SDIS) is set, as it always was. The RM (42.7.33, the
-     * 6UL's 54.6.33): it "disables double priming on both RX and TX for
-     * low bandwidth systems", in high speed "all packets received are
+     * Stream disable (SDIS) is clear, streaming on. The RM (42.7.33, the
+     * 6UL's 54.6.33): with it set, in high speed "all packets received are
      * responded to with a NYET handshake", and it "substantially limits
-     * the overall USB performance that can be achieved". Whether a stream
-     * is faster without it, and as correct, is for the bench (F-140).
+     * the overall USB performance that can be achieved". Without it jiffy
+     * writes at 16.1 MiB/s, 13.6 with it (F-140, Jonas).
      */
-    mmio_write_32(imx_ci_udc_base + CI_USBMODE, USBMODE_SDIS | USBMODE_SLOM | USBMODE_CM_DEVICE);
+    mmio_write_32(imx_ci_udc_base + CI_USBMODE, USBMODE_SLOM | USBMODE_CM_DEVICE);
 
     /* In reset the controller writes nothing: what an init before this one
      * gave it is taken back, the queue heads are written, and they are the

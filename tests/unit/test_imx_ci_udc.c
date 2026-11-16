@@ -1771,7 +1771,7 @@ static void test_init_order(void **state)
             rst = i;
         } else if (w->addr == BASE + CI_USBMODE) {
             assert_int_equal(mode, SIZE_MAX);
-            assert_int_equal(w->value, USBMODE_SDIS | USBMODE_SLOM | USBMODE_CM_DEVICE);
+            assert_int_equal(w->value, USBMODE_SLOM | USBMODE_CM_DEVICE);
             mode = i;
         } else if (w->addr == BASE + CI_ENDPTLISTADDR && list == SIZE_MAX) {
             list = i;
