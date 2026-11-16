@@ -936,13 +936,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | takes 6.7 ms for the same. The ROM had the card up already: taking it over in the state the ROM | | |
 | | | left it (TRAN, the ROM's RCA and bus mode) instead of CMD0 would save the 171 ms there, at the | | |
 | | | cost of an init path that depends on the ROM. For Jonas. The reset to pb's banner is 170.75 ms | | |
-| F-465 | `testbench/`, jiffy's OP-TEE add-on | No user TA loads: every xtest | Seen (board) | open |
-| | | case that opens one (regression_1004, the pkcs11 suite) fails with TEE_ERROR_STORAGE_NOT_AVAILABLE | | |
-| | | (0xf0100003), ldelf in `copy_section_headers`. In `ldelf_syscalls.c` that is the last TA store's | | |
-| | | answer (secure storage), after the REE store's open found nothing; the TAs are in `/lib/optee_armtz` | | |
-| | | (27, the crypt TA's `cb3e5ba0-...ta` too) and tee-supplicant runs. The PTA cases pass (regression | | |
-| | | 1001 to 1003). Not looked at: the supplicant's side (its log), the TAs' signing key against OP-TEE's | | |
-| | | (the TAs are of 2026-11-14's build). Test bench only, not pb | | |
 
 ## Dependencies / vendored code
 

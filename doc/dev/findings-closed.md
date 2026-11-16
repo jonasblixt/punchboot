@@ -2120,6 +2120,16 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | next warm reset went to the downloader. The cause is the JTAG access on the closed part, which the | | |
 | | | jiffy memory now forbids; SRST needs no `reset_config` change while JTAG isn't used. The downloader's | | |
 | | | hang in that state stays a property of the ROM | | |
+| F-465 | `testbench/`, jiffy's OP-TEE add-on | No user TA loads: every xtest | Seen (board) | fixed |
+| | | case that opens one (regression_1004, the pkcs11 suite) fails with TEE_ERROR_STORAGE_NOT_AVAILABLE | | |
+| | | (0xf0100003), ldelf in `copy_section_headers`. In `ldelf_syscalls.c` that is the last TA store's | | |
+| | | answer (secure storage), after the REE store's open found nothing; the TAs are in `/lib/optee_armtz` | | |
+| | | (27, the crypt TA's `cb3e5ba0-...ta` too) and tee-supplicant runs. The PTA cases pass (regression | | |
+| | | 1001 to 1003). Not looked at: the supplicant's side (its log), the TAs' signing key against OP-TEE's | | |
+| | | (the TAs are of 2026-11-14's build). Test bench only, not pb | | |
+| | | 2026-11-16 (`aa834550`): tee-supplicant's log: "failed to create /data/tee/", the root is read only. | | |
+| | | The add-on's root links /data to /tmp (`board/jiffy/optee-overlay`). On jiffy, the supplicant as its | | |
+| | | init script starts it: xtest's regression suite, 112 test cases and 35581 subtests, none failed | | |
 
 ## Dependencies / vendored code
 
