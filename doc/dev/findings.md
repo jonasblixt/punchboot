@@ -76,14 +76,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | partly fixed |
 | | | revoke one, although HAB has `SRK_REVOKE` there too. `work-3.0.0-plat`: it | | |
 | | | reads `SRK_REVOKE` (`imx_hab_fuses.c`); the EVK board doesn't revoke or lock. | | |
-| F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
-| | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
-| | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
-| | | the next boot rolls back. | | |
-| | | 2026-11-13 (`3164cb0c`): `pbstate_set_system_verified(X)` zeroes the attempts only when X is the | | |
-| | | enabled system, so confirming the fallback keeps the trial (`boot.md` 3.5). Left: what | | |
-| | | `pbstate_is_system_verified(NONE)` returns (0, -EINVAL, any slot verified, or the enabled one), for | | |
-| | | Jonas; it still returns `!!enable` | | |
 | F-190 | `cm_main.c` | Low. IDENTIFIER_READ sends 23 bytes of `buffer[0]` unauthenticated (`rz` | Reported | open |
 | | | not cleared), the partition table 57 of every 128. `boot_jump()` can return after `disconnect()`. | | |
 | | | `bytes_to_verify -= 4096` underflows for bpak with size < 4096. A failed data read in | | |

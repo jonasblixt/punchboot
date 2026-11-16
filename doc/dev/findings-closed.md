@@ -2176,6 +2176,16 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-16 (`6ba48e4f`, Jonas: fix the mux only): jiffy muxes NAND_WP_B as USDHC1_RESET_B instead of | | |
 | | | NAND_DQS; the controller holds RST_n high, RST_N_FUNCTION stays 0 (never written). On jiffy: resets, | | |
 | | | auth, 15 MB, Linux | | |
+| F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | fixed |
+| | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
+| | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
+| | | the next boot rolls back. | | |
+| | | 2026-11-13 (`3164cb0c`): `pbstate_set_system_verified(X)` zeroes the attempts only when X is the | | |
+| | | enabled system, so confirming the fallback keeps the trial (`boot.md` 3.5). Left: what | | |
+| | | `pbstate_is_system_verified(NONE)` returns (0, -EINVAL, any slot verified, or the enabled one), for | | |
+| | | Jonas; it still returns `!!enable` | | |
+| | | 2026-11-16 (`24df3d79`, Jonas: -EINVAL): `pbstate_is_system_verified(PBSTATE_SYSTEM_NONE)` is | | |
+| | | -EINVAL, `test_pbstate` | | |
 
 ## Dependencies / vendored code
 
