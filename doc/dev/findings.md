@@ -181,15 +181,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | command's. Several error paths leave transfers unread the same way. | | |
 | | | 2026-11-13 (`f43615bb`): a failed transfer ends the host's session, and the USB transport takes the | | |
 | | | caps' `operation_timeout_ms` once the caps are read. Left: `part_erase_timeout_ms` (F-375) | | |
-| F-227 | host tools, low | `session.py:556` masks the verify size to 32 bits. With several | Reported | open |
-| | | devices and no `-u` the first is used, also for `slc` commands. Three different is-this-bpak checks. The | | |
-| | | CI's only-grows guards compare with the merge-base, which is HEAD on a push to master. | | |
-| | | 2026-11-13 (`cbc47194`, `997a705e`, `229c0c71`): a verify above 4 GiB is refused before anything is | | |
-| | | sent, `part verify` checks for a bpak as `part write` does, the CI guard compares a push with its | | |
-| | | previous head. Left: several devices and no `-u` (the first is used, also for `slc`), for Jonas | | |
-| | | 2026-11-14 (`88785f79`): with several devices and no `-u`, `slc configure`, `lock`, `eol` and | | |
-| | | `revoke-key` stop before they connect and list the devices; every other command still uses the | | |
-| | | first. Left: nothing of the row that isn't a choice of Jonas's | | |
 | F-228 | `.github/workflows`, `docker/`, `scripts/ci` | Any `v*` tag publishes to PyPI with no | Reported | open |
 | | | check against `version.txt`, master or the tests. Actions are pinned by tag, the publish action gets a | | |
 | | | long-lived token. The dev image is partly pinned and rebuilt per job. CI builds only `pb.bin` (never the | | |

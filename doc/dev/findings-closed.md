@@ -2186,6 +2186,17 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | Jonas; it still returns `!!enable` | | |
 | | | 2026-11-16 (`24df3d79`, Jonas: -EINVAL): `pbstate_is_system_verified(PBSTATE_SYSTEM_NONE)` is | | |
 | | | -EINVAL, `test_pbstate` | | |
+| F-227 | host tools, low | `session.py:556` masks the verify size to 32 bits. With several | Reported | fixed |
+| | | devices and no `-u` the first is used, also for `slc` commands. Three different is-this-bpak checks. The | | |
+| | | CI's only-grows guards compare with the merge-base, which is HEAD on a push to master. | | |
+| | | 2026-11-13 (`cbc47194`, `997a705e`, `229c0c71`): a verify above 4 GiB is refused before anything is | | |
+| | | sent, `part verify` checks for a bpak as `part write` does, the CI guard compares a push with its | | |
+| | | previous head. Left: several devices and no `-u` (the first is used, also for `slc`), for Jonas | | |
+| | | 2026-11-14 (`88785f79`): with several devices and no `-u`, `slc configure`, `lock`, `eol` and | | |
+| | | `revoke-key` stop before they connect and list the devices; every other command still uses the | | |
+| | | first. Left: nothing of the row that isn't a choice of Jonas's | | |
+| | | 2026-11-16 (`77c7876e`, Jonas: every command stops): with several devices and no `-u` no command | | |
+| | | connects; it lists the devices and asks for `-u` (`test_cli.py`) | | |
 
 ## Dependencies / vendored code
 
