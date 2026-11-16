@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Punch BOOT
+#
+# Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# The build's version for a person to read (F-231): version.txt when HEAD is
+# the tag v<version> and nothing tracked is changed, otherwise
+# <version>-dev+<commit>, with -dirty when something tracked is changed. A
+# tree that isn't a git work tree (a tarball of a tag) is version.txt. The
+# version is version.txt's unless given (the Makefile's PB_VERSION).
+#
+#   scripts/build-version [source dir] [version]
+
+dir=${1:-.}
+version=${2:-$(cat "$dir/version.txt")} || exit 1
+
+if ! sha=$(git -C "$dir" rev-parse --short=12 HEAD 2>/dev/null); then
+    echo "$version"
+    exit 0
+fi
+
+dirty=
+git -C "$dir" update-index -q --refresh >/dev/null 2>&1
+git -C "$dir" diff-index --quiet HEAD -- 2>/dev/null || dirty=-dirty
+
+if [ -z "$dirty" ] && git -C "$dir" tag --points-at HEAD 2>/dev/null | grep -qx "v$version"; then
+    echo "$version"
+else
+    echo "$version-dev+$sha$dirty"
+fi

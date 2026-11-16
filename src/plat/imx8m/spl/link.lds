@@ -51,7 +51,8 @@ SECTIONS
     /* What ld makes for ifuncs and run time relocations: empty, as pb's
      * (src/link.lds), checked below */
     .iplt : { *(.iplt .igot.plt) } > spl
-    .rela.dyn : { *(.rela.dyn .rela.iplt .rela.got .rela.data .rela.data.* .rela.spl_entry) } > spl
+    .rela.dyn : { *(.rela.dyn .rela.iplt .rela.got .rela.data .rela.data.* .rela.spl_entry
+                    .rela.text .rela.text.* .rela.rodata .rela.rodata.*) } > spl
 
     .data : ALIGN(16)
     {

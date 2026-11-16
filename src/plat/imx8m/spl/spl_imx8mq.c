@@ -20,6 +20,7 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/ramlog.h>
+#include <pb_build_version.h>
 #include <plat/imx8m/imx8m.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -215,7 +216,7 @@ uint32_t spl_plugin_main(void **start, size_t *bytes, uint32_t *ivt_offset)
     ramlog_init();
 #endif
     imx8m_spl_console_init();
-    LOG_INFO("SPL " PB_VERSION ", SCTLR_EL3 %08lx", (unsigned long)read_sctlr_el3());
+    LOG_INFO("SPL " PB_BUILD_VERSION ", SCTLR_EL3 %08lx", (unsigned long)read_sctlr_el3());
 
     if (imx8m_spl_dram_init() != PB_OK)
         return 0;

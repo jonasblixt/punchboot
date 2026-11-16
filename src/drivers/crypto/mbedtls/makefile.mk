@@ -43,6 +43,13 @@ src-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += src/drivers/crypto/mbedtls/mbedtls_pb.c
 # (crypto_struct.h and crypto_extra.h): its own warning, not pb's
 $(BUILD_DIR)/$(MBEDTLS_DIR)/library/%.o: cflags-y += -Wno-redundant-decls
 
+# The curve and big number code at -O2 whatever CONFIG_OPTIMIZE is: on the
+# RT1060 (-Os) a P-256 signature takes 22.6 ms instead of 26.6, for 4.4 KiB
+# more of pb (about 0.06 ms of the ROM's load). bignum_core.c alone gives
+# 0.4 ms of it (F-458)
+$(addprefix $(BUILD_DIR)/$(MBEDTLS_DIR)/library/,bignum.o bignum_core.o ecp.o ecp_curves.o): \
+    cflags-y += -O2
+
 cflags-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += -DMBEDTLS_CONFIG_FILE=\"$(shell readlink -f src/drivers/crypto/mbedtls/mbedtls_config.h)\"
 cflags-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += -I${MBEDTLS_DIR}/include
 

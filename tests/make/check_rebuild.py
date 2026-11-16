@@ -5,7 +5,8 @@ keystore.c is made from the board's keys (VERIFY_KEY<n>) and
 scripts/gen-keystore.py, srk_fuse.c from CONFIG_SRK_FUSE and
 scripts/gen-srk-fuse.py, and every object can use PB_VERSION (F-183). Every
 object is compiled with the compiler flags, and pb is linked with the linker
-flags and the link scripts (F-398). A build directory that was built before
+flags and the link scripts (F-398); the banner's PB_BUILD_VERSION remakes only what
+includes pb_build_version.h (F-231). A build directory that was built before
 must follow a change of one, in the configuration or on the command line, or
 pb keeps the old keys, the old SRK hash or the old flags. This builds three of
 jiffy's objects, and then all of pb, in build directories of its own and
@@ -146,7 +147,7 @@ def check_flags(root: pathlib.Path, work: pathlib.Path) -> int:
     pb = ["pb"]
 
     b.make(targets=pb)
-    first = {name: b.read(name) for name in ("src/console.o", "pb")}
+    first = {name: b.read(name) for name in ("src/console.o", "src/cm/cm_device.o", "pb")}
     b.check_up_to_date("pb: a build without a change has nothing to make", targets=pb)
 
     # A compiler flag: every object and the link
@@ -156,6 +157,23 @@ def check_flags(root: pathlib.Path, work: pathlib.Path) -> int:
 
     b.make(targets=pb)
     b.check_made("back to the defconfig's", {"src/console.o": False, "pb": False}, first)
+
+    # The banner's version: the objects that include pb_build_version.h, not
+    # the others (F-231)
+    b.make("PB_BUILD_VERSION=1.2.3-dev+test", targets=pb)
+    b.check_made(
+        "PB_BUILD_VERSION on the command line: the banner only",
+        {"src/console.o": True, "src/cm/cm_device.o": False, "pb": True},
+        first,
+    )
+    b.check_up_to_date("and then nothing to make", "PB_BUILD_VERSION=1.2.3-dev+test", targets=pb)
+
+    b.make(targets=pb)
+    b.check_made(
+        "back to the build's",
+        {"src/console.o": False, "src/cm/cm_device.o": False, "pb": False},
+        first,
+    )
 
     # A linker flag: the link only
     b.make("CONFIG_STACK_SIZE_KiB=4", targets=pb)
