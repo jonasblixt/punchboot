@@ -844,8 +844,8 @@ static void test_disconnect(void **state)
  * another index */
 static void unknown_requests(void)
 {
-    /* GET_CONFIGURATION */
-    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_CONFIGURATION, 0, 0, 1);
+    /* SYNCH_FRAME, of an isochronous endpoint pb doesn't have */
+    usb_host_request(USB_HOST_REQ_IN | USB_HOST_REQ_ENDPOINT, USB_HOST_SYNCH_FRAME, 0, 0x81, 2);
     assert_int_equal(cm_transport_connect(), -PB_ERR_AGAIN);
     assert_true(usb_host_reply()->taken);
     assert_false(usb_host_reply()->status);
@@ -878,7 +878,7 @@ static void test_unknown_request_stalled(void **state)
     assert_int_equal(usb_host_state()->unanswered, 0);
 
     assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
-    usb_host_request(USB_HOST_REQ_IN, USB_HOST_GET_CONFIGURATION, 0, 0, 1);
+    usb_host_request(USB_HOST_REQ_IN | USB_HOST_REQ_ENDPOINT, USB_HOST_SYNCH_FRAME, 0, 0x81, 2);
     assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
     assert_true(usb_host_reply()->stalled);
     usb_host_send(data, PACKET);
@@ -886,6 +886,92 @@ static void test_unknown_request_stalled(void **state)
     assert_memory_equal(buf, data, PACKET);
     assert_int_equal(usb_host_state()->stalls, 4);
     assert_int_equal(usb_host_state()->cancel_calls, 0);
+}
+
+/* A standard request: before the device is configured connect polls
+ * endpoint 0, in a session the read that is waited for does */
+static bool in_session;
+
+static void host_standard_in(uint8_t recipient, uint8_t request, uint16_t index, uint16_t length)
+{
+    usb_host_request(USB_HOST_REQ_IN | recipient, request, 0, index, length);
+    if (in_session)
+        assert_int_equal(cm_transport_complete(), -PB_ERR_AGAIN);
+    else
+        (void)cm_transport_connect();
+}
+
+static void assert_stalled(void)
+{
+    assert_true(usb_host_reply()->taken);
+    assert_true(usb_host_reply()->stalled);
+}
+
+/* usb.md 3.2, USB 2.0 9.4 (F-463): GET_CONFIGURATION, GET_INTERFACE and
+ * GET_STATUS of the device, the interface and the endpoints are answered.
+ * Before the device is configured the configuration is 0, and the interface
+ * and the bulk endpoints are request errors, stalled; endpoint 0 is always
+ * there. A reply is at most wLength */
+static void test_standard_requests(void **state)
+{
+    static const uint8_t zero[2] = { 0, 0 };
+    (void)state;
+
+    start(NULL);
+    in_session = false;
+
+    host_standard_in(0, USB_HOST_GET_CONFIGURATION, 0, 1);
+    assert_answered(1);
+    assert_int_equal(usb_host_reply()->data[0], 0);
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_INTERFACE, 0, 1);
+    assert_stalled();
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_STATUS, 0, 2);
+    assert_stalled();
+    host_standard_in(USB_HOST_REQ_ENDPOINT, USB_HOST_GET_STATUS, 0x81, 2);
+    assert_stalled();
+    host_standard_in(USB_HOST_REQ_ENDPOINT, USB_HOST_GET_STATUS, 0x80, 2);
+    assert_answered(2);
+    assert_memory_equal(usb_host_reply()->data, zero, 2);
+
+    enumerate();
+    in_session = true;
+    assert_int_equal(cm_transport_read(buf, PACKET), PB_OK);
+
+    host_standard_in(0, USB_HOST_GET_CONFIGURATION, 0, 1);
+    assert_answered(1);
+    assert_int_equal(usb_host_reply()->data[0], 1);
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_INTERFACE, 0, 1);
+    assert_answered(1);
+    assert_int_equal(usb_host_reply()->data[0], 0);
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_INTERFACE, 1, 1);
+    assert_stalled();
+    host_standard_in(USB_HOST_REQ_INTERFACE, USB_HOST_GET_STATUS, 0, 2);
+    assert_answered(2);
+    assert_memory_equal(usb_host_reply()->data, zero, 2);
+
+    for (uint16_t ep = 0; ep < 0x100; ep++) {
+        bool known = ((ep & 0x7f) == 0) || ep == 0x81 || ep == 0x02;
+
+        host_standard_in(USB_HOST_REQ_ENDPOINT, USB_HOST_GET_STATUS, ep, 2);
+        if (known) {
+            assert_answered(2);
+            assert_memory_equal(usb_host_reply()->data, zero, 2);
+        } else {
+            assert_stalled();
+        }
+    }
+
+    /* At most wLength: one byte of a status, none of a configuration */
+    host_standard_in(0, USB_HOST_GET_STATUS, 0, 1);
+    assert_answered(1);
+    host_standard_in(0, USB_HOST_GET_CONFIGURATION, 0, 0);
+    assert_answered(0);
+
+    /* None of it disturbed the read */
+    usb_host_send(data, PACKET);
+    assert_int_equal(cm_transport_complete(), PB_OK);
+    assert_memory_equal(buf, data, PACKET);
+    assert_int_equal(usb_host_state()->unanswered, 0);
 }
 
 /* usb.md 3.2: a reply is at most wLength, and a request of wLength 0 has no
@@ -1086,6 +1172,7 @@ int main(void)
         cmocka_unit_test(test_disconnect),
         cmocka_unit_test(test_unknown_request_stalled),
         cmocka_unit_test(test_reply_at_most_wlength),
+        cmocka_unit_test(test_standard_requests),
         cmocka_unit_test(test_set_configuration_stalled),
         cmocka_unit_test(test_control_transfer_given_up),
         cmocka_unit_test(test_data_stage_given_up),

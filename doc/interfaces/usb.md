@@ -211,16 +211,26 @@ The stack answers these requests and no others:
 |                                    | the endpoints), the strings: the language, the product   |
 |                                    | and manufacturer, the serial number, Microsoft's (0xEE)  |
 | `SET_ADDRESS`, `SET_CONFIGURATION` | Done; the device is ready after the second               |
-| `GET_STATUS` (device)              | Two zero bytes                                           |
+| `GET_CONFIGURATION`                | The configuration's value once configured, before it 0   |
+| `GET_INTERFACE`                    | Alternate setting 0, of the one interface, once          |
+|                                    | configured                                               |
+| `GET_STATUS`                       | Two zero bytes, of the device, of the interface once     |
+|                                    | configured, of endpoint 0, and of the bulk endpoints     |
+|                                    | once configured: pb halts no endpoint, has no remote     |
+|                                    | wakeup and reports no self power                         |
+| `CLEAR_FEATURE` (`ENDPOINT_HALT`)  | Done: the endpoint's data toggle back to DATA0 (USB 2.0  |
+|                                    | 9.4.1). **Not yet in the code (F-463)**: stalled         |
 | Vendor request 1, index 4          | Microsoft's compatible id descriptor                     |
 
 - **Every length and index from the host is checked** (`command-mode.md` 4.2): a reply is at
-  most `wLength` and at most the descriptor; a string index the class doesn't have is
-  stalled; `SET_CONFIGURATION` takes the one configuration there is, or 0,
-  which deconfigures and is "lost".
+  most `wLength` and at most the descriptor, and a request of `wLength` 0 has no data stage; a
+  string index the class doesn't have is stalled; `SET_CONFIGURATION` takes the one
+  configuration there is, or 0, which deconfigures and is "lost". An interface or an endpoint
+  the device doesn't have in its state is a request error (USB 2.0 9.4), stalled.
 - **Any other request is stalled.** The host then goes on at once; the transfer that was
-  running goes on. pb's device answers what enumeration needs and no more: the other
-  standard requests (`GET_CONFIGURATION`, `CLEAR_FEATURE` and the rest) are stalled too.
+  running goes on. pb's device answers USB 2.0's standard requests that a device in its state
+  must (9.4, F-463, Jonas) and no more: `SET_FEATURE`, `SET_INTERFACE`, `SYNCH_FRAME`,
+  `SET_DESCRIPTOR` and `CLEAR_FEATURE` of the device are stalled.
 - **Three that releases answered are stalled** (Jonas, D-073): the debug descriptor, which
   got the interface descriptor; `SET_IDLE`, a request of another class; and a string index
   the class doesn't have, which got an empty string. A class's `get_string_descriptor()`
@@ -378,6 +388,8 @@ What 3.0.0 answers differently from a release (D-072, D-073). None is in the tab
 - A request the stack doesn't know is stalled, where it got no answer and the host waited
   out its timeout. The debug descriptor, `SET_IDLE` and a string index the class doesn't
   have are stalled, where they were answered (3.2).
+- `GET_CONFIGURATION`, `GET_INTERFACE` and `GET_STATUS` of the interface and the endpoints are
+  answered, where they got no answer (3.2, F-463).
 - When the transport is restarted the device leaves the bus first (2.1).
 
 `struct usbd_hal_ops` and the transport's functions are the porting API: they change with a
@@ -461,6 +473,9 @@ The stack and the transport:
 | Unknown requests stalled, control transfers | yes, on the three controllers; an        | F-138   |
 | bounded                                     | aborting SETUP is seen at the bound      |         |
 | A request leaves a bulk transfer alone      | yes                                      |         |
+| USB 2.0's standard requests (3.2)           | the GETs, on the fake controller and the | F-463   |
+|                                             | three; `CLEAR_FEATURE(ENDPOINT_HALT)`    |         |
+|                                             | stalled                                  |         |
 | The socket's `connect` polls                | yes                                      |         |
 | Tested on the host                          | Command mode on the socket and on a fake | F-230   |
 |                                             | transport; the USB transport's functions |         |
@@ -480,4 +495,5 @@ checklist's last item.
 | F-205        | An OUT transfer ends at `length`, writes nothing past it, and its result is |
 |              | the controller's (2.3, 4.3)                                                 |
 | F-138        | Endpoint 0: stall and bounds (3.2)                                          |
+| F-463        | `CLEAR_FEATURE(ENDPOINT_HALT)`: the data toggle back to DATA0 (3.2)         |
 | F-205        | Every wait is bounded (4)                                                   |

@@ -22,6 +22,10 @@
 #define USB_SET_FEATURE       0x0003
 #define USB_SET_ADDRESS       0x0005
 #define USB_GET_STATUS        0x8000
+#define USB_GET_STATUS_IFACE  0x8100
+#define USB_GET_STATUS_EP     0x8200
+#define USB_GET_CONFIGURATION 0x8008
+#define USB_GET_INTERFACE     0x810a
 #define USB_GET_VENDOR        0xc001
 
 static const struct usbd_hal_ops *hal_ops;
@@ -194,11 +198,38 @@ static int ep0_tx(const void *bfr, size_t length)
     return hal_ops->ep0_xfer_zlp(USB_EP0_OUT);
 }
 
+/* An endpoint the device has in its state (USB 2.0 9.4.5): endpoint 0 always,
+ * the configuration's once it is configured */
+static bool known_endpoint(uint16_t address)
+{
+    const struct usbd_descriptors *desc = cls_config->desc;
+
+    if ((address & ~(uint16_t)USB_EP_ADDR_IN) == 0)
+        return true;
+
+    if (!enumerated)
+        return false;
+
+    for (unsigned int n = 0; n < desc->interface.bNumEndpoints; n++) {
+        if (desc->eps[n].bEndpointAddress == address)
+            return true;
+    }
+
+    return false;
+}
+
+/* The interface there is, once the device is configured (USB 2.0 9.4.4, 9.4.5) */
+static bool known_interface(uint16_t index)
+{
+    return enumerated && index == cls_config->desc->interface.bInterfaceNumber;
+}
+
 static int usbd_enumerate(struct usb_setup_packet *setup)
 {
     int rc = -PB_ERR;
     uint16_t length = 0;
     uint16_t device_status = 0;
+    uint8_t value = 0;
     uint16_t request;
 
     request = (setup->bRequestType << 8) | setup->bRequest;
@@ -282,11 +313,36 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         }
         enumerated = true;
     } break;
-    case USB_GET_STATUS: {
+    /* USB 2.0 9.4: pb never halts an endpoint, has no remote wakeup and
+     * reports no self power, so a status is two zero bytes, and its one
+     * interface has alternate setting 0. A reply is at most wLength (usb.md
+     * 3.2); an interface or an endpoint the device doesn't have in its state
+     * is a request error, stalled (F-463) */
+    case USB_GET_STATUS:
+    case USB_GET_STATUS_IFACE:
+    case USB_GET_STATUS_EP: {
         LOG_DBG("Get status");
-        /* At most wLength (usb.md 3.2) */
+        if ((request == USB_GET_STATUS_IFACE && !known_interface(setup->wIndex)) ||
+            (request == USB_GET_STATUS_EP && !known_endpoint(setup->wIndex))) {
+            rc = ep0_unknown(setup);
+            break;
+        }
         length = MIN(setup->wLength, (uint16_t)sizeof(device_status));
         rc = ep0_tx(&device_status, length);
+    } break;
+    case USB_GET_CONFIGURATION: {
+        /* 0 before the device is configured */
+        value = enumerated ? cls_config->desc->config.bConfigurationValue : 0;
+        length = MIN(setup->wLength, (uint16_t)sizeof(value));
+        rc = ep0_tx(&value, length);
+    } break;
+    case USB_GET_INTERFACE: {
+        if (!known_interface(setup->wIndex)) {
+            rc = ep0_unknown(setup);
+            break;
+        }
+        length = MIN(setup->wLength, (uint16_t)sizeof(value));
+        rc = ep0_tx(&value, length);
     } break;
     case USB_GET_VENDOR: {
         LOG_DBG("Get vendor specific descriptor");

@@ -90,7 +90,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-069 | `bio.md`: an erase counts blocks                 | In force; the installed table decided by D-070     |
 | D-070 | `bio.md` is reviewed                             | In force; which form of "A" is my reading          |
 | D-071 | `crypto.md` is reviewed                          | In force                                           |
-| D-072 | `usb.md` is reviewed                             | In force                                           |
+| D-072 | `usb.md` is reviewed                             | Narrowed by D-090 (USB 2.0's standard requests)    |
 | D-073 | The drivers' contracts, the final read           | In force                                           |
 | D-074 | An entry in an empty part is refused             | Waits for Jonas's review                           |
 | D-075 | The decisions have an index                      | In force                                           |
@@ -109,6 +109,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-087 | A build may forbid every fuse write              | In force (Jonas: "the EVK must never write fuses") |
 | D-088 | The i.MX8M boots pb in two stages, one image     | Accepted (Jonas); the code follows                 |
 | D-089 | The 8MQ SPL's USB recovery: fastboot             | In force; on the pico8ml (2026-11-15)              |
+| D-090 | The stack answers USB 2.0's standard requests    | In force; `CLEAR_FEATURE(HALT)` waits (F-463)      |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2178,3 +2179,19 @@ recovery needs the SPL to download pb proper itself.
     port is, the SPL has it.
   - **The watchdog runs in the session** where the build has it: the step that decides calls
     the ROM, and the first run on the pico8ml hung there with nothing to reset it.
+
+## D-090: The USB stack answers USB 2.0's standard requests (2026-11-16)
+
+`usb.md` 3.2 (D-072) had the stack answer what enumeration needs and stall the rest, the
+standard requests `GET_CONFIGURATION`, `GET_INTERFACE`, `GET_STATUS` of an interface or an
+endpoint and `CLEAR_FEATURE(ENDPOINT_HALT)` among them; USB 2.0 9.4 has a device answer them
+(F-463). Jonas: "Answer them".
+
+- **The three GETs** are the stack's: the configuration's value (0 before it), alternate
+  setting 0, and two zero bytes for a status (pb halts no endpoint). An interface or an
+  endpoint the device doesn't have in its state is a request error, stalled.
+- **`CLEAR_FEATURE(ENDPOINT_HALT)` resets the endpoint's data toggle** (9.4.5), and a host
+  resets its own when the request succeeds: answered without the controller's toggle reset,
+  the next packet could be dropped as a duplicate. It needs a controller operation in the
+  three drivers, and stays stalled until then.
+- No reply a released host relies on changes: the punchboot host sends none of them.

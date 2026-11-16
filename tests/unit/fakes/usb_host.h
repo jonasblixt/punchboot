@@ -30,6 +30,7 @@
 #define USB_HOST_REQ_VENDOR        0x40
 #define USB_HOST_REQ_CLASS         0x20
 #define USB_HOST_REQ_INTERFACE     0x01
+#define USB_HOST_REQ_ENDPOINT      0x02
 
 /* bRequest (USB 2.0 Table 9-4) */
 #define USB_HOST_GET_STATUS        0x00
@@ -37,6 +38,8 @@
 #define USB_HOST_GET_DESCRIPTOR    0x06
 #define USB_HOST_GET_CONFIGURATION 0x08
 #define USB_HOST_SET_CONFIGURATION 0x09
+#define USB_HOST_GET_INTERFACE     0x0a
+#define USB_HOST_SYNCH_FRAME       0x0c
 
 struct usb_host_config {
     /* A bus reset ends a bulk transfer that runs with -PB_ERR_IO, as the
