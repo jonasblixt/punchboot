@@ -738,6 +738,13 @@ static int dwc3_udc_xfer_complete(usb_ep_t ep)
 
         *ep_short[ep].received = MIN(got, ep_dma[ep].in_length);
         ep_short[ep].received = NULL;
+    } else if (!EP_IS_IN(ep) && (trbs[ep].trb[0].size & TRB_SIZE_BUFSIZ_MASK) != 0) {
+        /* A short packet before 'length': the two sides no longer agree
+         * (usb.md 2.3, F-287) */
+        LOG_ERR("%s: %u bytes short",
+                ep_to_str(ep),
+                (unsigned int)(trbs[ep].trb[0].size & TRB_SIZE_BUFSIZ_MASK));
+        return -PB_ERR_IO;
     }
 
     return PB_OK;

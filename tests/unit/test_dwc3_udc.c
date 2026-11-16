@@ -451,6 +451,31 @@ static void test_out_writes_nothing_past_its_length(void **state)
     }
 }
 
+/* usb.md 2.3 (F-287): a short packet before 'length' in a transfer that
+ * isn't a short read is an error, -PB_ERR_IO; the next transfer runs */
+static void test_a_short_packet_is_an_error(void **state)
+{
+    uint8_t *buf = arena + LINE;
+    (void)state;
+
+    configure();
+
+    fill(host, 1024, 1);
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 1024), PB_OK);
+    controller_run(USB_EP2_OUT, host, 600);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+    assert_int_equal(dma_host_in_open(), IDLE_RANGES);
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 1000), PB_OK);
+    controller_run(USB_EP2_OUT, host, 100);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), -PB_ERR_IO);
+
+    assert_int_equal(ops->xfer_start(USB_EP2_OUT, buf, 1000), PB_OK);
+    controller_run(USB_EP2_OUT, host, 1000);
+    assert_int_equal(ops->xfer_complete(USB_EP2_OUT), PB_OK);
+    assert_memory_equal(buf, host, 1000);
+}
+
 static void test_a_short_packet_ends_a_short_transfer(void **state)
 {
     static const struct {
@@ -734,6 +759,7 @@ int main(void)
             test_ep0_reply_is_sent_from_the_drivers_memory, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bulk_transfers, setup, teardown),
         cmocka_unit_test_setup_teardown(test_out_writes_nothing_past_its_length, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_short_packet_is_an_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_short_packet_ends_a_short_transfer, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cancel_gives_the_buffer_back, setup, teardown),
         cmocka_unit_test_setup_teardown(
