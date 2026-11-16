@@ -220,9 +220,10 @@ The stack answers these requests and no others:
 - **Any other request is stalled.** The host then goes on at once; the transfer that was
   running goes on. pb's device answers what enumeration needs and no more: the other
   standard requests (`GET_CONFIGURATION`, `CLEAR_FEATURE` and the rest) are stalled too.
-- **Three that the code answers today are stalled** (Jonas, D-073): the debug descriptor,
-  which gets the interface descriptor; `SET_IDLE`, a request of another class; and a string
-  index the class doesn't have, which gets an empty string. **Not yet in the code (F-287).**
+- **Three that releases answered are stalled** (Jonas, D-073): the debug descriptor, which
+  got the interface descriptor; `SET_IDLE`, a request of another class; and a string index
+  the class doesn't have, which got an empty string. A class's `get_string_descriptor()`
+  returns NULL for such an index.
 - **A request doesn't disturb a bulk transfer.** Hosts send requests at any time
   (`lsusb -v`, another program that lists devices). The stack answers on endpoint 0 and the
   bulk transfer goes on where it was.

@@ -505,6 +505,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-15, on the MEK: `boot bpak`, `dev reset` (F-453) and writes of 15 MB run over the cdns3. | | |
 | | | Its write of 0 bytes isn't reachable from the MEK's commands: board status always ends in a NUL, | | |
 | | | and a board command's empty answer isn't sent | | |
+| | | 2026-11-16 (`e880cd49`): D-073's three are stalled: the debug descriptor, `SET_IDLE` and a string | | |
+| | | index the class doesn't have (`get_string_descriptor()` returns NULL), on the RT1060, the MEK and | | |
+| | | the 8MP EVK. Left: (2) a short read, (4) speed | | |
 | F-310 | `doc/interfaces/bio.md`, `include/pb/bio.h` | `bio.md` describes five | Verified (code) | open |
 | | | functions of `bio.h` and doesn't name them: `bio_set_ios()` and `bio_set_ios_erase()` ("then | | |
 | | | the callbacks", 2.1), `bio_get_hal_flags()` (2.5 names the setter), | | |

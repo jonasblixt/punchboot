@@ -18,9 +18,9 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb, with the
     SPL's fastboot (D-089), in BOOT0 and BOOT1; boot switches on eMMC, BOOT1 enabled. Linux from
     System A. Never `reboot` it (F-452).
-  - RT1060 from its NOR: `9303b4cd` (F-457, F-209, F-138's stall), the simple bench 7 of 7. The MEK: `36696ae7`'s pb in BOOT1
+  - RT1060 from its NOR: `e880cd49` (F-457, F-209, F-138, D-073's stalls), the bench 7 of 7. The MEK: `e880cd49`'s pb in BOOT1
     (enabled), BOOT0 its pb of 2026-11-14; F-172 reproduced, it came back by itself. The 8MP EVK:
-    `c3301080`'s two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of
+    `e880cd49`'s two-stage pb in BOOT1 (enabled, switches on eMMC), the single-stage pb of
     2026-11-14 in BOOT0.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
