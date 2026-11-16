@@ -254,6 +254,12 @@ Records stay until Linux erases them (`rm` in `/sys/fs/pstore` after `mount
 `dmesg-ramoops-N`), so after a reset that saved nothing (power, a hard hang)
 the newest record is from an earlier boot: check the time.
 
+The 8MP EVK: Linux's PCA9450 driver restarts through the PMIC's SW_RST, a cold reset that
+loses the DRAM, at a higher priority than PSCI. The test bench's kernel patch
+(`board/imx8mpevk/patches/linux`) puts it below PSCI, whose reset is TF-A's WDOG_B, warm with
+the DTS's `nxp,wdog_b-warm-reset`: records survive `reboot` and a panic restart (F-156). pb's
+banner says POR (0x1) after it all the same.
+
 A hang: `pb-watchdog` (`package/pb-watchdog`, instead of BusyBox's daemon)
 keeps the watchdog alive every 5 s and sets a 2 s pretimeout, and the
 kernel's panic pretimeout governor panics Linux 2 s before the watchdog

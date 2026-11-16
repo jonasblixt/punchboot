@@ -1,6 +1,6 @@
 BR2_aarch64=y
 BR2_cortex_a53=y
-BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/patches"
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/patches $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/imx8mpevk/patches"
 BR2_DOWNLOAD_FORCE_CHECK_HASHES=y
 
 # Toolchain: musl, kickstart is linked statically
