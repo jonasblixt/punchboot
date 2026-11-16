@@ -3,3 +3,9 @@
 # OP-TEE adds to the device tree
 CONFIG_TEE=y
 CONFIG_OPTEE=y
+
+# No cpuidle (F-444). The 6UL's deepest idle state ("ARM power off",
+# cpuidle-imx6sx.c) powers the core down without OP-TEE; on wake up the ROM
+# jumps to Linux's resume address in the secure state, with MVBAR UNKNOWN,
+# and the next SMC (an OP-TEE call, PSCI's reset) faults in Monitor mode
+# CONFIG_CPU_IDLE is not set

@@ -94,6 +94,8 @@ make BOARD=jiffy ADDON=optee   # jiffy with OP-TEE, in output/jiffy-optee
   adds its nodes to the device tree (128 KiB, `CFG_DTB_MAX_SIZE`) and enters Linux. Linux has
   the TEE driver (`board/jiffy/linux-optee.fragment`), the root file system tee-supplicant and
   xtest (the add-on's toolchain has C++ for it). punchboot's pb from it boots the plain `boot.bpak` too, directly.
+  The add-on's kernel has no cpuidle (F-444): the 6UL's "ARM power off" idle state wakes the core
+  through the ROM in the secure state, without OP-TEE, and the next SMC faults.
 
 ## Output (`output/<board>/images/`)
 
@@ -575,7 +577,7 @@ board/pico8ml/
 board/jiffy/
   dts/                   imx6ul-jiffy.dts (from jiffy's test bench)
   linux.fragment         on top of imx_v6_v7_defconfig
-  linux-optee.fragment   the OP-TEE add-on: the TEE driver
+  linux-optee.fragment   the OP-TEE add-on: the TEE driver, no cpuidle
   punchboot-optee.fragment  the OP-TEE add-on: CONFIG_BOOT_OPTEE
   patches/linux/         FAN5355 regulator support
 boot/punchboot/          punchboot from this tree (BR2_TARGET_PUNCHBOOT)
