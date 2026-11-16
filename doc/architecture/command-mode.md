@@ -375,6 +375,8 @@ command's meaning (section 7).
 | `NO_MEMORY`                      | A buffer id or a size the buffers don't have                               |
 | `STREAM_NOT_INITIALIZED`         | A stream command without a stream (5.4)                                    |
 | `PART_VERIFY_FAILED`             | The hash differs, or the partition couldn't be read (5.3)                  |
+| `BAD_PAYLOAD`                    | A boot's image whose payload doesn't have the header's hash (`boot.md`     |
+|                                  | 4.2). New in 3.0.0: a release answered `ERROR` (F-087)                     |
 | `IO_ERROR`                       | The storage failed, or the partition's flags forbid it (5.3)               |
 | `TIMEOUT`, `MEM_ERROR`, `ERROR`  | A driver's timeout; pb's memory; everything else                           |
 
