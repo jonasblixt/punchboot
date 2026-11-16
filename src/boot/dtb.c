@@ -16,12 +16,14 @@
  */
 
 #include <boot/dtb.h>
+#include <boot/image_helpers.h>
 #include <boot/image_regions.h>
 #include <bpak/id.h>
 #include <inttypes.h>
 #include <libfdt.h>
 #include <limits.h>
 #include <pb/pb.h>
+#include <stdbool.h>
 #include <string.h>
 
 /* [a, a + a_len) and [b, b + b_len) share a byte */
@@ -34,19 +36,19 @@ static bool overlaps(uintptr_t a, size_t a_len, uintptr_t b, size_t b_len)
 static int dtb_part(struct bpak_header *hdr, bpak_id_t dtb_id, uintptr_t *addr, size_t *part_size)
 {
     struct bpak_part_header *ph;
-    struct bpak_meta_header *mh;
+    uint64_t load_addr;
 
     if (bpak_get_part(hdr, dtb_id, &ph) != BPAK_OK) {
         LOG_ERR("Could not read dtb bpak part meta");
         return -PB_ERR_BAD_META;
     }
 
-    if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, dtb_id, &mh) != BPAK_OK) {
+    if (boot_image_load_addr(hdr, dtb_id, &load_addr) != PB_OK) {
         LOG_ERR("Could not read dtb load addr meta");
         return -PB_ERR_BAD_META;
     }
 
-    *addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+    *addr = (uintptr_t)load_addr;
     *part_size = bpak_part_size(ph);
 
     /* The header is read at the load address: it is in bytes the payload's
@@ -59,6 +61,47 @@ static int dtb_part(struct bpak_header *hdr, bpak_id_t dtb_id, uintptr_t *addr, 
     }
 
     return PB_OK;
+}
+
+/* A block of the header's, from 'base' for 'size' bytes, after the header and
+ * inside the tree */
+static bool dtb_block_inside(uint32_t header_size, uint32_t total, uint32_t base, uint32_t size)
+{
+    return base >= header_size && base <= total && size <= total - base;
+}
+
+/*
+ * The header's every block inside the tree, as libfdt's fdt_check_header()
+ * has it since 1.4.7: the vendored 1.4.1's checks the magic and the version,
+ * and fdt_open_into() trusted the rest (F-411, D-091). The reserve map is 8
+ * byte aligned and ends (an entry of size 0) inside the tree, which
+ * fdt_open_into() counts without a bound. Version 17, which dtc writes:
+ * before it libfdt sizes the structure block by walking it, unbounded
+ */
+static int dtb_header_check(const void *fdt, uint32_t total)
+{
+    const uint32_t header_size = sizeof(struct fdt_header);
+    uint32_t rsvmap = fdt_off_mem_rsvmap(fdt);
+
+    if (fdt_version(fdt) < 17 || fdt_last_comp_version(fdt) > fdt_version(fdt))
+        return -PB_ERR;
+
+    if (!dtb_block_inside(header_size, total, fdt_off_dt_struct(fdt), fdt_size_dt_struct(fdt)) ||
+        !dtb_block_inside(header_size, total, fdt_off_dt_strings(fdt), fdt_size_dt_strings(fdt)) ||
+        !dtb_block_inside(header_size, total, rsvmap, 0) || (rsvmap % 8) != 0)
+        return -PB_ERR;
+
+    for (uint32_t off = rsvmap;; off += sizeof(struct fdt_reserve_entry)) {
+        const struct fdt_reserve_entry *e;
+
+        if (total - off < sizeof(struct fdt_reserve_entry))
+            return -PB_ERR;
+
+        e = (const struct fdt_reserve_entry *)((const char *)fdt + off);
+
+        if (fdt64_to_cpu(e->size) == 0)
+            return PB_OK;
+    }
 }
 
 /* The size of the device tree in a part of 'part_size' bytes: a device tree
@@ -83,13 +126,18 @@ static int dtb_size(const void *fdt, size_t part_size, size_t *size)
         return -PB_ERR;
     }
 
+    if (dtb_header_check(fdt, (uint32_t)*size) != PB_OK) {
+        LOG_ERR("The device tree's header has a block outside the tree");
+        return -PB_ERR;
+    }
+
     return PB_OK;
 }
 
 int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt)
 {
     int rc;
-    struct bpak_meta_header *mh;
+    uint64_t p_load_addr;
     uintptr_t addr;
     size_t part_size;
     size_t size;
@@ -117,10 +165,10 @@ int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, vo
         if (!p->id)
             break;
 
-        if (p->id == dtb_id || bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh) != BPAK_OK)
+        if (p->id == dtb_id || boot_image_load_addr(hdr, p->id, &p_load_addr) != PB_OK)
             continue;
 
-        uintptr_t p_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+        uintptr_t p_addr = (uintptr_t)p_load_addr;
 
         if (overlaps(addr, room, p_addr, bpak_part_size(p))) {
             LOG_ERR("Device tree with headroom overlaps part 0x%x", p->id);

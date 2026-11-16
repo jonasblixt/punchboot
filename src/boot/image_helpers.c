@@ -218,7 +218,6 @@ static int refuse_parts_outside_the_hash(struct bpak_header *hdr)
 
 int boot_image_verify_parts(struct bpak_header *hdr)
 {
-    struct bpak_meta_header *mh;
     int rc;
 
     /* Not on the stack: 512 bytes, of the RT's 4 KiB */
@@ -242,15 +241,15 @@ int boot_image_verify_parts(struct bpak_header *hdr)
         if (!p->id)
             break;
 
-        if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh) != BPAK_OK) {
+        /* In 64 bits, as the image has it: an address the arch can't hold is
+         * inside no region */
+        uint64_t addr;
+        uint64_t size = bpak_part_size(p);
+
+        if (boot_image_load_addr(hdr, p->id, &addr) != PB_OK) {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
             return -PB_ERR_BAD_META;
         }
-
-        /* In 64 bits, as the image has it: an address the arch can't hold is
-         * inside no region */
-        uint64_t addr = *bpak_get_meta_ptr(hdr, mh, uint64_t);
-        uint64_t size = bpak_part_size(p);
 
         if (!boot_image_in_regions(addr, size)) {
             LOG_ERR("Part 0x%x isn't inside an image data region", p->id);
@@ -283,7 +282,6 @@ int boot_image_verify_parts(struct bpak_header *hdr)
 
 int boot_image_verify_parts_in_place(struct bpak_header *hdr, uintptr_t base, size_t size)
 {
-    struct bpak_meta_header *mh;
     int rc;
 
     rc = bpak_valid_header(hdr);
@@ -301,17 +299,15 @@ int boot_image_verify_parts_in_place(struct bpak_header *hdr, uintptr_t base, si
         if (!p->id)
             break;
 
-        rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh);
+        /* In 64 bits: nothing wraps, and an address the arch can't hold is
+         * outside the range like any other */
+        uint64_t load_addr;
+        uint64_t part_size = bpak_part_size(p);
 
-        if (rc != BPAK_OK) {
+        if (boot_image_load_addr(hdr, p->id, &load_addr) != PB_OK) {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
             return -PB_ERR_BAD_META;
         }
-
-        /* In 64 bits: nothing wraps, and an address the arch can't hold is
-         * outside the range like any other */
-        uint64_t load_addr = *bpak_get_meta_ptr(hdr, mh, uint64_t);
-        uint64_t part_size = bpak_part_size(p);
 
         if (load_addr < base || part_size > size || load_addr - base > size - part_size) {
             LOG_ERR("Part 0x%x isn't inside its partition", p->id);
@@ -355,7 +351,6 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
     uintptr_t load_addr;
     int hash_kind;
     size_t hash_length;
-    struct bpak_meta_header *mh;
 
     rc = bpak_valid_header(hdr);
 
@@ -395,16 +390,17 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
         if (!p->id)
             break;
 
-        load_addr = 0;
-        rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, p->id, &mh);
+        uint64_t part_addr;
 
-        if (rc != BPAK_OK) {
+        load_addr = 0;
+        rc = boot_image_load_addr(hdr, p->id, &part_addr);
+
+        if (rc != PB_OK) {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
-            rc = -PB_ERR_BAD_META;
             break;
         }
 
-        load_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+        load_addr = (uintptr_t)part_addr;
 
         LOG_DBG("Loading part %x --> %" PRIxPTR ", %zu bytes", p->id, load_addr, bpak_part_size(p));
 

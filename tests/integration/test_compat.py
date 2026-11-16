@@ -99,6 +99,17 @@ def test_golden_image_boots_from_partition(device: Device, img: pathlib.Path) ->
     assert device.boot() == "A"
 
 
+@pytest.mark.parametrize("img", [golden(img) for img in IMAGES])
+def test_golden_load_addresses_are_u64(img: pathlib.Path) -> None:
+    # The size the bpak CLI's integer encoder writes, in both releases: pb
+    # reads such a meta as it always did (F-065, boot_image_load_addr())
+    header = bpak.bpak_header.unpack(img.read_bytes())
+    sizes = [m.size for m in header.meta if m.id == punchboot.pb_id("pb-load-addr")]
+
+    assert len(sizes) == len(bpak.parts(header))
+    assert set(sizes) == {8}
+
+
 def payload_hash(img: pathlib.Path, *, every_part: bool) -> tuple[bytes, bytes]:
     """Return the header's payload hash and the SHA-256 of the image's parts.
 
