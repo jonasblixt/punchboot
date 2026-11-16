@@ -196,6 +196,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2026-11-13 (`b31112fc`, `54c36b42`): the publish job fails unless the tag is `v` plus `version.txt`; | | |
 | | | every action is pinned to the commit its tag names (checked with `git ls-remote`). Left: the long- | | |
 | | | lived token, the dev image, CI builds only `pb.bin`, warnings don't fail | | |
+| | | 2026-11-16 (`ac00e5bf`, `c877f656`): a warning fails CI's firmware builds (`PB_WERROR=1`; all seven | | |
+| | | boards are clean from a clean build, Mbed TLS's `-Wredundant-decls` off for its sources), and the | | |
+| | | RT1060's job builds `testbench/simple`. Left: the long-lived token, the dev image, the signed images | | |
 | F-230 | `doc/guides/testing.md`, `status.md` | Line coverage is 91.0% (4445/4886), not | Reported (probe) | open |
 | | | 99.2%. `imx_caam.c` 38%: `caam_ecda_verify` and the hash path 0%. Never compiled by a host test: | | |
 | | | `boot/atf.c`, `boot/simple.c`, `usbd.c`, `pb_dev_cls.c`, `partition/static.c`. No tests: `imx_ocotp.c`, | | |
