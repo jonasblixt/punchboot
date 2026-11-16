@@ -869,6 +869,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | ID | Finding | Status |
 |---|---|---|
 | F-033 | imx8mevk unfinished (`board_init` returns error, no Kconfig). Orphan defconfigs `bebop`, `pico8ml`. imxrt untouched since 2023. | open: ask Jonas |
+| | | 2026-11-16 (`35654093`, Jonas: remove it): `bebop_defconfig` is gone. Left: imx8mevk (F-300) | | |
 | | Checked 2026-11-12: imx8mevk is described by `struct board` and builds, what it lacks is F-300. | |
 | | The RT1060 EVK runs on the bench. Left: `bebop_defconfig` and `pico8ml_defconfig` have no | |
 | | board in `src/board/`; which boards to keep | |
