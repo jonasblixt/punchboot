@@ -2482,6 +2482,13 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-17 (`fb129240`): the migration guide's 19.1 is a before and an after from v2.7.1's jiffy, | | |
 | | | its sections 1 and 13 and the example name `slc_fuses`; the porting guide's 2.3, 2.4 and step 8 say | | |
 | | | what the code does. With F-442 (`8233e199`) Mbed TLS is the core's | | |
+| F-066 | `src/lib/der_helpers.c` | `der_ecsig_to_rs` has no callers and doesn't left-pad short r/s. `der_ec_public_key_data` memcmp with a data-supplied length (0 matches anything, and an OID longer than the reference reads past it); `s -= 2` can underflow. | Reported | fixed |
+| | | 2026-11-13 (`ab002f9f`): `der_ec_public_key_data()` takes the key's length and reads nothing past | | |
+| | | it; OIDs match on length and bytes. What is left of F-066 is in F-410 (the point's form and length) | | |
+| | | 2026-11-17, checked: `der_ec_public_key_data()` checks the BIT STRING's unused bits, the | | |
+| | | uncompressed form and the curve's length (`ab002f9f`), the CAAM checks them (`e6d029fe`), and since | | |
+| | | F-286 (5) the core reads every key's curve with it; `der_ecsig_to_rs()` pads and is strict | | |
+| | | (`8c38c2b2`). Nothing of F-066 is left | | |
 
 ## Dependencies / vendored code
 
