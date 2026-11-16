@@ -2489,6 +2489,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | uncompressed form and the curve's length (`ab002f9f`), the CAAM checks them (`e6d029fe`), and since | | |
 | | | F-286 (5) the core reads every key's curve with it; `der_ecsig_to_rs()` pads and is strict | | |
 | | | (`8c38c2b2`). Nothing of F-066 is left | | |
+| F-135 | `src/arch/armv7a`, `src/plat/imx6ul/plat.c` `plat_mmu_init` | Nothing sets ACTLR.SMP before the MMU and caches are enabled; as I recall it, the Cortex-A7 MPCore TRM asks for that. What it changes on jiffy is unknown: the 2026-10-29 breadcrumbs show write-back caching of `.no_init` works without it, so it doesn't simply leave Shareable memory uncached (first guess in the USB review, withdrawn). | Reported (TRM from memory, not in `~/work/manuals`) | fixed |
+| | | 2026-11-17 (`661d0e14`): the Cortex-A7 MPCore TRM (DDI0464F, 2.4, 4.3.31; in the library) asks for | | |
+| | | ACTLR.SMP before the caches, the MMU and any maintenance, and with it clear the caches are off | | |
+| | | whatever SCTLR.C says. pb_entry sets it on a Cortex-A7; jiffy's ROM leaves 0x00006040, SMP set, so | | |
+| | | nothing changed there (the same timings, Linux). The like bit of the 8M's and the 8X's cores is | | |
+| | | F-469 | | |
+| F-469 | `src/arch/armv8a/entry.S` | CPUECTLR_EL1.SMPEN on the A53 and the A35 | Verified (boards, U-Boot) | fixed |
+| | | The Cortex-A53 (i.MX8M) and Cortex-A35 (i.MX8X) need CPUECTLR_EL1.SMPEN set before the caches and | | |
+| | | the MMU are on and before any cache or TLB maintenance, also with one core (U-Boot's ARMV8_SET_SMPEN | | |
+| | | help; the TRMs aren't in the library). Read on the boards with a debug build: the 8MP EVK's and the | | |
+| | | MEK's ROM leave CPUECTLR_EL1 at 0, and pb ran at EL3 with its caches and MMU on and SMPEN clear; | | |
+| | | TF-A's reset handler sets it after pb. Found from F-135 | | |
+| | | 2026-11-17 (`5f79b257`): `_reset` sets it at EL3 on those two cores (MIDR), before anything else; | | |
+| | | `arch_init()` logs what was left. The 8MP EVK and the MEK: Linux to the login and pb after `reboot`, | | |
+| | | on the MEK 32 MiB written and verified | | |
 
 ## Dependencies / vendored code
 
