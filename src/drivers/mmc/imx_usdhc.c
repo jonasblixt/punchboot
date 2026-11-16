@@ -26,7 +26,8 @@
 #define ADMA2_DESCS            512
 #define USDHC_MAX_CHUNK_BYTES  SZ_MiB(30)
 
-/* Polling timeouts, the data timeout grows with the transfer at 1 MB/s */
+/* Polling timeouts. A write's data timeout grows with the transfer at 1 MB/s,
+ * a read's is the header's IMX_USDHC_READ_TIMEOUT_us() */
 #define USDHC_CLK_TIMEOUT_us   10000
 #define USDHC_RESET_TIMEOUT_us 100000
 #define USDHC_BUSY_TIMEOUT_us  5000000
@@ -201,15 +202,37 @@ static int imx_usdhc_set_delay_tap(void *priv, unsigned int tap)
     return PB_OK;
 }
 
+/*
+ * The address the controller gets for 'len' bytes at 'addr'. ADMA_SYS_ADDR
+ * and an ADMA2 descriptor's address are 32 bits: a range that doesn't end
+ * below 4 GiB is refused, not truncated (drivers.md 4.2)
+ */
+static int usdhc_dma_addr(const void *addr, size_t len, uint32_t *dma_addr)
+{
+    if ((uint64_t)(uintptr_t)addr + len > (uint64_t)UINT32_MAX + 1)
+        return -PB_ERR_PARAM;
+
+    *dma_addr = (uint32_t)(uintptr_t)addr;
+    return PB_OK;
+}
+
 /* The ADMA2 descriptors and block attributes of a transfer */
 static int imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, size_t blocks)
 {
     uintptr_t buf_ptr = (uintptr_t)buf;
     size_t length = block_size * blocks;
     size_t n = 0;
+    uint32_t buf_addr;
+    uint32_t tbl_addr;
 
     if (blocks > BLK_ATT_BLKCNT_MAX || length > ADMA2_DESCS * ADMA2_MAX_BYTES)
         return -PB_ERR_IO;
+
+    if (usdhc_dma_addr(buf, length, &buf_addr) != PB_OK ||
+        usdhc_dma_addr(u->tbl, sizeof(u->tbl[0]) * ADMA2_DESCS, &tbl_addr) != PB_OK) {
+        LOG_ERR("DMA above 4 GiB: buffer %p, descriptors %p", buf, (void *)u->tbl);
+        return -PB_ERR_PARAM;
+    }
 
     arch_clean_cache_range(buf_ptr, length);
 
@@ -219,14 +242,14 @@ static int imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, 
         length -= chunk;
         u->tbl[n].len = chunk;
         u->tbl[n].attr = ADMA2_ATTR_ACT_TRAN | ADMA2_ATTR_VALID | (length ? 0 : ADMA2_ATTR_END);
-        u->tbl[n].addr = (uint32_t)buf_ptr;
-        buf_ptr += chunk;
+        u->tbl[n].addr = buf_addr;
+        buf_addr += chunk;
         n++;
     }
 
     arch_clean_cache_range((uintptr_t)u->tbl, sizeof(u->tbl[0]) * n);
 
-    usdhc_write(u, USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t)u->tbl);
+    usdhc_write(u, USDHC_ADMA_SYS_ADDR, tbl_addr);
     usdhc_write(u, USDHC_BLK_ATT, BLK_ATT_BLKCNT(blocks) | BLK_ATT_BLKSIZE(block_size));
     return PB_OK;
 }
@@ -336,7 +359,12 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
     } while (!(state & (INT_CC | INT_CTOE)));
 
     if (err || (state & INT_CMD_ERRORS)) {
-        if (!err)
+        /* No response is a timeout (drivers.md 3): mmc_sd.c tells an SD 1.x
+         * card by it. CTOE with CCE is a conflict on the CMD line (RM,
+         * INT_STATUS) */
+        if (!err && (state & (INT_CTOE | INT_CCE)) == INT_CTOE)
+            err = -PB_ERR_TIMEOUT;
+        else if (!err)
             err = -PB_ERR_IO;
         if (cmd->quiet)
             LOG_DBG("imx_usdhc CMD%u state 0x%x errno=%d", cmd->idx, state, err);
@@ -365,7 +393,14 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
     } else if (data) {
         struct pb_timeout to;
 
-        pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + cmd->block_size * cmd->blocks);
+        size_t bytes = (size_t)cmd->block_size * cmd->blocks;
+
+        /* A read's bound is the header's, which the boards size their
+         * chunks by (F-321); a write's covers the card's programming */
+        if (cmd->write)
+            pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + bytes);
+        else
+            pb_timeout_init_us(&to, IMX_USDHC_READ_TIMEOUT_us(bytes));
         do {
             state = usdhc_read(u, USDHC_INT_STATUS);
 
@@ -532,6 +567,9 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
         .delay_tap_default = cfg->delay_tap,
         .card_present = cfg->card_detect ? imx_usdhc_card_present : NULL,
         .max_chunk_bytes = USDHC_MAX_CHUNK_BYTES,
+        /* No HS400: the strobe DLL and MIX_CTRL's HS400 mode aren't set up */
+        .hs400 = false,
+        .hs400_es = false,
     };
 
     return mmc_init(&u->hal, &cfg->mmc_config, NULL);

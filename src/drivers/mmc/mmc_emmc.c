@@ -151,6 +151,7 @@ static int mmc_set_ext_csd(struct mmc_device *dev,
                            unsigned int value,
                            unsigned int timeout)
 {
+    struct pb_timeout to;
     int ret;
 
     if (timeout == 0) {
@@ -167,14 +168,21 @@ static int mmc_set_ext_csd(struct mmc_device *dev,
         return ret;
     }
 
-    do {
+    /* The HAL waited for the end of busy (R1b); the card's own time for the
+     * switch, from its EXT_CSD, bounds what is left of Programming */
+    pb_timeout_init_us(&to, timeout * 1000);
+    while (true) {
         ret = mmc_device_state(dev, timeout);
         if (ret < 0) {
             return ret;
         }
-    } while (ret == MMC_STATE_PRG);
-
-    return 0;
+        if (ret != MMC_STATE_PRG)
+            return 0;
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("CMD6 [%u]: still programming after %u ms", ext_cmd, timeout);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 }
 
 int mmc_extcsd_write(struct mmc_device *dev, uint16_t field_id, uint8_t value)
@@ -281,7 +289,11 @@ static int set_boot_part(struct mmc_device *dev, enum mmc_part part)
  */
 static int mmc_bio_write_done(bio_dev_t bdev, int param)
 {
+    int rc = mmc_bio_ready(bio_mmc(bdev));
+
     (void)param;
+    if (rc != PB_OK)
+        return rc;
     return set_boot_part(bio_mmc(bdev), bio_part(bdev));
 }
 
@@ -289,6 +301,10 @@ static int mmc_bio_read(bio_dev_t bdev, lba_t lba, size_t length, void *buf)
 {
     struct mmc_device *dev = bio_mmc(bdev);
     int rc;
+
+    rc = mmc_bio_ready(dev);
+    if (rc != PB_OK)
+        return rc;
 
     rc = mmc_part_switch(dev, bio_part(bdev));
     if (rc != PB_OK)
@@ -301,6 +317,10 @@ static int mmc_bio_write(bio_dev_t bdev, lba_t lba, size_t length, const void *b
 {
     struct mmc_device *dev = bio_mmc(bdev);
     int rc;
+
+    rc = mmc_bio_ready(dev);
+    if (rc != PB_OK)
+        return rc;
 
     /*
      * Never write the boot partition the ROM boots from. If the write is
@@ -331,7 +351,8 @@ static int mmc_bio_write(bio_dev_t bdev, lba_t lba, size_t length, const void *b
 /* One CMD21 at a delay tap: does the tuning block arrive intact? */
 static bool tune_tap_ok(struct mmc_device *dev, unsigned int tap)
 {
-    bool bus8 = dev->cfg->width == MMC_BUS_WIDTH_8BIT;
+    /* HS400 is tuned on the 8 bit bus in HS200 */
+    bool bus8 = dev->cfg->width == MMC_BUS_WIDTH_8BIT || dev->cfg->width == MMC_BUS_WIDTH_8BIT_DDR;
     const uint8_t *pattern = bus8 ? tuning_blk_pattern_8bit : tuning_blk_pattern_4bit;
     size_t len = bus8 ? sizeof(tuning_blk_pattern_8bit) : sizeof(tuning_blk_pattern_4bit);
     struct mmc_cmd cmd = {
@@ -361,6 +382,8 @@ static int hs200_tune(struct mmc_device *dev)
     unsigned int taps = dev->hal->delay_taps;
     unsigned int start = plat_get_us_tick();
     int best_lo = -1, best_hi = -1, run_lo = -1;
+
+    (void)start; /* Only the log line uses it, LOG_INFO may not be compiled in */
 
     if (taps == 0 || dev->hal->set_delay_tap == NULL)
         return PB_OK;
@@ -399,7 +422,97 @@ static int hs200_tune(struct mmc_device *dev)
 
     return dev->hal->set_delay_tap(dev->hal->priv, tap);
 }
+
+/*
+ * Back from HS200 to high speed when the tuning found no tap: the board's
+ * tap and 52 MHz first, then HS_TIMING 1 and the status. The tap the sweep
+ * ended on failed, and so did the board's, so at 200 MHz the CMD6 and its
+ * response would be sampled where nothing works. HS200 timing holds at any
+ * clock up to 200 MHz (JESD84-B51 6.6.2.2), and Linux's mmc_select_hs400()
+ * lowers the clock before the same switch. Only after a failed tuning: the
+ * success paths keep their order
+ */
+static int hs200_fallback(struct mmc_device *dev)
+{
+    int rc;
+
+    dev->hal->set_delay_tap(dev->hal->priv, dev->hal->delay_tap_default);
+
+    rc = mmc_set_bus_clock(dev, MHz(52));
+    if (rc == PB_OK)
+        rc = mmc_send_cmd(dev,
+                          MMC_CMD_SWITCH,
+                          EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_HS_TIMING) |
+                              EXTCSD_VALUE(EXT_CSD_TIMING_HS) | EXTCSD_CMD_SET_NORMAL,
+                          MMC_RSP_R1b,
+                          NULL);
+    if (rc == PB_OK)
+        rc = mmc_wait_state(dev, MMC_STATE_TRAN, dev->generic_cmd6_time_ms);
+    return rc;
+}
+
+/*
+ * HS400 without Enhanced Strobe is selected from HS200 after tuning
+ * (JESD84-B51 6.6.2.3, steps 3 to 6): 8 bit SDR, HS_TIMING 2, 200 MHz and
+ * CMD21, then HS_TIMING 1 at 52 MHz, from where HS400 is selected.
+ * -PB_ERR_NOT_FOUND when no tap works: the device is left in high speed with
+ * the board's tap, as for HS200 (hs200_fallback())
+ */
+static int hs400_tune(struct mmc_device *dev)
+{
+    int tune_rc;
+    int rc;
+
+    rc = mmc_set_bus_width(dev, MMC_BUS_WIDTH_8BIT);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = mmc_set_ext_csd(dev, EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS200, 0);
+    if (rc != PB_OK) {
+        LOG_ERR("Could not switch to HS200 timing");
+        return rc;
+    }
+
+    rc = mmc_set_bus_clock(dev, MHz(200));
+    if (rc != PB_OK)
+        return rc;
+
+    tune_rc = hs200_tune(dev);
+    if (tune_rc == -PB_ERR_NOT_FOUND) {
+        rc = hs200_fallback(dev);
+        return (rc != PB_OK) ? rc : tune_rc;
+    } else if (tune_rc != PB_OK) {
+        return tune_rc;
+    }
+
+    /* CMD6 in HS200, the clock down, then the status (JESD84-B51 6.6.2.3) */
+    rc = mmc_send_cmd(dev,
+                      MMC_CMD_SWITCH,
+                      EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_HS_TIMING) |
+                          EXTCSD_VALUE(EXT_CSD_TIMING_HS) | EXTCSD_CMD_SET_NORMAL,
+                      MMC_RSP_R1b,
+                      NULL);
+    if (rc == PB_OK)
+        rc = mmc_set_bus_clock(dev, MHz(52));
+    if (rc == PB_OK)
+        rc = mmc_wait_state(dev, MMC_STATE_TRAN, dev->generic_cmd6_time_ms);
+    if (rc != PB_OK)
+        return rc;
+
+    return tune_rc;
+}
 #endif // CONFIG_MMC_CORE_HS200_TUNE
+
+/* Whether HS200 tuning is built in and the host has delay taps */
+static bool can_tune(const struct mmc_device *dev)
+{
+#ifdef CONFIG_MMC_CORE_HS200_TUNE
+    return dev->hal->delay_taps > 0 && dev->hal->set_delay_tap != NULL;
+#else
+    (void)dev;
+    return false;
+#endif
+}
 
 /* The DEVICE_TYPE bits that allow a bus mode */
 static uint8_t mode_card_types(enum mmc_bus_mode mode)
@@ -472,34 +585,36 @@ static int mmc_select_bus_mode(struct mmc_device *dev)
         if (rc == -PB_ERR_NOT_FOUND) {
             /* Boot slower rather than not at all: high speed needs no tuning */
             LOG_WARN("HS200 tuning failed, using high speed (52 MHz)");
-            dev->hal->set_delay_tap(dev->hal->priv, dev->hal->delay_tap_default);
-            /* CMD6 in HS200, the clock down, then the status (JESD84-B51 6.6.2.3) */
-            rc = mmc_send_cmd(dev,
-                              MMC_CMD_SWITCH,
-                              EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_HS_TIMING) |
-                                  EXTCSD_VALUE(EXT_CSD_TIMING_HS) | EXTCSD_CMD_SET_NORMAL,
-                              MMC_RSP_R1b,
-                              NULL);
-            if (rc == PB_OK)
-                rc = mmc_set_bus_clock(dev, MHz(52));
-            if (rc == PB_OK)
-                rc = mmc_wait_state(dev, MMC_STATE_TRAN, dev->generic_cmd6_time_ms);
+            rc = hs200_fallback(dev);
         }
         if (rc != 0)
             return rc;
 #endif
     } break;
     case MMC_BUS_MODE_HS400: {
-        /* TODO: This is not complete and not usable yet,
-         * Strobe DLL configuration is missing. It seems to work
-         * on the imx8qxpmek evk */
+        /* Only on a host that says it runs HS400 (mmc_emmc_setup()) */
         LOG_DBG("Switching to HS400");
-        /* Before we can switch the bus to 8-bit DDR the device must
-         * be in HS mode */
-        rc = mmc_set_ext_csd(dev, EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
-        if (rc != PB_OK) {
-            LOG_ERR("Could not switch to HS timing");
-            return rc;
+        if (cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE) {
+            /* Before we can switch the bus to 8-bit DDR the device must
+             * be in HS mode */
+            rc = mmc_set_ext_csd(dev, EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
+            if (rc != PB_OK) {
+                LOG_ERR("Could not switch to HS timing");
+                return rc;
+            }
+        } else {
+#ifdef CONFIG_MMC_CORE_HS200_TUNE
+            rc = hs400_tune(dev);
+            if (rc == -PB_ERR_NOT_FOUND) {
+                /* Boot slower rather than not at all, as HS200 does */
+                LOG_WARN("HS400 tuning failed, using high speed (52 MHz)");
+                break;
+            }
+            if (rc != PB_OK)
+                return rc;
+#else
+            return -PB_ERR_NOT_SUPPORTED; /* mmc_emmc_setup() refused it */
+#endif
         }
 
         rc = mmc_set_bus_width(dev, cfg->width);
@@ -536,11 +651,18 @@ static int mmc_add_part(struct mmc_device *dev,
                         uint16_t flags,
                         bool boot)
 {
-    bio_dev_t d = bio_allocate(0, last_lba, MMC_BLOCK_SIZE, uu, name);
+    bio_dev_t d;
     int rc;
+
+    rc = mmc_bio_check(dev, uu, last_lba);
+    if (rc != 0)
+        return (rc > 0) ? PB_OK : rc;
+
+    d = bio_allocate(0, last_lba, MMC_BLOCK_SIZE, uu, name);
 
     if (d < 0)
         return d;
+    dev->registered = true;
 
     rc = bio_set_hal_flags(d, hal_flag);
     if (rc < 0)
@@ -573,6 +695,31 @@ int mmc_emmc_setup(struct mmc_device *dev)
     mmc_cmd_resp_t resp_data;
 
     LOG_DBG("eMMC init");
+
+    /* HS400 runs on the 8 bit DDR bus, BUS_WIDTH 6 or, with Enhanced Strobe,
+     * 0x86 (JESD84-B51 6.6.2.3, 7.4.67): another width is the board's
+     * mistake, refused before the card is switched */
+    if (cfg->mode == MMC_BUS_MODE_HS400 && cfg->width != MMC_BUS_WIDTH_8BIT_DDR &&
+        cfg->width != MMC_BUS_WIDTH_8BIT_DDR_STROBE) {
+        LOG_ERR("HS400 needs the 8 bit DDR bus, not width %i", cfg->width);
+        return -PB_ERR_PARAM;
+    }
+
+    /* A mode the host can't run is refused before the card is switched */
+    if (cfg->mode == MMC_BUS_MODE_HS400 &&
+        !(cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE ? dev->hal->hs400_es : dev->hal->hs400)) {
+        LOG_ERR("The host has no HS400%s",
+                cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE ? " ES" : "");
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
+    /* HS400 without Enhanced Strobe is tuned in HS200 (JESD84-B51 6.6.2.3) */
+    if (cfg->mode == MMC_BUS_MODE_HS400 && cfg->width != MMC_BUS_WIDTH_8BIT_DDR_STROBE &&
+        !can_tune(dev)) {
+        LOG_ERR("HS400 needs CONFIG_MMC_CORE_HS200_TUNE and the host's delay taps");
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
     dev->generic_cmd6_time_ms = MMC_CMD6_TIME_MAX_ms;
     dev->power_off_long_time_ms = MMC_CMD6_TIME_MAX_ms;
     dev->partition_switch_time_ms = MMC_CMD6_TIME_MAX_ms;
@@ -658,6 +805,12 @@ int mmc_emmc_setup(struct mmc_device *dev)
         return -PB_ERR_NOT_SUPPORTED;
     }
 
+    /* Enhanced Strobe, JESD84-B51 7.4.67 */
+    if (cfg->width == MMC_BUS_WIDTH_8BIT_DDR_STROBE && dev->ext_csd[EXT_CSD_STROBE_SUPPORT] == 0) {
+        LOG_ERR("The device has no Enhanced Strobe");
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
     rc = mmc_select_bus_mode(dev);
     if (rc != PB_OK)
         return rc;
@@ -720,42 +873,102 @@ int mmc_emmc_setup(struct mmc_device *dev)
                   (uint32_t)dev->ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
                   (uint32_t)dev->ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
 
-    lba_t boot_part_last_lba = 0;
-    lba_t rpmb_part_last_lba = 0;
-
+    /*
+     * In blocks, from 128 KiB units. 0 is a partition the device doesn't
+     * have (BOOT_SIZE_MULT 0: no boot partition), which gets no device: its
+     * last block would be 2^32 - 1 (bio.md 2.1)
+     */
 #ifdef CONFIG_MMC_CORE_OVERRIDE_BOOT_PART_SZ
-    boot_part_last_lba = CONFIG_MMC_CORE_BOOT_PART_SZ_KiB * 2 - 1;
+    uint32_t boot_part_blocks = CONFIG_MMC_CORE_BOOT_PART_SZ_KiB * 2;
 #else
-    boot_part_last_lba = dev->ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1;
+    uint32_t boot_part_blocks = dev->ext_csd[EXT_CSD_BOOT_MULT] * 256;
 #endif
+    uint32_t rpmb_part_blocks = dev->ext_csd[EXT_CSD_RPMB_MULT] * 256;
 
-    rpmb_part_last_lba = dev->ext_csd[EXT_CSD_RPMB_MULT] * 256 - 1;
+    if (boot_part_blocks == 0)
+        LOG_INFO("No boot partitions");
+    if (rpmb_part_blocks == 0)
+        LOG_INFO("No RPMB partition");
 
-    rc = mmc_add_part(dev,
-                      boot_part_last_lba,
-                      cfg->boot0_uu,
-                      "eMMC BOOT0",
-                      MMC_BIO_FLAG_BOOT0,
-                      BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE,
-                      true);
-    if (rc < 0)
-        return rc;
+    /* Every UUID before the first device: nothing is registered when the
+     * init fails (drivers.md 2.1) */
+    const struct {
+        const unsigned char *uu;
+        uint32_t blocks;
+    } checks[] = {
+        { cfg->boot0_uu, boot_part_blocks },
+        { cfg->boot1_uu, boot_part_blocks },
+        { cfg->rpmb_uu, rpmb_part_blocks },
+        { cfg->user_uu, 0 },
+    };
 
-    rc = mmc_add_part(dev,
-                      boot_part_last_lba,
-                      cfg->boot1_uu,
-                      "eMMC BOOT1",
-                      MMC_BIO_FLAG_BOOT1,
-                      BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE,
-                      true);
-    if (rc < 0)
-        return rc;
+    /* The devices this card gets: the user area always, the others when the
+     * card has them. Two with one UUID would register the first and fail on
+     * the second, which bio_get_part_by_uu() finds as the first */
+    bool gets_device[ARRAY_SIZE(checks)];
+
+    for (size_t i = 0; i < ARRAY_SIZE(checks); i++) {
+        gets_device[i] = (i == ARRAY_SIZE(checks) - 1) || checks[i].blocks > 0;
+
+        for (size_t j = 0; j < i; j++) {
+            if (gets_device[i] && gets_device[j] && checks[i].uu != NULL && checks[j].uu != NULL &&
+                memcmp(checks[i].uu, checks[j].uu, sizeof(uuid_t)) == 0) {
+                LOG_ERR("Two of the card's devices have one UUID");
+                return -PB_ERR_PARAM;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < ARRAY_SIZE(checks); i++) {
+        if (i == ARRAY_SIZE(checks) - 1) {
+            /* The user area's range as released, SEC_COUNT 0 included */
+            rc = mmc_bio_check(dev, checks[i].uu, dev->blocks - 1);
+        } else if (checks[i].blocks > 0) {
+            rc = mmc_bio_check(dev, checks[i].uu, checks[i].blocks - 1);
+        } else {
+            /* A partition this card doesn't have: one an earlier init
+             * registered on this controller is another card's */
+            bio_dev_t d = bio_get_part_by_uu(checks[i].uu);
+
+            rc = PB_OK;
+            if (d >= 0 && bio_get_private(d) == (uintptr_t)dev) {
+                LOG_ERR("%s: the card has no such partition", bio_get_description(d));
+                rc = -PB_ERR_IO;
+            }
+        }
+        if (rc < 0)
+            return rc;
+    }
+
+    if (boot_part_blocks > 0) {
+        rc = mmc_add_part(dev,
+                          boot_part_blocks - 1,
+                          cfg->boot0_uu,
+                          "eMMC BOOT0",
+                          MMC_BIO_FLAG_BOOT0,
+                          BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE,
+                          true);
+        if (rc < 0)
+            return rc;
+
+        rc = mmc_add_part(dev,
+                          boot_part_blocks - 1,
+                          cfg->boot1_uu,
+                          "eMMC BOOT1",
+                          MMC_BIO_FLAG_BOOT1,
+                          BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE,
+                          true);
+        if (rc < 0)
+            return rc;
+    }
 
     /* RPMB is currently R/O and only accessible from within punchboot */
-    rc = mmc_add_part(
-        dev, rpmb_part_last_lba, cfg->rpmb_uu, "eMMC RPMB", MMC_BIO_FLAG_RPMB, 0, false);
-    if (rc < 0)
-        return rc;
+    if (rpmb_part_blocks > 0) {
+        rc = mmc_add_part(
+            dev, rpmb_part_blocks - 1, cfg->rpmb_uu, "eMMC RPMB", MMC_BIO_FLAG_RPMB, 0, false);
+        if (rc < 0)
+            return rc;
+    }
 
     rc = mmc_add_part(dev,
                       dev->blocks - 1,
@@ -804,6 +1017,12 @@ static int mmc_part_switch(struct mmc_device *dev, enum mmc_part part)
     }
 
     return rc;
+}
+
+void mmc_emmc_reset(void)
+{
+    mmc_boot_part_config = -PB_ERR_STATE;
+    mmc_boot_cfg = NULL;
 }
 
 int mmc_get_boot_part_config(uuid_t part_uu)

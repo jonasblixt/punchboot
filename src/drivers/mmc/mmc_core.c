@@ -113,11 +113,14 @@ int mmc_device_state(struct mmc_device *dev, unsigned int timeout_ms)
 
         if (timeout_ms == 0) {
             LOG_ERR("CMD13 timeout");
-            return -PB_ERR_IO;
+            return -PB_ERR_TIMEOUT;
         }
 
-        ret = mmc_send_cmd(
-            dev, MMC_CMD_SEND_STATUS, dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R1, resp_data);
+        ret = mmc_send_cmd(dev,
+                           MMC_CMD_SEND_STATUS,
+                           (uint32_t)dev->rca << RCA_SHIFT_OFFSET,
+                           MMC_RSP_R1,
+                           resp_data);
 
         if (ret == PB_OK) {
             if ((resp_data[0] & STATUS_ERROR_MASK) != 0U) {
@@ -138,15 +141,23 @@ int mmc_device_state(struct mmc_device *dev, unsigned int timeout_ms)
 
 int mmc_wait_state(struct mmc_device *dev, int state, unsigned int timeout_ms)
 {
+    struct pb_timeout to;
     int rc;
 
-    do {
+    /* timeout_ms bounds the whole wait, the caller's source is its bound's */
+    pb_timeout_init_us(&to, timeout_ms * 1000);
+
+    while (true) {
         rc = mmc_device_state(dev, timeout_ms);
         if (rc < 0)
             return rc;
-    } while (rc != state);
-
-    return PB_OK;
+        if (rc == state)
+            return PB_OK;
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Card state %i, not %i, after %u ms", rc, state, timeout_ms);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 }
 
 int mmc_set_bus_clock(struct mmc_device *dev, unsigned int clk_hz)
@@ -163,9 +174,10 @@ static int mmc_rw(struct mmc_device *dev, unsigned int lba, size_t length, uintp
         .blocks = length / MMC_BLOCK_SIZE,
         .write = write,
     };
+    struct pb_timeout to;
     int ret;
 
-#ifdef MMC_CORE_DEBUG_IOS
+#ifdef CONFIG_MMC_CORE_DEBUG_IOS
     LOG_DBG("%s %u, %zu, %p", write ? "write" : "read", lba, length, (void *)buf);
 #endif
 
@@ -201,14 +213,19 @@ static int mmc_rw(struct mmc_device *dev, unsigned int lba, size_t length, uintp
     }
 
     /* Wait buffer empty */
-    do {
+    pb_timeout_init_us(&to, MMC_XFER_END_TIMEOUT_ms * 1000);
+    while (true) {
         ret = mmc_device_state(dev, MMC_DEFAULT_TIMEOUT_ms);
         if (ret < 0) {
             return ret;
         }
-    } while ((ret != MMC_STATE_TRAN) && (ret != (write ? MMC_STATE_RCV : MMC_STATE_DATA)));
-
-    return PB_OK;
+        if ((ret == MMC_STATE_TRAN) || (ret == (write ? MMC_STATE_RCV : MMC_STATE_DATA)))
+            return PB_OK;
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("CMD%u: card state %i after %u ms", cmd.idx, ret, MMC_XFER_END_TIMEOUT_ms);
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 }
 
 int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf, bool write)
@@ -231,6 +248,38 @@ int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf
     return rc;
 }
 
+int mmc_bio_check(struct mmc_device *dev, const unsigned char *uu, lba_t last_lba)
+{
+    bio_dev_t d = bio_get_part_by_uu(uu);
+
+    if (d < 0)
+        return 0;
+    if (bio_get_private(d) != (uintptr_t)dev) {
+        LOG_ERR("The UUID of %s is another device's", bio_get_description(d));
+        return -PB_ERR_PARAM;
+    }
+
+    dev->registered = true;
+
+    if (bio_get_last_block(d) != (int64_t)last_lba) {
+        LOG_ERR("%s: the card has %llu blocks, the device %lld",
+                bio_get_description(d),
+                (unsigned long long)last_lba + 1,
+                (long long)bio_get_last_block(d) + 1);
+        return -PB_ERR_IO;
+    }
+    return 1;
+}
+
+int mmc_bio_ready(const struct mmc_device *dev)
+{
+    if (!dev->ready) {
+        LOG_ERR("The card's init failed");
+        return -PB_ERR_STATE;
+    }
+    return PB_OK;
+}
+
 struct mmc_device_info *mmc_device_info(struct mmc_device *dev)
 {
     return &dev->info;
@@ -244,6 +293,12 @@ int mmc_read(struct mmc_device *dev, unsigned int lba, size_t length, uintptr_t 
 int mmc_write(struct mmc_device *dev, unsigned int lba, size_t length, const uintptr_t buf)
 {
     return mmc_rw(dev, lba, length, buf, true);
+}
+
+void mmc_reset(void)
+{
+    memset(devices, 0, sizeof(devices));
+    mmc_emmc_reset();
 }
 
 int mmc_init(const struct mmc_hal *hal,
@@ -270,8 +325,12 @@ int mmc_init(const struct mmc_hal *hal,
     if (dev == NULL)
         return -PB_ERR_MEM;
 
+    /* A free slot has no devices */
+    bool registered = dev->used && dev->registered;
+
     memset(dev, 0, sizeof(*dev));
     dev->used = true;
+    dev->registered = registered;
     dev->hal = hal;
     dev->cfg = cfg;
 
@@ -287,10 +346,18 @@ int mmc_init(const struct mmc_hal *hal,
         break;
     }
 
+    /*
+     * Devices this card registered keep its slot, also when the init fails:
+     * bio can't release them, and with the slot free the next card's init
+     * would take it and they would reach that card. They fail with
+     * -PB_ERR_STATE until an init of this controller works (drivers.md 2.1)
+     */
     if (rc != PB_OK) {
-        dev->used = false;
+        dev->used = dev->registered;
         return rc;
     }
+
+    dev->ready = true;
 
     if (dev_out != NULL)
         *dev_out = dev;

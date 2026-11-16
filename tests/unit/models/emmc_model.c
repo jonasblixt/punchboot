@@ -287,6 +287,7 @@ static struct emmc {
     int bad_width;
     unsigned int cmd_count[64];
     unsigned int cmd_first_clk_hz[64];
+    unsigned int switch_clk_hz[192]; /* At the last CMD6 to each field */
     unsigned int blocks_read;
     unsigned int blocks_written;
     /* Faults */
@@ -298,6 +299,8 @@ static struct emmc {
     int status_error_idx;
     uint32_t status_error_bits;
     int power_loss_blocks;
+    int stuck_state; /* < 0: CMD13 reports the device's state */
+    bool stuck_ready;
 } emmc;
 
 static const char *state_name(enum emmc_state s)
@@ -851,6 +854,8 @@ static void cmd_switch(uint32_t arg)
         return;
     }
 
+    emmc.switch_clk_hz[index] = emmc.bus_cfg.clk_hz;
+
     old = emmc.ext_csd[index];
     if (access == ACCESS_SET_BITS)
         value = old | value;
@@ -1281,6 +1286,16 @@ static void card_cmd(struct bus_card *card, const struct bus_cmd *cmd, struct bu
                 (emmc.app_cmd ? ST_APP_CMD : 0);
     emmc.status &= ~(pending & ST_ERROR_BITS);
 
+    /* A device that doesn't move on: each status takes a microsecond, and a
+     * host that polls it for ever is stuck */
+    if (cmd->idx == 13 && emmc.stuck_state >= 0) {
+        rsp->r[0] &= ~((0xfu << ST_STATE_SHIFT) | ST_READY_FOR_DATA);
+        rsp->r[0] |= ((uint32_t)emmc.stuck_state << ST_STATE_SHIFT) |
+                     (emmc.stuck_ready ? ST_READY_FOR_DATA : 0);
+        bench_advance_us(1);
+        bench_check_stuck("CMD13 polled");
+    }
+
     /* Execution mode errors for the test, reported with the next response */
     if ((int)cmd->idx == emmc.status_error_idx) {
         emmc.status_error_idx = -1;
@@ -1503,6 +1518,7 @@ struct bus_card *emmc_model_init(const struct emmc_model_config *cfg)
     emmc.fail_switch_index = -1;
     emmc.status_error_idx = -1;
     emmc.power_loss_blocks = -1;
+    emmc.stuck_state = -1;
     go_idle();
     return &emmc.bus;
 }
@@ -1569,6 +1585,11 @@ unsigned int emmc_model_cmd_first_clk_hz(uint8_t idx)
     return emmc.cmd_first_clk_hz[idx & 63];
 }
 
+unsigned int emmc_model_switch_clk_hz(uint8_t index)
+{
+    return (index < 192) ? emmc.switch_clk_hz[index] : 0;
+}
+
 unsigned int emmc_model_blocks_read(void)
 {
     return emmc.blocks_read;
@@ -1621,4 +1642,10 @@ void emmc_model_status_error(uint8_t idx, uint32_t bits)
 void emmc_model_power_loss_after(int blocks)
 {
     emmc.power_loss_blocks = blocks;
+}
+
+void emmc_model_stuck(enum emmc_state state, bool ready_for_data)
+{
+    emmc.stuck_state = (int)state;
+    emmc.stuck_ready = ready_for_data;
 }
