@@ -258,3 +258,11 @@ can change by mistake that a device in the field relies on. Then check:
 - **A GPT that another tool changed.** A sane table gives the same partitions and nothing is
   written. An entry that covers the table's own blocks is no longer a partition, and a device
   whose backup table is stale logs one error line per boot (2026-11-13, "The GPT").
+
+### Known
+
+- **Mbed TLS 3.4.0**, the software backend's, gets no fixes upstream any more: 3.4 isn't a
+  long term support branch, and 3.5.0 followed it in 2023. 3.0.0 ships with it, the boards
+  that use it are the RT1060 EVK's builds; it is to be replaced, with what replaces it
+  bringing the hashes the RT1060 doesn't register (F-020, F-286 (10),
+  `doc/guides/vendored.md`).

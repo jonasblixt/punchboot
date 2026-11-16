@@ -49,6 +49,10 @@ The commits named below are in this repository.
 - **Version**: 3.4.0, `MBEDTLS_VERSION` in the Dockerfile (and `MBEDTLS_VERSION_STRING` in the
   container's `include/mbedtls/build_info.h`). A firmware built outside the container gets
   whatever `MBEDTLS_DIR` points to; `build-and-test.md` asks for 3.4.0.
+- **Its state** (F-020): 3.4 is no long term support branch and has had no fixes since 3.5.0
+  (2023). 3.0.0 ships with it, in the RT1060 EVK's builds and the host tests; the boards with a
+  CAAM don't build it. It is to be replaced (Jonas, 2026-11-16), not moved to 3.6: what replaces
+  it brings the hashes the RT1060 doesn't register (F-286 (10)). The release notes say so.
 - **Licence**: Apache-2.0, the `LICENSE` of 3.4.0; check it again on an update.
 - **Local changes**: none to Mbed TLS. Its configuration is pb's
   `src/drivers/crypto/mbedtls/mbedtls_config.h`, and the glue `mbedtls_pb.c` (`crypto.md`).

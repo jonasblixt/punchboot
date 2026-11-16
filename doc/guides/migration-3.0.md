@@ -35,8 +35,8 @@ neither has the code, another board's or the header's, and the section says whic
 |         |                                                       | D-088                 |
 | 17      | An out-of-tree driver                                 | `drivers.md`          |
 | 18      | An out-of-tree platform                               | D-030, `platform.md`  |
-| 19      | `pb/dma.h`, the board's `mmap`, and not in the code   | D-066, D-054, F-247   |
-|         | yet: one change that changes a board again            |                       |
+| 19      | The RoT, the SLC and the crypto engine; `pb/dma.h`;   | F-247, D-086, D-066,  |
+|         | the board's `mmap`                                    | D-054                 |
 | 20      | Before the ported pb goes to a device in the field    | `board.md` 8          |
 
 ## 1. The board is `const struct board board`
@@ -48,7 +48,8 @@ the life cycle last.
 
 **Is.** A board defines one object, `const struct board board` (`include/pb/board.h`). `main()`
 calls `board.console_init()`, and `board_setup()` (`src/board.c`) runs the steps in one order
-for every board: `rot` and `slc`, `init()`, `ptbl`, `boot_policy`, `late_init()`, the handover.
+for every board: the root of trust and the life cycle (the platform's, with the board's
+configuration fuses, 19.1), `init()`, `ptbl`, `boot_policy`, `late_init()`, the handover.
 The hooks take no argument and are `static`. A board that needs the platform's data asks for it,
 a function each (`platform.md` 7): `imx6ul_clk_rate()`, `imx8x_ipc()`, `plat_get_info()`.
 `imx6ul_plat()` and `imx8x_plat()` are there through 3.x, deprecated.
@@ -75,8 +76,8 @@ static void board_console_init(void)
 const struct board board = {
     .name = "jiffy",
     .console_init = board_console_init,
-    .rot = &rot,
-    .slc = &slc,
+    .slc_fuses = config_fuses,
+    .slc_fuses_length = ARRAY_SIZE(config_fuses),
     .init = board_hw_init,
     .ptbl = PTBL_GPT(PART_user, gpt_tables),
     .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
@@ -86,8 +87,8 @@ const struct board board = {
 };
 ```
 
-- `init()` keeps the hardware the boot needs: the storage, and for now the crypto engine
-  (section 19.1). It returns an error only for what the boot can't go on without; the rest is
+- `init()` keeps the hardware the boot needs: the storage. The crypto engine and its RNG are
+  the platform's (section 19.1). It returns an error only for what the boot can't go on without; the rest is
   logged and reported with `board_report_degraded()` (`board.md` 2.3).
 - A step that fails stops the boot and not command mode (`board.md` 2.1). In 2.x a failed
   `board_init()` left command mode without a boot driver.
@@ -735,14 +736,15 @@ CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
 - **The SRK hash comes from the build**: `CONFIG_SRK_FUSE` names srktool's fuse file. No words
   are copied into the board. A wrong hash closes the device to every image: the signed build
   checks the file against the SRK table it signs with and stops when they differ (F-213).
-- **The configuration fuses are data**, `slc.fuses`, by the platform's fuse index macro. The
+- **The configuration fuses are data**, `slc_fuses`, by the platform's fuse index macro. The
   board writes no fuse itself (`board.md` 6). `slc_set_configuration()` sets the bits that
   aren't set yet.
 - **HABv4 has one driver** (`<drivers/fuse/imx_hab_fuses.h>`): `imx6ul_revoke_key()` and the
   other `imx6ul_*` functions of the 6UL are `imx_hab_*`. The 8X keeps its own (`imx8x_*`), with
   `imx8x_slc_set_configuration` in place of the board's function.
-- **`rot` and `slc` are mandatory** members (`board.md` 3). A board without a life cycle has an
-  `slc` without `read_status`.
+- **The root of trust and the life cycle are the platform's**, `plat_rot` and `plat_slc`
+  (`platform.md` 4.1, 4.2, section 19.1). A SoC without a life cycle has a `plat_slc` without
+  `read_status`.
 - **EOL is the product's option**: `set_eol` is called only with `CONFIG_SLC_EOL`, off by
   default (`system.md` 4). Without it `slc eol` answers `NOT_SUPPORTED`.
 - **`rot_no_of_keys()` and `rot_key_idx_to_id()`** return an error code and give their value
@@ -1146,21 +1148,19 @@ Rests on: D-018, D-064 to D-073, `drivers.md`, `bio.md`, `crypto.md`, `usb.md`.
 
 Rests on: D-030, D-053, `platform.md`.
 
-## 19. `pb/dma.h`, the board's `mmap`, and not in the code yet
+## 19. The RoT, the SLC and the crypto engine; `pb/dma.h`; the board's `mmap`
 
-`pb/dma.h` (19.2) and the board's `mmap` (19.3, new and optional) came into the code last, and
-are written as the sections above are. 19.1 is a change that the contracts decided and the code
-doesn't have yet, and it changes a board's files again. What it will ask is the contract's text
-today; the names can still move with the code.
+The three came into the code last (2026-11-14 to 2026-11-16), and are written as the sections
+above are.
 
-### 19.1 The RoT, the SLC and the crypto engine move to the platform
+### 19.1 The RoT, the SLC and the crypto engine are the platform's
 
-**Not yet in the code (F-247)**: the board sets `rot` and `slc` to the SoC's functions, and
-its `init()` sets up the crypto engine and its RNG (section 13, jiffy's `board_hw_init()`).
-The change is written, on the branch `pkg-plat-rot`, and this section is rewritten with a
-before and an after when it lands.
+**Was.** The board's `board_init()` set up the crypto engine first, then called `rot_init()`
+and `slc_init()` with a `rot_config` and a `slc_config` that named the SoC's revocation and life
+cycle functions, and its own `set_configuration` that wrote its fuses. A platform's
+`plat_init()` set up Mbed TLS.
 
-What `platform.md` 2.2, 4.1 and 4.2 ask of a board, and the branch does:
+**Is** (F-247, D-086, `platform.md` 2.2, 4.1, 4.2):
 
 - `rot` leaves `struct board`: the platform provides `plat_rot`.
 - `slc`'s functions leave it: the platform provides `plat_slc`. The board keeps its
@@ -1168,6 +1168,35 @@ What `platform.md` 2.2, 4.1 and 4.2 ask of a board, and the branch does:
 - `imx_caam_init()` and `imx_caam_rng_init()` leave the board's `init()`: `plat_init()` sets up
   the SoC's crypto engine and RNG behind a Kconfig option. A board that needs the software
   implementation turns the option off in its defconfig.
+
+2.x (jiffy):
+
+```c
+int board_init(struct imx6ul_platform *plat_)
+{
+    rc = imx_caam_init(IMX6UL_CAAM_JR1_BASE);
+    ...
+    rc = rot_init(&rot_config);
+    ...
+    static const struct slc_config slc_config = {
+        .read_status = imx6ul_slc_read_status,
+        .set_configuration = board_set_slc_configuration,
+        .set_configuration_locked = imx6ul_slc_set_configuration_locked,
+        .set_eol = NULL,
+    };
+
+    rc = slc_init(&slc_config);
+```
+
+3.0.0:
+
+```c
+static const struct slc_fuse config_fuses[] = { ... };
+...
+    .slc_fuses = config_fuses,
+    .slc_fuses_length = ARRAY_SIZE(config_fuses),
+```
+
 - A platform out of the tree (D-086, D-092): Mbed TLS is the core's, set up in `main()` right
   after `plat_init()`, so its `plat_init()` calls `mbedtls_pb_init()` no more.
   `plat_status.crypto_engine` is `enum plat_crypto_engine`, the SoC's engine alone

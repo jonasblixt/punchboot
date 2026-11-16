@@ -83,23 +83,25 @@ functions a SoC has: `plat-imx.md` 4.1.
 
 1. The keys images are verified with, `VERIFY_KEY<n>_PATH` and `_ID` in the board's
    `makefile.mk`, n the key's revoke slot (`board.md` 7).
-2. `rot` and `slc` name the platform's functions. jiffy: the HABv4 driver's (`imx_hab_*`).
-   They move to the platform (F-247).
-3. The configuration fuses are data, `slc.fuses`: the boot device and what else the product
-   fuses. jiffy: boot from the eMMC on uSDHC1, and take the boot configuration from the fuses.
+2. The root of trust and the life cycle are the platform's, `plat_rot` and `plat_slc`
+   (`platform.md` 4.1, 4.2): on jiffy's 6UL the HABv4 driver's (`imx_hab_*`). The board names
+   none of their functions (F-247).
+3. The configuration fuses are data, `slc_fuses` and `slc_fuses_length`: the boot device and
+   what else the product fuses. jiffy: boot from the eMMC on uSDHC1, and take the boot configuration from the fuses.
 4. `CONFIG_SRK_FUSE` names the hash of the keys pb itself is signed with. The signed build
    checks it against the platform's SRK table and stops when they differ (F-213).
 
 The commands that write fuses can't be undone (`command-mode.md` 5.2): run none on a board
-that must stay open, and check `slc.fuses` and the SRK file against the reference manual
+that must stay open, and check `slc_fuses` and the SRK file against the reference manual
 first. What is fixed once a product ships: `board.md` 8.
 
 ### 2.4 The crypto engine, and command mode
 
-`init()`: `board.md` 2.3. Its first job, for now, is the crypto engine (`crypto.md` 2): the
-device's identity is computed with it (`platform.md` 3.7), and command mode doesn't start
-without the identity. jiffy calls `imx_caam_init()` and `imx_caam_rng_init()`. The engine moves
-to the platform (F-247).
+`init()`: `board.md` 2.3. The crypto engine isn't its job: `plat_init()` sets up the SoC's
+engine and its RNG, and the core the software backend right after it (`crypto.md` 2, F-247,
+D-086). The device's identity is computed with them (`platform.md` 3.7), and command mode
+doesn't start without the identity. A board that needs the software implementation turns the
+engine's option off and Mbed TLS's on in its defconfig.
 
 For command mode itself the board does nothing: the port is the defconfig's choice and the
 platform sets it up (`board.md` 4.1, `platform.md` 3.10; the i.MX ports' options are
@@ -291,8 +293,8 @@ The order, with what shows that each step works:
   read from the SoC. The boot log's line after the banner shows what step 3 set up.
 - Step 7 before the first product: a filter that is left in bypass shows nowhere else
   (`platform.md` 2.3).
-- Step 8 is `rot` and `slc` functions that the boards name today (F-247). The rules stay in
-  the core (D-027).
+- Step 8 is `plat_rot` and `plat_slc`, the SoC's revocation and life cycle (`platform.md`
+  4.1, 4.2, F-247). The rules stay in the core (D-027).
 - What a failure of the platform means, and why it resets where a board's failure doesn't:
   `platform.md` 2.
 - The build's stages and what a board may override: `platform.md` 6.2.
