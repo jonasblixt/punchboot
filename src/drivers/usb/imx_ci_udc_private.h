@@ -82,12 +82,14 @@
 #define CI_ENDPTCTRL(n)              (0x1c0 + 4 * (n))
 #define ENDPTCTRL_TX_MASK            0xffff0000u
 #define ENDPTCTRL_TXE                BIT_32(23)
+#define ENDPTCTRL_TXS                BIT_32(16) /* Stall */
 #define ENDPTCTRL_TXR                BIT_32(22) /* Data toggle reset */
 #define ENDPTCTRL_TXT_SHIFT          18
 #define ENDPTCTRL_TXT_MASK           (0x3u << ENDPTCTRL_TXT_SHIFT)
 #define ENDPTCTRL_TXT(x)             CI_FIELD(x, ENDPTCTRL_TXT_SHIFT, ENDPTCTRL_TXT_MASK)
 #define ENDPTCTRL_RX_MASK            0x0000ffffu
 #define ENDPTCTRL_RXE                BIT_32(7)
+#define ENDPTCTRL_RXS                BIT_32(0) /* Stall */
 #define ENDPTCTRL_RXR                BIT_32(6) /* Data toggle reset */
 #define ENDPTCTRL_RXT_SHIFT          2
 #define ENDPTCTRL_RXT_MASK           (0x3u << ENDPTCTRL_RXT_SHIFT)

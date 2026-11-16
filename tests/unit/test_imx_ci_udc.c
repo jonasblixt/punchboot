@@ -763,6 +763,60 @@ static void test_setup_status_cleared_before_the_copy(void **state)
     assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
 }
 
+/* A controller that clears endpoint 0's stall bits, as while it handles a
+ * SETUP (RM 42.7.39) */
+static uint64_t stall_cleared(uintptr_t addr, uint64_t value)
+{
+    if (addr == BASE + CI_ENDPTCTRL(0))
+        return value & ~(uint64_t)(ENDPTCTRL_TXS | ENDPTCTRL_RXS);
+
+    return value;
+}
+
+/* RM 42.5.6.3.2, usb.md 4.4 (F-138): a protocol stall sets both directions'
+ * stall bits in one write, keeping the endpoint's type and enables; one
+ * that the controller clears is written again until a new SETUP arrives,
+ * and a controller that never takes it is given up after the bound */
+static void test_ep0_stall(void **state)
+{
+    const uint32_t stall = ENDPTCTRL_TXS | ENDPTCTRL_RXS;
+    size_t start;
+    size_t writes = 0;
+    (void)state;
+
+    assert_non_null(ops->ep0_stall);
+
+    fake_regs_set(BASE + CI_ENDPTCTRL(0), 0x00800080);
+    start = fake_reg_log_len;
+    assert_int_equal(ops->ep0_stall(), PB_OK);
+    assert_int_equal(fake_regs_get(BASE + CI_ENDPTCTRL(0)), 0x00800080 | stall);
+
+    for (size_t i = start; i < fake_reg_log_len; i++) {
+        if (fake_reg_log[i].addr == BASE + CI_ENDPTCTRL(0)) {
+            assert_int_equal(fake_reg_log[i].value & stall, stall);
+            writes++;
+        }
+    }
+
+    assert_int_equal(writes, 1);
+
+    /* Cleared, and a SETUP arrived: that one ends the request */
+    fake_regs_set(BASE + CI_ENDPTCTRL(0), 0x00800080);
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+    test_on_read = stall_cleared;
+    assert_int_equal(ops->ep0_stall(), PB_OK);
+
+    /* Cleared for ever, no SETUP */
+    fake_regs_set(BASE + CI_ENDPTSETUPSTAT, 0);
+    fake_us_tick_step = 100;
+    start = fake_us_tick;
+    assert_int_equal(ops->ep0_stall(), -PB_ERR_TIMEOUT);
+    assert_true(fake_us_tick - start >= 10000);
+    assert_true(fake_us_tick - start < 20000);
+    fake_us_tick_step = 0;
+    test_on_read = NULL;
+}
+
 /* pb's two bulk endpoints (usb.md 6) */
 static const struct usb_endpoint_descriptor bulk_eps[] = {
     { .bLength = 7,
@@ -1748,6 +1802,7 @@ int main(void)
         cmocka_unit_test_setup(test_cancel_gives_the_buffer_back, setup),
         cmocka_unit_test_setup(test_setup_packet, setup),
         cmocka_unit_test_setup(test_setup_status_cleared_before_the_copy, setup),
+        cmocka_unit_test_setup(test_ep0_stall, setup),
         cmocka_unit_test_setup(test_bus_reset_is_reported, setup),
         cmocka_unit_test_setup(test_status_stage_is_bounded, setup),
         cmocka_unit_test_setup(test_request_during_a_bulk_transfer, setup),
