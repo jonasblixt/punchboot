@@ -44,7 +44,8 @@ int pbstate_is_system_active(pbstate_system_t system);
  *
  * @return 1 System is verified,
  *         0 System is unverified,
- *         or a negative number on errors
+ *         -EINVAL for PBSTATE_SYSTEM_NONE,
+ *         or a negative number on other errors
  */
 int pbstate_is_system_verified(pbstate_system_t system);
 

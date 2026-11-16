@@ -261,7 +261,8 @@ int pbstate_is_system_verified(pbstate_system_t system)
         result = !!(state.verified & PB_STATE_B_VERIFIED);
         break;
     case PBSTATE_SYSTEM_NONE:
-        result = !!(state.enable);
+        /* No system has no verified state: a wrong question (F-180) */
+        result = -EINVAL;
         break;
     default:
         break;

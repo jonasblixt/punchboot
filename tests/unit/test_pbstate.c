@@ -151,6 +151,18 @@ static void test_confirming_the_other_slot_keeps_the_trial(void **state)
     assert_state(PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 2, 0);
 }
 
+/* F-180: no system has no verified state, -EINVAL; it was a copy of the
+ * active answer, 1 whenever a system was enabled */
+static void test_verified_of_no_system(void **state)
+{
+    (void)state;
+
+    write_state(PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    assert_int_equal(pbstate_is_system_verified(PBSTATE_SYSTEM_NONE), -EINVAL);
+    write_state(0, 0, 0, 0);
+    assert_int_equal(pbstate_is_system_verified(PBSTATE_SYSTEM_NONE), -EINVAL);
+}
+
 /* A read leaves the file systems alone (F-221: every read ended in sync(),
  * ten of them in 'pbstate -i') */
 static void test_a_read_does_not_sync(void **state)
@@ -237,6 +249,7 @@ int main(void)
         cmocka_unit_test(test_confirming_the_enabled_slot_ends_its_trial),
         cmocka_unit_test(test_confirming_the_other_slot_keeps_the_trial),
         cmocka_unit_test(test_a_read_does_not_sync),
+        cmocka_unit_test(test_verified_of_no_system),
         cmocka_unit_test(test_a_write_syncs),
         cmocka_unit_test(test_a_primary_that_cannot_be_read_falls_back),
         cmocka_unit_test(test_no_copy_can_be_read),
