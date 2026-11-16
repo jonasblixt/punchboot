@@ -627,6 +627,38 @@ static void read_ok(void)
     assert_memory_equal(arena + LINE, host, 512);
 }
 
+/* RM 11.2.2.5.1.3 and .4: Connect Done puts the RAM clock on the bus clock
+ * and modifies endpoint 0, both directions, to the high and full speed
+ * control packet of 64 bytes; SetAddress writes DCFG's address, which a USB
+ * reset puts back to 0 */
+static void test_connect_done_and_the_address(void **state)
+{
+    struct usb_setup_packet pkt;
+    (void)state;
+
+    fake_regs_set(BASE + DWC3_GCTL, GCTL_RAMCLKSEL(2));
+    fake_regs_set(BASE + DWC3_DSTS, DSTS_DEVCTRLHLT | DWC3_SPEED_HIGH);
+    post_device_event(DEVT_CONNECTDONE);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(fake_regs_get(BASE + DWC3_GCTL) & GCTL_RAMCLKSEL_MASK,
+                     GCTL_RAMCLKSEL(GCTL_RAMCLKSEL_BUS_CLK));
+
+    for (usb_ep_t ep = USB_EP0_OUT; ep <= USB_EP0_IN; ep++) {
+        uint32_t p0 = (uint32_t)fake_regs_get(BASE + DWC3_DEPCMDPAR0(ep));
+
+        assert_int_equal(fake_regs_get(BASE + DWC3_DEPCMD(ep)) & DEPCMD_CMDTYP_MASK, DEPCMD_DEPCFG);
+        assert_int_equal(p0 & DEPCFG_P0_CONFIG_ACT_MASK,
+                         DEPCFG_P0_CONFIG_ACT(DEPCFG_CONFIG_ACT_MODIFY));
+        assert_int_equal(p0 & DEPCFG_P0_MPS_MASK, DEPCFG_P0_MPS(64));
+    }
+
+    assert_int_equal(ops->set_address(7), PB_OK);
+    assert_int_equal(fake_regs_get(BASE + DWC3_DCFG) & DCFG_DEVADDR_MASK, DCFG_DEVADDR(7));
+    post_device_event(DEVT_USBRST);
+    assert_int_equal(ops->poll_setup_pkt(&pkt), -PB_ERR_AGAIN);
+    assert_int_equal(fake_regs_get(BASE + DWC3_DCFG) & DCFG_DEVADDR_MASK, 0);
+}
+
 /* usb.md 2.2, 2.4, 4.3: a USB reset or a disconnect of a configured device
  * ends the bulk transfer that runs with -PB_ERR_IO, and with none running it
  * is kept for the next that is started or polled, on every bulk endpoint,
@@ -774,6 +806,7 @@ int main(void)
             test_a_transfer_longer_than_a_trb_is_refused, setup, teardown),
         cmocka_unit_test_setup_teardown(test_stop_and_init_again, setup, teardown),
         cmocka_unit_test_setup_teardown(test_bus_reset_and_disconnect_are_kept, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_connect_done_and_the_address, setup, teardown),
         cmocka_unit_test_setup_teardown(test_a_read_of_0_bytes_is_refused, setup, teardown),
     };
 
