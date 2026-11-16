@@ -19,9 +19,10 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
     button held at power-up. In Linux `pbstate-pb`. No JTAG on jiffy.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb in BOOT0 and
     BOOT1, BOOT1 enabled. Never `reboot` it (F-452).
-  - RT1060: its NOR unchanged today (RAM loads over the J-Link only). The MEK: BOOT0 (enabled)
-    `f470ba88`'s tree, BOOT1 a log-only probe. The 8MP EVK: BOOT0 (enabled) `277ec02b`'s
-    two-stage pb, BOOT1 a log-only probe; its console is another session's logger (inbox file).
+  - RT1060: its NOR `fe79c1da`'s pb (no DCD, F-149), the simple bench 7 of 7. The MEK: BOOT0
+    (enabled) `f470ba88`'s tree, BOOT1 a log-only probe. The 8MP EVK: BOOT0 (enabled)
+    `277ec02b`'s two-stage pb, BOOT1 a log-only probe, System A the F-156 kernel; its console is
+    another session's logger (inbox file).
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
 - **Test benches:** Linux (`testbench/`): jiffy, the 8MP EVK, the MEK and the pico8ml boot to
