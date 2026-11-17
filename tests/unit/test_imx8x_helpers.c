@@ -20,8 +20,9 @@
 #include <cmocka.h>
 
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/rot.h>
-#include <pb/srk_fuse.h>
+#include <pb/slc.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/sci/svc/misc/api.h>
@@ -47,10 +48,24 @@ static struct {
     sc_err_t chip_info_err;
 } scfw;
 
-const uint32_t srk_fuse[IMX8X_SRK_HASH_WORDS] = {
+static const uint32_t srk_fuse[IMX8X_SRK_HASH_WORDS] = {
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 };
-const size_t srk_fuse_words = IMX8X_SRK_HASH_WORDS;
+
+/* The SRK hash as a board's slc_fuses have it (D-094), by IMX8X_FUSE_SRK(n) */
+#define SRK_ENTRY(n) { IMX8X_FUSE_SRK(n), (n) + 1 }
+static const struct slc_fuse srk_entries[IMX8X_SRK_HASH_WORDS] = {
+    SRK_ENTRY(0),  SRK_ENTRY(1),  SRK_ENTRY(2),  SRK_ENTRY(3),  SRK_ENTRY(4),  SRK_ENTRY(5),
+    SRK_ENTRY(6),  SRK_ENTRY(7),  SRK_ENTRY(8),  SRK_ENTRY(9),  SRK_ENTRY(10), SRK_ENTRY(11),
+    SRK_ENTRY(12), SRK_ENTRY(13), SRK_ENTRY(14), SRK_ENTRY(15),
+};
+
+/* slc_set_configuration() of the core, with the 8X's plat_slc */
+static int configure(void)
+{
+    assert_int_equal(slc_init(&plat_slc, srk_entries, ARRAY_SIZE(srk_entries)), PB_OK);
+    return slc_set_configuration();
+}
 
 sc_err_t sc_misc_otp_fuse_read(sc_ipc_t ipc, uint32_t word, uint32_t *val)
 {
@@ -176,26 +191,24 @@ static void test_fuse_read_write(void **state)
     assert_int_equal(scfw.fuses[IMX8X_FUSE_BOOT1], 0);
 }
 
-/* The SRK hash: 16 words at 730, none of them empty */
+/* The SRK hash: 16 words at 730, IMX8X_FUSE_SRK(n), through the core */
 static void test_fuse_srk(void **state)
 {
-    uint32_t other[IMX8X_SRK_HASH_WORDS];
     (void)state;
 
-    assert_int_equal(imx8x_fuse_write_srk(srk_fuse, IMX8X_SRK_HASH_WORDS - 1), -PB_ERR_PARAM);
-    memcpy(other, srk_fuse, sizeof(other));
-    other[15] = 0;
-    assert_int_equal(imx8x_fuse_write_srk(other, IMX8X_SRK_HASH_WORDS), -PB_ERR_PARAM);
-    assert_int_equal(scfw.writes, 0);
-    assert_false(srk_fused());
+    for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++)
+        assert_int_equal(IMX8X_FUSE_SRK(n), IMX8X_FUSE_SRK0 + n);
+    assert_int_equal(IMX8X_FUSE_SRK(15), IMX8X_FUSE_SRK15);
 
-    assert_int_equal(imx8x_slc_set_configuration(), PB_OK);
+    assert_false(srk_fused());
+    assert_int_equal(configure(), PB_OK);
     assert_int_equal(scfw.writes, IMX8X_SRK_HASH_WORDS);
 
     for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++)
         assert_int_equal(scfw.fuses[IMX8X_FUSE_SRK0 + n], srk_fuse[n]);
 
     assert_true(srk_fused());
+    assert_int_equal(imx8x_slc_read_status(), SLC_CONFIGURATION);
 }
 
 /* A write that fails stops the hash where it is: the words before it are
@@ -207,7 +220,7 @@ static void test_fuse_srk_fails_half_way(void **state)
     (void)state;
 
     scfw.write_fails_at = 5;
-    assert_int_equal(imx8x_slc_set_configuration(), -PB_ERR_IO);
+    assert_int_equal(configure(), -PB_ERR_IO);
     assert_int_equal(scfw.fuses[IMX8X_FUSE_SRK0 + 3], srk_fuse[3]);
     assert_int_equal(scfw.fuses[IMX8X_FUSE_SRK0 + 4], 0);
     assert_int_equal(imx8x_slc_read_status(), SLC_CONFIGURATION);
@@ -215,7 +228,7 @@ static void test_fuse_srk_fails_half_way(void **state)
     scfw.write_fails_at = 0;
     scfw.writes = 0;
     memset(scfw.word_writes, 0, sizeof(scfw.word_writes));
-    assert_int_equal(imx8x_slc_set_configuration(), PB_OK);
+    assert_int_equal(configure(), PB_OK);
     assert_int_equal(scfw.writes, IMX8X_SRK_HASH_WORDS - 4);
 
     for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
@@ -225,13 +238,12 @@ static void test_fuse_srk_fails_half_way(void **state)
 
     /* And once it is complete, nothing */
     scfw.writes = 0;
-    assert_int_equal(imx8x_slc_set_configuration(), PB_OK);
+    assert_int_equal(configure(), PB_OK);
     assert_int_equal(scfw.writes, 0);
 }
 
 /* A word with some of the hash's bits, from a write that stopped half way
- * through it, is completed: written with the hash's word, as the HABv4
- * driver does (F-200) */
+ * through it, is completed: written with the hash's word (F-200) */
 static void test_fuse_srk_completes_a_word(void **state)
 {
     (void)state;
@@ -240,7 +252,7 @@ static void test_fuse_srk_completes_a_word(void **state)
     scfw.fuses[IMX8X_FUSE_SRK0 + 9] = 0;
     scfw.fuses[IMX8X_FUSE_SRK0 + 14] = srk_fuse[14] & ~2u; /* 15: 0xf, 0xd */
 
-    assert_int_equal(imx8x_slc_set_configuration(), PB_OK);
+    assert_int_equal(configure(), PB_OK);
     assert_int_equal(scfw.writes, 2);
     assert_int_equal(scfw.word_writes[IMX8X_FUSE_SRK0 + 9], 1);
     assert_int_equal(scfw.word_writes[IMX8X_FUSE_SRK0 + 14], 1);
@@ -250,7 +262,7 @@ static void test_fuse_srk_completes_a_word(void **state)
 
 /* Another hash in the fuses, or a word with a bit the hash doesn't have:
  * it can never become the hash, and nothing is written, also not the words
- * before it (-PB_ERR_MEM, as the HABv4 driver, F-200) */
+ * before it (D-094, F-200) */
 static void test_fuse_srk_over_another_hash(void **state)
 {
     (void)state;
@@ -259,21 +271,21 @@ static void test_fuse_srk_over_another_hash(void **state)
         scfw.fuses[IMX8X_FUSE_SRK0 + n] = 0x100 + n;
 
     assert_int_equal(imx8x_slc_read_status(), SLC_CONFIGURATION);
-    assert_int_equal(imx8x_slc_set_configuration(), -PB_ERR_MEM);
+    assert_int_equal(configure(), -PB_ERR_STATE);
     assert_int_equal(scfw.writes, 0);
     assert_int_equal(scfw.fuses[IMX8X_FUSE_SRK0], 0x100);
 
     /* One bit too many, in the last word */
     memset(scfw.fuses, 0, sizeof(scfw.fuses));
     scfw.fuses[IMX8X_FUSE_SRK15] = srk_fuse[15] | 0x80000000;
-    assert_int_equal(imx8x_slc_set_configuration(), -PB_ERR_MEM);
+    assert_int_equal(configure(), -PB_ERR_STATE);
     assert_int_equal(scfw.writes, 0);
 
     /* A word that can't be read: nothing is written either */
     memset(scfw.fuses, 0, sizeof(scfw.fuses));
     scfw.reads = 0;
     scfw.read_fails_at = 7;
-    assert_int_equal(imx8x_slc_set_configuration(), -PB_ERR_IO);
+    assert_int_equal(configure(), -PB_ERR_IO);
     assert_int_equal(scfw.writes, 0);
 }
 

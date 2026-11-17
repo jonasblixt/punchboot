@@ -10,7 +10,8 @@
  * locations differ: the platform gives them to imx_hab_fuses_init(), and
  * puts the functions it wants in its plat_rot and plat_slc (pb/plat.h).
  *
- * The keystore's key n is SRK n: they share the revoke bit (pb/rot.h).
+ * The keystore's key n is SRK n: they share the revoke bit (pb/rot.h). The
+ * SRK hash is the board's to fuse, in its slc_fuses (D-094).
  */
 
 #ifndef INCLUDE_DRIVERS_FUSE_IMX_HAB_FUSES_H
@@ -40,23 +41,10 @@ void imx_hab_fuses_init(const struct imx_hab_fuses *cfg);
 /** NOT_CONFIGURED, CONFIGURATION once any SRK hash word is fused, or LOCKED */
 slc_t imx_hab_slc_read_status(void);
 
-/** Fuses the SRK hash of the build, srk_fuse (pb/srk_fuse.h) */
-int imx_hab_slc_set_configuration(void);
-
 /** Fuses the closed bit. slc.c only calls it in CONFIGURATION. */
 int imx_hab_slc_set_configuration_locked(void);
 
 int imx_hab_read_key_status(const struct rot_key *key);
 int imx_hab_revoke_key(const struct rot_key *key);
-
-/**
- * Fuse the SRK hash. A word that has bits set already must have none the
- * hash's word doesn't: a word a failed write left half programmed is
- * completed, one with another bit is -PB_ERR_MEM and nothing is written.
- *
- * @param srk The hash, e.g. srk_fuse (pb/srk_fuse.h)
- * @param words Its length, IMX_HAB_SRK_HASH_WORDS
- */
-int imx_hab_fuse_srk(const uint32_t *srk, size_t words);
 
 #endif // INCLUDE_DRIVERS_FUSE_IMX_HAB_FUSES_H

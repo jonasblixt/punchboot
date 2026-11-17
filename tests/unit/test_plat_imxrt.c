@@ -668,7 +668,6 @@ static void test_plat_rot_and_slc(void **state)
     assert_ptr_equal(plat_rot.read_key_status, imx_hab_read_key_status);
 
     assert_ptr_equal(plat_slc.read_status, imx_hab_slc_read_status);
-    assert_null(plat_slc.set_configuration);
     assert_null(plat_slc.set_configuration_locked);
     assert_null(plat_slc.set_eol);
     assert_null(plat_slc.fuse_read);

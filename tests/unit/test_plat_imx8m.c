@@ -35,6 +35,7 @@
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx8m/dram.h>
+#include <plat/imx8m/fusebox.h>
 #include <plat/imx8m/imx8m.h>
 #include <string.h>
 
@@ -188,11 +189,6 @@ void imx_hab_fuses_init(const struct imx_hab_fuses *cfg)
 slc_t imx_hab_slc_read_status(void)
 {
     return SLC_NOT_CONFIGURED;
-}
-
-int imx_hab_slc_set_configuration(void)
-{
-    return PB_OK;
 }
 
 int imx_hab_slc_set_configuration_locked(void)
@@ -877,7 +873,10 @@ static void test_plat_rot_and_slc(void **state)
     /* The life cycle: HABv4's SEC_CONFIG and SRK hash, the fuses by index,
      * no EOL (F-263) */
     assert_ptr_equal(plat_slc.read_status, imx_hab_slc_read_status);
-    assert_ptr_equal(plat_slc.set_configuration, imx_hab_slc_set_configuration);
+    /* Word n of the SRK hash: banks 6 and 7, four words each */
+    assert_int_equal(IMX8M_FUSE_SRK(0), IMX8M_FUSE(6, 0));
+    assert_int_equal(IMX8M_FUSE_SRK(4), IMX8M_FUSE(7, 0));
+    assert_int_equal(IMX8M_FUSE_SRK(7), IMX8M_FUSE(7, 3));
     assert_non_null(plat_slc.set_configuration_locked);
     assert_null(plat_slc.set_eol);
     assert_ptr_equal(plat_slc.fuse_read, imx_ocotp_fuse_read);

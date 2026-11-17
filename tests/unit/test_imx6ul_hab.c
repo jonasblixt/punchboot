@@ -62,11 +62,10 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     return PB_OK;
 }
 
-/* The build's SRK hash, pb/srk_fuse.h */
-const uint32_t srk_fuse[IMX_HAB_SRK_HASH_WORDS] = {
+/* jiffy's SRK hash, as its slc_fuses fuse it (D-094) */
+static const uint32_t srk_fuse[IMX_HAB_SRK_HASH_WORDS] = {
     0x5020c7d7, 0xbb62b945, 0xdd97c8be, 0xdc6710dd, 0x2756b777, 0xef43bc0a, 0x7185604b, 0x3f335991,
 };
-const size_t srk_fuse_words = IMX_HAB_SRK_HASH_WORDS;
 
 /* The ROM: its state and its event log */
 struct event {
@@ -298,8 +297,10 @@ static void test_life_cycle(void **state)
     SEC_CONFIG = IMX6UL_FUSE_BT_FUSE_SEL;
     assert_int_equal(imx_hab_slc_read_status(), SLC_NOT_CONFIGURED);
 
-    assert_int_equal(imx_hab_slc_set_configuration(), PB_OK);
-    assert_int_equal(writes, IMX_HAB_SRK_HASH_WORDS);
+    /* The board's entries, by IMX6UL_FUSE_SRK(n), are the words HAB reads */
+    for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
+        otp[IMX6UL_FUSE_SRK(n)] = srk_fuse[n];
+
     assert_int_equal(SRK(0), srk_fuse[0]);
     assert_int_equal(SRK(7), srk_fuse[7]);
     assert_int_equal(imx_hab_slc_read_status(), SLC_CONFIGURATION);

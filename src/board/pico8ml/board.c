@@ -54,7 +54,18 @@
 
 _Static_assert(PICO8ML_BOOT_CFG == 0x2060, "the pico8ml's boot configuration before 3.0.0");
 
+/* The SRK hash of the keys pb is signed with (srktool's
+ * pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin, D-094), and the boot
+ * configuration */
 static const struct slc_fuse config_fuses[] = {
+    { IMX8M_FUSE_SRK(0), 0x5020C7D7 },
+    { IMX8M_FUSE_SRK(1), 0xBB62B945 },
+    { IMX8M_FUSE_SRK(2), 0xDD97C8BE },
+    { IMX8M_FUSE_SRK(3), 0xDC6710DD },
+    { IMX8M_FUSE_SRK(4), 0x2756B777 },
+    { IMX8M_FUSE_SRK(5), 0xEF43BC0A },
+    { IMX8M_FUSE_SRK(6), 0x7185604B },
+    { IMX8M_FUSE_SRK(7), 0x3F335991 },
     { IMX8M_FUSE(IMX8MQ_FUSE_BOOT_CFG_BANK, IMX8MQ_FUSE_BOOT_CFG_WORD), PICO8ML_BOOT_CFG },
 };
 

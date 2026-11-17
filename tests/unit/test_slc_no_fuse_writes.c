@@ -84,7 +84,6 @@ static int fake_read_key_status(const struct rot_key *key)
 /* A port that can write everything, and a board with a configuration fuse */
 static const struct slc_ops slc_cfg = {
     .read_status = fake_read_status,
-    .set_configuration = fake_write,
     .set_configuration_locked = fake_write,
     .set_eol = fake_write,
     .fuse_read = fake_fuse_read,
