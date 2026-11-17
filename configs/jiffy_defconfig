@@ -33,8 +33,6 @@ CONFIG_MAX_XLAT_TABLES=32
 #
 # Boot
 #
-CONFIG_KEYSTORE="pki/internal_keystore.bpak"
-CONFIG_KEYSTORE_SLOTS="a90f9680 25c6dd36 52c1eda0"
 
 #
 # Boot source policy: the board's data names the one it uses

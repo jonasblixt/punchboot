@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * The Mbed TLS crypto provider (src/drivers/crypto/mbedtls) through the crypto
- * API, with the keys from the internal keystore and the host auth token.
+ * API, with the development keys and the host auth token.
  *
  * The linker wraps the library's hash calls (--wrap, see CMakeLists.txt), so
  * that a test can fail one, as a library with hardware acceleration can.
@@ -23,18 +23,16 @@
 #include <cmocka.h>
 
 #include "conformance/crypto_conformance.h"
-#include <bpak/keystore.h>
 #include <drivers/crypto/mbedtls.h>
 #include <mbedtls/error.h>
 #include <mbedtls/md5.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
 #include <pb/crypto.h>
+#include <pb/keys.h>
 #include <pb/pb.h>
 #include <stdio.h>
 #include <string.h>
-
-extern const struct bpak_keystore keystore_pb;
 
 #define DEV_KEY_ID        0xa90f9680 /* pb-development, prime256v1 */
 
@@ -94,11 +92,11 @@ WRAP(mbedtls_sha512_update,
      (ctx, input, ilen))
 WRAP(mbedtls_sha512_finish, (mbedtls_sha512_context * ctx, unsigned char *output), (ctx, output))
 
-static const struct bpak_key *find_key(uint32_t id)
+static const struct pb_key *find_key(uint32_t id)
 {
-    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
-        if (keystore_pb.keys[i]->id == id)
-            return keystore_pb.keys[i];
+    for (unsigned int i = 0; i < pb_no_of_keys; i++) {
+        if (pb_keys[i].id == id)
+            return &pb_keys[i];
     }
     return NULL;
 }
@@ -256,7 +254,7 @@ static void token_digest(uint8_t *digest)
 
 static void test_verify_auth_token(void **state)
 {
-    const struct bpak_key *key = find_key(DEV_KEY_ID);
+    const struct pb_key *key = find_key(DEV_KEY_ID);
     uint8_t digest[32];
     bool verified = false;
     (void)state;
@@ -279,7 +277,7 @@ static void test_verify_auth_token(void **state)
 
 static void test_verify_rejects_wrong_digest(void **state)
 {
-    const struct bpak_key *key = find_key(DEV_KEY_ID);
+    const struct pb_key *key = find_key(DEV_KEY_ID);
     uint8_t digest[32];
     bool verified = true;
     (void)state;
@@ -302,7 +300,7 @@ static void test_verify_rejects_wrong_digest(void **state)
 
 static void test_verify_rejects_bad_key(void **state)
 {
-    const struct bpak_key *key = find_key(DEV_KEY_ID);
+    const struct pb_key *key = find_key(DEV_KEY_ID);
     uint8_t bad_key[128];
     uint8_t digest[32];
     bool verified = true;
@@ -347,7 +345,7 @@ static void test_verify_rejects_bad_key(void **state)
 /* crypto.md 4: a signature that can't be parsed is -PB_ERR_ASN1 */
 static void test_verify_rejects_bad_signature_encoding(void **state)
 {
-    const struct bpak_key *key = find_key(DEV_KEY_ID);
+    const struct pb_key *key = find_key(DEV_KEY_ID);
     uint8_t bad[sizeof(token)];
     uint8_t digest[32];
     bool verified = true;
@@ -388,7 +386,7 @@ static void test_verify_rejects_bad_signature_encoding(void **state)
  * 16 KiB: after thousands of them a token still verifies (F-220) */
 static void test_verify_bad_keys_leave_the_heap(void **state)
 {
-    const struct bpak_key *key = find_key(DEV_KEY_ID);
+    const struct pb_key *key = find_key(DEV_KEY_ID);
     uint8_t bad_key[128];
     uint8_t digest[32];
     bool verified;
@@ -431,7 +429,7 @@ static void test_verify_bad_keys_leave_the_heap(void **state)
 
 static void test_verify_rejects_unsupported_digest(void **state)
 {
-    const struct bpak_key *key = find_key(DEV_KEY_ID);
+    const struct pb_key *key = find_key(DEV_KEY_ID);
     uint8_t digest[32] = { 0 };
     bool verified = true;
     (void)state;

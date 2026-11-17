@@ -11,7 +11,6 @@
 #include <boot/linux_ramoops.h>
 #include <boot/policy.h>
 #include <bpak/bpak.h>
-#include <bpak/keystore.h>
 #include <inttypes.h>
 #include <pb-tools/wire.h>
 #include <pb/bio.h>

@@ -22,23 +22,8 @@ endmenu
 
 menu "Keys and life cycle"
 
-config KEYSTORE
-    string "Keystore (bpak file)"
-    default "pki/internal_keystore.bpak"
-    help
-        The keys pb verifies images and command mode's tokens with, built
-        into pb (bpak generate keystore).
-
-config KEYSTORE_SLOTS
-    string "Revoke slots of the keys"
-    default ""
-    help
-        The keystore's key ids (hex, space separated) in the order of their
-        revoke slots: the n-th is slot n, on HABv4 SRK n's revoke fuse. A key
-        dropped from the keystore keeps its place here, so the keys after it
-        keep their slots. Every key in the keystore needs one.
-        Empty: the keystore's order. A key must then never be removed from
-        the keystore or moved, also not after it is revoked (F-165).
+# The keys pb verifies images and command mode's tokens with are the board's
+# makefile.mk's, VERIFY_KEY<n>_PATH (board.md 7, D-083)
 
 config SRK_FUSE
     string "SRK hash fuse words"
@@ -81,7 +66,7 @@ config PRINT_BOOT_BANNER
         pb's version and the boot reason on the console when it is set up.
 
 config RAMLOG
-    bool "A copy of the console output in RAM"
+    bool "Enable ram log"
     help
         Everything written to the console is also kept in a ring buffer in
         RAM, the symbol 'ramlog' in the .ramlog section (not zeroed, in the

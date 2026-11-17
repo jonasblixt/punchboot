@@ -1,8 +1,6 @@
 # Native host build used by the unit and integration tests (CMakeLists.txt).
 CONFIG_ARCH_HOST=y
 CONFIG_PLAT_HOST=y
-CONFIG_KEYSTORE="pki/internal_keystore.bpak"
-CONFIG_KEYSTORE_SLOTS="a90f9680 25c6dd36 52c1eda0"
 CONFIG_LOGLEVEL=3
 # CONFIG_ENABLE_WATCHDOG is not set
 CONFIG_PRINT_BOOT_BANNER=y
