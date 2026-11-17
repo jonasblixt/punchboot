@@ -161,15 +161,15 @@ def test_copies_that_differ(device: Device) -> None:
     device.start()
 
 
-# An installed table is in effect at once (command-mode.md 5.3, bio.md 4,
-# D-070, F-194). The host board's layouts (src/board/host/board.c): variant 1
-# is the default with "Readable" grown from 1 to 8 MiB, variant 2 is one
-# partition with System A's UUID over the disk, variant 3 doesn't fit.
+# An installed table is in effect after the reset, and one that changed the
+# partitions locks their writes until then (command-mode.md 5.3, bio.md 4,
+# D-093). The host board's layouts (src/board/host/board.c): variant 0 is the
+# default, variant 1 the default with "Readable" grown from 1 to 8 MiB,
+# variant 3 doesn't fit.
 READABLE_LBA = 2085
 READABLE_BLOCKS = 2048
 READABLE_BLOCKS_VAR1 = 16384
-LARGE_BLOCKS = 65468
-FUSE_ARRAY_UUID = uuid.UUID("44acdcbe-dcb0-4d89-b0ad-8f96967f8c95")
+LOCKED_LOG = "reset before writing"
 
 Listing = dict[uuid.UUID, tuple[int, int, punchboot.PartitionFlags]]
 
@@ -185,143 +185,93 @@ def blocks(parts: Listing) -> dict[uuid.UUID, tuple[int, int]]:
     return {part: (first, last) for part, (first, last, _) in parts.items()}
 
 
-def test_installed_table_is_in_effect_at_once(blank_device: Device, tmp_path: pathlib.Path) -> None:
-    """A device without a table has its partitions when the install returned.
+def last_start(device: Device) -> str:
+    """Return pb's log since its last start."""
+    return device.log.read_text().rpartition("=== start:")[2]
 
-    Until F-194 they were there after a reset only: the host listed the disk
-    alone, and nothing could be written or activated.
-    """
-    data = os.urandom(64 * 1024)
-    (tmp_path / "data").write_bytes(data)
 
+def test_a_blank_device_has_its_partitions_after_the_reset(blank_device: Device) -> None:
+    """As in every release: a device without a table has none until the reset."""
     with blank_device.session() as s:
         assert set(listing(s)) == {DISK_UUID}
         s.part_table_install(DISK_UUID)
+        assert set(listing(s)) == {DISK_UUID}
 
-        at_once = listing(s)
-        assert blocks(at_once)[SYSTEM_A_UUID] == (SYSTEM_A_LBA, SYSTEM_A_LBA + 1023)
-        assert blocks(at_once)[SYSTEM_B_UUID] == (SYSTEM_B_LBA, SYSTEM_B_LBA + 1023)
-        # The partitions are a host's to write, as after a reset; the device
-        # the table is on isn't
-        assert at_once[SYSTEM_B_UUID][2] & punchboot.PartitionFlags.FLAG_WRITABLE
-        assert not at_once[DISK_UUID][2] & punchboot.PartitionFlags.FLAG_WRITABLE
-
-        s.part_write(tmp_path / "data", SYSTEM_B_UUID)
-        s.part_verify(tmp_path / "data", SYSTEM_B_UUID)
-        assert blank_device.read_blocks(SYSTEM_B_LBA, len(data) // 512) == data
-
-        # The boot source policy's init ran again: its state's partitions
-        # are there, and the systems are its candidates
-        s.boot_set_boot_part(SYSTEM_B_UUID)
-        assert s.boot_status()[0] == SYSTEM_B_UUID
-        assert at_once[SYSTEM_A_UUID][2] & punchboot.PartitionFlags.FLAG_BOOTABLE
-
-    # What a reset gives is the same table
     blank_device.reboot()
     with blank_device.session() as s:
-        assert blocks(listing(s)) == blocks(at_once)
-        assert s.boot_status()[0] == SYSTEM_B_UUID
-        s.part_verify(tmp_path / "data", SYSTEM_B_UUID)
+        parts = blocks(listing(s))
+    assert parts[SYSTEM_A_UUID] == (SYSTEM_A_LBA, SYSTEM_A_LBA + SYSTEM_SIZE // 512 - 1)
+    assert parts[SYSTEM_B_UUID] == (SYSTEM_B_LBA, SYSTEM_B_LBA + SYSTEM_SIZE // 512 - 1)
 
 
-def test_another_table_replaces_the_partitions_at_once(
+def test_a_changed_table_locks_the_writes_until_the_reset(
     device: Device, tmp_path: pathlib.Path
 ) -> None:
-    """A partition that changed is the new one at once, the others stay.
+    """Another layout: the old partitions stay, and nothing writes them.
 
-    Until F-194 the old partitions were listed and written at their old
-    blocks until the reset.
+    Until F-194 they were written at their old blocks, which may be another
+    partition's in the new table.
     """
-    data = os.urandom((READABLE_BLOCKS + 16) * 512)
-    (tmp_path / "data").write_bytes(data)
-
-    with device.session() as s:
-        before = listing(s)
-        assert blocks(before)[READABLE_UUID] == (READABLE_LBA, READABLE_LBA + READABLE_BLOCKS - 1)
-
-        s.part_table_install(DISK_UUID, 1)
-        var1 = listing(s)
-
-        # "Readable" grew. The others didn't change: the same blocks and the
-        # same flags, the policy's BOOTABLE too
-        assert blocks(var1)[READABLE_UUID] == (
-            READABLE_LBA,
-            READABLE_LBA + READABLE_BLOCKS_VAR1 - 1,
-        )
-        unchanged = set(before) - {READABLE_UUID}
-        assert {part: var1[part] for part in unchanged} == {
-            part: before[part] for part in unchanged
-        }
-        assert set(var1) == set(before)
-        # The new partition is readable as the old one was: the board's list
-        # names its UUID (F-083)
-        assert var1[READABLE_UUID][2] & punchboot.PartitionFlags.FLAG_READABLE
-
-        # More than the old partition held, written where the new one is
-        s.part_write(tmp_path / "data", READABLE_UUID)
-        s.part_verify(tmp_path / "data", READABLE_UUID)
-        assert device.read_blocks(READABLE_LBA, len(data) // 512) == data
-
-        # The board's handle of a partition that didn't change is good: the
-        # host board's fuses are in "Fuse array" (bio.md 4, item 3)
-        assert s.slc_get_lifecycle() == punchboot.SLC.SLC_CONFIGURATION
-
-        # Variant 2: one partition, with System A's UUID, over the disk
-        s.part_table_install(DISK_UUID, 2)
-        var2 = listing(s)
-        assert blocks(var2) == {
-            DISK_UUID: (0, DISK_BLOCKS - 1),
-            SYSTEM_A_UUID: (SYSTEM_A_LBA, SYSTEM_A_LBA + LARGE_BLOCKS - 1),
-        }
-        s.part_write(tmp_path / "data", SYSTEM_A_UUID)
-        s.part_verify(tmp_path / "data", SYSTEM_A_UUID)
-        # A partition that is gone isn't there for any command
-        with pytest.raises(punchboot.NotFoundError):
-            s.part_verify(tmp_path / "data", SYSTEM_B_UUID)
-        with pytest.raises(punchboot.NotFoundError):
-            s.part_write(tmp_path / "data", READABLE_UUID)
-
-    assert device.read_blocks(SYSTEM_A_LBA, len(data) // 512) == data
-    device.reboot()
-    with device.session() as s:
-        assert blocks(listing(s)) == blocks(var2)
-
-
-def test_the_fuses_stay_when_their_old_partition_goes(device: Device) -> None:
-    """bio.md 4, item 3: no hook of the board's runs again, and none needs to.
-
-    The host board's fuses were on "Fuse array", looked up in late_init(),
-    and an install that removed it left them failing until the reset. They
-    are a file of their own now (F-217): the life cycle commands work, and
-    the old blocks, now inside another partition, aren't written.
-    """
-    with device.session() as s:
-        assert s.slc_get_lifecycle() == punchboot.SLC.SLC_CONFIGURATION
-        s.part_table_install(DISK_UUID, 2)
-        assert FUSE_ARRAY_UUID not in listing(s)
-        fuses = device.read_blocks(READABLE_LBA - 1)
-        s.slc_set_configuration()
-        assert s.slc_get_lifecycle() == punchboot.SLC.SLC_CONFIGURATION
-    assert device.read_blocks(READABLE_LBA - 1) == fuses
-
-
-def test_the_same_table_keeps_every_partition(device: Device, tmp_path: pathlib.Path) -> None:
-    """Installing the table that is there changes no partition and no flag."""
     data = os.urandom(SYSTEM_SIZE)
     (tmp_path / "data").write_bytes(data)
 
     with device.session() as s:
         s.part_write(tmp_path / "data", SYSTEM_A_UUID)
         before = listing(s)
-        # The board's readable_parts made it readable (F-083)
-        assert before[READABLE_UUID][2] & punchboot.PartitionFlags.FLAG_READABLE
+        assert blocks(before)[READABLE_UUID] == (READABLE_LBA, READABLE_LBA + READABLE_BLOCKS - 1)
+
+        s.part_table_install(DISK_UUID, 1)
+        assert LOCKED_LOG in last_start(device)
+        # The partitions are the ones pb started with
+        assert listing(s) == before
+        table = device.read_blocks(0, SYSTEM_A_LBA)
+
+        # No write, no activation (the A/B state is a partition too); a read
+        # and a verify work
+        with pytest.raises(punchboot.Error):
+            s.part_write(tmp_path / "data", SYSTEM_B_UUID)
+        with pytest.raises(punchboot.Error):
+            s.boot_set_boot_part(SYSTEM_A_UUID)
+        s.part_verify(tmp_path / "data", SYSTEM_A_UUID)
+
+        # An install that changes nothing more doesn't lift it, and the
+        # table is written again
+        s.part_table_install(DISK_UUID, 1)
+        with pytest.raises(punchboot.Error):
+            s.part_write(tmp_path / "data", SYSTEM_B_UUID)
+        assert device.read_blocks(0, SYSTEM_A_LBA) != table
+
+    device.reboot()
+    assert LOCKED_LOG not in last_start(device)
+    with device.session() as s:
+        after = listing(s)
+        assert blocks(after)[READABLE_UUID] == (
+            READABLE_LBA,
+            READABLE_LBA + READABLE_BLOCKS_VAR1 - 1,
+        )
+        s.part_write(tmp_path / "data", SYSTEM_B_UUID)
+        s.part_verify(tmp_path / "data", SYSTEM_B_UUID)
+        s.boot_set_boot_part(SYSTEM_B_UUID)
+    assert device.read_blocks(SYSTEM_B_LBA, len(data) // 512) == data
+    assert GPT_OK in sgdisk_verify(device.disk)
+
+
+def test_the_same_table_leaves_the_writes(device: Device, tmp_path: pathlib.Path) -> None:
+    """Installing the table that is there locks nothing, as in every release."""
+    data = os.urandom(SYSTEM_SIZE)
+    (tmp_path / "data").write_bytes(data)
+
+    with device.session() as s:
+        before = listing(s)
 
         for _ in range(3):
             s.part_table_install(DISK_UUID)
             assert listing(s) == before
 
+        s.part_write(tmp_path / "data", SYSTEM_A_UUID)
         s.part_verify(tmp_path / "data", SYSTEM_A_UUID)
-        assert s.slc_get_lifecycle() == punchboot.SLC.SLC_CONFIGURATION
+        s.boot_set_boot_part(SYSTEM_A_UUID)
+    assert LOCKED_LOG not in last_start(device)
 
     device.reboot()
     with device.session() as s:
@@ -332,7 +282,7 @@ def test_the_same_table_keeps_every_partition(device: Device, tmp_path: pathlib.
 def test_an_install_that_writes_nothing_changes_nothing(
     device: Device, tmp_path: pathlib.Path, variant: int
 ) -> None:
-    """A layout that is refused before the device is written leaves the table in effect."""
+    """A layout that is refused before the device is written locks nothing."""
     data = os.urandom(SYSTEM_SIZE)
     (tmp_path / "data").write_bytes(data)
     table = device.read_blocks(0, SYSTEM_A_LBA)
@@ -347,29 +297,3 @@ def test_an_install_that_writes_nothing_changes_nothing(
         s.boot_set_boot_part(SYSTEM_A_UUID)
 
     assert device.read_blocks(0, SYSTEM_A_LBA) == table
-
-
-def test_installs_until_the_pool_is_full(device: Device) -> None:
-    """A released partition's handle isn't given out again before the reset.
-
-    Each change of the table takes new handles (bio.md 4). When the pool
-    has none left the table is on the device all the same, the install
-    answers the error, and a reset uses the table.
-    """
-    with device.session() as s:
-        full = None
-        for n in range(40):
-            variant = 2 if n % 2 == 0 else 0
-            try:
-                s.part_table_install(DISK_UUID, variant)
-            except punchboot.MemError:
-                full = variant
-                break
-            expected = 2 if variant == 2 else 7
-            assert len(listing(s)) == expected
-        assert full is not None
-
-    device.reboot()
-    with device.session() as s:
-        assert len(listing(s)) == (2 if full == 2 else 7)
-    assert GPT_OK in sgdisk_verify(device.disk)

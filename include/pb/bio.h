@@ -125,18 +125,12 @@ bio_dev_t bio_allocate_parent(bio_dev_t parent,
 /**
  * Check if a device handle is valid
  *
- * The handles are 0 to CONFIG_BIO_MAX_DEVS - 1. One that isn't valid can lie
- * between two that are: a partition that an install released (bio.md 2.6,
- * 4). Whoever lists the devices tries every number.
- *
  * @return true if valid otherwise false
  */
 bool bio_valid(bio_dev_t dev);
 
 /**
  * Find block device by uuid
- *
- * A partition that an install released isn't found (bio.md 4).
  *
  * @param[in] uu Block device UUID
  *
@@ -355,6 +349,8 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf);
  *
  * @return PB_OK, on success, also for a length of 0,
  *         -PB_ERR_NOT_SUPPORTED, when there is no underlying write function,
+ *         -PB_ERR_STATE, a partition whose device's table an install
+ *         changed: until the reset (bio.md 4),
  *         -PB_ERR_PARAM, bad device handle, or lba and/or length is out of
  *                        range,
  *         -PB_ERR_IO, Driver I/O errors,
@@ -371,6 +367,8 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
  *
  * @return PB_OK, on success, also for a count of 0,
  *         -PB_ERR_NOT_SUPPORTED, when there is no underlying erase function,
+ *         -PB_ERR_STATE, a partition whose device's table an install
+ *         changed: until the reset (bio.md 4),
  *         -PB_ERR_PARAM, bad device handle, or first_lba and/or count is
  *                        out of range,
  *         -PB_ERR_IO, Driver I/O errors,
@@ -381,19 +379,10 @@ int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count);
 /**
  * Install partition table on a device
  *
- * The new table is in effect when this returns (bio.md 4): a partition it
- * leaves as it was, with the same UUID and the same blocks, keeps its handle
- * and its flags. One that changed or is gone is released: its handle is dead,
- * -PB_ERR_PARAM or NULL from every function, and isn't given out again
- * before the reset. A partition the table adds has a new handle and the
- * flags a partition has at the set up; what a board's late_init() or a boot
- * source policy sets on it isn't there until they run. One with the UUID of
- * a partition that was released has no flag which that one didn't have: a
- * partition the board hid stays hidden.
- *
- * On an error nothing changed when the device wasn't written (a variant the
- * board doesn't have, a layout that doesn't fit). After a write the old
- * partitions that the callback didn't make again are released.
+ * The table's callback writes the board's layout of 'variant' to the device.
+ * The device's partitions stay the ones it had until the reset (bio.md 4).
+ * A table that changes them makes them refuse writes and erases until then
+ * (bio_set_table_changed()).
  *
  * @param[in] part_uu Destination part uuid
  * @param[in] configuration_index Optional configuration/variant
@@ -401,8 +390,6 @@ int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count);
  * @return PB_OK, on success
  *         -PB_ERR_NOT_FOUND, when no device has the uuid,
  *         -PB_ERR_NOT_SUPPORTED, if there is no callback,
- *         -PB_ERR_MEM, when the pool has no room for the new partitions:
- *         the table is on the device, and a reset uses it,
  *         or the callback's error: -PB_ERR_PARAM for a variant the board
  *         doesn't have, -PB_ERR_IO and -PB_ERR_TIMEOUT from the driver
  */
@@ -411,16 +398,6 @@ int bio_install_partition_table(const uuid_t part_uu, int variant);
 /**
  * Sets the partition install callback for 'dev'
  *
- * The callback writes the table of the variant 'param' to 'dev' and then
- * makes its partitions with bio_allocate_parent(), as the table's set up
- * does: bio_install_partition_table() keeps the ones that didn't change and
- * releases the rest.
- *
- * It is set when the table is set up, before its partitions are made: the
- * flags 'dev' has at this call are what the table's partitions start with,
- * also the ones an install makes later, after the core took WRITABLE from
- * the device (bio.md 2.4).
- *
  * @param[in] dev Block device handle
  * @param[in] cb Callback function
  *
@@ -428,6 +405,22 @@ int bio_install_partition_table(const uuid_t part_uu, int variant);
  *        -PB_ERR_PARAM, on bad device device handle
  */
 int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb);
+
+/**
+ * The partition table on 'dev' changed: an install wrote a table whose
+ * partitions aren't the ones 'dev' has (bio.md 4). The table's callback calls
+ * it before it writes the new table. From then until the reset bio_write()
+ * and bio_erase() of the partitions of 'dev' answer -PB_ERR_STATE: their
+ * blocks may be another partition's on the medium. 'dev' itself, where the
+ * table is, is written as before. The first call logs that pb must be
+ * reset.
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return PB_OK, on success,
+ *        -PB_ERR_PARAM, on bad device handle
+ */
+int bio_set_table_changed(bio_dev_t dev);
 
 /**
  * Tell the driver that a complete write to 'dev' ended without errors

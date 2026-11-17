@@ -17,6 +17,7 @@
 #include <drivers/partition/gpt.h>
 #include <pb/bio.h>
 #include <pb/crc.h>
+#include <pb/dma.h>
 #include <pb/pb.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -1169,104 +1170,88 @@ static void test_object_without_a_layout(void **state)
 }
 
 /*
- * An installed table is in effect at once (bio.md 4, command-mode.md 5.3,
- * D-070, F-194): the partitions are there when the install returned, the
- * ones a boot makes of the same table. The device is as board_setup()
- * leaves it: only visible.
+ * An installed table is in effect after the reset (bio.md 4, D-093). One
+ * whose partitions differ from the device's locks their writes until then;
+ * the device, where the table is, is written as before.
  */
-static void boot_as_the_board(struct fixture *f, int expected)
-{
-    assert_int_equal(boot(f), expected);
-    assert_int_equal(bio_set_flags(f->dev, BIO_FLAG_VISIBLE), PB_OK);
-}
-
-static void test_install_is_in_effect_at_once(void **state)
+static void test_another_table_locks_the_partitions(void **state)
 {
     struct fixture *f = *state;
-    static uint8_t buf[RAMDISK_BLOCK_SIZE];
+    static uint8_t buf[RAMDISK_BLOCK_SIZE] __aligned(PB_DMA_ALIGN);
 
-    /* A device without a table has no partitions */
-    boot_as_the_board(f, -PB_ERR);
-    assert_int_equal(bio_get_part_by_uu(UU_SYS_A), -PB_ERR_NOT_FOUND);
+    install_and_reboot(f, 0);
+    bio_dev_t sys_a = bio_get_part_by_uu(UU_SYS_A);
+    memset(buf, 0x5a, sizeof(buf));
 
+    /* The same table: nothing changes, writes go on */
     assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
+    assert_int_equal(bio_write(sys_a, 0, sizeof(buf), buf), PB_OK);
+
+    /* Another table: the partitions stay, and refuse writes */
+    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
+    assert_int_equal(bio_get_part_by_uu(UU_SYS_A), sys_a);
     assert_part(UU_SYS_A, 34, 1057, "System A");
     assert_part(UU_SYS_B, 1058, 2081, "System B");
-    assert_part(UU_STATE, 2082, 2082, "State");
+    assert_int_equal(bio_write(sys_a, 0, sizeof(buf), buf), -PB_ERR_STATE);
+    assert_int_equal(bio_write(bio_get_part_by_uu(UU_STATE), 0, sizeof(buf), buf), -PB_ERR_STATE);
+    assert_int_equal(bio_read(sys_a, 0, sizeof(buf), buf), PB_OK);
 
-    /* A host's to write, as after a boot; the device isn't */
-    bio_dev_t sys_a = bio_get_part_by_uu(UU_SYS_A);
-    bio_dev_t sys_b = bio_get_part_by_uu(UU_SYS_B);
-    bio_dev_t state_part = bio_get_part_by_uu(UU_STATE);
-
-    assert_int_equal(bio_get_flags(sys_a), BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
-    assert_int_equal(bio_get_flags(f->dev), BIO_FLAG_VISIBLE);
-    memset(buf, 0x5a, sizeof(buf));
-    assert_int_equal(bio_write(sys_b, 0, sizeof(buf), buf), PB_OK);
-    assert_memory_equal(ramdisk_block(f->disk, 1058), buf, sizeof(buf));
-
-    /* The same table again: every handle and flag stays */
-    assert_int_equal(bio_clear_set_flags(sys_a, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    /* The old table again: still locked, and written */
+    unsigned int writes = f->disk->writes;
     assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_SYS_A), sys_a);
-    assert_int_equal(bio_get_part_by_uu(UU_SYS_B), sys_b);
-    assert_int_equal(bio_get_part_by_uu(UU_STATE), state_part);
-    assert_int_equal(bio_get_flags(sys_a),
-                     BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE);
+    assert_true(f->disk->writes > writes);
+    assert_int_equal(bio_write(sys_a, 0, sizeof(buf), buf), -PB_ERR_STATE);
 
-    /* Another table: System A's UUID has other blocks, the others are gone */
+    /* After the reset: the table on the device, written */
     assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
-    assert_part(UU_SYS_A, 34, 34 + SZ_KiB(32734) / 512 - 1, "Large");
-    assert_int_not_equal(bio_get_part_by_uu(UU_SYS_A), sys_a);
-    assert_false(bio_valid(sys_a));
-    assert_false(bio_valid(sys_b));
-    assert_false(bio_valid(state_part));
-    assert_int_equal(bio_get_part_by_uu(UU_SYS_B), -PB_ERR_NOT_FOUND);
-    assert_int_equal(bio_write(sys_b, 0, sizeof(buf), buf), -PB_ERR_PARAM);
-    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_SYS_A)),
-                     BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
-
-    /* The last block of the new one, far outside the old one */
-    bio_dev_t large = bio_get_part_by_uu(UU_SYS_A);
-
-    assert_int_equal(bio_write(large, SZ_KiB(32734) / 512 - 1, sizeof(buf), buf), PB_OK);
-    assert_memory_equal(ramdisk_block(f->disk, 34 + SZ_KiB(32734) / 512 - 1), buf, sizeof(buf));
-
-    /* A boot makes the same partition of what is on the device */
     assert_int_equal(boot(f), PB_OK);
     assert_part(UU_SYS_A, 34, 34 + SZ_KiB(32734) / 512 - 1, "Large");
     assert_int_equal(bio_get_part_by_uu(UU_SYS_B), -PB_ERR_NOT_FOUND);
+    assert_int_equal(bio_write(bio_get_part_by_uu(UU_SYS_A), 0, sizeof(buf), buf), PB_OK);
 }
 
-/* A layout that is refused before the device is written leaves the table
- * that is in effect, and a write that fails leaves no partition at blocks
- * the table may no longer give it */
-static void test_failed_install_and_the_partitions(void **state)
+/* A table counts as changed by its partitions' places, not by its variant:
+ * a device without partitions, a partition more or less, one that moved */
+static void test_what_a_changed_table_is(void **state)
 {
     struct fixture *f = *state;
+    static uint8_t buf[RAMDISK_BLOCK_SIZE] __aligned(PB_DMA_ALIGN);
+
+    /* A blank device has no partitions: any table changes that */
+    assert_int_equal(boot(f), -PB_ERR);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
+    assert_int_equal(boot(f), PB_OK);
+
+    /* The default layout in the other order of variants is the same table */
+    assert_int_equal(boot_object(f, &ptbl_swapped), PB_OK);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
+    assert_int_equal(bio_write(bio_get_part_by_uu(UU_SYS_A), 0, sizeof(buf), buf), PB_OK);
+
+    /* One partition, System A over the disk */
+    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
+    assert_int_equal(bio_write(bio_get_part_by_uu(UU_SYS_B), 0, sizeof(buf), buf), -PB_ERR_STATE);
+}
+
+/* An install refused before it writes locks nothing. One whose write fails
+ * part way locks: the medium may hold some of the new table */
+static void test_a_failed_install_and_the_lock(void **state)
+{
+    struct fixture *f = *state;
+    static uint8_t buf[RAMDISK_BLOCK_SIZE] __aligned(PB_DMA_ALIGN);
 
     install_and_reboot(f, 0);
     bio_dev_t sys_a = bio_get_part_by_uu(UU_SYS_A);
     unsigned int writes = f->disk->writes;
 
-    /* Too large, and a variant the board doesn't have */
     assert_int_equal(bio_install_partition_table(UU_DISK, 2), -PB_ERR_MEM);
     assert_int_equal(bio_install_partition_table(UU_DISK, 42), -PB_ERR_PARAM);
     assert_int_equal(f->disk->writes, writes);
-    assert_int_equal(bio_get_part_by_uu(UU_SYS_A), sys_a);
-    assert_part(UU_SYS_B, 1058, 2081, "System B");
+    assert_int_equal(bio_write(sys_a, 0, sizeof(buf), buf), PB_OK);
 
-    /* The primary is written and the backup isn't */
     f->disk->fail_writes_after = 2;
     assert_int_equal(bio_install_partition_table(UU_DISK, 1), -PB_ERR_IO);
     f->disk->fail_writes_after = -1;
-    assert_false(bio_valid(sys_a));
-    assert_int_equal(bio_get_part_by_uu(UU_SYS_A), -PB_ERR_NOT_FOUND);
-    assert_int_equal(bio_get_part_by_uu(UU_SYS_B), -PB_ERR_NOT_FOUND);
-
-    /* The install is run again */
-    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
-    assert_part(UU_SYS_A, 34, 34 + SZ_KiB(32734) / 512 - 1, "Large");
+    assert_int_equal(bio_write(sys_a, 0, sizeof(buf), buf), -PB_ERR_STATE);
 }
 
 int main(void)
@@ -1278,8 +1263,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_install_largest_partition, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_too_large_partition_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_unknown_variant_fails, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_install_is_in_effect_at_once, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_failed_install_and_the_partitions, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_another_table_locks_the_partitions, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_what_a_changed_table_is, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_failed_install_and_the_lock, setup, teardown),
         cmocka_unit_test_setup_teardown(test_recover_from_backup, setup, teardown),
         cmocka_unit_test_setup_teardown(test_both_tables_corrupt_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(
