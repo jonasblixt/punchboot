@@ -583,6 +583,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | read) and the build stops for a board key there (`PLAT_REFUSES_UNREVOCABLE`, `platform.md` 4.1), in | | |
 | | | the changelog's refused images. The MEK builds and boots Linux. The gate's part is done. Left: what | | |
 | | | the SCFW does with a partial word written again | | |
+| | | 2026-11-17 (D-094): the SRK write is the core's now, the hash a board's `slc_fuses`: the same | | |
+| | | reads first and the same refusal (`-PB_ERR_STATE`), the same completion of a partial word, still no | | |
+| | | second write of a complete one. `test_imx8x_helpers` runs it through `slc.c` with the 8X's `plat_slc` | | |
 | F-431 | boards, build, `imx_flexspi.c` | Low, what the wrap-up's packages left or met. The 8X boards' | Reported | open |
 | | | example password is in the image and the same on every device (`board.md` 4.4), and | | |
 | | | `<board/password.h>` is under `src/board/`, which `board.md` 6 and D-056 don't list among the | | |

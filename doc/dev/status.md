@@ -1,7 +1,7 @@
 # Status
 
-_Last updated: 2026-11-17 (D-093: an installed table is in effect after the reset again, a
-changed one locks its partitions' writes; before it the night's gate list, F-467 to F-469)_
+_Last updated: 2026-11-17 (D-093: an installed table is in effect after the reset, a changed
+one locks its partitions' writes; D-094: the SRK hash is the board's, in `slc_fuses`)_
 
 ## Current focus
 
@@ -50,6 +50,7 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 ## Open questions (for Jonas)
 
+- D-094 (log 2026-11-17): `struct slc_ops` keeps the optional `set_configuration`, unused now.
 - D-093's choices (log 2026-11-17): the lock is per device, its partitions only, and a locked
   write answers `ERROR` (`-PB_ERR_STATE`); "changed" is the partitions' UUIDs and blocks.
 

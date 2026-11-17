@@ -1891,6 +1891,9 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `CONFIG_SRK_FUSE` stays what it was. `check_srk_fuse` runs the script on the test keys and every | | |
 | | | defconfig's pair. Jiffy, the MEK and the pico8ml's signed builds pass it. A build without | | |
 | | | signing (the 8DXL) isn't checked, nor a product that signs outside pb's build | | |
+| | | 2026-11-17 (Jonas, D-094): the check is gone with `CONFIG_SRK_FUSE`. The SRK hash is literal words in | | |
+| | | the board's `slc_fuses`, and nothing compares them with the SRK table: `slc.md` 3's reset before the | | |
+| | | lock is what is left | | |
 | F-349 | `src/boot/boot.c` `collect_info()` | Boot time: pb's | Verified (code) | closed |
 | | | information is read on every board's boot path now, before the first candidate, and its cost isn't | | |
 | | | measured: `system.md` 5.3 asks for a recorded time. The boards with a device tree read the same in | | |
