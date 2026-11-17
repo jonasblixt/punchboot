@@ -202,7 +202,7 @@ SECTIONS
 ASSERT(SIZEOF(.iplt) == 0 && SIZEOF(.rel.dyn) == 0 && SIZEOF(.rela.dyn) == 0,
        "pb has an ifunc or a run time relocation (.iplt, .rel.dyn, .rela.dyn), which nothing in pb applies")
 
-/* The stack grows down, towards .ro_data and the keystore at its end. Where
+/* The stack grows down, towards .ro_data and the trust anchors at its end. Where
  * the arch has an MMU (its sections are page aligned) the platforms map
  * .ro_data read only, so once the MMU is on an overflow faults there and
  * rewrites nothing. That holds while the stack starts where .ro_data ends.

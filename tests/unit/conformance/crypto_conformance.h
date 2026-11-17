@@ -14,8 +14,8 @@
  * tests run, says in crypto_conformance_hashes and _curves which algorithms
  * it registers, and lists the tests with CRYPTO_CONFORMANCE_TESTS(). The
  * tests reach the backend through the crypto API only. Their keys are the
- * internal keystore's (pb_keystore), their tokens and digests are in
- * crypto_vectors.h, none made with the code under test.
+ * development trust anchors (pb_trust_anchors), their tokens and digests
+ * are in crypto_vectors.h, none made with the code under test.
  */
 
 #ifndef TESTS_UNIT_CONFORMANCE_CRYPTO_CONFORMANCE_H

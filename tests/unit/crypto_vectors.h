@@ -15,8 +15,8 @@
  * The tokens are command mode's (command-mode.md 3.3) for the device UUID
  * below: its 36 character string, hashed with the hash that goes with the
  * key and signed with the key. P-256's is tests/<uuid>.token; the two others
- * were made the same way with the keys in pki/, which are the internal
- * keystore's, and checked with OpenSSL:
+ * were made the same way with the keys in pki/, which are the development
+ * trust anchors, and checked with OpenSSL:
  *
  *   printf %s <uuid> | openssl dgst -sha384 -sign pki/secp384r1-key-pair.pem
  *   printf %s <uuid> | openssl dgst -sha512 -sign pki/secp521r1-key-pair.pem
@@ -31,7 +31,7 @@
 #define VECTOR_PATTERN_LENGTH 1000
 #define VECTOR_TOKEN_UUID     "02e49231-756e-35ee-a982-378e5ba866a9"
 
-/* The internal keystore's keys */
+/* The development trust anchors */
 #define VECTOR_KEY_ID_P256    0xa90f9680
 #define VECTOR_KEY_ID_P384    0x25c6dd36
 #define VECTOR_KEY_ID_P521    0x52c1eda0

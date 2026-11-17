@@ -58,7 +58,7 @@ _Static_assert(FH_SIZE <= UINT32_MAX && FH_BASE <= UINTPTR_MAX &&
                "The Firmware Handoff region wraps or is above what the arch can address");
 
 /* pb's structure has room for this build's version (boot.md 5.4). That the
- * keystore's keys fit it is checked where the keystore is made (Makefile) */
+ * trust anchors fit it is checked where they are generated (Makefile) */
 _Static_assert(sizeof(PB_VERSION) <= sizeof(((struct pb_fh_handover *)0)->version),
                "PB_VERSION has no room in struct pb_fh_handover");
 _Static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "The transfer list is little-endian");

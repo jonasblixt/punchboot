@@ -6,8 +6,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Root of trust (src/rot.c) and security life cycle (src/slc.c), with the
- * internal keystore and fake board callbacks. Both modules keep their config
- * in a static, so the "not initialized" tests run first.
+ * development trust anchors and fake board callbacks. Both modules keep
+ * their config in a static, so the "not initialized" tests run first.
  */
 
 #include <setjmp.h>
@@ -124,7 +124,7 @@ static void test_rot_key_status(void **state)
     assert_int_equal(rot_read_key_status_by_idx(3), -PB_ERR_PARAM);
     assert_int_equal(rot_key_idx_to_id(2, &id), PB_OK);
     assert_int_equal(id, KEY_P521);
-    /* An index the keystore doesn't have: no id, the one before stays */
+    /* An index the trust anchors don't have: no id, the one before stays */
     assert_int_equal(rot_key_idx_to_id(3, &id), -PB_ERR_PARAM);
     assert_int_equal(id, KEY_P521);
 }

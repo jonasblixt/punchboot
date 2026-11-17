@@ -122,7 +122,7 @@ static const struct pb_key *key_of(const struct token *t)
         if (pb_keys[i].id == t->key_id)
             return &pb_keys[i];
     }
-    fail_msg("No key 0x%x in the keystore", t->key_id);
+    fail_msg("No key 0x%x among the trust anchors", t->key_id);
     return NULL;
 }
 

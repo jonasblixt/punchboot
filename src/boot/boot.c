@@ -516,7 +516,7 @@ static int collect_info(void)
     }
 
     if (no_of_keys > BOOT_INFO_MAX_KEYS) {
-        LOG_ERR("The keystore has more keys than the %i pb can tell of", BOOT_INFO_MAX_KEYS);
+        LOG_ERR("pb has more trust anchors than the %i it can tell of", BOOT_INFO_MAX_KEYS);
         return -PB_ERR_NOT_SUPPORTED;
     }
 

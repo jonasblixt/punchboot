@@ -490,9 +490,9 @@ static void test_ec_public_key_point(void **state)
 }
 
 /* The keys that verified before still parse: every key of pb_keys is as
- * scripts/gen-keystore.py writes it, a SubjectPublicKeyInfo with the point
+ * scripts/gen-trust-anchors.py writes it, a SubjectPublicKeyInfo with the point
  * uncompressed, as the development keys' three are */
-static void test_ec_public_key_keystore(void **state)
+static void test_ec_public_key_trust_anchors(void **state)
 {
     static const struct {
         dsa_t dsa;
@@ -580,7 +580,7 @@ int main(void)
         cmocka_unit_test(test_ec_public_key_bit_string),
         cmocka_unit_test(test_ec_public_key_bad_encoding),
         cmocka_unit_test(test_ec_public_key_point),
-        cmocka_unit_test(test_ec_public_key_keystore),
+        cmocka_unit_test(test_ec_public_key_trust_anchors),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

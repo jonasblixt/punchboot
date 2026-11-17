@@ -10,8 +10,8 @@
  * locations differ: the platform gives them to imx_hab_fuses_init(), and
  * puts the functions it wants in its plat_rot and plat_slc (pb/plat.h).
  *
- * The keystore's key n is SRK n: they share the revoke bit (pb/rot.h). The
- * SRK hash is the board's to fuse, in its slc_fuses (D-094).
+ * pb's trust anchor n is SRK n: they share the revoke bit (pb/rot.h). The
+ * SRK hash, the ROTPK hash, is the board's to fuse, in its slc_fuses (D-094).
  */
 
 #ifndef INCLUDE_DRIVERS_FUSE_IMX_HAB_FUSES_H

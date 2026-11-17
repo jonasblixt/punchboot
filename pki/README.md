@@ -10,8 +10,9 @@
 | `secp384r1-pub-key.der`, `.pem`         | `pb-development2` (slot 1), its key pair `secp384r1-key-pair.pem`     |
 | `secp521r1-pub-key.der`, `.pem`         | `pb-development3` (slot 2), its key pair `secp521r1-key-pair.pem`     |
 | `secp256r1-key-pair2.pem`               | A key pb doesn't have: the integration tests' unknown signer          |
-| `secp256r1-priv-key.der`                | A private key in DER, which `scripts/gen-keystore.py` refuses (test)  |
-| `test_rsa_public.der`                   | An RSA key, which `scripts/gen-keystore.py` refuses (test)            |
+| `secp256r1-priv-key.der`                | A private key in DER, which `scripts/gen-trust-anchors.py` refuses    |
+|                                         | (test)                                                                |
+| `test_rsa_public.der`                   | An RSA key, which `scripts/gen-trust-anchors.py` refuses (test)       |
 | `imx6ul_hab_testkeys/`                  | HABv4 (i.MX6UL, i.MX8M): the SRK table and fuse words, SRK1 to SRK4's |
 |                                         | certificates and keys, and each SRK's CSF and IMG certificate and key |
 |                                         | (`CSFn_1`, `IMGn_1`). `cst` signs with SRK1's by default. The SRK,    |

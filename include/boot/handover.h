@@ -43,7 +43,7 @@ struct bpak_header;
 /** The board reported a failure the boot goes on without (board.md 2.3) */
 #define BOOT_INFO_STATUS_BOARD_DEGRADED     (UINT32_C(1) << 1)
 
-/** Room for every key a keystore can hold: its number of keys is a uint8_t.
+/** Room for every key a bpak keystore can hold: its number of keys is a uint8_t.
  * A device tree's list has no limit, and no released build gets one here */
 #define BOOT_INFO_MAX_KEYS                  255
 
@@ -64,7 +64,7 @@ struct boot_info {
     int32_t slc; /*!< The life cycle, the wire's pb_slc values, or BOOT_INFO_NO_SLC */
     size_t no_of_available_keys;
     uint32_t available_keys[BOOT_INFO_MAX_KEYS]; /*!< The ids of the keys not revoked,
-                                                      in the keystore's order */
+                                                      in the trust anchors' order */
     /** What pb booted without, BOOT_INFO_STATUS_* (boot.md 5.6): 'status' in
      * pb's structure, pb,status in a device tree. From the boot's
      * preconditions, checked before early_boot(), and from the board, asked

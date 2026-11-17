@@ -9,13 +9,13 @@ add_test(
 )
 set_tests_properties(make.rebuild PROPERTIES LABELS make TIMEOUT 120 SKIP_RETURN_CODE 77)
 
-# The keystore's generator (board.md 7): needs no toolchain
+# The trust anchors' generator (board.md 7): needs no toolchain
 add_test(
-    NAME make.gen_keystore
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_gen_keystore.py
+    NAME make.gen_trust_anchors
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_gen_trust_anchors.py
             ${CMAKE_SOURCE_DIR}
 )
-set_tests_properties(make.gen_keystore PROPERTIES LABELS make TIMEOUT 60)
+set_tests_properties(make.gen_trust_anchors PROPERTIES LABELS make TIMEOUT 60)
 
 add_test(
     NAME make.config

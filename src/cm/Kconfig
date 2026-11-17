@@ -70,7 +70,7 @@ config CM_AUTH_TOKEN
     depends on CM_AUTH
     help
         The host sends a signature over the device's UUID, made with a key
-        of the keystore (command-mode.md 3.3).
+        that is one of pb's trust anchors (command-mode.md 3.3).
 
 config CM_AUTH_PASSWORD
     bool "Password"

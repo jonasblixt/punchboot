@@ -89,7 +89,7 @@ def test_a_revoked_key_is_not_available(dt_device: Device, img: pathlib.Path) ->
         s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
         s.slc_revoke_key(OTHER_KEY_ID)
 
-    # The others, in the keystore's order
+    # The others, in the trust anchors' order
     after = fdt.u32_list(boot_a(dt_device, img)["pb,slc-available-keys"])
     assert after == [key for key in before if key != OTHER_KEY_ID]
 

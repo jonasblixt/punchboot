@@ -2221,8 +2221,8 @@ static void test_slc_read_unrevocable(void **state)
 }
 
 /* command-mode.md 5.2 (F-190): SLC_READ lists 16 keys at most, the slots
- * the wire has. A keystore with more keys fills them and nothing after
- * them: the 17th id was written where the revoked list starts, and the
+ * the wire has. More trust anchors fill them and nothing after them: the
+ * 17th id was written where the revoked list starts, and the
  * revoked ones past the end of the lists. */
 static void test_slc_read_lists_16_keys_at_most(void **state)
 {
