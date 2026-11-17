@@ -38,7 +38,6 @@ CONFIG_IMX8M_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v
 #
 # Boot
 #
-CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_EXECUTE_IN_RAM=y
 # CONFIG_EXECUTE_IN_FLASH is not set
 

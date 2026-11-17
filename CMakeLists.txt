@@ -32,7 +32,6 @@ if(NOT EXISTS ${MBEDTLS_DIR}/library/ecdsa.c)
 endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-find_program(BPAK bpak REQUIRED)
 
 # Kconfig: generate config.h from the host defconfig at configure time
 file(GLOB_RECURSE PB_KCONFIG_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*Kconfig)
@@ -116,13 +115,21 @@ add_library(pb_lib STATIC
 )
 target_link_libraries(pb_lib PUBLIC pb_host_flags)
 
-# Keystore, generated from the bpak keystore like in the firmware build
+# The keystore, generated like in the firmware build, from the keys of
+# pki/dev-keys.mk (board.md 7)
+set(PB_DEV_KEYS
+    0 pb-development  ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp256r1-pub-key.der
+    1 pb-development2 ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp384r1-pub-key.der
+    2 pb-development3 ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp521r1-pub-key.der
+)
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/keystore.c
-    COMMAND ${BPAK} generate keystore --name pb
-            ${CMAKE_CURRENT_SOURCE_DIR}/pki/internal_keystore.bpak --decorate
-            > ${CMAKE_CURRENT_BINARY_DIR}/keystore.c
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/pki/internal_keystore.bpak
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen-keystore.py
+            ${PB_DEV_KEYS} > ${CMAKE_CURRENT_BINARY_DIR}/keystore.c
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen-keystore.py
+            ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp256r1-pub-key.der
+            ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp384r1-pub-key.der
+            ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp521r1-pub-key.der
     VERBATIM
 )
 

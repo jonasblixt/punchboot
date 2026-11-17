@@ -82,8 +82,6 @@ SECTIONS
         . = ALIGN(16);
         . = ALIGN(1024);
         _erodata = .;
-        *(.keystore_header)
-        *(.keystore_key)
         . = ALIGN(1024);
         PROVIDE (_ro_data_region_end = .);
     } > flash

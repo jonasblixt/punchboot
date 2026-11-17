@@ -10,7 +10,6 @@
 #include <boot/image_helpers.h>
 #include <boot/image_regions.h>
 #include <bpak/id.h>
-#include <bpak/keystore.h>
 #include <inttypes.h>
 #include <pb/crypto.h>
 #include <pb/dma.h>

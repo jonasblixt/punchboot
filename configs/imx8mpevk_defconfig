@@ -58,7 +58,6 @@ CONFIG_BOOT_ATF=y
 #
 # Loading
 #
-CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_EXECUTE_IN_RAM=y
 # CONFIG_EXECUTE_IN_FLASH is not set
 CONFIG_BOOT_LOAD_CHUNK_kB=1024
