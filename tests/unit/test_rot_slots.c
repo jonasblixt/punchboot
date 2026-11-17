@@ -6,8 +6,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * The keys' revoke slots (board.md 7): key n is in slot n, and a dropped key
- * leaves its slot empty. The keystore is the test's, as gen-keystore.py writes
- * it for VERIFY_KEY0, VERIFY_KEY2 and VERIFY_KEY3: slot 1's key was dropped.
+ * leaves its slot empty. The trust anchors are the test's, as
+ * gen-trust-anchors.py writes them for VERIFY_KEY0, VERIFY_KEY2 and
+ * VERIFY_KEY3: slot 1's key was dropped.
  */
 
 #include <setjmp.h>
@@ -58,7 +59,7 @@ static int setup(void **state)
     return 0;
 }
 
-/* Each key revokes its own slot, the keystore's index is not the slot */
+/* Each key revokes its own slot, its index among the trust anchors is not the slot */
 static void test_slot_is_the_keys(void **state)
 {
     (void)state;

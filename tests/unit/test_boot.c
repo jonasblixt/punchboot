@@ -153,7 +153,7 @@ static struct {
     int next_calls_at_device_uuid;
     slc_t slc;
     int slc_calls;
-    /* The keystore's keys are key_ids[]. A bit per index: revoked, and a
+    /* The trust anchors are key_ids[]. A bit per index: revoked, and a
      * status that can't be read */
     size_t no_of_keys;
     int no_of_keys_rc; /* The RoT's error: it isn't set up */
@@ -1378,7 +1378,7 @@ static void test_info_is_collected_once_before_the_candidates(void **state)
         const struct boot_info *info = &fake.prepare_info[i];
 
         assert_device_info(info);
-        /* The keys that aren't revoked, in the keystore's order */
+        /* The keys that aren't revoked, in the trust anchors' order */
         assert_int_equal(info->no_of_available_keys, 2);
         assert_int_equal(info->available_keys[0], key_ids[0]);
         assert_int_equal(info->available_keys[1], key_ids[2]);

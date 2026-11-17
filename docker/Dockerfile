@@ -63,7 +63,7 @@ ENV MBEDTLS_DIR=/opt/mbedtls-${MBEDTLS_VERSION}
 
 # Python environment for the punchboot package, coverage reports, the bpak
 # CLI (the bpak python package since 1.0), which builds test images, and
-# cryptography, which scripts/gen-keystore.py reads the board's keys with.
+# cryptography, which scripts/gen-trust-anchors.py reads the board's keys with.
 # The container runs as the invoking host user, so the locations that get
 # installed into at runtime (venv, /opt/pb prefix for pbstate) are left
 # world writable. Containers are ephemeral, so nothing

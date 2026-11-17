@@ -145,7 +145,7 @@ int dsa_verify(dsa_t alg,
     if (current_hash_ops != NULL)
         return -PB_ERR_STATE;
 
-    /* alg is the keystore's name for the key's curve, and the key's own
+    /* alg is the trust anchor's name for the key's curve, and the key's own
      * curve must be it, before any backend sees the key (crypto.md 4,
      * D-092, F-286): a backend took the curve from the key and alg only
      * chose the backend. A key that doesn't parse is -PB_ERR_ASN1 */
