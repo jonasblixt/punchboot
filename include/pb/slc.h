@@ -37,7 +37,6 @@ struct slc_fuse {
  */
 struct slc_ops {
     slc_t (*read_status)(void); /*!< Without it there is no life cycle */
-    int (*set_configuration)(void); /*!< Optional: what else configures the SoC */
     int (*set_configuration_locked)(void);
     int (*set_eol)(void); /*!< Called with CONFIG_SLC_EOL only (system.md 4) */
     int (*fuse_read)(uint32_t index, uint32_t *value); /*!< Required with the board's fuses */
@@ -46,10 +45,10 @@ struct slc_ops {
 
 /**
  * Set up the life cycle: the platform's operations and the board's
- * configuration fuses (board.slc_fuses), the key hash among them.
- * slc_set_configuration() calls set_configuration when the platform has it,
- * reads every one of 'fuses', and refuses with nothing written when a word
- * has a bit its value lacks; then it sets the bits that aren't set yet.
+ * configuration fuses (board.slc_fuses), the key hash among them: they are
+ * the configuration (D-094). slc_set_configuration() reads every one of
+ * 'fuses', and refuses with nothing written when a word has a bit its value
+ * lacks; then it sets the bits that aren't set yet.
  *
  * @param[in] ops The platform's operations, plat_slc
  * @param[in] fuses The board's configuration fuses, NULL for none
@@ -67,7 +66,7 @@ slc_t slc_read_status(void);
  * @return PB_OK, also when every bit is set already,
  *        -PB_ERR_STATE when locked or in EOL, or a word has a bit its value
  *         lacks (nothing is written),
- *        -PB_ERR_NOT_SUPPORTED without anything to write or without fuse
+ *        -PB_ERR_NOT_SUPPORTED without the board's fuses or without fuse
  *         writes (CONFIG_SLC_NO_FUSE_WRITES),
  *         or the platform's error
  */

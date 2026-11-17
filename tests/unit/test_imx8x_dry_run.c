@@ -149,8 +149,6 @@ static void test_plat_rot_and_slc(void **state)
     assert_ptr_equal(plat_rot.read_key_status, imx8x_read_key_status);
 
     assert_ptr_equal(plat_slc.read_status, imx8x_slc_read_status);
-    /* The SRK hash is the board's, in its slc_fuses (D-094) */
-    assert_null(plat_slc.set_configuration);
 #ifdef CONFIG_PLAT_IMX8XL
     assert_null(plat_slc.set_configuration_locked);
 #else

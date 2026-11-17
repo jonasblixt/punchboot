@@ -33,12 +33,26 @@ static slc_t fake_read_status(void)
     return slc_state;
 }
 
-static int fake_set_configuration(void)
+/* The configuration: a word of the key hash, which the state is read from */
+static int fake_fuse_read(uint32_t index, uint32_t *value)
 {
+    (void)index;
+    *value = 0;
+    return PB_OK;
+}
+
+static int fake_fuse_write(uint32_t index, uint32_t value)
+{
+    (void)index;
+    (void)value;
     slc_writes++;
     slc_state = SLC_CONFIGURATION;
     return PB_OK;
 }
+
+static const struct slc_fuse hash_fuse[] = {
+    { 0, 0x5020c7d7 },
+};
 
 static int fake_set_configuration_locked(void)
 {
@@ -57,9 +71,10 @@ static int fake_set_eol(void)
 /* A port that has EOL */
 static const struct slc_ops cfg = {
     .read_status = fake_read_status,
-    .set_configuration = fake_set_configuration,
     .set_configuration_locked = fake_set_configuration_locked,
     .set_eol = fake_set_eol,
+    .fuse_read = fake_fuse_read,
+    .fuse_write = fake_fuse_write,
 };
 
 /* Runs first: slc.c keeps its configuration in a static */
@@ -103,7 +118,7 @@ static void test_the_other_states(void **state)
 {
     (void)state;
 
-    assert_int_equal(slc_init(&cfg, NULL, 0), PB_OK);
+    assert_int_equal(slc_init(&cfg, hash_fuse, ARRAY_SIZE(hash_fuse)), PB_OK);
     slc_state = SLC_NOT_CONFIGURED;
     slc_writes = 0;
     eol_calls = 0;

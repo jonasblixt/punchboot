@@ -137,7 +137,8 @@ int slc_set_configuration(void)
     if (NO_FUSE_WRITES)
         return no_fuse_writes();
 
-    if (!ops || (!ops->set_configuration && !fuses_length))
+    /* The board's fuses are the configuration, the key hash among them */
+    if (!ops || !fuses_length)
         return -PB_ERR_NOT_SUPPORTED;
 
     slc = slc_read_status();
@@ -155,13 +156,6 @@ int slc_set_configuration(void)
 
     if (rc != PB_OK)
         return rc;
-
-    if (ops->set_configuration) {
-        rc = ops->set_configuration();
-
-        if (rc != PB_OK)
-            return rc;
-    }
 
     return write_fuses();
 }

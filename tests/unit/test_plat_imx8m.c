@@ -873,8 +873,6 @@ static void test_plat_rot_and_slc(void **state)
     /* The life cycle: HABv4's SEC_CONFIG and SRK hash, the fuses by index,
      * no EOL (F-263) */
     assert_ptr_equal(plat_slc.read_status, imx_hab_slc_read_status);
-    /* The SRK hash is the board's, in its slc_fuses (D-094) */
-    assert_null(plat_slc.set_configuration);
     /* Word n of the SRK hash: banks 6 and 7, four words each */
     assert_int_equal(IMX8M_FUSE_SRK(0), IMX8M_FUSE(6, 0));
     assert_int_equal(IMX8M_FUSE_SRK(4), IMX8M_FUSE(7, 0));
