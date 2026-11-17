@@ -603,539 +603,139 @@ static void test_install_partition_table(void **state)
     assert_int_equal(install_variant, 2);
 }
 
-/*
- * An installed table is in effect at once (bio.md 4, D-070, F-194). A
- * table's install callback as gpt.c has it: it checks the layout, writes
- * the device, and then makes the layout's partitions.
- */
 #define UU_NEW \
     (const unsigned char *)"\xf5\xf8\xc9\xae\xef\xb5\x40\x71\x9b\xa9\xd3\x13\xb0\x82\x28\x1e"
 #define UU_NEW2 \
     (const unsigned char *)"\x65\x6a\xb3\xfc\x58\x56\x4a\x5e\xa2\xae\x5a\x01\x83\x13\xb3\xee"
 #define DISK_FLAGS (BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE)
-#define DISK_HAL   0x5a
 
-struct layout_part {
-    const unsigned char *uu;
-    lba_t first;
-    lba_t last;
-    const char *name;
-};
-
-static struct {
-    const struct layout_part *parts;
-    size_t length;
-    int refuse_rc; /* The layout is refused, before anything is written */
-    int after_write_rc; /* The callback fails after its write */
-    bool no_write; /* A callback that makes partitions and writes nothing */
-    bio_dev_t made[8]; /* What bio_allocate_parent() returned for each */
-} layout;
-
-static int layout_install(bio_dev_t dev, int variant)
+/*
+ * A table an install changed (bio.md 4, D-093): the partitions stay until
+ * the reset and refuse writes and erases, before the driver is called. The
+ * device the table is on, and other devices, are written as before.
+ */
+static void test_a_changed_table_refuses_writes(void **state)
 {
-    static const uint8_t table[RAMDISK_BLOCK_SIZE] = { 0x45, 0x46, 0x49 };
-    int rc;
-
-    install_calls++;
-    install_variant = variant;
-
-    if (layout.refuse_rc != PB_OK)
-        return layout.refuse_rc;
-
-    if (!layout.no_write) {
-        rc = bio_write(dev, 1, sizeof(table), table);
-
-        if (rc != PB_OK)
-            return rc;
-    }
-
-    if (layout.after_write_rc != PB_OK)
-        return layout.after_write_rc;
-
-    for (size_t i = 0; i < layout.length; i++) {
-        const struct layout_part *p = &layout.parts[i];
-
-        layout.made[i] =
-            bio_allocate_parent(dev, p->first, p->last, RAMDISK_BLOCK_SIZE, p->uu, p->name);
-
-        /* As gpt.c: an entry the core refuses is skipped, a full pool ends it */
-        if (layout.made[i] < 0 && layout.made[i] != -PB_ERR_PARAM)
-            return layout.made[i];
-    }
-
-    return PB_OK;
-}
-
-/* The device a table is on, as board_setup() leaves it: the table's callback
- * was set while the device had the driver's flags, and the core took
- * WRITABLE from it afterwards (bio.md 2.4). 'f->part' is the old table's
- * partition, with what a policy and a board's late_init() set on it */
-static void table_setup(struct fixture *f)
-{
-    bio_dev_t disk = bio_get_part_by_uu(UU_DISK);
-
-    memset(&layout, 0, sizeof(layout));
-    install_calls = 0;
-    bio_reset();
-    disk = ramdisk_attach(f->disk, UU_DISK);
-    assert_int_equal(disk, 0);
-    assert_int_equal(bio_get_flags(disk), DISK_FLAGS);
-    assert_int_equal(bio_set_hal_flags(disk, DISK_HAL), PB_OK);
-    assert_int_equal(bio_set_install_partition_cb(disk, layout_install), PB_OK);
-    f->part = bio_allocate_parent(disk, PART_FIRST, PART_LAST, RAMDISK_BLOCK_SIZE, UU_PART, "Part");
-    assert_int_equal(f->part, 1);
-    assert_int_equal(bio_set_flags(disk, BIO_FLAG_VISIBLE), PB_OK);
-    assert_int_equal(bio_clear_set_flags(f->part, 0, BIO_FLAG_BOOTABLE | BIO_FLAG_READABLE), PB_OK);
-}
-
-#define PART_FLAGS (DISK_FLAGS | BIO_FLAG_BOOTABLE | BIO_FLAG_READABLE)
-
-/* A handle that is dead: -PB_ERR_PARAM, or NULL, for whoever still holds it
- * (bio.md 2.6, 4), and nothing reaches the driver */
-static void assert_dead(struct fixture *f, bio_dev_t dev)
-{
-    unsigned int reads = f->disk->reads;
-    unsigned int writes = f->disk->writes;
-
-    assert_false(bio_valid(dev));
-    assert_int_equal(bio_read(dev, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_PARAM);
-    assert_int_equal(bio_write(dev, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_PARAM);
-    assert_int_equal(bio_erase(dev, 0, 1), -PB_ERR_PARAM);
-    assert_int_equal(bio_write_done(dev), -PB_ERR_PARAM);
-    assert_int_equal(bio_get_flags(dev), -PB_ERR_PARAM);
-    assert_int_equal(bio_set_flags(dev, BIO_FLAG_VISIBLE), -PB_ERR_PARAM);
-    assert_int_equal(bio_clear_set_flags(dev, 0, BIO_FLAG_BOOTABLE), -PB_ERR_PARAM);
-    assert_int_equal(bio_get_hal_flags(dev), -PB_ERR_PARAM);
-    assert_int_equal(bio_size(dev), -PB_ERR_PARAM);
-    assert_int_equal(bio_block_size(dev), -PB_ERR_PARAM);
-    assert_int_equal(bio_get_first_block(dev), -PB_ERR_PARAM);
-    assert_int_equal(bio_get_last_block(dev), -PB_ERR_PARAM);
-    assert_int_equal(bio_get_no_of_blocks(dev), -PB_ERR_PARAM);
-    assert_null(bio_get_uu(dev));
-    assert_null(bio_get_description(dev));
-    assert_int_equal(bio_get_private(dev), 0);
-    assert_int_equal(
-        bio_allocate_parent(dev, PART_FIRST, PART_LAST, RAMDISK_BLOCK_SIZE, UU_NEW2, "Child"),
-        -PB_ERR_PARAM);
-    assert_int_equal(f->disk->reads, reads);
-    assert_int_equal(f->disk->writes, writes);
-}
-
-/* A partition that the new table leaves as it was, the same UUID and the
- * same blocks, keeps its handle and its flags. A partition the table adds
- * gets a new handle, and starts as a partition does at the set up: with the
- * flags the device had then, not the ones the core left it */
-static void test_install_keeps_an_unchanged_partition(void **state)
-{
-    static const struct layout_part parts[] = {
-        { UU_NEW, 2000, 2999, "New" },
-        { UU_PART, PART_FIRST, PART_LAST, "Renamed" },
-    };
     struct fixture *f = *state;
+    struct ramdisk *other = ramdisk_new(DISK_BLOCKS);
+    bio_dev_t other_dev;
+    bio_dev_t other_part;
+    unsigned int writes;
 
-    table_setup(f);
-    layout.parts = parts;
-    layout.length = ARRAY_SIZE(parts);
+    assert_non_null(other);
+    other_dev = ramdisk_attach(other, UU_OTHER);
+    assert_true(other_dev >= 0);
+    other_part = bio_allocate_parent(
+        other_dev, PART_FIRST, PART_LAST, RAMDISK_BLOCK_SIZE, UU_NEW, "Other part");
+    assert_true(other_part >= 0);
 
-    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
-    assert_int_equal(install_calls, 1);
-    assert_int_equal(install_variant, 1);
+    erase_calls = 0;
+    assert_int_equal(bio_set_ios_erase(f->part, fake_erase), PB_OK);
+    assert_int_equal(bio_set_table_changed(-1), -PB_ERR_PARAM);
+    assert_int_equal(bio_set_table_changed(CONFIG_BIO_MAX_DEVS), -PB_ERR_PARAM);
+    assert_int_equal(bio_set_table_changed(0), PB_OK);
+    /* Twice is once */
+    assert_int_equal(bio_set_table_changed(0), PB_OK);
 
-    /* The handle the board, the policy or command mode's stream holds */
-    assert_int_equal(layout.made[1], f->part);
+    writes = f->disk->writes;
+    assert_int_equal(bio_write(f->part, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_STATE);
+    assert_int_equal(bio_erase(f->part, 0, 1), -PB_ERR_STATE);
+    assert_int_equal(f->disk->writes, writes);
+    assert_int_equal(erase_calls, 0);
+    /* A range outside the partition is still that, and nothing is nothing */
+    assert_int_equal(bio_erase(f->part, PART_LAST, 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_write(f->part, 0, 0, f->buf), PB_OK);
+    assert_int_equal(bio_erase(f->part, 0, 0), PB_OK);
+
+    /* The partition is as it was: found, read, its flags */
     assert_int_equal(bio_get_part_by_uu(UU_PART), f->part);
     assert_true(bio_valid(f->part));
-    assert_int_equal(bio_get_flags(f->part), PART_FLAGS);
-    assert_int_equal(bio_get_hal_flags(f->part), DISK_HAL);
-    assert_int_equal(bio_get_first_block(f->part), PART_FIRST);
-    assert_int_equal(bio_get_last_block(f->part), PART_LAST);
-    /* The name is the new table's */
-    assert_string_equal(bio_get_description(f->part), "Renamed");
-    assert_int_equal(bio_write(f->part, 0, RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
-    assert_memory_equal(ramdisk_block(f->disk, PART_FIRST), f->buf, RAMDISK_BLOCK_SIZE);
+    assert_int_equal(bio_read(f->part, 0, RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
+    assert_int_equal(bio_set_flags(f->part, BIO_FLAG_VISIBLE), PB_OK);
 
-    bio_dev_t new = bio_get_part_by_uu(UU_NEW);
+    /* The device, where the table is, and the other device are written */
+    assert_int_equal(bio_write(0, 1, RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
+    assert_int_equal(f->disk->writes, writes + 1);
+    assert_int_equal(bio_write(other_dev, 1, RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
+    assert_int_equal(bio_write(other_part, 0, RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
 
-    assert_int_equal(new, 2);
-    assert_int_equal(layout.made[0], new);
-    assert_int_equal(bio_get_flags(new), DISK_FLAGS);
-    assert_int_equal(bio_get_hal_flags(new), DISK_HAL);
-    assert_int_equal(bio_get_private(new), bio_get_private(0));
-    assert_int_equal(bio_get_first_block(new), 2000);
-    assert_int_equal(bio_write(new, 1, RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
-    assert_memory_equal(ramdisk_block(f->disk, 2001), f->buf, RAMDISK_BLOCK_SIZE);
+    /* A partition made after it is the device's too */
+    bio_dev_t late =
+        bio_allocate_parent(0, PART_LAST + 1, PART_LAST + 10, RAMDISK_BLOCK_SIZE, UU_NEW2, "Late");
+    assert_true(late >= 0);
+    assert_int_equal(bio_write(late, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_STATE);
 
-    /* The device itself is as the core left it */
-    assert_int_equal(bio_get_flags(0), BIO_FLAG_VISIBLE);
+    /* The reset ends it */
+    bio_reset();
+    bio_dev_t dev = ramdisk_attach(f->disk, UU_DISK);
+    bio_dev_t part =
+        bio_allocate_parent(dev, PART_FIRST, PART_LAST, RAMDISK_BLOCK_SIZE, UU_PART, "Part");
+    assert_int_equal(bio_write(part, 0, RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
 
-    /* The same table again: nothing changes, and no handle is taken */
-    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), f->part);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), new);
-    assert_int_equal(bio_get_flags(f->part), PART_FLAGS);
-    assert_int_equal(bio_allocate(0, 9, RAMDISK_BLOCK_SIZE, UU_NEW2, "Next"), 3);
+    ramdisk_free(other);
 }
 
-/* A handle never comes to mean another partition: one whose blocks changed
- * is released, the UUID names a new handle, and nothing gets the old one
- * before the reset */
-static void test_install_releases_a_changed_partition(void **state)
+/* An install whose table changes nothing doesn't lock: the callback didn't
+ * say so. One that did locks also when it failed after it said so */
+static int changing_install_rc;
+
+static int changing_install(bio_dev_t dev, int variant)
 {
-    static const struct layout_part parts[] = {
-        { UU_PART, PART_FIRST, PART_LAST + 1000, "Larger" },
-    };
-    static const struct layout_part moved[] = {
-        { UU_PART, PART_FIRST + 1, PART_LAST + 1000, "Moved" },
-    };
-    struct fixture *f = *state;
-    bio_dev_t old;
-
-    table_setup(f);
-    old = f->part;
-    layout.parts = parts;
-    layout.length = ARRAY_SIZE(parts);
-
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-
-    bio_dev_t new = bio_get_part_by_uu(UU_PART);
-
-    assert_int_equal(new, 2);
-    assert_int_equal(layout.made[0], new);
-    assert_dead(f, old);
-    assert_int_equal(bio_get_last_block(new), PART_LAST + 1000);
-    /* A new partition: without what was set on the old one */
-    assert_int_equal(bio_get_flags(new), DISK_FLAGS);
-    /* The old one's last block and the first one after it */
-    assert_int_equal(bio_write(new, PART_LAST - PART_FIRST, 2 * RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
-    assert_memory_equal(ramdisk_block(f->disk, PART_LAST + 1), f->buf, RAMDISK_BLOCK_SIZE);
-
-    /* Again, with another first block: the second handle dies too */
-    layout.parts = moved;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), 3);
-    assert_dead(f, old);
-    assert_dead(f, new);
-
-    /* The next device doesn't get a released handle */
-    assert_int_equal(bio_allocate(0, 9, RAMDISK_BLOCK_SIZE, UU_NEW2, "Next"), 4);
-    assert_dead(f, old);
-    assert_dead(f, new);
+    (void)variant;
+    assert_int_equal(bio_set_table_changed(dev), PB_OK);
+    return changing_install_rc;
 }
 
-/* A partition that is gone from the table is released, and its slot lies
- * between two devices: a look up by UUID goes on past it (bio.md 2.6) */
-static void test_install_releases_a_partition_that_is_gone(void **state)
+static void test_an_install_locks_only_when_its_table_changed(void **state)
 {
-    static const struct layout_part with_two[] = {
-        { UU_PART, PART_FIRST, PART_LAST, "Part" },
-        { UU_NEW, 2000, 2999, "New" },
-    };
-    static const struct layout_part with_one[] = {
-        { UU_NEW, 2000, 2999, "New" },
-    };
     struct fixture *f = *state;
 
-    table_setup(f);
-    layout.parts = with_two;
-    layout.length = ARRAY_SIZE(with_two);
+    assert_int_equal(bio_set_install_partition_cb(0, fake_install), PB_OK);
     assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), 2);
-
-    layout.parts = with_one;
-    layout.length = ARRAY_SIZE(with_one);
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-
-    assert_dead(f, f->part);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), -PB_ERR_NOT_FOUND);
-    assert_int_equal(bio_get_part_by_uu_str("2af755d8-8de5-45d5-a862-014cfa735ce0"),
-                     -PB_ERR_NOT_FOUND);
-    /* Behind the released slot */
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), 2);
-    assert_true(bio_valid(0));
-    assert_false(bio_valid(1));
-    assert_true(bio_valid(2));
-    assert_false(bio_valid(3));
-
-    /* Its UUID is free: the table that has it again makes a new partition */
-    layout.parts = with_two;
-    layout.length = ARRAY_SIZE(with_two);
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), 3);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), 2);
-    assert_dead(f, f->part);
-
-    /* An empty table: the device has no partitions */
-    layout.length = 0;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), -PB_ERR_NOT_FOUND);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), -PB_ERR_NOT_FOUND);
-    assert_int_equal(bio_get_part_by_uu(UU_DISK), 0);
-}
-
-/* A layout that is refused before the device is written changes nothing:
- * the old table stands, with its partitions and their flags */
-static void test_install_that_wrote_nothing_keeps_the_table(void **state)
-{
-    static const struct layout_part parts[] = {
-        { UU_NEW, 2000, 2999, "New" },
-    };
-    struct fixture *f = *state;
-
-    table_setup(f);
-    layout.parts = parts;
-    layout.length = ARRAY_SIZE(parts);
-    layout.refuse_rc = -PB_ERR_PARAM;
-
-    assert_int_equal(bio_install_partition_table(UU_DISK, 42), -PB_ERR_PARAM);
-    assert_int_equal(f->disk->writes, 0);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), f->part);
-    assert_int_equal(bio_get_flags(f->part), PART_FLAGS);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), -PB_ERR_NOT_FOUND);
     assert_int_equal(bio_write(f->part, 0, RAMDISK_BLOCK_SIZE, f->buf), PB_OK);
 
-    /* And the install after it is one like any other */
-    layout.refuse_rc = PB_OK;
+    changing_install_rc = -PB_ERR_IO;
+    assert_int_equal(bio_set_install_partition_cb(0, changing_install), PB_OK);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 1), -PB_ERR_IO);
+    assert_int_equal(bio_write(f->part, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_STATE);
+
+    /* A later install that changes nothing doesn't lift it */
+    assert_int_equal(bio_set_install_partition_cb(0, fake_install), PB_OK);
     assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_dead(f, f->part);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), 2);
-}
-
-/* A failure after the device was written: the table on it isn't the old one
- * any more, or not for sure, so no old partition is left to be written at
- * its old blocks. The install is run again (command-mode.md 5.3) */
-static void test_install_that_failed_after_a_write_releases(void **state)
-{
-    static const struct layout_part parts[] = {
-        { UU_PART, PART_FIRST, PART_LAST, "Part" },
-    };
-    struct fixture *f = *state;
-
-    /* The driver's write fails */
-    table_setup(f);
-    layout.parts = parts;
-    layout.length = ARRAY_SIZE(parts);
-    f->disk->fail_writes_after = 0;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), -PB_ERR_IO);
-    assert_dead(f, f->part);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), -PB_ERR_NOT_FOUND);
-    assert_true(bio_valid(0));
-
-    /* Run again, it makes the partition, with a new handle */
-    f->disk->fail_writes_after = -1;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), 2);
-
-    /* The callback fails after its write went through */
-    unsigned int writes = f->disk->writes;
-
-    table_setup(f);
-    layout.parts = parts;
-    layout.length = ARRAY_SIZE(parts);
-    layout.after_write_rc = -PB_ERR_TIMEOUT;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), -PB_ERR_TIMEOUT);
-    assert_int_equal(f->disk->writes, writes + 1);
-    assert_dead(f, f->part);
-
-    /* The same failure of a callback that wrote nothing is a refusal */
-    table_setup(f);
-    layout.no_write = true;
-    layout.after_write_rc = -PB_ERR_TIMEOUT;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), -PB_ERR_TIMEOUT);
-    assert_int_equal(f->disk->writes, writes + 1);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), f->part);
-    assert_int_equal(bio_get_flags(f->part), PART_FLAGS);
-}
-
-/* What a board took from a partition isn't given back by an install: a
- * partition that replaces one, or has the UUID of one that was released
- * before, starts with no flag that one lacked. No hook of the board's runs
- * again to hide it (bio.md 4, command-mode.md 5.3). What was set on the old
- * one beyond a new partition's flags isn't carried over either */
-static void test_install_gives_back_no_flag(void **state)
-{
-    static const struct layout_part larger[] = {
-        { UU_PART, PART_FIRST, PART_LAST + 1000, "Larger" },
-        { UU_NEW, 3000, 3999, "New" },
-    };
-    static const struct layout_part without[] = {
-        { UU_NEW, 3000, 3999, "New" },
-    };
-    struct fixture *f = *state;
-
-    /* Hidden by the board, and readable */
-    table_setup(f);
-    assert_int_equal(bio_set_flags(f->part, BIO_FLAG_WRITABLE | BIO_FLAG_READABLE), PB_OK);
-    layout.parts = larger;
-    layout.length = ARRAY_SIZE(larger);
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-
-    bio_dev_t part = bio_get_part_by_uu(UU_PART);
-
-    assert_int_not_equal(part, f->part);
-    assert_int_equal(bio_get_flags(part), BIO_FLAG_WRITABLE);
-    assert_int_equal(bio_get_hal_flags(part), DISK_HAL);
-    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_NEW)), DISK_FLAGS);
-
-    /* Gone, and back in the table after that: still hidden. A table in
-     * between had made it read only */
-    assert_int_equal(bio_set_flags(part, 0), PB_OK);
-    layout.parts = without;
-    layout.length = ARRAY_SIZE(without);
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), -PB_ERR_NOT_FOUND);
-    layout.parts = larger;
-    layout.length = ARRAY_SIZE(larger);
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    part = bio_get_part_by_uu(UU_PART);
-    assert_true(part >= 0);
-    assert_int_equal(bio_get_flags(part), 0);
-    assert_int_equal(bio_get_hal_flags(part), DISK_HAL);
-    /* The one that never changed has what it had */
-    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_NEW)), DISK_FLAGS);
-}
-
-/* The pool has no room for the new table's partitions: the table is on the
- * device, the install answers the error, and what got a handle is there
- * (bio.md 4). A reset has them all */
-static void test_install_with_a_full_pool(void **state)
-{
-    static const struct layout_part parts[] = {
-        { UU_PART, PART_FIRST, PART_LAST, "Part" },
-        { UU_NEW, 2000, 2999, "New" },
-        { UU_NEW2, 3000, 3999, "New 2" },
-    };
-    struct fixture *f = *state;
-    uuid_t uu = { 0 };
-
-    table_setup(f);
-    layout.parts = parts;
-    layout.length = ARRAY_SIZE(parts);
-
-    /* One handle is left */
-    for (int i = 2; i < CONFIG_BIO_MAX_DEVS - 1; i++) {
-        uu[0] = (unsigned char)i;
-        uu[15] = 1;
-        assert_int_equal(bio_allocate(0, 9, RAMDISK_BLOCK_SIZE, uu, "Filler"), i);
-    }
-
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), -PB_ERR_MEM);
-    assert_int_equal(f->disk->writes, 1);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), f->part);
-    assert_int_equal(bio_get_flags(f->part), PART_FLAGS);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), CONFIG_BIO_MAX_DEVS - 1);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW2), -PB_ERR_NOT_FOUND);
-
-    /* A table that fits what is there needs no handle */
-    layout.length = 2;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), CONFIG_BIO_MAX_DEVS - 1);
-
-    /* A released handle isn't given out again, also when the pool is full */
-    layout.length = 1;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-    assert_dead(f, CONFIG_BIO_MAX_DEVS - 1);
-    layout.length = 2;
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), -PB_ERR_MEM);
-    assert_int_equal(bio_get_part_by_uu(UU_PART), f->part);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), -PB_ERR_NOT_FOUND);
-}
-
-/* Only the partitions of the device the table is on: another device, its
- * partitions, and a UUID one of them has */
-static void test_install_leaves_other_devices(void **state)
-{
-    static const struct layout_part parts[] = {
-        { UU_NEW, 2000, 2999, "Taken" },
-        { UU_OTHER, 3000, 3999, "Taken too" },
-        { UU_NEW2, 4000, 4999, "New" },
-        { UU_NEW2, 5000, 5999, "Twice" },
-    };
-    struct fixture *f = *state;
-    struct ramdisk *second = ramdisk_new(64);
-
-    assert_non_null(second);
-    table_setup(f);
-    layout.parts = parts;
-    layout.length = ARRAY_SIZE(parts);
-
-    bio_dev_t other = ramdisk_attach(second, UU_OTHER);
-    bio_dev_t other_part = bio_allocate_parent(other, 8, 15, RAMDISK_BLOCK_SIZE, UU_NEW, "Theirs");
-
-    assert_int_equal(other, 2);
-    assert_int_equal(other_part, 3);
-    /* A device without a table's callback: its partitions start with the
-     * flags it has (bio.md 2.2) */
-    assert_int_equal(bio_get_flags(other_part), DISK_FLAGS);
-
-    assert_int_equal(bio_install_partition_table(UU_DISK, 0), PB_OK);
-
-    /* The other device's are as they were, and a UUID that is taken is
-     * refused as at the set up: the first one keeps it */
-    assert_int_equal(bio_get_part_by_uu(UU_OTHER), other);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW), other_part);
-    assert_int_equal(bio_get_first_block(other_part), 8);
-    assert_int_equal(layout.made[0], -PB_ERR_PARAM);
-    assert_int_equal(layout.made[1], -PB_ERR_PARAM);
-    assert_int_equal(layout.made[2], 4);
-    assert_int_equal(layout.made[3], -PB_ERR_PARAM);
-    assert_int_equal(bio_get_first_block(bio_get_part_by_uu(UU_NEW2)), 4000);
-    assert_dead(f, f->part);
-
-    /* Outside an install bio_allocate_parent() is what it was: a UUID that
-     * a partition of the same device has is refused, with the same blocks
-     * too */
-    assert_int_equal(bio_allocate_parent(0, 4000, 4999, RAMDISK_BLOCK_SIZE, UU_NEW2, "Again"),
-                     -PB_ERR_PARAM);
-    assert_int_equal(bio_get_part_by_uu(UU_NEW2), 4);
-
-    ramdisk_free(second);
+    assert_int_equal(bio_write(f->part, 0, RAMDISK_BLOCK_SIZE, f->buf), -PB_ERR_STATE);
 }
 
 /* bio.md 2.4, command-mode.md 5.3 (F-083): the board's readable list. A
  * device that exists gets READABLE when the list is given, a table's
- * partition as it is made, also when an install makes it again. Nothing else
- * gets it, and a partition doesn't inherit it from its device */
+ * partition as it is made. Nothing else gets it */
 static void test_readable_parts(void **state)
 {
     static const unsigned char *const readable[] = { UU_DISK, UU_NEW };
     static const unsigned char *const with_null[] = { UU_NEW, NULL };
-    static const struct layout_part first[] = {
-        { UU_NEW, 2000, 2999, "Readable" },
-        { UU_NEW2, 3000, 3999, "Not readable" },
-    };
-    static const struct layout_part grown[] = {
-        { UU_NEW, 2000, 3999, "Readable" },
-    };
     struct fixture *f = *state;
     bio_dev_t dev;
 
-    table_setup(f);
     assert_int_equal(bio_set_readable(NULL, 1), -PB_ERR_PARAM);
     assert_int_equal(bio_set_readable(with_null, ARRAY_SIZE(with_null)), -PB_ERR_PARAM);
     assert_int_equal(bio_set_readable(NULL, 0), PB_OK);
     assert_false(bio_get_flags(0) & BIO_FLAG_READABLE);
 
+    assert_int_equal(bio_set_flags(0, DISK_FLAGS), PB_OK);
+    assert_int_equal(bio_set_flags(f->part, DISK_FLAGS), PB_OK);
     assert_int_equal(bio_set_readable(readable, ARRAY_SIZE(readable)), PB_OK);
-    assert_int_equal(bio_get_flags(0), BIO_FLAG_VISIBLE | BIO_FLAG_READABLE);
+    assert_int_equal(bio_get_flags(0), DISK_FLAGS | BIO_FLAG_READABLE);
     /* Not on the list: as it was */
-    assert_int_equal(bio_get_flags(f->part), BIO_FLAG_VISIBLE | PART_FLAGS);
+    assert_int_equal(bio_get_flags(f->part), DISK_FLAGS);
 
-    layout.parts = first;
-    layout.length = ARRAY_SIZE(first);
-    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
-    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_NEW)), DISK_FLAGS | BIO_FLAG_READABLE);
-    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_NEW2)), DISK_FLAGS);
-
-    /* Its blocks changed: a new partition, readable again */
-    dev = bio_get_part_by_uu(UU_NEW);
-    layout.parts = grown;
-    layout.length = ARRAY_SIZE(grown);
-    assert_int_equal(bio_install_partition_table(UU_DISK, 2), PB_OK);
-    assert_false(bio_valid(dev));
-    dev = bio_get_part_by_uu(UU_NEW);
+    /* Made after the list: by its UUID. A partition starts with its device's
+     * flags, READABLE too (F-470), so the device has it no more here */
+    assert_int_equal(bio_set_flags(0, DISK_FLAGS), PB_OK);
+    dev = bio_allocate_parent(0, 2000, 2999, RAMDISK_BLOCK_SIZE, UU_NEW, "Readable");
     assert_true(dev >= 0);
-    assert_int_equal(bio_get_last_block(dev), 3999);
     assert_int_equal(bio_get_flags(dev), DISK_FLAGS | BIO_FLAG_READABLE);
+    dev = bio_allocate_parent(0, 3000, 3999, RAMDISK_BLOCK_SIZE, UU_NEW2, "Not readable");
+    assert_true(dev >= 0);
+    assert_int_equal(bio_get_flags(dev), DISK_FLAGS);
 
     /* A reset forgets the list */
     bio_reset();
@@ -1174,17 +774,9 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_set_private, setup, teardown),
         cmocka_unit_test_setup_teardown(test_get_part_by_uu, setup, teardown),
         cmocka_unit_test_setup_teardown(test_install_partition_table, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_install_keeps_an_unchanged_partition, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_install_releases_a_changed_partition, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_changed_table_refuses_writes, setup, teardown),
         cmocka_unit_test_setup_teardown(
-            test_install_releases_a_partition_that_is_gone, setup, teardown),
-        cmocka_unit_test_setup_teardown(
-            test_install_that_wrote_nothing_keeps_the_table, setup, teardown),
-        cmocka_unit_test_setup_teardown(
-            test_install_that_failed_after_a_write_releases, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_install_with_a_full_pool, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_install_gives_back_no_flag, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_install_leaves_other_devices, setup, teardown),
+            test_an_install_locks_only_when_its_table_changed, setup, teardown),
         cmocka_unit_test_setup_teardown(test_readable_parts, setup, teardown),
     };
 
