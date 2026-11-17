@@ -69,8 +69,8 @@ pb_unit_test(test_wire SOURCES
     ${PROJECT_SOURCE_DIR}/src/wire.c
 )
 
-# With the internal keystore, whose keys the parser must take
-pb_unit_test(test_der LIBS pb_keystore)
+# With the development trust anchors, whose keys the parser must take
+pb_unit_test(test_der LIBS pb_trust_anchors)
 
 pb_unit_test(test_tzc380 SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/tzc/tzc380.c
@@ -153,7 +153,7 @@ pb_unit_test(test_mbedtls
         ${PB_CRYPTO_CONFORMANCE}
         ${PROJECT_SOURCE_DIR}/src/crypto.c
         ${PROJECT_SOURCE_DIR}/src/drivers/crypto/mbedtls/mbedtls_pb.c
-    LIBS pb_mbedtls pb_keystore
+    LIBS pb_mbedtls pb_trust_anchors
 )
 target_compile_definitions(test_mbedtls PRIVATE
     PB_AUTH_TOKEN_PATH="${PROJECT_SOURCE_DIR}/tests/02e49231-756e-35ee-a982-378e5ba866a9.token"
@@ -168,7 +168,7 @@ pb_unit_test(test_rot
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/rot.c
         ${PROJECT_SOURCE_DIR}/src/slc.c
-    LIBS pb_keystore
+    LIBS pb_trust_anchors
 )
 
 # EOL is the product's option, CONFIG_SLC_EOL (system.md 4, F-263): off by
@@ -218,7 +218,7 @@ target_include_directories(test_imx_iomuxc BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
 )
 
-# With a keystore of its own, with an empty slot
+# With trust anchors of its own, with an empty slot
 pb_unit_test(test_rot_slots SOURCES ${PROJECT_SOURCE_DIR}/src/rot.c)
 
 pb_unit_test(test_device_uuid
@@ -1049,7 +1049,7 @@ pb_unit_test(test_caam_crypto
         ${PROJECT_SOURCE_DIR}/src/crypto.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
-    LIBS pb_caam_model pb_keystore
+    LIBS pb_caam_model pb_trust_anchors
 )
 target_include_directories(test_caam_crypto BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio

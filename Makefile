@@ -118,7 +118,7 @@ endif
 
 # Bootloader
 src-y   = src/main.c
-src-y  += keystore.c
+src-y  += trust_anchors.c
 src-y  += src/delay.c
 src-y  += src/dma.c
 src-y  += src/crypto.c
@@ -178,14 +178,14 @@ DEV_KEYS = 1
 endif
 KEY_SLOTS = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 KEY_PATHS = $(foreach n,$(KEY_SLOTS),$(VERIFY_KEY$(n)_PATH))
-KEYSTORE_ARGS = $(foreach n,$(KEY_SLOTS),$(if $(VERIFY_KEY$(n)_PATH),$(n) $(VERIFY_KEY$(n)_ID) $(VERIFY_KEY$(n)_PATH)))
+TRUST_ANCHOR_ARGS = $(foreach n,$(KEY_SLOTS),$(if $(VERIFY_KEY$(n)_PATH),$(n) $(VERIFY_KEY$(n)_ID) $(VERIFY_KEY$(n)_PATH)))
 ifneq ($(filter-out menuconfig olddefconfig clean,$(or $(MAKECMDGOALS),all)),)
 $(foreach v,$(filter-out $(foreach n,$(KEY_SLOTS),VERIFY_KEY$(n)_PATH VERIFY_KEY$(n)_ID),$(KEY_VARIABLES)),\
     $(error $(v): not a key, the slots are 0 to 15 (board.md 7)))
 $(foreach n,$(KEY_SLOTS),$(if $(and $(strip $(VERIFY_KEY$(n)_PATH)),$(strip $(VERIFY_KEY$(n)_ID))),,\
     $(if $(strip $(VERIFY_KEY$(n)_PATH)$(VERIFY_KEY$(n)_ID)),\
         $(error VERIFY_KEY$(n): a key has both VERIFY_KEY$(n)_PATH and VERIFY_KEY$(n)_ID (board.md 7)))))
-$(if $(strip $(KEYSTORE_ARGS)),,$(error VERIFY_KEY<n>_PATH: the board names no key (board.md 7)))
+$(if $(strip $(TRUST_ANCHOR_ARGS)),,$(error VERIFY_KEY<n>_PATH: the board names no key (board.md 7)))
 # A key in a slot the SoC has no revoke bit for can't be revoked (platform.md
 # 4.1, D-085): the slots from PLAT_REVOKE_SLOTS, the platform's, up. A
 # platform that refuses such a key (PLAT_REFUSES_UNREVOCABLE, the i.MX8X,
@@ -293,11 +293,11 @@ SPL_LINK_SCRIPTS = $(call unquote,$(patsubst -T%,%,$(filter -T%,$(spl-ldflags-y)
 
 $(SPL_OBJS): $(call value_file,spl_compile_cmd) $(call value_file,PB_VERSION)
 
-$(BUILD_DIR)/keystore.o: $(KEY_PATHS) $(call value_file,KEYSTORE_ARGS) scripts/gen-keystore.py
-	@echo "GEN $(BUILD_DIR)/keystore.c$(if $(DEV_KEYS), with the development keys (pki/dev-keys.mk))"
-	$(Q)$(PYTHON) scripts/gen-keystore.py $(KEYSTORE_ARGS) > $(BUILD_DIR)/keystore.c.tmp
-	$(Q)mv $(BUILD_DIR)/keystore.c.tmp $(BUILD_DIR)/keystore.c
-	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
+$(BUILD_DIR)/trust_anchors.o: $(KEY_PATHS) $(call value_file,TRUST_ANCHOR_ARGS) scripts/gen-trust-anchors.py
+	@echo "GEN $(BUILD_DIR)/trust_anchors.c$(if $(DEV_KEYS), with the development keys (pki/dev-keys.mk))"
+	$(Q)$(PYTHON) scripts/gen-trust-anchors.py $(TRUST_ANCHOR_ARGS) > $(BUILD_DIR)/trust_anchors.c.tmp
+	$(Q)mv $(BUILD_DIR)/trust_anchors.c.tmp $(BUILD_DIR)/trust_anchors.c
+	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/trust_anchors.c -o $(BUILD_DIR)/trust_anchors.o
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@
@@ -305,7 +305,7 @@ $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	$(Q)$(STRIP) --strip-all $<
 	$(Q)$(OBJCOPY) -O binary -R .comment $< $@
 
-$(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS) $(LINK_SCRIPTS) $(call value_file,link_cmd)
+$(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/trust_anchors.o $(OBJS) $(BLOB_OBJS) $(LINK_SCRIPTS) $(call value_file,link_cmd)
 	@echo LD $@
 	$(Q)$(link_cmd) -o $@
 

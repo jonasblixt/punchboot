@@ -44,8 +44,8 @@ def check_keys(
     """Check the board's keys (board.md 7): each case, whether it passed and what went wrong."""
     results = []
     defconfig = "configs/jiffy_defconfig"
-    keystore = work / "build" / "keystore.c"
-    target = f"{work}/build/keystore.o"
+    anchors = work / "build" / "trust_anchors.c"
+    target = f"{work}/build/trust_anchors.o"
 
     # The development keys, all three, and the build says so
     result = make(defconfig, target)
@@ -54,7 +54,7 @@ def check_keys(
             "a board without keys gets the development keys",
             result.returncode == 0
             and "development keys" in result.stdout
-            and keystore.read_text().count(".slot = ") == 3,
+            and anchors.read_text().count(".slot = ") == 3,
             f": {result.stdout}{result.stderr}",
         )
     )
@@ -79,7 +79,7 @@ def check_keys(
         if error:
             ok = result.returncode != 0 and error in result.stderr
         else:
-            text = keystore.read_text()
+            text = anchors.read_text()
             ok = (
                 result.returncode == 0
                 and "development keys" not in result.stdout
@@ -153,7 +153,7 @@ def main() -> int:
             problems += 1
 
     # A configuration that isn't there: nothing is configured or built
-    result = make("configs/jiffy_defconfg", f"{build}/keystore.o")
+    result = make("configs/jiffy_defconfg", f"{build}/trust_anchors.o")
     check(
         "a mistyped KCONFIG_CONFIG stops the build",
         ok=result.returncode != 0 and not (build / ".config").exists(),
@@ -178,7 +178,7 @@ def main() -> int:
     # link for RAM (F-428)
     flash = work / "flash_defconfig"
     flash.write_text((root / "configs/jiffy_defconfig").read_text() + "CONFIG_EXECUTE_IN_FLASH=y\n")
-    result = make(str(flash), f"{build}/keystore.o")
+    result = make(str(flash), f"{build}/trust_anchors.o")
     check(
         "CONFIG_EXECUTE_IN_FLASH stops the build",
         ok=result.returncode != 0 and "CONFIG_EXECUTE_IN_FLASH" in result.stderr,
@@ -189,10 +189,10 @@ def main() -> int:
         check(what, ok=ok, detail=detail)
 
     # A build, then genconfig.py fails: the build doesn't go on with its .config
-    result = make("configs/jiffy_defconfig", f"{build}/keystore.o")
+    result = make("configs/jiffy_defconfig", f"{build}/trust_anchors.o")
     check("a build with the defconfig", ok=result.returncode == 0, detail=result.stderr)
     (board / "Kconfig").write_text('config BROKEN\n    bool "unterminated\n')
-    result = make("configs/jiffy_defconfig", f"{build}/keystore.o")
+    result = make("configs/jiffy_defconfig", f"{build}/trust_anchors.o")
     check(
         "a failed genconfig.py stops the build",
         ok=result.returncode != 0,

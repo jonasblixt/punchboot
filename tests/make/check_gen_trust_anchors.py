@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Check scripts/gen-keystore.py, which writes pb's keys (board.md 7, D-083).
+"""Check scripts/gen-trust-anchors.py, which writes pb's keys (board.md 7, D-083).
 
 The ids are bpak's of the names, or the hex ones; the keys are in slot order,
 each with its slot; DER and PEM give the same key; and it refuses what can't be
 one of pb's keys:
 
-  check_gen_keystore.py <source dir>
+  check_gen_trust_anchors.py <source dir>
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ def say(text: str) -> None:
 def main() -> int:
     """Run the cases and return the number of problems."""
     root = pathlib.Path(sys.argv[1]).resolve()
-    script = root / "scripts/gen-keystore.py"
+    script = root / "scripts/gen-trust-anchors.py"
     pki = root / "pki"
     problems = 0
 

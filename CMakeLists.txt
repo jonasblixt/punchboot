@@ -120,7 +120,7 @@ add_library(pb_lib STATIC
 )
 target_link_libraries(pb_lib PUBLIC pb_host_flags)
 
-# The keystore, generated like in the firmware build, from the keys of
+# The trust anchors, generated like in the firmware build, from the keys of
 # pki/dev-keys.mk (board.md 7)
 set(PB_DEV_KEYS
     0 pb-development  ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp256r1-pub-key.der
@@ -128,19 +128,19 @@ set(PB_DEV_KEYS
     2 pb-development3 ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp521r1-pub-key.der
 )
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/keystore.c
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen-keystore.py
-            ${PB_DEV_KEYS} > ${CMAKE_CURRENT_BINARY_DIR}/keystore.c
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen-keystore.py
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/trust_anchors.c
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen-trust-anchors.py
+            ${PB_DEV_KEYS} > ${CMAKE_CURRENT_BINARY_DIR}/trust_anchors.c
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen-trust-anchors.py
             ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp256r1-pub-key.der
             ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp384r1-pub-key.der
             ${CMAKE_CURRENT_SOURCE_DIR}/pki/secp521r1-pub-key.der
     VERBATIM
 )
 
-# The keystore is its own library, so the unit tests can link it
-add_library(pb_keystore STATIC ${CMAKE_CURRENT_BINARY_DIR}/keystore.c)
-target_link_libraries(pb_keystore PUBLIC pb_host_flags)
+# The trust anchors are their own library, so the unit tests can link it
+add_library(pb_trust_anchors STATIC ${CMAKE_CURRENT_BINARY_DIR}/trust_anchors.c)
+target_link_libraries(pb_trust_anchors PUBLIC pb_host_flags)
 
 # The firmware core: everything that is not arch, platform or board specific.
 # An object library: every file of it is linked into pb-host, as every object
@@ -185,7 +185,7 @@ set(PB_CORE_SOURCES
     src/drivers/partition/static.c
 )
 add_library(pb_core OBJECT ${PB_CORE_SOURCES})
-target_link_libraries(pb_core PUBLIC pb_lib pb_mbedtls pb_keystore)
+target_link_libraries(pb_core PUBLIC pb_lib pb_mbedtls pb_trust_anchors)
 # The host platform provides the process entry point and calls pb_main
 set_source_files_properties(src/main.c PROPERTIES COMPILE_DEFINITIONS main=pb_main)
 
@@ -240,7 +240,7 @@ execute_process(
 
 add_library(pb_core_speculative OBJECT ${PB_CORE_SOURCES})
 target_include_directories(pb_core_speculative BEFORE PRIVATE ${PB_SPECULATIVE_DIR})
-target_link_libraries(pb_core_speculative PUBLIC pb_lib pb_mbedtls pb_keystore)
+target_link_libraries(pb_core_speculative PUBLIC pb_lib pb_mbedtls pb_trust_anchors)
 
 add_executable(pb-host-speculative ${PB_HOST_SOURCES})
 target_include_directories(pb-host-speculative BEFORE PRIVATE ${PB_SPECULATIVE_DIR})

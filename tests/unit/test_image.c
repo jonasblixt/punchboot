@@ -185,7 +185,7 @@ static const struct boot_handover handover = BOOT_HANDOVER_IMAGE(&cfg_dtb);
 static uint8_t dtb[DTB_SIZE + CONFIG_BOOT_DTB_HEADROOM];
 static struct bpak_header *hdr;
 
-/* The keys that aren't revoked, in the keystore's order */
+/* The keys that aren't revoked, in the trust anchors' order */
 static void available_keys(size_t count, uint32_t key0, uint32_t key1, uint32_t key2)
 {
     info.no_of_available_keys = count;
@@ -800,7 +800,7 @@ static const struct chosen_bytes released_props[] = {
     { "pb,slc", 4, (const uint8_t[]){ 0x00, 0x00, 0x00, 0x03 } },
     /* A u32: KEY_ID_1, the key the image is signed with */
     { "pb,slc-active-key", 4, (const uint8_t[]){ 0x25, 0xc6, 0xdd, 0x36 } },
-    /* A u32 list in the keystore's order, without the revoked KEY_ID_0 */
+    /* A u32 list in the trust anchors' order, without the revoked KEY_ID_0 */
     { "pb,slc-available-keys",
       8,
       (const uint8_t[]){ 0x25, 0xc6, 0xdd, 0x36, 0x52, 0xc1, 0xed, 0xa0 } },

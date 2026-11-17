@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Check that the firmware build makes again what a changed input makes.
 
-keystore.c is made from the board's keys (VERIFY_KEY<n>) and
-scripts/gen-keystore.py, and every object can use PB_VERSION (F-183). Every
+trust_anchors.c is made from the board's keys (VERIFY_KEY<n>) and
+scripts/gen-trust-anchors.py, and every object can use PB_VERSION (F-183). Every
 object is compiled with the compiler flags, and pb is linked with the linker
 flags and the link scripts (F-398); the banner's PB_BUILD_VERSION remakes only what
 includes pb_build_version.h (F-231). A build directory that was built before
@@ -39,7 +39,7 @@ def say(text: str) -> None:
 
 
 class Build:
-    """jiffy's keystore.o and src/console.o in a build directory."""
+    """jiffy's trust_anchors.o and src/console.o in a build directory."""
 
     def __init__(self, root: pathlib.Path, work: pathlib.Path) -> None:
         """Start with an empty work directory."""
@@ -57,7 +57,7 @@ class Build:
 
     def make(self, *args: str, question: bool = False, targets: list[str] | None = None) -> int:
         """Run make for the two objects with the default arguments and args."""
-        names = targets or ["keystore.o", "src/console.o"]
+        names = targets or ["trust_anchors.o", "src/console.o"]
         targets = [f"{self.build}/{t}" for t in names]
         cmd = [
             "make",
@@ -81,9 +81,9 @@ class Build:
     def check(self, what: str, *, keys: int = 3, version: str | None = None) -> None:
         """Check what the two objects were made from: the defaults unless given."""
         version = version or self.version
-        keystore = (self.build / "keystore.c").read_text()
+        anchors = (self.build / "trust_anchors.c").read_text()
         console = (self.build / "src/console.o").read_bytes()
-        found = (keystore.count(".slot = "), f"PB {version}".encode() in console)
+        found = (anchors.count(".slot = "), f"PB {version}".encode() in console)
         expected = (keys, True)
         if found == expected:
             say(f"ok: {what}")
@@ -169,7 +169,7 @@ def check_flags(root: pathlib.Path, work: pathlib.Path) -> int:
             f"{name} changed: no object is made again",
             "-W",
             name,
-            targets=["src/console.o", "keystore.o"],
+            targets=["src/console.o", "trust_anchors.o"],
         )
     b.check_up_to_date("and then nothing to make", targets=pb)
 
@@ -225,17 +225,17 @@ def main() -> int:
 
     # A key file that changes, at the same path
     key0.write_bytes((root / "pki/secp521r1-pub-key.der").read_bytes())
-    b.check_out_of_date("a key's file changed: keystore.o is made again", *two_keys)
+    b.check_out_of_date("a key's file changed: trust_anchors.o is made again", *two_keys)
     b.make(*two_keys)
     b.check_up_to_date("and then nothing to make", *two_keys)
 
     b.make()
     b.check("back to the development keys")
     b.check_out_of_date(
-        "scripts/gen-keystore.py changed: keystore.o is made again",
+        "scripts/gen-trust-anchors.py changed: trust_anchors.o is made again",
         "-W",
-        "scripts/gen-keystore.py",
-        targets=["keystore.o"],
+        "scripts/gen-trust-anchors.py",
+        targets=["trust_anchors.o"],
     )
 
     b.check_up_to_date("and then nothing to make")

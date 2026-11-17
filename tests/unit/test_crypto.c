@@ -299,7 +299,7 @@ static void test_dsa_dispatch(void **state)
     assert_false(verified);
 }
 
-/* crypto.md 4 (D-092, F-286 (5)): alg is the keystore's name for the key's
+/* crypto.md 4 (D-092, F-286 (5)): alg is the trust anchor's name for the key's
  * curve, and the core refuses a key whose own curve is another one, before
  * any backend sees it. A key that doesn't parse is -PB_ERR_ASN1, a curve pb
  * doesn't know -PB_ERR_NOT_SUPPORTED */

@@ -127,7 +127,7 @@ static const struct pb_key *find_key(uint32_t id)
         if (pb_keys[i].id == id)
             return &pb_keys[i];
     }
-    fail_msg("No key 0x%x in the keystore", id);
+    fail_msg("No key 0x%x among the trust anchors", id);
     return NULL;
 }
 
