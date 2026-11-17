@@ -94,23 +94,20 @@ named in 1 or 2 doesn't gate.
 - Low, or a later improvement: F-066, F-113, F-135, F-138, F-167, F-226, F-230, F-251, F-287,
   F-375, F-458, F-462.
 - **The key nomenclature** (Jonas, 2026-11-16): generic names for the layers of keys, shared
-  with kickstart, in the documents and the code before the tag. The name follows a key's role,
-  not its material (pb's trust anchors may be the SRKs themselves):
+  with kickstart, in the documents and the code before the tag. pb has two layers (Jonas,
+  2026-11-17: no key manifests are planned). The name follows a key's role, not its material
+  (pb's trust anchors may be the SRKs themselves):
   - **ROTPK**: the key anchored in the ROM and the fuses. A port says once what it is on its
     SoC (on the i.MX: the SRKs, whose hash is fused).
   - **Trust anchor**: a key built into a stage's image, pb's `VERIFY_KEY<n>` (`pb_keys`) and
     kickstart's. A stage's trust anchors are as trusted as the image that the stage before it
     verified.
-  - **Key manifest**: a file loaded at run time, signed by a trust anchor. Its keys are
-    **delegated keys**; they can't sign a key manifest, only a trust anchor can. It is stored
-    as a bpak keystore package, and bpak's names stay (D-008): the package UUID,
-    `keystore_id`, `keystore-provider-id`, `struct bpak_keystore`.
 
   "Keystore" goes where it means pb's built-in keys (`security.md` 1 already says "trust
   anchor"; `boot.md`, `command-mode.md`, `crypto.md`, `bpak.md`, `porting.md`, the migration
   guide, `gen-keystore.py`, `keystore.c`). It suggests a store that keys can be written to.
-  bpak's format document says a signed keystore lets a device "extend its root of trust": it
-  extends the chain of trust, the trust anchors stay the same.
+  bpak's names stay (D-008): the keystore package's UUID, `keystore_id`,
+  `keystore-provider-id`, `struct bpak_keystore`.
 
 ## Compatibility guards (D-008, `compatibility.md`)
 
@@ -142,11 +139,8 @@ To do (Jonas):
   version floor above is designed. To find out:
   - Where the floor is kept, per SoC: fuses (few, written once), the RPMB, OP-TEE's secure
     storage. pbstate can't hold it, it isn't tamper resistant.
-  - What it covers: pb's images, and the key manifests (above). Without it an old key manifest
-    with a compromised key stays valid until the trust anchor that signed it is revoked, which
-    the 16 revoke slots limit.
-  - Where the version is in an image or a key manifest, signed, and what images and key
-    manifests without one mean (D-008).
+  - What it covers: pb's images.
+  - Where the version is in an image, signed, and what an image without one means (D-008).
   - Who raises the floor, and when: at a boot of a new version, or by a command, so that a
     fallback to the other system still boots.
   - How kickstart learns the floor, as it learns the revoked keys (`/chosen`).
