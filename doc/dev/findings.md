@@ -546,22 +546,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | halted isn't asked again; a flush that doesn't complete fails the init. `test_caam_jr_reset`. On the | | |
 | | | MEK, the 8MP EVK and jiffy: resets, auth, 15 MB verified, Linux and the verify after its `reboot`. | | |
 | | | Left: the 8M Mini SRM's verify PDB (no 8M Mini) | | |
-| F-423 | `error.h`, `bio.md` 4, `cm_main.c`, `command-mode.md` 4.5 | Low, from command mode's | Reported (read) | open |
-| | | second package. `include/pb-tools/error.h` declares `pb_error_string()`, which nothing defines. | | |
-| | | `bio.md` 4 doesn't say which flags a new partition of an installed table starts with (the code: | | |
-| | | the device's at set-up, and none a released partition with its UUID lacked), nor what a failed | | |
-| | | install leaves in the pool. Command mode's cached life cycle isn't read again after an install: | | |
-| | | on the host board the fuse partition's handle can die with variant 2. `test_part.py` still says | | |
-| | | the new table is used after the next boot. 4.5's table has no row for `PB_RESULT_BAD_PAYLOAD` | | |
-| | | 2026-11-14 (`2530f937`): `test_part.py`'s comment. `pb_error_string()` stays declared: v2.7.1's host | | |
-| | | library defined and used it, and `compatibility.md` freezes the header's values, not its | | |
-| | | declarations: for Jonas | | |
-| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: `pb_error_string()` defined again in the host | | |
-| | | library, with a test | | |
-| | | 2026-11-16 (`97467c25`, `ac1e034a`): `pb_error_string()` is defined again in `src/wire.c`, v2.7.1's | | |
-| | | strings and `Bad payload`, with a test (`test_wire`); 4.5 has `BAD_PAYLOAD`'s row. The gate's part | | |
-| | | is done. Left, not gating: `bio.md` 4's flags of a new partition and what a failed install leaves, | | |
-| | | the cached life cycle after an install | | |
 | F-427 | `board/jiffy`, `plat.h`, `imx_wdog.c`, `imx_rom_log.c` | Low, from F-248's package. | Reported (read) | open |
 | | | jiffy's `init()` logs its RNG's failure and doesn't call `board_report_degraded()` (`board.md` | | |
 | | | 2.3). `struct plat_status.crypto_engine` can't tell "failed" from "the platform sets none up" | | |
@@ -777,6 +761,11 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | takes 6.7 ms for the same. The ROM had the card up already: taking it over in the state the ROM | | |
 | | | left it (TRAN, the ROM's RCA and bus mode) instead of CMD0 would save the 171 ms there, at the | | |
 | | | cost of an init path that depends on the ROM. For Jonas. The reset to pb's banner is 170.75 ms | | |
+| F-470 | `src/bio.c` `bio_allocate_parent()` | Low, from D-093's tests. A partition starts with its | Verified (test) | open |
+| | | device's flags, `READABLE` too: the core gives the board's readable list to bio before the table | | |
+| | | is set up (`board.c`), so the partitions of a device on the list are readable whatever the list | | |
+| | | says of them. `bio.md` 2.4 sets `READABLE` by UUID. No board in the tree has its table's device | | |
+| | | on the list | | |
 
 ## Dependencies / vendored code
 

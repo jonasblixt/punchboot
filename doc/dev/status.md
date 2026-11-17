@@ -1,7 +1,7 @@
 # Status
 
-_Last updated: 2026-11-17, night (unattended: the 3.0.0 gate list is done but Jonas's items;
-F-467, F-468, F-469 found and fixed; F-135; the boards on `661d0e14`/`5f79b257`)_
+_Last updated: 2026-11-17 (D-093: an installed table is in effect after the reset again, a
+changed one locks its partitions' writes; before it the night's gate list, F-467 to F-469)_
 
 ## Current focus
 
@@ -49,6 +49,9 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 3. The rest of `findings.md`: by board (8MP EVK F-104 to F-107, F-113, F-155), boot time.
 
 ## Open questions (for Jonas)
+
+- D-093's choices (log 2026-11-17): the lock is per device, its partitions only, and a locked
+  write answers `ERROR` (`-PB_ERR_STATE`); "changed" is the partitions' UUIDs and blocks.
 
 - From 2026-11-16: F-462 left open (Jonas): the RT's two core clock waits stay bare loops, a
   counted one faults now and then.

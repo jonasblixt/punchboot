@@ -1282,6 +1282,8 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | slot; the stream ends and the policy's init runs again; no board hook runs. A full pool answers | | |
 | | | `-PB_ERR_MEM` with the table on the device. The same bytes on the medium and on the wire as before. | | |
 | | | Not run on a board | | |
+| | | 2026-11-17 (Jonas, D-093): reverted. The table is in effect after the reset, as released; one that | | |
+| | | changes the partitions locks their writes and erases until then, which is what F-194 was | | |
 | F-424 | `imx_caam.c` | High, on jiffy (2026-11-13, `bc640ba1`) every CAAM job | Seen on the board | fixed (`b6a3df47`) |
 | | | fails. The job ring's entries were in `struct caam`, on a line with the driver's state, and | | |
 | | | since `7d79b150` (F-181) `caam_shedule_job_async()` writes `job_pending` after it cleans that | | |
@@ -2504,6 +2506,25 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | 2026-11-17 (`5f79b257`): `_reset` sets it at EL3 on those two cores (MIDR), before anything else; | | |
 | | | `arch_init()` logs what was left. The 8MP EVK and the MEK: Linux to the login and pb after `reboot`, | | |
 | | | on the MEK 32 MiB written and verified | | |
+| F-423 | `error.h`, `bio.md` 4, `cm_main.c`, `command-mode.md` 4.5 | Low, from command mode's | Reported (read) | fixed (D-093) |
+| | | second package. `include/pb-tools/error.h` declares `pb_error_string()`, which nothing defines. | | |
+| | | `bio.md` 4 doesn't say which flags a new partition of an installed table starts with (the code: | | |
+| | | the device's at set-up, and none a released partition with its UUID lacked), nor what a failed | | |
+| | | install leaves in the pool. Command mode's cached life cycle isn't read again after an install: | | |
+| | | on the host board the fuse partition's handle can die with variant 2. `test_part.py` still says | | |
+| | | the new table is used after the next boot. 4.5's table has no row for `PB_RESULT_BAD_PAYLOAD` | | |
+| | | 2026-11-14 (`2530f937`): `test_part.py`'s comment. `pb_error_string()` stays declared: v2.7.1's host | | |
+| | | library defined and used it, and `compatibility.md` freezes the header's values, not its | | |
+| | | declarations: for Jonas | | |
+| | | 2026-11-16 (Jonas, the 3.0.0 gate list, D-092): gates: `pb_error_string()` defined again in the host | | |
+| | | library, with a test | | |
+| | | 2026-11-16 (`97467c25`, `ac1e034a`): `pb_error_string()` is defined again in `src/wire.c`, v2.7.1's | | |
+| | | strings and `Bad payload`, with a test (`test_wire`); 4.5 has `BAD_PAYLOAD`'s row. The gate's part | | |
+| | | is done. Left, not gating: `bio.md` 4's flags of a new partition and what a failed install leaves, | | |
+| | | the cached life cycle after an install | | |
+| | | 2026-11-17 (D-093): closed. An installed table is in effect after the reset again, and no install | | |
+| | | makes a partition, releases one or kills a handle, so the flags, the pool and the life cycle's | | |
+| | | handle have nothing left to say | | |
 
 ## Dependencies / vendored code
 
