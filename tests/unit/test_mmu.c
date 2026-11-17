@@ -112,6 +112,39 @@ static void test_layers(void **state)
 #endif
 }
 
+/* Nothing is mapped before pb_mmu_init(): the suite's first test */
+static void test_mapped_before_init(void **state)
+{
+    (void)state;
+    assert_false(pb_mmu_mapped(BOARD_RAM_BASE, 4));
+}
+
+/* pb_mmu_mapped() (the peek hack): a range inside one region of the four
+ * layers, nothing else */
+static void test_mapped(void **state)
+{
+    (void)state;
+
+    assert_int_equal(pb_mmu_init(plat_mmap), PB_OK);
+
+    /* Layer 1, the board's DRAM, its first and its last word */
+    assert_true(pb_mmu_mapped(BOARD_RAM_BASE, 4));
+    assert_true(pb_mmu_mapped(BOARD_RAM_END - 4, 4));
+    assert_false(pb_mmu_mapped(BOARD_RAM_END - 4, 8));
+
+    /* Layer 2, each of the platform's regions, whole; past one that isn't
+     * in the DRAM nothing is mapped */
+    for (size_t i = 0; i < PLAT_REGIONS; i++) {
+        assert_true(pb_mmu_mapped(plat_mmap[i].base_pa, plat_mmap[i].size));
+    }
+    assert_false(pb_mmu_mapped(plat_mmap[0].base_pa, plat_mmap[0].size + 4));
+    assert_false(pb_mmu_mapped(plat_mmap[1].base_pa + plat_mmap[1].size, 4));
+
+    /* No size, a range that wraps */
+    assert_false(pb_mmu_mapped(BOARD_RAM_BASE, 0));
+    assert_false(pb_mmu_mapped(UINTPTR_MAX - 3, 8));
+}
+
 /* No platform list: layers 1 and 4 */
 static void test_no_plat_mmap(void **state)
 {
@@ -321,7 +354,9 @@ static void test_board_regions_room(void **state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup(test_mapped_before_init, setup),
         cmocka_unit_test_setup(test_layers, setup),
+        cmocka_unit_test_setup(test_mapped, setup),
         cmocka_unit_test_setup(test_no_plat_mmap, setup),
         cmocka_unit_test_setup(test_too_many_regions, setup),
 #ifndef FAKE_BOARD_NO_MMAP

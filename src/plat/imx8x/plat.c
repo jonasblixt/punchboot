@@ -65,7 +65,23 @@ int imx8x_pads_setup(const struct imx8x_pad *pads, size_t length)
  * and when the SCFW didn't give one */
 static int boot_reason = -1;
 
+#ifdef CONFIG_HACK_PEEK
+/* On-chip RAM pb doesn't use, mapped for the peek hack, read only (the
+ * 8QXP RM's and the 8DXL RM's memory map, 2.2): the OCRAM, and the SCU's
+ * TCM as the system sees it (TCML and TCMU, 2.2.8.1), which the SCFW
+ * locks with the XRDC. Device memory: nothing is read there but what
+ * peek asks for */
+#define HACK_OCRAM_BASE   0x00100000
+#define HACK_OCRAM_SIZE   0x40000
+#define HACK_SCU_TCM_BASE 0x30fe0000
+#define HACK_SCU_TCM_SIZE 0x40000
+#endif
+
 static const mmap_region_t imx_mmap[] = {
+#ifdef CONFIG_HACK_PEEK
+    MAP_REGION_FLAT(HACK_OCRAM_BASE, HACK_OCRAM_SIZE, MT_DEVICE | MT_RO),
+    MAP_REGION_FLAT(HACK_SCU_TCM_BASE, HACK_SCU_TCM_SIZE, MT_DEVICE | MT_RO),
+#endif
     /* TF-A's BL31, at the start of the DRAM (imx8x.h): inside layer 1,
      * with its attributes, named for what the SoC's boot puts there
      * (platform.md 5.2) */

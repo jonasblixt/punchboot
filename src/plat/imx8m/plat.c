@@ -61,6 +61,13 @@ uint8_t plat_bl_params[PLAT_BL_PARAMS_SIZE] __section(".data") __aligned(PLAT_BL
 
 const char *platform_ns_uuid = "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
 
+#ifdef CONFIG_HACK_PEEK
+/* On-chip RAM pb doesn't use, mapped for the peek hack (the 8MQ RM's memory
+ * map, 2.1): OCRAM_S and the TCM below pb */
+#define HACK_OCRAM_S_BASE 0x00180000
+#define HACK_OCRAM_S_SIZE 0x8000
+#define HACK_TCM_BASE     0x007e0000
+#endif
 
 static const mmap_region_t imx_mmap[] = {
     /* UMCTL2 state, at the start of the DRAM */
@@ -82,6 +89,11 @@ static const mmap_region_t imx_mmap[] = {
      * covered the rest as Normal memory (Linux's imx8mq.dtsi and
      * imx8mp.dtsi, bus@32c00000) */
     MAP_REGION_FLAT(IMX8M_AIPS4_BASE, IMX8M_AIPS4_SIZE, MT_DEVICE | MT_RW),
+#ifdef CONFIG_HACK_PEEK
+    /* For the peek hack, read only */
+    MAP_REGION_FLAT(HACK_OCRAM_S_BASE, HACK_OCRAM_S_SIZE, MT_MEMORY | MT_RO),
+    MAP_REGION_FLAT(HACK_TCM_BASE, PB_ENTRY - HACK_TCM_BASE, MT_MEMORY | MT_RO),
+#endif
     { 0 }
 };
 
