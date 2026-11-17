@@ -205,6 +205,34 @@ endmenu
 
 source "src/lib/Kconfig"
 
+menu "Hacks"
+
+comment "Development hacks: never in a product's build"
+
+config HACK_PEEK
+    bool "peek: read memory over command mode"
+    help
+        A named command, peek, that answers memory at an address as text,
+        for the command line: punchboot cmd peek "0x960 16". The request is
+        an address and a length in bytes (decimal or 0x hex, multiples of
+        4, the length 4 without one); the response is 32-bit words, 16
+        bytes a line, as many lines as fit (about 1.4 KiB from punchboot).
+        For finding what a SoC's ROM leaves in its on-chip RAM (its event
+        log, its boot information) where the manual doesn't say.
+
+        With an MMU only what pb maps is read (pb_mmu_mapped()): the
+        DRAM, the platform's regions, the board's, pb itself; a platform
+        may map more of its on-chip RAM for it (the i.MX8M: OCRAM_S and
+        the TCM below pb; the i.MX8X: the OCRAM and the SCU's TCM, whose
+        read faults). Without an MMU (ARMv7-M) any address is read, and
+        one with nothing there faults.
+
+        It reads memory the secure world may own, and a locked device
+        answers it after authentication like any command: never in a
+        product's build.
+
+endmenu
+
 menu "Build"
 
 choice EXECUTE

@@ -35,6 +35,8 @@
 #ifndef INCLUDE_PB_MMU_H
 #define INCLUDE_PB_MMU_H
 
+#include <stdbool.h>
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -94,5 +96,15 @@ struct mmap_region;
  *  -PB_ERR_MEM for a map with too many regions
  */
 int pb_mmu_init(const struct mmap_region *plat_mmap);
+
+/**
+ * Whether one region of the map pb_mmu_init() built covers [base, base +
+ * size): the board's DRAM, a region of the platform's or the board's, or a
+ * section of pb. For what reads an address it was given (the peek hack).
+ *
+ * @return true when mapped; false before pb_mmu_init(), for a size of 0 and
+ *  for a range that wraps
+ */
+bool pb_mmu_mapped(uintptr_t base, size_t size);
 
 #endif // INCLUDE_PB_MMU_H
