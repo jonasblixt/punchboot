@@ -218,8 +218,9 @@ config HACK_PEEK
         With an MMU only what pb maps is read (pb_mmu_mapped()): the
         DRAM, the platform's regions, the board's, pb itself; a platform
         may map more of its on-chip RAM for it (the i.MX8M: OCRAM_S and
-        the TCM below pb). Without an MMU (ARMv7-M) any address is read,
-        and one with nothing there faults.
+        the TCM below pb; the i.MX8X: the OCRAM and the SCU's TCM, whose
+        read faults). Without an MMU (ARMv7-M) any address is read, and
+        one with nothing there faults.
 
         It reads memory the secure world may own, and a locked device
         answers it after authentication like any command: never in a
