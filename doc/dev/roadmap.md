@@ -109,7 +109,7 @@ named in 1 or 2 doesn't gate.
   "Keystore" goes where it means pb's built-in keys (`security.md` 1 already says "trust
   anchor"; `boot.md`, `command-mode.md`, `crypto.md`, `bpak.md`, `porting.md`, the migration
   guide, `gen-keystore.py`, `keystore.c`). It suggests a store that keys can be written to.
-  bpak's `docs/format.md` says a signed keystore lets a device "extend its root of trust": it
+  bpak's format document says a signed keystore lets a device "extend its root of trust": it
   extends the chain of trust, the trust anchors stay the same.
 
 ## Compatibility guards (D-008, `compatibility.md`)
