@@ -242,7 +242,6 @@ imx8m_image: $(BUILD_DIR)/pb.bin $(BUILD_DIR)/spl.bin
 # pb proper's, the image HAB exits into. pb.csf, pb proper's: from its IVT to
 # its CSF.
 imx8m_sign_desc: imx8m_image
-	$(Q)$(PYTHON) scripts/check-srk-fuse.py hab $(IMX8M_SRK_TABLE) $(SRK_FUSE_FILE)
 	$(Q). $(BUILD_DIR)/pb.imx.offsets; \
 	 printf '    Blocks = 0x%X 0x0 0x%X "%s", \\\n             0x%X 0x%X 0x40 "%s"\n' \
 	        $$(( $(IMX8M_SPL_ENTRY) - 0x40 )) $$(( SPL_CSF )) $(BUILD_DIR)/pb_pad.imx \
@@ -321,7 +320,6 @@ imx8m_image: $(BUILD_DIR)/pb.bin $(BUILD_DIR)/spl.bin scripts/gen-imx8m-ivt.py
 # HAB after the SPL, and what it locks then stays locked (NXP's csf_spl.txt
 # has them in the SPL's too).
 imx8m_sign_desc: imx8m_image
-	$(Q)$(PYTHON) scripts/check-srk-fuse.py hab $(IMX8M_SRK_TABLE) $(SRK_FUSE_FILE)
 	$(Q). $(BUILD_DIR)/pb.imx.offsets; \
 	 printf '    Blocks = 0x%X 0x0 0x%X "%s"\n' \
 	        $$(( SPL_SELF )) $$(( SPL_CSF )) $(BUILD_DIR)/pb.imx > $(BUILD_DIR)/spl.csf.blocks; \

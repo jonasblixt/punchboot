@@ -9,7 +9,6 @@
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <pb/pb.h>
-#include <pb/srk_fuse.h>
 
 static const struct imx_hab_fuses *cfg;
 
@@ -46,11 +45,6 @@ slc_t imx_hab_slc_read_status(void)
     }
 
     return SLC_NOT_CONFIGURED;
-}
-
-int imx_hab_slc_set_configuration(void)
-{
-    return imx_hab_fuse_srk(srk_fuse, srk_fuse_words);
 }
 
 int imx_hab_slc_set_configuration_locked(void)
@@ -126,62 +120,4 @@ int imx_hab_revoke_key(const struct rot_key *key)
 
     LOG_INFO("Revoking key %u (0x%x)", key->slot, key->id);
     return imx_ocotp_write(cfg->revoke_bank, cfg->revoke_word, val | bit);
-}
-
-int imx_hab_fuse_srk(const uint32_t *srk, size_t words)
-{
-    bool fuse = false;
-    uint32_t val;
-    int rc;
-
-    if (cfg == NULL)
-        return -PB_ERR_STATE;
-
-    LOG_INFO("Fusing SRK fuses");
-
-    if (words != IMX_HAB_SRK_HASH_WORDS) {
-        LOG_ERR(
-            "The SRK hash is %zu words, not %u (CONFIG_SRK_FUSE)", words, IMX_HAB_SRK_HASH_WORDS);
-        return -PB_ERR_PARAM;
-    }
-
-    for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++) {
-        if (srk[n] == 0)
-            return -PB_ERR_PARAM;
-    }
-
-    for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++) {
-        rc = imx_ocotp_read(cfg->srk_bank, cfg->srk_word + n, &val);
-
-        if (rc != PB_OK)
-            return rc;
-
-        /* A word with some of the hash's bits, from a write that failed
-         * half way, is completed: the bits that aren't set yet are
-         * written (command-mode.md 5.2). One with a bit the hash doesn't
-         * have can never become it */
-        if ((val & ~srk[n]) != 0) {
-            LOG_ERR("Trying to change already fused srk[%u] from 0x%x to 0x%x", n, val, srk[n]);
-            return -PB_ERR_MEM;
-        } else if (val == srk[n]) {
-            LOG_INFO("srk[%u] already fused to 0x%x", n, val);
-        } else {
-            fuse = true;
-        }
-    }
-
-    if (!fuse)
-        return PB_OK;
-
-    LOG_INFO("Writing SRK...");
-
-    for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++) {
-        LOG_INFO("Fusing srk[%u] to 0x%x", n, srk[n]);
-        rc = imx_ocotp_write(cfg->srk_bank, cfg->srk_word + n, srk[n]);
-
-        if (rc != PB_OK)
-            return rc;
-    }
-
-    return PB_OK;
 }

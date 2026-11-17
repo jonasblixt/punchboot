@@ -51,5 +51,7 @@
 #define IMX6UL_FUSE_REVOKE_BANK         (5)
 #define IMX6UL_FUSE_REVOKE_WORD         (7)
 #define IMX6UL_FUSE_REVOCABLE_SRKS      (3)
+/* Word n of the SRK hash, 0 to 7, for the board's slc_fuses (D-094) */
+#define IMX6UL_FUSE_SRK(n) IMX6UL_FUSE(IMX6UL_FUSE_SRK_BANK, IMX6UL_FUSE_SRK_WORD + (n))
 
 #endif // INCLUDE_PLAT_IMX6UL_FUSEBOX_H

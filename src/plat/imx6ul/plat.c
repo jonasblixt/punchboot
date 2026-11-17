@@ -292,7 +292,6 @@ _Static_assert(PLAT_REVOKE_SLOTS == IMX6UL_FUSE_REVOCABLE_SRKS,
 
 const struct slc_ops plat_slc = {
     .read_status = imx_hab_slc_read_status,
-    .set_configuration = imx_hab_slc_set_configuration,
     .set_configuration_locked = imx_hab_slc_set_configuration_locked,
     .fuse_read = imx_ocotp_fuse_read,
     .fuse_write = imx_ocotp_fuse_write,

@@ -42,6 +42,9 @@
 #define IMX8M_FUSE_SEC_CONFIG_CLOSED (1u << 25)
 #define IMX8M_FUSE_SRK_BANK          (6)
 #define IMX8M_FUSE_SRK_WORD          (0)
+/* Word n of the SRK hash, 0 to 7 over banks 6 and 7, for the board's
+ * slc_fuses (D-094) */
+#define IMX8M_FUSE_SRK(n)            IMX8M_FUSE(IMX8M_FUSE_SRK_BANK, IMX8M_FUSE_SRK_WORD + (n))
 #ifdef CONFIG_PLAT_IMX8MQ
 #define IMX8MQ_FUSE_REVOKE_BANK          (9)
 #define IMX8MQ_FUSE_REVOKE_WORD          (3)

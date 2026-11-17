@@ -236,11 +236,6 @@ int imx_hab_revoke_key(const struct rot_key *key)
     return PB_OK;
 }
 
-int imx_hab_slc_set_configuration(void)
-{
-    return PB_OK;
-}
-
 int imx_hab_slc_set_configuration_locked(void)
 {
     return PB_OK;
@@ -1067,7 +1062,6 @@ static void test_plat_rot_and_slc(void **state)
     assert_ptr_equal(plat_rot.read_key_status, imx_hab_read_key_status);
 
     assert_ptr_equal(plat_slc.read_status, imx_hab_slc_read_status);
-    assert_ptr_equal(plat_slc.set_configuration, imx_hab_slc_set_configuration);
     assert_ptr_equal(plat_slc.set_configuration_locked, imx_hab_slc_set_configuration_locked);
     assert_null(plat_slc.set_eol);
     assert_ptr_equal(plat_slc.fuse_read, imx_ocotp_fuse_read);

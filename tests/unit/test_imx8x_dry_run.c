@@ -27,7 +27,6 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <pb/srk_fuse.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/sci/svc/misc/api.h>
@@ -39,11 +38,6 @@
 /* The SoC's fuse words, and the calls that would burn fuses */
 static uint32_t fuses[1024];
 static unsigned int fuse_writes, commits, forwards;
-
-const uint32_t srk_fuse[IMX8X_SRK_HASH_WORDS] = {
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-};
-const size_t srk_fuse_words = IMX8X_SRK_HASH_WORDS;
 
 sc_err_t sc_misc_otp_fuse_read(sc_ipc_t ipc, uint32_t word, uint32_t *val)
 {
@@ -109,7 +103,9 @@ static void test_dry_run_writes_no_fuse(void **state)
     (void)state;
 
     assert_int_equal(imx8x_fuse_write(IMX8X_FUSE_BOOT0, 1), PB_OK);
-    assert_int_equal(imx8x_slc_set_configuration(), PB_OK);
+    /* The SRK hash, as a board's slc_fuses fuse it (D-094) */
+    for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++)
+        assert_int_equal(imx8x_fuse_write(IMX8X_FUSE_SRK(n), n + 1), PB_OK);
     assert_int_equal(fuse_writes, 0);
     assert_int_equal(imx8x_slc_read_status(), SLC_NOT_CONFIGURED);
 }
@@ -153,7 +149,6 @@ static void test_plat_rot_and_slc(void **state)
     assert_ptr_equal(plat_rot.read_key_status, imx8x_read_key_status);
 
     assert_ptr_equal(plat_slc.read_status, imx8x_slc_read_status);
-    assert_ptr_equal(plat_slc.set_configuration, imx8x_slc_set_configuration);
 #ifdef CONFIG_PLAT_IMX8XL
     assert_null(plat_slc.set_configuration_locked);
 #else
