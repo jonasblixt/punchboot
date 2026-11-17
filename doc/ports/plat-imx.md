@@ -54,7 +54,10 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   have no documented unit, and the 8MP EVK's ROM logs a tick with event 0x82, which Table 9
   doesn't list. The 8X's can't be: its ROM runs on the SCU, and its log (four buffers, Table 13)
   is in the SCU's TCM, which the SCFW locks to all but the MUs (8QXP RM 2.2.8.1); the SCFW API
-  has no call that reads it.
+  has no call that reads it. On the MEK (SCFW 5665, peek, 2026-11-17) a read of the TCM from the
+  A35, TCML at 0x30fe0000 and TCMU at 0x3101ff00, is a synchronous external abort (ESR
+  0x96000210). The OCRAM holds nothing either: all 256 KiB are as they powered up, after a boot
+  from the eMMC.
 - **The SECO log** (the log `seco`, 8X): the life cycle (`sc_seco_chip_info()`) and the SECO's
   events (`sc_seco_get_event()`), the responses other than success to any request since it
   started, as U-Boot's `ahab_status` prints them: the request in bits 23:16, the indication in

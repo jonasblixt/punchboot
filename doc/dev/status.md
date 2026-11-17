@@ -19,8 +19,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
   - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb in BOOT0 and
     BOOT1, BOOT1 enabled. Never `reboot` it (F-452).
   - RT1060: its NOR `f3493d4f`'s pb, the simple bench 7 of 7. The MEK and the 8MP EVK: BOOT0
-    (enabled) `5f79b257`'s tree, BOOT1 `2c9dee80`'s, Root B test data; the 8MP's System A the
-    F-156 kernel.
+    (enabled) `5f79b257`'s tree, Root B test data; BOOT1 the MEK's the peek pb (D-096's tree),
+    the 8MP's `2c9dee80`'s; the 8MP's System A the F-156 kernel.
   - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
     fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
 - **Test benches:** Linux (`testbench/`): jiffy, the 8MP EVK, the MEK and the pico8ml boot to
