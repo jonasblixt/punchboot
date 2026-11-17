@@ -86,7 +86,7 @@ Boot:
 The life cycle on the i.MX8M (2026-11-14):
 
 - The i.MX8M boards (imx8mevk, imx8mpevk, pico8ml) have a life cycle: HABv4's SRK hash and its
-  closed bit. `slc show` reads it, `slc configure` fuses the build's SRK hash, `slc lock` closes
+  closed bit. `slc show` reads it, `slc configure` fuses the board's SRK hash, `slc lock` closes
   the device. A locked 8M device answers nothing but its identity before authentication, as
   every other port; command mode on the 8M was open before.
 - The i.MX8MQ's keys are read and revoked through SRK_REVOKE; on 8MQ boards no key could be
@@ -104,6 +104,9 @@ The keys (D-085, F-439, 2026-11-14):
   answered `INVALID_ARGUMENT`.
 - The build warns for a board key in such a slot. On the i.MX8X such a key is refused: the
   build stops, and the device treats it as revoked (D-092, F-429).
+- `SLC_SET_CONFIGURATION` reads every fuse word first and writes nothing when one has a bit
+  its value lacks: it answers `ERROR`. A word of the SRK hash with another bit answered
+  `MEM_ERROR`; a configuration word with another bit was completed (D-094, 2026-11-17).
 
 Named commands (D-076, 2026-11-13):
 
@@ -234,6 +237,9 @@ can change by mistake that a device in the field relies on. Then check:
   in them (F-392).
 - **The revoke slot of each key.** The board's key map is gone, and key n of the board's
   `VERIFY_KEY<n>` is in slot n: a key must keep the fuse bit it had (D-027, D-083).
+- **The SRK hash's words** in the board's `slc_fuses`, against the words 2.x fused. They are
+  the board's data again, as in 2.x, and nothing checks them against the keys pb is signed
+  with (D-094).
 - **Whatever loads pb with the ROM's serial downloader** and expects it to boot from storage:
   the factory's flow, a recovery script. It sends a boot command now, or the build turns
   `CONFIG_CM_ON_SERIAL_DOWNLOAD` off (D-031).

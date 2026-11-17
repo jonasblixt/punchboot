@@ -76,11 +76,20 @@ static int usdhc_emmc_setup(void)
 
 /*
  * Warning: an example configuration. Be careful with the slc commands.
- * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
- * is signed with, then these: boot from the eMMC on uSDHC1, 8-bit DDR, and
- * take the boot configuration from the fuses, not the boot pins.
+ * slc_set_configuration() fuses these: the SRK hash of the keys pb is signed
+ * with (srktool's pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin, D-094), boot
+ * from the eMMC on uSDHC1, 8-bit DDR, and take the boot configuration from
+ * the fuses, not the boot pins.
  */
 static const struct slc_fuse config_fuses[] = {
+    { IMX6UL_FUSE_SRK(0), 0x5020C7D7 },
+    { IMX6UL_FUSE_SRK(1), 0xBB62B945 },
+    { IMX6UL_FUSE_SRK(2), 0xDD97C8BE },
+    { IMX6UL_FUSE_SRK(3), 0xDC6710DD },
+    { IMX6UL_FUSE_SRK(4), 0x2756B777 },
+    { IMX6UL_FUSE_SRK(5), 0xEF43BC0A },
+    { IMX6UL_FUSE_SRK(6), 0x7185604B },
+    { IMX6UL_FUSE_SRK(7), 0x3F335991 },
     { IMX6UL_FUSE(IMX6UL_FUSE_BOOT_CFG_BANK, IMX6UL_FUSE_BOOT_CFG_WORD),
       IMX6UL_BOOT_CFG_USDHC | IMX6UL_BOOT_CFG_MMC | IMX6UL_BOOT_CFG_USDHC_PORT(0) |
           IMX6UL_BOOT_CFG_BUS_WIDTH(IMX6UL_BOOT_BUS_8BIT_DDR) },

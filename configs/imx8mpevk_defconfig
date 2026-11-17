@@ -78,7 +78,6 @@ CONFIG_IMX8M_CM_USB1=y
 #
 # Keys and life cycle
 #
-CONFIG_SRK_FUSE=""
 CONFIG_SLC_NO_FUSE_WRITES=y
 # CONFIG_SLC_EOL is not set
 # end of Keys and life cycle

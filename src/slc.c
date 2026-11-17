@@ -33,9 +33,44 @@ int slc_init(const struct slc_ops *ops_, const struct slc_fuse *fuses_, size_t f
     if (ops_ && fuses_length_ && (!fuses_ || !ops_->fuse_read || !ops_->fuse_write))
         return -PB_ERR_PARAM;
 
+    /* An entry that sets nothing is the board's mistake (board.md 3) */
+    for (size_t n = 0; ops_ && n < fuses_length_; n++) {
+        if (fuses_[n].value == 0) {
+            LOG_ERR("Fuse %u: no bits to set", fuses_[n].index);
+            return -PB_ERR_PARAM;
+        }
+    }
+
     ops = ops_;
     fuses = fuses_;
     fuses_length = fuses_length_;
+    return PB_OK;
+}
+
+/* A word with a bit its value lacks can never become it: the fuses are one
+ * time programmable. Every word is checked before the first write, so that
+ * a configuration that can't be completed writes nothing (D-094) */
+static int check_fuses(void)
+{
+    uint32_t val;
+    int rc;
+
+    for (size_t n = 0; n < fuses_length; n++) {
+        const struct slc_fuse *fuse = &fuses[n];
+
+        rc = ops->fuse_read(fuse->index, &val);
+
+        if (rc != PB_OK) {
+            LOG_ERR("Could not read fuse %u (%i)", fuse->index, rc);
+            return rc;
+        }
+
+        if ((val & ~fuse->value) != 0) {
+            LOG_ERR("Fuse %u is 0x%x, it can't become 0x%x", fuse->index, val, fuse->value);
+            return -PB_ERR_STATE;
+        }
+    }
+
     return PB_OK;
 }
 
@@ -55,7 +90,7 @@ static int write_fuses(void)
             return rc;
         }
 
-        if ((val & fuse->value) == fuse->value) {
+        if (val == fuse->value) {
             LOG_INFO("Fuse %u is 0x%x already", fuse->index, val);
             continue;
         }
@@ -115,6 +150,11 @@ int slc_set_configuration(void)
         LOG_ERR("The configuration is locked (%i)", slc);
         return -PB_ERR_STATE;
     }
+
+    rc = check_fuses();
+
+    if (rc != PB_OK)
+        return rc;
 
     if (ops->set_configuration) {
         rc = ops->set_configuration();

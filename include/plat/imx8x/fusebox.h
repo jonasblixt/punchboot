@@ -57,11 +57,12 @@
 #define IMX8X_FUSE_OEM_KEY3  (725)
 
 #define IMX8X_SRK_HASH_WORDS (16)
+/* Word n of the SRK hash, for the board's slc_fuses (D-094) */
+#define IMX8X_FUSE_SRK(n)    (IMX8X_FUSE_SRK0 + (n))
 
 void imx8x_fuse_init(sc_ipc_t ipc_);
 int imx8x_fuse_write(uint32_t addr, uint32_t value);
 int imx8x_fuse_read(uint32_t addr, uint32_t *result);
-int imx8x_fuse_write_srk(const uint32_t *srk, size_t words);
 /* Any of the SRK hash's words fused. PB_OK, or the read's error: the
  * answer is unknown then and *fused is false */
 int imx8x_is_srk_fused(bool *fused);

@@ -59,7 +59,6 @@ imx6ul_image: $(BUILD_DIR)/pb.bin
 # downloader (uuu) puts it, at 0x00910000: 0x2c bytes into pb.imx, as long
 # as its header says (big endian, at byte 45).
 imx6ul_sign_desc: imx6ul_image
-	$(Q)$(PYTHON) scripts/check-srk-fuse.py hab $(IMX6UL_SRK_TABLE) $(SRK_FUSE_FILE)
 	$(Q)imx=$(BUILD_DIR)/pb.imx; \
 	 blocks="Blocks = $$(printf '0x%X 0x000 0x%X' $$(( $(PB_ENTRY) - 0xC00 )) $$(stat -c%s $$imx)) \"$$imx\""; \
 	 uuu="Blocks = 0x00910000 0x02c 0x$$(dd if=$$imx bs=1 skip=45 count=2 2>/dev/null | xxd -p) \"$$imx\""; \

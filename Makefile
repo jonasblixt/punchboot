@@ -119,7 +119,6 @@ endif
 # Bootloader
 src-y   = src/main.c
 src-y  += keystore.c
-src-y  += srk_fuse.c
 src-y  += src/delay.c
 src-y  += src/dma.c
 src-y  += src/crypto.c
@@ -299,13 +298,6 @@ $(BUILD_DIR)/keystore.o: $(KEY_PATHS) $(call value_file,KEYSTORE_ARGS) scripts/g
 	$(Q)$(PYTHON) scripts/gen-keystore.py $(KEYSTORE_ARGS) > $(BUILD_DIR)/keystore.c.tmp
 	$(Q)mv $(BUILD_DIR)/keystore.c.tmp $(BUILD_DIR)/keystore.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
-
-SRK_FUSE_FILE := $(patsubst "%",%,$(CONFIG_SRK_FUSE))
-
-$(BUILD_DIR)/srk_fuse.o: $(SRK_FUSE_FILE) $(call value_file,CONFIG_SRK_FUSE) scripts/gen-srk-fuse.py
-	@echo GEN $(BUILD_DIR)/srk_fuse.c
-	$(Q)$(PYTHON) scripts/gen-srk-fuse.py $(SRK_FUSE_FILE) > $(BUILD_DIR)/srk_fuse.c
-	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/srk_fuse.c -o $@
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@

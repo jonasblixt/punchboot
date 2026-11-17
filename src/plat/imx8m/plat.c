@@ -279,7 +279,6 @@ static int imx8m_slc_lock(void)
 
 const struct slc_ops plat_slc = {
     .read_status = imx_hab_slc_read_status,
-    .set_configuration = imx_hab_slc_set_configuration,
     .set_configuration_locked = imx8m_slc_lock,
     .fuse_read = imx_ocotp_fuse_read,
     .fuse_write = imx_ocotp_fuse_write,

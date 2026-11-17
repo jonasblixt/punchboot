@@ -62,11 +62,10 @@ static const struct imx_hab_fuses fuses = {
     .revoke_allowed = revoke_allowed,
 };
 
-/* The build's SRK hash, pb/srk_fuse.h */
-const uint32_t srk_fuse[IMX_HAB_SRK_HASH_WORDS] = {
+/* An SRK hash, as a board's slc_fuses fuse it (D-094) */
+static const uint32_t srk_fuse[IMX_HAB_SRK_HASH_WORDS] = {
     0x5020c7d7, 0xbb62b945, 0xdd97c8be, 0xdc6710dd, 0x2756b777, 0xef43bc0a, 0x7185604b, 0x3f335991,
 };
-const size_t srk_fuse_words = IMX_HAB_SRK_HASH_WORDS;
 
 #define SEC_CONFIG (otp[0 * WORDS_PER_BANK + 6])
 #define SRK(n)     (otp[3 * WORDS_PER_BANK + (n)])
@@ -90,11 +89,9 @@ static void test_not_initialized(void **state)
 
     imx_hab_fuses_init(NULL);
     assert_int_equal(imx_hab_slc_read_status(), -PB_ERR_STATE);
-    assert_int_equal(imx_hab_slc_set_configuration(), -PB_ERR_STATE);
     assert_int_equal(imx_hab_slc_set_configuration_locked(), -PB_ERR_STATE);
     assert_int_equal(imx_hab_read_key_status(&key), -PB_ERR_STATE);
     assert_int_equal(imx_hab_revoke_key(&key), -PB_ERR_STATE);
-    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_STATE);
     assert_int_equal(writes, 0);
 }
 
@@ -108,11 +105,12 @@ static void test_life_cycle(void **state)
     SRK(7) = srk_fuse[7];
     assert_int_equal(imx_hab_slc_read_status(), SLC_CONFIGURATION);
 
-    /* The build's hash */
-    assert_int_equal(imx_hab_slc_set_configuration(), PB_OK);
+    /* Partly fused: CONFIGURATION, the core completes it (slc.c) */
+    SRK(4) = srk_fuse[4] & 0xffff0000;
+    assert_int_equal(imx_hab_slc_read_status(), SLC_CONFIGURATION);
 
     for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
-        assert_int_equal(SRK(n), srk_fuse[n]);
+        SRK(n) = srk_fuse[n];
 
     assert_int_equal(imx_hab_slc_set_configuration_locked(), PB_OK);
     assert_int_equal(SEC_CONFIG, 0x02);
@@ -121,58 +119,6 @@ static void test_life_cycle(void **state)
     /* A failed read is an error, not a state */
     read_rc = -PB_ERR_IO;
     assert_int_equal(imx_hab_slc_read_status(), -PB_ERR_IO);
-}
-
-static void test_fuse_srk(void **state)
-{
-    uint32_t other[IMX_HAB_SRK_HASH_WORDS];
-    (void)state;
-
-    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS - 1), -PB_ERR_PARAM);
-
-    /* An empty word can't be right */
-    memcpy(other, srk_fuse, sizeof(other));
-    other[3] = 0;
-    assert_int_equal(imx_hab_fuse_srk(other, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_PARAM);
-    assert_int_equal(writes, 0);
-
-    /* Fused already: nothing to write */
-    for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
-        SRK(n) = srk_fuse[n];
-
-    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS), PB_OK);
-    assert_int_equal(writes, 0);
-
-    /* Another hash */
-    other[3] = 0x12345678;
-    assert_int_equal(imx_hab_fuse_srk(other, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_MEM);
-    assert_int_equal(writes, 0);
-}
-
-/* F-200: a word that a write which failed half way left with some of its
- * bits is completed (command-mode.md 5.2: the bits that aren't set yet). A
- * word with a bit the hash doesn't have can't become the hash: refused */
-static void test_fuse_srk_partly_programmed(void **state)
-{
-    (void)state;
-
-    for (unsigned int n = 0; n < 4; n++)
-        SRK(n) = srk_fuse[n];
-
-    SRK(4) = srk_fuse[4] & 0xffff0000;
-    assert_int_equal(imx_hab_slc_read_status(), SLC_CONFIGURATION);
-    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS), PB_OK);
-
-    for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
-        assert_int_equal(SRK(n), srk_fuse[n]);
-
-    /* Bit 0 isn't in the hash's word */
-    memset(otp, 0, sizeof(otp));
-    writes = 0;
-    assert_int_equal(srk_fuse[2] & 1, 0);
-    SRK(2) = (srk_fuse[2] & 0xff) | 1;
-    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_MEM);
-    assert_int_equal(writes, 0);
 }
 
 static void test_revoke(void **state)
@@ -230,8 +176,6 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_not_initialized, setup),
         cmocka_unit_test_setup(test_life_cycle, setup),
-        cmocka_unit_test_setup(test_fuse_srk, setup),
-        cmocka_unit_test_setup(test_fuse_srk_partly_programmed, setup),
         cmocka_unit_test_setup(test_revoke, setup),
         cmocka_unit_test_setup(test_revoke_past_the_srks, setup),
         cmocka_unit_test_setup(test_revoke_not_allowed, setup),

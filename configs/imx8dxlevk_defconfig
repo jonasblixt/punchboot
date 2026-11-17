@@ -84,7 +84,6 @@ CONFIG_IMX8X_CM_USB_OTG2=y
 #
 # Keys and life cycle
 #
-CONFIG_SRK_FUSE="pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin"
 # CONFIG_SLC_NO_FUSE_WRITES is not set
 # CONFIG_SLC_EOL is not set
 # end of Keys and life cycle

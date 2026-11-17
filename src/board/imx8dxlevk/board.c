@@ -131,11 +131,28 @@ static int board_password_auth(const char *password, size_t length)
 
 /*
  * Warning: an example configuration. Be careful with the slc commands.
- * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
- * is signed with, then these: boot from the eMMC on uSDHC0, fast boot, high
- * speed, 8-bit DDR, also with the boot pins at "boot from fuses" (BT_FUSE_SEL).
+ * slc_set_configuration() fuses these: the SRK hash of the keys pb is signed
+ * with (srktool's pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin, D-094), boot from
+ * the eMMC on uSDHC0, fast boot, high speed, 8-bit DDR, also with the boot
+ * pins at "boot from fuses" (BT_FUSE_SEL).
  */
 static const struct slc_fuse config_fuses[] = {
+    { IMX8X_FUSE_SRK(0), 0x6147E2E6 },
+    { IMX8X_FUSE_SRK(1), 0xFC4DC849 },
+    { IMX8X_FUSE_SRK(2), 0xB410B214 },
+    { IMX8X_FUSE_SRK(3), 0x0F8D6212 },
+    { IMX8X_FUSE_SRK(4), 0xAD38B486 },
+    { IMX8X_FUSE_SRK(5), 0x9B806149 },
+    { IMX8X_FUSE_SRK(6), 0xDD6D397A },
+    { IMX8X_FUSE_SRK(7), 0x4C19D87B },
+    { IMX8X_FUSE_SRK(8), 0x24AC2ACD },
+    { IMX8X_FUSE_SRK(9), 0xB6222A62 },
+    { IMX8X_FUSE_SRK(10), 0xF36D6BD1 },
+    { IMX8X_FUSE_SRK(11), 0x14CC8E16 },
+    { IMX8X_FUSE_SRK(12), 0xD749170E },
+    { IMX8X_FUSE_SRK(13), 0x22FB187E },
+    { IMX8X_FUSE_SRK(14), 0x158F740C },
+    { IMX8X_FUSE_SRK(15), 0x8966B0F6 },
     { IMX8X_FUSE_BOOT0, IMX8X_BOOT0_FUSE_SEL | IMX8X_BOOT0_EMMC0 },
     { IMX8X_FUSE_BOOT1,
       IMX8X_BOOT1_FAST | IMX8X_BOOT1_MMC_HS | IMX8X_BOOT1_BUS(IMX8X_BUS_8BIT_DDR) },

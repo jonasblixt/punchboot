@@ -93,7 +93,6 @@ else
 # pb.csf, the AHAB description of pb.imx: the container header at 0x400,
 # its signature block at 0x590, as mkimage_imx8 places them on the 8QXP
 imx8x_sign_desc: imx8x_image
-	$(Q)$(PYTHON) scripts/check-srk-fuse.py ahab $(IMX8X_SRK_TABLE) $(SRK_FUSE_FILE)
 	@echo Using SRK Table: $$(readlink -f $(IMX8X_SRK_TABLE))
 	@echo Using signing cert: $$(readlink -f $(IMX8X_SIGN_CERT))
 	@sed -e 's#__KEY_INDEX__#$(IMX8X_KEY_INDEX)#g' \

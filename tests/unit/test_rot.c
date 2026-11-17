@@ -401,9 +401,9 @@ static void test_slc_fuses(void **state)
     assert_int_equal(fuses[5], 0x0000c060);
     assert_int_equal(fuses[6], 0x00000010);
 
-    /* Set already, also with other bits in the word (e.g. the closed bit) */
+    /* Set already: nothing is written */
     fuse_writes = 0;
-    fuses[6] |= 0x02;
+    slc_writes = 0;
     assert_int_equal(slc_set_configuration(), PB_OK);
     assert_int_equal(fuse_writes, 0);
 
@@ -412,6 +412,18 @@ static void test_slc_fuses(void **state)
     assert_int_equal(slc_set_configuration(), PB_OK);
     assert_int_equal(fuse_writes, 1);
     assert_int_equal(fuses[5], 0x0000c060);
+
+    /* A word with a bit its value lacks can never become it (D-094): every
+     * word is read first, and nothing is written, the platform's part
+     * neither. Here the first word lacks bits, the second has another */
+    fuse_writes = 0;
+    slc_writes = 0;
+    fuses[5] = 0x00000060;
+    fuses[6] |= 0x02;
+    assert_int_equal(slc_set_configuration(), -PB_ERR_STATE);
+    assert_int_equal(fuse_writes, 0);
+    assert_int_equal(slc_writes, 0);
+    assert_int_equal(fuses[5], 0x00000060);
 
     /* A read error stops it */
     fuse_writes = 0;
@@ -490,6 +502,9 @@ static void test_slc_fuses_are_the_boards(void **state)
 
     assert_int_equal(slc_init(&ops, boot_fuses, ARRAY_SIZE(boot_fuses)), PB_OK);
     assert_int_equal(slc_init(&ops, NULL, ARRAY_SIZE(boot_fuses)), -PB_ERR_PARAM);
+    /* An entry that sets nothing is the board's mistake (board.md 3) */
+    static const struct slc_fuse zero[] = { { 5, 0x0000c060 }, { 6, 0 } };
+    assert_int_equal(slc_init(&ops, zero, ARRAY_SIZE(zero)), -PB_ERR_PARAM);
     assert_int_equal(slc_set_configuration(), PB_OK);
     assert_int_equal(slc_writes, 1);
     assert_int_equal(fuse_writes, 2);
