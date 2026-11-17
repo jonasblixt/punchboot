@@ -472,7 +472,7 @@ fails for a board key there. The i.MX8X does (D-092): its slots past SRK 3 were 
 ### 4.2 Data : plat_slc [mandatory]
 
 ```c
-extern const struct slc_ops plat_slc; /* read_status, set_configuration(_locked), set_eol,
+extern const struct slc_ops plat_slc; /* read_status, set_configuration_locked, set_eol,
                                          fuse_read, fuse_write */
 ```
 
@@ -483,8 +483,8 @@ and writes fuses.
 
 The key hash, the ROTPK's (the SRK hash on the i.MX), is the board's too: entries of its list,
 one per word (D-094). The platform's header gives each word's index, `<P>_FUSE_SRK(n)`, and
-`read_status` reads the words for the state, as the ROM does. `set_configuration` is optional,
-for a SoC whose configuration is more than fuse words; no i.MX port has it.
+`read_status` reads the words for the state, as the ROM does. The configuration is the board's
+fuses and nothing else: `struct slc_ops` has no `set_configuration` (D-095).
 
 `fuse_write` reads the word back after the write, from the array and not from a copy taken at
 reset, and fails with `-PB_ERR_IO` when a bit it set isn't there (Jonas, D-092, F-166); the

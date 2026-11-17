@@ -114,7 +114,8 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-091 | A device tree whose header lies is refused       | In force                                           |
 | D-092 | Which findings gate 3.0.0                        | In force                                           |
 | D-093 | An installed table is in effect after the reset  | In force; replaces D-070's "at once"               |
-| D-094 | The key hash is the board's, in `slc_fuses`      | In force                                           |
+| D-094 | The key hash is the board's, in `slc_fuses`      | Narrowed by D-095 (no `set_configuration`)         |
+| D-095 | `struct slc_ops` has no `set_configuration`      | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2313,3 +2314,15 @@ Kconfig's warning, and its hash goes into the board's file (the migration guide)
 
 Written in: `platform.md` 4.2, `board.md` 3 and 6, `command-mode.md` 5.2, `system.md` 4,
 `slc.md`, `porting.md` 2.3, the migration guide.
+
+## D-095: `struct slc_ops` has no `set_configuration` (2026-11-17)
+
+Jonas: "we can drop set_configuration member". D-094 kept it, optional, for a SoC whose
+configuration is more than fuse words; no port in the tree had it after D-094.
+
+- The configuration is the board's `slc_fuses` and nothing else. `slc_set_configuration()`
+  without them answers `NOT_SUPPORTED`, as a board without fuses and a platform without the
+  member did.
+- A platform out of the tree that set the member doesn't build: what it wrote goes into its
+  boards' `slc_fuses` (the migration guide). 3.0.0 changes the porting API (D-018).
+- The wire doesn't change (D-008): every in-tree board answers as it did after D-094.

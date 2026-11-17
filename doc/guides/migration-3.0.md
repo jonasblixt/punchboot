@@ -1157,7 +1157,9 @@ cycle functions, and its own `set_configuration` that wrote its fuses. A platfor
 
 - `rot` leaves `struct board`: the platform provides `plat_rot`.
 - `slc`'s functions leave it: the platform provides `plat_slc`. The board keeps its
-  configuration fuses, as `slc_fuses` and `slc_fuses_length`.
+  configuration fuses, as `slc_fuses` and `slc_fuses_length`. They are the whole
+  configuration: `struct slc_ops` has no `set_configuration` (D-095), and what a board's or a
+  platform's own function wrote becomes entries of the list, the SRK hash too (D-094).
 - `imx_caam_init()` and `imx_caam_rng_init()` leave the board's `init()`: `plat_init()` sets up
   the SoC's crypto engine and RNG behind a Kconfig option. A board that needs the software
   implementation turns the option off in its defconfig.
