@@ -204,9 +204,8 @@ board that sets up another table does it for that one's device (the host, for it
 **What a host may read** (Jonas, D-092, F-083): `readable_parts`, `readable_parts_length`, the
 UUIDs of the partitions a host may read in bulk (`command-mode.md` 5.3), a device of `init()`'s
 or a partition of any table. Only what can't hold a secret: pb's own boot partitions when its
-image has none, its A/B state. The core gives the list to bio before the table is set up, and
-a partition an install makes gets it again by its UUID. Absent: none, a host reads nothing. A
-list with an entry that is NULL fails the step.
+image has none, its A/B state. The core gives the list to bio before the table is set up.
+Absent: none, a host reads nothing. A list with an entry that is NULL fails the step.
 
 **The in place source** (`boot.md` 4.1): a partition that is memory mapped, whose image is
 verified where it is and runs there.
@@ -628,10 +627,9 @@ OK means "loaded and verified", not "booted".
   (`plat_get_boot_source()`, `plat_get_boot_reason()`). It may show raw registers in `status()`.
 - It may define tasks, which run while pb is stopped (4.5), and named commands, which a host
   runs by name (`command-mode.md` 5.6).
-- A partition's handle that it keeps (`bio_get_part_by_uu()`) is good until a partition table
-  is installed. After that the handle of a partition that changed is dead until the reset,
-  and no hook runs again for it (`bio.md` 4). A board that needs a partition right after an
-  install looks it up when it uses it.
+- A partition's handle that it keeps (`bio_get_part_by_uu()`) is good until the reset. An
+  installed table is in effect after it; one that changed the partitions locks their writes
+  until then (`bio.md` 4, D-093).
 - It may map hardware the platform didn't (`mmap`, 2.8). It never calls xlat_tables itself and
   never patches the platform's `plat_mmap[]` for its own hardware.
 - The boot flags (`boot_get_flags()`, `boot_clear_set_flags()`): bits 0 to 15 are the core's

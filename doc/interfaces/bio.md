@@ -1,6 +1,7 @@
 # The block device contract
 
-**State: reviewed (Jonas, 2026-11-12), D-064, D-067 to D-070, D-073.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064, D-067 to D-070, D-073, D-093.** Level 3
+(`process.md`).
 
 What a block device is in pb (`include/pb/bio.h`, `src/bio.c`): what the boot, command mode, a
 boot source policy and a board may rely on when they read, write and erase one, and what a
@@ -13,7 +14,8 @@ through the checklist (section 7). Section 6 is fixed for a product in the field
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates section 8.
 
-**No open items.** What Jonas's review decided (D-067 to D-070), as written into the text:
+**No open items.** What Jonas's review decided (D-067 to D-070, D-093), as written into the
+text:
 
 | Item | Rule                                                                         | By    |
 | ---- | ---------------------------------------------------------------------------- | ----- |
@@ -21,10 +23,8 @@ finding removes the marker and updates section 8.
 |      | only (3.1, 3.2)                                                              |       |
 | 2    | No read at a byte offset for now. A part that doesn't start on a block of    | Jonas |
 |      | its device is refused, as released (3.1)                                     |       |
-| 3    | An installed table is in effect at once, for `bio` and the core. A handle    | Jonas |
-|      | never comes to mean another partition: an unchanged partition keeps its      |       |
-|      | handle, a changed one's is dead until the reset. No hook of the board's runs |       |
-|      | again (4)                                                                    |       |
+| 3    | An installed table is in effect after the reset. One that changed the        | Jonas |
+|      | partitions locks their writes and erases until then (4, D-093)               |       |
 | 4    | `bio_write()` is to erase what it writes where the flag is set. A future     | Jonas |
 |      | task: the erase blocks' accounting is designed first (3.3, `roadmap.md`).    |       |
 |      | Until then the writer erases, as released                                    |       |
@@ -130,16 +130,14 @@ them.
   text. `-PB_ERR_NOT_FOUND` when no device has it. A UUID names at most one device.
 - **All of them**: a handle is a number from 0 to `CONFIG_BIO_MAX_DEVS` less one, and
   `bio_valid()` says whether it is a device. A user that lists the devices tries every
-  number and skips the ones that aren't: a handle that is dead (section 4) can lie between
-  two that aren't.
+  number and skips the ones that aren't.
 - **What a device is**: `bio_get_uu()`, `bio_get_description()`, `bio_block_size()`,
   `bio_size()` in bytes, `bio_get_no_of_blocks()`, and `bio_get_first_block()` and
   `bio_get_last_block()`, a partition's place on its parent, which the partition table's
   read reports (section 6). For a handle that isn't a device each answers `-PB_ERR_PARAM`, or
   NULL.
 - **The flags**: `bio_get_flags()`, `bio_set_flags()`, `bio_clear_set_flags()` (2.4).
-- **A handle is good until the reset**, and a user may keep one. The one exception is a
-  partition whose table is installed again (section 4).
+- **A handle is good until the reset**, and a user may keep one.
 - `bio_reset()` releases every device. It is for the tests.
 
 ## 3. Reading, writing, erasing
@@ -209,6 +207,7 @@ Writes `length` bytes of `buf` from block `lba` on.
 - **It doesn't erase**, today: 3.3.
 - A length of 0, the buffer and the limit as for a read.
 - `-PB_ERR_NOT_SUPPORTED`: the device has no write.
+- `-PB_ERR_STATE`: a partition whose table an install changed, until the reset (section 4).
 
 ### 3.3 Function : bio_erase() [optional]
 
@@ -234,6 +233,7 @@ them).
   (`drivers.md` 3). Erasing is the slow operation of a medium that has it; its caller erases
   in pieces (`command-mode.md` 4.6).
 - A failure leaves some of the blocks erased.
+- `-PB_ERR_STATE`: as for a write (3.2).
 
 **`ERASE_BEFORE_WRITE`.** The driver sets it on a device whose medium only clears bits when
 it is written (NOR). It means: a write stores the bytes it is given only on blocks that have
@@ -274,8 +274,8 @@ Return   : int, PB_OK or -PB_ERR_*
 ```
 
 Writes the board's layout of that variant to the device (`board.md` 2.4,
-`command-mode.md` 5.3), and the core then puts the new table into effect (section 4). The
-callback is the partition table's, set on the device the table is on. Without one:
+`command-mode.md` 5.3). The new table is in effect after the reset (section 4). The callback
+is the partition table's, set on the device the table is on. Without one:
 `-PB_ERR_NOT_SUPPORTED`.
 
 ## 4. Partition tables
@@ -294,31 +294,27 @@ device with no table on it (`board.md` 2.4).
 - **Repair writes only what is bad** (F-195), and only a copy whose place the good copy gives.
   A device whose table can't be repaired has no partitions; command mode installs one
   (`board.md` 2.1).
-- **A table that is installed is in effect at once** (Jonas, D-070). `command-mode.md` 5.3 asks
-  it: the commands that follow the install see the new partitions. A partition's handle is
-  kept where `bio` can't see it: command mode's stream, the boot source policy, a board's own
-  variables (no board in the tree keeps one now; the host board's fuse box, which did, is a
-  device of the host platform's own since F-217). So the rule starts with the handle:
-  1. **A handle never comes to mean another partition.** A partition that the new table
-     leaves unchanged, with the same UUID and the same blocks, keeps its handle and its
-     flags. One that changed or is gone is released: its handle is dead, `-PB_ERR_PARAM` for
-     whoever still holds it, and nothing else gets that handle before the reset. A new
-     partition gets a new one.
-  2. **The core sets up again what is the core's**: command mode's stream ends, and the boot
-     source policy's init runs again, for its state's partitions and the candidates.
-  3. **No hook of the board's runs again.** What a board looked up in `late_init()` stays
-     right for the partitions that didn't change, and fails loudly for the ones that did,
-     until the reset. A board that wants a new partition at once looks it up by its UUID
-     when it uses it.
+- **A table that is installed is in effect after the reset** (Jonas, D-093), as in every
+  release. Until then the device's partitions are the ones of the table that pb read at
+  its start, and every handle stays good.
+  1. **A table that changes the partitions locks their writes.** Changed: another number of
+     partitions, a UUID that isn't one of the device's partitions, or other blocks. The
+     names, the types and the attributes don't count. The table's callback calls
+     `bio_set_table_changed()` on the device before it writes, and from then until the reset
+     `bio_write()` and `bio_erase()` of the device's partitions answer `-PB_ERR_STATE`. The
+     first call logs that pb must be reset. Their blocks may be another partition's in the
+     new table: a write there was F-194. Reads stay allowed.
+  2. **The lock holds until the reset**, whatever is installed after it. An install that
+     fails while it writes a changed table locks too: some of it may be on the medium.
+  3. **The device itself, and other devices, aren't locked.** The table is written on the
+     device, and an eMMC's boot partitions are devices of their own.
+  4. **A table that changes nothing locks nothing**: a flow that installs the layout that is
+     on the device goes on writing. A variant that is refused before anything is written
+     changes nothing.
 
-  The pool has room for the old partitions and the new ones. When it doesn't, the table is
-  on the device, the install answers the error, and a reset uses the table.
-
-  Considered and not taken: running again what `board_setup()` does after `init()`,
-  `late_init()` too. A stale value in a board is then not only a handle (a size, what it
-  read from a partition, what it registered), and a `late_init()` that can't run twice would
-  show only at an install. And: after a reset only, as released, with the old partitions
-  released at the install; that ends the flows that reinstall a table and go on writing.
+  Considered and not taken: in effect at once (D-070), with the changed partitions
+  released and their handles dead, and the core's state set up again. It was more than a
+  reset is worth.
 - **The static table** is checked like the board's other data (`board.md` 3): entries inside
   the device, not overlapping, sizes in whole blocks.
 
@@ -372,8 +368,8 @@ For a new storage driver or partition table, and for a change to one or to `bio`
 - [ ] A user takes the block size from `bio_block_size()`, checks every result, and uses
       nothing of a failed read. One that lists the devices skips the handles that aren't one.
 - [ ] A table checks every entry before it makes a partition of it.
-- [ ] After an install an unchanged partition has its handle and its flags, a changed one's
-      handle is dead and not given out again, and nothing of a board's ran.
+- [ ] A table's install calls `bio_set_table_changed()` before it writes a table whose
+      partitions aren't the device's, and not for one whose partitions are.
 - [ ] Nothing of section 6 changed.
 - [ ] The conformance suite runs against the new driver or its model (section 8).
 
@@ -441,8 +437,9 @@ The partition tables:
 | The device's block size         | yes, 512 to 4096 | yes    | F-283   |
 |                                 | (`test_gpt`)     |        |         |
 | Repair writes only the bad copy | yes (`test_gpt`) | n/a    |         |
-| An installed table in effect    | yes (`test_gpt`, | n/a    |         |
-|                                 | `test_bio`)      |        |         |
+| A changed table locks writes    | yes (`test_gpt`, | n/a    |         |
+|                                 | `test_bio`,      |        |         |
+|                                 | `test_gpt.py`)   |        |         |
 | Tested on the host              | yes (`test_gpt`, | no     | F-230   |
 |                                 | `test_gpt.py`)   |        |         |
 

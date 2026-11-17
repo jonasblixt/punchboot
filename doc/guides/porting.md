@@ -135,7 +135,7 @@ Try it: `punchboot part list` shows the devices.
 
 `ptbl`: `board.md` 2.4, and `bio.md` 4 for the tables. jiffy gives a GPT with one layout,
 `PTBL_GPT(PART_user, gpt_tables)`. `punchboot part install` writes it, and it is in effect
-at once.
+after the reset (`punchboot dev reset`).
 
 The layouts' names and variants and the partitions' UUIDs are fixed for the product
 (`board.md` 8). A memory mapped device whose image runs where it is: the in place source,

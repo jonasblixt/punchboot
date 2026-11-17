@@ -162,10 +162,9 @@ Argument : the board's data for the policy
 Return   : int, PB_OK or -PB_ERR_*
 ```
 
-Called by `board_setup()`, after the partition table, and again when a table is installed while
-pb runs (`bio.md` 4): it can run more than once. Reads and repairs the policy's state,
-and marks its candidates bootable (`BIO_FLAG_BOOTABLE`): only they can be booted, also by
-`boot part`. Failure: `board.md` 2.1.
+Called by `board_setup()`, after the partition table; it can run more than once. Reads and
+repairs the policy's state, and marks its candidates bootable (`BIO_FLAG_BOOTABLE`): only
+they can be booted, also by `boot part`. Failure: `board.md` 2.1.
 
 ### 3.2 Function : boot_policy_next() [mandatory]
 

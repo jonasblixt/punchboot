@@ -20,7 +20,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 | 3 Interfaces   | `interfaces/`   | `platform.md`                        | Reviewed (D-056)           |
 |                |                 | `board.md`                           | Reviewed (D-052)           |
 |                |                 | `drivers.md`                         | Reviewed (D-066)           |
-|                |                 | `bio.md`                             | Reviewed (D-070)           |
+|                |                 | `bio.md`                             | Reviewed (D-070, D-093)    |
 |                |                 | `crypto.md`                          | Reviewed (D-071)           |
 |                |                 | `usb.md`                             | Reviewed (D-072)           |
 | 4 Ports        | `ports/`        | `plat-imx.md`                        | Follows `platform.md`      |

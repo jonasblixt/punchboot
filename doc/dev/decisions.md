@@ -87,8 +87,8 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 |       |                                                  | is my reading                                      |
 | D-067 | `bio.md`, Jonas's review                         | Narrowed by D-068 (the uncommented items)          |
 | D-068 | `bio.md`, the uncommented items                  | In force                                           |
-| D-069 | `bio.md`: an erase counts blocks                 | In force; the installed table decided by D-070     |
-| D-070 | `bio.md` is reviewed                             | In force; which form of "A" is my reading          |
+| D-069 | `bio.md`: an erase counts blocks                 | In force; the installed table decided by D-093     |
+| D-070 | `bio.md` is reviewed                             | Narrowed by D-093 (the installed table)            |
 | D-071 | `crypto.md` is reviewed                          | In force                                           |
 | D-072 | `usb.md` is reviewed                             | Narrowed by D-090 (USB 2.0's standard requests)    |
 | D-073 | The drivers' contracts, the final read           | In force                                           |
@@ -112,6 +112,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-090 | The stack answers USB 2.0's standard requests    | In force; `CLEAR_FEATURE(HALT)` stays stalled      |
 | D-091 | A device tree whose header lies is refused       | In force                                           |
 | D-092 | Which findings gate 3.0.0                        | In force                                           |
+| D-093 | An installed table is in effect after the reset  | In force; replaces D-070's "at once"               |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2235,3 +2236,40 @@ port writes, and are recorded here.
   answer.
 - **`CONFIG_PLAT_CRYPTO_ENGINE` goes in 3.0.0** (D-086's Open (1)): with the software backend
   the core's, nothing uses it, and 3.0.0 is the release that changes the porting API.
+
+## D-093: An installed table is in effect after the reset (2026-11-17)
+
+Jonas: "Revert the 'install partition table takes effect immediatly'. That added uncessesary
+complexity, it's fine to require a reboot. Maybe we can just set a flag _if_ the partition
+table changes which locks out writes and logs a warning that the system must reboot."
+
+It replaces D-070's "at once" (its "A"). The rest of D-070's review of `bio.md` stands.
+
+- **After the reset, as in every release.** The install writes the table to the device and
+  answers. Until the reset the partitions are the ones pb started with: listed, read,
+  verified and booted as before.
+- **A table that changes the partitions locks their writes.** Changed means another number
+  of partitions, or a UUID that isn't one of the device's partitions, or other blocks. Until
+  the reset, `bio_write()` and `bio_erase()` of that device's partitions answer
+  `-PB_ERR_STATE`, `ERROR` on the wire, and the log says that pb must be reset. In the new
+  table their blocks may be another partition's: F-194 was a write there. The lock holds
+  until the reset, whatever is installed after it, and an install that fails while it
+  writes a changed table locks too.
+- **The device itself isn't locked.** The table is on it, and another install writes it.
+  Other devices aren't locked either: an eMMC's boot partitions are devices of their own,
+  and a factory flow that installs the table and then writes pb's boot partition before
+  the reset worked in every release.
+- **A table that changes nothing locks nothing.** The flows that install the layout that is
+  on the device and go on writing work as in every release. A variant that is refused
+  before anything is written changes nothing.
+- **What goes** (F-194's `6cb29af9`): the released partitions and their dead handles, the
+  boot source policy's init again after an install, the stream's end at the install, and
+  the flags of a partition that an install makes (F-423's part). A board's handle is good
+  until the reset again, with no exception.
+
+For a device in the field (D-008): the wire is the same, and so is what is written to the
+medium. A host that writes a partition after an install that changed the table gets `ERROR`
+where a release wrote at the old blocks. On a blank device there were no partitions to
+write, and there still aren't (`NOT_FOUND`).
+
+Written in: `bio.md` 4, `command-mode.md` 5.3, `board.md` 2.4 and 6, `porting.md` 2.6.

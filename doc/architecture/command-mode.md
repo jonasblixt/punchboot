@@ -525,10 +525,12 @@ nothing of why, and no board in the tree set the flag.
 | `PART_BPAK_READ`   | The bpak header in a partition's last 4 KiB, when it is a valid  |                        |
 |                    | one (5.9)                                                        |                        |
 
-- **`PART_TBL_INSTALL`**: the new table is in effect for the commands that follow, and the
-  stream ends. A partition that didn't change stays as it was; how the others are replaced is
-  `bio.md` 4. A failure may leave the device without a valid table; command mode still runs
-  (`board.md` 2.1) and the install is run again. It isn't retired, whatever the comment in
+- **`PART_TBL_INSTALL`**: the new table is on the device when the command answers, and in
+  effect after the reset (D-093). Until then the partitions are the ones pb started with.
+  When the new table changes them, a write, an erase or an activation of one answers `ERROR`
+  until the reset, and the log says pb must be reset (`bio.md` 4). The layout that is on the
+  device changes nothing. A failure may leave the device without a valid table; command mode
+  still runs (`board.md` 2.1) and the install is run again. It isn't retired, whatever the comment in
   `cm_main.c` and F-032 say: `board.md` 2.1 and 2.4 rely on it.
 - **`PART_ERASE`**: `start_lba` is a block of the device the partition is on, as hosts send it
   (the partition's first block from the table, plus what they erased already). The range lies
