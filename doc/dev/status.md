@@ -1,7 +1,7 @@
 # Status
 
-_Last updated: 2026-11-17 (D-093: an installed table is in effect after the reset, a changed
-one locks its partitions' writes; D-094: the SRK hash is the board's, in `slc_fuses`)_
+_Last updated: 2026-11-17 (D-093 to D-095: the table after the reset, the SRK hash in
+`slc_fuses`; D-096: the keys are the ROTPK and pb's trust anchors)_
 
 ## Current focus
 
@@ -50,6 +50,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 ## Open questions (for Jonas)
 
+- D-096's choices (log 2026-11-17): "the ROTPK hash" for "the key hash"; `pb_keys`,
+  `VERIFY_KEY<n>` and `pb/keys.h` keep their names; kickstart's documents not touched.
 - D-093's choices (log 2026-11-17): the lock is per device, its partitions only, and a locked
   write answers `ERROR` (`-PB_ERR_STATE`); "changed" is the partitions' UUIDs and blocks.
 

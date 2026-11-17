@@ -93,21 +93,9 @@ named in 1 or 2 doesn't gate.
 - The test bench's Linux and OP-TEE: F-153, F-155, F-443, F-450, F-452, F-455.
 - Low, or a later improvement: F-066, F-113, F-135, F-138, F-167, F-226, F-230, F-251, F-287,
   F-375, F-458, F-462.
-- **The key nomenclature** (Jonas, 2026-11-16): generic names for the layers of keys, shared
-  with kickstart, in the documents and the code before the tag. pb has two layers (Jonas,
-  2026-11-17: no key manifests are planned). The name follows a key's role, not its material
-  (pb's trust anchors may be the SRKs themselves):
-  - **ROTPK**: the key anchored in the ROM and the fuses. A port says once what it is on its
-    SoC (on the i.MX: the SRKs, whose hash is fused).
-  - **Trust anchor**: a key built into a stage's image, pb's `VERIFY_KEY<n>` (`pb_keys`) and
-    kickstart's. A stage's trust anchors are as trusted as the image that the stage before it
-    verified.
-
-  "Keystore" goes where it means pb's built-in keys (`security.md` 1 already says "trust
-  anchor"; `boot.md`, `command-mode.md`, `crypto.md`, `bpak.md`, `porting.md`, the migration
-  guide, `gen-keystore.py`, `keystore.c`). It suggests a store that keys can be written to.
-  bpak's names stay (D-008): the keystore package's UUID, `keystore_id`,
-  `keystore-provider-id`, `struct bpak_keystore`.
+- **The key nomenclature** (Jonas, 2026-11-16): done in pb, D-096 (ROTPK and trust anchor).
+  Left: kickstart's documents, which say "keystore" for its built-in keys (its bpak keystore
+  archive keeps the name).
 
 ## Compatibility guards (D-008, `compatibility.md`)
 
