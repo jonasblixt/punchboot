@@ -90,6 +90,11 @@ static lba_t backup_first_lba;
 static lba_t backup_hdr_lba;
 static const struct gpt_table_list *tables;
 static size_t tables_length;
+/* The partitions made of the table at the set up: the handles first_part
+ * to first_part + n_parts - 1, given out one after the other. They stay the
+ * device's partitions until the reset, whatever an install writes (bio.md 4) */
+static bio_dev_t first_part;
+static size_t n_parts;
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 {
@@ -518,12 +523,8 @@ static int gpt_repair_primary(bio_dev_t dev)
     return gpt_write_primary(dev);
 }
 
-/*
- * Makes the partitions of the primary's entries, which are valid: the table
- * that was read at the set up, or the one an install just wrote. In an
- * install the core keeps the handle of a partition that didn't change and
- * releases the others (bio.md 4, bio_install_partition_table()).
- */
+/* Makes the partitions of the primary's entries, which are valid: the table
+ * that was read at the set up */
 static int gpt_make_partitions(bio_dev_t dev)
 {
     uuid_t uu;
@@ -566,9 +567,38 @@ static int gpt_make_partitions(bio_dev_t dev)
             LOG_ERR("bio alloc failed (%i)", new_dev);
             return new_dev;
         }
+
+        if (n_parts == 0)
+            first_part = new_dev;
+        n_parts++;
     }
 
     return PB_OK;
+}
+
+/* Whether the layout that was put together in 'primary' has other
+ * partitions than the device: another number of them, or one whose UUID
+ * isn't one of the device's partitions, or whose blocks differ. The names,
+ * the types and the attributes don't count: they aren't where a partition
+ * is */
+static bool gpt_table_changed(const struct gpt_table_list *tbl)
+{
+    if (tbl->table_length != n_parts)
+        return true;
+
+    for (size_t n = 0; n < tbl->table_length; n++) {
+        const struct gpt_part_hdr *p = &primary.part[n];
+        bio_dev_t part = bio_get_part_by_uu(tbl->table[n].uu);
+
+        if (part < first_part || (size_t)(part - first_part) >= n_parts)
+            return true;
+
+        if (bio_get_first_block(part) != (int64_t)p->first_lba ||
+            bio_get_last_block(part) != (int64_t)p->last_lba)
+            return true;
+    }
+
+    return false;
 }
 
 static int gpt_install_partition_table(bio_dev_t dev, int variant)
@@ -602,16 +632,19 @@ static int gpt_install_partition_table(bio_dev_t dev, int variant)
             return rc;
     }
 
-    rc = gpt_write_tbl(dev);
+    /* A table whose partitions aren't the ones the device has: they refuse
+     * writes from here until the reset (bio.md 4). Said before the write,
+     * which may change the medium and then fail */
+    if (gpt_table_changed(tbl)) {
+        rc = bio_set_table_changed(dev);
 
-    if (rc != PB_OK)
-        return rc;
+        if (rc != PB_OK)
+            return rc;
+    } else {
+        LOG_INFO("The partitions are the same");
+    }
 
-    /* In effect at once (bio.md 4, command-mode.md 5.3): the partitions of
-     * the table that was written, which is the primary in memory. When the
-     * pool has no room for them the table is on the device, the error is
-     * the install's, and a reset uses the table */
-    return gpt_make_partitions(dev);
+    return gpt_write_tbl(dev);
 }
 
 int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, size_t length)
@@ -644,6 +677,8 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
     gpt_dev = dev;
     tables = default_tables;
     tables_length = length;
+    first_part = -1;
+    n_parts = 0;
 
     rc = bio_set_install_partition_cb(dev, gpt_install_partition_table);
 

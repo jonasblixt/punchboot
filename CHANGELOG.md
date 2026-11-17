@@ -46,8 +46,9 @@ Partitions:
 - The device a partition table is on can't be written as a whole, with any kind of table: its
   partitions are written. On the RT1060 EVK that ends writes to its NOR outside the partitions
   (F-265, 2026-11-12).
-- A partition table that is installed is in effect for the commands that follow, and the
-  stream ends with the install (D-070, F-194, 2026-11-13).
+- A partition table that is installed is in effect after the reset, as before. One that
+  changes the partitions makes a write, an erase or an activation of one answer `ERROR`
+  until the reset: they were written at their old blocks (D-093, F-194, 2026-11-17).
 - A bulk read (`part read`) of a partition the board doesn't let a host read answers
   `NOT_SUPPORTED`. It answered `IO_ERROR`. The boards in the tree let a host read pb's boot
   partitions and its A/B state (the MEK and the DXL EVK only the A/B state); before, no

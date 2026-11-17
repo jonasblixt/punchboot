@@ -10,7 +10,6 @@
  */
 
 #include "cm_internal.h"
-#include <boot/policy.h>
 #include <bpak/bpak.h>
 #include <inttypes.h>
 #include <pb/bio.h>
@@ -434,37 +433,16 @@ int cm_cmd_part_erase(struct pb_command_erase_part *erase_cmd)
 }
 
 /*
- * PART_TBL_INSTALL (command-mode.md 5.3): the new table is in effect for the
- * commands that follow. bio replaces the partitions that changed (bio.md 4),
- * and the core sets up again what is its own: the stream ends, and the boot
- * source policy's init runs again, for its state's partitions and its
- * candidates. No hook of the board's runs.
+ * PART_TBL_INSTALL (command-mode.md 5.3): the new table is on the device, and
+ * in effect after the reset. When it changed the partitions, bio refuses
+ * their writes and erases until then (bio.md 4).
  */
 int cm_cmd_part_tbl_install(const struct pb_command_install_part_table *install_cmd)
 {
-    int rc;
-
     if (cm_part_hidden(install_cmd->uu))
         return -PB_ERR_NOT_FOUND;
 
-    rc = bio_install_partition_table(install_cmd->uu, install_cmd->variant);
-
-    /* An install that failed after it wrote the device released the old
-     * partitions: a stream on one of them has ended too */
-    if (rc == PB_OK || !bio_valid(block_dev))
-        cm_stream_end();
-
-    if (rc == PB_OK) {
-        /* The table is installed, whatever the policy makes of it: a layout
-         * without the policy's partitions answered OK in every release, and
-         * the boot commands report the policy's state (board.md 2.1) */
-        int policy_rc = boot_policy_reinit();
-
-        if (policy_rc != PB_OK)
-            LOG_ERR("Boot policy init failed (%i)", policy_rc);
-    }
-
-    return rc;
+    return bio_install_partition_table(install_cmd->uu, install_cmd->variant);
 }
 
 int cm_cmd_part_tbl_read(void)
@@ -476,8 +454,7 @@ int cm_cmd_part_tbl_read(void)
 
     int entries = 0;
 
-    /* Every handle: one that isn't a device, a partition that an install
-     * released, can lie between two that are (bio.md 2.6) */
+    /* Every handle, as bio.md 2.6 asks of a user that lists the devices */
     for (bio_dev_t dev = 0; dev < CONFIG_BIO_MAX_DEVS; dev++) {
         if (!bio_valid(dev))
             continue;
