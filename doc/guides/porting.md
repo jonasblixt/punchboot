@@ -89,12 +89,13 @@ functions a SoC has: `plat-imx.md` 4.1.
 3. The configuration fuses are data, `slc_fuses` and `slc_fuses_length`: the boot device and
    what else the product fuses. jiffy: boot from the eMMC on uSDHC1, and take the boot
    configuration from the fuses.
-4. `CONFIG_SRK_FUSE` names the hash of the keys pb itself is signed with. The signed build
-   checks it against the platform's SRK table and stops when they differ (F-213).
+4. The key hash, the hash of the keys pb itself is signed with, is the list's first entries,
+   one per word by `IMX6UL_FUSE_SRK(n)` (D-094): srktool's fuse file's words, copied by hand.
+   Nothing checks them against the SRK table (`slc.md` 1).
 
 The commands that write fuses can't be undone (`command-mode.md` 5.2): run none on a board
-that must stay open, and check `slc_fuses` and the SRK file against the reference manual
-first. What is fixed once a product ships: `board.md` 8.
+that must stay open, and check `slc_fuses` against the reference manual and the key hash
+against srktool's fuse file first. What is fixed once a product ships: `board.md` 8.
 
 ### 2.4 The crypto engine, and command mode
 

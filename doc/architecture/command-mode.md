@@ -454,9 +454,9 @@ host tools ask before they send one; the device doesn't, the command is the deci
 | `SLC_READ`                   | The life cycle, and each keystore key's id as | The life cycle is unknown       |
 |                              | active or revoked (16 at most), and which     |                                 |
 |                              | active keys the device can't revoke           |                                 |
-| `SLC_SET_CONFIGURATION`      | Writes the key hash and the board's           | When locked, or in EOL          |
-|                              | configuration fuses (`board.md` 8): the bits  |                                 |
-|                              | that aren't set yet                           |                                 |
+| `SLC_SET_CONFIGURATION`      | Writes the board's configuration fuses, the   | When locked, or in EOL; a fuse  |
+|                              | key hash among them (`board.md` 8, D-094):    | word with a bit its value lacks |
+|                              | the bits that aren't set yet                  | (`ERROR`), before any write     |
 | `SLC_SET_CONFIGURATION_LOCK` | Locks: from `CONFIGURATION` only              | In `NOT_CONFIGURED` and in EOL  |
 | `SLC_SET_EOL`                | End of life (`system.md` 4), from any state   | Without the product's option:   |
 |                              | that is known                                 | `NOT_SUPPORTED`                 |

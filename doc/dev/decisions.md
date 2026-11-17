@@ -41,7 +41,8 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-025 | An MCU test bench                                | Narrowed by D-029 (its name), D-039 (the handover) |
 | D-026 | A board is data, `struct board`                  | Narrowed by D-046, D-047, D-049                    |
 | D-027 | The core owns the security rules                 | Narrowed by D-083 (a key's slot is its index),     |
-|       |                                                  | D-084 (the 8M gets HAB)                            |
+|       |                                                  | D-084 (the 8M gets HAB), D-094 (the key hash is    |
+|       |                                                  | the board's, every fuse word checked first)        |
 | D-028 | One handover state; the `simple` boot driver     | Narrowed by D-039 (Firmware Handoff for `simple`)  |
 | D-029 | The simple target test bench, also Cortex-A      | In force                                           |
 | D-030 | The platform contract                            | Closed by D-053 to D-056; narrowed by D-079 (the   |
@@ -113,6 +114,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-091 | A device tree whose header lies is refused       | In force                                           |
 | D-092 | Which findings gate 3.0.0                        | In force                                           |
 | D-093 | An installed table is in effect after the reset  | In force; replaces D-070's "at once"               |
+| D-094 | The key hash is the board's, in `slc_fuses`      | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2273,3 +2275,41 @@ where a release wrote at the old blocks. On a blank device there were no partiti
 write, and there still aren't (`NOT_FOUND`).
 
 Written in: `bio.md` 4, `command-mode.md` 5.3, `board.md` 2.4 and 6, `porting.md` 2.6.
+
+## D-094: The key hash is the board's, in `slc_fuses` (2026-11-17)
+
+Jonas: "Regarding the SRK's I'd like that to be a part of the 'slc_fuse' struct." Asked how:
+the hash's words are entries of the board's list; their values are literal words in the
+board's file; the checks the SRK writers had hold for every entry. Asked again with D-027's
+reason (a wrong hash closes the device to every image, and F-213's check stops a build whose
+hash isn't the SRK table's): "Literal, no check".
+
+- **The key hash is configuration fuses.** The ROTPK's hash (the SRK hash on the i.MX) is
+  entries of `board.slc_fuses`, one per word, by the platform's index macro
+  (`IMX6UL_FUSE_SRK(n)`, `IMX8M_FUSE_SRK(n)`, `IMX8X_FUSE_SRK(n)`; the RT1060's `plat_slc`
+  writes no fuses), and the words are written in the board's file. Replaces D-027's "the SRK hash comes from the
+  build".
+- **What goes**: `CONFIG_SRK_FUSE`, `srk_fuse.c` and its generator, F-213's check of the file
+  against the SRK table (`check-srk-fuse.py`), and the platforms' `set_configuration` that
+  fused it (the HABv4 driver's and the 8X's). `struct slc_ops` keeps the optional member,
+  for a platform whose configuration is more than fuse words.
+- **Every entry is checked before the first write.** A word that has a bit its value lacks
+  can never become it: the configuration is refused and nothing is written
+  (`-PB_ERR_STATE`, `ERROR`). Replaces D-027's "a word that has them all is not written
+  again, also with other bits in it". A value of 0 sets nothing: the board's data is wrong,
+  and `board_setup()` fails it (`board.md` 3).
+- **The life cycle is still the platform's to read**: on the i.MX, `CONFIGURATION` once a
+  word of the key hash is fused. A list without the key hash writes its fuses and leaves the
+  device `NOT_CONFIGURED`, and the lock is refused.
+
+What is left to catch a wrong word: `slc.md`'s reset before the lock, in which the ROM must
+accept pb with the fused hash while the device is still open.
+
+For a device in the field (D-008): the wire is the same, and the in-tree boards fuse the same
+words (copied from the files their defconfigs named). A word of the key hash that has a bit
+the hash lacks answered `MEM_ERROR` and answers `ERROR`; a configuration word with a bit its
+value lacks was completed and is refused. A board's defconfig with `CONFIG_SRK_FUSE` gets
+Kconfig's warning, and its hash goes into the board's file (the migration guide).
+
+Written in: `platform.md` 4.2, `board.md` 3 and 6, `command-mode.md` 5.2, `system.md` 4,
+`slc.md`, `porting.md` 2.3, the migration guide.

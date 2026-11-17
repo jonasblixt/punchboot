@@ -96,9 +96,10 @@ order is the core's (D-027), the fuses the platform's.
 | State                   | Means                            | The ROM               | Command mode                |
 | ----------------------- | -------------------------------- | --------------------- | --------------------------- |
 | `NOT_CONFIGURED`        | Nothing fused                    | Runs any pb           | Open                        |
-| `CONFIGURATION`         | The key hash and the board's     | Runs any pb           | Open                        |
-|                         | configuration fuses are written; |                       |                             |
-|                         | can be repeated until locked     |                       |                             |
+| `CONFIGURATION`         | The board's configuration fuses, | Runs any pb           | Open                        |
+|                         | the key hash among them, are     |                       |                             |
+|                         | written; can be repeated until   |                       |                             |
+|                         | locked                           |                       |                             |
 | `CONFIGURATION_LOCKED`  | The product in the field         | Runs only a signed pb | Authentication              |
 | `EOL`                   | End of life, optional            | The SoC's             | Open (D-011)                |
 | Unknown (a read failed) |                                  |                       | Authentication, and no boot |

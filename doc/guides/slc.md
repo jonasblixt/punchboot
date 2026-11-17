@@ -11,12 +11,13 @@ a development board that isn't yours to close gets a build that writes no fuses
 
 ## 1. What is fused
 
-- **The key hash**: the hash of the keys the ROM verifies pb with (the SRKs on the i.MX). The
-  build's `CONFIG_SRK_FUSE` names the file srktool made with the table. The signed build checks
-  it against the SRK table it signs with and stops when they differ (F-213): a wrong hash would
-  close the device to every image.
-- **The board's configuration fuses**, `slc_fuses` (`board.md` 6): the boot device and what
-  else the product fuses, by the platform's fuse index macro. jiffy: boot from the eMMC on
+- **The key hash**: the hash of the keys the ROM verifies pb with (the SRKs on the i.MX), the
+  first entries of the board's `slc_fuses`, one per word by `<P>_FUSE_SRK(n)` (D-094). The
+  words are srktool's fuse file's (`*_fuse.bin`, little endian, in fuse order), copied into the
+  board's file. Nothing checks them against the SRK table pb is signed with: a wrong word
+  closes the device to every image once it is locked. Section 3's reset is the check.
+- **The board's other configuration fuses**, `slc_fuses` (`board.md` 6): the boot device and
+  what else the product fuses, by the platform's fuse index macro. jiffy: boot from the eMMC on
   uSDHC1, and take the boot configuration from the fuses. Check each against the SoC's
   reference manual before the first device.
 - **The lock**: the SoC's closed state (on the i.MX the SEC_CONFIG fuse; AHAB's OEM closed
@@ -32,7 +33,8 @@ pb's own keys, the ones it verifies images and tokens with, are in pb's image
 
 1. The keys and their slots (`board.md` 7): a key in a slot the SoC has no revoke bit for
    can't be revoked; the build warns, and on the i.MX8X it stops (`platform.md` 4.1, D-092).
-2. `CONFIG_SRK_FUSE` and the SRK table the build signs pb with.
+2. The key hash's words in `slc_fuses` against srktool's fuse file of the SRK table the build
+   signs pb with.
 3. `slc_fuses`, against the reference manual.
 4. A token for authentication after the lock: `scripts/createtoken.sh <uuid> file <hash>
    <private key>` signs the device's UUID (`punchboot dev show`) with a key of the board's
@@ -45,8 +47,9 @@ On an open device (`NOT_CONFIGURED`), with the product's signed pb booted:
 
 1. `punchboot slc show`: the state and the keys (active, revoked, and which active ones the
    device can't revoke).
-2. `punchboot slc configure`: writes the key hash and the board's configuration fuses, the
-   bits that aren't set yet (`command-mode.md` 5.2). Each fuse word is read back after its
+2. `punchboot slc configure`: writes the board's configuration fuses, the key hash among
+   them, the bits that aren't set yet (`command-mode.md` 5.2). Every word is read first: one
+   with a bit its value lacks can never become it, and nothing is written. Each fuse word is read back after its
    write, and a bit that didn't take fails the command (`platform.md` 4.2, F-166; the 8X
    doesn't read back, `plat-imx.md` 4.1). A configuration that failed half way is completed
    by running it again.

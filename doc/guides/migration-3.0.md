@@ -683,6 +683,9 @@ in the board file, and a function that wrote the SRK and the boot fuses.
 
 ```c
 static const struct slc_fuse config_fuses[] = {
+    { IMX6UL_FUSE_SRK(0), 0x5020C7D7 },
+    ...
+    { IMX6UL_FUSE_SRK(7), 0x3F335991 },
     { IMX6UL_FUSE(IMX6UL_FUSE_BOOT_CFG_BANK, IMX6UL_FUSE_BOOT_CFG_WORD),
       IMX6UL_BOOT_CFG_USDHC | IMX6UL_BOOT_CFG_MMC | IMX6UL_BOOT_CFG_USDHC_PORT(0) |
           IMX6UL_BOOT_CFG_BUS_WIDTH(IMX6UL_BOOT_BUS_8BIT_DDR) },
@@ -690,21 +693,15 @@ static const struct slc_fuse config_fuses[] = {
       IMX6UL_FUSE_BT_FUSE_SEL },
 };
 ...
-static const struct rot_config rot = {
-    .revoke_key = imx_hab_revoke_key,
-    .read_key_status = imx_hab_read_key_status,
-};
-
-static const struct slc_config slc = {
-    .read_status = imx_hab_slc_read_status,
-    .set_configuration = imx_hab_slc_set_configuration,
-    .set_configuration_locked = imx_hab_slc_set_configuration_locked,
-    .fuses = config_fuses,
-    .fuses_length = ARRAY_SIZE(config_fuses),
-    .fuse_read = imx_ocotp_fuse_read,
-    .fuse_write = imx_ocotp_fuse_write,
+const struct board board = {
+    ...
+    .slc_fuses = config_fuses,
+    .slc_fuses_length = ARRAY_SIZE(config_fuses),
 };
 ```
+
+The revocation and the life cycle's functions are the platform's, `plat_rot` and `plat_slc`
+(section 19.1).
 
 ```make
 # The board's makefile.mk
@@ -712,10 +709,6 @@ VERIFY_KEY0_PATH = $(BOARD)/keys/field1.der
 VERIFY_KEY0_ID   = field1
 VERIFY_KEY1_PATH = $(BOARD)/keys/field2.der
 VERIFY_KEY1_ID   = field2
-```
-
-```
-CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
 ```
 
 - **The keys are the board's `makefile.mk`'s, not a bpak keystore** (`board.md` 7, D-083).
@@ -733,15 +726,16 @@ CONFIG_SRK_FUSE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin"
   bits.
 - **A board that names no key gets the development keys** (`pki/dev-keys.mk`), whose private
   keys are in the tree, and the build says so. A board that names one key gets only its own.
-- **The SRK hash comes from the build**: `CONFIG_SRK_FUSE` names srktool's fuse file. No words
-  are copied into the board. A wrong hash closes the device to every image: the signed build
-  checks the file against the SRK table it signs with and stops when they differ (F-213).
+- **The SRK hash stays words in the board's file**, as in 2.x, now the first entries of
+  `slc_fuses`, one per word by the platform's `<P>_FUSE_SRK(n)` (D-094). A wrong word closes
+  the device to every image once it is locked, and nothing checks the words against the SRK
+  table: `slc.md` 3's reset before the lock is the check.
 - **The configuration fuses are data**, `slc_fuses`, by the platform's fuse index macro. The
-  board writes no fuse itself (`board.md` 6). `slc_set_configuration()` sets the bits that
-  aren't set yet.
+  board writes no fuse itself (`board.md` 6). `slc_set_configuration()` reads every word first
+  and refuses, with nothing written, when one has a bit its value lacks; then it sets the bits
+  that aren't set yet. An entry whose value is 0 fails `board_setup()`.
 - **HABv4 has one driver** (`<drivers/fuse/imx_hab_fuses.h>`): `imx6ul_revoke_key()` and the
-  other `imx6ul_*` functions of the 6UL are `imx_hab_*`. The 8X keeps its own (`imx8x_*`), with
-  `imx8x_slc_set_configuration` in place of the board's function.
+  other `imx6ul_*` functions of the 6UL are `imx_hab_*`. The 8X keeps its own (`imx8x_*`).
 - **The root of trust and the life cycle are the platform's**, `plat_rot` and `plat_slc`
   (`platform.md` 4.1, 4.2, section 19.1). A SoC without a life cycle has a `plat_slc` without
   `read_status`.
@@ -847,7 +841,6 @@ its default (`platform.md` 6.2). Compare the defconfig with the closest one in `
 |                                        | `IMX6UL_CM_USB_OTG1` (section 8)                  |
 | `KEYSTORE`                             | `VERIFY_KEY<n>_PATH` and `_ID` in the board's     |
 |                                        | `makefile.mk` (section 13)                        |
-| None                                   | `SRK_FUSE` (section 13)                           |
 | None                                   | `CM_ON_SERIAL_DOWNLOAD`, default y (section 12)   |
 | None                                   | `SLC_EOL`, default n (section 13)                 |
 | None                                   | `CM_TRANSFER_TIMEOUT`, 10 s: a transfer the host  |
@@ -1327,7 +1320,7 @@ The port is done when the board passes `board.md` 9. A product in the field also
 - The board's `name`, the partitions' UUIDs, the GPT's layouts.
 - Each key's revoke slot and id: `VERIFY_KEY<n>` against the 2.x key map and keystore (section
   13).
-- The configuration fuses' words and bits, and `CONFIG_SRK_FUSE` against the SRK words of 2.x.
+- The configuration fuses' words and bits, the key hash's words against the SRK words of 2.x.
 - The entry and the arguments the product's images get: the handover, its parts,
   `set_dtb_boot_arg`, and whether BL31 is started directly or through the delivery (section 3).
 - The image data regions against every load address of the images in the field (section 7).

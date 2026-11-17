@@ -481,6 +481,11 @@ the platform's fuse index macro (`<P>_FUSE()`). `board_setup()` passes both to `
 rules (the order of the states, D-011, F-166) are the core's, in `slc.c`; the platform only reads
 and writes fuses.
 
+The key hash, the ROTPK's (the SRK hash on the i.MX), is the board's too: entries of its list,
+one per word (D-094). The platform's header gives each word's index, `<P>_FUSE_SRK(n)`, and
+`read_status` reads the words for the state, as the ROM does. `set_configuration` is optional,
+for a SoC whose configuration is more than fuse words; no i.MX port has it.
+
 `fuse_write` reads the word back after the write, from the array and not from a copy taken at
 reset, and fails with `-PB_ERR_IO` when a bit it set isn't there (Jonas, D-092, F-166); the
 command that wrote fails with it. A SoC that can't read back says why in its port's document:
