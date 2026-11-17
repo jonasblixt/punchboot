@@ -228,13 +228,13 @@ transfer of 1024 bytes (4.4). Methods are added, never changed (`security.md` 4.
 
 | Method                               | The data                           | Verified by                   |
 | ------------------------------------ | ---------------------------------- | ----------------------------- |
-| Token (`CONFIG_CM_AUTH_TOKEN`)       | A signature over the device's UUID | The core, with a keystore key |
+| Token (`CONFIG_CM_AUTH_TOKEN`)       | A signature over the device's UUID | The core, with a trust anchor |
 | Password (`CONFIG_CM_AUTH_PASSWORD`) | The password, `size` bytes         | The board (`board.md` 4.4)    |
 
 - **The token**: the UUID as its 36 character string, hashed with the hash that goes with the
   key (SHA-256 for P-256, SHA-384 for P-384, SHA-512 for P-521), signed with the key the
-  command names. The key is in the keystore and not revoked (`security.md` 4.3); a key whose
-  status can't be read is unusable (4.4). Only EC keys; another kind answers `NOT_SUPPORTED`.
+  command names. The key is one of pb's trust anchors and not revoked (`security.md` 4.3); a key
+  whose status can't be read is unusable (4.4). Only EC keys; another kind answers `NOT_SUPPORTED`.
   The token is static (`security.md` 5).
 - **The token's signature fits the 1024 bytes**, which every EC signature does. A key whose
   signature doesn't (ML-DSA's is 2420 bytes or more) gets a new method next to this one, with
@@ -245,7 +245,7 @@ transfer of 1024 bytes (4.4). Methods are added, never changed (`security.md` 4.
 - **Failure**, data that arrived and didn't verify, leaves the session not authenticated, also
   one that was. It answers
   `AUTHENTICATION_FAILED`; for a token whose key is revoked `KEY_REVOKED`, and `ERROR` for a
-  key the keystore doesn't have. That tells an unauthenticated host which key ids the build
+  key that isn't a trust anchor. That tells an unauthenticated host which key ids the build
   has and which are revoked, which the images' headers and the fuses tell too.
 - **A method that isn't in the build**, or a size of 0 or above 1024: the first result is the
   error and no data follows. Nothing was tried, so it changes nothing: a session that was
@@ -386,7 +386,7 @@ command's meaning (section 7).
   without the product's option, an image format that isn't built in, 5.9) answers
   `NOT_SUPPORTED`. A host then tells a device that is older than a command, where it falls
   back (`compatibility.md`), from one that has it switched off.
-- An error that has no code of its own is `ERROR`: a key the keystore doesn't have, an image
+- An error that has no code of its own is `ERROR`: a key that isn't a trust anchor, an image
   header that isn't valid in a boot. A new code is appended, and old hosts must take an
   unknown code as an error.
 - A refusal by the life cycle's order (5.2) is `ERROR` today, and stays.
@@ -445,22 +445,22 @@ for, a stream of concatenated bpak archives, was never implemented, and no host 
 
 ### 5.2 The life cycle and the keys
 
-The order of the life cycle and the keystore are the core's, the fuses the platform's
+The order of the life cycle and the trust anchors are the core's, the fuses the platform's
 (`security.md` 4.8, D-027). These commands write fuses: what they did can't be undone. The
 host tools ask before they send one; the device doesn't, the command is the decision.
 
 | Command                      | Means                                         | Refused                         |
 | ---------------------------- | --------------------------------------------- | ------------------------------- |
-| `SLC_READ`                   | The life cycle, and each keystore key's id as | The life cycle is unknown       |
+| `SLC_READ`                   | The life cycle, and each trust anchor's id as | The life cycle is unknown       |
 |                              | active or revoked (16 at most), and which     |                                 |
 |                              | active keys the device can't revoke           |                                 |
 | `SLC_SET_CONFIGURATION`      | Writes the board's configuration fuses, the   | When locked, or in EOL; a fuse  |
-|                              | key hash among them (`board.md` 8, D-094):    | word with a bit its value lacks |
+|                              | ROTPK hash among them (`board.md` 8, D-094):  | word with a bit its value lacks |
 |                              | the bits that aren't set yet                  | (`ERROR`), before any write     |
 | `SLC_SET_CONFIGURATION_LOCK` | Locks: from `CONFIGURATION` only              | In `NOT_CONFIGURED` and in EOL  |
 | `SLC_SET_EOL`                | End of life (`system.md` 4), from any state   | Without the product's option:   |
 |                              | that is known                                 | `NOT_SUPPORTED`                 |
-| `SLC_REVOKE_KEY`             | Revokes the keystore key the command names    | A key the keystore doesn't have |
+| `SLC_REVOKE_KEY`             | Revokes the trust anchor the command names    | A key that isn't a trust anchor |
 
 - **A build without fuse writes** (`system.md` 4, D-087) answers `NOT_SUPPORTED` to
   `SLC_SET_CONFIGURATION`, `SLC_SET_CONFIGURATION_LOCK`, `SLC_SET_EOL` and `SLC_REVOKE_KEY`,

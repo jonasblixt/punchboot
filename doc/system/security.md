@@ -15,17 +15,19 @@ ROM  ->  pb  ->  the next stage: secure firmware, a secure OS, an operating syst
 ```
 
 - The ROM is the root: it can't be changed, and on a locked device it runs only a pb whose
-  signature verifies against the key hash in the fuses. Where the SoC's vendor firmware runs
-  before pb, it belongs to the root as the ROM does.
+  signature verifies with the **ROTPK**, the key anchored by its hash in the fuses (the ROTPK
+  hash). A port says what it is on its SoC (on the i.MX: the SRKs, `plat-imx.md`). Where the
+  SoC's vendor firmware runs before pb, it belongs to the root as the ROM does.
 - **Where pb is two stages** (the i.MX8M, D-088), the ROM authenticates both: the SPL, which
   brings up DRAM, and pb proper. The SPL never verifies pb proper with its own code: the 8MQ's
   ROM authenticates it after the SPL returns, and an SPL that loads pb proper itself (the 8M
   Plus's, and the 8MQ's in its USB recovery, D-089) has the ROM's HAB do it before it jumps.
   What of pb proper's header the SPL reads before that check is covered by its own signature,
   or checked against the SPL's build.
-- pb's trust anchor is its **keystore**: the public keys pb trusts, built into the image the ROM
-  verified. pb verifies the next stage's image with it. What the next stage verifies (a root file
-  system) is the next stage's.
+- pb's **trust anchors** are the public keys built into the image the ROM verified (the board's
+  `VERIFY_KEY<n>`), as trusted as that image. pb verifies the next stage's image with them. What
+  the next stage verifies (a root file system), with its own trust anchors, is the next stage's
+  (D-096).
 - pb is the first mutable stage, in BL2's place (`platform.md` 4): it runs with the highest
   privilege the SoC gives a mutable stage, and it leaves the hardware's security state as the
   next stage expects.
@@ -49,7 +51,8 @@ Why first, and the cost:
 
 In this order:
 
-1. **What runs next.** Only an image signed with a keystore key that isn't revoked.
+1. **What runs next.** Only an image whose signature verifies with a trust anchor that isn't
+   revoked.
 2. **The root of trust's state.** Key revocation, the life cycle and the configuration fuses
    change only through pb, for an authorised host.
 3. **The secure world.** Its isolation from the normal world, where the SoC provides one and
@@ -59,7 +62,7 @@ In this order:
    Below 1 to 4: nothing done for it weakens them.
 
 Not protected today: confidentiality. Images aren't encrypted, and pb holds no private key; the
-keystore is public keys. The one secret is the board's password secret (`board.md` 4.4).
+trust anchors are public keys. The one secret is the board's password secret (`board.md` 4.4).
 Encrypted images are on the roadmap, to discuss.
 
 ## 3. Attackers
@@ -171,8 +174,8 @@ Not defended today. Each is a decision to keep, or a roadmap item:
   whoever controls the DRAM bus can change it after the ROM checked it, as every image pb loads.
 - **Denial of service** by whoever writes the storage or holds the board's stop: the device
   ends in command mode, locked.
-- **The signing keys' custody and the build.** A pb built with the wrong keystore or key hash is
-  the product's loss (F-183: a stale build keeps the test keys).
+- **The signing keys' custody and the build.** A pb built with the wrong trust anchors or ROTPK
+  hash is the product's loss (F-183: a stale build keeps the test keys).
 - **A compromised key until it is revoked**, and revoking takes an authenticated session.
 
 ## 6. Review checklist

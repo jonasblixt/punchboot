@@ -33,6 +33,7 @@ stay backward compatible, permanently (D-008, supersedes D-001). What is frozen:
 
 1. `sizeof(struct bpak_header) == 4096` is baked into the LBA math (`boot.c`, `cm_part.c`, `image_helpers.c`). The header sits at the end of the partition.
 2. The raw header is sent over the wire protocol.
-3. The keys' ids are bpak's id function of their names (`scripts/gen-keystore.py`, D-083). The keys themselves are pb's
-   `struct pb_key` (`pb/keys.h`), not `key.h`/`keystore.h`.
+3. The keys' ids are bpak's id function of their names (`scripts/gen-trust-anchors.py`, D-083). The keys
+   themselves, pb's trust anchors, are `struct pb_key` (`pb/keys.h`), not `key.h`/`keystore.h`. An image's
+   `keystore_id` names the stage whose trust anchors verify it: pb's is `pb` (D-096).
 4. The dev container installs the bpak CLI 1.0.1 from PyPI; the vendored copy is the same version.

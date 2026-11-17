@@ -10,7 +10,8 @@ hosts and firmware from v1.0.0 on.
 
 Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/cm/`,
 `tools/punchboot/` (`wire.py`, `bpak.py`, `session.py`), `include/bpak/`, `src/lib/bpak.c`,
-`src/boot/image_helpers.c`, the keys' generator (`scripts/gen-keystore.py`), or anything that writes or reads images.
+`src/boot/image_helpers.c`, the trust anchors' generator (`scripts/gen-trust-anchors.py`), or
+anything that writes or reads images.
 
 ## Wire protocol: what is frozen
 
@@ -80,8 +81,8 @@ device read, so it needs no capability bit:
   bytes (`transport_size` for transport parts).
 - punchboot's on-disk layout: the payload from LBA 0 of the partition, the header in the last
   4 KiB (`pb_api_partition_write`, `boot.c`, `cm_part.c`). File layout: header first.
-- The keystore layout (`key.h`/`keystore.h`), which `scripts/gen-keystore.py` writes (D-083).
-  pb's key ids are the ID function's, also in a build without bpak.
+- pb's key ids are the ID function's, also in a build without bpak: `scripts/gen-trust-anchors.py`
+  writes them into pb's trust anchors, `pb_keys` (D-083, D-096).
 
 Rule for the firmware: every image that a released bpak CLI produced and a released punchboot
 accepted must still be accepted. The one exception is security, which comes first
@@ -100,8 +101,8 @@ the same way. New images that old firmware can't read are fine only if they are 
 
 - The device identity: `platform_ns_uuid` and the unique id's bytes (`platform.md` 3.7).
 - A board's product in the field: its name (`board_id`), partition UUIDs, GPT variants, the boot
-  source policy and its partitions, configuration fuses and keystore slots, the board commands'
-  ids and answers, the handover and the parts named for it, the image data regions, the
+  source policy and its partitions, configuration fuses and the trust anchors' slots, the board
+  commands' ids and answers, the handover and the parts named for it, the image data regions, the
   password's secret
   (`board.md` 8).
 - The boot flow: the A/B state's format, the `/chosen` properties, each handover's register

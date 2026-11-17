@@ -259,6 +259,12 @@ HABv4 on the 6UL, the RT and the 8M (`imx_hab_fuses`, the fuse locations from th
 through the SECO on the 8X (`imx8x_revoke_key()`, `imx8x_slc_*()`). The fuse index macros:
 `IMX6UL_FUSE()`, ...
 
+The ROTPK (`security.md` 1, D-096) is the SRKs: the SRK table of up to four keys that the image's
+CSF or AHAB container carries, one of which signs pb. The ROTPK hash is the table's hash in the
+SRK_HASH fuses, 8 words on HABv4 and 16 on AHAB, written as the board's `slc_fuses`
+(`<P>_FUSE_SRK(n)`, D-094). pb's trust anchors are the board's own keys (`board.md` 7) and may
+be SRKs; trust anchor n is revoked on SRK n's revoke fuse.
+
 The 8M's (`include/plat/imx8m/fusebox.h`, 2026-11-14): SEC_CONFIG[1] at bank 1 word 3 bit 25 and
 SRK_HASH in banks 6 and 7, from the 8MQ RM's fuse map and NXP's U-Boot for the whole family
 (`mx8m_secure_boot.txt`); the 8M Plus's public RM has no security fuses. SRK_REVOKE[2:0] on the

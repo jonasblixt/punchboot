@@ -74,7 +74,7 @@ scripts/pbdev run make BOARD=src/board/imxrt1060evk \
 ```
 
 The images go to `build/<board>/app-<mode>.bpak`, signed with the test key
-that pb's test keystore trusts (`scripts/mkimage`).
+that is one of pb's development trust anchors (`scripts/mkimage`).
 
 ## Run
 

@@ -46,8 +46,9 @@ defconfig holds. jiffy's:
 | `openocd.cfg`  | For `scripts/pbdebug`                                                   |
 
 1. Copy the closest defconfig in `configs/` and the closest board's `makefile.mk`. Select the
-   arch, the platform, the keystore, the modules the board will name, the platform's USB port
-   for command mode and the authentication methods (`board.md` 7's table).
+   arch, the platform, the modules the board will name, the platform's USB port for command
+   mode and the authentication methods (`board.md` 7's table), and the trust anchors in the
+   `makefile.mk` (`VERIFY_KEY<n>`, `board.md` 7).
 2. Set where pb is linked and the board's DRAM, in the board's `makefile.mk`: `PB_ENTRY`,
    `PB_SIZE`, `BOARD_DRAM_BASE` and `_SIZE`, and `PB_BUFFERS_BASE` and `_SIZE` where the
    platform's default doesn't fit (`platform.md` 5.1; the load windows of the i.MX ports are
@@ -89,12 +90,12 @@ functions a SoC has: `plat-imx.md` 4.1.
 3. The configuration fuses are data, `slc_fuses` and `slc_fuses_length`: the boot device and
    what else the product fuses. jiffy: boot from the eMMC on uSDHC1, and take the boot
    configuration from the fuses.
-4. The key hash, the hash of the keys pb itself is signed with, is the list's first entries,
+4. The ROTPK hash, the hash of the keys pb itself is signed with, is the list's first entries,
    one per word by `IMX6UL_FUSE_SRK(n)` (D-094): srktool's fuse file's words, copied by hand.
    Nothing checks them against the SRK table (`slc.md` 1).
 
 The commands that write fuses can't be undone (`command-mode.md` 5.2): run none on a board
-that must stay open, and check `slc_fuses` against the reference manual and the key hash
+that must stay open, and check `slc_fuses` against the reference manual and the ROTPK hash
 against srktool's fuse file first. What is fixed once a product ships: `board.md` 8.
 
 ### 2.4 The crypto engine, and command mode

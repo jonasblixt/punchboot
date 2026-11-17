@@ -386,8 +386,8 @@ on the host:
 | `name`                         | Mandatory, 1 to 16 characters: the wire's `board_id`                               |
 | `slc_fuses`,                   | Optional. With a length the list is there, no entry's value is 0, and the          |
 | `slc_fuses_length`             | platform's `plat_slc` has `fuse_read` and `fuse_write` (`platform.md` 4.2). The    |
-|                                | key hash is in the list, one entry per word (D-094). The keys' revocation and the  |
-|                                | life cycle are the platform's (`plat_rot`, `plat_slc`): a board without a life     |
+|                                | ROTPK hash is in the list, one entry per word (D-094). The keys' revocation and    |
+|                                | the life cycle are the platform's (`plat_rot`, `plat_slc`): a board without a life |
 |                                | cycle is on a platform whose `plat_slc` has no `read_status`, and its command mode |
 |                                | is open (`system.md` 4)                                                            |
 | `boot_policy`, `boot_handover` | Mandatory                                                                          |
@@ -638,9 +638,9 @@ OK means "loaded and verified", not "booted".
 - The A/B state's four board registers (`boot_ab_state_read_board_reg()`, `_write_board_reg()`)
   are the board's, and what they mean is between the board and its OS (`boot.md` 3.7). The other
   policies have no state, so no registers.
-- It never writes fuses itself: the configuration fuses are data (`slc_fuses`), the key hash
-  among them (D-094), written by the core's `slc_set_configuration()` (D-027). The root of trust's state changes only through the
-  core (`security.md` 2).
+- It never writes fuses itself: the configuration fuses are data (`slc_fuses`), the ROTPK
+  hash among them (D-094), written by the core's `slc_set_configuration()` (D-027). The root of
+  trust's state changes only through the core (`security.md` 2).
 - It never verifies or starts an image itself (`security.md` 4.1), and never marks a partition
   bootable (2.5).
 
@@ -665,8 +665,9 @@ The defconfig selects the arch and the platform: `configs/<b>_defconfig` in the 
 out of it, passed as `KCONFIG_CONFIG` (`build-and-test.md`). The build directory is
 `build-<last part of BOARD>`.
 
-**The keys** pb verifies images and command mode's tokens with are the board's `makefile.mk`'s
-(D-083). Key n is in revoke slot n, on HABv4 SRK n's revoke fuse (D-027):
+**The keys** pb verifies images and command mode's tokens with, its trust anchors (`security.md`
+1, D-096), are the board's `makefile.mk`'s (D-083). Key n is in revoke slot n, on HABv4 SRK n's
+revoke fuse (D-027):
 
 ```make
 VERIFY_KEY0_PATH = $(BOARD)/keys/field1.der

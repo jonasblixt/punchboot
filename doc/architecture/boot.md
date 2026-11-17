@@ -333,7 +333,7 @@ The same steps for every image format; what a step reads from the image is the f
 
 1. Read the header from where the format has it in the source. It is a valid header of a format
    this build accepts (the format's own check).
-2. The key it names is in the keystore and not revoked (`rot_read_key_status()`).
+2. The key it names is one of pb's trust anchors and not revoked (`rot_read_key_status()`).
 3. The header's signature verifies with that key (`boot_image_auth_header()`).
 4. Every part has a load address, lies inside its source (the partition without the header) and
    lands in allowed memory (4.3).
@@ -358,7 +358,7 @@ parts are loaded into. Every part, and the room a handover grows it by (the DT's
 inside one of them and overlaps no other part. Address ranges that wrap are refused. A load
 address the arch can't hold (above 4 GiB on a 32-bit arch) is refused. The in place source: 4.1.
 
-The rule names nothing of pb's. That no region holds pb's sections (all of them, the keystore
+The rule names nothing of pb's. That no region holds pb's sections (all of them, the trust anchors
 and the RAM log too) or what a handover writes outside the parts (the Firmware Handoff region,
 5.4, and TF-A's `bl_params` where the platform puts them, 5.3) is checked once, on the board's
 list, before any image is read (`board.md` 3, `platform.md` 5.3). A list that fails is the
@@ -378,8 +378,9 @@ by a build that has bpak; a product's build may leave it out (D-061).
 | and a check of it that relies on nothing in the image          | 4 KiB, first in the host's stream;                |
 |                                                                | `bpak_valid_header()`                             |
 | The id of the key that signed it                               | `key_id`. `keystore_id` is logged and not         |
-|                                                                | compared: pb has one keystore, and a check added  |
-|                                                                | now could refuse images that boot today (D-008)   |
+|                                                                | compared: pb has one set of trust anchors, and a  |
+|                                                                | check added now could refuse images that boot     |
+|                                                                | today (D-008)                                     |
 | A signature over the header, and the hash it is made with      | In the header, zeroed while the header is hashed; |
 |                                                                | `hash_kind`: SHA-256, SHA-384 or SHA-512          |
 | The parts: for each an id, where it is in the source, its size | The part headers; the load address is the part's  |
@@ -392,7 +393,7 @@ by a build that has bpak; a product's build may leave it out (D-061).
 - A format's code reads and checks its own layout, and answers the table's questions. The steps
   of 4.2, placement (4.3) and the handovers are the core's, the same for every format: a format
   adds no step and skips none.
-- The signature's algorithm is the key's (the keystore), not the format's.
+- The signature's algorithm is the key's (the trust anchor's), not the format's.
 - Today the core reads bpak's header directly (`image_helpers.c`, `boot.c`, the handovers). The
   format's interface in the code comes with the second format, and with it what the format
   changes outside this table: the part ids a board names (`board.md` 2.7), the host's command,
@@ -527,7 +528,7 @@ struct pb_fh_handover {
 };
 ```
 
-A keystore has at most 16 keys (`board.md` 7). A build whose version string doesn't fit doesn't
+pb has at most 16 trust anchors (`board.md` 7). A build whose version string doesn't fit doesn't
 compile with this handover (a static assert).
 
 Its tag is allocated in the specification (requested upstream by Jonas, before 3.0.0); the

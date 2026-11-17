@@ -548,9 +548,9 @@ and check the system again (step 5 of the bring-up) before going on.
 
 Everything is signed with punchboot's **test** keys (`pki/`):
 
-- `boot.bpak`: `pki/secp256r1-key-pair.pem` as `pb-development`, which the
-  test keystore built into punchboot trusts. `BOOT_SIGN_KEY` selects another
-  key.
+- `boot.bpak`: `pki/secp256r1-key-pair.pem` as `pb-development`, which is one
+  of punchboot's development trust anchors (`pki/dev-keys.mk`).
+  `BOOT_SIGN_KEY` selects another key.
 - `root.bpak`: the same key, keystore id `kickstart`. kickstart's keystore
   (`BR2_PACKAGE_KICKSTART_KEYSTORE`, empty) is generated with
   `pki/secp256r1-pub-key.pem` as `pb-development`, so that the key is also in

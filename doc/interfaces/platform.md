@@ -481,8 +481,8 @@ the platform's fuse index macro (`<P>_FUSE()`). `board_setup()` passes both to `
 rules (the order of the states, D-011, F-166) are the core's, in `slc.c`; the platform only reads
 and writes fuses.
 
-The key hash, the ROTPK's (the SRK hash on the i.MX), is the board's too: entries of its list,
-one per word (D-094). The platform's header gives each word's index, `<P>_FUSE_SRK(n)`, and
+The ROTPK hash (`security.md` 1, the SRK hash on the i.MX) is the board's too: entries of its
+list, one per word (D-094). The platform's header gives each word's index, `<P>_FUSE_SRK(n)`, and
 `read_status` reads the words for the state, as the ROM does. The configuration is the board's
 fuses and nothing else: `struct slc_ops` has no `set_configuration` (D-095).
 

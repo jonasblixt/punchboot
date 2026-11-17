@@ -116,6 +116,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-093 | An installed table is in effect after the reset  | In force; replaces D-070's "at once"               |
 | D-094 | The key hash is the board's, in `slc_fuses`      | Narrowed by D-095 (no `set_configuration`)         |
 | D-095 | `struct slc_ops` has no `set_configuration`      | In force                                           |
+| D-096 | The keys' names: ROTPK and trust anchor          | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2326,3 +2327,31 @@ configuration is more than fuse words; no port in the tree had it after D-094.
 - A platform out of the tree that set the member doesn't build: what it wrote goes into its
   boards' `slc_fuses` (the migration guide). 3.0.0 changes the porting API (D-018).
 - The wire doesn't change (D-008): every in-tree board answers as it did after D-094.
+
+## D-096: The keys' names: ROTPK and trust anchor (2026-11-17)
+
+Jonas (2026-11-16, `roadmap.md`): generic names for the layers of keys, shared with
+kickstart, in the documents and the code before the tag. pb has two layers, no key manifests
+are planned (2026-11-17). The name follows a key's role, not its material.
+
+- **ROTPK**: the key the ROM verifies pb with, anchored by its hash in the fuses: "the ROTPK
+  hash" where the documents said "the key hash". A port says once what it is on its SoC: on
+  the i.MX the SRKs, whose table's hash is fused (`plat-imx.md`). The i.MX's own text keeps
+  "SRK", as NXP's tools and manuals name it.
+- **Trust anchor**: a public key built into a stage's image, which that stage verifies the
+  next one with: pb's `VERIFY_KEY<n>` (`pb_keys`), kickstart's keys. A stage's trust anchors
+  are as trusted as the image the stage before it verified. pb's trust anchors may be the
+  SRKs themselves.
+- **"Keystore" goes** where it meant pb's built-in keys: the documents, the comments,
+  `scripts/gen-keystore.py` (now `gen-trust-anchors.py`), the generated `keystore.c` (now
+  `trust_anchors.c`) and the host build's `pb_keystore`. All are new in 3.0.0, no release had
+  them: no alias. `pb/keys.h`, `struct pb_key`, `pb_keys` and `VERIFY_KEY<n>` keep their
+  names: they say keys, not a store.
+- **What stays** (D-008): bpak's keystore, a format, and its names: the keystore package's
+  UUID, `keystore_id`, `keystore-provider-id`, `struct bpak_keystore`, `bpak set
+  --keystore-id pb`, an archive of keys. An image's keystore id names the stage whose trust
+  anchors verify it: pb's is `pb`. The wire's `PB_ERR_BAD_KEYSTORE`, and 2.x's
+  `CONFIG_KEYSTORE` where a document or the build tells of it.
+
+Nothing changes on the wire or the medium, and no image is accepted or refused otherwise. An
+out-of-tree build of the 3.0.0 branch that ran `gen-keystore.py` itself runs the new name.

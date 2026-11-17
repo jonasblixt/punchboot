@@ -11,7 +11,7 @@ a development board that isn't yours to close gets a build that writes no fuses
 
 ## 1. What is fused
 
-- **The key hash**: the hash of the keys the ROM verifies pb with (the SRKs on the i.MX), the
+- **The ROTPK hash**: the hash of the keys the ROM verifies pb with (the SRKs on the i.MX), the
   first entries of the board's `slc_fuses`, one per word by `<P>_FUSE_SRK(n)` (D-094). The
   words are srktool's fuse file's (`*_fuse.bin`, little endian, in fuse order), copied into the
   board's file. Nothing checks them against the SRK table pb is signed with: a wrong word
@@ -26,14 +26,15 @@ a development board that isn't yours to close gets a build that writes no fuses
 - **A key's revocation**: its revoke bit, one per key slot. Key n of the board's
   `VERIFY_KEY<n>` is in slot n (`board.md` 7, D-083).
 
-pb's own keys, the ones it verifies images and tokens with, are in pb's image
-(`VERIFY_KEY<n>`), not fused. The ROM's key hash is what makes that image trustworthy.
+pb's own keys, its trust anchors, the ones it verifies images and tokens with, are in pb's image
+(`VERIFY_KEY<n>`), not fused. The ROTPK hash is what makes that image trustworthy (`security.md`
+1).
 
 ## 2. Before the first device
 
 1. The keys and their slots (`board.md` 7): a key in a slot the SoC has no revoke bit for
    can't be revoked; the build warns, and on the i.MX8X it stops (`platform.md` 4.1, D-092).
-2. The key hash's words in `slc_fuses` against srktool's fuse file of the SRK table the build
+2. The ROTPK hash's words in `slc_fuses` against srktool's fuse file of the SRK table the build
    signs pb with.
 3. `slc_fuses`, against the reference manual.
 4. A token for authentication after the lock: `scripts/createtoken.sh <uuid> file <hash>
@@ -47,7 +48,7 @@ On an open device (`NOT_CONFIGURED`), with the product's signed pb booted:
 
 1. `punchboot slc show`: the state and the keys (active, revoked, and which active ones the
    device can't revoke).
-2. `punchboot slc configure`: writes the board's configuration fuses, the key hash among
+2. `punchboot slc configure`: writes the board's configuration fuses, the ROTPK hash among
    them, the bits that aren't set yet (`command-mode.md` 5.2). Every word is read first: one
    with a bit its value lacks can never become it, and nothing is written. Each fuse word is read back after its
    write, and a bit that didn't take fails the command (`platform.md` 4.2, F-166; the 8X

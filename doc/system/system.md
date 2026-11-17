@@ -97,7 +97,7 @@ order is the core's (D-027), the fuses the platform's.
 | ----------------------- | -------------------------------- | --------------------- | --------------------------- |
 | `NOT_CONFIGURED`        | Nothing fused                    | Runs any pb           | Open                        |
 | `CONFIGURATION`         | The board's configuration fuses, | Runs any pb           | Open                        |
-|                         | the key hash among them, are     |                       |                             |
+|                         | the ROTPK hash among them, are   |                       |                             |
 |                         | written; can be repeated until   |                       |                             |
 |                         | locked                           |                       |                             |
 | `CONFIGURATION_LOCKED`  | The product in the field         | Runs only a signed pb | Authentication              |

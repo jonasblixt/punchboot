@@ -1322,7 +1322,7 @@ The port is done when the board passes `board.md` 9. A product in the field also
 - The board's `name`, the partitions' UUIDs, the GPT's layouts.
 - Each key's revoke slot and id: `VERIFY_KEY<n>` against the 2.x key map and keystore (section
   13).
-- The configuration fuses' words and bits, the key hash's words against the SRK words of 2.x.
+- The configuration fuses' words and bits, the ROTPK hash's words against the SRK words of 2.x.
 - The entry and the arguments the product's images get: the handover, its parts,
   `set_dtb_boot_arg`, and whether BL31 is started directly or through the delivery (section 3).
 - The image data regions against every load address of the images in the field (section 7).

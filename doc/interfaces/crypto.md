@@ -44,17 +44,17 @@ What pb uses it for:
 
 | Use                   | Hash                               | Signature          | Where                 |
 | --------------------- | ---------------------------------- | ------------------ | --------------------- |
-| An image's header     | The header's own: SHA-256, -384 or | The keystore key's | `boot.md` 4.2         |
+| An image's header     | The header's own: SHA-256, -384 or | The trust anchor's | `boot.md` 4.2         |
 |                       | -512                               | curve              |                       |
 | An image's payload    | The same, over every part as it is |                    | `boot.md` 4.2         |
 |                       | loaded                             |                    |                       |
-| Command mode's token  | The key's curve gives it: SHA-256, | The keystore key's | `command-mode.md` 3.3 |
+| Command mode's token  | The key's curve gives it: SHA-256, | The trust anchor's | `command-mode.md` 3.3 |
 |                       | -384, -512                         | curve              |                       |
 | `part verify`         | SHA-256                            |                    | `command-mode.md` 5.3 |
 | The device's identity | MD5, as a UUID version 3 needs it  |                    | `platform.md` 3.7     |
 
 Not here: which key is used and whether it is revoked (`rot.c`, `security.md` 4.3, the
-core's), the keystore's format, the image format's layout (`boot.md` 4.4), the hardware RNG
+core's), the trust anchors' format, the image format's layout (`boot.md` 4.4), the hardware RNG
 (the platform's duty to the next stage, `platform.md` 4.5; verification needs no random numbers),
 encryption, which pb doesn't do.
 
@@ -87,7 +87,7 @@ with the algorithms it has (`alg_bits`).
   asks that of one before it may stand in. An algorithm that two backends register is a
   mistake of the build: the second registration is refused.
 - **Together the build's backends have every algorithm its keys and images use**: the
-  header's hash, the keystore keys' curves, SHA-256 for `part verify`, MD5 for the identity.
+  header's hash, the trust anchors' curves, SHA-256 for `part verify`, MD5 for the identity.
   No single backend needs them all. One that lacks an algorithm on some hardware (an engine
   variant without the long hashes) doesn't register it there, so that the answer is
   `-PB_ERR_NOT_SUPPORTED` and not a wrong digest.
@@ -206,12 +206,12 @@ The arguments:
   `signature_length`, and against the curve's size (`drivers.md` 5). It is every byte of
   `signature_length`: the SEQUENCE's length is what follows its header and the INTEGERs fill
   it, on every backend as in Mbed TLS (Jonas, D-092, F-286 (6)).
-- **The key** is DER, a `SubjectPublicKeyInfo`, from the keystore, which is part of pb. It is
+- **The key** is a trust anchor, part of pb: DER, a `SubjectPublicKeyInfo`. It is
   parsed inside `key_length` all the same (`principles.md` 2).
-- **`alg` is the key's curve as the keystore names it.** A key whose own curve is another one
-  is refused, `-PB_ERR_PARAM`: the keystore and the key must agree. The core checks it before
-  any backend sees the key (Jonas, D-092, F-286), with `der_ec_public_key_data()`: a key that
-  doesn't parse there is `-PB_ERR_ASN1`, a curve pb doesn't know `-PB_ERR_NOT_SUPPORTED`.
+- **`alg` is the key's curve as pb's trust anchors name it** (`struct pb_key`'s `kind`). A key whose
+  own curve is another one is refused, `-PB_ERR_PARAM`: the list and the key must agree. The core
+  checks it before any backend sees the key (Jonas, D-092, F-286), with `der_ec_public_key_data()`:
+  a key that doesn't parse there is `-PB_ERR_ASN1`, a curve pb doesn't know `-PB_ERR_NOT_SUPPORTED`.
 - **`md` and `md_length`** are the digest and its length. `md_length` is exactly the digest
   size of `md_alg`; anything else is `-PB_ERR_PARAM`, from the core (Jonas, D-073). A backend
   uses the leftmost bits the curve takes, as ECDSA defines. `md` is read only and may be
@@ -228,7 +228,7 @@ The arguments:
 | ------------------------- | -------------------------------- | ---------------------------------- |
 | SHA-256, SHA-384, SHA-512 | Images, the token, `part verify` | The image format's hash kinds      |
 |                           |                                  | (`boot.md` 4.4)                    |
-| ECDSA on P-256, P-384 and | Images, the token                | The keystore's key kinds           |
+| ECDSA on P-256, P-384 and | Images, the token                | The trust anchors' key kinds       |
 | P-521                     |                                  |                                    |
 | MD5                       | The device's identity            | Not a security use: a UUID version |
 |                           | (`platform.md` 3.7)              | 3 is defined with it               |
@@ -264,7 +264,7 @@ The arguments:
   accepted is accepted (D-008).
 - The device's identity: MD5 over the same bytes (`platform.md` 3.7), and the broken variant
   where a product has it.
-- The formats `dsa_verify()` takes: they are the image's and the keystore's
+- The formats `dsa_verify()` takes: they are the image's and the trust anchors'
   (`compatibility.md`).
 
 `struct hash_ops`, `struct dsa_ops` and the functions are the porting API: they change with a
