@@ -1,0 +1,106 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * TechNexion's PICO-IMX8MQ (punchboot's pico8ml) for the punchboot test
+ * bench: the upstream PICO-PI device tree with the memory that U-Boot would
+ * fix up at boot, which the upstream tree leaves out.
+ *
+ * - The module has 1 to 4 GiB, strapped (src/board/pico8ml/board.c); this
+ *   one 1 GiB, what every variant has, from 0x40000000.
+ * - ramoops at the end of it, for punchboot's log "linux".
+ * - The BD71837's rails always on (below).
+ */
+
+#include "imx8mq-pico-pi.dts"
+
+/ {
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0x0 0x40000000 0 0x40000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* Read by punchboot as the log "linux", the same values as
+		 * CONFIG_BOOT_LINUX_RAMOOPS_* in its configs/pico8ml_defconfig */
+		ramoops@7ff00000 {
+			compatible = "ramoops";
+			reg = <0 0x7ff00000 0 0x100000>;
+			record-size = <0x20000>;
+			/* A record at a panic, an oops and a reboot (KMSG_DUMP_SHUTDOWN) */
+			max-reason = <4>;
+			ecc-size = <0>;
+		};
+	};
+};
+
+/*
+ * The watchdog resets the SoC itself. The PICO-PI's tree has
+ * fsl,ext-reset-output, with which Linux's imx2_wdt only asserts WDOG_B
+ * and turns the SoC's own reset off: a hang wasn't reset (F-450), the
+ * PMIC doesn't act on WDOG_B here. pb arms WDOG1 the same way.
+ */
+&wdog1 {
+	/delete-property/ fsl,ext-reset-output;
+};
+
+/*
+ * The PICO-PI's tree has every BD71837 rail but LDO1 and LDO2 only
+ * regulator-boot-on, and no consumer names one. The driver takes them under
+ * software control (the SEL bits), so 30 s after boot Linux turned the
+ * "unused" ones off, the DRAM's and the I/O's among them: the board went
+ * dark with no reset and no word on the console (F-450). Keep them on.
+ */
+&buck1 {
+	regulator-always-on;
+};
+
+&buck2 {
+	regulator-always-on;
+};
+
+&buck3 {
+	regulator-always-on;
+};
+
+&buck4 {
+	regulator-always-on;
+};
+
+&buck5 {
+	regulator-always-on;
+};
+
+&buck6 {
+	regulator-always-on;
+};
+
+&buck7 {
+	regulator-always-on;
+};
+
+&buck8 {
+	regulator-always-on;
+};
+
+&ldo3 {
+	regulator-always-on;
+};
+
+&ldo4 {
+	regulator-always-on;
+};
+
+&ldo5 {
+	regulator-always-on;
+};
+
+&ldo6 {
+	regulator-always-on;
+};
+
+&ldo7 {
+	regulator-always-on;
+};

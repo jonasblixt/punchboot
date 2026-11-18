@@ -1,0 +1,3 @@
+# The OP-TEE add-on (configs/jiffy-optee.fragment): the delivery through
+# OP-TEE (boot.md 5.7)
+CONFIG_BOOT_OPTEE=y

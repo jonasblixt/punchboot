@@ -1,0 +1,38 @@
+# Common to all boards, on top of the board's defconfig
+
+# kickstart: the initramfs, dm-verity over the squashfs root
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_RD_GZIP=y
+CONFIG_DEVTMPFS=y
+CONFIG_MD=y
+CONFIG_BLK_DEV_DM=y
+CONFIG_DM_VERITY=y
+CONFIG_SQUASHFS=y
+CONFIG_SQUASHFS_ZLIB=y
+
+# punchboot starts the watchdog, the kernel pets it until userspace opens
+# /dev/watchdog
+CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y
+# timeout, timeleft and status in /sys/class/watchdog
+CONFIG_WATCHDOG_SYSFS=y
+
+# A panic reboots after 5 s instead of hanging the board
+CONFIG_PANIC_TIMEOUT=5
+
+# The kernel log in RAM for 'punchboot log linux' (pstore/ramoops): a record
+# at a panic, an oops and a reboot (max-reason in the DTS). The ramoops node
+# in the board's DTS must match the board's punchboot
+# CONFIG_BOOT_LINUX_RAMOOPS_*. Not compressed, so that pb can read the
+# records. No console zone: a record has the whole log, the console only
+# what "quiet" lets through.
+CONFIG_PSTORE=y
+CONFIG_PSTORE_RAM=y
+# CONFIG_PSTORE_CONSOLE is not set
+# CONFIG_PSTORE_COMPRESS is not set
+
+# A hang panics Linux before the watchdog resets the board, so ramoops saves
+# the log first: pb-watchdog sets a 2 s pretimeout, the panic governor acts
+# on it
+CONFIG_WATCHDOG_PRETIMEOUT_GOV=y
+CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC=y
+CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC=y

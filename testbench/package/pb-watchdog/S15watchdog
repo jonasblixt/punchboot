@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# Keep the watchdog alive every 5 s; a hang panics Linux 2 s before the
+# watchdog resets the board (the panic pretimeout governor), so ramoops
+# saves the kernel log before the reset.
+
+case "$1" in
+start)
+	echo "Starting watchdog..."
+	pb-watchdog -t 5 -p 2 /dev/watchdog
+	;;
+stop)
+	echo "Stopping watchdog..."
+	killall pb-watchdog
+	;;
+restart)
+	"$0" stop
+	sleep 1
+	"$0" start
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+	;;
+esac

@@ -1,0 +1,22 @@
+From: Jonas Blixt <jonas@blxt.se>
+Subject: [PATCH] regulator: pca9450: restart after PSCI (test bench)
+
+The PCA9450's restart handler has priority 130, above PSCI's 129, so
+every reboot and every panic restart is the PMIC's SW_RST, a cold reset
+that power cycles the DRAM: ramoops never survives one. Below PSCI it
+is the fallback when PSCI's SYSTEM_RESET returns. For punchboot's test
+bench on the i.MX8M Plus EVK (punchboot F-156), not for upstream.
+
+Signed-off-by: Jonas Blixt <jonas@blxt.se>
+---
+--- a/include/linux/regulator/pca9450.h
++++ b/include/linux/regulator/pca9450.h
+@@ -35,7 +35,7 @@
+ 	PCA9450_DVS_LEVEL_MAX,
+ };
+ 
+-#define PCA9450_RESTART_HANDLER_PRIORITY 130
++#define PCA9450_RESTART_HANDLER_PRIORITY 128
+ 
+ #define PCA9450_BUCK1_VOLTAGE_NUM	0x80
+ #define PCA9450_BUCK2_VOLTAGE_NUM	0x80

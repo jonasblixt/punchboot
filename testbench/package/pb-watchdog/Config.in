@@ -1,0 +1,12 @@
+config BR2_PACKAGE_PB_WATCHDOG
+	bool "pb-watchdog"
+	depends on !BR2_PACKAGE_BUSYBOX_WATCHDOG
+	help
+	  Keeps /dev/watchdog alive like BusyBox's watchdog daemon, and
+	  sets a pretimeout first: with the kernel's panic pretimeout
+	  governor a hang panics Linux shortly before the watchdog
+	  resets the board, so ramoops saves the kernel log for
+	  'punchboot log linux'.
+
+comment "pb-watchdog replaces BusyBox's watchdog startup script"
+	depends on BR2_PACKAGE_BUSYBOX_WATCHDOG
