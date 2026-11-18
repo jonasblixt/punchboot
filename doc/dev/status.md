@@ -1,58 +1,71 @@
 # Status
 
-_Last updated: 2026-10-28_
+_Last updated: 2026-11-18 (HS400 on the 8MP EVK and the MEK, `67cba6b3` to `593201fd`; the
+audit, `audit-2026-11-18.md`; before it D-093 to D-096)_
 
 ## Current focus
 
-v2.8.0 (branch `ramlog`): the RAM log (`CONFIG_RAMLOG`, `arch-firmware.md`): early prints before
-the UART, `CONFIG_RAMLOG_LOGLEVEL` (debug in RAM, the UART at its own level), `PB_CMD_LOG_READ`
-and `punchboot log`. Checked on jiffy over JTAG and USB. Also pbstate reports `version.txt`.
-Moving the tests to the host is done (D-004..D-006, `testing.md`). Compatibility guards 1 and 2
-are done (`compatibility.md`, Guards).
-- **Tests:** 108 pytest (+2 xfail: F-076), 21 unit test programs and
-  the `compat.abi` layout check, ~15 s, ASan/UBSan clean. Line coverage 99.2% (was 59%); what's left is in `testing.md`.
-  `scripts/pbdev test` runs it all.
-- **CI (`build.yml`):** host tests (default and sanitizers), coverage (gcovr HTML artifact, D-012), a
-  firmware compile check (jiffy, imx8dxlevk) and Coverity, all in the dev container. All green on
-  `claude-work`. Coverity only runs on master, so it's unverified until merged.
-- **QEMU removed:** the bash/QEMU suite, `src/board/test`, `src/plat/qemu`,
-  `include/plat/qemu` and `configs/test_defconfig` are gone.
+3.0.0 on `work-3.0.0-mega` (D-018), one branch until the release. Wire and bpak stay
+compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
-**Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
+- **Documents:** levels 0 to 3 reviewed or in force; `doc/README.md` is the map,
+  `decisions.md` has an index (D-075). Left in the code: each contract's "Not yet in the code".
+- **Tests:** `scripts/pbdev test`, 119 suites and checks, ASan/UBSan clean; builds and tests
+  one at a time with `PB_JOBS=6` (load under 8, Jonas). CI: host tests, coverage, all boards,
+  Coverity (master only).
+- **Boards (2026-11-16, night):** all in command mode, no system enabled.
+  - jiffy: BOOT1 (enabled) `661d0e14`'s tree, BOOT0 the OP-TEE add-on's pb; Root B the add-on's
+    root. Serial download is a button held at power-up. In Linux `pbstate-pb`. No JTAG on jiffy.
+  - pico8ml (closed, HAB test keys, token outside the repository): `6208fbb3`'s pb in BOOT0 and
+    BOOT1, BOOT1 enabled. Never `reboot` it (F-452).
+  - RT1060: its NOR `f3493d4f`'s pb, the simple bench 7 of 7. The MEK and the 8MP EVK: BOOT1
+    (enabled) the HS400 tree (`593201fd`), BOOT0 as before; Root B and System B test
+    data; the 8MP's System A the F-156 kernel.
+  - Never write fuses on the 8MP EVK (`CONFIG_SLC_NO_FUSE_WRITES`, D-087); never run SLC or
+    fuse commands on the MEK. imx8dxlevk and imx8mevk only build (F-300).
+- **Test benches:** Linux (`testbench/`): jiffy, the 8MP EVK, the MEK and the pico8ml boot to
+  the login. Simple target (`testbench/simple/`): the RT1060.
+
+**Hard rule (D-008):** never break wire or bpak compatibility; only security comes before it.
 
 ## Next steps
 
-1. Check the Coverity job on master (F-097, fixed in #69). Rebase `nanopi-neo-core2` onto
-   master (its WIP is in a stash). F-010 (pbstate `BACKUP_PART`), F-109 (empty LOG bodies).
-2. Unit tests for every core module are done (D-007). They found F-068..F-074; fixed F-069
-   (positive error codes) and F-073 (UB in `bio_set_hal_flags`). Branch `jiffy-fixes` (on
-   `jtag-debugging`) fixes F-057, F-058..F-062, F-072, F-085, F-086, F-049 (no compile warnings
-   left), F-088, F-082 (checked on jiffy), `plat_get_boot_source()` (D-009) in
-   `board status` (jiffy: eMMC slot or USB), and `board command dump-rom-log` (NXP AN12853).
-   Next from the review: F-055
-   (erase), F-063, F-070, the rest of F-066 and F-067 (SIGPIPE, orphaned pb-host, `-m32`).
-   F-071 (pb adds missing DTB properties, with spare RAM, a performance note and a jiffy test) is
-   planned in the roadmap, Phase 1.
-3. Compatibility guards: 1 (frozen layout) and 2 (golden bpak images) are done. Next: 3 (old PyPI
-   wheels against pb-host), 4 (recorded transcripts), 5 (CODEOWNERS), older bpak CLI images.
-   Then the compat fixes F-075 (erase), F-076 (dont-hash, has an xfail test), F-077 (caps 0).
-   `compat-guards` also carries the jiffy HAB signing commits, to be split onto their own branch.
-4. F-049 is fixed: consider `-Werror` for the host build.
-   PR #65 (`high-prio-fixes`, replaces PR #64) is merged (2026-10-23): all of `jiffy-fixes`,
-   F-084, F-005, F-063, F-094. Next: F-001, F-004, F-081. F-055/F-075 (erase) get their own PR.
-   Branch `remove-codecov` removes Codecov (D-012); Jonas turns off the Codecov app.
-5. Phase 1: security fixes F-001, F-004, each with a test (F-002 is intended, D-011).
-6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`) works on the board.
-   F-080 fixed (CAAM timeout). On the closed board, JTAG blocks the CAAM until a power cycle.
-   `pbdebug --load` loads pb into RAM from the ROM. F-085 (hang after a failed `boot partition`) and
-   F-086 (no SHA-384/512 on the LP256 MDHA) are fixed on `jiffy-fixes`, and checked on jiffy with
-   F-058 (`c7a94e5` on BOOT0). New: F-087 (bad payload is a generic error on the wire).
-   Next: F-090 (imx8dxlevk RWX link warning), F-089 (libc snprintf), F-083, F-078/F-079, F-081, F-084.
+0. **Resume here: `log/2026-11-16.md`'s last three sections** (the night), then the evening's.
+   No JTAG on jiffy (F-455). Nothing pushed since `58c9cf3e`'s rebase.
+   - OP-TEE on jiffy: xtest's regression suite passes (F-444, F-465 fixed in the test bench);
+     `boot bpak` the add-on's `boot.bpak` with `--pretend-part` System B (log, the evening).
+   - pico8ml: F-450 (intermittent, power first: a bench supply, lockup detectors), F-452 (its
+     resets), then the bring-up's step 5 and the boot time list (`testbench/README.md`).
+     TF-A's 8MQ patch could go upstream.
+   - Not yet on a board (log 2026-11-14): the 8MP's USB2 and the 8DXL's OTG1 (F-402),
+     `-fno-pie` (F-454) on the pico8ml.
+   - D-084's rest: EOL with data (F-263, PR #51). F-447 (the 8M's SLC sources), F-432 (the
+     pico8ml, when it is back), F-433.
+1. **The 3.0.0 gate list** (`roadmap.md`, D-092): groups 1 and 2 are done but Jonas's: F-447,
+   F-228 (the workflow switch after pypi.org), F-259, the review of `guides/slc.md` and
+   `updates.md`. Then group 3's contract sentences (his).
+2. `roadmap.md`'s first section: the Firmware Handoff tag (Jonas, upstream), the bench run, the
+   review of the guides and the notes.
+3. The rest of `findings.md`: by board (8MP EVK F-104 to F-107, F-113, F-155), boot time.
 
 ## Open questions (for Jonas)
 
-- Which boards are still in use? Only jiffy and imx8dxlevk build (F-051, F-033).
-- Keep the virtio drivers for a future QEMU smoke tier? (F-052)
-- Mbed TLS: 3.6 LTS or 4.x?
-- Compat floor: which oldest released host and firmware must the guards test against? F-075 shows
-  v2.0.0 already broke erase for 1.x hosts.
+- F-471 (HS400 on the MEK, log 2026-11-18): the tuning alternates between two windows; which
+  fix (several CMD21 per tap, the window with the board's tap, Linux's manual tuning)?
+- The audit (`audit-2026-11-18.md`, nothing changed yet): do its section 8, the four commits
+  that change no behaviour? `virtio.c` (A-01) needs a yes. Its section 7 is yours (D-020).
+- D-096's choices (log 2026-11-17): "the ROTPK hash" for "the key hash"; `pb_keys`,
+  `VERIFY_KEY<n>` and `pb/keys.h` keep their names; kickstart's documents not touched.
+- D-093's choices (log 2026-11-17): the lock is per device, its partitions only, and a locked
+  write answers `ERROR` (`-PB_ERR_STATE`); "changed" is the partitions' UUIDs and blocks.
+
+- From 2026-11-16: F-462 left open (Jonas): the RT's two core clock waits stay bare loops, a
+  counted one faults now and then.
+- Review: the guides and `CHANGELOG.md` (F-232), D-074, D-070, D-066, D-056, the logs' "For
+  Jonas".
+- Contract sentences: `platform.md` 3.10's port rule (D-084), `usb.md` 4.2's stop (F-453),
+  `platform.md` 3.3's kicks (F-320); `boot.md` F-331, F-323, F-345, F-360, F-342; `board.md`
+  F-325, F-335; `command-mode.md` F-375; `bio.md` F-310; F-311.
+- F-447: the 8M's Security Reference Manual into the share (Jonas). F-228: PyPI's trusted
+  publishing set up on pypi.org (Jonas).
+- `Co-Authored-By` trailers in 376 pushed commits (left for now, Jonas).
