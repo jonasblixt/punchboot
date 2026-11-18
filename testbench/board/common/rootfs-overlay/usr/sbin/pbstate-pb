@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# pbstate on punchboot's boot state partitions, found by their UUIDs in the
+# GPT of the test bench boards (src/board/<board>/board.c in punchboot)
+#
+
+PRIMARY_UUID=f5f8c9ae-efb5-4071-9ba9-d313b082281e
+BACKUP_UUID=656ab3fc-5856-4a5e-a2ae-5a018313b3ee
+
+primary=$(blkid -t PARTUUID="$PRIMARY_UUID" -o device)
+backup=$(blkid -t PARTUUID="$BACKUP_UUID" -o device)
+
+if [ -z "$primary" ] || [ -z "$backup" ]; then
+	echo "pbstate-pb: punchboot state partitions not found" >&2
+	exit 1
+fi
+
+exec pbstate -p "$primary" -b "$backup" "$@"

@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+"""Boot time tools for the test bench boards, over the board's serial console.
+
+    boottime console TTY CMD...       run shell commands, log in as root if needed
+    boottime dmesg TTY FILE           save the kernel log
+    boottime measure TTY [-n RUNS]    time reboots: reset -> pb -> BusyBox init -> login
+    boottime release TTY              no active system (pbstate), reboot to command mode
+    boottime initcalls FILE [-n N]    the slowest initcalls of a saved initcall_debug log
+    boottime sizes LINUX_BUILD_DIR    built-in code and data per kernel subsystem
+
+measure reboots from the Linux shell: the start is the kernel's "reboot:
+Restarting system" line, then pb's banner, the "initmark <uptime>" line of a
+root image built with PB_BOOT_TIME_MARK=1 (BusyBox init's first action) and
+the login prompt. System A must be enabled, so that the board boots it after
+the reset. The times are taken on the host, the FTDI latency timer adds up to
+16 ms; the kernel's uptime at init is the board's own.
+
+The tty is set to 115200 8N1 raw. Nothing else may have it open.
+"""
+
+import argparse
+import os
+import re
+import shutil
+import statistics
+import subprocess
+import sys
+import termios
+import time
+import tty
+from pathlib import Path
+
+PROMPTS = (b"login: ", b"# ")
+
+
+class Console:
+    def __init__(self, path: str) -> None:
+        self.fd = os.open(path, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        tty.setraw(self.fd)
+        attrs = termios.tcgetattr(self.fd)
+        attrs[4] = attrs[5] = termios.B115200
+        termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
+        self.buf = b""
+
+    def write(self, data: bytes) -> None:
+        os.write(self.fd, data)
+
+    def read(self) -> bytes:
+        try:
+            return os.read(self.fd, 65536)
+        except BlockingIOError:
+            return b""
+
+    def drain(self, seconds: float) -> bytes:
+        data = b""
+        end = time.monotonic() + seconds
+        while time.monotonic() < end:
+            d = self.read()
+            if d:
+                data += d
+            else:
+                time.sleep(0.005)
+        return data
+
+    def lines(self, timeout: float):  # noqa: ANN201
+        """Yield (host time, line) until the timeout, prompts count as lines."""
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            d = self.read()
+            t = time.monotonic()
+            if not d:
+                time.sleep(0.001)
+                continue
+            self.buf += d
+            while b"\n" in self.buf:
+                line, self.buf = self.buf.split(b"\n", 1)
+                yield t, line.replace(b"\r", b"").replace(b"\0", b"").decode(errors="replace")
+            # A prompt has no newline, it is the rest of the buffer
+            if self.buf.endswith(PROMPTS):
+                line, self.buf = self.buf, b""
+                yield t, line.decode(errors="replace")
+
+    def wait_for(self, pattern: str, timeout: float) -> tuple[float, re.Match]:
+        for t, line in self.lines(timeout):
+            m = re.search(pattern, line)
+            if m:
+                return t, m
+        sys.exit(f"boottime: no {pattern!r} on the console within {timeout} s")
+
+    def shell(self) -> None:
+        """Get a root shell prompt."""
+        self.drain(0.2)
+        self.buf = b""
+        self.write(b"\r")
+        _, m = self.wait_for(r"login: $|# $", 10)
+        if "login" in m.group(0):
+            self.write(b"root\r")
+            self.wait_for(r"# $", 10)
+
+    def run(self, cmd: str, end_marker: str = "BOOTTIME-END", timeout: float = 60) -> str:
+        self.shell()
+        self.write(f"{cmd}; echo {end_marker}\r".encode())
+        out = []
+        for _, line in self.lines(timeout):
+            if line.strip() == end_marker:
+                return "\n".join(out[1:]) + "\n"  # without the echoed command
+            out.append(line)
+        sys.exit(f"boottime: '{cmd}' did not finish within {timeout} s")
+
+
+def cmd_console(args: argparse.Namespace) -> None:
+    con = Console(args.tty)
+    for c in args.cmd:
+        sys.stdout.write(con.run(c))
+
+
+def cmd_dmesg(args: argparse.Namespace) -> None:
+    Path(args.file).write_text(Console(args.tty).run("cat /proc/cmdline; dmesg", timeout=120))
+
+
+def cmd_release(args: argparse.Namespace) -> None:
+    con = Console(args.tty)
+    sys.stdout.write(con.run("pbstate-pb -s none && pbstate-pb -i | grep '^System'"))
+    con.write(b"reboot\r")
+    con.wait_for(r"entering command mode", 30)
+    sys.stdout.write("In pb's command mode, no active system\n")
+
+
+def cmd_measure(args: argparse.Namespace) -> None:
+    con = Console(args.tty)
+    keys = ("banner", "init", "uptime", "login")
+    runs = []
+    for i in range(args.runs):
+        con.shell()
+        con.write(b"reboot\r")
+        t0, _ = con.wait_for(r"reboot: Restarting system", 60)
+        t1, _ = con.wait_for(r"^PB \d", 10)
+        t2, m = con.wait_for(r"initmark ([0-9.]+)", 30)
+        t3, _ = con.wait_for(r"login: $", 60)
+        r = dict(zip(keys, (t1 - t0, t2 - t0, float(m.group(1)), t3 - t0), strict=True))
+        runs.append(r)
+        print(  # noqa: T201
+            f"run {i + 1}: reset->pb {r['banner'] * 1000:.0f} ms, "
+            f"reset->init {r['init'] * 1000:.0f} ms (kernel uptime {r['uptime']:.2f} s), "
+            f"reset->login {r['login'] * 1000:.0f} ms",
+            flush=True,
+        )
+    for k in keys:
+        v = [r[k] * 1000 for r in runs]
+        print(  # noqa: T201
+            f"median {k:7} {statistics.median(v):6.0f} ms  (min {min(v):.0f}, max {max(v):.0f})"
+        )
+
+
+def cmd_initcalls(args: argparse.Namespace) -> None:
+    pat = re.compile(r"\[\s*([0-9.]+)\] initcall (\S+) returned (-?\d+) after (\d+) usecs")
+    calls = []
+    for line in Path(args.file).read_text(errors="replace").splitlines():
+        m = pat.search(line)
+        if m:
+            calls.append((int(m.group(4)), float(m.group(1)), m.group(2), int(m.group(3))))
+    total = sum(c[0] for c in calls)
+    print(f"{len(calls)} initcalls, {total / 1000:.0f} ms")  # noqa: T201
+    for us, t, name, rc in sorted(calls, reverse=True)[: args.n]:
+        ret = "" if rc == 0 else f"  (returned {rc})"
+        print(f"{us / 1000:8.1f} ms  done at {t:8.4f} s  {name}{ret}")  # noqa: T201
+
+
+def cmd_sizes(args: argparse.Namespace) -> None:
+    build = Path(args.build_dir).resolve()
+    host_bin = build.parent.parent / "host" / "bin"
+    tools = sorted(host_bin.glob("*-linux-*-size"))
+    if not tools:
+        sys.exit(f"boottime: no cross size tool in {host_bin}")
+    prefix = str(tools[0])[: -len("size")]
+    ar = shutil.which(prefix + "ar") or prefix + "ar"
+    members = subprocess.run(  # noqa: S603
+        [ar, "t", "built-in.a"], cwd=build, capture_output=True, text=True, check=True
+    ).stdout.split()
+    out = subprocess.run(  # noqa: S603
+        [prefix + "size", *members], cwd=build, capture_output=True, text=True, check=True
+    ).stdout.splitlines()[1:]
+    sizes: dict[str, int] = {}
+    for line in out:
+        f = line.split()
+        parts = f[5].split("/")
+        key = "/".join(parts[:2]) if parts[0] in {"drivers", "net", "fs", "sound", "arch"} else parts[0]
+        sizes[key] = sizes.get(key, 0) + int(f[0]) + int(f[1])
+    for key, size in sorted(sizes.items(), key=lambda kv: -kv[1])[: args.n]:
+        print(f"{size >> 10:6} KiB  {key}")  # noqa: T201
+    print(f"{sum(sizes.values()) >> 10:6} KiB  in total (code and data)")  # noqa: T201
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    sub = p.add_subparsers(required=True)
+    s = sub.add_parser("console", help="run shell commands")
+    s.add_argument("tty")
+    s.add_argument("cmd", nargs="+")
+    s.set_defaults(func=cmd_console)
+    s = sub.add_parser("dmesg", help="save the kernel log")
+    s.add_argument("tty")
+    s.add_argument("file")
+    s.set_defaults(func=cmd_dmesg)
+    s = sub.add_parser("measure", help="time reboots")
+    s.add_argument("tty")
+    s.add_argument("-n", "--runs", type=int, default=5)
+    s.set_defaults(func=cmd_measure)
+    s = sub.add_parser("release", help="no active system, reboot to command mode")
+    s.add_argument("tty")
+    s.set_defaults(func=cmd_release)
+    s = sub.add_parser("initcalls", help="slowest initcalls of an initcall_debug log")
+    s.add_argument("file")
+    s.add_argument("-n", type=int, default=25)
+    s.set_defaults(func=cmd_initcalls)
+    s = sub.add_parser("sizes", help="built-in size per kernel subsystem")
+    s.add_argument("build_dir", metavar="LINUX_BUILD_DIR")
+    s.add_argument("-n", type=int, default=40)
+    s.set_defaults(func=cmd_sizes)
+    args = p.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

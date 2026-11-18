@@ -1,0 +1,77 @@
+config BR2_TARGET_PUNCHBOOT
+	bool "punchboot"
+	depends on BR2_arm || BR2_aarch64
+	select BR2_PACKAGE_HOST_BPAK
+	select BR2_PACKAGE_HOST_UBOOT_TOOLS
+	help
+	  punchboot, built from the punchboot tree that this test bench
+	  is in.
+
+	  https://github.com/jonasblixt/punchboot
+
+if BR2_TARGET_PUNCHBOOT
+
+config BR2_TARGET_PUNCHBOOT_BOARD
+	string "punchboot board"
+	help
+	  Board directory in src/board/ of the punchboot sources.
+
+config BR2_TARGET_PUNCHBOOT_CONFIG_FILE
+	string "punchboot configuration file"
+	help
+	  Path to a punchboot Kconfig file. Leave empty to use
+	  configs/<board>_defconfig from the punchboot sources.
+
+config BR2_TARGET_PUNCHBOOT_CONFIG_FRAGMENT_FILES
+	string "punchboot configuration fragments"
+	help
+	  Space separated punchboot Kconfig fragments, appended to the
+	  configuration file in this order: a later value wins. For a
+	  test bench add-on, e.g. the OP-TEE delivery on jiffy
+	  (configs/jiffy-optee.fragment).
+
+config BR2_TARGET_PUNCHBOOT_IMX_HAB
+	bool "HAB/AHAB signed image (NXP CST)"
+	select BR2_PACKAGE_HOST_IMX_CST
+	help
+	  The punchboot configuration signs the image for the i.MX HAB
+	  or AHAB (CONFIG_IMX6UL_SIGN_IMAGE, CONFIG_IMX8M_SIGN_IMAGE,
+	  CONFIG_IMX8X_SIGN_IMAGE), which needs NXP's cst.
+
+config BR2_TARGET_PUNCHBOOT_IMX8X_CONTAINER
+	bool "i.MX8X boot container"
+	depends on BR2_PACKAGE_IMX_SC_FIRMWARE
+	depends on BR2_PACKAGE_IMX_SECO
+	select BR2_PACKAGE_HOST_IMX_MKIMAGE
+	help
+	  Build the boot container that the i.MX8X ROM boots
+	  (CONFIG_IMX8X_CREATE_IMX_IMAGE): the SECO firmware from
+	  imx-seco, the SCU firmware from imx-sc-firmware and punchboot
+	  for the A35, put together by NXP's mkimage_imx8.
+
+config BR2_TARGET_PUNCHBOOT_IMX8X_SCFW
+	string "SCU firmware"
+	default "mx8qx-mek-scfw-tcm.bin"
+	depends on BR2_TARGET_PUNCHBOOT_IMX8X_CONTAINER
+	help
+	  The board's SCU firmware, a file that imx-sc-firmware installs
+	  in the images directory.
+
+config BR2_TARGET_PUNCHBOOT_IMX8MQ_MKIMAGE
+	bool "i.MX8MQ image (NXP's mkimage)"
+	depends on BR2_PACKAGE_FREESCALE_IMX_PLATFORM_IMX8M
+	select BR2_PACKAGE_HOST_IMX_MKIMAGE
+	help
+	  The i.MX8MQ's image is made with NXP's mkimage for the i.MX8M
+	  (imx-mkimage), not U-Boot's: punchboot's
+	  src/plat/imx8m/makefile.mk, MKIMAGE.
+
+config BR2_TARGET_PUNCHBOOT_IMX8M_DDR_FW
+	bool "i.MX8M LPDDR4 training firmware"
+	depends on BR2_PACKAGE_FIRMWARE_IMX
+	help
+	  Link NXP's LPDDR4 PHY training firmware from firmware-imx
+	  (lpddr4_pmu_train_*<BR2_PACKAGE_FIRMWARE_IMX_DDR_VERSION>.bin)
+	  into punchboot.
+
+endif

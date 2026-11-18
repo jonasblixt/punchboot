@@ -1,0 +1,9 @@
+config BR2_PACKAGE_BPAK
+	bool "libbpak"
+	select BR2_PACKAGE_MBEDTLS
+	select BR2_PACKAGE_XZ
+	help
+	  The BitPacker (bpak) library, with the Mbed TLS crypto
+	  backend. kickstart links it statically.
+
+	  https://github.com/jonasblixt/bpak

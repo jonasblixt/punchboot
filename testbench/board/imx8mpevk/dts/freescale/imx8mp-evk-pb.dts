@@ -1,0 +1,209 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * The i.MX8M Plus EVK for the punchboot test bench: the upstream EVK device
+ * tree without the audio mix and the rest of its AIPS5 bus.
+ *
+ * Linux 6.18 powers the audio mix through the GPC itself, which leaves the
+ * AIPS5 bridge in front of it at its reset defaults: TF-A v2.12 only sets
+ * AIPS5 up when it powers the domain. The first access from Linux takes an
+ * SError (the audio mix's clock driver, MU2). Newer kernels configure the
+ * bridge (drivers/bus/imx-aipstz.c with a node in imx8mp.dtsi). Only audio
+ * is behind AIPS5: SAI, PDM, S/PDIF, ASRC, the audio SDMAs, MU2.
+ */
+
+#include "imx8mp-evk.dts"
+
+&aips5 {
+	status = "disabled";
+};
+
+/* Read by punchboot as the log "linux", the same values as
+ * CONFIG_BOOT_LINUX_RAMOOPS_* in its configs/imx8mpevk_defconfig. Clear of
+ * 0x80000000, the second rank's start, where the DRAM training writes. */
+&{/reserved-memory} {
+	ramoops@bff00000 {
+		compatible = "ramoops";
+		reg = <0 0xbff00000 0 0x100000>;
+		record-size = <0x20000>;
+		/* A record at a panic, an oops and a reboot (KMSG_DUMP_SHUTDOWN) */
+		max-reason = <4>;
+		ecc-size = <0>;
+	};
+};
+
+/*
+ * Linux reboots through TF-A, which asserts WDOG_B (IMX_WDOG_B_RESET), and
+ * so does a watchdog timeout (fsl,ext-reset-output). The PCA9450's default
+ * there is a cold reset that power cycles the DRAM and loses ramoops. A warm
+ * reset only asserts POR_B; pb doesn't depend on the PMIC's voltages (it
+ * leaves the ARM PLL as the ROM set it).
+ */
+&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
+	nxp,wdog_b-warm-reset;
+};
+
+/*
+ * Not used by the test bench, off for the boot time: every device costs its
+ * creation, probe attempts and dependency checks. The SD slot (uSDHC2) took
+ * 32 ms to probe empty, right before /init; the display nodes' dependency
+ * cycles 13 ms. The eMMC is on uSDHC3, the console on UART2.
+ */
+&usdhc2 {
+	status = "disabled";
+};
+
+/* Display, HDMI, camera */
+&lcdif1 {
+	status = "disabled";
+};
+
+&lcdif3 {
+	status = "disabled";
+};
+
+&mipi_dsi {
+	status = "disabled";
+};
+
+&hdmi_pvi {
+	status = "disabled";
+};
+
+&hdmi_tx {
+	status = "disabled";
+};
+
+&hdmi_tx_phy {
+	status = "disabled";
+};
+
+&hdmi_blk_ctrl {
+	status = "disabled";
+};
+
+&irqsteer_hdmi {
+	status = "disabled";
+};
+
+&media_blk_ctrl {
+	status = "disabled";
+};
+
+&{/soc@0/bus@30800000/i2c@30a30000/hdmi@3d} {
+	status = "disabled";
+};
+
+&{/hdmi-connector} {
+	status = "disabled";
+};
+
+&{/native-hdmi-connector} {
+	status = "disabled";
+};
+
+&backlight_lvds {
+	status = "disabled";
+};
+
+/* GPU, NPU, video codecs */
+&gpu2d {
+	status = "disabled";
+};
+
+&gpu3d {
+	status = "disabled";
+};
+
+&npu {
+	status = "disabled";
+};
+
+&vpu_g1 {
+	status = "disabled";
+};
+
+&vpu_g2 {
+	status = "disabled";
+};
+
+&vpumix_blk_ctrl {
+	status = "disabled";
+};
+
+/* PCIe, USB, CAN, SPI NOR, PWM, the Bluetooth UART */
+&pcie_phy {
+	status = "disabled";
+};
+
+&pcie0 {
+	status = "disabled";
+};
+
+&pcie0_ep {
+	status = "disabled";
+};
+
+&usb3_phy1 {
+	status = "disabled";
+};
+
+&usb3_1 {
+	status = "disabled";
+};
+
+&usb_dwc3_1 {
+	status = "disabled";
+};
+
+&flexcan1 {
+	status = "disabled";
+};
+
+&flexcan2 {
+	status = "disabled";
+};
+
+&flexspi {
+	status = "disabled";
+};
+
+&pwm1 {
+	status = "disabled";
+};
+
+&pwm2 {
+	status = "disabled";
+};
+
+&pwm4 {
+	status = "disabled";
+};
+
+&uart1 {
+	status = "disabled";
+};
+
+/* The sound cards and MU2, their devices are behind AIPS5 (above) */
+&mu2 {
+	status = "disabled";
+};
+
+&{/sound-bt-sco} {
+	status = "disabled";
+};
+
+&{/sound-hdmi} {
+	status = "disabled";
+};
+
+&{/sound-micfil} {
+	status = "disabled";
+};
+
+&{/sound-wm8960} {
+	status = "disabled";
+};
+
+&{/sound-xcvr} {
+	status = "disabled";
+};

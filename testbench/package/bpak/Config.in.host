@@ -1,0 +1,7 @@
+config BR2_PACKAGE_HOST_BPAK
+	bool "host bpak"
+	help
+	  BitPacker (bpak), the image format and tool used to create
+	  and sign punchboot boot images. The bpak python package.
+
+	  https://github.com/jonasblixt/bpak

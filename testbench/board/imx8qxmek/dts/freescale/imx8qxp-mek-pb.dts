@@ -1,0 +1,186 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * The i.MX8QXP MEK for the punchboot test bench: the upstream MEK device
+ * tree with the memory that U-Boot would fix up at boot.
+ *
+ * - TF-A's BL31 runs at 0x80000000-0x8001ffff (BL31_BASE, BL31_LIMIT) and
+ *   keeps that memory in its own, secure partition: the non-secure
+ *   partition that Linux runs in may not touch it, not even with a
+ *   speculative access through the linear map.
+ * - The MEK has 3 GiB of LPDDR4, the upstream tree describes 1 GiB, which
+ *   leaves the default CMA pool (alloc-ranges from 0xc0000000) outside of
+ *   the memory.
+ */
+
+#include "imx8qxp-mek.dts"
+
+/ {
+	memory@80000000 {
+		reg = <0x00000000 0x80000000 0 0x80000000>,
+		      <0x00000008 0x80000000 0 0x40000000>;
+	};
+};
+
+&{/reserved-memory} {
+	bl31@80000000 {
+		reg = <0 0x80000000 0 0x20000>;
+		no-map;
+	};
+};
+
+/*
+ * Not used by the test bench, off for the boot time. The base board's
+ * TCA6416 at I2C (CM40) 0x20 doesn't answer: its probe took 728 ms to fail
+ * (-EIO). The audio codec and the CAN transceivers' regulators behind it, the
+ * I2C mux at 1-0071 (sensors) and its PCA9557 expanders (the PCIe regulator,
+ * the audio codec's reset) go with it. The eMMC is on uSDHC1, the console on
+ * LPUART0.
+ */
+&cm40_i2c {
+	status = "disabled";
+};
+
+&i2c1 {
+	status = "disabled";
+};
+
+&reg_can_en {
+	status = "disabled";
+};
+
+&reg_can_stby {
+	status = "disabled";
+};
+
+&reg_pcieb {
+	status = "disabled";
+};
+
+/* The SD slot (uSDHC2), 50 ms to probe empty */
+&usdhc2 {
+	status = "disabled";
+};
+
+/* Audio, the DSP */
+&amix {
+	status = "disabled";
+};
+
+&asrc0 {
+	status = "disabled";
+};
+
+&esai0 {
+	status = "disabled";
+};
+
+&sai0 {
+	status = "disabled";
+};
+
+&sai1 {
+	status = "disabled";
+};
+
+&sai4 {
+	status = "disabled";
+};
+
+&sai5 {
+	status = "disabled";
+};
+
+&dsp {
+	status = "disabled";
+};
+
+&{/sound-bt-sco} {
+	status = "disabled";
+};
+
+&{/sound-cs42888} {
+	status = "disabled";
+};
+
+&{/sound-wm8960} {
+	status = "disabled";
+};
+
+&{/sound-wm8962} {
+	status = "disabled";
+};
+
+/* Video and JPEG codecs, the HDMI RX and ADC1 clocks (their probes timed
+ * out, -110) */
+&vpu {
+	status = "disabled";
+};
+
+&vpu_core0 {
+	status = "disabled";
+};
+
+&vpu_core1 {
+	status = "disabled";
+};
+
+&jpegdec {
+	status = "disabled";
+};
+
+&jpegenc {
+	status = "disabled";
+};
+
+&hdmi_rx_pxl_link_lpcg {
+	status = "disabled";
+};
+
+&adc1_lpcg {
+	status = "disabled";
+};
+
+/* PCIe, USB, CAN, the other UARTs */
+&pcie0 {
+	status = "disabled";
+};
+
+&hsio_phy {
+	status = "disabled";
+};
+
+&usbotg1 {
+	status = "disabled";
+};
+
+&usbphy1 {
+	status = "disabled";
+};
+
+&usbotg3 {
+	status = "disabled";
+};
+
+&usbotg3_cdns3 {
+	status = "disabled";
+};
+
+&usb3_phy {
+	status = "disabled";
+};
+
+&flexcan1 {
+	status = "disabled";
+};
+
+&flexcan2 {
+	status = "disabled";
+};
+
+&lpuart2 {
+	status = "disabled";
+};
+
+&lpuart3 {
+	status = "disabled";
+};

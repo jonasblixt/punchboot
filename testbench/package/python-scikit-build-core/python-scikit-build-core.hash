@@ -1,0 +1,4 @@
+# sha256 from https://pypi.org/pypi/scikit-build-core/json
+sha256  e347a59193c878ac56a363e57506938652a6dd8c965790cb1cbc6bc7e8d5abad  scikit_build_core-1.1.1.tar.gz
+# Locally calculated
+sha256  203fb4d261f202242333928424e101de19abf5bf166620124418fb6dd6b279b5  LICENSE

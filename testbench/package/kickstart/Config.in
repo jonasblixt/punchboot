@@ -1,0 +1,57 @@
+config BR2_PACKAGE_KICKSTART
+	bool "kickstart"
+	depends on BR2_TOOLCHAIN_USES_MUSL
+	select BR2_PACKAGE_BPAK
+	select BR2_PACKAGE_MBEDTLS
+	help
+	  The init ramdisk of punchboot: verifies the root image of the
+	  booted system (A/B) and mounts it with dm-verity. Installed as
+	  images/kickstart.cpio.gz, not in the root file system.
+
+	  The init is statically linked, the C library must be musl.
+
+	  Built from a branch of its git repository,
+	  PB_TESTBENCH_KICKSTART_REPO and _BRANCH in external.mk.
+
+	  https://github.com/jonasblixt/kickstart
+
+if BR2_PACKAGE_KICKSTART
+
+config BR2_PACKAGE_KICKSTART_ROOT_A
+	string "root image of system A"
+	help
+	  Block device, KICKSTART_ROOT_A.
+
+config BR2_PACKAGE_KICKSTART_ROOT_B
+	string "root image of system B"
+	help
+	  Block device, KICKSTART_ROOT_B.
+
+config BR2_PACKAGE_KICKSTART_PBSTATE_PRIMARY
+	string "primary pbstate"
+	help
+	  Block device of punchboot's primary boot state,
+	  KICKSTART_PBSTATE_PRIMARY. Optional, set both or none.
+
+config BR2_PACKAGE_KICKSTART_PBSTATE_BACKUP
+	string "backup pbstate"
+	help
+	  Block device of the backup boot state, KICKSTART_PBSTATE_BACKUP.
+
+config BR2_PACKAGE_KICKSTART_KEYSTORE
+	string "keystore"
+	help
+	  bpak keystore archive with the keys of the root images. Empty:
+	  a keystore "kickstart" with punchboot's test key
+	  pki/secp256r1-pub-key.pem as "pb-development".
+
+config BR2_PACKAGE_KICKSTART_LOG_LEVEL
+	string "log level"
+	default "info"
+	help
+	  error, warning, info or debug.
+
+endif
+
+comment "kickstart needs a musl toolchain"
+	depends on !BR2_TOOLCHAIN_USES_MUSL

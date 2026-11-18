@@ -1,0 +1,227 @@
+From c9d6a56eaee80e752746708e66e1c13485c4721b Mon Sep 17 00:00:00 2001
+From: Jonas Blixt <jonas@blxt.se>
+Date: Mon, 26 Oct 2026 14:32:13 +0100
+Subject: [PATCH] regulator: fan53555: add support for the FAN5355
+
+The FAN5355 is an older Fairchild TinyBuck with the FAN53555's VSEL0/VSEL1
+layout (EN_DCDC in bit 7, a 6-bit DAC), but without ID registers. Bound as
+a FAN53555 it reads CONTROL2 as ID1 and fails with "Chip ID 7 not
+supported" (DEFSLEW = 111 is the reset value).
+
+Add an "fcs,fan5355" compatible. It checks the vendor bits in CONTROL1
+instead of an ID and uses VOUT = 0.75V + NSELx * 12.5mV (options 00, 02,
+03 and 08). The suspend enable/disable, mode and ramp ops are left out:
+EN_DCDC is mirrored between the two VSEL registers, so disabling the
+suspend output turns off the running one too, the mode bits live in
+CONTROL1 with the opposite polarity, and the slew control only works on
+some options.
+
+Signed-off-by: Jonas Blixt <jonas@blxt.se>
+---
+ .../bindings/regulator/fcs,fan53555.yaml      |  1 +
+ drivers/regulator/Kconfig                     |  2 +-
+ drivers/regulator/fan53555.c                  | 78 ++++++++++++++++++-
+ 3 files changed, 79 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/regulator/fcs,fan53555.yaml b/Documentation/devicetree/bindings/regulator/fcs,fan53555.yaml
+index 69bae90..9e7e4b7 100644
+--- a/Documentation/devicetree/bindings/regulator/fcs,fan53555.yaml
++++ b/Documentation/devicetree/bindings/regulator/fcs,fan53555.yaml
+@@ -16,6 +16,7 @@ properties:
+   compatible:
+     oneOf:
+       - enum:
++          - fcs,fan5355
+           - fcs,fan53555
+           - fcs,fan53526
+           - rockchip,rk8600
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index d84f3d0..ad604ae 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -428,7 +428,7 @@ config REGULATOR_FAN53555
+ 	  TinyBuck Regulator. The FAN53555 is a step-down switching voltage
+ 	  regulator that delivers a digitally programmable output from an
+ 	  input voltage supply of 2.5V to 5.5V. The output voltage is
+-	  programmed through an I2C interface.
++	  programmed through an I2C interface. Also supports the FAN5355.
+ 
+ config REGULATOR_FAN53880
+ 	tristate "Fairchild FAN53880 Regulator"
+diff --git a/drivers/regulator/fan53555.c b/drivers/regulator/fan53555.c
+index c282236..cc567be 100644
+--- a/drivers/regulator/fan53555.c
++++ b/drivers/regulator/fan53555.c
+@@ -4,10 +4,12 @@
+ //
+ // Supported Part Numbers:
+ // FAN53555UC00X/01X/03X/04X/05X
++// FAN5355UC00X/02X/03X/08X, FAN5355MP00X
+ //
+ // Copyright (c) 2012 Marvell Technology Ltd.
+ // Yunfan Zhang <yfzhang@marvell.com>
+ 
++#include <linux/bitfield.h>
+ #include <linux/bitops.h>
+ #include <linux/err.h>
+ #include <linux/i2c.h>
+@@ -34,6 +36,15 @@
+ #define TCS4525_TIME		0x13
+ #define TCS4525_COMMAND		0x14
+ 
++/*
++ * The FAN5355 has the VSEL registers of the FAN53555, but no ID registers:
++ * 0x03 is a second control register (CONTROL2).
++ */
++#define FAN5355_CONTROL1	0x02
++
++#define FAN5355_CTL1_VENDOR	GENMASK(7, 6)
++#define FAN5355_VENDOR_ID	0x2
++
+ /* Control register */
+ #define FAN53555_CONTROL	0x02
+ /* IC Type */
+@@ -72,6 +83,7 @@ enum fan53555_vendor {
+ 	RK8602_VENDOR_ROCKCHIP,		/* RK8602, RK8603 */
+ 	FAN53555_VENDOR_SILERGY,
+ 	FAN53526_VENDOR_TCS,
++	FAN5355_VENDOR_FAIRCHILD,
+ };
+ 
+ enum {
+@@ -256,6 +268,24 @@ static const struct regulator_ops fan53555_regulator_ops = {
+ 	.set_suspend_disable = fan53555_set_suspend_disable,
+ };
+ 
++/*
++ * The FAN5355's EN_DCDC bit is mirrored between VSEL0 and VSEL1, so
++ * disabling the output for suspend would turn it off right away. Its mode
++ * bits are in CONTROL1, with the opposite meaning of the FAN53555's, and
++ * the slew rate setting only works on options 03 and 06. Leave those out.
++ */
++static const struct regulator_ops fan5355_regulator_ops = {
++	.set_voltage_sel = regulator_set_voltage_sel_regmap,
++	.get_voltage_sel = regulator_get_voltage_sel_regmap,
++	.set_voltage_time_sel = regulator_set_voltage_time_sel,
++	.map_voltage = regulator_map_voltage_linear,
++	.list_voltage = regulator_list_voltage_linear,
++	.set_suspend_voltage = fan53555_set_suspend_voltage,
++	.enable = regulator_enable_regmap,
++	.disable = regulator_disable_regmap,
++	.is_enabled = regulator_is_enabled_regmap,
++};
++
+ static int fan53526_voltages_setup_fairchild(struct fan53555_device_info *di)
+ {
+ 	/* Init voltage range and step */
+@@ -343,6 +373,22 @@ static int fan53555_voltages_setup_fairchild(struct fan53555_device_info *di)
+ 	return 0;
+ }
+ 
++/*
++ * Options 00, 02, 03 and 08: VOUT = 0.75V + NSELx * 12.5mV, up to 1.5375V
++ * (02 and 08 stop at 1.4375V). Option 06 starts at 1.1875V, but the chip
++ * has no ID registers to tell the options apart.
++ */
++static int fan5355_voltages_setup_fairchild(struct fan53555_device_info *di)
++{
++	di->vsel_min = 750000;
++	di->vsel_step = 12500;
++	di->vsel_count = FAN53555_NVOLTAGES;
++	/* Soft start: 75us delay, then about 80us ramp to the highest VOUT */
++	di->enable_time = 160;
++
++	return 0;
++}
++
+ static int fan53555_voltages_setup_rockchip(struct fan53555_device_info *di)
+ {
+ 	/* Init voltage range and step */
+@@ -452,6 +498,7 @@ static int fan53555_device_setup(struct fan53555_device_info *di,
+ 	case FAN53555_VENDOR_FAIRCHILD:
+ 	case FAN53555_VENDOR_ROCKCHIP:
+ 	case FAN53555_VENDOR_SILERGY:
++	case FAN5355_VENDOR_FAIRCHILD:
+ 		switch (pdata->sleep_vsel_id) {
+ 		case FAN53555_VSEL_ID_0:
+ 			di->sleep_reg = FAN53555_VSEL0;
+@@ -553,6 +600,8 @@ static int fan53555_device_setup(struct fan53555_device_info *di,
+ 			break;
+ 		}
+ 		break;
++	case FAN5355_VENDOR_FAIRCHILD:
++		break;
+ 	default:
+ 		dev_err(di->dev, "vendor %d not supported!\n", di->vendor);
+ 		return -EINVAL;
+@@ -578,6 +627,9 @@ static int fan53555_device_setup(struct fan53555_device_info *di,
+ 	case FAN53526_VENDOR_TCS:
+ 		ret = fan53526_voltages_setup_tcs(di);
+ 		break;
++	case FAN5355_VENDOR_FAIRCHILD:
++		ret = fan5355_voltages_setup_fairchild(di);
++		break;
+ 	default:
+ 		dev_err(di->dev, "vendor %d not supported!\n", di->vendor);
+ 		return -EINVAL;
+@@ -594,7 +646,10 @@ static int fan53555_regulator_register(struct fan53555_device_info *di,
+ 
+ 	rdesc->name = "fan53555-reg";
+ 	rdesc->supply_name = "vin";
+-	rdesc->ops = &fan53555_regulator_ops;
++	if (di->vendor == FAN5355_VENDOR_FAIRCHILD)
++		rdesc->ops = &fan5355_regulator_ops;
++	else
++		rdesc->ops = &fan53555_regulator_ops;
+ 	rdesc->type = REGULATOR_VOLTAGE;
+ 	rdesc->n_voltages = di->vsel_count;
+ 	rdesc->enable_reg = di->en_reg;
+@@ -643,6 +698,9 @@ static struct fan53555_platform_data *fan53555_parse_dt(struct device *dev,
+ 
+ static const struct of_device_id __maybe_unused fan53555_dt_ids[] = {
+ 	{
++		.compatible = "fcs,fan5355",
++		.data = (void *)FAN5355_VENDOR_FAIRCHILD,
++	}, {
+ 		.compatible = "fcs,fan53526",
+ 		.data = (void *)FAN53526_VENDOR_FAIRCHILD,
+ 	}, {
+@@ -715,6 +773,20 @@ static int fan53555_regulator_probe(struct i2c_client *client)
+ 
+ 	di->dev = &client->dev;
+ 	i2c_set_clientdata(client, di);
++	if (di->vendor == FAN5355_VENDOR_FAIRCHILD) {
++		/* No ID registers, only the vendor bits in CONTROL1 */
++		ret = regmap_read(regmap, FAN5355_CONTROL1, &val);
++		if (ret < 0)
++			return dev_err_probe(&client->dev, ret,
++					     "Failed to read CONTROL1!\n");
++		if (FIELD_GET(FAN5355_CTL1_VENDOR, val) != FAN5355_VENDOR_ID)
++			return dev_err_probe(&client->dev, -ENODEV,
++					     "Unknown vendor ID in CONTROL1 0x%02x!\n",
++					     val);
++		dev_info(&client->dev, "FAN5355 Detected!\n");
++		goto setup;
++	}
++
+ 	/* Get chip ID */
+ 	ret = regmap_read(regmap, FAN53555_ID1, &val);
+ 	if (ret < 0)
+@@ -729,6 +801,7 @@ static int fan53555_regulator_probe(struct i2c_client *client)
+ 	di->chip_rev = val & DIE_REV;
+ 	dev_info(&client->dev, "FAN53555 Option[%d] Rev[%d] Detected!\n",
+ 				di->chip_id, di->chip_rev);
++setup:
+ 	/* Device init */
+ 	ret = fan53555_device_setup(di, pdata);
+ 	if (ret < 0)
+@@ -750,6 +823,9 @@ static int fan53555_regulator_probe(struct i2c_client *client)
+ 
+ static const struct i2c_device_id fan53555_id[] = {
+ 	{
++		.name = "fan5355",
++		.driver_data = FAN5355_VENDOR_FAIRCHILD
++	}, {
+ 		.name = "fan53526",
+ 		.driver_data = FAN53526_VENDOR_FAIRCHILD
+ 	}, {
