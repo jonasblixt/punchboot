@@ -1,7 +1,7 @@
 # Status
 
-_Last updated: 2026-11-17 (D-093 to D-095: the table after the reset, the SRK hash in
-`slc_fuses`; D-096: the keys are the ROTPK and pb's trust anchors)_
+_Last updated: 2026-11-18 (the audit, `audit-2026-11-18.md`; before it D-093 to D-096: the table
+after the reset, the SRK hash in `slc_fuses`, the keys are the ROTPK and pb's trust anchors)_
 
 ## Current focus
 
@@ -50,6 +50,8 @@ compatible (D-008), the major bump is for the porting API. History is in `log/`.
 
 ## Open questions (for Jonas)
 
+- The audit (`audit-2026-11-18.md`, nothing changed yet): do its section 8, the four commits
+  that change no behaviour? `virtio.c` (A-01) needs a yes. Its section 7 is yours (D-020).
 - D-096's choices (log 2026-11-17): "the ROTPK hash" for "the key hash"; `pb_keys`,
   `VERIFY_KEY<n>` and `pb/keys.h` keep their names; kickstart's documents not touched.
 - D-093's choices (log 2026-11-17): the lock is per device, its partitions only, and a locked

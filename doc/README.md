@@ -53,4 +53,6 @@ Beside the levels, not normative:
 |           | `decisions.md`          | Why: D-nnn, appended; the index says what still holds    |
 |           | `findings.md`           | The gaps between the documents and the code: F-nnn, open |
 |           | `findings-closed.md`    | The fixed and rejected findings                          |
+|           | `audit-2026-11-18.md`   | An audit's record (A-nn): dead code, stale text,         |
+|           |                         | duplicated logic                                         |
 |           | `log/`                  | What was done, per day                                   |
