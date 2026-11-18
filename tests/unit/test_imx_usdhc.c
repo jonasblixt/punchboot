@@ -57,20 +57,32 @@
 #define UU_RPMB \
     (const unsigned char *)"\x8d\x75\xd8\xb9\xb1\x69\x4d\xe6\xbe\xe0\x48\xab\xdc\x95\xc4\x08"
 
-/* src/board/imx8mpevk/board.c */
-static const struct imx_usdhc_config imx8mpevk_emmc = {
-    .base = IMX8M_USDHC3_BASE,
-    .delay_tap = 35,
-    .mmc_config = {
-        .mode = MMC_BUS_MODE_HS200,
-        .width = MMC_BUS_WIDTH_8BIT,
-        .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
-        .boot0_uu = UU_BOOT0,
-        .boot1_uu = UU_BOOT1,
-        .user_uu = UU_USER,
-        .rpmb_uu = UU_RPMB,
-    },
-};
+/* src/board/imx8mpevk/board.c: USDHC3_CLK_ROOT, HS400 with Enhanced Strobe
+ * and HS200 when that fails */
+#define IMX8MPEVK_USDHC3_HZ 400000000
+
+#define IMX8MPEVK_EMMC(bus_mode, bus_width) \
+    {                                                                 \
+        .base = IMX8M_USDHC3_BASE, .delay_tap = 35, .hs400 = true,    \
+        .mmc_config = {                                               \
+            .mode = (bus_mode),                                       \
+            .width = (bus_width),                                     \
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8, \
+            .boot0_uu = UU_BOOT0,                                     \
+            .boot1_uu = UU_BOOT1,                                     \
+            .user_uu = UU_USER,                                       \
+            .rpmb_uu = UU_RPMB,                                       \
+        },                                                            \
+    }
+
+static const struct imx_usdhc_config imx8mpevk_emmc =
+    IMX8MPEVK_EMMC(MMC_BUS_MODE_HS400, MMC_BUS_WIDTH_8BIT_DDR_STROBE);
+static const struct imx_usdhc_config imx8mpevk_emmc_hs200 =
+    IMX8MPEVK_EMMC(MMC_BUS_MODE_HS200, MMC_BUS_WIDTH_8BIT);
+
+/* HS400 without Enhanced Strobe, tuned in HS200 (an e.MMC 5.0, the MEK's) */
+static const struct imx_usdhc_config emmc_hs400 =
+    IMX8MPEVK_EMMC(MMC_BUS_MODE_HS400, MMC_BUS_WIDTH_8BIT_DDR);
 
 #define UU_SD \
     (const unsigned char *)"\x3b\x1a\x5e\x22\x8d\x10\x4c\x2a\x9e\x41\x6f\x80\x0d\x52\xc7\x19"
@@ -282,7 +294,7 @@ static const struct bio_conformance_fault conformance_fault = {
 static int conformance_setup(void **state)
 {
     setup(state);
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     bio_conformance_dev = part(UU_USER);
     bio_conformance_after = conformance_after;
     bio_conformance_erases = false;
@@ -290,14 +302,165 @@ static int conformance_setup(void **state)
     return 0;
 }
 
+#define USDHC_MIX_CTRL         0x48
+#define USDHC_STROBE_DLL_CTRL  0x70
+#define MIX_CTRL_HS400_ES      (1u << 27)
+#define MIX_CTRL_HS400_MODE    (1u << 26)
+#define STROBE_DLL_CTRL_ENABLE (1u << 0)
+
+/* The board's: HS400 with Enhanced Strobe, 8 bit DDR at 200 MHz, no tuning */
 static void test_imx8mpevk_emmc(void **state)
+{
+    uint32_t mix;
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 3);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0x86);
+    assert_int_equal(usdhc_model_bus()->clk_hz, 200000000);
+    assert_int_equal(usdhc_model_bus()->width, 8);
+    assert_true(usdhc_model_bus()->ddr);
+    mix = usdhc_model_read(IMX8M_USDHC3_BASE + USDHC_MIX_CTRL);
+    assert_true(mix & MIX_CTRL_HS400_MODE);
+    assert_true(mix & MIX_CTRL_HS400_ES);
+    assert_true(usdhc_model_read(IMX8M_USDHC3_BASE + USDHC_STROBE_DLL_CTRL) &
+                STROBE_DLL_CTRL_ENABLE);
+    read_write();
+    assert_bench_clean();
+}
+
+/* The board's fallback, HS200 */
+static void test_imx8mpevk_emmc_hs200(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 2);
+    assert_int_equal(usdhc_model_bus()->clk_hz, 200000000);
+    assert_int_equal(usdhc_model_bus()->width, 8);
+    assert_int_equal(usdhc_model_read(IMX8M_USDHC3_BASE + USDHC_MIX_CTRL) &
+                         (MIX_CTRL_HS400_MODE | MIX_CTRL_HS400_ES),
+                     0);
+    read_write();
+    assert_bench_clean();
+}
+
+/* A strobe DLL that doesn't lock fails the init, the board's HS200 init on
+ * the same controller then works: from the card left in HS400, and with the
+ * controller's HS400 bits and strobe DLL off again */
+static void test_imx8mpevk_strobe_dll_no_lock(void **state)
+{
+    struct usdhc_model_config m = {
+        .base = IMX8M_USDHC3_BASE,
+        .base_clk_hz = IMX8MPEVK_USDHC3_HZ,
+        .soc = USDHC_IMX8M,
+        .vccq_mv = 1800,
+        .strobe_dll_never_locks = true,
+    };
+    (void)state;
+
+    m.card = emmc_model_init(&card_cfg);
+    usdhc_model_init(&m);
+    assert_int_equal(imx_usdhc_init(&imx8mpevk_emmc, IMX8MPEVK_USDHC3_HZ), -PB_ERR_TIMEOUT);
+    assert_true(bio_get_part_by_uu(UU_USER) < 0);
+
+    assert_int_equal(imx_usdhc_init(&imx8mpevk_emmc_hs200, IMX8MPEVK_USDHC3_HZ), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 2);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 2);
+    assert_int_equal(usdhc_model_read(IMX8M_USDHC3_BASE + USDHC_STROBE_DLL_CTRL), 0);
+    read_write();
+    assert_bench_clean();
+}
+
+/* A device without Enhanced Strobe (e.MMC 5.0): refused before the switch */
+static void test_hs400es_without_strobe_support(void **state)
+{
+    (void)state;
+
+    card_cfg.strobe_support = 0;
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ),
+                     -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
+    assert_bench_clean();
+}
+
+/* HS400 without Enhanced Strobe: tuned in HS200, the tap kept, then HS400 */
+static void test_hs400_after_tuning(void **state)
+{
+    uint32_t mix;
+    (void)state;
+
+    card_cfg.strobe_support = 0;
+    window.on = true;
+    window.lo = 16;
+    window.hi = 77;
+    assert_int_equal(init(&emmc_hs400, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 3);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 6);
+    assert_int_equal(usdhc_model_bus()->clk_hz, 200000000);
+    assert_int_equal((usdhc_model_read(IMX8M_USDHC3_BASE + 0x60) >> 9) & 0x7f, 46);
+    mix = usdhc_model_read(IMX8M_USDHC3_BASE + USDHC_MIX_CTRL);
+    assert_true(mix & MIX_CTRL_HS400_MODE);
+    assert_false(mix & MIX_CTRL_HS400_ES);
+    read_write();
+    assert_bench_clean();
+}
+
+/* The MEK's fallback: HS200 at the board's tap without tuning, also with
+ * CONFIG_MMC_CORE_HS200_TUNE; HS400 without Enhanced Strobe, which needs the
+ * tuning, is refused before the card is switched */
+static void test_fixed_tap(void **state)
+{
+    static const struct imx_usdhc_config hs200 = {
+        .base = IMX8M_USDHC3_BASE, .delay_tap = 18, .fixed_tap = true,
+        .mmc_config = {
+            .mode = MMC_BUS_MODE_HS200,
+            .width = MMC_BUS_WIDTH_8BIT,
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
+            .boot0_uu = UU_BOOT0,
+            .boot1_uu = UU_BOOT1,
+            .user_uu = UU_USER,
+            .rpmb_uu = UU_RPMB,
+        },
+    };
+    static const struct imx_usdhc_config hs400 = {
+        .base = IMX8M_USDHC3_BASE, .delay_tap = 18, .hs400 = true, .fixed_tap = true,
+        .mmc_config = {
+            .mode = MMC_BUS_MODE_HS400,
+            .width = MMC_BUS_WIDTH_8BIT_DDR,
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
+            .boot0_uu = UU_BOOT0,
+            .boot1_uu = UU_BOOT1,
+            .user_uu = UU_USER,
+            .rpmb_uu = UU_RPMB,
+        },
+    };
+    (void)state;
+
+    window.on = true;
+    window.lo = 10;
+    window.hi = 30;
+    assert_int_equal(init(&hs400, USDHC_IMX8M, 200000000), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
+
+    assert_int_equal(init(&hs200, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 2);
+    assert_int_equal((usdhc_model_read(IMX8M_USDHC3_BASE + 0x60) >> 9) & 0x7f, 18);
+    assert_int_equal(emmc_model_cmd_count(MMC_CMD_SEND_TUNING_BLOCK_HS200), 0);
+    read_write();
+    assert_bench_clean();
+}
+
+/* HS400's input clock: the DDR prescaler divides by 2 at least (RM,
+ * SYS_CTRL.SDCLKFS), so 200 MHz into the controller is HS400 at 100 MHz */
+static void test_hs400_at_200mhz_input(void **state)
 {
     (void)state;
 
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
-    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 2);
-    assert_int_equal(usdhc_model_bus()->clk_hz, 200000000);
-    assert_int_equal(usdhc_model_bus()->width, 8);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 3);
+    assert_int_equal(usdhc_model_bus()->clk_hz, 100000000);
     read_write();
     assert_bench_clean();
 }
@@ -318,7 +481,7 @@ static void test_response_types(void **state)
 {
     (void)state;
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     read_write();
     assert_int_equal(bench_violations_of(JESD84 "6.10.4"), 0);
     assert_int_equal(bench_violations_of(RM_TABLE_10_47), 0);
@@ -334,7 +497,7 @@ static void test_register_programming(void **state)
     };
     (void)state;
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     read_write();
     for (size_t i = 0; i < ARRAY_SIZE(regs); i++)
         assert_int_equal(bench_violations_of(regs[i]), 0);
@@ -359,7 +522,7 @@ static void test_rpmb_read(void **state)
 {
     (void)state;
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     assert_int_equal(bio_read(part(UU_RPMB), 0, 512, in), PB_OK);
     assert_int_equal(bench_violations_of(JESD84 "6.6.7.1"), 0);
     assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
@@ -370,7 +533,7 @@ static void test_read_crc_error(void **state)
 {
     (void)state;
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     emmc_model_fail_read(BUS_DATA_CRC);
     assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
     assert_int_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
@@ -381,7 +544,7 @@ static void test_write_crc_error(void **state)
 {
     (void)state;
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     emmc_model_fail_write(BUS_DATA_CRC);
     assert_int_not_equal(bio_write(part(UU_USER), 0, 4096, out), PB_OK);
     assert_int_equal(bio_write(part(UU_USER), 0, 4096, out), PB_OK);
@@ -393,7 +556,7 @@ static void test_read_status_error(void **state)
 {
     (void)state;
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     emmc_model_status_error(MMC_CMD_READ_MULTIPLE_BLOCK, STATUS_ERROR);
     assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
     assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
@@ -404,7 +567,7 @@ static void test_dma_error(void **state)
 {
     (void)state;
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     usdhc_model_fail_dma();
     assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
     assert_int_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
@@ -416,7 +579,7 @@ static void test_busy_timeout(void **state)
     (void)state;
 
     card_cfg.write_busy_us = 60 * 1000 * 1000;
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     assert_int_not_equal(bio_write(part(UU_USER), 0, 512, out), PB_OK);
 }
 
@@ -427,7 +590,7 @@ static void test_read_timeout(void **state)
     uint64_t start, waited;
     (void)state;
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     usdhc_model_stall_read();
     start = bench_now_us();
     assert_int_equal(bio_read(part(UU_USER), 0, sizeof(in), in), -PB_ERR_TIMEOUT);
@@ -537,7 +700,7 @@ static void test_buffer_above_4gib_is_refused(void **state)
     }
     memset(high, 0x5a, len);
 
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     unsigned int cmds = usdhc_model_cmds();
 
     assert_int_equal(bio_read(part(UU_USER), 0, len, high), -PB_ERR_PARAM);
@@ -552,15 +715,16 @@ static void test_buffer_above_4gib_is_refused(void **state)
     assert_bench_clean();
 }
 
-/* F-116: the driver has no HS400 (no strobe DLL, no HS400 mode): a board
- * that asks for it gets -PB_ERR_NOT_SUPPORTED before the card is switched,
- * where the card was switched to HS400's bus width and the driver then
- * refused the width (Enhanced Strobe), or HS400 ran without tuning */
+/* F-116: a controller the board doesn't give HS400 (the i.MX6UL's, or no
+ * data strobe wired): a board that asks for it gets -PB_ERR_NOT_SUPPORTED
+ * before the card is switched, where the card was switched to HS400's bus
+ * width and the driver then refused the width (Enhanced Strobe), or HS400
+ * ran without tuning */
 static void test_hs400_is_refused(void **state)
 {
 #define HS400_CONFIG(bus_width)                                       \
     {                                                                 \
-        .base = IMX8M_USDHC3_BASE, .delay_tap = 35,                   \
+        .base = IMX8M_USDHC3_BASE, .delay_tap = 35, .hs400 = false,   \
         .mmc_config = {                                               \
             .mode = MMC_BUS_MODE_HS400,                               \
             .width = (bus_width),                                     \
@@ -575,12 +739,12 @@ static void test_hs400_is_refused(void **state)
     static const struct imx_usdhc_config ddr = HS400_CONFIG(MMC_BUS_WIDTH_8BIT_DDR);
     (void)state;
 
-    assert_int_equal(init(&es, USDHC_IMX8M, 200000000), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(init(&es, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
     assert_true(bio_get_part_by_uu(UU_USER) < 0);
 
-    assert_int_equal(init(&ddr, USDHC_IMX8M, 200000000), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(init(&ddr, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), -PB_ERR_NOT_SUPPORTED);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 0);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 0);
     assert_bench_clean();
@@ -605,7 +769,7 @@ static void test_imx8mpevk_tuning(void **state)
     window.on = true;
     window.lo = 16;
     window.hi = 77;
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     assert_int_equal((usdhc_model_read(IMX8M_USDHC3_BASE + 0x60) >> 9) & 0x7f, 46);
     read_write();
     assert_bench_clean();
@@ -619,7 +783,7 @@ static void test_imx8mpevk_tuning_fails(void **state)
     window.on = true;
     window.lo = 1;
     window.hi = 0;
-    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(init(&imx8mpevk_emmc_hs200, USDHC_IMX8M, IMX8MPEVK_USDHC3_HZ), PB_OK);
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
     assert_int_equal((usdhc_model_read(IMX8M_USDHC3_BASE + 0x60) >> 9) & 0x7f, 35);
     /* F-419: the switch back at 52 MHz, not at 200 MHz on a failed tap */
@@ -632,6 +796,12 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_imx8mpevk_emmc, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_imx8mpevk_emmc_hs200, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_imx8mpevk_strobe_dll_no_lock, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400es_without_strobe_support, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_after_tuning, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_hs400_at_200mhz_input, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_fixed_tap, setup, teardown),
         cmocka_unit_test_setup_teardown(test_jiffy_emmc, setup, teardown),
         cmocka_unit_test_setup_teardown(test_response_types, setup, teardown),
         cmocka_unit_test_setup_teardown(test_register_programming, setup, teardown),

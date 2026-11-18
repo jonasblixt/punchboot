@@ -43,38 +43,76 @@
      (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) |                                            \
      (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
+/* The data strobe idles low: a pull-down, as Linux's imx8qxp-mek.dts has it */
+#define USDHC_STROBE_PAD_CTRL                                                                      \
+    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
+     (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) |                                                  \
+     (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) |                                            \
+     (SC_PAD_28FDSOI_PS_PD << PADRING_PULL_SHIFT))
+
+/*
+ * The eMMC, a Micron R1J57L (e.MMC 5.0, EXT_CSD_REV 7): HS400 without
+ * Enhanced Strobe, which 5.0 doesn't have, tuned in HS200 first. HS200 when
+ * that fails, so that a board whose HS400 doesn't work still boots and can be
+ * written in command mode.
+ */
+#define USDHC1_EMMC_CONFIG(bus_mode, bus_width, tap, has_hs400, no_tuning) \
+    {                                                                                \
+        .base = IMX8X_USDHC1_BASE, .delay_tap = (tap), .hs400 = (has_hs400),         \
+        .fixed_tap = (no_tuning),                                                    \
+        .mmc_config = {                                                              \
+            .mode = (bus_mode),                                                      \
+            .width = (bus_width),                                                    \
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,                \
+            .boot0_uu = PART_boot0,                                                  \
+            .boot1_uu = PART_boot1,                                                  \
+            .user_uu = PART_user,                                                    \
+            .rpmb_uu = PART_rpmb,                                                    \
+            .flags = 0,                                                              \
+        },                                                                           \
+    }
+
+/* SDHC_0's per clock from 'parent', as close to 'hz' as the SCU gets it: the
+ * rate it set is in 'rate' */
+static int sdhc0_clock(sc_pm_clk_parent_t parent, unsigned int hz, unsigned int *rate)
+{
+    sc_err_t err;
+
+    sc_pm_clock_enable(imx8x_ipc(), SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
+
+    err = sc_pm_set_clock_parent(imx8x_ipc(), SC_R_SDHC_0, 2, parent);
+    if (err != SC_ERR_NONE) {
+        LOG_ERR("SDHC_0 clock parent %u failed (%i)", parent, err);
+        return -PB_ERR;
+    }
+
+    *rate = hz;
+    sc_pm_set_clock_rate(imx8x_ipc(), SC_R_SDHC_0, 2, rate);
+
+    err = sc_pm_clock_enable(imx8x_ipc(), SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
+    if (err != SC_ERR_NONE) {
+        LOG_ERR("SDHC_0 per clock enable failed (%i)", err);
+        return -PB_ERR;
+    }
+
+    LOG_DBG("SDHC_0 per clock %u Hz", *rate);
+    return PB_OK;
+}
+
 static int usdhc_emmc_setup(void)
 {
     int rc;
     unsigned int rate;
 
     sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_SDHC_0, SC_PM_PW_MODE_ON);
-    sc_pm_clock_enable(imx8x_ipc(), SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
-
-    rc = sc_pm_set_clock_parent(imx8x_ipc(), SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
-
-    if (rc != SC_ERR_NONE) {
-        LOG_ERR("usdhc set clock parent failed");
-        return -PB_ERR;
-    }
-
-    rate = MHz(200);
-    sc_pm_set_clock_rate(imx8x_ipc(), SC_R_SDHC_0, 2, &rate);
-
-    rc = sc_pm_clock_enable(imx8x_ipc(), SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
-
-    if (rc != SC_ERR_NONE) {
-        LOG_ERR("SDHC_0 per clk enable failed!");
-        return -PB_ERR;
-    }
 
     static const struct imx8x_pad pads[] = {
-        { SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL }, { SC_P_EMMC0_CMD, USDHC_PAD_CTRL },
-        { SC_P_EMMC0_DATA0, USDHC_PAD_CTRL },   { SC_P_EMMC0_DATA1, USDHC_PAD_CTRL },
-        { SC_P_EMMC0_DATA2, USDHC_PAD_CTRL },   { SC_P_EMMC0_DATA3, USDHC_PAD_CTRL },
-        { SC_P_EMMC0_DATA4, USDHC_PAD_CTRL },   { SC_P_EMMC0_DATA5, USDHC_PAD_CTRL },
-        { SC_P_EMMC0_DATA6, USDHC_PAD_CTRL },   { SC_P_EMMC0_DATA7, USDHC_PAD_CTRL },
-        { SC_P_EMMC0_STROBE, USDHC_PAD_CTRL },  { SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL },       { SC_P_EMMC0_CMD, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_DATA0, USDHC_PAD_CTRL },         { SC_P_EMMC0_DATA1, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_DATA2, USDHC_PAD_CTRL },         { SC_P_EMMC0_DATA3, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_DATA4, USDHC_PAD_CTRL },         { SC_P_EMMC0_DATA5, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_DATA6, USDHC_PAD_CTRL },         { SC_P_EMMC0_DATA7, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_STROBE, USDHC_STROBE_PAD_CTRL }, { SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL },
     };
 
     rc = imx8x_pads_setup(pads, ARRAY_SIZE(pads));
@@ -82,21 +120,28 @@ static int usdhc_emmc_setup(void)
     if (rc != PB_OK)
         return rc;
 
-    static const struct imx_usdhc_config cfg = { .base = IMX8X_USDHC1_BASE,
-                                                 .delay_tap = 18,
-                                                 .mmc_config = {
-                                                     .mode = MMC_BUS_MODE_HS200,
-                                                     .width = MMC_BUS_WIDTH_8BIT,
-                                                     .boot_mode = EXT_CSD_BOOT_DDR |
-                                                                  EXT_CSD_BOOT_BUS_WIDTH_8,
-                                                     .boot0_uu = PART_boot0,
-                                                     .boot1_uu = PART_boot1,
-                                                     .user_uu = PART_user,
-                                                     .rpmb_uu = PART_rpmb,
-                                                     .flags = 0,
-                                                 } };
+    /* HS400 without Enhanced Strobe, tuned in HS200 first. Its 200 MHz
+     * needs about 400 MHz in: in DDR the controller divides by 2 at least
+     * (RM, SYS_CTRL.SDCLKFS). The per clock's limit is 396 MHz (8X RM,
+     * chapter 8, DIG_PLL0); from PLL1 the SCU gives 333 MHz for it */
+    static const struct imx_usdhc_config hs400 =
+        USDHC1_EMMC_CONFIG(MMC_BUS_MODE_HS400, MMC_BUS_WIDTH_8BIT_DDR, 18, true, false);
+    /* What the MEK ran before HS400: HS200 at 200 MHz from PLL1, the fixed
+     * tap 18, no tuning */
+    static const struct imx_usdhc_config hs200 =
+        USDHC1_EMMC_CONFIG(MMC_BUS_MODE_HS200, MMC_BUS_WIDTH_8BIT, 18, false, true);
 
-    return imx_usdhc_init(&cfg, rate);
+    rc = sdhc0_clock(SC_PM_PARENT_PLL0, MHz(400), &rate);
+    if (rc == PB_OK)
+        rc = imx_usdhc_init(&hs400, rate);
+    if (rc == PB_OK)
+        return rc;
+
+    LOG_WARN("eMMC HS400 failed (%i), using HS200", rc);
+    rc = sdhc0_clock(SC_PM_PARENT_PLL1, MHz(200), &rate);
+    if (rc != PB_OK)
+        return rc;
+    return imx_usdhc_init(&hs200, rate);
 }
 
 static int early_boot(void)

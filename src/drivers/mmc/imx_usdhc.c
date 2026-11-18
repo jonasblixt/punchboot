@@ -37,6 +37,16 @@
 /* The identification clock, JESD84-B51 and the RM's initialization */
 #define USDHC_INIT_CLK_HZ      400000
 
+/* DDR above DDR52's clock is HS400 (JESD84-B51 6.6.2.3) */
+#define USDHC_DDR52_MAX_HZ     52000000
+
+/* The strobe DLL as Linux's esdhc_set_strobe_dll() sets it, which has no lock
+ * in 50 us as a warning: a delay of 8/16 of half a clock period, the slave
+ * line updated every 4 reference clocks */
+#define STROBE_DLL_DLY_TARGET  7
+#define STROBE_DLL_UPDATE_INT  4
+#define STROBE_DLL_TIMEOUT_us  1000
+
 #define INT_STATUS_ENABLED                                                                       \
     (INT_CC | INT_TC | INT_DINT | INT_BWR | INT_BRR | INT_CINT | INT_CTOE | INT_CCE | INT_CEBE | \
      INT_CIE | INT_DTOE | INT_DCE | INT_DEBE | INT_DMAE | INT_AC12E)
@@ -53,6 +63,8 @@ struct imx_usdhc {
     uintptr_t base;
     unsigned int input_clock_hz;
     bool bus_ddr_enable;
+    bool bus_strobe; /* MMC_BUS_WIDTH_8BIT_DDR_STROBE: HS400 is Enhanced Strobe */
+    bool strobe_dll_on; /* The strobe DLL is enabled (HS400) */
     unsigned int bus_clock_hz; /* The card clock as set */
     unsigned int bus_lines; /* Data lines: 1, 4 or 8 */
     struct mmc_hal hal;
@@ -117,11 +129,47 @@ static uint32_t usdhc_read_timeout_us(const struct imx_usdhc *u, size_t bytes)
     return (uint32_t)MIN(bound, (uint64_t)UINT32_MAX - 1);
 }
 
+/*
+ * The strobe DLL for HS400, as Linux's esdhc_set_strobe_dll(): with the card
+ * clock gated off, a reset pulse, then enabled with the delay target, and
+ * both locks waited for. The RM has the fields (STROBE_DLL_CTRL), not the
+ * order
+ */
+static int usdhc_strobe_dll(struct imx_usdhc *u)
+{
+    int rc;
+
+    rc = usdhc_wait(u, USDHC_PRES_STATE, PRES_STATE_SDOFF, PRES_STATE_SDOFF, USDHC_CLK_TIMEOUT_us);
+    if (rc != PB_OK)
+        return rc;
+
+    u->strobe_dll_on = true;
+    usdhc_write(u, USDHC_STROBE_DLL_CTRL, STROBE_DLL_CTRL_RESET);
+    usdhc_write(u, USDHC_STROBE_DLL_CTRL, 0);
+    usdhc_write(u,
+                USDHC_STROBE_DLL_CTRL,
+                STROBE_DLL_CTRL_ENABLE | STROBE_DLL_CTRL_SLV_UPDATE_INT(STROBE_DLL_UPDATE_INT) |
+                    STROBE_DLL_CTRL_SLV_DLY_TARGET(STROBE_DLL_DLY_TARGET));
+
+    rc = usdhc_wait(u,
+                    USDHC_STROBE_DLL_STATUS,
+                    STROBE_DLL_STATUS_LOCKED,
+                    STROBE_DLL_STATUS_LOCKED,
+                    STROBE_DLL_TIMEOUT_us);
+    if (rc != PB_OK)
+        LOG_ERR("The strobe DLL doesn't lock");
+    return rc;
+}
+
 static int imx_usdhc_set_bus_clock(void *priv, unsigned int clk_hz)
 {
     struct imx_usdhc *u = priv;
     unsigned int div = 1;
     unsigned int pre_div = 1;
+    /* The 8 bit DDR bus above DDR52's clock: the core has switched the card
+     * to HS400 (HS_TIMING 3), from where reads come on the data strobe */
+    bool hs400 = u->cfg->hs400 && u->bus_ddr_enable && u->bus_lines == 8 &&
+                 clk_hz > USDHC_DDR52_MAX_HZ;
     int rc;
 
     LOG_DBG("Trying to set bus clock to %u kHz", clk_hz / 1000);
@@ -149,6 +197,16 @@ static int imx_usdhc_set_bus_clock(void *priv, unsigned int clk_hz)
         return rc;
 
     mmio_clrbits_32(u->base + USDHC_VEND_SPEC, VEND_SPEC_FRC_SDCLK_ON);
+
+    /* HS400 and Enhanced Strobe are set before the clock and the strobe DLL
+     * after it, as Linux's esdhc_set_uhs_signaling() does */
+    if (u->cfg->hs400)
+        mmio_clrsetbits_32(u->base + USDHC_MIX_CTRL,
+                           MIX_CTRL_HS400_MASK,
+                           !hs400          ? 0
+                           : u->bus_strobe ? (MIX_CTRL_HS400_MODE | MIX_CTRL_HS400_ES)
+                                           : MIX_CTRL_HS400_MODE);
+
     mmio_clrsetbits_32(u->base + USDHC_SYS_CTRL,
                        SYS_CTRL_SDCLKFS_MASK | SYS_CTRL_DVS_MASK,
                        SYS_CTRL_SDCLKFS(pre_div >> 1) | SYS_CTRL_DVS(div - 1));
@@ -160,6 +218,13 @@ static int imx_usdhc_set_bus_clock(void *priv, unsigned int clk_hz)
     pb_delay_us(100);
     u->bus_clock_hz = u->input_clock_hz / (pre_div * div * (u->bus_ddr_enable ? 2 : 1));
     LOG_DBG("Actual bus rate = %u kHz", u->bus_clock_hz / 1000);
+
+    if (hs400)
+        return usdhc_strobe_dll(u);
+    if (u->strobe_dll_on) {
+        usdhc_write(u, USDHC_STROBE_DLL_CTRL, 0);
+        u->strobe_dll_on = false;
+    }
     return PB_OK;
 }
 
@@ -178,6 +243,11 @@ static int imx_usdhc_setup(void *priv)
     usdhc_write(u, USDHC_MMC_BOOT, 0);
     usdhc_write(u, USDHC_MIX_CTRL, MIX_CTRL_RSVD_31);
     u->bus_ddr_enable = false;
+    u->bus_strobe = false;
+    if (u->strobe_dll_on) {
+        usdhc_write(u, USDHC_STROBE_DLL_CTRL, 0);
+        u->strobe_dll_on = false;
+    }
     usdhc_write(u, USDHC_CLK_TUNE_CTRL_STATUS, 0);
     usdhc_write(u, USDHC_VEND_SPEC, VEND_SPEC_INIT);
     usdhc_write(u, USDHC_DLL_CTRL, 0);
@@ -514,6 +584,8 @@ static int imx_usdhc_set_bus_width(void *priv, enum mmc_bus_width width)
 
     LOG_DBG("Width = %s", bus_widths[width]);
 
+    u->bus_strobe = false;
+
     switch (width) {
     case MMC_BUS_WIDTH_1BIT:
         dtw = DTW_1BIT;
@@ -538,6 +610,13 @@ static int imx_usdhc_set_bus_width(void *priv, enum mmc_bus_width width)
     case MMC_BUS_WIDTH_8BIT_DDR:
         dtw = DTW_8BIT;
         u->bus_ddr_enable = true;
+        u->bus_lines = 8;
+        break;
+    case MMC_BUS_WIDTH_8BIT_DDR_STROBE:
+        /* The core refuses it on a controller without HS400 */
+        dtw = DTW_8BIT;
+        u->bus_ddr_enable = true;
+        u->bus_strobe = true;
         u->bus_lines = 8;
         break;
     default:
@@ -589,6 +668,7 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
     u->base = cfg->base;
     u->input_clock_hz = clk_hz;
     u->bus_ddr_enable = false;
+    u->bus_strobe = false;
     u->bus_clock_hz = 0;
     u->bus_lines = 1;
     u->hal = (struct mmc_hal){
@@ -598,13 +678,12 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
         .set_bus_clock = imx_usdhc_set_bus_clock,
         .set_bus_width = imx_usdhc_set_bus_width,
         .set_delay_tap = imx_usdhc_set_delay_tap,
-        .delay_taps = DLL_CTRL_SLV_OVERRIDE_TAPS,
+        .delay_taps = cfg->fixed_tap ? 0 : DLL_CTRL_SLV_OVERRIDE_TAPS,
         .delay_tap_default = cfg->delay_tap,
         .card_present = cfg->card_detect ? imx_usdhc_card_present : NULL,
         .max_chunk_bytes = USDHC_MAX_CHUNK_BYTES,
-        /* No HS400: the strobe DLL and MIX_CTRL's HS400 mode aren't set up */
-        .hs400 = false,
-        .hs400_es = false,
+        .hs400 = cfg->hs400,
+        .hs400_es = cfg->hs400,
     };
 
     return mmc_init(&u->hal, &cfg->mmc_config, NULL);

@@ -63,6 +63,7 @@
 #define USDHC_PRES_STATE         0x24
 #define PRES_STATE_DAT0          BIT_32(24) /* DAT0 level, low while the card is busy */
 #define PRES_STATE_CINST         BIT_32(16) /* Card inserted, debounced */
+#define PRES_STATE_SDOFF         BIT_32(7) /* The card clock is gated off */
 #define PRES_STATE_SDSTB         BIT_32(3) /* Must be set before SDCLKFS/DVS change */
 #define PRES_STATE_DLA           BIT_32(2)
 #define PRES_STATE_CDIHB         BIT_32(1)
@@ -145,6 +146,11 @@
 /* Mixer control: the transfer mode of the next command */
 #define USDHC_MIX_CTRL              0x48
 #define MIX_CTRL_RSVD_31            BIT_32(31) /* Always written as 1 */
+/* HS400 (i.MX8M, i.MX8X): read data and the CRC status on the data strobe. EN_HS400_MODE is
+ * Enhanced Strobe, the responses on it too; the i.MX8X RM doesn't list it, Linux sets it there */
+#define MIX_CTRL_HS400_ES           BIT_32(27)
+#define MIX_CTRL_HS400_MODE         BIT_32(26)
+#define MIX_CTRL_HS400_MASK         (MIX_CTRL_HS400_ES | MIX_CTRL_HS400_MODE)
 #define MIX_CTRL_MSBSEL             BIT_32(5) /* Multiple blocks */
 #define MIX_CTRL_DTDSEL             BIT_32(4) /* Card to host */
 #define MIX_CTRL_DDR_EN             BIT_32(3)
@@ -163,10 +169,29 @@
 #define DLL_CTRL_SLV_OVERRIDE_VAL_MASK  (0x7fu << DLL_CTRL_SLV_OVERRIDE_VAL_SHIFT)
 #define DLL_CTRL_SLV_OVERRIDE_VAL(x) \
     USDHC_FIELD(x, DLL_CTRL_SLV_OVERRIDE_VAL_SHIFT, DLL_CTRL_SLV_OVERRIDE_VAL_MASK)
-#define DLL_CTRL_SLV_OVERRIDE        BIT_32(8)
-#define DLL_CTRL_SLV_OVERRIDE_TAPS   128
+#define DLL_CTRL_SLV_OVERRIDE                BIT_32(8)
+#define DLL_CTRL_SLV_OVERRIDE_TAPS           128
 
-#define USDHC_CLK_TUNE_CTRL_STATUS   0x68
+#define USDHC_CLK_TUNE_CTRL_STATUS           0x68
+
+/* The strobe DLL (i.MX8M, i.MX8X): delays the data strobe in HS400 */
+#define USDHC_STROBE_DLL_CTRL                0x70
+#define STROBE_DLL_CTRL_SLV_UPDATE_INT_SHIFT 20
+#define STROBE_DLL_CTRL_SLV_UPDATE_INT_MASK  (0xffu << STROBE_DLL_CTRL_SLV_UPDATE_INT_SHIFT)
+#define STROBE_DLL_CTRL_SLV_UPDATE_INT(x) \
+    USDHC_FIELD(x, STROBE_DLL_CTRL_SLV_UPDATE_INT_SHIFT, STROBE_DLL_CTRL_SLV_UPDATE_INT_MASK)
+/* In 1/16 of half a reference clock period, (n + 1) of them */
+#define STROBE_DLL_CTRL_SLV_DLY_TARGET_SHIFT 3
+#define STROBE_DLL_CTRL_SLV_DLY_TARGET_MASK  (0xfu << STROBE_DLL_CTRL_SLV_DLY_TARGET_SHIFT)
+#define STROBE_DLL_CTRL_SLV_DLY_TARGET(x) \
+    USDHC_FIELD(x, STROBE_DLL_CTRL_SLV_DLY_TARGET_SHIFT, STROBE_DLL_CTRL_SLV_DLY_TARGET_MASK)
+#define STROBE_DLL_CTRL_RESET        BIT_32(1) /* Edge sensitive: set, then clear */
+#define STROBE_DLL_CTRL_ENABLE       BIT_32(0)
+
+#define USDHC_STROBE_DLL_STATUS      0x74
+#define STROBE_DLL_STATUS_REF_LOCK   BIT_32(1)
+#define STROBE_DLL_STATUS_SLV_LOCK   BIT_32(0)
+#define STROBE_DLL_STATUS_LOCKED     (STROBE_DLL_STATUS_REF_LOCK | STROBE_DLL_STATUS_SLV_LOCK)
 
 /* Vendor specific */
 #define USDHC_VEND_SPEC              0xc0
