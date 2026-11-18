@@ -1,0 +1,166 @@
+# Compatibility: wire protocol and bpak format
+
+**State: in force**, the guards below check it (D-008). Level 1 (`process.md`).
+
+**Hard rule (D-008): never break backward compatibility of the wire protocol or of the bpak
+image format.** Devices in the field are not updated in step with the host tools, factory lines
+pin old tool versions, and signed images outlive both. This file lists what is frozen, what may
+change and how, and the guards that check it. The floor is the 1.0.0 release (Jonas, 2026-11-11):
+hosts and firmware from v1.0.0 on.
+
+Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/cm/`,
+`tools/punchboot/` (`wire.py`, `bpak.py`, `session.py`), `include/bpak/`, `src/lib/bpak.c`,
+`src/boot/image_helpers.c`, the trust anchors' generator (`scripts/gen-trust-anchors.py`), or
+anything that writes or reads images.
+
+## Wire protocol: what is frozen
+
+- `PB_WIRE_MAGIC` (`PBL0`). Changing it makes every old peer reject every frame. There is no
+  other version field, so a "v2 protocol" can only be added *next to* the old one, never instead.
+- The 512-byte `pb_command`/`pb_result` frames, little-endian, packed.
+- Every value of `pb_commands`, `pb_results`, `pb_slc`, `pb_auth_method` and the
+  `PB_WIRE_PART_FLAG_*` bits. Only append, before the sentinel. Never remove, renumber or reuse
+  a slot. `result_code` is an `int8_t`, so `pb_results` must stay below 128.
+- Size, offset and type of every field in every request/response struct.
+- The sequence for each command: which follow-up transfers happen, in which order, with which
+  sizes, and that every exchange ends with a `pb_result`.
+- **Semantics**: the same bytes must mean the same thing. A layout-compatible change that changes
+  what a zero or an old value does is still a break (see F-075).
+- The auth payloads: the token format (signature over what, which encoding) and the password format.
+- A raw `struct bpak_header` crosses the wire, so the bpak rules below apply to it too.
+
+## Wire protocol: how to extend it
+
+- **New field**: take it from an `rz[]` array. Zero must mean the old behaviour, because old hosts
+  and old devices send zeros there. The device ignores `rz` content, so a new host must not rely
+  on an old device honouring a new field: gate it on a capability.
+- **New command**: append to `pb_commands`. Old devices answer `-PB_RESULT_INVALID_COMMAND`; the
+  host must treat that as "not supported" and fall back or give a clear error. A locked device
+  answers `-PB_RESULT_NOT_AUTHENTICATED` before authentication, from 3.0.0 also to a command it
+  doesn't have (`command-mode.md` 3.2, D-058): a host asks again once it is authenticated.
+  A device whose release defines the command and whose build left it out answers
+  `-PB_RESULT_NOT_SUPPORTED`, never `-PB_RESULT_INVALID_COMMAND` (`command-mode.md` 4.5, D-060).
+- **A function a host calls by name** needs no new command: it is a named command
+  (`command-mode.md` 5.6, D-076), run through `BOARD_COMMAND` by `pb_id()` of its name, which
+  every released host can send. Its name, id and bytes are then fixed like a command's.
+- **Capabilities**: `PB_CMD_DEVICE_READ_CAPS` is the only negotiation. New capabilities go in its
+  `rz[18]`. The host must handle zero (an old device) for every caps field, including today's.
+- **Retiring a command** (F-032): the handler may answer `-PB_RESULT_NOT_SUPPORTED`, but the enum
+  slot stays forever and is never reused. Prefer keeping the handler.
+- The device side must keep accepting what released hosts send, and the host side must keep
+  understanding what released devices send. Both directions count.
+
+### Example: selecting a log (`PB_CMD_LOG_READ`, 3.0.0)
+
+`pb_command_log_read.log` and `pb_result_log_read.log` come from `rz`. The command's field
+selects a log by `pb_id()` of its name: 0 and `PB_LOG_ID_PB` are pb's RAM log, `PB_LOG_ID_LIST`
+lists the logs, others (e.g. `rom`) depend on the board. The result's field echoes the log the
+device read, so it needs no capability bit:
+
+- Old host, new device: the old host sends 0 and gets pb's log, as before.
+- New host, old device: the old device ignores `rz` and reads pb's log, with a `log` of 0 in
+  the result. A host that asked for another log reads and drops the data, and reports that the
+  device doesn't have it. The host sends 0, not `PB_LOG_ID_PB`, for pb's log, so its bytes are
+  the ones released hosts send (the transcripts check it).
+- Devices older than the command answer `-PB_RESULT_INVALID_COMMAND`, and a device without the
+  log answers `-PB_RESULT_NOT_FOUND`. pb's log on a device without `CONFIG_RAMLOG` stays
+  `-PB_RESULT_NOT_SUPPORTED`, the old answer.
+
+## bpak format: what is frozen
+
+- `struct bpak_header`: 4096 bytes, every field offset, `BPAK_HEADER_MAGIC`, the `BPAK_MAX_*`
+  sizes, `BPAK_PART_ALIGN`.
+- The values of `bpak_hash_kind`, `bpak_signature_kind`, `bpak_key_kind` and the `BPAK_FLAG_*` bits.
+- The ID function (`bpak_id`, CRC32 of the name): part IDs, meta IDs, `key_id` and `keystore_id`
+  are stored in images and keystores, and boards hardcode the hex values.
+- Meta encodings punchboot reads: `pb-load-addr` (u64 per part ref), `optee-arch`.
+- **What is signed**: the hash (`hash_kind`) of the whole header with `signature` and
+  `signature_sz` zeroed (`bpak_copyz_signature` + `image_helpers.c`), and the signature encoding
+  the bpak CLI produces for each kind.
+- **What the payload hash covers**: part data in header order, each part `bpak_part_size()`
+  bytes (`transport_size` for transport parts).
+- punchboot's on-disk layout: the payload from LBA 0 of the partition, the header in the last
+  4 KiB (`pb_api_partition_write`, `boot.c`, `cm_part.c`). File layout: header first.
+- pb's key ids are the ID function's, also in a build without bpak: `scripts/gen-trust-anchors.py`
+  writes them into pb's trust anchors, `pb_keys` (D-083, D-096).
+
+Rule for the firmware: every image that a released bpak CLI produced and a released punchboot
+accepted must still be accepted. The one exception is security, which comes first
+(`principles.md`): a security fix may reject what a release accepted. That needs a decision entry
+naming what is now rejected and why. D-024 is one (the header validation of bpak 1.0), D-035
+another (the custom source, `dont-hash` parts), D-091 a third (a device tree whose header lies).
+
+The rule is for a build that has bpak. A product may build pb without it, once there is another
+format to build in its place (`system.md` 3, D-061): its own choice for its own devices. bpak is
+in by default, and a release never drops it.
+
+Extensions (new hash/sign kinds, new flags, new meta) are allowed if old images keep verifying
+the same way. New images that old firmware can't read are fine only if they are opt-in.
+
+## Fixed elsewhere
+
+- The device identity: `platform_ns_uuid` and the unique id's bytes (`platform.md` 3.7).
+- A board's product in the field: its name (`board_id`), partition UUIDs, GPT variants, the boot
+  source policy and its partitions, configuration fuses and the trust anchors' slots, the board
+  commands' ids and answers, the handover and the parts named for it, the image data regions, the
+  password's secret
+  (`board.md` 8).
+- The boot flow: the A/B state's format, the `/chosen` properties, each handover's register
+  convention, pb's Firmware Handoff structure and tag (`boot.md` 7).
+- Command mode's behaviour: what each command means, its exchange, the gate, the authentication
+  methods, and the USB interface hosts find the device by (`command-mode.md` 7).
+- The USB device as hosts and operating systems find it, with Microsoft's descriptors, and
+  that no empty packet ends a transfer (`usb.md` 6).
+- Block devices: that a host which erases before it writes keeps working, and when an eMMC's
+  boot partition becomes the ROM's choice (`bio.md` 6).
+- The digests and the device identity's MD5, whichever backend computes them (`crypto.md` 7).
+
+## Guards
+
+- **Frozen layout file** (`tests/compat/`). `abi_dump` prints the size and field offsets of every
+  wire struct and the bpak header structs, every wire enum value, the bpak kinds, flags and ids,
+  and the internal values that go on the wire as they are (the low byte of `BIO_FLAG_*`, `slc_t`).
+  `rz`/`pad` fields and sentinels are left out, so carving a field out of `rz` only adds lines.
+  - `ctest -L compat` (`compat.abi`): `abi.txt` must match the code. A new value fails until it is
+    added with `check_abi.py check <abi_dump> tests/compat/abi.txt --update`, which never drops or
+    changes a line.
+  - The `compat` CI job and a pre-commit hook: every line of `abi.txt` at the base branch (or
+    `HEAD`) must still be there. So the file can only grow, and a change to a frozen value fails
+    even if `abi.txt` was edited to match.
+  - `_Static_assert`s on every wire and bpak struct size in `src/wire.c`, so each compiler that
+    builds the firmware or the host tools checks the layout. `cm_main.c` asserts that the bio flags
+    and `slc_t` match the wire values.
+- **Golden bpak images** (`tests/compat/bpak/`), made once per bpak CLI version by `generate.sh`,
+  never regenerated (v0.9.3, v1.0.1). `test_compat.py` boots each one from RAM and from a partition, checks
+  `SHA256SUMS`, pins `pb_id()` to the bpak ids, and checks the Python mirrors (`SLC`,
+  `PartitionFlags`, the `PB_CMD_*` in `pbtest.py`) against `abi.txt`. The CI `compat` job fails if
+  a committed image is changed or deleted.
+- **Recorded transcripts** (`tests/compat/transcripts/`, new host → old device). Each scenario
+  in `test_transcripts.py` is a list of `Session` calls on one connection, covering every command
+  the package sends and the host's own argument checks. Its transcript holds the bytes each way
+  and what each call returned, recorded once from the host of that time against pb-host
+  (`PB_RECORD_TRANSCRIPTS=1`) and never changed: the first ones are from the 2.x C host library.
+  A fake device serves them to the current host, which must send the same bytes and return the
+  same values. The CI `compat` job fails if a transcript is changed or deleted. To cover more,
+  add a scenario. Transfer sizes inside a segment are not recorded (a socket is a byte stream);
+  over USB they matter where a transfer ends in a short packet.
+- **Released hosts against the current device** (old host → new device, roadmap guard 3).
+  `scripts/ci/old-hosts.sh` installs punchboot 2.3.0, 2.7.0 and 2.7.1 from PyPI, each pinned by
+  its wheel's hash, and `test_old_hosts.py` runs their command line tool against pb-host over its
+  socket: `dev show`, `part list`, writes and verifies of 1 to 100003 bytes and a wrong file,
+  `board status`, `boot status`, `slc show`, `boot enable` and `disable`, `boot bpak` of a golden
+  image, `dev reset`. The CI `old-hosts` job runs it. 2.0.0 to 2.2.0 have no wheel for the
+  container's Python 3.13, 1.x isn't on PyPI.
+- Not covered yet: the releases before 2.3.0, replaying the host side of the transcripts against
+  pb-host, and behaviour, which only tests and review catch (F-075 changed what a zero means, not
+  a layout).
+
+If a frozen value really has to change, that is a new decision entry first, never a quiet edit.
+
+## Checklist for a change in this area
+
+1. Does any frozen item above change? Then stop: it needs another design.
+2. Old host + new device, and new host + old device: what does each side send, and what does
+   the other do with it? Write the answer in the PR.
+3. If a zero or an absent field reaches new code, is the behaviour the old one?
+4. Update the frozen manifests in the same PR (once they exist) and say why in the commit.
