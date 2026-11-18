@@ -46,6 +46,7 @@
 #define ADMA_SYS_ADDR         0x58
 #define DLL_CTRL              0x60
 #define DLL_STATUS            0x64
+#define STROBE_DLL_CTRL       0x70
 #define STROBE_DLL_STATUS     0x74
 #define VEND_SPEC             0xc0
 #define VEND_SPEC2            0xc8
@@ -122,6 +123,8 @@
 
 /* MIX_CTRL */
 #define MIX_RSVD_31           (1u << 31) /* "Always write as 1" */
+#define MIX_HS400_ES          (1u << 27) /* EN_HS400_MODE, i.MX8M */
+#define MIX_HS400_MODE        (1u << 26) /* i.MX8M */
 #define MIX_AC23EN            (1u << 7)
 #define MIX_MSBSEL            (1u << 5)
 #define MIX_DTDSEL            (1u << 4)
@@ -156,6 +159,14 @@
 /* The SDSTB low time after a divider change, in register reads */
 #define SDSTB_READS           3
 
+/* STROBE_DLL_CTRL, STROBE_DLL_STATUS */
+#define SDLL_RESET            (1u << 1)
+#define SDLL_ENABLE           (1u << 0)
+#define SDLL_LOCKED           3u /* REF_LOCK | SLV_LOCK */
+#define SDLL_STATUS_RESET     0x00000200u
+/* The strobe DLL's lock time after ENABLE, in register reads */
+#define SDLL_LOCK_READS       5
+
 struct adma_seg {
     uint32_t addr;
     size_t len;
@@ -166,6 +177,8 @@ static struct {
     uint32_t regs[REG_SPACE / 4];
     struct bus_cfg bus;
     unsigned int sdstb_wait;
+    unsigned int sdll_wait; /* Reads until the strobe DLL locks */
+    bool sdll_locked;
     bool inita_done;
     bool cmd_seen;
     bool busy_pending; /* TC follows when DAT0 is released */
@@ -217,6 +230,8 @@ static void reset_all(void)
     m.busy_pending = false;
     m.data_pending = false;
     m.sdstb_wait = 0;
+    m.sdll_wait = 0;
+    m.sdll_locked = false;
 }
 
 /* The prescaler, SYS_CTRL.SDCLKFS: one hot, doubled when DDR_EN is set */
@@ -407,6 +422,8 @@ static void write_mix_ctrl(uint32_t v)
 {
     if (!(v & MIX_RSVD_31))
         bench_violation(RM "MIX_CTRL", "Bit 31 written as 0, it is always written as 1");
+    if (m.cfg.soc == USDHC_IMX6UL && (v & (MIX_HS400_MODE | MIX_HS400_ES)))
+        bench_violation(RM "MIX_CTRL", "HS400 bits set, bits 27:26 are reserved on the i.MX6UL");
     if (m.data_pending)
         bench_violation(RM "MIX_CTRL", "Written during a data transfer");
     set_reg(MIX_CTRL, v);
@@ -421,6 +438,29 @@ static void write_vend_spec(uint32_t v)
         bench_violation(RM "VEND_SPEC", "Reserved bits 14:11 changed to 0x%x", (v >> 11) & 0xf);
     set_reg(VEND_SPEC, v);
     update_bus();
+}
+
+/* The strobe DLL: a RESET edge, then ENABLE locks it after a while */
+static void write_strobe_dll_ctrl(uint32_t v)
+{
+    if (m.cfg.soc == USDHC_IMX6UL) {
+        bench_violation(RM "memory map", "STROBE_DLL_CTRL written, the i.MX6UL has none");
+        return;
+    }
+    if (m.cfg.strobe_dll_never_locks || (v & SDLL_RESET) || !(v & SDLL_ENABLE)) {
+        m.sdll_locked = false;
+        m.sdll_wait = 0;
+    } else if (!m.sdll_locked && m.sdll_wait == 0) {
+        m.sdll_wait = SDLL_LOCK_READS;
+    }
+    set_reg(STROBE_DLL_CTRL, v);
+}
+
+static uint32_t strobe_dll_status(void)
+{
+    if (m.sdll_wait > 0 && --m.sdll_wait == 0)
+        m.sdll_locked = true;
+    return SDLL_STATUS_RESET | (m.sdll_locked ? SDLL_LOCKED : 0);
 }
 
 /* Collects the ADMA2 descriptor list. Returns the total length, -1 on a descriptor error */
@@ -555,12 +595,21 @@ static void auto_cmd12(bool write)
     m.rsp3_at_us = bench_now_us() + AC12_RSP3_DELAY_US;
 }
 
-/* Read data sampled inside the data eye */
+/* The bus above DDR52's clock in DDR: HS400 (JESD84-B51 6.6.2.3) */
+static bool bus_hs400(void)
+{
+    return m.bus.ddr && m.bus.clk_hz > 52000000;
+}
+
+/* Read data, and a write's CRC status, sampled inside the data eye */
 static bool tap_samples(void)
 {
     uint32_t dll = reg(DLL_CTRL);
     unsigned int tap = (dll >> 9) & 0x7f;
 
+    /* HS400: latched on the data strobe, through the strobe DLL */
+    if (bus_hs400())
+        return (reg(MIX_CTRL) & MIX_HS400_MODE) && m.sdll_locked;
     if (!m.cfg.tap_window || m.bus.clk_hz <= 52000000)
         return true;
     if (!(dll & (1u << 8)))
@@ -637,6 +686,8 @@ static void run_data(void)
                 bench_advance_us(1);
             seg_copy(n_segs, b * bs, block, bs, false);
             st = m.cfg.card->ops->write(m.cfg.card, block, bs);
+            if (st == BUS_DATA_OK && bus_hs400() && !tap_samples())
+                st = BUS_DATA_CRC; /* The CRC status comes on the strobe too */
         }
 
         if (st != BUS_DATA_OK) {
@@ -759,6 +810,8 @@ uint32_t usdhc_model_read(uintptr_t addr)
     case INT_STATUS:
         update_busy();
         return reg(INT_STATUS);
+    case STROBE_DLL_STATUS:
+        return m.cfg.soc == USDHC_IMX6UL ? 0 : strobe_dll_status();
     default:
         return reg(off);
     }
@@ -784,6 +837,9 @@ void usdhc_model_write(uintptr_t addr, uint32_t value)
         break;
     case VEND_SPEC:
         write_vend_spec(value);
+        break;
+    case STROBE_DLL_CTRL:
+        write_strobe_dll_ctrl(value);
         break;
     case CMD_XFR_TYP:
         run_command(value);

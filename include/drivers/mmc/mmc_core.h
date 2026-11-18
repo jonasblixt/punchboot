@@ -423,9 +423,12 @@ struct mmc_device;
  * The card, until it is reset or powered off:
  *  - Selected, in Transfer state.
  *  - In the board's bus mode (mmc_device_config): jiffy's e.MMC in 8 bit
- *    DDR52 (HS_TIMING 1, BUS_WIDTH 6), the 8M and 8X boards' in 8 bit HS200
- *    (HS_TIMING 2, BUS_WIDTH 2) at the board's delay tap, or the tuned one
- *    with CONFIG_MMC_CORE_HS200_TUNE; in high speed on 8 bit (HS_TIMING 1,
+ *    DDR52 (HS_TIMING 1, BUS_WIDTH 6); the 8MP EVK's in HS400 with Enhanced
+ *    Strobe (HS_TIMING 3, BUS_WIDTH 0x86), the MEK's in HS400 (HS_TIMING 3,
+ *    BUS_WIDTH 6) at the tuned tap, each in 8 bit HS200 (HS_TIMING 2,
+ *    BUS_WIDTH 2) when HS400 failed; the other 8M and 8X boards' in HS200,
+ *    at the board's delay tap or the tuned one with
+ *    CONFIG_MMC_CORE_HS200_TUNE; in high speed on 8 bit (HS_TIMING 1,
  *    BUS_WIDTH 2) when the tuning found no tap. An SD card in high speed or
  *    default speed on 4 or 1 bit, as the board and the card allow.
  *  - On the e.MMC, PARTITION_ACCESS (PARTITION_CONFIG bits 2:0) on the

@@ -811,6 +811,11 @@ int mmc_emmc_setup(struct mmc_device *dev)
     if (rc != PB_OK)
         return rc;
 
+    LOG_DBG("EXT_CSD_REV %u, DEVICE_TYPE 0x%02x, STROBE_SUPPORT %u",
+            dev->ext_csd[EXT_CSD_REV],
+            dev->ext_csd[EXT_CSD_CARD_TYPE],
+            dev->ext_csd[EXT_CSD_STROBE_SUPPORT]);
+
     if (!(dev->ext_csd[EXT_CSD_CARD_TYPE] & mode_card_types(cfg->mode))) {
         LOG_ERR("Bus mode %i not supported, DEVICE_TYPE 0x%02x",
                 cfg->mode,

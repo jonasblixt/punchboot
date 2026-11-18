@@ -41,13 +41,38 @@
 
 #include "partitions.h"
 
+/*
+ * The eMMC, a SanDisk DG4032 (e.MMC 5.1, EXT_CSD_REV 8) on the EVKs seen:
+ * HS400 with Enhanced Strobe, as Linux runs it, no tuning. HS200 when that
+ * fails, so that a board whose HS400 doesn't work still boots and can be
+ * written in command mode.
+ */
+#define USDHC3_EMMC_CONFIG(bus_mode, bus_width) \
+    {                                                                                \
+        .base = IMX8M_USDHC3_BASE, .delay_tap = 35, .hs400 = true,                   \
+        .mmc_config = {                                                              \
+            .mode = (bus_mode),                                                      \
+            .width = (bus_width),                                                    \
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,                \
+            .boot0_uu = PART_boot0,                                                  \
+            .boot1_uu = PART_boot1,                                                  \
+            .user_uu = PART_user,                                                    \
+            .rpmb_uu = PART_rpmb,                                                    \
+            .flags = 0,                                                              \
+        },                                                                           \
+    }
+
 static int usdhc_emmc_setup(void)
 {
-    /* USDHC3_CLK_ROOT: SYSTEM_PLL1_DIV2 (400 MHz) / 2 = 200 MHz */
+    int rc;
+
+    /* USDHC3_CLK_ROOT: SYSTEM_PLL1_DIV2, 400 MHz, the root's maximum. HS400's
+     * 200 MHz needs it: in DDR the controller divides by 2 at least (RM,
+     * SYS_CTRL.SDCLKFS) */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_CLR(IMX8MP_USDHC3_CLK_ROOT),
                   CLK_ROOT_SRC_MUX_MASK | CLK_ROOT_PRE_DIV_MASK);
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(IMX8MP_USDHC3_CLK_ROOT),
-                  CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV2));
+                  CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1));
     mmio_write_32(CCM_CCGR_SET(IMX8MP_CCGR_USDHC3), CCGR_CLK_ON_MASK);
 
 #define USDHC3_PAD_CLK             (PAD_CTL_HYS | PAD_CTL_FSEL_FAST | PAD_CTL_DSE_X6)
@@ -72,22 +97,17 @@ static int usdhc_emmc_setup(void)
 
     imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
-    static const struct imx_usdhc_config cfg = {
-        .base = IMX8M_USDHC3_BASE,
-        .delay_tap = 35,
-        .mmc_config = {
-            .mode = MMC_BUS_MODE_HS200,
-            .width = MMC_BUS_WIDTH_8BIT,
-            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
-            .boot0_uu = PART_boot0,
-            .boot1_uu = PART_boot1,
-            .user_uu = PART_user,
-            .rpmb_uu = PART_rpmb,
-            .flags = 0,
-        },
-    };
+    static const struct imx_usdhc_config hs400 =
+        USDHC3_EMMC_CONFIG(MMC_BUS_MODE_HS400, MMC_BUS_WIDTH_8BIT_DDR_STROBE);
+    static const struct imx_usdhc_config hs200 =
+        USDHC3_EMMC_CONFIG(MMC_BUS_MODE_HS200, MMC_BUS_WIDTH_8BIT);
 
-    return imx_usdhc_init(&cfg, MHz(200));
+    rc = imx_usdhc_init(&hs400, MHz(400));
+    if (rc == PB_OK)
+        return rc;
+
+    LOG_WARN("eMMC HS400 failed (%i), using HS200", rc);
+    return imx_usdhc_init(&hs200, MHz(400));
 }
 
 /*

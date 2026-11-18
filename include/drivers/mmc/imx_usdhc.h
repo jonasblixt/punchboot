@@ -17,6 +17,12 @@ struct imx_usdhc_config {
     uintptr_t base; /*!< Base address of USDHC controller */
     unsigned int delay_tap;
     bool card_detect; /*!< CD_B is connected (SD slots) */
+    /* The controller has HS400 (i.MX8M, i.MX8X; not the i.MX6UL) and the board wires the data
+     * strobe: HS400, with or without Enhanced Strobe, can be asked for */
+    bool hs400;
+    /* No tuning: HS200 runs at delay_tap, also with CONFIG_MMC_CORE_HS200_TUNE (and HS400
+     * without Enhanced Strobe, which needs the tuning, is refused) */
+    bool fixed_tap;
     const struct mmc_device_config mmc_config; /*!< MMC layer configuration */
 };
 
@@ -26,8 +32,9 @@ struct imx_usdhc_config {
  * the last call left it: the card clock's dividers for the bus mode, the bus
  * width and DDR_EN, the delay line's tap, ADMA2 selected and ADMA_SYS_ADDR
  * at the driver's descriptor table, which the controller reads only when a
- * command with data is written. Its interrupt signals are off. The card's
- * side is in drivers/mmc/mmc_core.h.
+ * command with data is written; in HS400, MIX_CTRL's HS400 bits and the
+ * strobe DLL enabled. Its interrupt signals are off. The card's side is in
+ * drivers/mmc/mmc_core.h.
  */
 
 /*

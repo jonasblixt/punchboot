@@ -35,9 +35,15 @@
  * DMA addresses are 32 bits: buffers must be below 4 GiB, so tests link
  * with -no-pie and use static buffers.
  *
+ * HS400 (the i.MX8M): with DDR_EN above 52 MHz, read data and a write's CRC
+ * status are latched on the data strobe, so a transfer gets a data CRC error
+ * unless MIX_CTRL.HS400_MODE is set and the strobe DLL has locked, which it
+ * does some reads after STROBE_DLL_CTRL.ENABLE. The i.MX6UL has neither.
+ *
  * Not modeled: PIO through DATA_BUFF_ACC_PORT, SDMA, ADMA1, tuning circuits
- * (tuning commands get their data like a read), the DLLs, CQE, boot mode,
- * interrupts (INT_SIGNAL_EN).
+ * (tuning commands get their data like a read), the DLLs' delays (the DLL
+ * override is a window of taps, the strobe DLL a lock), Enhanced Strobe's
+ * responses on the strobe, CQE, boot mode, interrupts (INT_SIGNAL_EN).
  */
 
 #ifndef TESTS_UNIT_MODELS_USDHC_MODEL_H
@@ -65,6 +71,7 @@ struct usdhc_model_config {
      */
     bool tap_window;
     unsigned int tap_lo, tap_hi;
+    bool strobe_dll_never_locks; /* STROBE_DLL_STATUS never shows the locks */
 };
 
 void usdhc_model_init(const struct usdhc_model_config *cfg);
