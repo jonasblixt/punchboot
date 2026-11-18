@@ -1,0 +1,32 @@
+The steps of a release (D-003). A release is made from master, and its tag
+publishes the punchboot package to PyPI (.github/workflows/punchboot-tools.yml).
+version.txt is the one version: pb's (PB_VERSION in the Makefile and
+CMakeLists.txt) and the package's (pyproject.toml).
+
+1) Check master: CI green on its head (build.yml: host tests, sanitizers,
+   coverage, the boards' firmware; punchboot-tools.yml: the wheel's smoke test)
+    $ scripts/pbdev test
+    $ scripts/pbdev test -DPB_SANITIZE=ON
+    $ pre-commit run --all-files
+
+2) The test record (doc/process.md 7): what ran on which board, and what never
+   did (fuse writes, the 8X closed state, ...)
+
+3) Update 'CHANGELOG.md': the release's entry, each line with its source
+    $ git log --oneline vPREVIOUS..master
+
+4) Update README.md if relevant
+
+5) Bump 'version.txt' to X.Y.Z in a pull request to master
+
+6) Optional, a dry run: start punchboot-tools.yml by hand (workflow_dispatch)
+   on the branch; it uploads to TestPyPI
+
+7) After the merge, tag master's head vX.Y.Z: a GitHub release with that tag
+   and generated notes, or
+    $ git tag vX.Y.Z && git push <the GitHub remote> vX.Y.Z
+   The tag must be v and version.txt's content: for any other v* tag the
+   upload job fails and nothing is published (F-228)
+
+8) Check the upload: the "Upload to PyPi" job of punchboot-tools.yml, then
+    $ pip install punchboot==X.Y.Z && punchboot --version

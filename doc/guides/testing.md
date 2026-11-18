@@ -1,0 +1,460 @@
+# Testing
+
+All tests run on the host (D-004): punchboot is built as a native process, and there are CMocka
+unit tests and pytest integration tests. The old QEMU/bash suite has been ported and removed, and
+CI runs these tests (D-006).
+
+## Layout
+
+| Path                      | What                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| `CMakeLists.txt`          | Host build only. The firmware for targets is still built by the `Makefile`.            |
+| `configs/host_defconfig`  | Kconfig for the host build (`ARCH_HOST`, `PLAT_HOST`). `host_speculative_defconfig` is |
+|                           | the second one, `pb-host-speculative`: the same with the watchdog fake and             |
+|                           | `BOOT_AB_SPECULATIVE` (F-341), nothing else (`test_kconfig.py` checks it)              |
+| `src/arch/host/`          | No-op cache/MMU. `arch_jump` exits.                                                    |
+| `src/plat/host/`          | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode |
+|                           | transport                                                                              |
+| `src/board/host/`         | Test board (partitions, keys, named commands, the fuses' layout)                       |
+| `tests/unit/`             | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`,            |
+|                           | `fakes/plat.c`)                                                                        |
+|                           | `python/`: pytest unit tests of the host tools (`tools/punchboot`) without a device:   |
+|                           | wire packing, the exceptions, bpak detection, the CLI on a fake session (F-041)        |
+| `tests/integration/`      | pytest tests that drive `pb-host` through the `punchboot` Python package               |
+| `tests/compat/`           | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in        |
+|                           | `bpak/`, wire transcripts in `transcripts/`. See `compatibility.md`                    |
+| `tests/doc/`              | The document lint (`process.md` 7): `check_docs.py`, the test `doc.lint`               |
+| `tests/make/`             | The firmware build: `check_rebuild.py` (`make.rebuild`) runs `make` for jiffy and      |
+|                           | checks that a changed key or version is made again (F-183);                            |
+|                           | `check_config.py` (`make.config`), its configuration and keys (F-229, F-147, D-083);   |
+|                           | `check_gen_trust_anchors.py` (`make.gen_trust_anchors`), the trust anchors' generator; |
+|                           | `check_include_dirs.py` (`make.include_dirs`), that each `-I` exists (F-031)           |
+| `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest                                    |
+
+## Running
+
+```sh
+scripts/pbdev test                           # build + all tests (~1 min cold, ~10 s warm)
+scripts/pbdev test -DPB_SANITIZE=ON          # ASan + UBSan
+BUILD_DIR=build-host-cov scripts/pbdev test -DPB_COVERAGE=ON
+CTEST_ARGS="-L unit" scripts/pbdev test      # only unit tests (C, and the host tools' Python)
+CTEST_ARGS="-L python" scripts/pbdev test    # only the host tools' Python unit tests
+CTEST_ARGS="-L compat" scripts/pbdev test    # only the frozen layout check (compatibility.md)
+CTEST_ARGS="-L doc" scripts/pbdev test       # only the document lint (process.md 7)
+CTEST_ARGS="-L make" scripts/pbdev test      # only the firmware build's checks
+python3 tests/doc/check_docs.py              # the same, without the container
+```
+
+The unit tests at 32 bits, as CI's `m32` job (F-428), jiffy's and the RT1060's word size:
+
+```sh
+BUILD_DIR=build-host-m32 PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig \
+    CTEST_ARGS="-L unit -E test_tfa|test_plat_imx8x|test_plat_imx8m|test_mmu|test_imx8mp?_ddr|unit.python" \
+    scripts/pbdev test -DCMAKE_C_FLAGS=-m32 -DCMAKE_EXE_LINKER_FLAGS=-m32
+```
+
+The 64-bit ports' tests are left out. A test's 64-bit case (an address above 4 GiB, a size a
+32-bit `size_t` can't hold) is under `#if UINTPTR_MAX == UINT64_MAX` or `SIZE_MAX`.
+
+`PB_JOBS` caps the compile jobs of a run, the firmware builds of the `make` tests included
+(default: the CPUs the container may use): `PB_JOBS=6 scripts/pbdev test` keeps an 8 core
+machine's load under 8. Two runs at once each take their own `PB_JOBS`.
+
+Coverage (2026-11-16, at `8f192e86`, all 125 ctest tests), measured as CI does it
+(`.github/workflows/build.yml`): the coverage build above, then
+
+```sh
+scripts/pbdev run gcovr -r . build-host-cov --filter src/ \
+    --exclude src/lib/fdt --exclude src/lib/uuid \
+    --exclude src/arch/host --exclude src/plat/host --exclude src/board/host --print-summary
+```
+
+82.2% of lines (10130/12331), 83.8% of functions (853/1018) and 85.1% of branches (4964/5831)
+of the files a host test compiles. 1833 of those lines are NXP's SCFW clients
+(`src/plat/imx8x/sci`), of which `test_plat_imx8x` calls a few; without them (`--exclude
+src/plat/imx8x/sci`) 94.3% of lines (9903/10498), 97.6% of functions and 88.1% of branches.
+Earlier that day 81.3% (10000/12294), 93.4% without them; on 2026-11-14 77.4% (7921/10237),
+91.8% without them. The 99.2% of 2026-10-22 counted the files pb-host itself compiles, before
+the drivers' and the ports' tests (F-230).
+
+A file no host test compiles isn't in the figure at all. Of what the boards build these are: the
+arch code (`src/arch/armv7a`, `armv7m`, `armv8a`), the boards (`src/board/*`), the UARTs, the GPIO,
+the DWC3 and i.MX cdns3 glue, the USB PHYs and `imx_usbdcd.c`, the libc but `snprintf.c`, TF-A's
+translation tables (`src/lib/xlat_tables_v2`), `plat_imx8mp.c`, `plat_imx8mq.c` and the SCFW's IRQ
+client. No board builds the virtio drivers. The least covered of the rest: `dwc3_udc.c` 81%
+(the control transfer's stages, which its model doesn't have), `usbd.c` 82%, `plat/imx8x/plat.c`
+85%, `imx_flexspi.c` 86%, `mmc_emmc.c` 88%.
+
+A single integration test, inside `scripts/pbdev shell`:
+`pip install --no-build-isolation --no-deps . && pytest tests/integration -k install`.
+
+## How the host platform works
+
+- **Entry point.** `main.c` in `src/` is compiled with `-Dmain=pb_main`, and `src/plat/host/main.c`
+  parses the options (`--disk --fuses --nor --socket --boot-status --dt --watchdog
+  --command-mode`) and calls `pb_main()`.
+- **RAM.** 512 MiB is `mmap`ed at `BOARD_RAM_BASE` (0x40000000), so `pb-load-addr` values work
+  unchanged. It stays below 0x7fff8000, where ASan's shadow memory starts.
+- **pb's own memory regions.** These normally come from the linker script. On the host they are
+  set with `--defsym` (`-no-pie`) at the start of RAM, so the image overlap checks keep working.
+- **Transport.** A unix socket server. `complete()` polls: it moves what the socket has, waits at
+  most 10 ms for more and returns AGAIN until the transfer is whole, so command mode's transfer
+  timeout and kicks run (`command-mode.md` 4.6). `init()` listens and returns at once, and
+  `connect()` is the accept, polled the same way (`usb.md` 2.2): pb-host without a client for
+  `CONFIG_CM_TRANSPORT_READY_TIMEOUT` (10 s) resets, which ends the process, as a board does
+  (`command-mode.md` 2.2). When a client disconnects,
+  `complete()` fails, command mode's task calls `init()` again, and `connect()` accepts the next
+  client, so each
+  CLI or `Session` is one connection, and one session (`command-mode.md` 3.1): a locked device
+  asks each for authentication.
+  The socket is bound to `<path>.tmp` and renamed to `<path>` after `listen()`, so tests can treat
+  the path appearing as "command mode is ready".
+- **Disk.** A file.
+- **Fuses.** A file of their own (`--fuses PATH`, default `fuses.img`), not on the disk: the
+  test fuse driver reads it in `plat_init()`, so the life cycle and the revoked keys don't depend
+  on the partition table, as a SoC's fuses don't (F-217). Device state persists across reboots
+  within a test. The disk's "Fuse array" partition is left unused, so the layout stays.
+- **Flash.** With `--nor PATH`: a memory mapped flash for the in place source (`boot.md` 4.1),
+  512 KiB at 0x70000000 (`BOARD_NOR_BASE`), a file that is erased (0xff) when new. pb has it
+  mapped read only and writes it through its bio device, so a write through the map faults as
+  it would be lost on a NOR. The host board gives it a static table: "NOR In place" (booted in
+  place), "NOR Loaded" (loaded, like a disk's partition) and "NOR Not bootable". The host
+  board's boot source policy is A/B on the disk; its init also marks the first two bootable,
+  so `boot part` boots them and the policy never hands them out. Without the
+  option pb-host has no flash and lists none.
+- **Watchdog.** None in `host_defconfig`. `pb-host-speculative` has `CONFIG_ENABLE_WATCHDOG`
+  (speculative mode depends on it): a fake that `plat_early_init()` arms and that counts the
+  kicks, written to `--watchdog PATH` when armed and at the exit. It resets nothing.
+- **Reset and boot.** `plat_reset()` calls `exit(0)`, which also writes gcov data. On boot, the
+  board's `late_boot` writes the partition name to `--boot-status` and then resets: `A` or `B`,
+  `X` for "NOR In place" and `N` for "NOR Loaded".
+- **The handover's device tree.** With `--dt PATH` the board's image handover names a device tree
+  part (`dt`), which every image it boots then needs, and `late_boot` first writes the tree the
+  handover prepared to PATH: what the next stage would read, `/chosen` with pb's information
+  (`boot.md` 5.5, 5.6). The handover's configuration has the board's `bootargs`, and the board's
+  DT hook writes a `pb,version` of its own that pb's replaces. Without the option the handover
+  names no tree, as for the in place tests (an image in place can't have one, F-291).
+- **System libc.** Host builds use glibc instead of the firmware libc. `src/plat/host/compat.h` is
+  force-included and provides the BSD attribute macros (`__section`, `__aligned`, ...).
+
+## Writing tests
+
+- **Unit tests.** Use `pb_unit_test(name SOURCES <modules under test> LIBS <libraries>)` in
+  `tests/unit/CMakeLists.txt`. Link only the modules under test, and fake what they call in the
+  test file (D-007). Call `bio_reset()` between cases (see `test_gpt.c`).
+  - `fakes/ramdisk.h`: set `fail_reads_after`/`fail_writes_after` to n to let n operations succeed
+    and fail the rest with `-PB_ERR_IO`; `fail_writes_after_blocks` to n to let n more blocks be
+    written and fail every write after them half way.
+  - `fakes/plat.h`: `fake_us_tick` and `fake_us_tick_step` drive `plat_get_us_tick()`. Reset them
+    in teardown; `test_gpt.c` depends on the default.
+  - Modules keep their config in statics that can't be reset (`rot`, `slc`, `crypto`, `ab_state`,
+    `boot`). Tests for the uninitialized state run first, and `cmocka_unit_test` order matters.
+  - The crypto API holds one hash and one DSA provider (`CONFIG_CRYPTO_MAX_*_OPS=1`), so fake and
+    Mbed TLS providers are in separate test programs.
+  - `test_cm.c` scripts the host side with `host_*()`, calls command mode's task
+    (`cm_main_task()`) round after round, as `main()`'s loop does, until the input runs out,
+    and checks the device's output with `expect_*()`.
+  - A path that hits an open bug is left out, with a comment naming the finding.
+  - Drivers with fixed register addresses: put `fakes/mmio` first on the include path (see
+    `test_imx8m_ddr` in `CMakeLists.txt`); every `mmio_*` call then goes to `fake_mmio_read/write`
+    in the test. `test_imx8m_ddr.c` uses this for a golden register trace (D-013,
+    `imx8m-ddr.md`).
+  - `fakes/regs.h`: a register file behind `fakes/mmio` for code that needs no model of a
+    device. A register reads what was last written or set, every write is logged, and
+    `fake_regs_on_write` is what the hardware does with a write (a bit that clears itself, a
+    reset: it may leave with a `longjmp`). The ports' tests (`test_plat_*.c`) use it:
+    `pb_plat_test()` in `CMakeLists.txt` builds a port's `plat.c` for the host.
+  - A header that reads a fixed address the host can't map (the 6UL's HAB vector table at 0x100):
+    a header of the same name under `fakes/` wraps it with `#include_next` and sends the read to
+    the test (`fakes/imx6ul_hab`, `test_imx6ul_hab.c`).
+- **MMC/SD test bench** (`tests/unit/models/`, D-017). Card models behind a bus interface
+  (`mmc_bus.h`): `emmc_model.c` from JESD84-B51 and `sd_model.c` from the SD Physical Layer
+  spec (written from memory, it wasn't at hand: violations name the command, not a section).
+  They act like the card and log every host action the standard doesn't allow, citing the
+  section (`bench.h`); `assert_bench_clean()` fails the test on any. Two ways in:
+  - `hal_model.c`: an `mmc_hal` that behaves like a correct controller, for `mmc_core` alone
+    (`test_mmc_emmc.c`).
+  - `usdhc_model.c`: a register model of the uSDHC (i.MX6UL and i.MX8M RMs) behind
+    `fakes/mmio`, for `imx_usdhc.c` + `mmc_core` with the boards' settings (`test_imx_usdhc.c`).
+    It runs commands, ADMA2 and auto CMD12, latches INT_STATUS and logs RM violations. DMA
+    addresses are 32 bits: `-no-pie` and static buffers.
+
+  Time is simulated: `plat_get_us_tick()` advances 1 us per call (the real `delay.c` runs),
+  every uSDHC register read costs 1 us, and polling for more than 10 s fails as stuck.
+  Faults: no response or bad CRC on a command, SWITCH_ERROR on a field, data CRC/timeout,
+  status error bits, every written block after n failing, power loss after n blocks;
+  `emmc_model_rom_handover()` starts from where a
+  boot ROM leaves the card. `test_mmc_models.c` checks the models themselves: a scripted host
+  runs the standard sequences (DDR52, HS400 after tuning, SD high speed, SDR104 with CMD11)
+  clean, and known mistakes give the expected violation. Not modeled: signal timing (DLL taps,
+  sampling), boot operation, erase, write protection, RPMB authentication, CQE.
+  Where the silicon differs from the RM, the model follows the silicon and says so (F-126: no
+  TC at the end of busy without data).
+- **Host tools' unit tests** (`tests/unit/python`, F-041): pytest on the installed `punchboot`
+  package, no device and no pb-host. `test_cli.py` puts a fake in place of the CLI's `Session`.
+- **Integration tests.** Helpers live in `pbtest.py`: the `Device` class, `make_bpak()` (bpak CLI)
+  and `sgdisk_verify()`. Fixtures:
+  - `blank_device` starts in command mode on a blank disk.
+  - `device` also has the default partition table installed.
+  - `no_disk_device` has a disk that can't be opened: the board's `init()` fails, and pb stops
+    in command mode with what `init()` set up before the disk (`board.md` 2.1).
+  - `nor_device` is `device` with the flash (`--nor`). `read_nor()` and `write_nor()` reach its
+    file. An in place image's `pb-load-addr` is `NOR_BASE` plus the partition's offset plus the
+    part's offset in the payload.
+  - `dt_device` is `device` with `--dt`: its images are `make_bpak(..., dt=DT)`, and after a
+    boot `device.chosen` is `/chosen` of the tree it handed over, each property's bytes
+    (`fdt.py` builds the part and reads the tree; `test_handover.py`). `device.boot_mode` is
+    `pb,boot-mode` from it.
+  - `speculative_device` is `dt_device` on `pb-host-speculative`: the watchdog fake and A/B's
+    speculative mode (`boot.md` 3.6). `device.watchdog` is the fake's timeout and kicks, None for
+    the default `pb-host`. The speculative cases are in `test_ab_state.py`.
+
+  Use `device.session()` (only one at a time) together with `reboot()`, `boot()` (power on without
+  command mode, returns 'A'/'B'/'?'), `read_blocks()`/`write_blocks()` (on the disk image) and
+  `pbstate()`. When a test fails, the pb-host log is printed.
+- **pb-host's console.** The host platform sends stdout through `console_putc()` (`fopencookie()`),
+  so with `CONFIG_RAMLOG` (on in `host_defconfig`) the RAM log holds the same bytes as the pb-host
+  log, as on target with a UART.
+- **Raw wire protocol.** `device.wire()` gives a `Wire` connection for requests the punchboot
+  package never sends (bad buffer ids, sizes, offsets). See `test_stream.py`.
+- **Teardown checks.** The fixture fails the test if pb-host exits non-zero, doesn't exit on reset,
+  or its log contains an ASan/LeakSanitizer/UBSan report. The reset authenticates with the
+  development key when a locked device asks for it (`pbtest.device_reset()`); a device that
+  refuses that key can't be reset, so it is killed without a failure.
+
+## Porting status
+
+All 43 bash tests in the QEMU run list were ported (63 pytest cases plus 7 CMocka cases, about 9 s
+in total). The bash suite, `src/board/test`, `src/plat/qemu` (including the semihosting gcov hack)
+and `configs/test_defconfig` were then removed.
+
+| pytest module         | Ported from                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `test_part.py`        | test_part, test_part_flash, test_part_verify_fh, test_verify_bpak, test_part_dump,      |
+|                       | test_part_dump2 (+ size limits, F-050)                                                  |
+| `test_gpt.py`         | test_corrupt_gpt{,2,3,4,5}, test_corrupt_backup_gpt, test_gpt_variants                  |
+| `test_boot.py`        | test_boot_bpak{,2..10}, test_invalid_key_index, test_overlapping_region,                |
+|                       | test_all_sig_formats, test_gpt_boot_activate{,_step2..5}                                |
+| `test_ab_state.py`    | test_switch, test_rollback, test_corrupt_primary_config,                                |
+|                       | test_corrupt_backup_config, test_board_regs                                             |
+| `test_security.py`    | test_device_setup, test_authentication, test_revoke_key                                 |
+| `test_board.py`       | test_board, test_board_status (+ a failed step of `board_setup()`, F-178)               |
+| `test_cli.py`         | test_cli, test_reset                                                                    |
+| `test_stream.py`      | new: stream bounds (F-053, F-054)                                                       |
+| `test_commands.py`    | new: boot status, erase, end of life, bpak read, F-072                                  |
+| `test_log.py`         | new: `PB_CMD_LOG_READ` and `punchboot log` (in chunks, wrapped)                         |
+| `test_compat.py`      | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 refused |
+| `test_transcripts.py` | new: recorded wire transcripts served to the current host (D-008, guard 4)              |
+| `test_old_hosts.py`   | new: released hosts' CLI against pb-host (D-008, guard 3), with `PB_OLD_HOSTS`;         |
+|                       | `scripts/pbdev run scripts/ci/old-hosts.sh` installs them and runs it                   |
+| `test_in_place.py`    | new: the in place source on the host's flash: boot, placement, verification (F-253)     |
+| `test_pbstate.py`     | new: the pbstate tool's command line on pb-host's disk, its library's symbols, a build  |
+|                       | with default partitions (F-221, F-222, F-010)                                           |
+
+ctest runs 107 tests (2026-11-14): 97 labelled `unit` (78 CMocka programs, 16 compile checks, 2
+Kconfig checks and `unit.python`), the pytest suite `integration`, 7 `make`, 1 `compat`, 1 `doc`.
+The unit tests take about 4 s, the integration suite about 80 s with coverage.
+
+Unit tests, by module under test:
+
+| Test                                          | Module                       | Fakes                            |
+| --------------------------------------------- | ---------------------------- | -------------------------------- |
+| `test_bio.c`, `test_gpt.c`, `test_fuse_bio.c` | `bio.c`, `gpt.c`,            | ramdisk                          |
+|                                               | `test_fuse_bio.c`            |                                  |
+| `test_bpak.c`, `test_der.c`, `test_wire.c`,   | `bpak.c`, `der_helpers.c`,   | clock (`test_delay.c`)           |
+|                                               | `wire.c`,                    |                                  |
+| `test_delay.c`                                | `delay.c`                    |                                  |
+| `test_dma.c`                                  | `dma.c`: the DMA and cache   | the D-cache model                |
+|                                               | rule's functions             | (`fakes/dcache.h`), checked by   |
+|                                               | (`drivers.md` 4)             | the same suite                   |
+| `test_crypto.c`, `test_mbedtls.c`             | `crypto.c`, `mbedtls_pb.c`   | providers / none (real keys and  |
+|                                               |                              | the auth token)                  |
+| `test_crypto_sw.c`,                           | `crypto_sw.c`, the core's    | Mbed TLS                         |
+| `test_crypto_sw_no_mbedtls`                   | software backend, with and   |                                  |
+|                                               | without Mbed TLS             |                                  |
+| `test_rot.c`, `test_device_uuid.c`            | `rot.c`, `slc.c`,            | board callbacks, unique id       |
+|                                               | `device_uuid.c`              |                                  |
+| `test_ab_state.c`, `test_boot.c`,             | `ab_state.c`, `boot.c`;      | ramdisk, image helpers, boot     |
+| `test_ab_state_speculative`,                  | again with speculative       | driver. In place: `static.c`,    |
+| `test_boot_preconditions`                     | mode, and with a watchdog    | the ramdisk's memory as the map  |
+| `test_pbstate.c`                              | `tools/pbstate`'s            | `sync()`, which counts; two      |
+|                                               | `pbstate.c` (libpbstate)     | files in a temporary directory   |
+|                                               |                              | are the copies                   |
+| `test_static_ptbl.c`                          | `static.c`                   | ramdisk                          |
+| `test_policy.c`                               | `policy.c`,                  | ramdisk                          |
+|                                               | `policy_fixed.c`,            |                                  |
+|                                               | `policy_chain.c`             |                                  |
+| `test_fh.c`, `test_fh_armv7`,                 | `fh.c`, `dtb.c` (not in      | arch (the cache); a receiver of  |
+| `test_fh_armv7m`                              | pb-host), once per register  | the test's own reads the list in |
+|                                               | convention                   | a region the test maps           |
+| `test_tfa.c`, `test_tfa_plat`                 | `atf.c` (not in pb-host),    | arch (ARMv8-A's names, the ID    |
+|                                               | twice: the `bl_params` list  | register); pins what BL31 reads, |
+|                                               | in pb's data and in the      | field by field                   |
+|                                               | platform's memory            |                                  |
+| `test_tfa_image.c`                            | `image.c`, `dtb.c`, `atf.c`: | as `test_image.c` and            |
+|                                               | the 8MP EVK's and the MEK's  | `test_tfa.c`                     |
+|                                               | boot                         |                                  |
+| `test_optee.c`                                | `image.c`, `dtb.c`,          | as `test_image.c`, OP-TEE's      |
+|                                               | `optee.c`: jiffy's boot      | entry; AArch32's registers       |
+|                                               | through OP-TEE               | (`CONFIG_ARCH_ARMV7`)            |
+| `test_image_helpers.c`,                       | `image_helpers.c`; again     | hash, DSA, root of trust (memory |
+| `test_image_helpers_handover`                 | with the handover's regions  | regions via `--defsym`)          |
+| `test_image.c`, `test_image_armv7`            | `image.c`; again with        | arch, SLC, root of trust, device |
+|                                               | AArch32's registers          | UUID; builds DTBs with libfdt    |
+| `test_cm.c`, `test_cm_no_eol`                 | `src/cm/`; again without     | transport, boot, root of trust,  |
+|                                               | `CONFIG_SLC_EOL`             | SLC, crypto providers            |
+| `test_usb_transport.c`                        | `pb_dev_cls.c`, `usbd.c`:    | the USB device controller        |
+|                                               | the transport on USB         |                                  |
+| `test_main.c`, `test_main_no_tasks`           | `main.c`: the loop over the  | platform, board set up, boot;    |
+|                                               | tasks, twice: with three     | three tasks                      |
+|                                               | tasks and with none; the     |                                  |
+|                                               | reset after a platform       |                                  |
+|                                               | failure                      |                                  |
+| `test_mmu.c`, `test_mmu_armv8`,               | `mmu.c`: the memory map's    | `fakes/xlat.c`, which notes the  |
+| `test_mmu_no_board_mmap`                      | layers (`platform.md` 5.2),  | regions; `fakes/board.c`, a      |
+|                                               | the board's regions and      | board with only `mmap`           |
+|                                               | their rules (`board.md`      |                                  |
+|                                               | 2.8), the room; for ARMv7-A, |                                  |
+|                                               | ARMv8-A, and a NULL `mmap`   |                                  |
+| `mmap_whole_pages.c`                          | `pb/mmu.h`'s macros: a board | compiled only                    |
+|                                               | region that isn't whole      |                                  |
+|                                               | pages doesn't build          |                                  |
+| `test_plat_imxrt.c`                           | `plat/imxrt/plat.c`,         | the SoC's registers in a         |
+|                                               | `imx_gpt.c`, `imx_wdog.c`:   | register file; the fuses, the    |
+|                                               | the port against             | HAB, Mbed TLS                    |
+|                                               | `platform.md`                |                                  |
+| `test_plat_imx8x.c`                           | `plat/imx8x/plat.c`, its     | a model of the SCFW behind its   |
+|                                               | SCFW client (`sci/`),        | messaging unit; the fuses, the   |
+|                                               | `imx_gpt.c`                  | RoT and SLC helpers, the MMU     |
+|                                               |                              | (`fakes/xlat.c`)                 |
+| `test_imx8x_dry_run.c`,                       | `plat/imx8x/`'s fuse, RoT    | the SCFW's fuse and SECO calls   |
+| `test_imx8xl_dry_run`                         | and SLC helpers, with the    |                                  |
+|                                               | fuse dry run                 |                                  |
+|                                               | for the 8X and the 8DXL      |                                  |
+| `test_mmc_core.c`,                            | `mmc_core.c` (boot partition | fake card                        |
+| `test_mmc_core_debug_ios`                     | updates, power loss); again  |                                  |
+|                                               | with its reads' and writes'  |                                  |
+|                                               | log                          |                                  |
+| `test_mmc_emmc.c`                             | `mmc_core.c`, `mmc_emmc.c`   | e.MMC model, `hal_model`         |
+| `test_mmc_sd.c`                               | `mmc_core.c`, `mmc_sd.c`     | SD card model, `hal_model`       |
+| `test_imx_usdhc.c`                            | `imx_usdhc.c`, `mmc_core.c`  | uSDHC model, e.MMC and SD models |
+| `test_mmc_models.c`                           | the card models              | scripted host                    |
+| `test_bio_conformance.c`                      | the block device conformance | the RAM disk (512 B, 4 KiB, a    |
+|                                               | tests (`bio.md` 8); also in  | partition), the host's disk and  |
+|                                               | `test_mmc_emmc`, `_sd`,      | flash; a write that fails: the   |
+|                                               | `test_imx_usdhc`,            | RAM disk's fault, a file size    |
+|                                               | `test_imx_flexspi`           | limit for the host's files       |
+| `test_board.c`, `test_board_password`         | `board.c`, `password.c`: the | RoT, SLC, bio, boot, command     |
+|                                               | board's set up, with and     | mode; records the order          |
+|                                               | without the password method  |                                  |
+| `test_console.c`, `test_ramlog.c`             | `console.c`, `ramlog.c`      | the UART (fopencookie)           |
+| `test_linux_ramoops.c`                        | `linux_ramoops.c`: the log   | regions laid out as Linux 6.18's |
+|                                               | "linux"                      |                                  |
+| `test_imx_rom_log.c`, `test_imx_hab_log.c`    | `imx_rom_log.c`,             | the ROM's log; the HAB API in a  |
+|                                               | `imx_hab_log.c`              | fake RVT                         |
+| `test_imx8x_seco_log.c`                       | `plat/imx8x`'s SECO log      | the SCFW's two calls             |
+| `test_rot_slots.c`, `test_slc_no_eol.c`       | `rot.c`'s revoke slots;      | trust anchors, board callbacks   |
+|                                               | `slc.c` without              |                                  |
+|                                               | `CONFIG_SLC_EOL`             |                                  |
+| `test_snprintf.c`                             | pb's `snprintf()`,           | none                             |
+|                                               | `vsnprintf()` (as `pb_*`)    |                                  |
+| `test_tzc380.c`                               | `tzc380.c`                   | a register file in RAM           |
+| `test_plat_info.c`                            | `plat_info.c`: the text, its | a fake `plat_get_info()`         |
+|                                               | log, the command `info`      |                                  |
+| `test_imx_iomuxc.c`                           | `imx_iomuxc.c`: the pin      | `fakes/mmio`, records writes     |
+|                                               | tables                       |                                  |
+| `test_imx_ocotp.c`                            | `imx_ocotp.c`                | a model of the OCOTP (6UL RM 35) |
+| `test_imx_hab_fuses.c`                        | `imx_hab_fuses.c`: HABv4's   | OCOTP with the 6UL's layout      |
+|                                               | life cycle and revocation    |                                  |
+| `test_imx6ul_hab.c`                           | `plat/imx6ul/hab.c` with     | OCOTP; the ROM's vector table    |
+|                                               | `imx_hab_fuses.c` and the    | (`fakes/imx6ul_hab`, `-no-pie`)  |
+|                                               | 6UL's fuse map: the life     |                                  |
+|                                               | cycle, the key state, a      |                                  |
+|                                               | revocation HAB's status      |                                  |
+|                                               | refuses                      |                                  |
+| `test_imx8x_helpers.c`                        | `plat/imx8x`'s fuse, RoT and | the SCFW's fuse and SECO calls,  |
+|                                               | SLC helpers as the boards    | each can fail                    |
+|                                               | build them (no dry run)      |                                  |
+| `test_imx_caam.c`                             | `imx_caam.c`: RNG4's         | a model of the controller page   |
+|                                               | instantiation                | and one job ring                 |
+| `test_caam_crypto.c`                          | `imx_caam.c`'s hash and      | the CAAM model                   |
+|                                               | verify through the crypto    | (`models/caam_model.c`)          |
+|                                               | API, the conformance tests   |                                  |
+|                                               | (`crypto.md` 9)              |                                  |
+| `test_caam_lp256.c`                           | `imx_caam.c` on a CAAM with  | the CAAM model                   |
+|                                               | MDHA LP256 before era 10: no |                                  |
+|                                               | SHA-384/512                  |                                  |
+| `test_caam_jr_reset.c`                        | `imx_caam.c`'s job ring      | the CAAM model                   |
+|                                               | reset at init: an earlier    |                                  |
+|                                               | user's job flushed, a flush  |                                  |
+|                                               | that never completes         |                                  |
+| `test_imx_flexspi.c`                          | `imx_flexspi.c` and bio      | a NOR flash behind the           |
+|                                               | against `bio.md` 3, the      | controller's registers           |
+|                                               | conformance tests            |                                  |
+| `test_imx8m_ddr.c`                            | the i.MX8MQ's DRAM init      | a model of the uMCTL2, the PHY   |
+|                                               | (`ddr.c`, `ddr_imx8mq.c`,    | and its firmware's mailbox       |
+|                                               | `umctl2.c`, `dwc_ddrphy.c`)  | (`fakes/mmio`): golden trace     |
+| `test_imx8mp_ddr.c`                           | the i.MX8M Plus's DRAM init  | as `test_imx8m_ddr.c`: golden    |
+|                                               | (`ddr_imx8mp.c`)             | trace                            |
+| `test_plat_imx6ul.c`,                         | `plat/imx6ul/plat.c`,        | register file; the fuses, ROM    |
+| `test_plat_imx6ul_no_wdog`                    | `imx_gpt.c`, `imx_wdog.c`:   | logs, HAB, TZASC, MMU            |
+|                                               | the port against             |                                  |
+|                                               | `platform.md`, with and      |                                  |
+|                                               | without the watchdog         |                                  |
+| `test_plat_imx8m.c`                           | `plat/imx8m/plat.c` (the 8M  | register file, `fakes/armv8a`;   |
+|                                               | Plus), `imx_gpt.c`,          | the fuses, ROM logs, TZASC,      |
+|                                               | `imx_wdog.c`                 | clocks, DRAM training, MMU       |
+| `test_imx_wdog.c`                             | `imx_wdog.c` with the        | register file                    |
+|                                               | boards' values               |                                  |
+| `test_usbd.c`                                 | `usbd.c`, `pb_dev_cls.c`     | `fakes/usb_host.c`, a controller |
+|                                               | with a host on the bus:      | that plays the host              |
+|                                               | endpoint 0 (`usb.md` 3, 6),  |                                  |
+|                                               | transfers, bus reset, replug |                                  |
+| `test_dwc3_udc.c`                             | `dwc3_udc.c`: what it gives  | register file and a few lines    |
+|                                               | the controller and that the  | of a model of the controller;    |
+|                                               | bytes are the caller's       | the D-cache model                |
+|                                               | (`drivers.md` 4, `usb.md`    |                                  |
+|                                               | 4.3, 4.4)                    |                                  |
+| `test_imx_ci_udc.c`                           | `imx_ci_udc.c`: what it      | register file; models of the     |
+|                                               | queues and what the caller   | controller's side of a transfer  |
+|                                               | gets back                    | and of the cache                 |
+| `test_imx_salvo_phy.c`                        | `imx_salvo_phy.c`: the       | register file                    |
+|                                               | writes, VCOCAL_ITER_TMR at   |                                  |
+|                                               | 0x0085 (F-468)               |                                  |
+| `test_cdns3_udc.c`                            | `cdns3_udc_core.c`: the TRBs | register file                    |
+|                                               | of a bulk transfer and what  |                                  |
+|                                               | is cleaned from the cache    |                                  |
+|                                               | (`drivers.md` 4.2)           |                                  |
+
+Where the ports differ from the bash tests:
+- **Self-contained.** The bash tests depended on disk state and on the `/tmp/pb_force_command_mode`
+  flag left behind by earlier tests. Each pytest test starts from a blank disk (`blank_device`) or a
+  freshly installed partition table (`device`).
+- **Stronger checks.**
+  - GPT and A/B state recovery check that the corrupt copy is rewritten.
+  - Boots check which partition was booted.
+  - Negative boot tests check that the device didn't boot.
+- **Fixed intent.**
+  - test_corrupt_gpt3/4 used dd `skip` instead of `seek`, so they corrupted the start of the disk.
+    The header and partition-entry cases are now tested properly.
+  - test_boot_bpak9 never wrote the oversized image it was about.
+  - The test_gpt_boot_activate steps always ran in command mode and never checked a boot.
+- **Python API instead of the CLI.** `test_cli.py` covers the CLI itself.
+
+Not ported, and removed with the suite, because they use tools and commands that no longer
+exist (`config`, `pbi`, `part show`, `--offset`, old `slc`/`auth` flags) and were not in the run
+list: test_config, test_invalid_key_index2, test_setup_lock, test_bpak_show, test_part_offset_write.
+
+## Findings from the first runs
+
+- `Session.boot_set_boot_part(None)` raised `TypeError`, so the documented API never worked. Fixed (F-047).
+- UBSan: signed-shift overflow in `gpt_prng`. Fixed (F-048).
+- The 64-bit host build shows `%llu`-with-`uint64_t` format bugs (F-049).
+- `part_write` accepted bpak images whose payload overlapped the header (written to the end of the
+  partition), and corrupted them silently. Fixed in the host library (F-050).
+- Authentication lasted until reset, not per connection (F-185, fixed). The session ends with the
+  transport (`command-mode.md` 3.1), and on the host's socket a client that closes is lost
+  (`usb.md` 2.6), so each connection starts without authentication and without a stream.
+  `test_authentication_ends_with_the_connection` checks it, and the bench's reset authenticates
+  on a locked device. On USB, separate CLI invocations still share a session: closing and opening
+  the device is no unplug and no bus reset.
