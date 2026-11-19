@@ -94,8 +94,8 @@ Optional, the product's choice: `CONFIG_SLC_EOL`, off by default (`system.md` 4)
 | SoC         | Writes                       | Read back           | Revoke bits    | Notes              |
 | ----------- | ---------------------------- | ------------------- | -------------- | ------------------ |
 | i.MX6UL     | OCOTP                        | The array (F-166)   | 3 (SRK_REVOKE) | jiffy is locked    |
-| i.MX8M      | OCOTP                        | The array; on the   | 3 on the 8MQ;  | F-447: the 8M's    |
-|             |                              | 8MQ B1 the reloaded | the 8M Plus's  | SLC sources        |
+| i.MX8M      | OCOTP                        | The array; on the   | 3 on the 8MQ;  | F-447, below       |
+|             |                              | 8MQ B1 the reloaded | the 8M Plus's  |                    |
 |             |                              | shadows (F-466)     | aren't public  |                    |
 | i.MX8X      | The SCFW (SECO)              | None, after a reset | 4 (OEM SRKs)   | Slots 4 and up are |
 |             |                              |                     |                | refused (D-092)    |
@@ -103,3 +103,15 @@ Optional, the product's choice: `CONFIG_SLC_EOL`, off by default (`system.md` 4)
 
 Never run on a board, as of 2026-11-17: a fuse write with the read back, and the 8X's closed
 state (`roadmap.md`, the bench run).
+
+The i.MX8M's fuses aren't checked against the SoC's own Security Reference Manual (F-447): the
+8M Plus's wasn't available for 3.0.0. SEC_CONFIG and SRK_HASH are where NXP's U-Boot has them
+for the whole family (`mx8m_secure_boot.txt`), the 8MQ's SRK_REVOKE where its reference
+manual's OCOTP chapter has it; all three agree with a sibling's manual, the 8M Nano's
+(`plat-imx.md` 4.1). Before the first 8M device is fused, check them and the board's
+`slc_fuses` against the manual you have.
+
+The 8M Plus's SRK_REVOKE isn't public, so pb 3.0.0 can't revoke a key on an 8M Plus:
+`punchboot slc revoke-key` answers `NOT_SUPPORTED` for every key, and `slc show` reads them
+all as active. A product that must be able to revoke a key can't rely on pb for it on this
+SoC yet.

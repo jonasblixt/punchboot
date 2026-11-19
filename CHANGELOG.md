@@ -273,3 +273,12 @@ can change by mistake that a device in the field relies on. Then check:
   that use it are the RT1060 EVK's builds; it is to be replaced, with what replaces it
   bringing the hashes the RT1060 doesn't register (F-020, F-286 (10),
   `doc/guides/vendored.md`).
+- **The i.MX8M's security fuses** aren't checked against the SoC's own Security Reference
+  Manual (F-447): the 8M Plus's wasn't available for 3.0.0. The SRK hash and the closed bit
+  are where NXP's U-Boot has them for the whole family (`mx8m_secure_boot.txt`), the 8MQ's
+  SRK_REVOKE where its reference manual's OCOTP chapter has it, and all three agree with a
+  sibling's manual, the 8M Nano's. pb has written no fuse on an 8M board, and the in-tree 8M
+  Plus board never does (`CONFIG_SLC_NO_FUSE_WRITES`).
+- **The i.MX8M Plus's keys can't be revoked** in 3.0.0: where its SRK_REVOKE is isn't public,
+  so `slc revoke-key` answers `NOT_SUPPORTED` for every key there and a key that leaks stays
+  valid (`doc/guides/slc.md` 7).
