@@ -4,9 +4,15 @@ What pb does at a boundary is decided in its documents before it is coded, and e
 follows the one above it (`process.md`). The folders are the levels: where a document sits says
 what it may decide and what it must cite.
 
-Documents cite each other by file name and section (`platform.md` 2.3), a decision as D-nnn
-(`dev/decisions.md`), a finding as F-nnn (`dev/findings.md`), a day's log as `log/<date>.md`
-(`dev/log/`). File names are unique across the folders and don't change when a document moves.
+Documents cite each other by file name and section (`platform.md` 2.3), and a decision as D-nnn
+(`decisions.md`). File names are unique across the folders and don't change when a document
+moves.
+
+The working records aren't in the repository (D-098): the maintainers keep them in a repository
+of their own. The documents and the code still cite them, a finding as F-nnn (`findings.md`,
+`findings-closed.md`), a day's log as `log/<date>.md`, and `status.md` and `roadmap.md` by name.
+What a reader needs of a finding is in the text that cites it; the releases' known limits are in
+`CHANGELOG.md`.
 
 | Level          | Folder          | Document                             | State (2026-11-12)         |
 | -------------- | --------------- | ------------------------------------ | -------------------------- |
@@ -48,11 +54,4 @@ Beside the levels, not normative:
 |           |                         | (draft)                                                  |
 |           | `vendored.md`           | The code pb didn't write: upstream, version, licence and |
 |           |                         | local changes of each piece                              |
-| `dev/`    | `status.md`             | Where the work is: read first                            |
-|           | `roadmap.md`            | What comes next, and what is to be discussed             |
-|           | `decisions.md`          | Why: D-nnn, appended; the index says what still holds    |
-|           | `findings.md`           | The gaps between the documents and the code: F-nnn, open |
-|           | `findings-closed.md`    | The fixed and rejected findings                          |
-|           | `audit-2026-11-18.md`   | An audit's record (A-nn): dead code, stale text,         |
-|           |                         | duplicated logic                                         |
-|           | `log/`                  | What was done, per day                                   |
+| `doc/`    | `decisions.md`          | Why: D-nnn, appended; the index says what still holds    |

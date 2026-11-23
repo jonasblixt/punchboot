@@ -65,9 +65,9 @@ document's state.
   `crypto.md` (the crypto backends), `usb.md` (the USB device controllers and command mode's
   transport). D-064, `log/2026-11-11.md`.
 
-Beside the levels, not normative: `dev/` holds the working records, `decisions.md` (why),
-`findings.md` (the gaps between a document and the code), `status.md` and `log/` (where the work
-is), `roadmap.md` (the order). `guides/` holds the how-to: `testing.md`, `build-and-test.md`,
+Beside the levels, not normative: `decisions.md` (why), and the working records, which are not
+in the repository (D-098): `findings.md` (the gaps between a document and the code), `status.md`
+and `log/` (where the work is), `roadmap.md` (the order). `guides/` holds the how-to: `testing.md`, `build-and-test.md`,
 `bpak.md`, later a porting guide and a migration guide for 3.0.0. The guides explain and cite the
 contracts; they decide nothing.
 
@@ -147,8 +147,10 @@ and a pre-commit hook. It reads the tree and builds nothing. It fails when:
   than the map. Two documents have the same file name.
 - A cited document or section doesn't exist. `platform.md` 2.3 is a heading; "n.m" is also item m
   of the list in section n, or a rule that starts with its number in bold (`security.md` 4.1).
-- An F-nnn isn't a finding, a D-nnn isn't a decision, or a finding in a "Not yet in the code"
-  marker is closed: the commit that closes a finding removes its markers.
+- A D-nnn isn't a decision.
+- With the working records, whose directory `PB_RECORDS` names: an F-nnn isn't a finding, or a
+  finding in a "Not yet in the code" marker is closed: the commit that closes a finding removes
+  its markers. Without them, as in CI, the findings aren't checked (D-098).
 - A `doc/...` path named in the code, the tests, the scripts or the CI doesn't exist.
 - A `Function :` or `Data :` entry of `platform.md` isn't declared in `pb/plat.h`, or one of
   `board.md` isn't a member of `struct board`, and neither the entry nor its section's intro has

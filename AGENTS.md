@@ -15,9 +15,13 @@ Read `doc/system/compatibility.md` before changing either.
 
 Do not read these up front. Open only what the task needs.
 
+The working records (`status.md`, `roadmap.md`, `findings.md`, `findings-closed.md`, `log/`)
+are not in this repository (D-098): they are in a repository of their own, checked out
+elsewhere. Where is in your memory or the user's own instructions; ask when it isn't.
+
 | File                               | Read when                                                                  |
 | ---------------------------------- | -------------------------------------------------------------------------- |
-| `doc/dev/status.md`                | **Start of every session.** Current focus, open threads, next steps        |
+| `status.md` (working records)      | **Start of every session.** Current focus, open threads, next steps        |
 | `doc/README.md`                    | The map of the documents: the levels, the folders, each document's state   |
 | `doc/process.md`                   | **Before writing or changing a contract**, and to find where a change      |
 |                                    | starts                                                                     |
@@ -50,11 +54,11 @@ Do not read these up front. Open only what the task needs.
 |                                    | board, boot time                                                           |
 | `testbench/simple/README.md`       | The simple target test bench (bare metal test application, pytest runner), |
 |                                    | MCU boards                                                                 |
-| `doc/dev/roadmap.md`               | Planning or picking the next piece of work                                 |
-| `doc/dev/findings.md`              | Fixing bugs / tech debt (IDs like `F-012`); the fixed ones are in          |
+| `roadmap.md` (working records)     | Planning or picking the next piece of work                                 |
+| `findings.md` (working records)    | Fixing bugs / tech debt (IDs like `F-012`); the fixed ones are in          |
 |                                    | `findings-closed.md`                                                       |
-| `doc/dev/decisions.md`             | Before changing direction on something already decided                     |
-| `doc/dev/log/`                     | Only the newest entry, and only if `status.md` is not enough               |
+| `doc/decisions.md`                 | Before changing direction on something already decided                     |
+| `log/` (working records)           | Only the newest entry, and only if `status.md` is not enough               |
 
 Skip unless the task is about them: `pki/` (test keys), vendored code
 (`scripts/kconfiglib.py`, `src/lib/{fdt,uuid,libc}`, `src/plat/imx8x/sci`,
@@ -81,7 +85,8 @@ Skip unless the task is about them: `pki/` (test keys), vendored code
 
 ## Keeping context current
 
-When a piece of work ends, or before the session ends:
-1. Update `doc/dev/status.md` (keep it under ~60 lines; move history to the log).
-2. Append to `doc/dev/log/YYYY-MM-DD.md`: what changed, why, what's left.
-3. Record decisions in `decisions.md`, and add or close items in `findings.md`.
+When a piece of work ends, or before the session ends, in the working records and with a
+commit there:
+1. Update `status.md` (keep it under ~60 lines; move history to the log).
+2. Append to `log/YYYY-MM-DD.md`: what changed, why, what's left.
+3. Add or close items in `findings.md`. Decisions are recorded here, in `doc/decisions.md`.

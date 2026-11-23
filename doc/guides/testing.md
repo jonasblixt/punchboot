@@ -43,6 +43,7 @@ CTEST_ARGS="-L compat" scripts/pbdev test    # only the frozen layout check (com
 CTEST_ARGS="-L doc" scripts/pbdev test       # only the document lint (process.md 7)
 CTEST_ARGS="-L make" scripts/pbdev test      # only the firmware build's checks
 python3 tests/doc/check_docs.py              # the same, without the container
+PB_RECORDS=<dir> python3 tests/doc/check_docs.py   # with the working records: the findings too
 ```
 
 The unit tests at 32 bits, as CI's `m32` job (F-428), jiffy's and the RT1060's word size:

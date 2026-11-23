@@ -118,6 +118,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-095 | `struct slc_ops` has no `set_configuration`      | In force                                           |
 | D-096 | The keys' names: ROTPK and trust anchor          | In force                                           |
 | D-097 | F-447 doesn't gate 3.0.0                         | In force; changes D-092's list                     |
+| D-098 | The working records leave the repository         | In force                                           |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2370,3 +2371,30 @@ before 3.0.0 (2026-11-19), so the finding can't close as written.
   Security Reference Manual; no key revocation on the 8M Plus; the in-tree 8M Plus board
   writes no fuse (`CONFIG_SLC_NO_FUSE_WRITES`, D-087).
 - **Not decided by this:** revocation on the 8M Plus, which waits for its manual.
+
+## D-098: The working records leave the repository (2026-11-23)
+
+Jonas: "I like the way we keep the context while we work on things but most of these things
+I'd like to keep outside of the punchboot repo." His objection: they are very verbose, and
+most of it is a log of changes that isn't relevant for most readers. "move everything but the
+descicion log, and put that one level up so we can remove "dev"."
+
+- **Out of the repository**, into a repository of their own, the maintainers': `status.md`,
+  `roadmap.md`, `findings.md`, `findings-closed.md`, the audit of 2026-11-18 and `log/`. They
+  work as before: the status first, a log entry per day, a finding per gap (`process.md`).
+- **`decisions.md` stays**, as `doc/decisions.md`; `doc/dev/` is gone. A break of
+  compatibility needs a decision entry (`principles.md`), and the contracts cite the
+  decisions: a reader of the repository has to be able to read them.
+- **The citations stay** in the contracts, the code, the tests and the commits: a finding as
+  F-nnn, a day's log as `log/<date>.md`. They are the records' names and aren't rewritten;
+  `doc/README.md` says where they lead. What a reader needs of a finding is to be in the text
+  that cites it.
+- **The changelog and the guides lose theirs**: a reader of those can't follow an F-nnn or a
+  log's date. They cite decisions and contracts.
+- **The document lint** checks the decisions as before. The findings (an F-nnn exists, a
+  marker's finding is open) are checked only where the working records are, named by
+  `PB_RECORDS`: not in CI.
+- **The 3.0.0 work's records were taken out of its branch** before the merge to master, so
+  they aren't in master's history. What master had until then (`doc/dev/`, to 2026-10-28)
+  stays in its history.
+- **Not decided:** a public roadmap (Jonas: possibly, later).

@@ -10,8 +10,10 @@ without building anything:
              unique across doc/.
   sections   A cited section (`platform.md` 2.3) exists. "n.m" is a heading, or
              item m of the list in section n.
-  ids        Every F-nnn is a finding and every D-nnn a decision.
-  markers    Every finding in a "Not yet in the code (F-nnn)" marker is open.
+  ids        Every D-nnn is a decision. With the working records: every F-nnn
+             is a finding.
+  markers    With the working records: every finding in a "Not yet in the code
+             (F-nnn)" marker is open.
   paths      Every doc/... path named in the tree exists.
   contracts  The entries of platform.md and board.md are in their headers and
              the other way round; an entry that isn't there yet has a marker.
@@ -19,21 +21,28 @@ without building anything:
              and pb/crypto.h, usb.md's transport and pb/cm.h, its controller's
              operations and struct usbd_hal_ops.
 
-The log, the decisions and the closed findings are records: they keep the names
-and numbers of their day and are not checked.
+The decisions are a record: they keep the names and numbers of their day and
+are not checked.
 
-  check_docs.py [<repository root>]
+The working records (the status, the roadmap, the findings, the log) are not in
+the repository (D-098). A document may cite them by name, and nothing more of
+such a citation is checked, unless PB_RECORDS names the directory they are
+checked out in: then a cited record exists there, and the findings are read.
+
+  [PB_RECORDS=<the working records>] check_docs.py [<repository root>]
 """
 
 from __future__ import annotations
 
 import dataclasses
+import os
 import pathlib
 import re
 import sys
 
-RECORDS = ("dev/log/", "dev/decisions.md", "dev/findings-closed.md")
-NOT_LEVELS = ("dev/", "guides/", "README.md")
+RECORDS = ("decisions.md",)
+NOT_LEVELS = ("guides/", "README.md", "decisions.md")
+WORK_RECORDS = ("status.md", "roadmap.md", "findings.md", "findings-closed.md")
 STATES = ("draft", "reviewed", "in force")
 CODE_DIRS = ("include", "src", "tools", "tests", "scripts", ".github")
 CODE_FILES = ("AGENTS.md", "README.md", "Makefile", "CMakeLists.txt")
@@ -194,8 +203,6 @@ def load(doc: pathlib.Path, report: Report) -> dict[str, Document]:
     """Read every document under doc/ that is checked, by file name."""
     documents: dict[str, Document] = {}
     for path in sorted(doc.rglob("*.md")):
-        if "/log/" in path.as_posix():
-            continue
         if path.name in documents:
             other = documents[path.name].path.relative_to(report.root)
             report.add(path, "", 0, f"the file name is also {other}'s: names are unique")
@@ -265,10 +272,12 @@ def check_states(doc: pathlib.Path, documents: dict[str, Document], report: Repo
     return {name for name, state in listed.items() if state.startswith("Missing")}
 
 
-def resolve(name: str, root: pathlib.Path, documents: dict[str, Document]) -> bool:
-    """Return whether a cited name is a document or a file in the tree."""
-    if name.startswith("log/"):
-        return (root / "doc" / "dev" / name).exists()
+def resolve(
+    name: str, root: pathlib.Path, documents: dict[str, Document], records: pathlib.Path | None
+) -> bool:
+    """Return whether a cited name is a document, a file in the tree or a working record."""
+    if name.startswith("log/") or name in WORK_RECORDS:
+        return records is None or (records / name).exists()
     if "/" in name:
         return (root / name).exists() or (root / "doc" / name).exists()
     return name in documents or (root / name).exists()
@@ -291,7 +300,11 @@ def cited_sections(text: str, end: int) -> list[str]:
 
 
 def check_citations(
-    document: Document, documents: dict[str, Document], missing: set[str], report: Report
+    document: Document,
+    documents: dict[str, Document],
+    missing: set[str],
+    records: pathlib.Path | None,
+    report: Report,
 ) -> None:
     """Check the documents and the sections a document cites."""
     text = document.text
@@ -299,7 +312,7 @@ def check_citations(
         name = match.group(1)
         if name in missing or "<" in name or "*" in name:
             continue
-        if not resolve(name, report.root, documents):
+        if not resolve(name, report.root, documents, records):
             report.add(document.path, text, match.start(), f"`{name}`: no such document")
             continue
         target = documents.get(name)
@@ -319,9 +332,15 @@ def identifiers(path: pathlib.Path, pattern: re.Pattern[str], row: bool) -> set[
 
 
 def check_ids(document: Document, known: dict[str, set[str]], report: Report) -> None:
-    """Check that every finding and decision a document names exists, and the markers."""
+    """Check that every finding and decision a document names exists, and the markers.
+
+    Without the working records there is no "finding" in what is known, and
+    the findings and the markers aren't checked.
+    """
     text = document.text
     for pattern, kind in ((FINDING_RE, "finding"), (DECISION_RE, "decision")):
+        if kind not in known:
+            continue
         for match in pattern.finditer(text):
             if match.group(0) not in known[kind]:
                 report.add(document.path, text, match.start(), f"{match.group(0)}: no such {kind}")
@@ -332,7 +351,7 @@ def check_ids(document: Document, known: dict[str, set[str]], report: Report) ->
             rows = table_rows(section.body, 0)
             marked += [(position, f) for _, cells in rows for f in FINDING_RE.findall(cells[0])]
     for position, finding in marked:
-        if finding in known["finding"] and finding not in known["open"]:
+        if "finding" in known and finding in known["finding"] and finding not in known["open"]:
             problem = f"{finding} is closed and still has a 'Not yet in the code' marker"
             report.add(document.path, text, position, problem)
 
@@ -616,15 +635,18 @@ def main() -> int:
     report = Report(root)
     documents = load(doc, report)
     missing = check_states(doc, documents, report)
-    known = {
-        "decision": identifiers(doc / "dev" / "decisions.md", DECISION_RE, row=False),
-        "open": identifiers(doc / "dev" / "findings.md", FINDING_RE, row=True),
-    }
-    closed = identifiers(doc / "dev" / "findings-closed.md", FINDING_RE, row=True)
-    known["finding"] = known["open"] | closed
+    known = {"decision": identifiers(doc / "decisions.md", DECISION_RE, row=False)}
+    records = pathlib.Path(os.environ["PB_RECORDS"]) if os.environ.get("PB_RECORDS") else None
+    if records is not None:
+        if not (records / "findings.md").exists():
+            sys.stdout.write(f"PB_RECORDS: no findings.md in {records}\n")
+            return 1
+        known["open"] = identifiers(records / "findings.md", FINDING_RE, row=True)
+        closed = identifiers(records / "findings-closed.md", FINDING_RE, row=True)
+        known["finding"] = known["open"] | closed
     for document in documents.values():
         if not is_record(doc, document.path):
-            check_citations(document, documents, missing, report)
+            check_citations(document, documents, missing, records, report)
             check_ids(document, known, report)
             check_paths(document.path, report)
     for path in code_files(root):

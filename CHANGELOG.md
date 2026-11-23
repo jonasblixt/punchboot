@@ -3,9 +3,8 @@
 The release notes, newest first. The releases before 3.0.0 have no entry: their history is the
 tags' (`git log v2.7.0..v2.7.1`).
 
-Each line names its source. D-nnn is a decision (`doc/dev/decisions.md`), F-nnn a finding
-(`doc/dev/findings.md`, or `findings-closed.md` once it is fixed), and a date is that day's log
-(`doc/dev/log/`).
+Each line names its source. D-nnn is a decision (`doc/decisions.md`). F-nnn is a finding and a
+date a day of the log, in the maintainers' working records, which aren't in the repository.
 
 ## 3.0.0
 
