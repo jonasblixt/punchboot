@@ -117,6 +117,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-094 | The key hash is the board's, in `slc_fuses`      | Narrowed by D-095 (no `set_configuration`)         |
 | D-095 | `struct slc_ops` has no `set_configuration`      | In force                                           |
 | D-096 | The keys' names: ROTPK and trust anchor          | In force                                           |
+| D-097 | F-447 doesn't gate 3.0.0                         | In force; changes D-092's list                     |
 
 ## D-001: Keep the bpak file format unchanged for now (2026-10-22)
 
@@ -2355,3 +2356,17 @@ are planned (2026-11-17). The name follows a key's role, not its material.
 
 Nothing changes on the wire or the medium, and no image is accepted or refused otherwise. An
 out-of-tree build of the 3.0.0 branch that ran `gen-keystore.py` itself runs the new name.
+
+## D-097: F-447 doesn't gate 3.0.0 (2026-11-23)
+
+Jonas: "Take it off the gate." D-092's list had F-447 in group 1, to close when every SLC fuse
+of the i.MX8M is checked against its Security Reference Manual. The 8M Plus's manual isn't had
+before 3.0.0 (2026-11-19), so the finding can't close as written.
+
+- **F-447 is in the list's group 3** (`roadmap.md`) and stays open.
+- **What 3.0.0 ships with** is unchanged, and in the release notes' "Known" and
+  `guides/slc.md` 7: the 8M's SRK hash and closed bit where NXP's U-Boot has them, the 8MQ's
+  SRK_REVOKE where its reference manual has it, all three agreeing with the 8M Nano's
+  Security Reference Manual; no key revocation on the 8M Plus; the in-tree 8M Plus board
+  writes no fuse (`CONFIG_SLC_NO_FUSE_WRITES`, D-087).
+- **Not decided by this:** revocation on the 8M Plus, which waits for its manual.
