@@ -350,7 +350,8 @@ def check_in_tree(root: pathlib.Path, work: pathlib.Path) -> str:
     """Check what `all` names as the final output of each board in the tree.
 
     make -n: nothing is built, so neither the vendors' tools and firmware nor
-    the aarch64 compiler are needed. The DDR firmware is left out (blobs-y).
+    the aarch64 compiler are needed. The DDR firmware is left out: it is the
+    SPL's on the i.MX8M (spl-blobs-y, D-088).
     """
     env = {k: v for k, v in os.environ.items() if k not in ("MAKEFLAGS", "MFLAGS", "MAKELEVEL")}
     problems = []
@@ -363,6 +364,7 @@ def check_in_tree(root: pathlib.Path, work: pathlib.Path) -> str:
             f"KCONFIG_CONFIG=configs/{board}_defconfig",
             f"BUILD_DIR={build}",
             "blobs-y=",
+            "spl-blobs-y=",
             "all",
         ]
         result = subprocess.run(  # noqa: S603
