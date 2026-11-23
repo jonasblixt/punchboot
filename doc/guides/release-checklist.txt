@@ -26,7 +26,7 @@ CMakeLists.txt) and the package's (pyproject.toml).
    and generated notes, or
     $ git tag vX.Y.Z && git push <the GitHub remote> vX.Y.Z
    The tag must be v and version.txt's content: for any other v* tag the
-   upload job fails and nothing is published (F-228)
+   upload job fails and nothing is published
 
 8) Check the upload: the "Upload to PyPi" job of punchboot-tools.yml, then
     $ pip install punchboot==X.Y.Z && punchboot --version

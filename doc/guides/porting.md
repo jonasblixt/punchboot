@@ -86,7 +86,7 @@ functions a SoC has: `plat-imx.md` 4.1.
    `makefile.mk`, n the key's revoke slot (`board.md` 7).
 2. The root of trust and the life cycle are the platform's, `plat_rot` and `plat_slc`
    (`platform.md` 4.1, 4.2): on jiffy's 6UL the HABv4 driver's (`imx_hab_*`). The board names
-   none of their functions (F-247).
+   none of their functions.
 3. The configuration fuses are data, `slc_fuses` and `slc_fuses_length`: the boot device and
    what else the product fuses. jiffy: boot from the eMMC on uSDHC1, and take the boot
    configuration from the fuses.
@@ -101,9 +101,9 @@ against srktool's fuse file first. What is fixed once a product ships: `board.md
 ### 2.4 The crypto engine, and command mode
 
 `init()`: `board.md` 2.3. The crypto engine isn't its job: `plat_init()` sets up the SoC's
-engine and its RNG, and the core the software backend right after it (`crypto.md` 2, F-247,
-D-086). The device's identity is computed with them (`platform.md` 3.7), and command mode
-doesn't start without the identity. A board that needs the software implementation turns the
+engine and its RNG, and the core the software backend right after it (`crypto.md` 2, D-086).
+The device's identity is computed with them (`platform.md` 3.7), and command mode doesn't
+start without the identity. A board that needs the software implementation turns the
 engine's option off and Mbed TLS's on in its defconfig.
 
 For command mode itself the board does nothing: the port is the defconfig's choice and the
@@ -297,7 +297,7 @@ The order, with what shows that each step works:
 - Step 7 before the first product: a filter that is left in bypass shows nowhere else
   (`platform.md` 2.3).
 - Step 8 is `plat_rot` and `plat_slc`, the SoC's revocation and life cycle (`platform.md`
-  4.1, 4.2, F-247). The rules stay in the core (D-027).
+  4.1, 4.2). The rules stay in the core (D-027).
 - What a failure of the platform means, and why it resets where a board's failure doesn't:
   `platform.md` 2.
 - The build's stages and what a board may override: `platform.md` 6.2.

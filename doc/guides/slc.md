@@ -1,9 +1,9 @@
 # The life cycle: configure, lock, revoke
 
-**State: draft** (F-232), not reviewed. How a product takes a device from open to locked with
-pb, and revokes a key later. The rules are `system.md` 4, `command-mode.md` 5.2,
-`platform.md` 4.1 and 4.2, `board.md` 7 and 8; the SoC's facts are `plat-imx.md` 4.1. This
-guide cites them and adds nothing they don't say.
+**State: draft**, not reviewed. How a product takes a device from open to locked with pb, and
+revokes a key later. The rules are `system.md` 4, `command-mode.md` 5.2, `platform.md` 4.1
+and 4.2, `board.md` 7 and 8; the SoC's facts are `plat-imx.md` 4.1. This guide cites them and
+adds nothing they don't say.
 
 **Every step that writes a fuse can't be undone.** Run none on a board that must stay open:
 a development board that isn't yours to close gets a build that writes no fuses
@@ -48,12 +48,11 @@ On an open device (`NOT_CONFIGURED`), with the product's signed pb booted:
 
 1. `punchboot slc show`: the state and the keys (active, revoked, and which active ones the
    device can't revoke).
-2. `punchboot slc configure`: writes the board's configuration fuses, the ROTPK hash among
-   them, the bits that aren't set yet (`command-mode.md` 5.2). Every word is read first: one
-   with a bit its value lacks can never become it, and nothing is written. Each fuse word is read back after its
-   write, and a bit that didn't take fails the command (`platform.md` 4.2, F-166; the 8X
-   doesn't read back, `plat-imx.md` 4.1). A configuration that failed half way is completed
-   by running it again.
+2. `punchboot slc configure`: writes the board's configuration fuses, the ROTPK hash among them, the bits that
+   aren't set yet (`command-mode.md` 5.2). Every word is read first: one with a bit its value lacks can never
+   become it, and nothing is written. Each fuse word is read back after its write, and a bit that didn't take
+   fails the command (`platform.md` 4.2; the 8X doesn't read back, `plat-imx.md` 4.1). A configuration that
+   failed half way is completed by running it again.
 3. `punchboot slc show`: `CONFIGURATION`.
 4. Reset, and check that the ROM accepted pb with the fused hash: on HABv4 `punchboot log hab`
    has no failure event, on the 8X the SECO's log (`punchboot log seco`, `plat-imx.md` 2). The device is still open: an image that isn't
@@ -86,30 +85,29 @@ images are signed with.
 ## 6. End of life
 
 Optional, the product's choice: `CONFIG_SLC_EOL`, off by default (`system.md` 4). Without it
-`punchboot slc eol` answers `NOT_SUPPORTED`. Only the host platform implements it today
-(F-263).
+`punchboot slc eol` answers `NOT_SUPPORTED`. Only the host platform implements it today.
 
 ## 7. By SoC
 
 | SoC         | Writes                       | Read back           | Revoke bits    | Notes              |
 | ----------- | ---------------------------- | ------------------- | -------------- | ------------------ |
-| i.MX6UL     | OCOTP                        | The array (F-166)   | 3 (SRK_REVOKE) | jiffy is locked    |
-| i.MX8M      | OCOTP                        | The array; on the   | 3 on the 8MQ;  | F-447, below       |
+| i.MX6UL     | OCOTP                        | The array           | 3 (SRK_REVOKE) | jiffy is locked    |
+| i.MX8M      | OCOTP                        | The array; on the   | 3 on the 8MQ;  | See below          |
 |             |                              | 8MQ B1 the reloaded | the 8M Plus's  |                    |
-|             |                              | shadows (F-466)     | aren't public  |                    |
+|             |                              | shadows             | aren't public  |                    |
 | i.MX8X      | The SCFW (SECO)              | None, after a reset | 4 (OEM SRKs)   | Slots 4 and up are |
 |             |                              |                     |                | refused (D-092)    |
-| i.MX RT1060 | None: no fuse timing (F-148) |                     | 3              | Reads only         |
+| i.MX RT1060 | None: no fuse timing         |                     | 3              | Reads only         |
 
 Never run on a board, as of 2026-11-17: a fuse write with the read back, and the 8X's closed
 state (`roadmap.md`, the bench run).
 
-The i.MX8M's fuses aren't checked against the SoC's own Security Reference Manual (F-447): the
-8M Plus's wasn't available for 3.0.0. SEC_CONFIG and SRK_HASH are where NXP's U-Boot has them
-for the whole family (`mx8m_secure_boot.txt`), the 8MQ's SRK_REVOKE where its reference
-manual's OCOTP chapter has it; all three agree with a sibling's manual, the 8M Nano's
-(`plat-imx.md` 4.1). Before the first 8M device is fused, check them and the board's
-`slc_fuses` against the manual you have.
+The i.MX8M's fuses aren't checked against the SoC's own Security Reference Manual: the 8M
+Plus's wasn't available for 3.0.0. SEC_CONFIG and SRK_HASH are where NXP's U-Boot has them for
+the whole family (`mx8m_secure_boot.txt`), the 8MQ's SRK_REVOKE where its reference manual's
+OCOTP chapter has it; all three agree with a sibling's manual, the 8M Nano's (`plat-imx.md`
+4.1). Before the first 8M device is fused, check them and the board's `slc_fuses` against the
+manual you have.
 
 The 8M Plus's SRK_REVOKE isn't public, so pb 3.0.0 can't revoke a key on an 8M Plus:
 `punchboot slc revoke-key` answers `NOT_SUPPORTED` for every key, and `slc show` reads them

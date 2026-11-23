@@ -5,7 +5,7 @@ Tests are covered in `testing.md`.
 ## Firmware build
 
 ```sh
-scripts/pbdev firmware jiffy          # or imx8dxlevk, imx8mevk, imx8mpevk, imxrt1060evk, pico8ml (F-051)
+scripts/pbdev firmware jiffy          # or imx8dxlevk, imx8mevk, imx8mpevk, imxrt1060evk, pico8ml
 ```
 
 By hand (in `scripts/pbdev shell`):
@@ -73,7 +73,7 @@ FB: done
 - Mbed TLS 3.4.0 sources (`MBEDTLS_DIR`)
 - the bpak 1.0.1 CLI (the `bpak` package from PyPI, in the venv)
 - gdisk and CMocka
-- `file`, which Coverity's cov-build needs (F-097)
+- `file`, which Coverity's cov-build needs
 - a Python venv with click >= 8.2, semver, pytest and gcovr 8.3 (pinned: 8.7 crashes)
 
 ```sh
@@ -129,27 +129,28 @@ scripts/pbdebug --load imxrt1060evk  # the same over the EVK's J-Link (SWD), con
 - Configs: `src/plat/imx6ul/openocd.cfg` (chip: upstream `target/imx6ul.cfg` with DAP r5
   `0x5ba00477`, the upstream default r4 doesn't match the silicon) and
   `src/board/<board>/openocd.cfg` (board). The board config sources the platform one.
-- `--load` needs the core in the boot ROM with the MMU and D-cache off, e.g. the serial
-  downloader (boot mode buttons, or any reset after JTAG activity on a closed board, F-078).
-  `pb_load_prepare` (platform config) refuses otherwise, because pb doesn't invalidate the caches
-  before enabling them. It turns off the I-cache, sets ARM state and SVC mode, and calls the board's
+- `--load` needs the core in the boot ROM with the MMU and D-cache off, e.g. the serial downloader
+  (boot mode buttons, or any reset after JTAG activity on a closed board). `pb_load_prepare`
+  (platform config) refuses otherwise, because pb doesn't invalidate the caches before enabling
+  them. It turns off the I-cache, sets ARM state and SVC mode, and calls the board's
   `pb_board_load_prepare` (jiffy: DDR from the DCD). GDB `load` then takes about 27 s for pb at 3
   KB/s. Nothing is flashed, and on a closed board the image isn't HAB authenticated, so the CAAM
-  keeps working with JTAG attached (unlike F-080).
+  keeps working with JTAG attached (unlike a pb that HAB authenticated: there any JTAG
+  connection stops the CAAM until the power cycle).
 - Breakpoints are hardware breakpoints (`gdb_breakpoint_override hard`, 6 on the A7): pb maps
   `.text` read-only with LPAE tables, so OpenOCD can't remove a software breakpoint once the MMU is
   on. A breakpoint hit during a USB command can make the host time out (`Error: Transfer`).
 - `monitor jiffy_ddr_init` runs the DCD from `src/board/jiffy/imximage.cfg` over JTAG, e.g. when
   halted in the boot ROM's serial downloader. Checked by writing and reading back DDR.
-- No `reset_config` on jiffy: an SRST reset from the adapter lands in the serial downloader (F-078).
+- No `reset_config` on jiffy: an SRST reset from the adapter lands in the serial downloader.
 - The watchdog only pauses while the core is halted if pb sets WDBG
   (`CONFIG_DRIVERS_IMX_WDOG_DEBUG`, on in `jiffy_defconfig`). Without it, a halt longer than the
-  5 s timeout resets the board, into the serial downloader (F-078). Checked on the board: an 8 s
-  halt with WDBG set (`WCR` reads `0x0a3e`) survives.
-- On a closed board (HAB booted), any JTAG connection, even OpenOCD `init`, sets SNVS SV1 and drops
-  the SSM to Non-Secure. Until the next power cycle the CAAM takes no jobs, so `auth token` and
-  image verification fail with a timeout (F-080), and warm resets probably fail HAB and land in the serial
-  downloader (F-078). Power cycle after debugging before trusting crypto again.
+  5 s timeout resets the board, into the serial downloader. Checked on the board: an 8 s halt
+  with WDBG set (`WCR` reads `0x0a3e`) survives.
+- On a closed board (HAB booted), any JTAG connection, even OpenOCD `init`, sets SNVS SV1 and drops the
+  SSM to Non-Secure. Until the next power cycle the CAAM takes no jobs, so `auth token` and image
+  verification fail with a timeout, and warm resets probably fail HAB and land in the serial downloader.
+  Power cycle after debugging before trusting crypto again.
 - The first run after plugging in the ULINK loads its firmware, and OpenOCD exits before the
   adapter re-enumerates. `pbdebug` retries.
 
@@ -166,7 +167,7 @@ hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`, a ruff bump c
 
 - `build.yml` (D-006). All jobs run through `scripts/pbdev`, so the image is built in every job:
   - **host-tests:** default and sanitizer builds, and the unit tests at 32 bits (`m32`, as jiffy's
-    and the RT1060's pb; the 64-bit ports' tests left out, F-428).
+    and the RT1060's pb; the 64-bit ports' tests left out).
   - **coverage:** the gcovr summary in the job log, and the line by line HTML report as the
     `coverage` workflow artifact (D-012). Not a gate.
   - **firmware:** jiffy, imx8dxlevk, imx8mevk, imx8mpevk and imxrt1060evk `pb.bin`, and the i.MX8M's
@@ -191,8 +192,8 @@ A release is made from master (D-003): `version.txt` is bumped in a pull request
 `vX.Y.Z` on master publishes the package to PyPI (`punchboot-tools.yml` above). The steps, the
 test record among them, are in `doc/guides/release-checklist.txt`.
 
-A firmware build says which commit it is (F-231): on the tag `vX.Y.Z` with no tracked file
-changed its banner and the SPL's log say `X.Y.Z`, any other build `X.Y.Z-dev+<commit>`, with
-`-dirty` when a tracked file is changed (`scripts/build-version`; `PB_BUILD_VERSION=` on the
-make command line sets it). The wire's version command, `pb,version` and pb's handoff structure
-say `X.Y.Z`, `version.txt` alone (`boot.md` 5.6).
+A firmware build says which commit it is: on the tag `vX.Y.Z` with no tracked file changed its
+banner and the SPL's log say `X.Y.Z`, any other build `X.Y.Z-dev+<commit>`, with `-dirty` when
+a tracked file is changed (`scripts/build-version`; `PB_BUILD_VERSION=` on the make command
+line sets it). The wire's version command, `pb,version` and pb's handoff structure say `X.Y.Z`,
+`version.txt` alone (`boot.md` 5.6).

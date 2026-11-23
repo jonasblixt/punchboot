@@ -1,8 +1,8 @@
 # Updates: A/B with pbstate
 
-**State: draft** (F-232), not reviewed. How a product updates its system with pb's A/B boot
-source policy and `pbstate`, the OS's side of it. The rules are `boot.md` 3.5 to 3.7 and 5.6;
-this guide cites them and adds nothing they don't say.
+**State: draft**, not reviewed. How a product updates its system with pb's A/B boot source
+policy and `pbstate`, the OS's side of it. The rules are `boot.md` 3.5 to 3.7 and 5.6; this
+guide cites them and adds nothing they don't say.
 
 ## 1. What is involved
 
@@ -107,4 +107,4 @@ yet activated.
 ## 7. Not yet
 
 `pbstate` handles A/B only, and pb and `pbstate` each have their own code for the state
-(`boot.md` 3.7, F-180).
+(`boot.md` 3.7).

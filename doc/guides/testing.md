@@ -11,7 +11,7 @@ CI runs these tests (D-006).
 | `CMakeLists.txt`          | Host build only. The firmware for targets is still built by the `Makefile`.            |
 | `configs/host_defconfig`  | Kconfig for the host build (`ARCH_HOST`, `PLAT_HOST`). `host_speculative_defconfig` is |
 |                           | the second one, `pb-host-speculative`: the same with the watchdog fake and             |
-|                           | `BOOT_AB_SPECULATIVE` (F-341), nothing else (`test_kconfig.py` checks it)              |
+|                           | `BOOT_AB_SPECULATIVE`, nothing else (`test_kconfig.py` checks it)                      |
 | `src/arch/host/`          | No-op cache/MMU. `arch_jump` exits.                                                    |
 | `src/plat/host/`          | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode |
 |                           | transport                                                                              |
@@ -19,16 +19,16 @@ CI runs these tests (D-006).
 | `tests/unit/`             | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`,            |
 |                           | `fakes/plat.c`)                                                                        |
 |                           | `python/`: pytest unit tests of the host tools (`tools/punchboot`) without a device:   |
-|                           | wire packing, the exceptions, bpak detection, the CLI on a fake session (F-041)        |
+|                           | wire packing, the exceptions, bpak detection, the CLI on a fake session                |
 | `tests/integration/`      | pytest tests that drive `pb-host` through the `punchboot` Python package               |
 | `tests/compat/`           | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in        |
 |                           | `bpak/`, wire transcripts in `transcripts/`. See `compatibility.md`                    |
 | `tests/doc/`              | The document lint (`process.md` 7): `check_docs.py`, the test `doc.lint`               |
 | `tests/make/`             | The firmware build: `check_rebuild.py` (`make.rebuild`) runs `make` for jiffy and      |
-|                           | checks that a changed key or version is made again (F-183);                            |
-|                           | `check_config.py` (`make.config`), its configuration and keys (F-229, F-147, D-083);   |
+|                           | checks that a changed key or version is made again;                                    |
+|                           | `check_config.py` (`make.config`), its configuration and keys (D-083);                 |
 |                           | `check_gen_trust_anchors.py` (`make.gen_trust_anchors`), the trust anchors' generator; |
-|                           | `check_include_dirs.py` (`make.include_dirs`), that each `-I` exists (F-031)           |
+|                           | `check_include_dirs.py` (`make.include_dirs`), that each `-I` exists                   |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest                                    |
 
 ## Running
@@ -46,7 +46,7 @@ python3 tests/doc/check_docs.py              # the same, without the container
 PB_RECORDS=<dir> python3 tests/doc/check_docs.py   # with the working records: the findings too
 ```
 
-The unit tests at 32 bits, as CI's `m32` job (F-428), jiffy's and the RT1060's word size:
+The unit tests at 32 bits, as CI's `m32` job, jiffy's and the RT1060's word size:
 
 ```sh
 BUILD_DIR=build-host-m32 PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig \
@@ -72,11 +72,11 @@ scripts/pbdev run gcovr -r . build-host-cov --filter src/ \
 
 82.2% of lines (10130/12331), 83.8% of functions (853/1018) and 85.1% of branches (4964/5831)
 of the files a host test compiles. 1833 of those lines are NXP's SCFW clients
-(`src/plat/imx8x/sci`), of which `test_plat_imx8x` calls a few; without them (`--exclude
-src/plat/imx8x/sci`) 94.3% of lines (9903/10498), 97.6% of functions and 88.1% of branches.
-Earlier that day 81.3% (10000/12294), 93.4% without them; on 2026-11-14 77.4% (7921/10237),
-91.8% without them. The 99.2% of 2026-10-22 counted the files pb-host itself compiles, before
-the drivers' and the ports' tests (F-230).
+(`src/plat/imx8x/sci`), of which `test_plat_imx8x` calls a few; without them
+(`--exclude src/plat/imx8x/sci`) 94.3% of lines (9903/10498), 97.6% of functions and 88.1% of
+branches. Earlier that day 81.3% (10000/12294), 93.4% without them; on 2026-11-14 77.4%
+(7921/10237), 91.8% without them. The 99.2% of 2026-10-22 counted the files pb-host itself
+compiles, before the drivers' and the ports' tests.
 
 A file no host test compiles isn't in the figure at all. Of what the boards build these are: the
 arch code (`src/arch/armv7a`, `armv7m`, `armv8a`), the boards (`src/board/*`), the UARTs, the GPIO,
@@ -111,10 +111,10 @@ A single integration test, inside `scripts/pbdev shell`:
   The socket is bound to `<path>.tmp` and renamed to `<path>` after `listen()`, so tests can treat
   the path appearing as "command mode is ready".
 - **Disk.** A file.
-- **Fuses.** A file of their own (`--fuses PATH`, default `fuses.img`), not on the disk: the
-  test fuse driver reads it in `plat_init()`, so the life cycle and the revoked keys don't depend
-  on the partition table, as a SoC's fuses don't (F-217). Device state persists across reboots
-  within a test. The disk's "Fuse array" partition is left unused, so the layout stays.
+- **Fuses.** A file of their own (`--fuses PATH`, default `fuses.img`), not on the disk: the test
+  fuse driver reads it in `plat_init()`, so the life cycle and the revoked keys don't depend on
+  the partition table, as a SoC's fuses don't. Device state persists across reboots within a
+  test. The disk's "Fuse array" partition is left unused, so the layout stays.
 - **Flash.** With `--nor PATH`: a memory mapped flash for the in place source (`boot.md` 4.1),
   512 KiB at 0x70000000 (`BOARD_NOR_BASE`), a file that is erased (0xff) when new. pb has it
   mapped read only and writes it through its bio device, so a write through the map faults as
@@ -134,7 +134,7 @@ A single integration test, inside `scripts/pbdev shell`:
   handover prepared to PATH: what the next stage would read, `/chosen` with pb's information
   (`boot.md` 5.5, 5.6). The handover's configuration has the board's `bootargs`, and the board's
   DT hook writes a `pb,version` of its own that pb's replaces. Without the option the handover
-  names no tree, as for the in place tests (an image in place can't have one, F-291).
+  names no tree, as for the in place tests (an image in place can't have one).
 - **System libc.** Host builds use glibc instead of the firmware libc. `src/plat/host/compat.h` is
   force-included and provides the BSD attribute macros (`__section`, `__aligned`, ...).
 
@@ -189,9 +189,9 @@ A single integration test, inside `scripts/pbdev shell`:
   runs the standard sequences (DDR52, HS400 after tuning, SD high speed, SDR104 with CMD11)
   clean, and known mistakes give the expected violation. Not modeled: signal timing (DLL taps,
   sampling), boot operation, erase, write protection, RPMB authentication, CQE.
-  Where the silicon differs from the RM, the model follows the silicon and says so (F-126: no
-  TC at the end of busy without data).
-- **Host tools' unit tests** (`tests/unit/python`, F-041): pytest on the installed `punchboot`
+  Where the silicon differs from the RM, the model follows the silicon and says so (no TC at the
+  end of busy without data).
+- **Host tools' unit tests** (`tests/unit/python`): pytest on the installed `punchboot`
   package, no device and no pb-host. `test_cli.py` puts a fake in place of the CLI's `Session`.
 - **Integration tests.** Helpers live in `pbtest.py`: the `Device` class, `make_bpak()` (bpak CLI)
   and `sgdisk_verify()`. Fixtures:
@@ -232,25 +232,26 @@ and `configs/test_defconfig` were then removed.
 | pytest module         | Ported from                                                                             |
 | --------------------- | --------------------------------------------------------------------------------------- |
 | `test_part.py`        | test_part, test_part_flash, test_part_verify_fh, test_verify_bpak, test_part_dump,      |
-|                       | test_part_dump2 (+ size limits, F-050)                                                  |
+|                       | test_part_dump2 (+ size limits)                                                         |
 | `test_gpt.py`         | test_corrupt_gpt{,2,3,4,5}, test_corrupt_backup_gpt, test_gpt_variants                  |
 | `test_boot.py`        | test_boot_bpak{,2..10}, test_invalid_key_index, test_overlapping_region,                |
 |                       | test_all_sig_formats, test_gpt_boot_activate{,_step2..5}                                |
 | `test_ab_state.py`    | test_switch, test_rollback, test_corrupt_primary_config,                                |
 |                       | test_corrupt_backup_config, test_board_regs                                             |
 | `test_security.py`    | test_device_setup, test_authentication, test_revoke_key                                 |
-| `test_board.py`       | test_board, test_board_status (+ a failed step of `board_setup()`, F-178)               |
+| `test_board.py`       | test_board, test_board_status (+ a failed step of `board_setup()`)                      |
 | `test_cli.py`         | test_cli, test_reset                                                                    |
-| `test_stream.py`      | new: stream bounds (F-053, F-054)                                                       |
-| `test_commands.py`    | new: boot status, erase, end of life, bpak read, F-072                                  |
+| `test_stream.py`      | new: stream bounds                                                                      |
+| `test_commands.py`    | new: boot status, erase, end of life, bpak read, `slc read` with a revoked last key     |
 | `test_log.py`         | new: `PB_CMD_LOG_READ` and `punchboot log` (in chunks, wrapped)                         |
-| `test_compat.py`      | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 refused |
+| `test_compat.py`      | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), a `dont-hash` |
+|                       | part refused                                                                            |
 | `test_transcripts.py` | new: recorded wire transcripts served to the current host (D-008, guard 4)              |
 | `test_old_hosts.py`   | new: released hosts' CLI against pb-host (D-008, guard 3), with `PB_OLD_HOSTS`;         |
 |                       | `scripts/pbdev run scripts/ci/old-hosts.sh` installs them and runs it                   |
-| `test_in_place.py`    | new: the in place source on the host's flash: boot, placement, verification (F-253)     |
+| `test_in_place.py`    | new: the in place source on the host's flash: boot, placement, verification             |
 | `test_pbstate.py`     | new: the pbstate tool's command line on pb-host's disk, its library's symbols, a build  |
-|                       | with default partitions (F-221, F-222, F-010)                                           |
+|                       | with default partitions                                                                 |
 
 ctest runs 107 tests (2026-11-14): 97 labelled `unit` (78 CMocka programs, 16 compile checks, 2
 Kconfig checks and `unit.python`), the pytest suite `integration`, 7 `make`, 1 `compat`, 1 `doc`.
@@ -421,7 +422,7 @@ Unit tests, by module under test:
 |                                               | gets back                    | and of the cache                 |
 | `test_imx_salvo_phy.c`                        | `imx_salvo_phy.c`: the       | register file                    |
 |                                               | writes, VCOCAL_ITER_TMR at   |                                  |
-|                                               | 0x0085 (F-468)               |                                  |
+|                                               | 0x0085                       |                                  |
 | `test_cdns3_udc.c`                            | `cdns3_udc_core.c`: the TRBs | register file                    |
 |                                               | of a bulk transfer and what  |                                  |
 |                                               | is cleaned from the cache    |                                  |
@@ -448,12 +449,12 @@ list: test_config, test_invalid_key_index2, test_setup_lock, test_bpak_show, tes
 
 ## Findings from the first runs
 
-- `Session.boot_set_boot_part(None)` raised `TypeError`, so the documented API never worked. Fixed (F-047).
-- UBSan: signed-shift overflow in `gpt_prng`. Fixed (F-048).
-- The 64-bit host build shows `%llu`-with-`uint64_t` format bugs (F-049).
+- `Session.boot_set_boot_part(None)` raised `TypeError`, so the documented API never worked. Fixed.
+- UBSan: signed-shift overflow in `gpt_prng`. Fixed.
+- The 64-bit host build shows `%llu`-with-`uint64_t` format bugs.
 - `part_write` accepted bpak images whose payload overlapped the header (written to the end of the
-  partition), and corrupted them silently. Fixed in the host library (F-050).
-- Authentication lasted until reset, not per connection (F-185, fixed). The session ends with the
+  partition), and corrupted them silently. Fixed in the host library.
+- Authentication lasted until reset, not per connection (fixed). The session ends with the
   transport (`command-mode.md` 3.1), and on the host's socket a client that closes is lost
   (`usb.md` 2.6), so each connection starts without authentication and without a stream.
   `test_authentication_ends_with_the_connection` checks it, and the bench's reset authenticates

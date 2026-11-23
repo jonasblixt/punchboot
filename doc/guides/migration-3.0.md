@@ -35,8 +35,8 @@ neither has the code, another board's or the header's, and the section says whic
 |         |                                                       | D-088                 |
 | 17      | An out-of-tree driver                                 | `drivers.md`          |
 | 18      | An out-of-tree platform                               | D-030, `platform.md`  |
-| 19      | The RoT, the SLC and the crypto engine; `pb/dma.h`;   | F-247, D-086, D-066,  |
-|         | the board's `mmap`                                    | D-054                 |
+| 19      | The RoT, the SLC and the crypto engine; `pb/dma.h`;   | D-086, D-066, D-054   |
+|         | the board's `mmap`                                    |                       |
 | 20      | Before the ported pb goes to a device in the field    | `board.md` 8          |
 
 ## 1. The board is `const struct board board`
@@ -190,9 +190,9 @@ static const struct boot_ab_state_config boot_state_cfg = {
   (`board.md` 2.4). It doesn't set `BIO_FLAG_BOOTABLE` either: the policy marks its candidates
   (`board.md` 2.5).
 - What a host may read is data: `readable_parts`, the UUIDs that get `BIO_FLAG_READABLE`
-  (`board.md` 2.4, F-083). A board that set the flag in a hook moves the UUIDs there.
-  Without the list a host reads nothing, as with every board of 2.x, and the
-  answer is `NOT_SUPPORTED` now, not `IO_ERROR`.
+  (`board.md` 2.4). A board that set the flag in a hook moves the UUIDs there. Without
+  the list a host reads nothing, as with every board of 2.x, and the answer is
+  `NOT_SUPPORTED` now, not `IO_ERROR`.
 - A macro takes its module's configuration and nothing else: another module's, or NULL, doesn't
   compile. A member the board doesn't have is left out, not set to a macro of NULL.
 - The module must be in the build (section 15): a board that names one that isn't doesn't link.
@@ -261,8 +261,8 @@ static const struct boot_delivery_tfa_config boot_tfa = {
   names as its entry (`boot.md` 5.3). An image that a released pb booted gets the same entry
   and arguments (`board.md` 8): a product whose BL31 was started as the MEK's was in 2.x keeps
   that with `BOOT_HANDOVER_IMAGE()` alone, BL31's part as `image_bpak_id` and
-  `set_dtb_boot_arg` false. The DXL EVK in the tree moved to the delivery, and F-295 has what
-  that changes for an image.
+  `set_dtb_boot_arg` false. The DXL EVK in the tree moved to the delivery; what that changes
+  for an image is in the changelog, under "Images that are refused now".
 - Where the list may live is the platform's to say (`platform.md` 5.3).
 
 Rests on: `boot.md` 5.1 and 5.3, `board.md` 2.7 and 8.
@@ -307,8 +307,8 @@ CONFIG_BOOT_FH_REGION_SIZE=0x1000
   memory map keeps it free until the list is read (`board.md` 8).
 - Every arch hands over in the same state (D-028). On ARMv7-M that is new: the image starts
   with the D-cache off and PRIMASK set, and turns them on itself.
-- **Not yet in the code (F-259)**: the tag of pb's structure, which the list holds when the
-  board names no device tree part, isn't allocated in the specification. Until it is,
+- **Not yet in the code**: the tag of pb's structure, which the list holds when the board
+  names no device tree part, isn't allocated in the specification. Until it is,
   `PB_FH_TAG_HANDOVER` is a number from the non-standard range, and it will change.
 
 Rests on: D-028, D-039, `boot.md` 5.4, `board.md` 2.7.
@@ -378,9 +378,8 @@ the tree has one; the host board's table (`src/board/host/board.c`):
   no address for it.
 - Every part is at its `pb-load-addr`, inside the partition's mapped range (`boot.md` 4.1).
 - The image handover refuses a device tree part in place: pb grows and patches the tree where
-  it is, which here is the flash (F-291, open for the decision). A kernel alone boots. A 2.x
-  board that booted from memory with the Linux driver and a device tree has no equivalent
-  until F-291 is decided.
+  it is, which here is the flash (D-092, `boot.md` 4.1). A kernel alone boots. A 2.x board
+  that booted from memory with the Linux driver and a device tree has no equivalent yet.
 - The custom source has no replacement: it was the one way around the core's verification
   (D-035).
 - Where the arch has an MMU the mapped range must be in the map: the platform's, or the board's
@@ -415,12 +414,12 @@ static const struct boot_image_region image_regions[] = {
 - Where pb runs in DRAM the regions go round it. `BOOT_IMAGE_REGION_AFTER_PB(end)` and
   `BOOT_IMAGE_REGION_AFTER_BUFFERS(end)` start where the link ends pb and its buffers
   (`_pb_end`, `_buffers_end`), so what pb doesn't use of its room is loadable and a pb that
-  grows takes its room from the region (F-392).
+  grows takes its room from the region.
 - SoC memory that a part is linked for is named in the platform header: the MEK lists BL31's
   place as `IMX8X_ATF_BASE` and `IMX8X_ATF_SIZE` (`platform.md` 5.3).
 - The list covers every load address of the product's images in the field, and is only made
   larger afterwards (`board.md` 8). The boards in the tree start theirs where pb's link and its
-  buffers end, so the room next to pb that 2.x loaded into is in them (F-392).
+  buffers end, so the room next to pb that 2.x loaded into is in them.
 
 Rests on: D-055, `board.md` 2.9 and 3, `boot.md` 4.3.
 
@@ -481,7 +480,7 @@ CONFIG_IMX6UL_CM_USB_OTG1=y
   the boot's piece (`CONFIG_BOOT_LOAD_CHUNK_kB`) fit the longest transfer it can queue: 4 MiB on
   the ChipIdea (i.MX6UL, i.MX8DXL, RT1060), 16 MiB - 1 KiB on the DWC3, 15.75 MiB on the Cadence
   USB3. In 2.x the ChipIdea sized its descriptors from the buffer: a board above 4 MiB doesn't
-  build now (F-287).
+  build now.
 
 Rests on: D-049, `board.md` 4.1 and 4.2, `platform.md` 3.10.
 
@@ -901,10 +900,10 @@ PB_BUFFERS_SIZE = 0xfdf000
   are in the board's DRAM or the SoC's on-chip RAM, and the two don't overlap. A board with a
   wrong address doesn't link, where 2.x built it.
 - **An i.MX6UL or i.MX8M board**: the TrustZone filter's open region is the board's DRAM, not
-  the SoC's DDR window (`platform.md` 4.3, F-261), so the DRAM must be one TZC-380 region: a
-  power of two of at least 32 KiB, aligned to its size, inside the window. A board whose DRAM
-  isn't doesn't build (a static assertion in `plat/imx6ul/plat.c` or `plat/imx8m/tzasc.c`);
-  2.x opened the whole window.
+  the SoC's DDR window (`platform.md` 4.3), so the DRAM must be one TZC-380 region: a power
+  of two of at least 32 KiB, aligned to its size, inside the window. A board whose DRAM isn't
+  doesn't build (a static assertion in `plat/imx6ul/plat.c` or `plat/imx8m/tzasc.c`); 2.x
+  opened the whole window.
 - **An i.MX8M board** (D-088): pb proper runs from DRAM, so `PB_ENTRY` is in the board's DRAM,
   after the buffers, and `PB_SIZE` is mandatory: the boards in the tree have 0x41100000 and
   2 MiB. The SPL's window is the platform's. The board's image data region in DRAM starts
@@ -1156,7 +1155,7 @@ and `slc_init()` with a `rot_config` and a `slc_config` that named the SoC's rev
 cycle functions, and its own `set_configuration` that wrote its fuses. A platform's
 `plat_init()` set up Mbed TLS.
 
-**Is** (F-247, D-086, `platform.md` 2.2, 4.1, 4.2):
+**Is** (D-086, `platform.md` 2.2, 4.1, 4.2):
 
 - `rot` leaves `struct board`: the platform provides `plat_rot`.
 - `slc`'s functions leave it: the platform provides `plat_slc`. The board keeps its
@@ -1208,7 +1207,7 @@ static const struct slc_fuse config_fuses[] = { ... };
 itself, each with its own alignment (64, 4096, or none) and its own order. Its descriptors and
 buffers were aligned each in its own way, some next to other data. Nothing checked a caller's
 buffer: a block read or a USB transfer into one that shared a cache line with other data
-cleaned and invalidated the neighbour's bytes with it (F-081, F-205).
+cleaned and invalidated the neighbour's bytes with it.
 
 **Is.** The rule is `drivers.md` 4, and `<pb/dma.h>` is its home:
 

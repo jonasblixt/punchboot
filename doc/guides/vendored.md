@@ -1,8 +1,8 @@
 # Vendored code
 
 The code in the tree that pb didn't write, where each piece comes from, which version it is and
-what was changed in it (F-022). A version that no file records is inferred, and the entry says
-from what. Read the entry before updating a component, and change it with the update.
+what was changed in it. A version that no file records is inferred, and the entry says from
+what. Read the entry before updating a component, and change it with the update.
 
 Mbed TLS isn't in the tree, but the firmware and the host tests compile it: it is here too.
 
@@ -49,10 +49,10 @@ The commits named below are in this repository.
 - **Version**: 3.4.0, `MBEDTLS_VERSION` in the Dockerfile (and `MBEDTLS_VERSION_STRING` in the
   container's `include/mbedtls/build_info.h`). A firmware built outside the container gets
   whatever `MBEDTLS_DIR` points to; `build-and-test.md` asks for 3.4.0.
-- **Its state** (F-020): 3.4 is no long term support branch and has had no fixes since 3.5.0
-  (2023). 3.0.0 ships with it, in the RT1060 EVK's builds and the host tests; the boards with a
-  CAAM don't build it. It is to be replaced (Jonas, 2026-11-16), not moved to 3.6: what replaces
-  it brings the hashes the RT1060 doesn't register (F-286 (10)). The release notes say so.
+- **Its state**: 3.4 is no long term support branch and has had no fixes since 3.5.0 (2023).
+  3.0.0 ships with it, in the RT1060 EVK's builds and the host tests; the boards with a CAAM
+  don't build it. It is to be replaced (Jonas, 2026-11-16), not moved to 3.6: what replaces it
+  brings the hashes the RT1060 doesn't register. The release notes say so.
 - **Licence**: Apache-2.0, the `LICENSE` of 3.4.0; check it again on an update.
 - **Local changes**: none to Mbed TLS. Its configuration is pb's
   `src/drivers/crypto/mbedtls/mbedtls_config.h`, and the glue `mbedtls_pb.c` (`crypto.md`).
@@ -168,10 +168,10 @@ records a version.
 |                                                         | the OASIS virtio specification       | notice              |
 | `src/lib/crc.c`                                         | Gary S. Brown's CRC-32 (1986), with  | Brown's: use        |
 |                                                         | zlib's table                         | without restriction |
-| `src/drivers/usb/imx_salvo_phy.c`, its register values  | U-Boot (F-205)                       | GPL-2.0+ upstream   |
+| `src/drivers/usb/imx_salvo_phy.c`, its register values  | U-Boot                               | GPL-2.0+ upstream   |
 
-pb builds with `-Wundef` (F-231), and the TF-A code tests its build options with `#if`, which
-TF-A's build always defines. pb's makefiles define them too, with the value an undefined one had,
+pb builds with `-Wundef`, and the TF-A code tests its build options with `#if`, which TF-A's
+build always defines. pb's makefiles define them too, with the value an undefined one had,
 without changing the files: `ARM_ARCH_MAJOR` and the `ERRATA_*` (no erratum's workaround is built
 in) in the arch's `makefile.mk`, `DEBUG` and `ERROR_DEPRECATED` there for assembly only
 (`asflags-y`), `RECLAIM_INIT_CODE` in `src/lib/makefile.mk`. Two objects are compiled without
