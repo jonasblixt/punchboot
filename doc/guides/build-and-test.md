@@ -180,7 +180,10 @@ hooks on PRs and autoupdates them weekly. With `select = ["ALL"]`, a ruff bump c
   `py3-none-any` wheel and an sdist. A smoke test installs the wheel on Linux, Windows and macOS with
   Python 3.10 and 3.14 and checks that the CLI runs and libusb (libusb-package) loads.
   - `workflow_dispatch` publishes to TestPyPI.
-  - A `v*` tag publishes to PyPI with the `PYPI_API_TOKEN` secret. Trusted publishing is not set up yet.
+  - A `v*` tag that is `v` and `version.txt`'s content publishes to PyPI.
+  - Both upload by trusted publishing, without a token: the index trusts this workflow file
+    in the GitHub environment `pypi` of jonasblixt/punchboot (the project's Publishing settings
+    on pypi.org and on test.pypi.org).
 
 ## Release
 

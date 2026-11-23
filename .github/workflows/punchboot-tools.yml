@@ -59,10 +59,10 @@ jobs:
         with:
           name: punchboot-tools
           path: dist
+      # Trusted publishing (F-228): no token, test.pypi.org trusts this
+      # workflow in the environment "pypi"
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
-          user: __token__
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
           packages-dir: dist/
@@ -97,9 +97,9 @@ jobs:
         with:
           name: punchboot-tools
           path: dist
+      # Trusted publishing (F-228): no token, pypi.org trusts this workflow
+      # in the environment "pypi"
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
           packages-dir: dist/
