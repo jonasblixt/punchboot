@@ -157,8 +157,8 @@ part stands now (2026-10-28):
 | (`src/board/imx8mevk/lpddr4_timing.c`)  | BSD-3-Clause, Copyright 2026 NXP (`c129bbf9`);   |                        |
 | and its golden trace                    | NXP's notice kept, data as generated. Replaced   |                        |
 |                                         | the GPL-derived table (F-108). Edited: no raw    |                        |
-|                                         | output is kept; Jonas regenerates it             |                        |
-| pico8ml timings                         | NXP's MX8M DDR tool output as TechNexion's       | Jonas (2026-11-14,     |
+|                                         | output is kept; it is regenerated when needed    |                        |
+| pico8ml timings                         | NXP's MX8M DDR tool output as TechNexion's       | Confirmed (2026-11-14, |
 | (`src/board/pico8ml/lpddr4_timing_*.c`) | U-Boot has it (`board/technexion/pico-imx8mq`),  | 2026-11-15): the       |
 |                                         | byte for byte but the first comment: NXP's       | tool's output, BSD-3   |
 |                                         | notice as BSD-3-Clause for U-Boot's GPL-2.0+     | from NXP on request    |
@@ -174,11 +174,11 @@ init code inside the tool. The tool's C output ("Init Code") is BSD-3-Clause, Co
 check the header of each new output). To use it:
 
 1. Copy the generated C code as the board's `lpddr4_timing.c` as the tool wrote it, and never
-   edit it (D-088, Jonas): only the SPL links it (`spl-src-y`, `board.md` 7), and its U-Boot
-   includes (`<linux/kernel.h>`, `<asm/arch/ddr.h>`, `<asm/arch/lpddr4_define.h>`) are the SPL's
-   shims in `src/plat/imx8m/spl/compat/`, which give it `<plat/imx8m/dram.h>`'s types: the same
-   struct and table layout. pre-commit leaves the files alone. A board with one timing per
-   density (pico8ml) has a file each and chooses one in `imx8m_board_dram_timing()`.
+   edit it (D-088): only the SPL links it (`spl-src-y`, `board.md` 7), and its U-Boot includes
+   (`<linux/kernel.h>`, `<asm/arch/ddr.h>`, `<asm/arch/lpddr4_define.h>`) are the SPL's shims in
+   `src/plat/imx8m/spl/compat/`, which give it `<plat/imx8m/dram.h>`'s types: the same struct
+   and table layout. pre-commit leaves the files alone. A board with one timing per density
+   (pico8ml) has a file each and chooses one in `imx8m_board_dram_timing()`.
 2. The tool's stress test script (the part before "Init Code") shows the clock setup per frequency
    set point: PLL or PHY bypass, and the clock roots. `imx8m_ddr_soc_set_clock()` must support each
    data rate in `fsp_msg`.

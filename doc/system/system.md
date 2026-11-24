@@ -1,6 +1,6 @@
 # The system
 
-**State: reviewed (Jonas, 2026-11-11), D-034 to D-036, D-051, D-061.** Level 1 (`process.md`).
+**State: reviewed (2026-11-11), D-034 to D-036, D-051, D-061.** Level 1 (`process.md`).
 
 What pb is, its interfaces to the outside, the device's life cycle, and what pb promises. The
 documents below say how; this one says what they must add up to. Against whom the promises hold
@@ -78,15 +78,15 @@ The flows: `boot.md`, `command-mode.md`.
 - **pb's status is part of pb's information in the handover**: what pb couldn't do and booted
   anyway (`security.md` 4.5), so that the next stage can report it or act on it. Which entries
   is `boot.md` 5.6's, decided with the conditions themselves (F-248); new ones are appended.
-- **The image format may get company.** Jonas (2026-11-11): bpak solves more than pb needs, and
-  pb may get a simpler format of its own later. The boot flow's coupling to bpak stays loose
+- **The image format may get company** (2026-11-11). bpak solves more than pb needs, and pb
+  may get a simpler format of its own later. The boot flow's coupling to bpak stays loose
   enough for that: what it needs from a format is `boot.md` 4.4. bpak images stay accepted
   (D-008), so a new format comes next to bpak. Whether
   one build accepts several formats is to discuss (`roadmap.md`).
-- **A build may leave bpak out** (Jonas, 2026-11-12, D-061), once there is another format to
-  build in its place. That is the product's choice for its own devices, made in its defconfig,
-  like a build without command mode's authentication (section 6). bpak is in by default, and a
-  build that has it accepts every bpak image a release accepted (5.1).
+- **A build may leave bpak out** (2026-11-12, D-061), once there is another format to build in
+  its place. That is the product's choice for its own devices, made in its defconfig, like a
+  build without command mode's authentication (section 6). bpak is in by default, and a build
+  that has it accepts every bpak image a release accepted (5.1).
 
 ## 4. The life cycle
 
@@ -112,8 +112,8 @@ order is the core's (D-027), the fuses the platform's.
   isn't lost: in the field, without a host, command mode gives up and pb resets (section 2), so
   a read that works the next time boots; in development the ROM's serial download recovers a pb
   that broke the read.
-- **EOL is the SoC's end of life state** (Jonas, 2026-11-11), extended from NXP's field return.
-  The device is open again and the SoC's security state has changed, so what was sealed to the
+- **EOL is the SoC's end of life state** (2026-11-11), extended from NXP's field return. The
+  device is open again and the SoC's security state has changed, so what was sealed to the
   device (key blobs) can't be opened any more and the secrets stay protected.
   - A product chooses it: a Kconfig option, off by default. Without it `slc set-eol` answers
     NOT_SUPPORTED and the device can't enter EOL.

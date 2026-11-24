@@ -1,7 +1,7 @@
 # The platform contract
 
-**State: reviewed (Jonas, 2026-11-12), D-030, D-053 to D-056.** Level 3 (`process.md`). Reviewed
-once before (2026-11-10), then passed against `boot.md` and `board.md`, and reviewed again.
+**State: reviewed (2026-11-12), D-030, D-053 to D-056.** Level 3 (`process.md`). Reviewed once
+before (2026-11-10), then passed against `boot.md` and `board.md`, and reviewed again.
 
 What a platform (`src/plat/<p>/`, `include/plat/<p>/`) provides, when, and what the rest of pb may
 rely on. Decided in D-030, written in the style of TF-A's porting guide. It is independent of any
@@ -22,20 +22,20 @@ Each entry says what it does, from when it may be called ("valid from") and what
 finding removes the marker here and updates the port's conformance table (`plat-imx.md`).
 
 `CONFIG_PLAT_CRYPTO_ENGINE`, which a platform selected to have the boot check `crypto_engine`
-(F-247), is gone in 3.0.0 (Jonas, D-092): with `PLAT_CRYPTO_ENGINE_NONE` the core checks every
-platform. An out-of-tree platform drops its `select`.
-What the review decided and added, as written into the text:
+(F-247), is gone in 3.0.0 (D-092): with `PLAT_CRYPTO_ENGINE_NONE` the core checks every
+platform. An out-of-tree platform drops its `select`. What the review decided and added, as
+written into the text:
 
-| Item                             | Rule                                                            | By           |
-| -------------------------------- | --------------------------------------------------------------- | ------------ |
-| Hardware the platform didn't map | The board's `mmap`, data that `pb_mmu_init()` maps (5.2)        | Jonas, D-054 |
-| Memory for images                | The board's image data regions; the platform declares none, its | Jonas, D-055 |
-|                                  | header names the SoC memory a board may list and `bl_params`'   |              |
-|                                  | region (5.3)                                                    |              |
-| What a board may include         | The four folders of section 7. The arch through                 | Jonas, D-056 |
-|                                  | `include/pb/arch.h`; a system controller's API through the      |              |
-|                                  | platform header, not by its own path                            |              |
-| The filter's text (4.3)          | No fact of one port's in the rule                               | Jonas        |
+| Item                             | Rule                                                            | By     |
+| -------------------------------- | --------------------------------------------------------------- | ------ |
+| Hardware the platform didn't map | The board's `mmap`, data that `pb_mmu_init()` maps (5.2)        | D-054  |
+| Memory for images                | The board's image data regions; the platform declares none, its | D-055  |
+|                                  | header names the SoC memory a board may list and `bl_params`'   |        |
+|                                  | region (5.3)                                                    |        |
+| What a board may include         | The four folders of section 7. The arch through                 | D-056  |
+|                                  | `include/pb/arch.h`; a system controller's API through the      |        |
+|                                  | platform header, not by its own path                            |        |
+| The filter's text (4.3)          | No fact of one port's in the rule                               | Review |
 
 The pass (D-053) closed five of the seven items of 2026-11-11, because the documents above and
 beside this one leave one answer:
@@ -487,9 +487,9 @@ list, one per word (D-094). The platform's header gives each word's index, `<P>_
 fuses and nothing else: `struct slc_ops` has no `set_configuration` (D-095).
 
 `fuse_write` reads the word back after the write, from the array and not from a copy taken at
-reset, and fails with `-PB_ERR_IO` when a bit it set isn't there (Jonas, D-092, F-166); the
-command that wrote fails with it. A SoC that can't read back says why in its port's document:
-the i.MX8X, whose SCFW doesn't say what its read returns before a reset (`plat-imx.md`).
+reset, and fails with `-PB_ERR_IO` when a bit it set isn't there (D-092, F-166); the command
+that wrote fails with it. A SoC that can't read back says why in its port's document: the
+i.MX8X, whose SCFW doesn't say what its read returns before a reset (`plat-imx.md`).
 
 `set_eol`: every port implements EOL, as the SoC's own end of life state, or its document says
 why the SoC can't (`system.md` 4). A product chooses it with a Kconfig option, off by default.
@@ -655,8 +655,8 @@ touches, such as a secure carve-out: pb runs in the Secure state, and the filter
 MMU, protects it from the normal world.
 
 **The board's regions** `[optional]`. A board will want hardware the platform didn't map
-(Jonas, D-054): a device on an external bus (a chip select, an FPGA), a memory mapped flash, a
-SoC peripheral outside the buses of layer 2. The board declares it as data, `mmap` in
+(D-054): a device on an external bus (a chip select, an FPGA), a memory mapped flash, a SoC
+peripheral outside the buses of layer 2. The board declares it as data, `mmap` in
 `struct board` (`board.md` 2.8), and `pb_mmu_init()` maps it with the rest. The platform does
 nothing for it, and the board needs no patch to the platform:
 
@@ -804,7 +804,7 @@ nothing from `src/plat/` (the same list as `board.md` 6).
 A board that asks for the verified header also includes the image format's header,
 `<bpak/bpak.h>` (`board.md` 5.3, D-047).
 
-Nothing else (Jonas, D-056).
+Nothing else (D-056).
 
 - **Not the arch's headers** (`arch/arch_helpers.h`, `arch/armv8a/timer.h`). What a board needs
   from the arch comes through `include/pb/arch.h`.
@@ -842,9 +842,9 @@ The platform header documents:
   values and priority, what `plat_lockdown()` locks, and for level 3 builds what the ROM requires
   around `pb.bin`.
 
-Clocks are code (Jonas, 2026-11-09). Who sets one up: whoever selects the peripheral. The platform
-does the timer, the watchdog, the fuse controller, the TrustZone filter, DRAM, the crypto engine
-and the RNG, and command mode's USB (3.10); the board does the UART, SD/MMC and Ethernet.
+Clocks are code (2026-11-09). Who sets one up: whoever selects the peripheral. The platform does
+the timer, the watchdog, the fuse controller, the TrustZone filter, DRAM, the crypto engine and
+the RNG, and command mode's USB (3.10); the board does the UART, SD/MMC and Ethernet.
 
 ## 8. Review checklist
 

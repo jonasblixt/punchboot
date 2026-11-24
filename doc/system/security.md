@@ -1,6 +1,6 @@
 # The security model
 
-**State: reviewed (Jonas, 2026-11-11), D-034 to D-036.** Level 1 (`process.md`).
+**State: reviewed (2026-11-11), D-034 to D-036.** Level 1 (`process.md`).
 
 What pb protects, against whom, and what it leaves to others. The security clauses of the
 documents below cite the rules in section 4 by number.

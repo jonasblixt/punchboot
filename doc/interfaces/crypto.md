@@ -1,7 +1,7 @@
 # The crypto backend contract
 
-**State: reviewed (Jonas, 2026-11-12), D-064, D-071, D-073; section 2 changed by D-086, for
-Jonas's review.** Level 3 (`process.md`).
+**State: reviewed (2026-11-12), D-064, D-071, D-073; section 2 changed by D-086, for
+review.** Level 3 (`process.md`).
 
 What pb's hashing and signature verification (`include/pb/crypto.h`, `src/crypto.c`) give their
 users, and what a backend that implements them provides: a SoC's crypto engine or a software
@@ -15,20 +15,20 @@ then go through the checklist (section 8).
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates section 9.
 
-**No open items.** The draft's five, as decided in Jonas's review (D-071) and written into
-the text:
+**No open items.** The draft's five, as decided in the review (D-071) and written into the
+text:
 
-| Item | Rule                                                                             | By    |
-| ---- | -------------------------------------------------------------------------------- | ----- |
-| 1    | No abort to call: `hash_init()` starts from an idle engine, whatever was left    | Jonas |
-|      | (3.1)                                                                            |       |
-| 2    | The verdict's two channels mean the same: PB_OK if and only if `*verified`. A    | Jonas |
-|      | signature that doesn't verify is `-PB_ERR_SIGNATURE` (4)                         |       |
-| 3    | `dsa_verify()` while a hash is open is refused, `-PB_ERR_STATE` (4)              | Jonas |
-| 4    | A build may have several backends, each algorithm from one of them: a hardware   | Jonas |
-|      | backend for the hashes and a software one for the signatures. No fallback at run |       |
-|      | time (2)                                                                         |       |
-| 5    | `HASH_MD5_BROKEN` stays (5)                                                      | Jonas |
+| Item | Rule                                                                             |
+| ---- | -------------------------------------------------------------------------------- |
+| 1    | No abort to call: `hash_init()` starts from an idle engine, whatever was left    |
+|      | (3.1)                                                                            |
+| 2    | The verdict's two channels mean the same: PB_OK if and only if `*verified`. A    |
+|      | signature that doesn't verify is `-PB_ERR_SIGNATURE` (4)                         |
+| 3    | `dsa_verify()` while a hash is open is refused, `-PB_ERR_STATE` (4)              |
+| 4    | A build may have several backends, each algorithm from one of them: a hardware   |
+|      | backend for the hashes and a software one for the signatures. No fallback at run |
+|      | time (2)                                                                         |
+| 5    | `HASH_MD5_BROKEN` stays (5)                                                      |
 
 ## 1. Words and scope
 
@@ -65,27 +65,27 @@ pb verifies and never signs: a backend holds no secret, and nothing here needs c
 A backend registers its operations when it is set up: `hash_add_ops()`, `dsa_add_ops()`, each
 with the algorithms it has (`alg_bits`).
 
-- **The engine is the platform's, the software the core's** (Jonas, D-086). A SoC's crypto
-  engine is set up in `plat_init()`, behind its Kconfig option (`platform.md` 2.2). A software
-  backend is no part of a SoC: the core sets it up in `main()` right after `plat_init()`,
-  behind its driver's option (`CONFIG_DRIVERS_CRYPTO_MBEDTLS`), the same on every platform, and
-  records whether it came up (`crypto_sw_init()`, `crypto_sw_state()`). The board's defconfig
-  says which backends the build has.
+- **The engine is the platform's, the software the core's** (D-086). A SoC's crypto engine is
+  set up in `plat_init()`, behind its Kconfig option (`platform.md` 2.2). A software backend is
+  no part of a SoC: the core sets it up in `main()` right after `plat_init()`, behind its
+  driver's option (`CONFIG_DRIVERS_CRYPTO_MBEDTLS`), the same on every platform, and records
+  whether it came up (`crypto_sw_init()`, `crypto_sw_state()`). The board's defconfig says
+  which backends the build has.
 - **A backend that failed isn't registered.** One whose set-up fails after it registered its
   hashes takes them back with `hash_remove_ops()`, which ends a hash it had open. An algorithm
   no backend has is `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check
   that can't be made is a no (`security.md` 4.4). A backend that failed, the engine or the software, and a build
   with no backend at all, refuse the boot before the load (`platform.md` 2.3, `security.md`
   4.5).
-- **A build may have several backends, and each algorithm comes from one of them** (Jonas,
-  D-071). The hashes and the signatures are registered apart, so an engine can give the
+- **A build may have several backends, and each algorithm comes from one of them**
+  (D-071). The hashes and the signatures are registered apart, so an engine can give the
   accelerated hashes while a software backend verifies the signatures, or the other way
   round. A backend's options say which of its algorithms it registers. Today no build in
   the tree has two backends.
-- **No fallback at run time** (Jonas): an algorithm has one backend, chosen by the build. A
-  fallback would be a second implementation that must verify the same, and `security.md` 4.5
-  asks that of one before it may stand in. An algorithm that two backends register is a
-  mistake of the build: the second registration is refused.
+- **No fallback at run time**: an algorithm has one backend, chosen by the build. A fallback
+  would be a second implementation that must verify the same, and `security.md` 4.5 asks
+  that of one before it may stand in. An algorithm that two backends register is a mistake
+  of the build: the second registration is refused.
 - **Together the build's backends have every algorithm its keys and images use**: the
   header's hash, the trust anchors' curves, SHA-256 for `part verify`, MD5 for the identity.
   No single backend needs them all. One that lacks an algorithm on some hardware (an engine
@@ -107,12 +107,12 @@ Return   : int, PB_OK or -PB_ERR_*
 
 Opens a context for one algorithm.
 
-- **It always starts clean** (Jonas, D-071). Whatever was open is ended: a job that is in
-  flight is waited for or cancelled, and nothing of it completes into the new context or into
-  a later verification (F-181). A user that gives a hash up on an error calls nothing; the
-  next `hash_init()` is the cleanup. Until then the context counts as open, and a
-  verification is refused (section 4), which is a no; every verification hashes first, so it
-  starts with a `hash_init()`.
+- **It always starts clean** (D-071). Whatever was open is ended: a job that is in flight is
+  waited for or cancelled, and nothing of it completes into the new context or into a later
+  verification (F-181). A user that gives a hash up on an error calls nothing; the next
+  `hash_init()` is the cleanup. Until then the context counts as open, and a verification is
+  refused (section 4), which is a no; every verification hashes first, so it starts with a
+  `hash_init()`.
 - **When it fails there is no context**: the next update is `-PB_ERR_STATE`.
 - `-PB_ERR_NOT_SUPPORTED`: no backend has the algorithm. `-PB_ERR_PARAM`: `alg` isn't one
   algorithm.
@@ -185,7 +185,7 @@ Return   : int, PB_OK or -PB_ERR_*
 
 Verifies an ECDSA signature over a digest with a public key.
 
-**The verdict** (Jonas, D-071).
+**The verdict** (D-071).
 
 - **`*verified` is false until the signature verified.** It is set to false before anything
   else, and to true in one place: where this call's own computation said the signature is
@@ -205,21 +205,20 @@ The arguments:
   token carry it. It comes from the image or the host: every length in it is checked against
   `signature_length`, and against the curve's size (`drivers.md` 5). It is every byte of
   `signature_length`: the SEQUENCE's length is what follows its header and the INTEGERs fill
-  it, on every backend as in Mbed TLS (Jonas, D-092, F-286 (6)).
+  it, on every backend as in Mbed TLS (D-092, F-286 (6)).
 - **The key** is a trust anchor, part of pb: DER, a `SubjectPublicKeyInfo`. It is
   parsed inside `key_length` all the same (`principles.md` 2).
 - **`alg` is the key's curve as pb's trust anchors name it** (`struct pb_key`'s `kind`). A key whose
   own curve is another one is refused, `-PB_ERR_PARAM`: the list and the key must agree. The core
-  checks it before any backend sees the key (Jonas, D-092, F-286), with `der_ec_public_key_data()`:
-  a key that doesn't parse there is `-PB_ERR_ASN1`, a curve pb doesn't know `-PB_ERR_NOT_SUPPORTED`.
+  checks it before any backend sees the key (D-092, F-286), with `der_ec_public_key_data()`: a key
+  that doesn't parse there is `-PB_ERR_ASN1`, a curve pb doesn't know `-PB_ERR_NOT_SUPPORTED`.
 - **`md` and `md_length`** are the digest and its length. `md_length` is exactly the digest
-  size of `md_alg`; anything else is `-PB_ERR_PARAM`, from the core (Jonas, D-073). A backend
-  uses the leftmost bits the curve takes, as ECDSA defines. `md` is read only and may be
-  anywhere. **Not yet in the code (F-286)**: nothing checks the length, and command mode's
-  token passes 64 whatever the hash. The two are fixed in one commit, and the tokens that
-  verified are tried on both backends first: which ones verify is fixed
-  (`command-mode.md` 7).
-- **Not while a hash is open** (Jonas, D-071): `-PB_ERR_STATE`, from the core, whichever
+  size of `md_alg`; anything else is `-PB_ERR_PARAM`, from the core (D-073). A backend uses
+  the leftmost bits the curve takes, as ECDSA defines. `md` is read only and may be anywhere.
+  **Not yet in the code (F-286)**: nothing checks the length, and command mode's token passes
+  64 whatever the hash. The two are fixed in one commit, and the tokens that verified are
+  tried on both backends first: which ones verify is fixed (`command-mode.md` 7).
+- **Not while a hash is open** (D-071): `-PB_ERR_STATE`, from the core, whichever
   backends the build has.
 
 ## 5. Algorithms
@@ -238,7 +237,7 @@ The arguments:
 - **MD5 is in every build**: the device's UUID is computed with it, and the UUID never changes
   (`system.md` 5.5). No verification uses it, and no image or key can ask for it: the image
   format's hash kinds don't name it.
-- **`HASH_MD5_BROKEN` stays** (Jonas, D-071). The engine's backend has a second MD5 with a
+- **`HASH_MD5_BROKEN` stays** (D-071). The engine's backend has a second MD5 with a
   shortened running context, "compatible with some versions already in the field". Nothing
   in the tree asks for it: a product whose devices got their UUIDs from it needs it for good
   (`principles.md` 7).

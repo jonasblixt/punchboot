@@ -2,11 +2,11 @@
 
 **State: in force**, the guards below check it (D-008). Level 1 (`process.md`).
 
-**Hard rule (D-008): never break backward compatibility of the wire protocol or of the bpak
-image format.** Devices in the field are not updated in step with the host tools, factory lines
-pin old tool versions, and signed images outlive both. This file lists what is frozen, what may
-change and how, and the guards that check it. The floor is the 1.0.0 release (Jonas, 2026-11-11):
-hosts and firmware from v1.0.0 on.
+**Hard rule (D-008): never break backward compatibility of the wire protocol or of the bpak image
+format.** Devices in the field are not updated in step with the host tools, factory lines pin old
+tool versions, and signed images outlive both. This file lists what is frozen, what may change
+and how, and the guards that check it. The floor is the 1.0.0 release (2026-11-11): hosts and
+firmware from v1.0.0 on.
 
 Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/cm/`,
 `tools/punchboot/` (`wire.py`, `bpak.py`, `session.py`), `include/bpak/`, `src/lib/bpak.c`,

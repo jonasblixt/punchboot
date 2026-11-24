@@ -1,6 +1,6 @@
 # The process: documents first, top down
 
-**State: reviewed (Jonas, 2026-11-11), D-033, D-036, D-063.**
+**State: reviewed (2026-11-11), D-033, D-036, D-063.**
 
 How punchboot is developed. What pb does at a boundary is decided in a document before it is
 coded, and each document follows the one above it. Read this before writing or changing a
@@ -96,7 +96,7 @@ As `platform.md` and `board.md`:
 | State    | Means                                                     | To change it           |
 | -------- | --------------------------------------------------------- | ---------------------- |
 | Draft    | Under discussion, open items at its top                   | Edit                   |
-| Reviewed | Jonas went through it, no open items. The code follows it | Edit, noted in the log |
+| Reviewed | Read through, no open items. The code follows it          | Edit, noted in the log |
 | In force | One implementation meets every mandatory entry            | A decision entry first |
 
 - A document is reviewed when the ones above it are. A draft below may exist earlier, with its
@@ -114,7 +114,7 @@ As `platform.md` and `board.md`:
 1. Find the highest level the change touches. Start there. A change that touches none (section
    1) starts at the code, step 5.
 2. Write it into the documents, top down. A change of direction gets a decision entry.
-3. Jonas reviews.
+3. The maintainer reviews.
 4. Every gap to the code becomes a finding and a marker.
 5. The code: a commit per finding. It removes the marker, updates the conformance table and adds
    the test, named after the clause where one can be written.

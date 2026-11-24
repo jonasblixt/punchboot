@@ -1,6 +1,6 @@
 # The block device contract
 
-**State: reviewed (Jonas, 2026-11-12), D-064, D-067 to D-070, D-073, D-093.** Level 3
+**State: reviewed (2026-11-12), D-064, D-067 to D-070, D-073, D-093.** Level 3
 (`process.md`).
 
 What a block device is in pb (`include/pb/bio.h`, `src/bio.c`): what the boot, command mode, a
@@ -14,23 +14,23 @@ through the checklist (section 7). Section 6 is fixed for a product in the field
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates section 8.
 
-**No open items.** What Jonas's review decided (D-067 to D-070, D-093), as written into the
+**No open items.** What the review decided (D-067 to D-070, D-093), as written into the
 text:
 
-| Item | Rule                                                                         | By    |
-| ---- | ---------------------------------------------------------------------------- | ----- |
-| 1    | The core owns a length that isn't whole blocks; a driver sees whole blocks   | Jonas |
-|      | only (3.1, 3.2)                                                              |       |
-| 2    | No read at a byte offset for now. A part that doesn't start on a block of    | Jonas |
-|      | its device is refused, as released (3.1)                                     |       |
-| 3    | An installed table is in effect after the reset. One that changed the        | Jonas |
-|      | partitions locks their writes and erases until then (4, D-093)               |       |
-| 4    | `bio_write()` is to erase what it writes where the flag is set. A future     | Jonas |
-|      | task: the erase blocks' accounting is designed first (3.3, `roadmap.md`).    |       |
-|      | Until then the writer erases, as released                                    |       |
-| 5    | A device is left as it is at the jump, nothing in flight (5)                 | Jonas |
-| 6    | `bio_erase()` counts blocks, not bytes (3.3)                                 | Jonas |
-|      | `bio_write()` is optional, whatever the flags say (3.2)                      | Jonas |
+| Item | Rule                                                                         |
+| ---- | ---------------------------------------------------------------------------- |
+| 1    | The core owns a length that isn't whole blocks; a driver sees whole blocks   |
+|      | only (3.1, 3.2)                                                              |
+| 2    | No read at a byte offset for now. A part that doesn't start on a block of    |
+|      | its device is refused, as released (3.1)                                     |
+| 3    | An installed table is in effect after the reset. One that changed the        |
+|      | partitions locks their writes and erases until then (4, D-093)               |
+| 4    | `bio_write()` is to erase what it writes where the flag is set. A future     |
+|      | task: the erase blocks' accounting is designed first (3.3, `roadmap.md`).    |
+|      | Until then the writer erases, as released                                    |
+| 5    | A device is left as it is at the jump, nothing in flight (5)                 |
+| 6    | `bio_erase()` counts blocks, not bytes (3.3)                                 |
+|      | `bio_write()` is optional, whatever the flags say (3.2)                      |
 
 ## 1. Words and scope
 
@@ -169,12 +169,12 @@ Reads `length` bytes from block `lba` of the device into `buf`.
 - **A failed read** leaves `buf` with unknown content. The caller doesn't use it (F-173).
 - `-PB_ERR_NOT_SUPPORTED`: the device has no read.
 
-**No read at a byte offset, for now** (Jonas, D-068). A read starts on a block. An image's
-parts start where its format puts them, and bpak aligns them to 512 bytes: on a device with
-larger blocks (the NOR's 4 KiB) a part that doesn't start on a block isn't read, and the boot
-fails with `-PB_ERR_ALIGN` when it reaches that part, as in every release (F-220). An image's
-first part always starts on a block: it is at the partition's first byte. A read at a byte
-offset in the core would lift the limit; it is noted in `roadmap.md`.
+**No read at a byte offset, for now** (D-068). A read starts on a block. An image's parts
+start where its format puts them, and bpak aligns them to 512 bytes: on a device with larger
+blocks (the NOR's 4 KiB) a part that doesn't start on a block isn't read, and the boot fails
+with `-PB_ERR_ALIGN` when it reaches that part, as in every release (F-220). An image's first
+part always starts on a block: it is at the partition's first byte. A read at a byte offset
+in the core would lift the limit; it is noted in `roadmap.md`.
 
 The driver's callback:
 
@@ -220,11 +220,11 @@ Erases `count` blocks from `first_lba`. A device whose medium has no erase, or w
 has none, answers `-PB_ERR_NOT_SUPPORTED` (MMC and SD today: `part erase` isn't supported on
 them).
 
-- **The count is blocks, not bytes** (Jonas, D-069). A read and a write take bytes because the
-  core can make a partial block whole: it pads a write and trims a read. An erase can't be
-  padded: half a block can't be erased, so a byte count that isn't whole blocks could only be
-  refused. With blocks the request that has no meaning can't be made. The wire counts in
-  blocks too (`PART_ERASE`, `compatibility.md`).
+- **The count is blocks, not bytes** (D-069). A read and a write take bytes because the core
+  can make a partial block whole: it pads a write and trims a read. An erase can't be padded:
+  half a block can't be erased, so a byte count that isn't whole blocks could only be refused.
+  With blocks the request that has no meaning can't be made. The wire counts in blocks too
+  (`PART_ERASE`, `compatibility.md`).
 - **Exactly those blocks**, whatever the medium's own erase units are. A driver that erases in
   larger units uses one only where the range covers it whole.
 - **What an erased block reads as** isn't promised. A user that needs zeros writes them.
@@ -242,8 +242,8 @@ been erased since they were last written.
 - **Today the writer erases**, as in every release: `bio_write()` doesn't. A host sees the
   flag and erases (`part erase`, then the write), the A/B state erases its block before each
   write. A user in pb that writes any device (a policy's state, a board) checks the flag.
-- **`bio_write()` is to do it** (Jonas, D-067): on a device with the flag a write erases what
-  it writes, and no user has to know the medium. A future task, not designed here: the erase
+- **`bio_write()` is to do it** (D-067): on a device with the flag a write erases what it
+  writes, and no user has to know the medium. A future task, not designed here: the erase
   blocks' accounting comes first (`roadmap.md`). What it must keep: a host that erases before
   it writes, as every released host does where the flag is set, still gets its bytes written.
 
@@ -294,7 +294,7 @@ device with no table on it (`board.md` 2.4).
 - **Repair writes only what is bad** (F-195), and only a copy whose place the good copy gives.
   A device whose table can't be repaired has no partitions; command mode installs one
   (`board.md` 2.1).
-- **A table that is installed is in effect after the reset** (Jonas, D-093), as in every
+- **A table that is installed is in effect after the reset** (D-093), as in every
   release. Until then the device's partitions are the ones of the table that pb read at
   its start, and every handle stays good.
   1. **A table that changes the partitions locks their writes.** Changed: another number of
@@ -345,7 +345,7 @@ For a product in the field (D-008, `system.md` 5.1):
   its parent, the block size.
 - A host that erases a device with `ERASE_BEFORE_WRITE` and then writes it gets its bytes
   written, also when `bio_write()` erases by itself one day (3.3). That a write doesn't erase
-  is not fixed (Jonas, D-067).
+  is not fixed (D-067).
 - An eMMC's boot partition becomes the ROM's choice when a stream that wrote it is finalized
   (3.4), not before.
 - The devices' and the partitions' UUIDs are the board's (`board.md` 8).

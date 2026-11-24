@@ -13,7 +13,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 - **Replaced by**: no longer holds.
 - **Closed by**: a draft, or a step of a review. The named entries decided what it left open,
   and not always as it proposed.
-- **Waits**: made without Jonas, not confirmed.
+- **Waits**: made without the maintainer, not confirmed.
 
 | ID    | Decision                                         | State                                              |
 | ----- | ------------------------------------------------ | -------------------------------------------------- |
@@ -56,8 +56,8 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-036 | Level 1 and the process are reviewed             | In force                                           |
 | D-037 | The documents' folders are the levels            | In force; D-062 removed two documents              |
 | D-038 | The boot flow contract after level 1             | In force                                           |
-| D-039 | The boot flow, Jonas's first answers             | Narrowed by D-048 (the in place header's address)  |
-| D-040 | The boot flow, Jonas's second answers            | Narrowed by D-046 (the policy is no Kconfig        |
+| D-039 | The boot flow, the first answers                 | Narrowed by D-048 (the in place header's address)  |
+| D-040 | The boot flow, the second answers                | Narrowed by D-046 (the policy is no Kconfig        |
 |       |                                                  | choice), D-081 (`BOOT_AB_DRIVER` is gone)          |
 | D-041 | pb's status; the boot flow contract is reviewed  | In force                                           |
 | D-042 | The agent instructions are `AGENTS.md`           | In force                                           |
@@ -76,7 +76,7 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-055 | Image data regions                               | In force                                           |
 | D-056 | The platform contract is reviewed                | In force                                           |
 | D-057 | The command mode contract (draft)                | Closed by D-058, D-059                             |
-| D-058 | Command mode, Jonas's review                     | In force; its item (1) closed by D-059             |
+| D-058 | Command mode, the review                         | In force; its item (1) closed by D-059             |
 | D-059 | `CONFIG_CM_AUTH` stays; the contract is reviewed | In force                                           |
 | D-060 | Command mode and another image format            | In force; its open question answered by D-061      |
 | D-061 | A build may leave bpak out                       | In force                                           |
@@ -85,15 +85,15 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-064 | The drivers' contracts (drafts)                  | Closed by D-065 to D-073                           |
 | D-065 | `drivers.md`, the first answers                  | In force                                           |
 | D-066 | `drivers.md` is reviewed                         | In force; Open (5), which drivers have a `stop`,   |
-|       |                                                  | is my reading                                      |
-| D-067 | `bio.md`, Jonas's review                         | Narrowed by D-068 (the uncommented items)          |
+|       |                                                  | is taken as accepted                               |
+| D-067 | `bio.md`, the review                             | Narrowed by D-068 (the uncommented items)          |
 | D-068 | `bio.md`, the uncommented items                  | In force                                           |
 | D-069 | `bio.md`: an erase counts blocks                 | In force; the installed table decided by D-093     |
 | D-070 | `bio.md` is reviewed                             | Narrowed by D-093 (the installed table)            |
 | D-071 | `crypto.md` is reviewed                          | In force                                           |
 | D-072 | `usb.md` is reviewed                             | Narrowed by D-090 (USB 2.0's standard requests)    |
 | D-073 | The drivers' contracts, the final read           | In force                                           |
-| D-074 | An entry in an empty part is refused             | Waits for Jonas's review                           |
+| D-074 | An entry in an empty part is refused             | Waits for review                                   |
 | D-075 | The decisions have an index                      | In force                                           |
 | D-076 | Named commands, declared anywhere and listed     | In force                                           |
 | D-077 | The platform describes the SoC, the core shows it | In force                                          |
@@ -105,10 +105,10 @@ entry that replaces, narrows or closes an older one changes the older one's row 
 | D-082 | The RAM log has every level, unsynchronized      | In force                                           |
 | D-083 | The board's keys are its `makefile.mk`'s         | In force                                           |
 | D-084 | The platform's open questions, answered          | In force                                           |
-| D-085 | Unrevocable keys, board functions, OP-TEE        | In force; Jonas reviewed it                        |
+| D-085 | Unrevocable keys, board functions, OP-TEE        | In force; reviewed                                 |
 | D-086 | The software crypto backend is the core's        | In force; its Open (1) closed by D-092             |
-| D-087 | A build may forbid every fuse write              | In force (Jonas: "the EVK must never write fuses") |
-| D-088 | The i.MX8M boots pb in two stages, one image     | Accepted (Jonas); the code follows                 |
+| D-087 | A build may forbid every fuse write              | In force: the EVK must never write fuses           |
+| D-088 | The i.MX8M boots pb in two stages, one image     | Accepted; the code follows                         |
 | D-089 | The 8MQ SPL's USB recovery: fastboot             | In force; on the pico8ml (2026-11-15)              |
 | D-090 | The stack answers USB 2.0's standard requests    | In force; `CLEAR_FEATURE(HALT)` stays stalled      |
 | D-091 | A device tree whose header lies is refused       | In force                                           |
@@ -203,7 +203,7 @@ other media.
 
 Authentication is only enforced in `CONFIGURATION_LOCKED`. In `EOL` every command is open, as in
 `NOT_CONFIGURED` and `CONFIGURATION`. Closes F-002 as intended.
-Why: Jonas confirmed this is the intended EOL behaviour (2026-10-23). Note that it also opens
+Why: this is confirmed as the intended EOL behaviour (2026-10-23). Note that it also opens
 `cmd_board` (F-063) and everything else in EOL, so bounds checks on host input matter there too.
 
 ## D-012: No Codecov; coverage is a gcovr report in CI (2026-10-23)
@@ -259,7 +259,7 @@ and the DDR drivers in `src/drivers/ddr` (D-014), the DWC3 and ChipIdea UDC rewo
 defconfig changes. The wire protocol and bpak stay compatible (D-008): 3.0 hosts work with 2.x
 devices and the other way round, and every image 2.x accepted is still accepted. The release
 notes say both first.
-Why: Jonas wants a major release for the size of the change (new SoC and EVK, MMC/SD, DWC3,
+Why: a major release is wanted for the size of the change (new SoC and EVK, MMC/SD, DWC3,
 CAAM, RAM log, many fixes). A major version normally reads as "incompatible", so without the
 note users could think 2.x and 3.x tools and devices must not be mixed, and `punchboot~=2.7` or
 `<3` pins on PyPI won't pick up the fixes.
@@ -279,10 +279,10 @@ CAAM was checked on jiffy and the 8MP EVK, and belongs in a future hardware-in-t
 
 Until the boards that are on their way are in, code is not removed just because no board in
 the tree uses it: drivers, library and porting API, helpers, macros, register/pin/clock headers
-and board hooks stay, because new boards and examples will need them. Jonas brought back
-imx_gpio, imx_usbdcd, `hash_copy_update`, `bio_get_part_by_uu_str`, `usbd_xfer_cancel`, the
-`mmc_*` read/write/info/extcsd calls, `boot_image_copy_and_hash`, `utils_def.h` and the
-`imx_cdns3_udc.h` include in imx8dxlevk the same day. Ask Jonas before removing anything of
+and board hooks stay, because new boards and examples will need them. Brought back the same
+day: imx_gpio, imx_usbdcd, `hash_copy_update`, `bio_get_part_by_uu_str`, `usbd_xfer_cancel`,
+the `mmc_*` read/write/info/extcsd calls, `boot_image_copy_and_hash`, `utils_def.h` and the
+`imx_cdns3_udc.h` include in imx8dxlevk. Ask the maintainer before removing anything of
 that kind, and hold the porting API simplifications in F-145 until the new boards show what
 they need.
 What still goes: whole subsystems nobody enables, docs nobody builds, files nothing references,
@@ -291,11 +291,11 @@ Read the Docs tree (`doc/source`, `.readthedocs.yml`; user docs start from the R
 the unreferenced presentation and image in `doc/`, unused TF-A asm helpers and asm macros,
 headers nothing includes, always-on and unread Kconfig options, Makefile leftovers and dead
 scripts. Boards that don't build (F-033, F-051), the ATF boot driver (F-146) and virtio
-(F-052) wait for Jonas.
-Why: Jonas wants the code slimmed down; dead code is read, grepped, reviewed and kept
+(F-052) wait for the maintainer.
+Why: the code is to be slimmed down; dead code is read, grepped, reviewed and kept
 compiling, and a stub doc tree looks like documentation (`--gc-sections` already kept most of
-it out of the binaries). But more boards are coming, and Jonas expects to add things to the
-boards or add examples that use what looks unused today.
+it out of the binaries). But more boards are coming, and additions to the boards or new
+examples are expected to use what looks unused today.
 Revisit: when the incoming boards are in, decide whether to go back to removing code without
 an in-tree user.
 
@@ -409,12 +409,13 @@ when the rest fails (F-168).
 What the boards repeated is shared: command mode over USB (`pb_dev_cls_transport`),
 `board_patch_bootargs()`, a default status and board command. The storage layout (the
 partition UUIDs, the GPT, the A/B state) stays each board's own, also where boards have the same
-one: a shared default layout (`pb/board_layout.h`) was tried and moved back (Jonas, 2026-11-09). The platforms no longer call the board or hand it a platform struct; the two boards
-that need platform data ask for it (`imx6ul_plat()`, `imx8x_ipc()`, `imx8x_plat()`).
+one: a shared default layout (`pb/board_layout.h`) was tried and moved back (2026-11-09). The
+platforms no longer call the board or hand it a platform struct; the two boards that need
+platform data ask for it (`imx6ul_plat()`, `imx8x_ipc()`, `imx8x_plat()`).
 Why: every board had the same sequence with small differences, a different `board_init()`
 signature per platform. The old order (RoT/SLC last) let a failed init open command mode.
-The boards are 1,542 lines shorter: less to review and to port, and Jonas wants as little
-board code as possible ("ideally no board code to maintain").
+The boards are 1,542 lines shorter: less to review and to port, and as little board code as
+possible is wanted (ideally no board code to maintain).
 Pins are tables in the board's hooks: `struct imx_pin` (IOMUXC, `IMX6UL_PIN()`, `IMX8M_PIN()`,
 `IMXRT_PIN()` by the pin's name, `imx_iomuxc_setup()`) and `struct imx8x_pad` (SCFW,
 `imx8x_pads_setup()`).
@@ -475,7 +476,7 @@ D-028), and a simple target makes sense on 32 and 64 bit Cortex-A boards too, st
 EL3 without TF-A or Linux. Its boot time, reset to the simple target's first instruction, is a
 metric of its own: ROM, pb's init, load, verify and handover, without a kernel (`boot-time-image`
 stops before the jump, the Linux bench's reset to init is mostly the kernel).
-Why: Jonas, the bench is about the protocol, not the MCU.
+Why: the bench is about the protocol, not the MCU.
 Planned, not done: the application split into `src/arch/{armv7m,armv7a,armv8a}/` (start-up and
 each arch's handover checks: EL, DAIF, SCTLR.M and .C on Cortex-A) and `board/<board>/`
 (console, reset, timer); then ARMv8-A on the 8MP EVK, ARMv7-A on jiffy, the MEK. On the Cortex-A
@@ -488,7 +489,7 @@ partition` leaves no active system. Also rename the `MCUTEST` console prefix and
 
 `doc/dev/platform.md` is what a platform provides, when, and what the rest of pb may rely on, in
 the style of TF-A's porting guide: each entry tagged mandatory or optional, with "valid from" and
-what a failure means, and a review checklist. It is vendor neutral (Jonas): how the i.MX ports meet
+what a failure means, and a review checklist. It is vendor neutral: how the i.MX ports meet
 it, the SoC facts with their sources and each port's conformance table are in `plat-imx.md`. It
 describes the target; what the code doesn't do yet is marked "Not yet in the code (F-nnn)", and the
 commit that fixes the finding removes the marker and updates the conformance table.
@@ -501,13 +502,13 @@ commit that fixes the finding removes the marker and updates the conformance tab
   mode's prerequisites are missing (DRAM, MMU, its clocks, fuses), and records the rest in
   `plat_get_status()`. `main()` resets after a platform failure instead of entering command mode
   (F-235, F-202).
-- No silent boot (Jonas): when something the boot's security depends on failed (a bypassed DRAM
+- No silent boot: when something the boot's security depends on failed (a bypassed DRAM
   filter with a BL32, a lockdown that can't be done), `boot()` fails into command mode; logging is
   not enough. The policy per condition is a proposal, open (F-248).
 - The tick stays in microseconds, `uint32_t`, wrapping: callers use differences only (F-211).
 - The watchdog is kicked where work makes progress: per chunk in `load_and_hash`, before the jump,
   in command mode's loop. Never in `pb_delay`/`pb_timeout`: a driver polling forever would keep the
-  board alive (Jonas). The platform states its longest stretch without a kick.
+  board alive. The platform states its longest stretch without a kick.
 - `plat_get_boot_reason()`: a portable kind, the SoC's raw value for board code, a name for the
   log.
 - The platform provides `plat_rot` and `plat_slc`, the board only its configuration fuses. No
@@ -518,21 +519,22 @@ commit that fixes the finding removes the marker and updates the conformance tab
   to both worlds in a region of its own, leaves the default region secure (OP-TEE panics on the
   8M otherwise: aliases), and reports the state. The i.MX8X's is BL31's (SCFW partitions), the RT
   has none.
-- The other duties of the stage in BL2's place (Jonas: "are there more?", checked against U-Boot,
-  TF-A and OP-TEE): `plat_lockdown()` before the jump locks key revocation and what reopens a closed
-  device (F-244: jiffy's CSF unlocks SRK revocation for pb and nothing locks it again); timers
-  armed out of reset are disabled in early init (F-245); bus access control, the RNG, the crypto
-  engine's handover and the architected timer are done or left to a named later stage (F-246).
+- The other duties of the stage in BL2's place (whether there are more was asked, and checked
+  against U-Boot, TF-A and OP-TEE): `plat_lockdown()` before the jump locks key revocation and
+  what reopens a closed device (F-244: jiffy's CSF unlocks SRK revocation for pb and nothing locks
+  it again); timers armed out of reset are disabled in early init (F-245); bus access control, the
+  RNG, the crypto engine's handover and the architected timer are done or left to a named later
+  stage (F-246).
 - The MMU maps three layers: board RAM, the platform's map, pb's sections (`ram` and `buffers`
   apart, F-158). The i.MX8X's region below pb stays named in its map.
 - The board's addresses become Kconfig values; link scripts contain no addresses and check the
   SoC's windows. pb's own memory (the `pb` region, its length derived from the ROM's load window)
   and the board's DRAM (`BOARD_DRAM_*`) are named apart: `BOARD_RAM` and `PB_RAM_LENGTH` were
-  confused (Jonas).
+  confused.
 - The SoC's packaging and signing move to the platform as stages with `?=` inputs; a board, also
   out of tree, overrides the tool, the signing step or everything from `pb.bin` (level 3 is what
-  Jonas's custom systems use). CI builds a level 3 override. The stages are an interface for
-  out-of-tree boards and change only in a major release (D-018).
+  the maintainer's custom systems use). CI builds a level 3 override. The stages are an interface
+  for out-of-tree boards and change only in a major release (D-018).
 - The device identity (`platform_ns_uuid`, the unique id) is fixed like the wire.
 
 Why: the platform interface was `plat.h`'s nine functions, and the rest was found by copying a
@@ -552,18 +554,18 @@ style of the platform contract (D-030): entries tagged mandatory or optional, wi
 what a failure means, a review checklist and a conformance table per board. Vendor neutral; what
 the code doesn't do yet is marked "Not yet in the code (F-nnn)", as in `platform.md`.
 
-- A board failure stops the boot, never command mode (Jonas): `board_setup()` ends at a failed
+- A board failure stops the boot, never command mode: `board_setup()` ends at a failed
   step, skips the steps after it except the boot driver, which it always sets up, and returns the
   error; command mode can then install the table, repair the A/B state and boot from RAM (F-216,
   F-178). A platform failure resets (D-030), a board failure doesn't: command mode has what
   `plat_init()` set up. `init()` fails only when the boot can't go on safely, the rest is logged
   and in `status()`.
-- The board's data is checked at run time in `board_setup()` and `cm_board_init()` (Jonas), a few
+- The board's data is checked at run time in `board_setup()` and `cm_board_init()`, a few
   lines tested on the host: the name, one boot driver, the transport, the password callback
   (F-249). For the platform, documentation and review were chosen instead; data checks are cheap.
 - `struct board`, the hooks' meaning and the build interface change only in a major release
-  (Jonas, D-018). CI's out-of-tree board (F-240) tests this interface too.
-- `early_boot` and `late_boot` stay (Jonas): `early_boot` starts what is slow, the load overlaps it,
+  (D-018). CI's out-of-tree board (F-240) tests this interface too.
+- `early_boot` and `late_boot` stay: `early_boot` starts what is slow, the load overlaps it,
   `late_boot` reads the result and is the last chance to stop. The RT's charger detection needs
   more than 100 ms, so pb loads the image while it runs and checks in `late_boot`: minimal boot
   time is critical. A single stop hook before the load, proposed first, would have cost that time
@@ -571,7 +573,7 @@ the code doesn't do yet is marked "Not yet in the code (F-nnn)", as in `platform
 - `BOOT_FLAG_CMD` stays the board's to check: the boards differ on purpose (the 8X's button stops
   even a boot command mode started). `-PB_ERR_ABORT` from a hook means "enter command mode", not a
   failure.
-- The serial download stop is the core's (Jonas, default on): with `CONFIG_CM_ON_SERIAL_DOWNLOAD`,
+- The serial download stop is the core's (default on): with `CONFIG_CM_ON_SERIAL_DOWNLOAD`,
   `boot()` stops before `early_boot()` when `plat_get_boot_source()` reports USB or UART and command
   mode didn't start the boot. The RT and the 8X read the ROM's boot mode themselves today, which
   D-009 gives to the platform (F-251).
@@ -585,15 +587,15 @@ the code doesn't do yet is marked "Not yet in the code (F-nnn)", as in `platform
 Why: D-026 made the board data with hooks, but nothing said what each hook may rely on or what its
 failure means, and the boards differed: a failed init left command mode without a boot driver,
 every stop check bypassed command mode's boots by hand, two boards read the ROM's boot mode, the
-board data could crash command mode (a NULL transport). Out-of-tree boards (Jonas's level 3
-systems) need a written interface, and 3.0.0 is the porting API's release (D-018).
+board data could crash command mode (a NULL transport). Out-of-tree boards (the maintainer's
+level 3 systems) need a written interface, and 3.0.0 is the porting API's release (D-018).
 Cost: jiffy and the 8MP EVK stop in command mode after a serial download (`uuu`) instead of booting
 from storage. `CONFIG_CM_AUTH_PASSWORD` comes out of the defconfigs without a callback (jiffy, the
 RT, the host).
 
 ## D-032: The boot flow contract (2026-11-11, draft for review)
 
-`doc/dev/boot.md`: the boot flow from `boot()` to the jump, worked out with Jonas over four rounds
+`doc/dev/boot.md`: the boot flow from `boot()` to the jump, worked out over four rounds
 (`log/2026-11-11.md`). It shapes `board.md` 2.5, 2.7 and 5.
 
 - Words: the boot flow; the boot source policy (A/B is one); the handover (what the next stage
@@ -613,20 +615,20 @@ RT, the host).
 - Verification is the core's, without hooks. Placement becomes an allow list (F-254). Anti-rollback
   will be a verification step, so a refused older image is a failed candidate and the policies
   don't change.
-- Nothing is dropped (Jonas: out-of-tree projects): the in place and custom sources, speculative
+- Nothing is dropped (for out-of-tree projects): the in place and custom sources, speculative
   mode, `set_dtb_boot_arg`. The in place source becomes a property of a partition (F-253, F-219).
 - A handover is an entry, four arguments and what pb wrote; it is delivered directly or through
   TF-A, whose BL33 (image or Firmware Handoff) and BL32 (OP-TEE's convention, others possible) are
   nested handovers. The board picks the handover, not the image: the same parts mean different
   handovers on different boards (DXL, MEK), so choosing by the image would change what old images
   do. `linux` becomes `image` (Linux, Xen). The DXL moves to TF-A.
-- The generic handover is Arm's Firmware Handoff (Jonas: lean on standards): the transfer list holds
+- The generic handover is Arm's Firmware Handoff (to lean on standards): the transfer list holds
   the image's DT (copied into the list) or pb's structure, never both; the board decides by naming
   a DT part; pb makes no DT. The list is in a board region (pb's information changes every boot).
   pb's structure gets a tag allocated in the specification, requested upstream before 3.0.0.
   Cortex-M uses the AArch32 convention (pb's extension). It replaces `simple`, whose arguments
   exist only on the 3.0.0 branch; released pb passed none.
-- pb's information is collected once and written per format; `dtb.c` stays (Jonas, against
+- pb's information is collected once and written per format; `dtb.c` stays (against
   spreading DT code into the RoT and SLC modules). The board's DT hook keeps the whole tree and runs
   first, pb's properties after it. New: `pb,boot-partition`, `pb,boot-mode`.
 - Xen: its DT carries dom0's module nodes from the image build; pb writes nothing for Xen. From EL3
@@ -651,18 +653,18 @@ Open: the review of the draft, pb's structure's layout (`boot.md` 5.4), the regi
 - A change starts at the highest level it touches: the documents, the review, a finding per gap,
   a commit per finding.
 
-Why: Jonas, after the three contracts: this must be top down. The platform contract was written
+Why: after the three contracts, this must be top down. The platform contract was written
 first and now waits for the board's and the boot's ("follows" in six sections), and their open
 items ask what pb defends against and promises, which no document says. The contracts worked as a
 habit; nothing said which document owns a question or when the code may follow.
 Cost: two more documents (`system.md`, `security.md`) before the drafts' reviews are done, if
-Jonas takes that order.
+that order is taken.
 Open: the review of the draft (four items at its top).
 
 ## D-034: Level 1: the system and the security model (2026-11-11, draft for review)
 
 `doc/dev/system.md` and `doc/dev/security.md`, the level above the flows and the contracts
-(D-033). Jonas: two documents, written before the `boot.md` review goes on.
+(D-033). Asked for: two documents, written before the `boot.md` review goes on.
 
 - `security.md`: the chain, what is protected and in which order (what runs next, the root of
   trust's state, the secure world, the storage through command mode, then availability), the
@@ -680,7 +682,7 @@ Open: the review of both (6 and 5 items).
 
 ## D-035: The level 1 review: security first (2026-11-11)
 
-Jonas reviewed `principles.md`, `security.md` and `system.md` with comments in the text.
+The review of `principles.md`, `security.md` and `system.md`, with comments in the text.
 
 - **Security is first, even when it breaks compatibility.** `principles.md` is reordered: fail
   closed is 1, defence in depth 2, compatibility 3 (they were 2, 3 and 1; entries before this one
@@ -708,13 +710,14 @@ Jonas reviewed `principles.md`, `security.md` and `system.md` with comments in t
   preconditions are sorted by what rests on them (integrity refuses the boot, availability boots
   and reports).
 
-Open: EOL (`system.md` Open (1)); my answers to three questions (`security.md` Open (1) to (3):
-pb's place in the chain, the isolation always enforced, methods that grant less). The roadmap has
-what Jonas wants discussed later.
+Open: EOL (`system.md` Open (1)); the answers given to three questions (`security.md` Open (1) to
+(3): pb's place in the chain, the isolation always enforced, methods that grant less). The roadmap
+has what is to be discussed later.
 
 ## D-036: Level 1 and the process are reviewed (2026-11-11)
 
-Jonas's second round of comments, in `security.md`, `system.md`, `process.md` and `principles.md`.
+The review's second round of comments, in `security.md`, `system.md`, `process.md` and
+`principles.md`.
 
 - `security.md`, `system.md` and `process.md` are reviewed: no open items left.
 - Confirmed: where the secure world's isolation falls to pb, pb always sets it up and refuses to
@@ -723,8 +726,8 @@ Jonas's second round of comments, in `security.md`, `system.md`, `process.md` an
 - EOL is the SoC's end of life state. A product chooses it with a Kconfig option, off by
   default. Every port supports it; where the SoC can't, the port's document says why (F-263).
 - Principle 8 is "simple and terse code": low complexity and low verbosity. "Little code" didn't
-  say what Jonas meant.
-- No cap on a review's open items (I had proposed 7, a number without a reason behind it).
+  say what was meant.
+- No cap on a review's open items (7 had been proposed, a number without a reason behind it).
 - Taken as accepted, left without a comment: pb's place in the chain and its cost
   (`security.md` 1), and "in force" as its own state (`process.md` 4).
 
@@ -749,8 +752,8 @@ shows the order top down. 89 of 245 findings were closed and read every time.
 ## D-038: The boot flow contract after level 1 (2026-11-11)
 
 A pass over `boot.md`'s 15 open items against `security.md`, `system.md` and `compatibility.md`
-(D-033: a document decides only what its level owns). Derived by me from level 1, for Jonas's
-review of `boot.md`; ten items are left for him there.
+(D-033: a document decides only what its level owns). Derived from level 1, for the review of
+`boot.md`; ten items are left for it there.
 
 Closed, because level 1 leaves one answer:
 
@@ -770,13 +773,13 @@ New in `boot.md` from level 1: pb's status in the handover (`system.md` 3), a `/
 property and a field in pb's structure, so the structure's layout must have it before the tag is
 requested; the flow says "the header" where it doesn't depend on bpak (`system.md` 3).
 
-Left for Jonas: 1, 2, 3, 9, 12, 14 as they were; 5 for the fixed and chain policies only; 6 with
-the status field; 10 as two questions (where the header is, whether a differing `pb-load-addr`
-is refused); 17 as one (the preconditions before `early_boot()`).
+Left for the review: 1, 2, 3, 9, 12, 14 as they were; 5 for the fixed and chain policies only; 6
+with the status field; 10 as two questions (where the header is, whether a differing
+`pb-load-addr` is refused); 17 as one (the preconditions before `early_boot()`).
 
-## D-039: The boot flow contract, Jonas's first answers (2026-11-11)
+## D-039: The boot flow contract, the first answers (2026-11-11)
 
-Jonas answered `boot.md`'s ten open items in the text. Decided:
+`boot.md`'s ten open items are answered in the text. Decided:
 
 - The transfer list is always in a board region, also with a DT, which is copied into it.
 - Firmware Handoff replaces `simple`. Released pb passed no arguments, so nothing released is
@@ -788,40 +791,40 @@ Jonas answered `boot.md`'s ten open items in the text. Decided:
 - The transfer list holds the image's DT or pb's structure, one or the other (D-032 stands;
   asked again after the brief on Firmware Handoff, `doc/guides/firmware-handoff.md`).
 
-Written in as rules without a decision of his, since he saw no question in them: `boot part`
+Written in as rules without a decision, since no question was seen in them: `boot part`
 takes only the policy's candidates with every policy; the preconditions are checked before
 `early_boot()`.
 
-Open, with his view and my proposal in `boot.md`: speculative mode with nothing enabled (3), what
-pb hands over (6: the structure, the Kconfig names, the status' encoding), `pb-load-addr` in
-place (10), a trial whose attempt can't be written (12), Kconfig as the only switch for
-speculative mode (14).
+Open, with the maintainer's view and the draft's proposal in `boot.md`: speculative mode with
+nothing enabled (3), what pb hands over (6: the structure, the Kconfig names, the status' encoding),
+`pb-load-addr` in place (10), a trial whose attempt can't be written (12), Kconfig as the only
+switch for speculative mode (14).
 
-## D-040: The boot flow contract, Jonas's second answers (2026-11-11)
+## D-040: The boot flow contract, the second answers (2026-11-11)
 
 - **Speculative mode also starts with no slot enabled** (a state that is blank, lost or
   disabled by the host): A first, then alternating. In the field almost anything beats looping
-  into command mode. "For now" (Jonas). The cost: with this mode "disable both slots" doesn't
+  into command mode. Decided for now. The cost: with this mode "disable both slots" doesn't
   park a device in command mode, and a device in the factory boots an image that was written and
   not yet activated. Released speculative mode stays in command mode there.
 - **`BOOT_AB_SPECULATIVE` is the only switch** for speculative mode; the board's `rollback_mode`
   field goes. Two switches that must agree fail silently, and D-026 rewrites the board files.
 - **In place, a part is at its `pb-load-addr`**, as in released pb: hashed and entered there,
   and placement holds it inside the candidate's mapped range. Slot A's image in slot B is
-  refused as a candidate. Jonas had leaned to ignoring the meta; in released pb it is where the
+  refused as a candidate. The leaning had been to ignore the meta; in released pb it is where the
   part is, not a second address.
 - **A trial whose attempt can't be written** is started only when no verified slot is left;
   otherwise the verified slot boots. A rollback or an alternation that can't be written is
-  handed out. Jonas had leaned to always starting the trial; with a lasting fault that starts an
+  handed out. The leaning had been to always start the trial; with a lasting fault that starts an
   image that verifies and hangs forever.
 - **pb's structure** (`struct pb_fh_handover`) as in `boot.md` 5.4, with room for 16 keys.
 - **The Kconfig names**: `BOOT_POLICY_FIXED`, `BOOT_POLICY_CHAIN`, `BOOT_POLICY_AB` (a defconfig
   with `BOOT_AB_DRIVER` still gets A/B), `BOOT_AB_SPECULATIVE`, `BOOT_FH_REGION_BASE`,
-  `BOOT_FH_REGION_SIZE`. `BOOT_FH` for the handover itself is mine, from the region's names.
+  `BOOT_FH_REGION_SIZE`. `BOOT_FH` for the handover itself is the draft's, from the region's names.
 - `boot part` only for the policy's candidates and the preconditions before `early_boot()`
-  (D-039, written in without his decision) stood through his second read.
+  (D-039, written in without a decision) stood through the second read.
 
-Open: how pb's status is encoded. Jonas asked for strings instead of bit flags. Proposed: a
+Open: how pb's status is encoded. Strings were asked for instead of bit flags. Proposed: a
 string list in the DT (`pb,status`), bit flags in pb's structure (`status`), one table for both.
 
 ## D-041: pb's status, and the boot flow contract is reviewed (2026-11-11)
@@ -831,9 +834,9 @@ DT (`pb,status`) and bit flags in pb's structure (`status`). One table in `boot.
 condition its string and its bit together; neither is reused. The property is always written,
 empty when there is nothing. When 32 bits run out, a second field is appended to the structure.
 
-Why: Jonas asked for strings. In the DT they are the idiom and need no table to read. In pb's
+Why: strings were asked for. In the DT they are the idiom and need no table to read. In pb's
 structure a list of strings has no fixed size and could only be the last field for good, while
-the structure grows by appending; he accepted the bits there given that more can be added.
+the structure grows by appending; the bits were accepted there given that more can be added.
 
 With it `boot.md` has no open items: reviewed (`process.md` 4). The code follows it, a commit
 per finding (section 9).
@@ -846,23 +849,23 @@ demand. One file at the root, plain Markdown: no nested instruction files, no im
 or command names of one harness. The dated log and the `claude-work` branch name in the closed
 findings stay as they are, they are history.
 
-Why: Jonas wants the repo to work with different harnesses. Claude Code reads `AGENTS.md` where
+Why: the repo is to work with different harnesses. Claude Code reads `AGENTS.md` where
 a project has no `CLAUDE.md` (2.1.322), so no stub is kept.
 
 ## D-043: pb's status stays, and pb's version joins pb's information (2026-11-11)
 
-In his final read of `boot.md` Jonas doubted the value of pb's status (D-041), which has one
-entry, and considered removing it. It stays. pb's version is added: `pb,version` in the DT, a
-string, and `version[32]` appended to pb's structure; the string the wire's version command
-answers (`version.txt`).
+In the final read of `boot.md` the value of pb's status (D-041), which has one entry, was
+doubted, and removing it was considered. It stays. pb's version is added: `pb,version` in the
+DT, a string, and `version[32]` appended to pb's structure; the string the wire's version
+command answers (`version.txt`).
 
 Why the status stays: `security.md` 4.5 sorts a failed precondition into refuse, boot and report,
 or log only, and the status is the only output of the middle one. Without it those conditions
 are a line on a UART nobody reads in the field, which is F-096's pattern. The watchdog entry
-alone would not carry it (the next stage arms its own watchdog). Entries I expect, each decided
-with its condition: an A/B state that couldn't be written (`boot.md` 3.2, F-179), a verification
-with the software fallback after the crypto engine failed, a ROM that started pb from another
-place than expected. Removing it would have been safe for compatibility, nothing is released.
+alone would not carry it (the next stage arms its own watchdog). Expected entries, each decided with
+its condition: an A/B state that couldn't be written (`boot.md` 3.2, F-179), a verification with the
+software fallback after the crypto engine failed, a ROM that started pb from another place than
+expected. Removing it would have been safe for compatibility, nothing is released.
 
 Why the version: an OS can tell which pb booted it without command mode, for an inventory or a
 report. It is not for telling which entries exist: a next stage looks for the entry. Appended
@@ -870,7 +873,7 @@ last in the structure, so the layout that goes to the specification only grows.
 
 ## D-044: The boot flow is written for any image format (2026-11-11)
 
-Jonas, on `boot.md` 4.2: bpak is one format, another is planned (`system.md` 3), so the flow is
+On `boot.md` 4.2: bpak is one format, another is planned (`system.md` 3), so the flow is
 written without naming bpak. `boot.md` 4.4 is the one place that does: a table of what the flow
 needs from a format (a header with its own validity check, the key's id, a signature over the
 header and its hash, the parts with their place, size and load address, one payload hash in the
@@ -878,18 +881,17 @@ signed header, signed attributes for a handover) and what bpak has for each. 4.1
 section 5 say "the header", "a part", "its load address", "an attribute of the image". The
 command's name `boot bpak` stays, it is the wire's.
 
-The table is my reading of today's code (`image_helpers.c`, `boot.c`, `atf.c`), not a design of
-the second format. Nothing in the code changes now: the core reads bpak's header directly, and
-the format's interface in the code comes with the second format, together with what that format
-changes outside the table (the part ids a board names, the host's command, several formats in
-one build; `roadmap.md`).
+The table is a reading of today's code (`image_helpers.c`, `boot.c`, `atf.c`), not a design of the
+second format. Nothing in the code changes now: the core reads bpak's header directly, and the
+format's interface in the code comes with the second format, together with what that format changes
+outside the table (the part ids a board names, the host's command, several formats in one build;
+`roadmap.md`).
 
 ## D-045: The board contract after the boot flow contract and level 1 (2026-11-11)
 
 A pass over `board.md` against `boot.md` (reviewed, D-041), `security.md`, `system.md` and
-`principles.md`, as D-038 was for `boot.md`. Derived by me, for Jonas's review of `board.md`;
-five items are left for him there. The sections keep their numbers: `boot.md`, `platform.md` and
-level 1 cite them.
+`principles.md`, as D-038 was for `boot.md`. Derived, for the review of `board.md`; five items are
+left for it there. The sections keep their numbers: `boot.md`, `platform.md` and level 1 cite them.
 
 Written in, because the documents above leave one answer:
 
@@ -914,7 +916,7 @@ Written in, because the documents above leave one answer:
 - Section 8 gains the policy, the parts the board names for the handover, and the password's
   secret. `compatibility.md`'s summary of it follows after the review.
 
-Open for Jonas (`board.md`, top): the policy's fields; how a board gives the in place source (a
+Open for the review (`board.md`, top): the policy's fields; how a board gives the in place source (a
 table, or released pb's hook), which `work-3.0.0-plat`'s merge waits for; the handover's fields;
 bpak in the board's interface (`late_boot()`'s header, the part ids); a board's condition in pb's
 status, which would be an entry of `boot.md` 5.6.
@@ -923,7 +925,7 @@ Found on the way: F-264, the RT's `late_boot` was never called.
 
 ## D-046: One member per concept in `struct board`, a variant is an object (2026-11-11)
 
-Jonas, before his review of `board.md`: "board is data" (D-026) didn't turn out well, and the
+Before the review of `board.md`: "board is data" (D-026) didn't turn out well, and the
 boot source policy's fields (`ab`, `boot_part_uu`, `boot_chain`, D-045's Open (1)) felt awkward.
 What stays of D-026: the core owns the order and the failure rules, the board is
 `const struct board`. What changes is how a board gives a module its configuration.
@@ -970,7 +972,7 @@ Cost: a `const void *` behind the macros; the board files are rewritten once mor
 F-256, F-258 and F-259, before `work-3.0.0-plat` merges or right after it); one sentence of the
 reviewed `boot.md` changed (3: the policy was "chosen in Kconfig").
 
-Not settled by this entry: `cm_transport` and `cm_init()`. Jonas's idea, right after it: both
+Not settled by this entry: `cm_transport` and `cm_init()`. An idea, right after it: both
 leave the board's interface, the platform sets up command mode's USB and Kconfig selects the
 interface (`board.md` Open (4), to discuss).
 
@@ -981,15 +983,15 @@ in pb's status, and the transport's idea above.
 
 ## D-047: `late_boot()` gets no image header; the format hands out the verified one (2026-11-11)
 
-Jonas, in his review of `board.md` (its Open (2)): changing the hook is fine for 3.0.0. The
+The review of `board.md` (its Open (2)): changing the hook is fine for 3.0.0. The
 `struct bpak_header *` argument goes, and a board that needs the verified header calls a
 function of the image's format: `boot_verification_get_bpak_header()`, and one per format that
 comes (`boot_verification_get_<format>_header()`).
 
 - It returns `const struct bpak_header *`: the header of the image this boot verified, NULL
   before the payload's hash is checked or when the image isn't a bpak image. Valid from prepare
-  to the jump, so the DT hook can use it too. (The return value and from when it is valid are
-  mine.)
+  to the jump, so the DT hook can use it too. (The return value and from when it is valid are the
+  draft's.)
 - `late_boot()` keeps `boot_part_uu`, which names no format.
 
 Why: the boot flow is written for any image format (D-044), and a hook's arguments change only
@@ -997,15 +999,15 @@ in a major release (D-031). With the header as an argument a second format would
 second hook or 4.0.0. As a function of the format it is compiled in with the format, and a
 board that doesn't ask for it doesn't include `<bpak/bpak.h>`.
 
-The name (Jonas, the same day): `boot_image_get_bpak_header()` and
+The name (the same day): `boot_image_get_bpak_header()` and
 `boot_image_get_<format>_header()`, like the module's other functions (`boot_image_auth_header()`,
-`boot_image_verify_payload()`). `boot_verification_get_*` above was his example.
+`boot_image_verify_payload()`). `boot_verification_get_*` above was the review's example.
 
-Replaces what I had proposed (keep the argument, as `const`, for bpak only). Code: F-266.
+Replaces what had been proposed (keep the argument, as `const`, for bpak only). Code: F-266.
 
 ## D-048: In place: a flag in the static table, the device's mapped base, no header address (2026-11-11)
 
-Jonas, in his review of `board.md` (its Open (1)):
+The review of `board.md` (its Open (1)):
 
 - A board says a partition is booted in place with a flag in its entry of the static partition
   table. The table's object carries the address the device's first byte is mapped at
@@ -1016,19 +1018,19 @@ Jonas, in his review of `board.md` (its Open (1)):
   from `boot.md` 4.1, which D-039 had kept ("both"), and released pb's `get_in_mem_image()`
   doesn't come back.
 
-Why: his boards have the header at the partition's end, so the second way had no user. Where a
+Why: the known boards have the header at the partition's end, so the second way had no user. Where a
 header sits is the format's (`boot.md` 4.4): a format with its header first says so itself, for
-every source. An address per entry with 0 for "not mapped" was my first proposal; his question
-(what would 0 mean for a header at the beginning) showed the sentinel's problem, flash can be
-mapped at 0, and an address per entry must agree with the entry's first block.
+every source. An address per entry with 0 for "not mapped" was the first proposal; the review's
+question (what would 0 mean for a header at the beginning) showed the sentinel's problem, flash can
+be mapped at 0, and an address per entry must agree with the entry's first block.
 
 Compatibility: no image changes. A board that kept its header elsewhere than the format has it
-would have to move it; none is known (Jonas). Allowed for the porting API in 3.0.0 (D-018).
+would have to move it; none is known. Allowed for the porting API in 3.0.0 (D-018).
 Code: F-253, with F-219 and F-265.
 
 ## D-049: Command mode's USB is the platform's, and the transport is linked (2026-11-11)
 
-Jonas, in his review of `board.md` (4.1, 4.2):
+The review of `board.md` (4.1, 4.2):
 
 - pb's transport is USB and stays USB. Most SoCs' ROMs use USB for recovery and provisioning,
   so it fits; other transports, an IP stack above all, would add a large attack surface to a
@@ -1036,7 +1038,7 @@ Jonas, in his review of `board.md` (4.1, 4.2):
 - A board sets up nothing for command mode. The platform does it: `plat_cm_init()`
   (`platform.md` 3.10), called at the start of `cm_run()`. Which of the SoC's ports is a Kconfig
   choice of the platform's. `cm_init()` leaves `struct board`, without a hook for the PCB in its
-  place: none of his boards needs one.
+  place: none of the known boards needs one.
 - `cm_transport` leaves `struct board`. Command mode calls the transport's functions directly,
   and the build links one implementation: the USB class driver, or the host platform's socket.
 
@@ -1052,41 +1054,40 @@ Code: F-267.
 
 ## D-050: A board reports what it booted without: `board-degraded` in pb's status (2026-11-11)
 
-Jonas, in his review of `board.md` (its last open item): accepted as proposed. What a board's
+The review of `board.md` (its last open item): accepted as proposed. What a board's
 `init()` logs and doesn't fail on (jiffy: the CAAM's RNG for Linux) is "what pb couldn't do and
 booted anyway" (`system.md` 5.4). The board calls `board_report_degraded()`, and the handover
 carries one entry for every board: `board-degraded` in `pb,status`, bit 1 in `status`
 (`boot.md` 5.6). What it stands for is in the log and in `status()`.
 
 The function's name, and that it is valid in `init()`, `late_init()` and `early_boot()` (pb's
-information is collected after `early_boot()`), are mine. Code: with F-248.
+information is collected after `early_boot()`), are the draft's. Code: with F-248.
 
 ## D-051: Tasks: a linker list the core calls in turn while pb is stopped (2026-11-11)
 
-Jonas, in his review of `board.md`: `DEFINE_TASK(name, run)` defines a task, a name and a
+The review of `board.md`: `DEFINE_TASK(name, run)` defines a task, a name and a
 function, in a linker section. When pb is stopped the core calls every task in the list in
 turn, again and again. No switching, no pre-emption. Command mode's own handling of the host is
 one of the tasks (`cm_main_task`): the core owns the loop, not `cm_main.c`. Command mode's
 optional `process` hook goes.
 
-The loop is outside command mode, in `main()` (Jonas, corrected the same day; I had first
-written it as command mode's): pb can be built without command mode, and there are uses for
-tasks without it. Such a build stops the same way and runs its tasks; with none it resets, as
-today. `system.md` 2 says so.
+The loop is outside command mode, in `main()` (corrected the same day; it was first written as
+command mode's): pb can be built without command mode, and there are uses for tasks without it. Such
+a build stops the same way and runs its tasks; with none it resets, as today. `system.md` 2 says so.
 
-His answers to what I asked:
+The answers to what was asked:
 
 - **No order.** It isn't important, so none is defined and the struct has no priority.
 - **The rules for a task**: it returns quickly, takes no input from the host (only command
   mode's task reads the transport), stays inside the core's rules, and the core kicks the
   watchdog. Accepted.
-- **Latency**: a long command holds every other task off. Fine for now; nothing his boards do
+- **Latency**: a long command holds every other task off. Fine for now; nothing the known boards do
   there is time critical.
 - **The link scripts keep the section**; no set-up function.
 - **The large change**, not only a replacement for `process`: command mode becomes a task.
 
-Mine: `run` returns int, PB_OK to be called again, an error ends the loop and pb resets, as
-when command mode ends today. `DEFINE_TASK()`'s arguments.
+Chosen while writing it: `run` returns int, PB_OK to be called again, an error ends the loop and pb
+resets, as when command mode ends today. `DEFINE_TASK()`'s arguments.
 
 Why: `process` was one hook for one user, and since D-026 no board could set it (F-268). A list
 lets a board, a platform and a driver each have a task without a member in `struct board` or
@@ -1100,7 +1101,7 @@ F-268.
 
 ## D-052: The board contract is reviewed (2026-11-12)
 
-Jonas finished his review of `board.md`. No open items are left: what the pass (D-045) left
+The review of `board.md` is finished. No open items are left: what the pass (D-045) left
 open and what the review added is decided in D-046 to D-051, in the table at its top. Its state
 is reviewed (`process.md` 4); the code follows it, a commit per finding.
 
@@ -1113,8 +1114,8 @@ GPT variants, the configuration fuses and the board commands. The line is a summ
 ## D-053: The platform contract after the boot flow and board contracts (2026-11-12)
 
 A pass over `platform.md`'s seven open items (2026-11-11) against `boot.md` and `board.md`,
-both reviewed now, and level 1, as D-038 was for `boot.md` and D-045 for `board.md`. Derived by
-me, for Jonas's review of `platform.md`; two items are left for him there.
+both reviewed now, and level 1, as D-038 was for `boot.md` and D-045 for `board.md`. Derived, for
+the review of `platform.md`; two items are left for it there.
 
 Closed, because the documents above and beside it leave one answer:
 
@@ -1140,15 +1141,15 @@ F-263); the Firmware Handoff region is in the link interface's table (D-040's na
 partition booted in place is the board's to declare, its range in `plat_mmap[]` (D-048); pb
 "stops" where the text said "enters command mode" (D-051).
 
-Left for Jonas: the form of the loadable regions and of `bl_params`' place (5.3; `boot.md` says
+Left for the review: the form of the loadable regions and of `bl_params`' place (5.3; `boot.md` says
 that the platform declares them, not how); what a board may include beyond section 7's list (the
 two 8X boards include the arch's headers and the system controller's API).
 
 ## D-054: A board maps hardware the platform didn't, as data (2026-11-12)
 
-Jonas, reviewing `platform.md` 5.2: board code will want a peripheral the platform hasn't
-mapped, and that must be supported in an elegant way. The requirement is his; the form below is
-mine and waits for his review.
+The review of `platform.md` 5.2: board code will want a peripheral the platform hasn't
+mapped, and that must be supported in an elegant way. The requirement is the review's; the form
+below is a proposal and waits for review.
 
 - **`mmap` in `struct board`** (`board.md` 2.8, `platform.md` 5.2): a list of regions,
   `PB_MAP_DEVICE`, `PB_MAP_MEMORY_RO`, `PB_MAP_MEMORY_RW`, ended by `PB_MAP_END`, from
@@ -1176,9 +1177,9 @@ Code: F-269, with F-158 (`pb_mmu_init()`).
 
 ## D-055: Image data regions: placement's allow list is the board's (2026-11-12)
 
-Jonas, reviewing `platform.md` 5.3: turn the placement check around. It named pb's own regions
-one by one; better that a board says where image data may go. I agreed and proposed the form;
-he approved it.
+The review of `platform.md` 5.3: turn the placement check around. It named pb's own regions
+one by one; better that a board says where image data may go. Agreed; the form below was proposed
+and approved.
 
 - **The board's list** (`image_regions` in `struct board`, `board.md` 2.9): the only memory an
   image's parts are loaded into. A part lies inside one region, with the room a handover grows
@@ -1193,7 +1194,7 @@ he approved it.
 - **No default.** A board without a list loads nothing and boots only in place. The whole DRAM
   as a default would bring back the subtraction of pb's regions.
 - **`bl_params`**: in pb's own data, unless BL31 restricts where they may be; then the platform
-  header defines `PLAT_BL_PARAMS_BASE` and `_SIZE` (the names are mine).
+  header defines `PLAT_BL_PARAMS_BASE` and `_SIZE` (the names are the draft's).
 - **Fixed for a product in the field** (`board.md` 8): a region is made larger or added, never
   made smaller or removed.
 
@@ -1210,33 +1211,33 @@ Code: F-254, with F-258 for `bl_params`.
 
 ## D-056: The platform contract is reviewed; what a board may include (2026-11-12)
 
-Jonas finished his review of `platform.md` and closed its last open item.
+The review of `platform.md` is finished and its last open item is closed.
 
 - **A board includes** `include/pb/`, `include/drivers/`, `include/boot/` and
   `include/plat/<p>/`, and the image format's header when it asks for the verified header
   (D-047). Nothing else.
 - **Not the arch's headers**: what a board needs from the arch comes through
   `include/pb/arch.h`.
-- **A system controller's API through the platform header** (Jonas). The API lives with the
+- **A system controller's API through the platform header**. The API lives with the
   platform (the 8X's `include/plat/imx8x/sci/`, `src/plat/imx8x/sci/`): it is the SoC's, and
   the platform is built on it. A board that sets up its clocks and power calls it, and gets it
   by including the platform header, which includes the services boards need. A board never
   names the API's headers by their own path.
 
-I first wrote this stricter than Jonas meant: no API in a board at all, with helpers in the
-platform header that wrap each call. He corrected it the same day. Wrappers that mirror the
-API one to one would hide nothing, and clocks are code that whoever selects the peripheral
-writes (Jonas, 2026-11-09), which on such a SoC is a call to the system controller.
+This was first written stricter than was meant: no API in a board at all, with helpers in the
+platform header that wrap each call. It was corrected the same day. Wrappers that mirror the API one
+to one would hide nothing, and clocks are code that whoever selects the peripheral writes
+(2026-11-09), which on such a SoC is a call to the system controller.
 
 The review's other outcomes are D-054 (`mmap`), D-055 (image data regions) and the wording of
-4.3 (no fact of one port's in the rule). The form of D-054 was a proposal of mine; Jonas
-reviewed 5.2 with it in and closed the review, which I take as approval.
+4.3 (no fact of one port's in the rule). The form of D-054 was a proposal; 5.2 was reviewed with it
+in and the review closed, which is taken as approval.
 
 Code: F-270 (the MEK's and the DXL's includes, `imx8x.h`).
 
 ## D-057: The command mode contract, as a draft (2026-11-12)
 
-Jonas: the documents that guide the code come before the code. After the three contracts
+The documents that guide the code come before the code. After the three contracts
 (`boot.md`, `board.md`, `platform.md`) the next two are `command-mode.md` (level 2) and the
 drivers' contracts (level 3), in that order (`process.md` 1: top down). The code (F-253 first)
 waits for them.
@@ -1254,7 +1255,7 @@ documents above it, and so doesn't decide:
   released hosts send data after a refusal, the device stays in step.
 - The watchdog is kicked per chunk inside a command (`system.md` 5.4, `platform.md` 3.3).
 
-What it proposes, for Jonas (its Open (1) to (8)): no build without the gate (`CONFIG_CM_AUTH`
+What it proposes, for review (its Open (1) to (8)): no build without the gate (`CONFIG_CM_AUTH`
 goes); a hidden partition doesn't exist for the host, and `READABLE` only gates the bulk read;
 no idle timeout; a failed authentication is answered after 1 s; six classes of commands that a
 future method may grant; a transfer timeout that ends the session, and the caps' timeout
@@ -1270,9 +1271,9 @@ behaviour, and the USB interface hosts find the device by, which no document had
 
 New findings: F-271 to F-274. Not changed: any code.
 
-## D-058: The command mode contract, Jonas's review (2026-11-12)
+## D-058: The command mode contract, the review (2026-11-12)
 
-Jonas reviewed `command-mode.md` and answered its eight open items. One stays open.
+The review of `command-mode.md` answered its eight open items. One stays open.
 
 - **(2) A hidden partition is internal to pb.** A partition without `VISIBLE` isn't reachable
   over the wire: `NOT_FOUND` for every command. `PART_VERIFY` needs no `READABLE`, and that is
@@ -1281,20 +1282,20 @@ Jonas reviewed `command-mode.md` and answered its eight open items. One stays op
 - **(3) No idle timeout.** No benefit, and a change of behaviour that hosts would trip over.
 - **(4) A failed authentication is answered after 1 s.** F-276.
 - **(5) What a method may grant is not designed yet.** The six classes are out of the
-  contract. Jonas isn't comfortable committing to them, and is thinking of a manifest of the
-  allowed commands, signed and sent as the token. `roadmap.md` has it. The contract keeps the
+  contract. Committing to them isn't comfortable, and a manifest of the allowed commands,
+  signed and sent as the token, is being considered. `roadmap.md` has it. The contract keeps the
   one thing that needs: the gate is the only place that decides.
 - **(6) A transfer the host doesn't complete ends the session** after
   `CONFIG_CM_TRANSFER_TIMEOUT` (10 s), and the caps carry pb's timeouts. F-277.
 - **(7) `BOOT_BPAK` always reads the header** after its first OK, and the header's result
   carries a refusal. F-128.
 - **(8) A closed device answers `NOT_AUTHENTICATED` to everything but the identifier and the
-  authentication**, from 3.0.0: also to a command its build doesn't have, and (my addition,
-  for one rule) to a frame with a wrong magic. Every release answers `INVALID_COMMAND` there.
+  authentication**, from 3.0.0: also to a command its build doesn't have, and (added while writing
+  it in, for one rule) to a frame with a wrong magic. Every release answers `INVALID_COMMAND` there.
   F-275.
-- **(1) Open.** Jonas: pb can't keep a product from weak authentication, a board's password
+- **(1) Open.** pb can't keep a product from weak authentication, a board's password
   check is the board's; but a build should have to select at least one method. Whether the
-  switch `CONFIG_CM_AUTH` itself goes is not answered (my proposal: it goes).
+  switch `CONFIG_CM_AUTH` itself goes is not answered (the draft's proposal: it goes).
 
 What 3.0.0 answers differently from a release, for `security.md` 4.7 and 2 (`principles.md`
 3): (8) changes a result code on a locked device before authentication; (2) refuses a hidden
@@ -1311,15 +1312,15 @@ draft until (1) is closed.
 
 ## D-059: `CONFIG_CM_AUTH` stays a switch; the command mode contract is reviewed (2026-11-12)
 
-Jonas closed the last open item of `command-mode.md`: "make it a switch".
+The last open item of `command-mode.md` is closed: it is made a switch.
 
 - `CONFIG_CM_AUTH` stays, on by default. Off, the build has no gate and command mode is open
   in every life cycle state, on a locked device too: a product's explicit choice.
 - On, the build selects at least one method (the token, the password), or it doesn't build
-  (D-058, his proposal). F-271.
-- I had proposed that the switch goes and the gate is always compiled in. Why not: pb can't
-  keep a product from weak authentication anyway (a board's password check is the board's), so
-  the choice is the product's either way, and a switch says it plainly.
+  (D-058, the review's proposal). F-271.
+- The draft had proposed that the switch goes and the gate is always compiled in. Why not: pb can't
+  keep a product from weak authentication anyway (a board's password check is the board's), so the
+  choice is the product's either way, and a switch says it plainly.
 
 Level 1 follows: `security.md` 4.7 names the build without authentication as the product's
 choice, and `system.md` 6 lists it among what pb leaves to the product. Both are reviewed
@@ -1330,8 +1331,8 @@ its section 9 lists.
 
 ## D-060: Command mode and another image format; a second pass over the contract (2026-11-12)
 
-Jonas asked for another review pass over `command-mode.md` and whether it is loose enough for
-other image formats than bpak. The findings are mine; he read them and said "write them in".
+Another review pass over `command-mode.md` was asked for, and whether it is loose enough for
+other image formats than bpak. The pass's findings were read and the answer was "write them in".
 Nothing in the code changes.
 
 **Another image format** (`command-mode.md` 5.9, new). Command mode knows bpak in three places,
@@ -1381,8 +1382,8 @@ no RAM log, no method and EOL without the option answer `NOT_SUPPORTED`); the co
 
 ## D-061: A build may leave bpak out (2026-11-12)
 
-Jonas, on the question `command-mode.md` 5.9 left for level 1 (D-060), may a build leave bpak
-out: "I'd say so."
+The question `command-mode.md` 5.9 left for level 1 (D-060), may a build leave bpak out, is
+answered: it may.
 
 - A product may build pb without bpak, once there is another format to build in its place.
   It is the product's choice for its own devices, in its defconfig, like a build without
@@ -1393,7 +1394,7 @@ out: "I'd say so."
 Written in, top down: `system.md` 3 and 6, `compatibility.md` ("bpak format: what is frozen"),
 `boot.md` 4.4, `command-mode.md` 5.9, `roadmap.md`.
 
-Derived by me, not asked of Jonas:
+Derived, not asked:
 
 - "Once there is another format": today bpak is the only one, so the switch comes with the
   second format and no code changes now. No finding.
@@ -1409,8 +1410,8 @@ open.
 
 ## D-062: No overviews of the code at level 2 (2026-11-12)
 
-Jonas: "I think we could remove the 'arch-host-tools.md' and 'arch-firmware.md'. I don't
-really see what they add other than an overview that needs to stay in sync with the code."
+`arch-host-tools.md` and `arch-firmware.md` can be removed: they add nothing other than an
+overview that needs to stay in sync with the code.
 
 - `arch-firmware.md` and `arch-host-tools.md` are removed. Neither was a contract: one was
   "behind the code", the other "not a contract yet" (`README.md`), and what they said was
@@ -1432,7 +1433,7 @@ Where their content is:
   `log/2026-10-29.md`.
 - The table of platforms and boards and when each was last touched: `status.md` and git.
 
-Derived by me, not asked of Jonas:
+Derived, not asked:
 
 - `system.md` 3 names `pbstate` beside the host tools: its version is the release's, and
   its library's SONAME changes only with its ABI (`libpbstate.so.0`). It was only in the
@@ -1442,9 +1443,9 @@ Derived by me, not asked of Jonas:
 
 ## D-063: Code that decides nothing needs no document first (2026-11-12)
 
-Jonas: "process implies that there can't be any change to the code base without first a
-document change. I'd like to challenge that. There may be, for example a new USB driver, that
-does not drive any documentation."
+The process implies that there can't be any change to the code base without a document change
+first. That is challenged: there may be one, a new USB driver for example, that drives no
+documentation.
 
 `process.md` 1 said it with its scope ("a change to what pb does at a boundary"), and three
 places dropped the scope: its first lines ("the code follows its documents"), "when the
@@ -1460,7 +1461,7 @@ change that touches no level.
   first.
 - An interface whose contract isn't written yet (the drivers', today) has its header and its
   implementations for a contract until then. A new implementation doesn't wait for the
-  document; what it shows is a finding for it. Jonas agreed to this one as proposed.
+  document; what it shows is a finding for it. This one was agreed to as proposed.
 
 Written in: `process.md` (its first lines, section 1, section 5 step 1), `README.md`'s first
 lines.
@@ -1469,12 +1470,11 @@ D-057 ("the documents that guide the code come before the code") stays what it w
 of the 3.0.0 work, where the contracts are being written for code that changes with them. It
 is not a rule that every change waits for a document.
 
-Mine, not asked of Jonas: the title of `process.md` ("documents first, top down") and D-033's
-name stay.
+Assumed, not asked: the title of `process.md` ("documents first, top down") and D-033's name stay.
 
 ## D-064: The drivers' contracts, as drafts (2026-11-12)
 
-Jonas: the remaining contract work, after `command-mode.md` (D-057). Four drafts in
+Asked for: the remaining contract work, after `command-mode.md` (D-057). Four drafts in
 `doc/interfaces/`, level 3:
 
 - `drivers.md`: what every driver does, and the one rule for DMA and caches.
@@ -1494,7 +1494,7 @@ What they take from the documents above, and so don't decide:
   made is a no (4.4); the storage and the host are input (3).
 - The device's identity never changes (`system.md` 5.5): its MD5 stays in every backend.
 
-What they propose, for Jonas (twenty open items, five in each):
+What they propose, for review (twenty open items, five in each):
 
 - `drivers.md`: one common document and one per class; `include/pb/dma.h` as the only place
   the cache is handled for DMA; a caller's buffer that doesn't own its cache lines is bounced
@@ -1515,43 +1515,41 @@ What they propose, for Jonas (twenty open items, five in each):
 None of them refuses what a release accepted. What changes for a host: an unknown control
 request is stalled where it timed out, and a restart of the transport leaves the bus first.
 
-Mine, not asked of Jonas: the four file names; that the conformance suites are named in each
-draft and not designed; `command-mode.md` 6 no longer says that the 8X's controller can't
-send its serial number (F-159 is fixed).
+Chosen while writing them, not asked: the four file names; that the conformance suites are named in
+each draft and not designed; `command-mode.md` 6 no longer says that the 8X's controller can't send
+its serial number (F-159 is fixed).
 
-## D-065: `drivers.md`, Jonas's review: the first answers (2026-11-12)
+## D-065: `drivers.md`, the review: the first answers (2026-11-12)
 
-Jonas's comments in the draft, and what was written in:
+The review's comments in the draft, and what was written in:
 
 - **Open (1), "One file per class"**: a contract per class, each in its own file (`bio.md`,
-  `crypto.md`, `usb.md`). Read by me as: `drivers.md` stays for what is common to every
-  driver, the DMA rule among it, which the three cite. To be corrected if he meant no common
-  document.
+  `crypto.md`, `usb.md`). Read as: `drivers.md` stays for what is common to every driver, the DMA
+  rule among it, which the three cite. To be corrected if no common document was meant.
 - **Open (4), "ok"**: the line size is a constant, 64 bytes, checked in `arch_init()`.
-- **No IOMMU is not a rule**: "There is no IOMMU in any of the currently supported platforms.
-  This might change though. We should not make it sound like a rule." Agreed. Section 4 now
-  says it as a fact of today's platforms, apart from the cache rule, which holds with or
-  without one. A driver turns a pointer into the device's address in one place, so that a
-  translation has somewhere to go; the entry for an IOMMU is written with the first platform
-  that has one.
+- **No IOMMU is not a rule**: none of the platforms supported today has an IOMMU. That might change,
+  so the text is not to make it sound like a rule. Agreed. Section 4 now says it as a fact of
+  today's platforms, apart from the cache rule, which holds with or without one. A driver turns a
+  pointer into the device's address in one place, so that a translation has somewhere to go; the
+  entry for an IOMMU is written with the first platform that has one.
 
 Asked, not decided:
 
-- **Open (3), "guide me"**: the draft had every class's core bounce a caller's buffer that
-  doesn't own its cache lines. My suggestion after his question, written in as the proposal:
-  sort the buffers by whose they are. pb's own and a board's are declared right, and the
-  class's core refuses one that isn't (`-PB_ERR_ALIGN`): loud, where a shared line is silent.
-  The only buffer pb doesn't choose is an image part's load address, and only that is
-  bounced, in the boot's load loop, which serves a partition and the host's stream alike. No
-  image is refused (D-008), the common path stays without a copy, and the bounce is one place
-  that a host test covers. `bio.md` 3.1 and `usb.md` 2.3 follow.
+- **Open (3), guidance asked for**: the draft had every class's core bounce a caller's buffer that
+  doesn't own its cache lines. The suggestion that followed, written in as the proposal: sort the
+  buffers by whose they are. pb's own and a board's are declared right, and the class's core refuses
+  one that isn't (`-PB_ERR_ALIGN`): loud, where a shared line is silent. The only buffer pb doesn't
+  choose is an image part's load address, and only that is bounced, in the boot's load loop, which
+  serves a partition and the host's stream alike. No image is refused (D-008), the common path stays
+  without a copy, and the bounce is one place that a host test covers. `bio.md` 3.1 and `usb.md` 2.3
+  follow.
 - **Open (2), "explain again"**: why `include/pb/dma.h` and not the arch's functions at each
   place. The reasons are now in 4.4, with the lighter alternative (the arch's three declared
   in `include/pb/arch.h`, the line size and the macro, the order left to the checklist).
 
 ## D-066: `drivers.md` is reviewed (2026-11-12)
 
-Jonas, after D-065's answers: "Okay to your suggestions."
+After D-065's answers: the suggestions are accepted.
 
 - **Open (2)**: the DMA rule lives in `include/pb/dma.h` (`PB_DMA_ALIGN`, the macro for a
   buffer that owns its lines, `dma_out()`, `dma_in_begin()`, `dma_in_end()`). Drivers stop
@@ -1562,53 +1560,53 @@ Jonas, after D-065's answers: "Okay to your suggestions."
   bounced in the boot's load loop, so no image is refused (D-008). Out-of-tree boards get a
   line in the migration guide for 3.0.0.
 - **The common document stays**: `drivers.md` for what every driver does, a file per class
-  beside it, as D-065 read his "one file per class".
+  beside it, as D-065 read "one file per class".
 
-Mine, to be corrected if wrong: Open (5), which drivers have a `stop`, had no comment in his
-review and wasn't one of the two suggestions I asked about. I took the uncommented text as
-accepted, as with `board.md` (D-052), and closed it with the others: a driver has a `stop`
-when its device acts without being asked, and one whose calls are synchronous has none.
+Assumed, to be corrected if wrong: Open (5), which drivers have a `stop`, had no comment in the
+review and wasn't one of the two suggestions that were asked about. The uncommented text was taken
+as accepted, as with `board.md` (D-052), and closed with the others: a driver has a `stop` when its
+device acts without being asked, and one whose calls are synchronous has none.
 
 `drivers.md` is reviewed, with no open items. Its code: F-282 (the header, the checks, the
 bounce in the load loop), F-281 and the findings its conformance table names.
 
-## D-067: `bio.md`, Jonas's review (2026-11-12)
+## D-067: `bio.md`, the review (2026-11-12)
 
-Jonas's comments in the draft, and what was written in:
+The review's comments in the draft, and what was written in:
 
-- **3.2, `bio_write()`**: "we should just say that this is optional. Don't mention WRITABLE
-  here." It is `[optional]`; a device without a write answers `-PB_ERR_NOT_SUPPORTED`. The
-  flags gate the host and say nothing of which callbacks a device has.
-- **Open (4), `ERASE_BEFORE_WRITE`**: "This should be implemented, let's save it as a future
-  task. I think we would at least need to hammer out the erase block accounting." And on
-  section 6, where the draft fixed that a write never erases: "I think we can challenge this.
-  To me it should be possible to fix bio_write so it respects that flag." So the draft's
-  proposal (as released, for good) is not taken. `bio_write()` is to erase what it writes on
-  a device with the flag. It isn't designed in this contract: `roadmap.md` has the task with
-  what the accounting must settle (the unit, larger units, the time against the watchdog and
-  the host's timeout, blocks erased twice, how a host learns it, a failure after the erase).
-  Until then the writer erases, as released. What section 6 keeps fixed is the other side: a
-  host that erases and then writes still gets its bytes written. `compatibility.md` follows.
+- **3.2, `bio_write()`**: the text is to say only that it is optional, and not to mention `WRITABLE`
+  there. It is `[optional]`; a device without a write answers `-PB_ERR_NOT_SUPPORTED`. The flags
+  gate the host and say nothing of which callbacks a device has.
+- **Open (4), `ERASE_BEFORE_WRITE`**: it should be implemented, and is saved as a future task; at
+  least the erase block accounting would need to be hammered out. And on section 6, where the draft
+  fixed that a write never erases: that can be challenged, it should be possible to fix
+  `bio_write()` so that it respects the flag. So the draft's proposal (as released, for good) is not
+  taken. `bio_write()` is to erase what it writes on a device with the flag. It isn't designed in
+  this contract: `roadmap.md` has the task with what the accounting must settle (the unit, larger
+  units, the time against the watchdog and the host's timeout, blocks erased twice, how a host
+  learns it, a failure after the erase). Until then the writer erases, as released. What section 6
+  keeps fixed is the other side: a host that erases and then writes still gets its bytes written.
+  `compatibility.md` follows.
 - **Open (5), section 5**: "OK". A storage driver leaves its device as it is at the jump.
 
 Asked, not decided:
 
-- **3.3, "Is blocks the right argument here or should we use bytes?"** My answer, written in
-  as Open (6): blocks. A read and a write take bytes because the core can make a partial
-  block whole (it pads and trims); an erase can't be padded, so a byte count that isn't whole
-  blocks could only be refused. The wire's `PART_ERASE` counts blocks too.
+- **3.3, are blocks the right argument here, or should it be bytes?** The proposed answer, written
+  in as Open (6): blocks. A read and a write take bytes because the core can make a partial block
+  whole (it pads and trims); an erase can't be padded, so a byte count that isn't whole blocks could
+  only be refused. The wire's `PART_ERASE` counts blocks too.
 
-Mine, to be corrected if wrong: Open (1), (2) and (3) had no comment (partial blocks are the
+Assumed, to be corrected if wrong: Open (1), (2) and (3) had no comment (partial blocks are the
 core's, `bio_read_at()`, an installed table in effect at once with
-`bio_release_children()`). As with `drivers.md` (D-066) I took the uncommented text as
-accepted; the table at the document's top marks them "Jonas, no comment".
+`bio_release_children()`). As with `drivers.md` (D-066) the uncommented text was taken as accepted;
+the table at the document's top marks them "no comment".
 
 `bio.md` stays a draft until Open (6) is answered.
 
-## D-068: `bio.md`, Jonas's answers on the uncommented items (2026-11-12)
+## D-068: `bio.md`, the answers on the uncommented items (2026-11-12)
 
-I had closed the draft's Open (1) to (3) as "no comment" (D-067) and asked. Jonas: "1. Yes,
-2: Hm, no for now. 3: Explain more."
+The draft's Open (1) to (3) had been closed as "no comment" (D-067) and were then asked about. The
+answers: (1) yes, (2) no for now, (3) to be explained more.
 
 - **Open (1), yes**: the core owns a length that isn't whole blocks; a driver sees whole
   blocks only.
@@ -1622,7 +1620,7 @@ I had closed the draft's Open (1) to (3) as "no comment" (D-067) and asked. Jona
   `late_init()`, the boot's set up), because each of them holds partition handles. The other
   way is in the text too: as released, the new table is used from the next reset.
   `command-mode.md` 5.3 (reviewed) says "in effect for the commands that follow"; whichever
-  Jonas picks, the two documents say the same.
+  is picked, the two documents say the same.
 
 So "no comment" was the wrong reading for one of the three. Uncommented open items are asked
 about from here on, not closed.
@@ -1631,9 +1629,9 @@ Still open: (3), and (6) from D-067 (an erase counts blocks).
 
 ## D-069: `bio.md`: an erase counts blocks; the installed table, a second proposal (2026-11-12)
 
-- **Open (6)**: Jonas: "ok, let's stick to blocks". `bio_erase()` takes a count of blocks.
-- **Open (3)**, still open. Jonas: "Of course 'A' is tempting. But let's imagine a board who
-  holds stale references, how would this work in practice?" Worked through, the first
+- **Open (6)**: it stays blocks. `bio_erase()` takes a count of blocks.
+- **Open (3)**, still open. The question: "A" is tempting, but with a board that holds
+  stale references, how would it work in practice? Worked through, the first
   proposal (release the partitions, run `board_setup()`'s second half again) fails on that
   question in two ways. A handle is an index into the pool, so after a rebuild a board's old
   handle names whatever partition got the slot: I/O on the wrong partition, silently (the
@@ -1651,12 +1649,12 @@ Still open: (3), and (6) from D-067 (an erase counts blocks).
 
 ## D-070: `bio.md` is reviewed; an installed table is in effect at once (2026-11-12)
 
-Jonas, after D-069's second proposal: "Okay, let's go with A."
+After D-069's second proposal: A is chosen.
 
-A was the name of "in effect at once" against B, "after a reset". Read by me as: at once, in
-the form his question about stale references led to, which is the proposal that stood in the
-text when he answered. Not the first form (run `board_setup()`'s second half again), which
-that question took apart. To be corrected if he meant the first.
+A was the name of "in effect at once" against B, "after a reset". Read as: at once, in the form the
+question about stale references led to, which is the proposal that stood in the text when the answer
+came. Not the first form (run `board_setup()`'s second half again), which that question took apart.
+To be corrected if the first was meant.
 
 - An installed table is in effect for the commands that follow (`command-mode.md` 5.3).
 - A handle never comes to mean another partition: a partition with the same UUID and blocks
@@ -1674,27 +1672,25 @@ what a kept handle is worth after an install. F-194 carries the code.
 
 ## D-071: `crypto.md` is reviewed (2026-11-12)
 
-Jonas's comments in the draft, one on each of the five open items:
+The review's comments in the draft, one on each of the five open items:
 
 - **Open (1), (2), (3): "OK".** No abort: `hash_init()` starts from an idle engine. PB_OK if
   and only if `*verified`, and a signature that doesn't verify is `-PB_ERR_SIGNATURE`.
   `dsa_verify()` while a hash is open is refused.
-- **Open (4)**: "It might make sense to have more than one backend. Let's say we have
-  hardware hash acceleration but not signature verification. Do you agree?", "It's fine to
-  not have fallback", and on the bullet that a backend has every algorithm: "Unsure about
-  this. What I want is to have for example a hardware driver to supply accelerated hashing,
-  while a software driver could give us the verification. If that's what you mean, then it's
-  fine." Agreed, and it is what "one backend per algorithm" was meant to say; the text read
-  as if one backend had to have everything. Written now as: a build may have several
-  backends and each algorithm comes from one of them; together they have what the build's
-  keys and images use, no single one needs it all; no fallback at run time, and an algorithm
-  that two backends register is refused at the second registration (F-286 (12): today the
-  first wins, silently).
+- **Open (4)**: more than one backend might make sense, say hardware hash acceleration without
+  signature verification, and having no fallback is fine. On the bullet that a backend has every
+  algorithm, a doubt: what is wanted is, for example, a hardware driver that supplies accelerated
+  hashing while a software driver gives the verification; if the bullet means that, it is fine.
+  Agreed, and it is what "one backend per algorithm" was meant to say; the text read as if one
+  backend had to have everything. Written now as: a build may have several backends and each
+  algorithm comes from one of them; together they have what the build's keys and images use, no
+  single one needs it all; no fallback at run time, and an algorithm that two backends register is
+  refused at the second registration (F-286 (12): today the first wins, silently).
 - **Open (5)**: "It stays." `HASH_MD5_BROKEN` stays. Which products have it wasn't said.
 
-Mine, found while writing it in: the draft said both that the next `dsa_verify()` cleans up a
-hash that was given up (3.1) and that `dsa_verify()` is refused while a hash is open (4).
-The second stands, as Jonas confirmed it: the cleanup is the next `hash_init()`, and until
+Found while writing it in: the draft said both that the next `dsa_verify()` cleans up a hash that
+was given up (3.1) and that `dsa_verify()` is refused while a hash is open (4).
+The second stands, as confirmed: the cleanup is the next `hash_init()`, and until
 then a verification is refused, which is a no. Every verification hashes first, so no flow
 is stuck. A backend whose engine also hashes still starts its verification from an idle
 engine (section 4).
@@ -1703,7 +1699,7 @@ engine (section 4).
 
 ## D-072: `usb.md` is reviewed (2026-11-12)
 
-Jonas's comments in the draft, one on each of the five open items:
+The review's comments in the draft, one on each of the five open items:
 
 - **Open (1), "ok"**: the transport's functions are `cm_transport_init()`, `_connect()`,
   `_read()`, `_write()`, `_complete()` and `_disconnect()`.
@@ -1720,13 +1716,13 @@ Jonas's comments in the draft, one on each of the five open items:
 
 ## D-073: The final read of the drivers' contracts: seven answers (2026-11-12)
 
-After the four were reviewed I read them together and listed what needed a decision. Jonas:
-"1 to 7: yes, go with your recommendations."
+After the four were reviewed they were read together, and what needed a decision was listed. The
+answer to 1 to 7: yes, as recommended.
 
 1. **No fixed second for a driver's call.** `drivers.md` 3 said a synchronous call returns
-   within a second, a number of mine, while `bio.md` 3.1 puts no limit on a read's length.
-   A call's time follows from its request: the driver's header gives the longest time per
-   unit, and the core asks in pieces that fit the watchdog (`platform.md` 3.3).
+   within a second, the draft's own number, while `bio.md` 3.1 puts no limit on a read's length. A
+   call's time follows from its request: the driver's header gives the longest time per unit, and
+   the core asks in pieces that fit the watchdog (`platform.md` 3.3).
 2. **The UARTs get no contract**, though they are two drivers behind one interface: it is
    one output function, only the log rests on it, and `board.md` 2.2 says what the console
    is. `drivers.md` 1 no longer says that a second implementation always brings a contract.
@@ -1749,13 +1745,14 @@ After the four were reviewed I read them together and listed what needed a decis
 7. **The lint is to check the drivers' contracts' entries** against their headers, as it
    does for `platform.md` and `board.md`: F-288.
 
-Not decided, noted in my review and left: a `STREAM_PREPARE_BUFFER` of 0 bytes, USB suspend,
-the pool running out after several installs, how a product selects `HASH_MD5_BROKEN`, and how
-each conformance row is to be verified.
+Not decided, noted in the final read and left: a `STREAM_PREPARE_BUFFER` of 0 bytes, USB suspend,
+the pool running out after several installs, how a product selects `HASH_MD5_BROKEN`, and how each
+conformance row is to be verified.
 
 ## D-074: An entry in an empty or missing part is refused; security before compatibility (2026-11-12)
 
-Mine, made while Jonas had asked for the code without questions; it waits for his review.
+Decided while writing the code, which had been asked for without questions; it waits for the
+maintainer's review.
 
 F-292: an image whose entry part is empty passed placement and the payload's hash, since
 nothing is hashed for it, and pb jumped to its load address, into bytes no hash covers. The
@@ -1773,7 +1770,7 @@ the storage held at that address.
 - **Why it may break D-008**: `security.md` 4.1 and 4.2, only bytes the signed hash covers may
   run, and security comes before compatibility (D-035). No golden image has such a part.
 - **Not decided**: the sentence for `boot.md` 5.1 ("Every entry lies in a part of the image,
-  in bytes the payload's hash covers ...") is Jonas's to add; F-331 stays open for it.
+  in bytes the payload's hash covers ...") is the maintainer's to add; F-331 stays open for it.
 - **Also refused** (F-330, added with its fix): a device tree part the board names that is
   smaller than an FDT header (40 bytes), before anything at its load address is read, and a
   header whose `totalsize` is below that. Every release accepted such an image: what was at
@@ -1782,7 +1779,7 @@ the storage held at that address.
 
 ## D-075: The decisions have an index, the one part that is edited (2026-11-12)
 
-Jonas, after a review of the working records against the reviewed contracts: yes to an index.
+After a review of the working records against the reviewed contracts: yes to an index.
 
 The entries are never edited (this file's first lines), so an entry that a later one replaced,
 narrowed or closed reads as if it held as written: by this entry that is 18 of 71. The
@@ -1790,18 +1787,18 @@ newer entry names the older one, never the other way round. The table at the top
 entry its state, and it is the one part of this file that is edited: an entry that replaces,
 narrows or closes an older one changes the older one's row with it.
 
-The states' words and each row's state are mine, read from the entries. A row that is wrong
-is corrected in the table; it needs no entry.
+The states' words and each row's state were chosen while writing the table, read from the entries. A
+row that is wrong is corrected in the table; it needs no entry.
 
 From the same review (`log/2026-11-12.md`): `roadmap.md` starts with what 3.0.0 waits for
 besides the code, and `status.md` is short again.
 
 ## D-076: Named commands, declared anywhere and listed (2026-11-13)
 
-Jonas: a host can't learn which board commands a device has, and the commands shouldn't be
-the board's only: the i.MX8M needs one for its DRAM training data, which is the platform's.
-He wants them declared anywhere, like the tasks, and doesn't want it complicated. Typed
-("dynamic") arguments he was unsure of: they cost code.
+A host can't learn which board commands a device has, and the commands shouldn't be the
+board's only: the i.MX8M needs one for its DRAM training data, which is the platform's. They
+are to be declared anywhere, like the tasks, and it is not to be complicated. Typed
+("dynamic") arguments were in doubt: they cost code.
 
 What the draft says (`command-mode.md` 5.6):
 
@@ -1811,40 +1808,39 @@ What the draft says (`command-mode.md` 5.6):
 - **No new exchange to run one.** `BOARD_COMMAND` looks the id up in the list. The id stays
   `pb_id(name)`, what hosts have sent since 1.0.0, so every released host runs a platform's
   command by name, and a board's command keeps its id when it moves into the list.
-- **One new command, `COMMAND_LIST`** (Jonas: behind the gate, with the help line on the
-  wire): `C R <n*128 R`, as `PART_TBL_READ`. Fixed entries, not text, so `abi.txt` freezes
-  them and the reserved bytes leave room. An entry is the name and the help line, no id
-  (Jonas): the host computes `pb_id()`.
+- **One new command, `COMMAND_LIST`** (behind the gate, with the help line on the wire):
+  `C R <n*128 R`, as `PART_TBL_READ`. Fixed entries, not text, so `abi.txt` freezes them and
+  the reserved bytes leave room. An entry is the name and the help line, no id: the host
+  computes `pb_id()`.
 - **No typed arguments.** The request stays bytes, which the function checks (F-063). Typing
   would put a decoder for the host's input in the trusted computing base, for what the host
   can pack in a few lines of Python. A fixed set of five arguments would be ignored by most
   commands, and gives way to bytes at the first string.
-- **The host** (Jonas): `punchboot command list` and `punchboot command <name> [args]`, no
+- **The host**: `punchboot command list` and `punchboot command <name> [args]`, no
   `run`. `list` is therefore reserved, and the device refuses it as a name. The options are
   `board command`'s (`--output-fmt`, `--args-from-file`). The request may also come from
   stdin (`echo -n data | punchboot command name`): it is read when stdin isn't a terminal and
   neither `args` nor `--args-from-file` is given; two sources are an error. The host checks
   the 1024 bytes before it sends. `board command` and `board status` stay as released.
-  Renamed `punchboot cmd` before any release (Jonas, 2026-11-14): `cmd list`, `cmd <name>`.
+  Renamed `punchboot cmd` before any release (2026-11-14): `cmd list`, `cmd <name>`.
 
-Jonas's answers to the draft's items (`command-mode.md`, items 9 to 13), before his review:
+The answers to the draft's items (`command-mode.md`, items 9 to 13), before the review:
 
 - **9**: the entry of 128 bytes, a name of up to 31 characters, a help line of up to 79.
 - **10**: a bad list (a name outside `[a-z0-9-]`, two names with one id, `list`, larger than
   a buffer) fails the set up: no command mode.
 - **11**: the entry has the name, no id.
-- **12**: the board's `command()` is removed. I had proposed to keep it for out-of-tree
-  boards; Jonas: an acceptable break of the API. 3.0.0 is the major release for the porting
-  API (D-031), and the wire doesn't change: a board's command moves into the list under the
-  name hosts call it by, and keeps its id. The boards in the tree have the names (the host
-  board's `test-command`, `test-command2`, `test-boot-stop`, the RT1060's and imx8mevk's
-  `test`).
+- **12**: the board's `command()` is removed. Keeping it for out-of-tree boards had been proposed;
+  removing it is an acceptable break of the API. 3.0.0 is the major release for the porting API
+  (D-031), and the wire doesn't change: a board's command moves into the list under the name hosts
+  call it by, and keeps its id. The boards in the tree have the names (the host board's
+  `test-command`, `test-command2`, `test-boot-stop`, the RT1060's and imx8mevk's `test`).
 - **13**: `cm_board_cmd_request_reboot_on_success()` becomes `cm_request_reset_on_success()`,
   the same function for every command.
 
-Jonas approved the draft (2026-11-13). In his review: `board.md` 4.4, `command()`, goes
-entirely once the code is in, not as a section that says it was removed. Its sections after it
-are renumbered with it: 4.5, `password_auth()`, becomes 4.4, and 4.6, the tasks, 4.5. The
+The draft was approved (2026-11-13). In the review: `board.md` 4.4, `command()`, goes entirely
+once the code is in, not as a section that says it was removed. Its sections after it are
+renumbered with it: 4.5, `password_auth()`, becomes 4.4, and 4.6, the tasks, 4.5. The
 citations in the documents and the code follow; the records (the log, the decisions, the
 closed findings) keep the numbers of their time.
 
@@ -1856,20 +1852,20 @@ Code: F-425 (pb), F-426 (the host).
 
 ## D-077: The platform describes the SoC, the core shows it (2026-11-14)
 
-Jonas: every platform prints the SoC variant and revision, the CPU core frequency, the memory
+Every platform prints the SoC variant and revision, the CPU core frequency, the memory
 frequency and the SoC's specifics (its boot and security controllers' firmware), and the
 command `info`, which every platform has, shows the same.
 
 - **`plat_get_info()`** (`platform.md` 3.11, mandatory) fills a struct (the variant, the
   revision, the core's and the DRAM's clock in Hz) and lines of text for the specifics.
-- **The core owns the output** (Jonas, of two: the core, or each platform printing and
-  declaring `info` itself): it logs one line and the specifics right after `plat_init()`, and
-  declares the named command `info` (`command-mode.md` 5.6). One format on every SoC, and no
-  platform can leave the command out.
-- **No DRAM** (the RT runs from OCRAM): memory 0, printed "none set up" (Jonas).
-- **On the boot path**, against D-023, by Jonas's choice: the boot's record of what it ran on.
+- **The core owns the output** (of two: the core, or each platform printing and declaring
+  `info` itself): it logs one line and the specifics right after `plat_init()`, and declares
+  the named command `info` (`command-mode.md` 5.6). One format on every SoC, and no platform
+  can leave the command out.
+- **No DRAM** (the RT runs from OCRAM): memory 0, printed "none set up".
+- **On the boot path**, against D-023, by choice: the boot's record of what it ran on.
   Register reads and a system controller's calls, ~40 µs on the 8X.
-- The boards' status functions go (Jonas): what they printed is the SoC's, now in `info`.
+- The boards' status functions go: what they printed is the SoC's, now in `info`.
   `struct board`'s `status` and `board status` stay as released; the default answers.
 
 Why: one place to see what a device is and runs at, the same on every SoC, in the boot log and
@@ -1877,8 +1873,8 @@ over USB.
 
 ## D-078: The kernel command line is the handover's (2026-11-14)
 
-Jonas: `bootargs` and `bootargs_verbose` don't belong in `struct board`; they are tied to the
-image handover. F-435.
+`bootargs` and `bootargs_verbose` don't belong in `struct board`; they are tied to the image
+handover. F-435.
 
 - **In the handover's configuration**: `struct boot_handover_image_config` and
   `struct boot_handover_fh_config` get `bootargs` and `bootargs_verbose`, next to the DT's part
@@ -1902,9 +1898,9 @@ the change would wait for 4.0.0 (D-031).
 
 ## D-079: The board's memory is its `makefile.mk`'s, not Kconfig (2026-11-14)
 
-Jonas: the Memory menu in Kconfig (Platform support) is the wrong place. A board's DRAM is fixed
-by its design, and where it isn't, zero ohm resistors choose the density: both are the board's,
-in its `makefile.mk` or `board.c`. Narrows D-030's "the board's addresses become Kconfig values".
+The Memory menu in Kconfig (Platform support) is the wrong place. A board's DRAM is fixed by its
+design, and where it isn't, zero ohm resistors choose the density: both are the board's, in its
+`makefile.mk` or `board.c`. Narrows D-030's "the board's addresses become Kconfig values".
 
 - **Make variables in the board's `makefile.mk`**: `PB_ENTRY`, `PB_SIZE`, `BOARD_DRAM_BASE` and
   `_SIZE`, `PB_BUFFERS_BASE` and `_SIZE` (`platform.md` 5.1). The platform's `makefile.mk`, read
@@ -1915,7 +1911,7 @@ in its `makefile.mk` or `board.c`. Narrows D-030's "the board's addresses become
   linker, and C kept the defconfig's. `BOARD_RAM_BASE` and `_END` stay for C.
 - **The build stops** naming a value that is missing, and on a board that still has 2.x's
   `-DBOARD_RAM_BASE` or `-DBOARD_RAM_END`. A board without DRAM sets both DRAM values to 0.
-- **Only the static move** (Jonas): a DRAM size read at run time (straps, a density detected in
+- **Only the static move**: a DRAM size read at run time (straps, a density detected in
   the DRAM's set up) waits for a board that needs it. Then the static size is the smallest the
   board has, for the link's checks, and the MMU's first layer and the image data regions take
   the size read.
@@ -1928,8 +1924,8 @@ had the Kconfig names.
 
 ## D-080: Kconfig by subject; a driver is offered where the SoC has it (2026-11-14)
 
-Jonas: the Boot menu needs a clear separation of the policy, the handover and the delivery,
-then "fix all" of my review of the rest.
+The Boot menu needs a clear separation of the policy, the handover and the delivery. Then everything
+in the review of the rest is fixed.
 
 - **Headers in a menu** are `comment`s (`*** Handover ***`), not submenus, where a group has a
   few options; a switch with its own values is a `menuconfig` (ramoops).
@@ -1948,7 +1944,7 @@ Why: menuconfig offered options that a board can't use (the DWC3 on a 6UL) or ca
 
 ## D-081: `BOOT_AB_DRIVER`, A/B's name before 3.0.0, is gone (2026-11-14)
 
-Jonas: switch the defconfigs to `BOOT_POLICY_AB` and drop the old option. Narrows D-040's "a
+The defconfigs switch to `BOOT_POLICY_AB` and the old option is dropped. Narrows D-040's "a
 defconfig with `BOOT_AB_DRIVER` still gets A/B".
 
 - The six board defconfigs in the tree had the old name; they set `BOOT_POLICY_AB`.
@@ -1962,9 +1958,9 @@ without the option the failure is a link error, not a silent difference.
 
 ## D-082: The RAM log has every level, and no synchronized mode (2026-11-14)
 
-Jonas: Linux's ramoops belongs in Logging, not Boot; remove the "Synchronized RAM log", "we
-already have that with the normal log prints"; remove the RAM log level, "it should always print
-on debug level so we have all the info in the ram log".
+Linux's ramoops belongs in Logging, not Boot. The "Synchronized RAM log" is removed: the normal
+log prints already give that. The RAM log level is removed: the RAM log always prints at debug
+level, so that it has all the information.
 
 - **`RAMLOG_LOGLEVEL` is gone**: with `CONFIG_RAMLOG` every level up to debug is compiled in
   (`LOG_MAX_LEVEL` 3, `pb/log_def.h`), and the levels above `LOGLEVEL` go to the RAM log alone.
@@ -1980,10 +1976,10 @@ in the tree used other than as the default.
 
 ## D-083: The board's keys are its `makefile.mk`'s, without a bpak keystore (2026-11-14)
 
-Jonas: move away from `internal_keystore.bpak`, so that pb can later be built with another image
+pb moves away from `internal_keystore.bpak`, so that it can later be built with another image
 format and without bpak (`system.md` 3, D-061). The keys are `VERIFY_KEY<n>_PATH` in the board's
-`makefile.mk`; drop `CONFIG_KEYSTORE`, "it's easy to adapt to this and we're doing a major
-release"; 16 slots. Narrows D-027: the slots are no longer a list of their own.
+`makefile.mk`; `CONFIG_KEYSTORE` is dropped, since adapting to that is easy and this is a major
+release; 16 slots. Narrows D-027: the slots are no longer a list of their own.
 
 - **The keys are the board's** (`board.md` 7), like its memory (D-079): `VERIFY_KEY<n>_PATH`,
   a public key (DER or PEM), and `VERIFY_KEY<n>_ID`, its id. n is 0 to 15.
@@ -1995,12 +1991,12 @@ release"; 16 slots. Narrows D-027: the slots are no longer a list of their own.
   function is pb's key ids' from now on, also in a build without bpak.
 - **`scripts/gen-keystore.py`** writes `keystore.c`, pb's own key list: `pb_keys[]`
   (`pb/keys.h`), each key's id, curve (`dsa_t`), slot and DER, in slot order. Not a
-  `bpak_keystore` (Jonas, 2026-11-14: "The generated code should not be a bpak_keystore. Make
-  it a generic pb key list, the ID's must be the same tough"). It reads the keys with the
-  `cryptography` package, not a DER parser of its own, and writes each as a
-  `SubjectPublicKeyInfo` with the point uncompressed; the in-tree keys' bytes are unchanged. The
-  build no longer needs the bpak CLI for the keys. It refuses a key that isn't P-256, P-384 or
-  P-521: pb verifies ECDSA only (`crypto.md`), where the bpak CLI let RSA 4096 keys in.
+  `bpak_keystore` (2026-11-14: the generated code is a generic pb key list, and the ids must
+  stay the same). It reads the keys with the `cryptography` package, not a DER parser of its
+  own, and writes each as a `SubjectPublicKeyInfo` with the point uncompressed; the in-tree
+  keys' bytes are unchanged. The build no longer needs the bpak CLI for the keys. It refuses a
+  key that isn't P-256, P-384 or P-521: pb verifies ECDSA only (`crypto.md`), where the bpak CLI
+  let RSA 4096 keys in.
 - **The development keys** are `pki/dev-keys.mk`, for a board that names no key at all. All or
   nothing: a board that names one key gets none of the others, so a product build can't pick up
   a test key in a slot it left empty. The build says when it uses them.
@@ -2015,7 +2011,7 @@ no bpak in it, and only the ids keep bpak's id function.
 
 ## D-084: The platform's open questions, answered (2026-11-14)
 
-Jonas's answers to the platform level's list (log 2026-11-14, "The platform's questions").
+The answers to the platform level's list (log 2026-11-14, "The platform's questions").
 
 - **Command mode on every port the ROM boots from** (`platform.md` 3.10, F-402): "PB shall
   support cm on any port that the rom supports as a boot path, not at the same time." One port
@@ -2047,7 +2043,7 @@ F-294. No 6ULL board for now (F-433); an 8MQ can be borrowed (F-432).
 
 ## D-085: Unrevocable keys reported, functions for boards, OP-TEE as a delivery (2026-11-14)
 
-Jonas's answers to the follow ups of D-084 (log 2026-11-14, "The platform's questions").
+The answers to the follow ups of D-084 (log 2026-11-14, "The platform's questions").
 
 - **A key the device can't revoke is reported as such** (F-439): "it would make sense here to
   report N/A". A board has 16 key slots (D-083); the SoC has a revoke bit for fewer (HABv4 3,
@@ -2075,11 +2071,11 @@ Jonas's answers to the follow ups of D-084 (log 2026-11-14, "The platform's ques
 
 ## D-086: The software crypto backend is set up by the core, not the platform (2026-11-14)
 
-Jonas: "I saw that we have #ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS in at least imx8m/plat.c. I think
-this should be done one level up and not in any platform code. The init of a software crypto lib
-can be done by the core." Each `plat.c` (6UL, 8M, 8X, RT, host) had the same block, and each new
-port would copy it. And `plat_status.crypto_engine` said whether the build's backends all came
-up, so on the RT, which has no engine, "the crypto engine works" was Mbed TLS's.
+The platform code had `#ifdef CONFIG_DRIVERS_CRYPTO_MBEDTLS`, in the i.MX8M's `plat.c` at least.
+It belongs one level up, in no platform code: the core can set up a software crypto library. Each
+`plat.c` (6UL, 8M, 8X, RT, host) had the same block, and each new port would copy it. And
+`plat_status.crypto_engine` said whether the build's backends all came up, so on the RT, which
+has no engine, "the crypto engine works" was Mbed TLS's.
 
 - The core sets up the software backend in `main()` right after `plat_init()`, behind
   `CONFIG_DRIVERS_CRYPTO_MBEDTLS`, and records whether it came up (`crypto.md` 2).
@@ -2089,14 +2085,14 @@ up, so on the RT, which has no engine, "the crypto engine works" was Mbed TLS's.
 - The boot's check is the core's: no boot when the engine failed, when the software backend
   failed, or when the build has no backend (`platform.md` 2.3). The same outcome as before on
   every board in the tree. Nothing changes on the wire or in the images.
-- Open, for Jonas: `CONFIG_PLAT_CRYPTO_ENGINE` stays through 3.x, unused, and goes in 4.0
+- Open: `CONFIG_PLAT_CRYPTO_ENGINE` stays through 3.x, unused, and goes in 4.0
   (`platform.md`, Open (1)).
 
 ## D-087: A build may forbid every fuse write (2026-11-15)
 
-Jonas: "fix F-449 too, the EVK must never write fuses". The 8MP EVK isn't HAB closed and isn't
-his to close; its board file said it never writes fuses because the platform had no SLC
-operations, which stopped being true when the i.MX8M got them (`ce438b74`, F-449).
+F-449 is fixed too: the EVK must never write fuses. The 8MP EVK isn't HAB closed and isn't the
+maintainer's to close; its board file said it never writes fuses because the platform had no
+SLC operations, which stopped being true when the i.MX8M got them (`ce438b74`, F-449).
 
 - **The product's option, `CONFIG_SLC_NO_FUSE_WRITES`**, off by default, beside
   `CONFIG_SLC_EOL` (`system.md` 4). With it the core calls none of the port's writes:
@@ -2112,11 +2108,11 @@ operations, which stopped being true when the i.MX8M got them (`ce438b74`, F-449
 
 ## D-088: The i.MX8M boots pb in two stages, one image (2026-11-15)
 
-Jonas: "We need to implement an "SPL" step on imx8m platform. I want a minimalistic SPL what only
-includes the dram init (you can revert the size optimization and script we did earlier on dram
-timing configs). The SPL should then use the ROM/HAB api to load/authenticate the next part, which
-is PB proper. Both the SPL and PB proper should be bundeled in the same .imx file." For the
-8MQ, whose ROM has no API to load with: the ROM's plugin (Jonas's choice).
+The i.MX8M platform gets an SPL step. The SPL is minimal and includes only the DRAM init (the size
+optimization of the DRAM timing configurations and its script, done earlier, may be reverted). It
+then uses the ROM/HAB API to load and authenticate the next part, which is pb proper. The SPL and
+pb proper are bundled in the same `.imx` file. For the 8MQ, whose ROM has no API to load with: the
+ROM's plugin, by choice.
 
 Why: the 8MQ's TCM held pb only with its PHY tables packed (`55265ddc`) and six buffers moved to
 DRAM (`822ee69e`), 648 bytes left; the next feature had no room. In DRAM pb proper has room.
@@ -2146,12 +2142,12 @@ DRAM (`822ee69e`), 648 bytes left; the next feature had no room. In DRAM pb prop
   CSFs, the 8M Plus's an IVT and a CSF for pb proper after the SPL.
 - **Memory:** the SPL's window is the platform's, pb proper's `PB_ENTRY` the board's, in its DRAM.
   `bl_params` get a SoC region (F-294): pb's data is no longer where BL31 reads them.
-- **The PHY tables unpacked again** (`55265ddc` reverted, Jonas): the SPL has the room. Jonas: "I
-  want the spl to use the unmodified lpddr4_timing files, the way they came from the tool". The
-  8M Plus EVK's is the tool's output byte for byte; the pico8ml's are TechNexion's copies with
-  NXP's notice as BSD-3-Clause for U-Boot's GPL-2.0+ line (Jonas's choice); the 8MQ EVK keeps
-  `0e58d184`'s edited copy until the tool's output is regenerated (Jonas). Their U-Boot includes
-  are the SPL's shims (`imx8m-ddr.md`).
+- **The PHY tables unpacked again** (`55265ddc` reverted): the SPL has the room. The SPL uses the
+  unmodified `lpddr4_timing` files, the way they came from the tool. The 8M Plus EVK's is the
+  tool's output byte for byte; the pico8ml's are TechNexion's copies with NXP's notice as
+  BSD-3-Clause for U-Boot's GPL-2.0+ line (by choice); the 8MQ EVK keeps `0e58d184`'s edited copy
+  until the tool's output is regenerated. Their U-Boot includes are the SPL's shims
+  (`imx8m-ddr.md`).
 - **The cost:** pb proper runs from DRAM after HAB checked it, so whoever controls the DRAM bus can
   change it after the check, as for every image pb loads (`security.md` 5, probing the buses).
 - **Not changed:** the wire and bpak (D-008); the update, `part write` of `pb_signed.imx` to a
@@ -2163,16 +2159,16 @@ DRAM (`822ee69e`), 648 bytes left; the next feature had no room. In DRAM pb prop
 The 8MQ's plugin can't hand pb proper over to the ROM's serial downloader (F-451), so USB
 recovery needs the SPL to download pb proper itself.
 
-- **Fastboot, not SDP** (Jonas): uuu's `FB:` commands and Android's `fastboot` speak it, over
+- **Fastboot, not SDP**: uuu's `FB:` commands and Android's `fastboot` speak it, over
   the two bulk endpoints pb's USB stack has. SDP would need HID, class requests and control
   writes on endpoint 0, a change to the stack command mode rests on.
-- **The device**: pb's VID 0x1209 with a PID of its own: 0x0001, pid.codes' test id (Jonas,
-  2026-11-15: "It's fine to reuse 1209:0001"). None is registered for it.
+- **The device**: pb's VID 0x1209 with a PID of its own: 0x0001, pid.codes' test id
+  (2026-11-15: reusing 1209:0001 is fine). None is registered for it.
 - **The stack**: one optional controller operation, `xfer_start_short` (`usb.md` 4.5), for
   fastboot's commands, which are as long as they are; only the DWC3 has it. Command mode's
   reads stay exact.
-- **The SPL's part** (Jonas wrote `fb_proto.h` and handed the rest over, 2026-11-15: "I want you
-  to implement the fastboot for the spl"): the protocol (`spl/fb_proto.c`), the USB glue
+- **The SPL's part** (the maintainer wrote `fb_proto.h`; the rest, the fastboot for the SPL, was
+  handed over to be implemented, 2026-11-15): the protocol (`spl/fb_proto.c`), the USB glue
   (`spl/fb_usb.c`) and the step that decides whether the downloaded pb proper may start
   (`spl_imx8mq.c`, `spl/hab.c`). What was settled in writing it, `plat-imx.md` 2 has the rest:
   - **The host downloads the image it loaded the plugin from**, `pb_signed_uuu.imx`: one file
@@ -2194,7 +2190,7 @@ recovery needs the SPL to download pb proper itself.
 `usb.md` 3.2 (D-072) had the stack answer what enumeration needs and stall the rest, the
 standard requests `GET_CONFIGURATION`, `GET_INTERFACE`, `GET_STATUS` of an interface or an
 endpoint and `CLEAR_FEATURE(ENDPOINT_HALT)` among them; USB 2.0 9.4 has a device answer them
-(F-463). Jonas: "Answer them".
+(F-463). They are answered.
 
 - **The three GETs** are the stack's: the configuration's value (0 before it), alternate
   setting 0, and two zero bytes for a status (pb halts no endpoint). An interface or an
@@ -2202,14 +2198,14 @@ endpoint and `CLEAR_FEATURE(ENDPOINT_HALT)` among them; USB 2.0 9.4 has a device
 - **`CLEAR_FEATURE(ENDPOINT_HALT)` resets the endpoint's data toggle** (9.4.5), and a host
   resets its own when the request succeeds: answered without the controller's toggle reset,
   the next packet could be dropped as a duplicate. That needs a controller operation in the
-  three drivers, with command mode's OUT read pending on the DWC3 and the cdns3. Jonas: keep
-  it stalled. pb halts no endpoint, and a stall leaves both toggles as they were.
+  three drivers, with command mode's OUT read pending on the DWC3 and the cdns3. It stays
+  stalled. pb halts no endpoint, and a stall leaves both toggles as they were.
 - No reply a released host relies on changes: the punchboot host sends none of them.
 
 ## D-091: A device tree whose header lies is refused (2026-11-16)
 
 Security before D-008 (`compatibility.md`): an image whose device tree has a header block
-outside the tree, which a release booted, is refused (F-411). Jonas: "Refuse it".
+outside the tree, which a release booted, is refused (F-411).
 
 - **What was trusted.** pb checked the magic, the version and `totalsize`; the vendored libfdt
   1.4.1's `fdt_open_into()` then took the structure's, the strings' and the reserve map's
@@ -2225,8 +2221,8 @@ outside the tree, which a release booted, is refused (F-411). Jonas: "Refuse it"
 
 ## D-092: Which findings gate 3.0.0, and three choices that come with them (2026-11-16)
 
-Jonas went through a draft of the open findings one at a time; the list is in `roadmap.md`
-("Which findings gate the tag"). Three of his answers change what a device does or what a
+A draft of the open findings was gone through one at a time; the list is in `roadmap.md`
+("Which findings gate the tag"). Three of the answers change what a device does or what a
 port writes, and are recorded here.
 
 - **The 8X refuses a key in slots 4 to 31** (F-429). Security before D-008: the SECO's
@@ -2245,9 +2241,9 @@ port writes, and are recorded here.
 
 ## D-093: An installed table is in effect after the reset (2026-11-17)
 
-Jonas: "Revert the 'install partition table takes effect immediatly'. That added uncessesary
-complexity, it's fine to require a reboot. Maybe we can just set a flag _if_ the partition
-table changes which locks out writes and logs a warning that the system must reboot."
+The "takes effect at once" is reverted: it added unnecessary complexity, and requiring a
+reboot is fine. A flag that is set only if the partition table changes may lock out writes
+and log a warning that the system must reboot.
 
 It replaces D-070's "at once" (its "A"). The rest of D-070's review of `bio.md` stands.
 
@@ -2282,11 +2278,11 @@ Written in: `bio.md` 4, `command-mode.md` 5.3, `board.md` 2.4 and 6, `porting.md
 
 ## D-094: The key hash is the board's, in `slc_fuses` (2026-11-17)
 
-Jonas: "Regarding the SRK's I'd like that to be a part of the 'slc_fuse' struct." Asked how:
-the hash's words are entries of the board's list; their values are literal words in the
-board's file; the checks the SRK writers had hold for every entry. Asked again with D-027's
-reason (a wrong hash closes the device to every image, and F-213's check stops a build whose
-hash isn't the SRK table's): "Literal, no check".
+The SRKs are to be a part of the `slc_fuse` struct. Asked how: the hash's words are entries
+of the board's list; their values are literal words in the board's file; the checks the SRK
+writers had hold for every entry. Asked again with D-027's reason (a wrong hash closes the
+device to every image, and F-213's check stops a build whose hash isn't the SRK table's):
+literal, no check.
 
 - **The key hash is configuration fuses.** The ROTPK's hash (the SRK hash on the i.MX) is
   entries of `board.slc_fuses`, one per word, by the platform's index macro
@@ -2320,7 +2316,7 @@ Written in: `platform.md` 4.2, `board.md` 3 and 6, `command-mode.md` 5.2, `syste
 
 ## D-095: `struct slc_ops` has no `set_configuration` (2026-11-17)
 
-Jonas: "we can drop set_configuration member". D-094 kept it, optional, for a SoC whose
+The `set_configuration` member is dropped. D-094 kept it, optional, for a SoC whose
 configuration is more than fuse words; no port in the tree had it after D-094.
 
 - The configuration is the board's `slc_fuses` and nothing else. `slc_set_configuration()`
@@ -2332,7 +2328,7 @@ configuration is more than fuse words; no port in the tree had it after D-094.
 
 ## D-096: The keys' names: ROTPK and trust anchor (2026-11-17)
 
-Jonas (2026-11-16, `roadmap.md`): generic names for the layers of keys, shared with
+Asked for (2026-11-16, `roadmap.md`): generic names for the layers of keys, shared with
 kickstart, in the documents and the code before the tag. pb has two layers, no key manifests
 are planned (2026-11-17). The name follows a key's role, not its material.
 
@@ -2360,7 +2356,7 @@ out-of-tree build of the 3.0.0 branch that ran `gen-keystore.py` itself runs the
 
 ## D-097: F-447 doesn't gate 3.0.0 (2026-11-23)
 
-Jonas: "Take it off the gate." D-092's list had F-447 in group 1, to close when every SLC fuse
+F-447 is taken off the gate. D-092's list had F-447 in group 1, to close when every SLC fuse
 of the i.MX8M is checked against its Security Reference Manual. The 8M Plus's manual isn't had
 before 3.0.0 (2026-11-19), so the finding can't close as written.
 
@@ -2374,10 +2370,10 @@ before 3.0.0 (2026-11-19), so the finding can't close as written.
 
 ## D-098: The working records leave the repository (2026-11-23)
 
-Jonas: "I like the way we keep the context while we work on things but most of these things
-I'd like to keep outside of the punchboot repo." His objection: they are very verbose, and
-most of it is a log of changes that isn't relevant for most readers. "move everything but the
-descicion log, and put that one level up so we can remove "dev"."
+The way the context is kept while the work goes on is good, but most of these records are to
+be kept outside the punchboot repository. The objection: they are very verbose, and most of
+it is a log of changes that isn't relevant for most readers. Everything but the decision log
+moves out, and that one moves one level up, so that "dev" can be removed.
 
 - **Out of the repository**, into a repository of their own, the maintainers': `status.md`,
   `roadmap.md`, `findings.md`, `findings-closed.md`, the audit of 2026-11-18 and `log/`. They
@@ -2397,4 +2393,4 @@ descicion log, and put that one level up so we can remove "dev"."
 - **The 3.0.0 work's records were taken out of its branch** before the merge to master, so
   they aren't in master's history. What master had until then (`doc/dev/`, to 2026-10-28)
   stays in its history.
-- **Not decided:** a public roadmap (Jonas: possibly, later).
+- **Not decided:** a public roadmap (possibly, later).

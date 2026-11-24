@@ -1,8 +1,8 @@
 # The board contract
 
-**State: reviewed (Jonas, 2026-11-12), D-031, D-045 to D-052.** Level 3 (`process.md`). Two
-entries were added after it, in the review of `platform.md`, and reviewed there: `mmap` (2.8,
-D-054) and `image_regions` (2.9, D-055).
+**State: reviewed (2026-11-12), D-031, D-045 to D-052.** Level 3 (`process.md`). Two entries
+were added after it, in the review of `platform.md`, and reviewed there: `mmap` (2.8, D-054)
+and `image_regions` (2.9, D-055).
 
 What a board (`src/board/<b>/`, or a directory out of the tree) provides, when the core calls it,
 and what it may rely on. Decided in D-031, in the style of the platform contract (`platform.md`,
@@ -17,19 +17,19 @@ configuration: one member per concept, an object the module provides (section 1)
 **No open items.** What the pass (D-045) left open and what the review added, as decided and
 written into the text:
 
-| Item                                   | Rule                                                        | By           |
-| -------------------------------------- | ----------------------------------------------------------- | ------------ |
-| The policy's and the handover's fields | One member per concept, a variant is an object; a module's  | Jonas, D-046 |
-|                                        | configuration is documented with the module (1, 2.5, 2.7)   |              |
-| The in place source                    | A flag in the static table's entry, the device's mapped     | Jonas, D-048 |
-|                                        | base, the header where the format has it (2.4)              |              |
-| bpak in `late_boot()`                  | No header argument; `boot_image_get_bpak_header()` (5.3)    | Jonas, D-047 |
-| A board's condition in pb's status     | `board_report_degraded()`, `board-degraded` in the handover | Jonas, D-050 |
-|                                        | (2.3)                                                       |              |
-| `cm_init()` and `cm_transport`         | Both leave the board: command mode's USB is the platform's, | Jonas, D-049 |
-|                                        | the transport is chosen at link time (4.1, 4.2)             |              |
-| What runs while pb is stopped          | Tasks, `DEFINE_TASK()`, in a loop of the core's; command    | Jonas, D-051 |
-|                                        | mode is one of them, and its `process` hook goes (4.5)      |              |
+| Item                                   | Rule                                                        | By    |
+| -------------------------------------- | ----------------------------------------------------------- | ----- |
+| The policy's and the handover's fields | One member per concept, a variant is an object; a module's  | D-046 |
+|                                        | configuration is documented with the module (1, 2.5, 2.7)   |       |
+| The in place source                    | A flag in the static table's entry, the device's mapped     | D-048 |
+|                                        | base, the header where the format has it (2.4)              |       |
+| bpak in `late_boot()`                  | No header argument; `boot_image_get_bpak_header()` (5.3)    | D-047 |
+| A board's condition in pb's status     | `board_report_degraded()`, `board-degraded` in the handover | D-050 |
+|                                        | (2.3)                                                       |       |
+| `cm_init()` and `cm_transport`         | Both leave the board: command mode's USB is the platform's, | D-049 |
+|                                        | the transport is chosen at link time (4.1, 4.2)             |       |
+| What runs while pb is stopped          | Tasks, `DEFINE_TASK()`, in a loop of the core's; command    | D-051 |
+|                                        | mode is one of them, and its `process` hook goes (4.5)      |       |
 
 Changing or adding a board: read this, then go through the review checklist (section 9). A board
 that runs Linux also gets its test bench defconfig (`testbench/README.md`, "Adding a board").
@@ -201,17 +201,17 @@ The device a table is on is left visible only, for its capacity: a host writes i
 partitions, not the device (`bio.md` 2.4). The core does that for its table of any kind; a
 board that sets up another table does it for that one's device (the host, for its flash).
 
-**What a host may read** (Jonas, D-092, F-083): `readable_parts`, `readable_parts_length`, the
-UUIDs of the partitions a host may read in bulk (`command-mode.md` 5.3), a device of `init()`'s
-or a partition of any table. Only what can't hold a secret: pb's own boot partitions when its
-image has none, its A/B state. The core gives the list to bio before the table is set up.
-Absent: none, a host reads nothing. A list with an entry that is NULL fails the step.
+**What a host may read** (D-092, F-083): `readable_parts`, `readable_parts_length`, the UUIDs
+of the partitions a host may read in bulk (`command-mode.md` 5.3), a device of `init()`'s or a
+partition of any table. Only what can't hold a secret: pb's own boot partitions when its image
+has none, its A/B state. The core gives the list to bio before the table is set up. Absent:
+none, a host reads nothing. A list with an entry that is NULL fails the step.
 
 **The in place source** (`boot.md` 4.1): a partition that is memory mapped, whose image is
 verified where it is and runs there.
 
 `boot.md` makes in place a property of a partition, so that any policy can hand one out. How a
-board gives it (Jonas, D-048):
+board gives it (D-048):
 
 - The static table's object gets the address the device's first byte is mapped at
   (`PTBL_STATIC_MAPPED(device, base, table)`), and an entry gets a flag
@@ -306,7 +306,7 @@ Set up last, and also after a failed step (2.1).
 
 ### 2.8 Data : mmap [optional]
 
-Added after the review (Jonas, D-054), and reviewed with `platform.md`.
+Added after the review (D-054), and reviewed with `platform.md`.
 
 The memory the board reaches and the platform didn't map: a device on an external bus (a chip
 select, an FPGA), a memory mapped flash, a SoC peripheral outside the buses the platform maps.
@@ -336,7 +336,7 @@ NULL: the board reaches what the platform maps.
 
 ### 2.9 Data : image_regions [optional]
 
-Added after the review (Jonas, D-055).
+Added after the review (D-055).
 
 The image data regions: the only memory an image's parts are loaded into (`boot.md` 4.3). The
 board names them, because where a product's images land is the product's: its DRAM, and the SoC
@@ -356,8 +356,8 @@ static const struct boot_image_region board_image_regions[] = {
   (2.7), not `bl_params`' region where the platform has one (`platform.md` 5.3). Where pb runs
   in DRAM, the region starts where the link ends pb: `BOOT_IMAGE_REGION_AFTER_PB(end)` and
   `BOOT_IMAGE_REGION_AFTER_BUFFERS(end)` start at `_pb_end` and `_buffers_end` and end at
-  `end` (Jonas, D-092, F-392). What pb doesn't use of its room (`PB_SIZE`) is loadable, as
-  in 2.x, and a pb that grows takes its room from the region, not from a part's bytes.
+  `end` (D-092, F-392). What pb doesn't use of its room (`PB_SIZE`) is loadable, as in 2.x,
+  and a pb that grows takes its room from the region, not from a part's bytes.
 - A region is memory pb can write: the board's DRAM, SoC memory the platform header names for
   it (`platform.md` 5.3), or a `PB_MAP_MEMORY_RW` region of the board's (2.8). The core doesn't
   check that: a load into what isn't mapped faults, and pb resets.
@@ -416,14 +416,14 @@ the build's tasks in turn (4.5). Command mode is one of them, in a build that ha
 
 ### 4.1 Command mode's hardware (the platform's)
 
-A board sets up nothing for command mode (Jonas, D-049). Command mode's transport is USB, the port
-most SoCs' ROMs use for recovery and provisioning, and what a USB device port needs is the SoC's:
-its clocks, its power, its PHY, its controller. The platform does it in `plat_cm_init()`
+A board sets up nothing for command mode (D-049). Command mode's transport is USB, the port most
+SoCs' ROMs use for recovery and provisioning, and what a USB device port needs is the SoC's: its
+clocks, its power, its PHY, its controller. The platform does it in `plat_cm_init()`
 (`platform.md` 3.10), when command mode's task first runs, off the boot path (D-023). Which of the
 SoC's ports is a Kconfig choice of the platform's, in the board's defconfig.
 
-No hook is left for the PCB: no board needs one (Jonas). One can be added when a board does (a
-mux, a VBUS switch).
+No hook is left for the PCB: no board needs one. One can be added when a board does (a mux, a
+VBUS switch).
 
 ### 4.2 The transport (the core's)
 
@@ -465,7 +465,7 @@ Token authentication (a signature over the device's UUID) is the core's.
 
 ### 4.5 Tasks [optional]
 
-What a board runs while pb is stopped is a task (Jonas, D-051):
+What a board runs while pb is stopped is a task (D-051):
 
 ```
 DEFINE_TASK(name, run)
@@ -504,7 +504,7 @@ What a task does:
 - It doesn't kick the watchdog: the core does, once per round.
 - It has no deadline it can count on. A command runs to its end inside command mode's task, and
   a long one (a large write, a partition's hash) holds every other task off for as long as it
-  takes. Fine for now (Jonas): nothing a board does there is time critical.
+  takes. Fine for now: nothing a board does there is time critical.
 
 Without a task: nothing of the board's runs while pb is stopped.
 
@@ -571,9 +571,9 @@ Called by `boot()` after the loop, when a candidate is loaded, verified and prep
 `boot_part_uu` is the candidate's partition; in a `boot bpak` it is the UUID the host named, all
 zero when it named none (`boot.md` 5.6).
 
-The hook gets no header (Jonas, D-047): the flow is written for any image format (D-044), and a
-hook's arguments change only in a major release. A board that needs the verified header asks
-the format for it:
+The hook gets no header (D-047): the flow is written for any image format (D-044), and a hook's
+arguments change only in a major release. A board that needs the verified header asks the
+format for it:
 
 ```
 const struct bpak_header *boot_image_get_bpak_header(void)
@@ -790,7 +790,7 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     |         |
 
 Data: imx8mevk has the 8MP EVK's set up since 2026-11-16, the A/B policy and Linux through
-TF-A, and is built only (Jonas, D-092, F-300): neither it nor the DXL EVK is on the bench, so
+TF-A, and is built only (D-092, F-300): neither it nor the DXL EVK is on the bench, so
 neither has a test bench defconfig. jiffy, the RT and the host have no `password_auth()`, and
 their builds have no password method.
 

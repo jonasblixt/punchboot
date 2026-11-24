@@ -1,44 +1,43 @@
 # The boot flow contract
 
-**State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041, D-043, D-044, D-046, D-048,
-D-050, D-055, D-061.** Level 2
-(`process.md`).
+**State: reviewed (2026-11-11), D-032, D-038 to D-041, D-043, D-044, D-046, D-048, D-050,
+D-055, D-061.** Level 2 (`process.md`).
 
 No open items. The draft's seventeen, as decided and written into the text:
 
 | Item | Rule                                                                                    | By             |
 | ---- | --------------------------------------------------------------------------------------- | -------------- |
-| 1    | The transfer list is always in a board region, so a DT is copied into it (5.4)          | Jonas, D-039   |
-| 2    | Firmware Handoff replaces `simple` (5.4)                                                | Jonas, D-039   |
-| 3    | Speculative mode also starts with no slot enabled, A first; for now (3.6)               | Jonas, D-040   |
+| 1    | The transfer list is always in a board region, so a DT is copied into it (5.4)          | D-039          |
+| 2    | Firmware Handoff replaces `simple` (5.4)                                                | D-039          |
+| 3    | Speculative mode also starts with no slot enabled, A first; for now (3.6)               | D-040          |
 | 4    | Preparing the handover is part of a candidate's attempt; a failed lockdown tries no     | Level 1, D-038 |
 |      | other candidate (2)                                                                     |                |
 | 5    | `boot part` takes only the policy's candidates, with every policy (6)                   | D-039          |
-| 6    | pb's structure's fields, with room for 16 keys (5.4); the Kconfig names (3.5, 3.6, 5.4) | Jonas, D-040   |
-|      | pb's status: a string list in the DT, bit flags in pb's structure (5.6)                 | Jonas, D-041   |
-| 7    | An image with a part outside the hash is refused (4.2)                                  | Jonas, D-035   |
+| 6    | pb's structure's fields, with room for 16 keys (5.4); the Kconfig names (3.5, 3.6, 5.4) | D-040          |
+|      | pb's status: a string list in the DT, bit flags in pb's structure (5.6)                 | D-041          |
+| 7    | An image with a part outside the hash is refused (4.2)                                  | D-035          |
 | 8    | `boot status` stays "the enabled slot" for A/B (3.4)                                    | Level 1, D-038 |
-| 9    | Speculative mode also starts when this boot's failures leave no candidate (3.6)         | Jonas, D-039   |
-| 10   | In place: the header where the format has it in the partition; a part is at its load    | Jonas, D-040,  |
+| 9    | Speculative mode also starts when this boot's failures leave no candidate (3.6)         | D-039          |
+| 10   | In place: the header where the format has it in the partition; a part is at its load    | D-040,         |
 |      | address, inside the candidate's mapped range (4.1)                                      | D-048          |
-| 11   | The custom source is removed (4.1)                                                      | Jonas, D-035   |
-| 12   | A trial whose attempt can't be written is started only when no verified slot is left    | Jonas, D-040   |
+| 11   | The custom source is removed (4.1)                                                      | D-035          |
+| 12   | A trial whose attempt can't be written is started only when no verified slot is left    | D-040          |
 |      | (3.2)                                                                                   |                |
 | 13   | A boot command mode started keeps today's values in the handover (5.6)                  | Level 1, D-038 |
-| 14   | `BOOT_AB_SPECULATIVE` is the only switch for speculative mode (3.6)                     | Jonas, D-040   |
+| 14   | `BOOT_AB_SPECULATIVE` is the only switch for speculative mode (3.6)                     | D-040          |
 | 15   | pb's structure isn't released before its tag is allocated (5.4)                         | Level 1, D-038 |
 | 16   | `linux,initrd-*` stay 32 bits where both addresses fit (5.2)                            | Level 1, D-038 |
 | 17   | The preconditions are checked before `early_boot()` (2)                                 | D-039          |
-| 18   | The delivery through OP-TEE on ARMv7-A (5.7)                                            | Jonas, D-085   |
+| 18   | The delivery through OP-TEE on ARMv7-A (5.7)                                            | D-085          |
 
-From Jonas's final read: pb's status stays and pb's version joins pb's information (5.6, D-043);
-the flow is written for any image format, and names bpak only in 4.4 (D-044). After the review
+From the final read: pb's status stays and pb's version joins pb's information (5.6, D-043); the
+flow is written for any image format, and names bpak only in 4.4 (D-044). After the review
 (D-046): the policy, the handover and the delivery are objects the board names in its data, no
 longer a Kconfig choice (3, 5.1). In place, the board gives no address for the header (4.1,
-D-048; D-039 had "or where the board says"). pb's status has a second entry, the board's
-(5.6, D-050). Placement's allow list is the board's image data regions, and what keeps a part
-off pb is checked once, on that list (4.3, Jonas, D-055; it was the board's DRAM and the
-platform's loadable regions, less pb's own).
+D-048; D-039 had "or where the board says"). pb's status has a second entry, the board's (5.6,
+D-050). Placement's allow list is the board's image data regions, and what keeps a part off pb
+is checked once, on that list (4.3, D-055; it was the board's DRAM and the platform's loadable
+regions, less pb's own).
 
 What pb does from `boot()` to the jump: which partition it boots (the boot source policy), how it
 loads and verifies the image, and what it hands the next stage (the handover). For each step:
@@ -237,8 +236,8 @@ candidates, in order:
 2. A trial without attempts left rolls back: the other slot, when it is verified, is enabled, and
    the rolled back slot's error bit is set (written). Not verified: no viable candidate.
 3. When the first candidate failed in this boot: the other slot, when it is verified. Nothing is
-   written, mode fallback (F-174, decided by Jonas for this boot only). A trial that failed spent its
-   attempt; it is tried again on the next boots until its attempts run out.
+   written, mode fallback (F-174, decided for this boot only). A trial that failed spent its attempt;
+   it is tried again on the next boots until its attempts run out.
 4. No viable candidate: none, and pb enters command mode; with speculative mode, 3.6.
 
 Nothing enabled (a device never activated, a state that was lost) has no candidate, and pb enters
@@ -261,9 +260,9 @@ For a system that must stay reachable for an update when no slot is viable. With
      fallback of 3.5, rule 3: the enabled slot keeps its state and is tried first again on the
      next boot.
    - **Nothing enabled**: a state that is blank, lost or disabled by the host. A is tried first;
-     items 3 and 4 apply. In the field almost anything beats looping into command mode (Jonas,
-     D-040, for now). Released speculative mode stays in command mode here. The cost: with this
-     mode "disable both slots" doesn't park a device in command mode, and a device in the factory
+     items 3 and 4 apply. In the field almost anything beats looping into command mode (D-040,
+     for now). Released speculative mode stays in command mode here. The cost: with this mode
+     "disable both slots" doesn't park a device in command mode, and a device in the factory
      boots an image that was written and not yet activated.
 2. It never boots an image that fails verification: it relaxes "confirmed by the OS", never the
    signature, the hash or the placement (`security.md` 4.1, 4.2).
@@ -321,11 +320,11 @@ The in place source's rules:
   partition is dropped before the header is read. What is hashed is what runs, also after a
   host wrote the partition in the same power cycle.
 - Every image released pb accepted has its parts at their load address, so none is refused.
-- **No device tree in place with the image handover** (Jonas, D-092, F-291): it grows and
-  patches the tree where it is (5.5), which in place is the flash. Such an image is refused
-  before the tree is read, with `-PB_ERR_NOT_SUPPORTED`, for good; a kernel alone boots in
-  place. In place with a device tree goes through Firmware Handoff, which copies the tree into
-  its region (5.4). No released configuration is refused: in place is new in 3.0.0 (D-048).
+- **No device tree in place with the image handover** (D-092, F-291): it grows and patches the
+  tree where it is (5.5), which in place is the flash. Such an image is refused before the
+  tree is read, with `-PB_ERR_NOT_SUPPORTED`, for good; a kernel alone boots in place. In
+  place with a device tree goes through Firmware Handoff, which copies the tree into its
+  region (5.4). No released configuration is refused: in place is new in 3.0.0 (D-048).
 
 ### 4.2 The sequence
 
@@ -531,12 +530,11 @@ struct pb_fh_handover {
 pb has at most 16 trust anchors (`board.md` 7). A build whose version string doesn't fit doesn't
 compile with this handover (a static assert).
 
-Its tag is allocated in the specification (requested upstream by Jonas, before 3.0.0); the
-non-standard range is discouraged there. A tag is allocated by a pull request that adds the
-entry's layout to the specification, so the layout above is settled first. pb's structure isn't
-in a release before its tag is allocated: what is released is
-fixed (section 7, `system.md` 3), and the tag can't change afterwards. The DT variant doesn't wait
-for it.
+Its tag is allocated in the specification (requested upstream, before 3.0.0); the non-standard
+range is discouraged there. A tag is allocated by a pull request that adds the entry's layout to
+the specification, so the layout above is settled first. pb's structure isn't in a release before
+its tag is allocated: what is released is fixed (section 7, `system.md` 3), and the tag can't
+change afterwards. The DT variant doesn't wait for it.
 
 **Not yet in the code (F-259)**: the tag isn't allocated. Until it is, `PB_FH_TAG_HANDOVER`
 (`boot/pb_fh.h`) is a number from the specification's non-standard range.
@@ -554,8 +552,8 @@ for it.
   the boot, as it did when the hook wrote it.
 - pb writes only `/chosen`: the command line, its own properties, and for the image handover
   `linux,initrd-*`. Nothing else, nothing for Xen or OP-TEE.
-- **pb's properties as released** (Jonas, D-092, F-348): pb writes every value it has. A
-  property a release wrote that pb has no value for this time (`pb,slc` without an SLC,
+- **pb's properties as released** (D-092, F-348): pb writes every value it has. A property a
+  release wrote that pb has no value for this time (`pb,slc` without an SLC,
   `pb,active-system` without a name) stays as the image or the hook wrote it, as in every
   release: an out-of-tree hook may write `pb,active-system` itself (D-008). A property new in
   3.0.0 that pb has no value for is removed, so that a next stage reads none but pb's.
@@ -599,8 +597,7 @@ or didn't fit the tree (5.5).
 
 pb's status (`system.md` 3, `security.md` 4.5) is what pb couldn't do and booted anyway, so that
 the next stage can report it or act on it. A list of strings in the DT, its own idiom and
-readable without a table; bit flags in pb's structure, whose fields have a fixed size (Jonas,
-D-041):
+readable without a table; bit flags in pb's structure, whose fields have a fixed size (D-041):
 
 | Condition                                                              | String in `pb,status` | Bit in `status` |
 | ---------------------------------------------------------------------- | --------------------- | --------------- |

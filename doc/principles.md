@@ -1,21 +1,21 @@
 # Guiding principles
 
-**State: reviewed (Jonas, 2026-11-11), D-035, D-036.** Level 0 (`process.md`).
+**State: reviewed (2026-11-11), D-035, D-036.** Level 0 (`process.md`).
 
 How punchboot is designed and reviewed, and what wins when goals conflict. A decision that departs
 from one says so and why (`decisions.md`). New principles are added here, not only in a decision.
 
 Order: 1 comes first and 8 last. Security (1, 2) is first, also when it breaks compatibility (3);
-then boot time (4); simple and terse code is last (Jonas, 2026-11-11). 5 to 7 aren't ranked against 1 to 4
-yet; such a conflict is decided case by case and recorded. The numbers changed with D-035: before
-it compatibility was 1, fail closed 2 and defence in depth 3.
+then boot time (4); simple and terse code is last (2026-11-11). 5 to 7 aren't ranked against 1 to 4
+yet; such a conflict is decided case by case and recorded. The numbers changed with D-035: before it
+compatibility was 1, fail closed 2 and defence in depth 3.
 
 1. **Fail closed, never silently** (D-027, D-030). When a security check can't be made, the answer
    is no. When something the boot's security depends on failed, pb doesn't boot; logging it is not
    enough (`security.md` 4.4, 4.5).
-2. **Defence in depth** (Jonas, 2026-11-11). A check stays when another one already covers the
-   case, and each layer checks its own inputs. A signed image is trusted, yet pb still checks where
-   its parts land, because unverified bytes reach memory before the payload hash is compared.
+2. **Defence in depth** (2026-11-11). A check stays when another one already covers the case, and
+   each layer checks its own inputs. A signed image is trusted, yet pb still checks where its parts
+   land, because unverified bytes reach memory before the payload hash is compared.
 3. **Never break compatibility** (D-008). The wire, the bpak format, the device identity and what
    a product in the field relies on (`compatibility.md`, `platform.md` 3.7, `board.md` 8). Only
    security comes before it: a security fix may refuse what a release accepted, with a decision
@@ -23,20 +23,20 @@ it compatibility was 1, fail closed 2 and defence in depth 3.
 4. **Keep the boot path short** (D-023). Boot time is critical. What only command mode needs is
    set up in command mode, hooks on the boot path start slow hardware and don't wait for it
    (`board.md` 5).
-5. **Lean on standards where they apply** (Jonas, 2026-11-11). Arm's Firmware Handoff for the
-   generic handover, the Linux boot protocol, TF-A's `bl_params`, the devicetree specification;
-   TF-A's porting guide for the style of the contracts. Where one is inspiration, not a compliance
+5. **Lean on standards where they apply** (2026-11-11). Arm's Firmware Handoff for the generic
+   handover, the Linux boot protocol, TF-A's `bl_params`, the devicetree specification; TF-A's
+   porting guide for the style of the contracts. Where one is inspiration, not a compliance
    target, the document says so (D-030: TBBR, PSA, FWU).
 6. **Cohesion, flexibility, readability, reviewability.** One responsibility per module and a
    written contract per interface (`platform.md`, `board.md`). The core owns the rules, the
    platforms and boards provide facts and hardware (D-027); a board is data (D-026). Contracts are
    vendor neutral, vendor facts live in their own documents (D-030).
-7. **Out-of-tree users exist** (Jonas, 2026-11-11). A feature without a caller in the tree is used
-   by projects that aren't visible here (the in-memory boot source, speculative rollback,
-   `set_dtb_boot_arg`). "Unused in the tree" is not a reason to remove anything; a major
-   release (D-018) may change how a feature is used, never drop it without asking. Jonas removed
-   the custom boot source himself (D-035).
+7. **Out-of-tree users exist** (2026-11-11). A feature without a caller in the tree is used by
+   projects that aren't visible here (the in-memory boot source, speculative rollback,
+   `set_dtb_boot_arg`). "Unused in the tree" is not a reason to remove anything; a major release
+   (D-018) may change how a feature is used, never drop it without asking. The custom
+   boot source was removed by a decision of its own (D-035).
 8. **Simple and terse code.** Low complexity and low verbosity: the fewest concepts, paths and
-   lines that do the job. The lowest priority (Jonas, 2026-11-11): simpler and shorter is better
-   when nothing above is lost, and the design deviates from it for better cohesion, flexibility,
+   lines that do the job. The lowest priority (2026-11-11): simpler and shorter is better when
+   nothing above is lost, and the design deviates from it for better cohesion, flexibility,
    readability or reviewability.

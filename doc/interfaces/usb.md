@@ -1,6 +1,6 @@
 # The transport and USB device controller contract
 
-**State: reviewed (Jonas, 2026-11-12), D-064, D-072, D-073.** Level 3 (`process.md`).
+**State: reviewed (2026-11-12), D-064, D-072, D-073.** Level 3 (`process.md`).
 
 What carries command mode's bytes: the transport's functions as command mode calls them, pb's
 USB device (the class, the stack on endpoint 0) and what a USB device controller's driver
@@ -16,18 +16,18 @@ wire.
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates section 8.
 
-**No open items.** The draft's five, as decided in Jonas's review (D-072) and written into
-the text:
+**No open items.** The draft's five, as decided in the review (D-072) and written into the
+text:
 
-| Item | Rule                                                                            | By    |
-| ---- | ------------------------------------------------------------------------------- | ----- |
-| 1    | The transport's six functions: `cm_transport_init()`, `_connect()`, `_read()`,  | Jonas |
-|      | `_write()`, `_complete()`, `_disconnect()` (2)                                  |       |
-| 2    | Every error from `complete` is "lost". A controller reports a bus reset and an  | Jonas |
-|      | unplug as an error of the transfer (2.4)                                        |       |
-| 3    | A full speed bus isn't supported, for now: high speed, or not ready (4.1)       | Jonas |
-| 4    | A request the stack doesn't know is stalled: a new operation, `ep0_stall` (3.2) | Jonas |
-| 5    | A request on endpoint 0 leaves a bulk transfer alone (3.2)                      | Jonas |
+| Item | Rule                                                                            |
+| ---- | ------------------------------------------------------------------------------- |
+| 1    | The transport's six functions: `cm_transport_init()`, `_connect()`, `_read()`,  |
+|      | `_write()`, `_complete()`, `_disconnect()` (2)                                  |
+| 2    | Every error from `complete` is "lost". A controller reports a bus reset and an  |
+|      | unplug as an error of the transfer (2.4)                                        |
+| 3    | A full speed bus isn't supported, for now: high speed, or not ready (4.1)       |
+| 4    | A request the stack doesn't know is stalled: a new operation, `ep0_stall` (3.2) |
+| 5    | A request on endpoint 0 leaves a bulk transfer alone (3.2)                      |
 
 ## 1. Words and scope
 
@@ -117,11 +117,11 @@ return at once; `cm_transport_complete()` says when it is done.
 - **A read that is whole packets ends at its length**, and what the host sent beyond it stays
   for the next read. `BOOT_BPAK`'s parts rest on it: the host splits a part into transfers of
   its own size, the device reads it in pieces of `CONFIG_BOOT_LOAD_CHUNK_kB`, and on both
-  sides every piece but the part's last is whole packets (`command-mode.md` 4.4; Jonas,
-  D-073). A host transfer that ends inside a packet before the part does is a short packet,
-  and an error. Released hosts send the caps' largest transfer, which is whole packets:
-  command mode's buffer and the boot's piece are both set in units of 1024 bytes. Run where
-  the two differ: jiffy and the 8MP EVK, the RT1060's 4 KiB pieces (F-280).
+  sides every piece but the part's last is whole packets (`command-mode.md` 4.4; D-073). A
+  host transfer that ends inside a packet before the part does is a short packet, and an
+  error. Released hosts send the caps' largest transfer, which is whole packets: command
+  mode's buffer and the boot's piece are both set in units of 1024 bytes. Run where the two
+  differ: jiffy and the 8MP EVK, the RT1060's 4 KiB pieces (F-280).
 - **A write sends exactly `length` bytes and no packet after them**, also when `length` is
   whole packets: the host knows the size and asks for no more. A write of 0 bytes sends one
   empty packet (`command-mode.md` 6: a transfer of 0 bytes is one).
@@ -225,14 +225,14 @@ The stack answers these requests and no others:
   the device doesn't have in its state is a request error (USB 2.0 9.4), stalled.
 - **Any other request is stalled.** The host then goes on at once; the transfer that was
   running goes on. pb's device answers USB 2.0's standard requests that a device in its state
-  must (9.4, F-463, Jonas) and no more: `SET_FEATURE`, `SET_INTERFACE`, `SYNCH_FRAME`,
-  `SET_DESCRIPTOR` and `CLEAR_FEATURE` are stalled. `CLEAR_FEATURE(ENDPOINT_HALT)` too (Jonas,
-  D-090): pb halts no endpoint, and answered it would reset the endpoint's data toggle on the
+  must (9.4, F-463) and no more: `SET_FEATURE`, `SET_INTERFACE`, `SYNCH_FRAME`,
+  `SET_DESCRIPTOR` and `CLEAR_FEATURE` are stalled. `CLEAR_FEATURE(ENDPOINT_HALT)` too
+  (D-090): pb halts no endpoint, and answered it would reset the endpoint's data toggle on the
   host's side (9.4.5) and not on the controller's; stalled, the host keeps its own, and both
   stay in step.
-- **Three that releases answered are stalled** (Jonas, D-073): the debug descriptor, which
-  got the interface descriptor; `SET_IDLE`, a request of another class; and a string index
-  the class doesn't have, which got an empty string. A class's `get_string_descriptor()`
+- **Three that releases answered are stalled** (D-073): the debug descriptor, which got
+  the interface descriptor; `SET_IDLE`, a request of another class; and a string index the
+  class doesn't have, which got an empty string. A class's `get_string_descriptor()`
   returns NULL for such an index.
 - **A request doesn't disturb a bulk transfer.** Hosts send requests at any time
   (`lsusb -v`, another program that lists devices). The stack answers on endpoint 0 and the
@@ -264,10 +264,10 @@ power and PHY are done (`platform.md` 3.10).
 
 - **It works on a controller that runs**: after the ROM's serial download, after a `stop`,
   after a session that was lost.
-- **High speed, or not ready**, for now (Jonas, D-072). The descriptors are for high speed (512 byte
-  packets). On a bus that only does full speed the device doesn't become ready, and command
-  mode ends as when no host came. **Not yet in the code (F-287)**: only one controller asks
-  for a speed, and none acts on what the bus gave.
+- **High speed, or not ready**, for now (D-072). The descriptors are for high speed (512 byte
+  packets). On a bus that only does full speed the device doesn't become ready, and command mode
+  ends as when no host came. **Not yet in the code (F-287)**: only one controller asks for a speed,
+  and none acts on what the bus gave.
 - The address is 0 and nothing is configured.
 
 ### 4.2 Operation : stop [mandatory]
@@ -328,8 +328,8 @@ ep0_stall(void)
   ready; called again it starts them over.
 - **`ep0_xfer_zlp`** is the status stage, bounded.
 - **`ep0_stall`.** Stalls endpoint 0 until the next SETUP, both directions, bounded. It is
-  how a request the stack refuses is answered (3.2), so it is mandatory as the rest (Jonas,
-  F-138): a driver without it isn't registered. An out-of-tree controller adds it.
+  how a request the stack refuses is answered (3.2), so it is mandatory as the rest
+  (F-138): a driver without it isn't registered. An out-of-tree controller adds it.
 
 ### 4.5 Operation : xfer_start_short [optional]
 

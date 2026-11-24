@@ -1,6 +1,6 @@
 # The drivers' contracts: every driver
 
-**State: reviewed (Jonas, 2026-11-12), D-064 to D-066, D-073.** Level 3 (`process.md`).
+**State: reviewed (2026-11-12), D-064 to D-066, D-073.** Level 3 (`process.md`).
 
 What a driver (`src/drivers/<class>/`, `include/drivers/<class>/`) is, and what every driver does
 whatever its class: when it is set up and stopped, how long it may wait, what it returns, and the
@@ -24,21 +24,21 @@ the checklist (section 7).
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates the conformance table.
 
-**No open items.** The draft's five, as decided in Jonas's review (D-065, D-066) and written
+**No open items.** The draft's five, as decided in the review (D-065, D-066) and written
 into the text:
 
-| Item | Rule                                                                              | By                |
-| ---- | --------------------------------------------------------------------------------- | ----------------- |
-| 1    | A contract per class, each in its own file. This document holds what is common to | Jonas             |
-|      | every driver                                                                      |                   |
-| 2    | The DMA rule lives in `include/pb/dma.h`; drivers stop calling the arch's cache   | Jonas             |
-|      | functions (4.4)                                                                   |                   |
-| 3    | The class's core refuses a buffer that doesn't own its lines. An image part's     | Jonas             |
-|      | load address is bounced in the boot's load loop: no image is refused for it (4.3) |                   |
-| 4    | The line size is a constant, 64 bytes, checked in `arch_init()` (4.1)             | Jonas             |
-| 5    | A driver has a `stop` when its device acts without being asked; one whose calls   | Jonas, no comment |
-|      | are synchronous has nothing to stop (2.3)                                         |                   |
-|      | No IOMMU is a fact of today's platforms, not a rule (4)                           | Jonas             |
+| Item | Rule                                                                              | By                 |
+| ---- | --------------------------------------------------------------------------------- | ------------------ |
+| 1    | A contract per class, each in its own file. This document holds what is common to | Review             |
+|      | every driver                                                                      |                    |
+| 2    | The DMA rule lives in `include/pb/dma.h`; drivers stop calling the arch's cache   | Review             |
+|      | functions (4.4)                                                                   |                    |
+| 3    | The class's core refuses a buffer that doesn't own its lines. An image part's     | Review             |
+|      | load address is bounced in the boot's load loop: no image is refused for it (4.3) |                    |
+| 4    | The line size is a constant, 64 bytes, checked in `arch_init()` (4.1)             | Review             |
+| 5    | A driver has a `stop` when its device acts without being asked; one whose calls   | Review, no comment |
+|      | are synchronous has nothing to stop (2.3)                                         |                    |
+|      | No IOMMU is a fact of today's platforms, not a rule (4)                           | Review             |
 
 ## 1. Scope
 
@@ -57,9 +57,9 @@ into the text:
   pin controller, the timer, the watchdog, the UARTs, the TrustZone filter's driver, the ROM's
   logs. What the core needs from them it asks the platform for (`platform.md` 3, 4).
 - **A second implementation is the moment to ask whether a class gets its contract.** Not
-  every one does: the UARTs are two drivers behind one interface and have none (Jonas,
-  D-073). The interface is one output function, nothing but the log rests on it, and what
-  the console is and when it works is `board.md` 2.2. Until a class has a contract a new
+  every one does: the UARTs are two drivers behind one interface and have none (D-073).
+  The interface is one output function, nothing but the log rests on it, and what the
+  console is and when it works is `board.md` 2.2. Until a class has a contract a new
   driver doesn't wait for a document (`process.md` 1, D-063).
 
 Not here: which driver a board or a platform selects (`board.md` 2, `platform.md` 2.2, 3.10),
@@ -88,7 +88,7 @@ Called by whoever selects the peripheral, once its clocks, pads and power are se
 - It registers what the class's core needs (a block device, the backend's operations, the
   controller's operations). Nothing is registered when it fails, but a block device registered
   before the failure: `bio` has no release (`bio.md`), so it stays, and answers every call with
-  `-PB_ERR_STATE` (F-406, Jonas).
+  `-PB_ERR_STATE` (F-406).
 - **Failure** leaves the device quiet: no DMA, nothing started. What follows is the caller's:
   the platform's failure (`platform.md` 2.2) or the board's (`board.md` 2.1).
 - A driver whose class restarts it (the transport, `usb.md` 2) can be set up again after its
@@ -153,11 +153,11 @@ command mode started, the transport is gone by then and pb resets (`board.md` 5.
 - **No driver kicks the watchdog**, and neither do `pb_delay_*()` and `pb_timeout_*()`
   (`platform.md` 3.3): a driver that polls for ever must not keep the board alive. The core
   kicks between a driver's calls, once per chunk.
-- **So the core sizes what it asks for** (Jonas, D-073). A call's time follows from its
-  request. The driver's header gives the longest time per unit on the media it supports (a
-  block read, written, erased), and the core asks in pieces that fit the watchdog with room
-  to spare: a chunk at a time (`platform.md` 3.3, `command-mode.md` 4.6). No driver promises
-  a time for a request of any size.
+- **So the core sizes what it asks for** (D-073). A call's time follows from its request.
+  The driver's header gives the longest time per unit on the media it supports (a block
+  read, written, erased), and the core asks in pieces that fit the watchdog with room to
+  spare: a chunk at a time (`platform.md` 3.3, `command-mode.md` 4.6). No driver promises a
+  time for a request of any size.
 - **The timeout's arithmetic** is `pb_timeout_*()`'s.
 
 What a driver returns:
@@ -196,10 +196,10 @@ every platform.
 **The address a device gets** is a separate matter. On the platforms pb supports today the
 address the CPU uses is the address the device gets: pb maps memory one to one, and none of
 them has an IOMMU in front of its devices. That is a fact of these platforms, not a rule of
-this contract (Jonas, D-065). A platform with an IOMMU may use it, and then decides which
-memory a device reaches; this section gets an entry for it when the first such platform comes.
-Until then a driver turns a pointer into the device's address in one place, so that a
-translation has somewhere to go.
+this contract (D-065). A platform with an IOMMU may use it, and then decides which memory a
+device reaches; this section gets an entry for it when the first such platform comes. Until
+then a driver turns a pointer into the device's address in one place, so that a translation
+has somewhere to go.
 
 ### 4.1 Words
 
@@ -210,8 +210,8 @@ translation has somewhere to go.
 | Line | A cache line. `PB_DMA_ALIGN` bytes: no smaller than the line of any core pb runs on  |
 
 `PB_DMA_ALIGN` is a constant, 64, and `arch_init()` checks that the core's line isn't larger
-(Jonas, D-065). An alignment must be known when a buffer is declared, so it can't be read from
-the core at run time; the functions of 4.4 use the core's own line size for their stride.
+(D-065). An alignment must be known when a buffer is declared, so it can't be read from the
+core at run time; the functions of 4.4 use the core's own line size for their stride.
 
 ### 4.2 The rule
 

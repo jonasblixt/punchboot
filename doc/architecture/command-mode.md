@@ -1,6 +1,6 @@
 # Command mode
 
-**State: reviewed (Jonas, 2026-11-12), D-057 to D-061.** Level 2 (`process.md`).
+**State: reviewed (2026-11-12), D-057 to D-061.** Level 2 (`process.md`).
 
 What pb does for a host on the cable: when command mode runs, what a session is, which commands
 a host may run and when, what each command means and what a failure leaves behind.
@@ -13,29 +13,29 @@ Changing command mode, a command or the gate: read this, `security.md` 4.7 and
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker.
 
-No open items. The draft's eight, as decided in Jonas's review (D-058, D-059) and written
+No open items. The draft's eight, as decided in the review (D-058, D-059) and written
 into the text:
 
-| Item | Rule                                                                                      | By    |
-| ---- | ----------------------------------------------------------------------------------------- | ----- |
-| 1    | `CONFIG_CM_AUTH` is the product's switch. A build that has it on selects at least one     | Jonas |
-|      | method (3.2)                                                                              |       |
-| 2    | A hidden partition is internal to pb: no command reaches it. `PART_VERIFY` needs no       | Jonas |
-|      | `READABLE`, as released (5.3)                                                             |       |
-| 3    | No idle timeout (3.1)                                                                     | Jonas |
-| 4    | A failed authentication is answered after 1 s (3.3)                                       | Jonas |
-| 5    | What a method may grant isn't designed here: roadmap. The classes are out (3.4)           | Jonas |
-| 6    | A transfer the host doesn't complete ends the session; the caps carry pb's timeouts (4.6) | Jonas |
-| 7    | `BOOT_BPAK` always reads the header, and its result carries a refusal (5.5)               | Jonas |
-| 8    | A closed device answers `NOT_AUTHENTICATED` to everything but its two commands, from      | Jonas |
-|      | 3.0.0 (3.2). It was `INVALID_COMMAND` for a command the release doesn't define            |       |
+| Item | Rule                                                                                      |
+| ---- | ----------------------------------------------------------------------------------------- |
+| 1    | `CONFIG_CM_AUTH` is the product's switch. A build that has it on selects at least one     |
+|      | method (3.2)                                                                              |
+| 2    | A hidden partition is internal to pb: no command reaches it. `PART_VERIFY` needs no       |
+|      | `READABLE`, as released (5.3)                                                             |
+| 3    | No idle timeout (3.1)                                                                     |
+| 4    | A failed authentication is answered after 1 s (3.3)                                       |
+| 5    | What a method may grant isn't designed here: roadmap. The classes are out (3.4)           |
+| 6    | A transfer the host doesn't complete ends the session; the caps carry pb's timeouts (4.6) |
+| 7    | `BOOT_BPAK` always reads the header, and its result carries a refusal (5.5)               |
+| 8    | A closed device answers `NOT_AUTHENTICATED` to everything but its two commands, from      |
+|      | 3.0.0 (3.2). It was `INVALID_COMMAND` for a command the release doesn't define            |
 
-A second pass after the review (D-060, written in on Jonas's go): the three places that mean
+A second pass after the review (D-060, written in once approved): the three places that mean
 bpak and how another image format joins (5.9); `INVALID_COMMAND` against `NOT_SUPPORTED` (4.5);
 the UUID `BOOT_BPAK` carries against hidden partitions (5.3); `BOOT_BPAK`'s parts as a stream
 and what follows a part's result (4.1, 4.4, section 6); a refusal before the authentication
-data (3.3); the caps' `bpak_stream_support` (5.1). A build may leave bpak out (Jonas, D-061):
-5.9 says what its commands answer then.
+data (3.3); the caps' `bpak_stream_support` (5.1). A build may leave bpak out (D-061): 5.9 says
+what its commands answer then.
 
 What it changed in the documents beside it:
 
@@ -44,20 +44,19 @@ What it changed in the documents beside it:
 - `compatibility.md`: "Fixed elsewhere" has a line for section 7, and "New command" says what
   a closed device answers (3.2) and what a build that left the command out answers (4.5).
 
-**The named commands (D-076, reviewed by Jonas, 2026-11-13).** 5.6 is rewritten: any part of
-pb declares a command, and `COMMAND_LIST` lists them. The draft's items, as Jonas answered
-them:
+**The named commands (D-076, reviewed 2026-11-13).** 5.6 is rewritten: any part of pb
+declares a command, and `COMMAND_LIST` lists them. The draft's items, as answered:
 
-| Item | Rule                                                                                     | By    |
-| ---- | ---------------------------------------------------------------------------------------- | ----- |
-| 9    | A list entry is 128 bytes: a name of 1 to 31 characters, a help line of at most 79 (5.6) | Jonas |
-| 10   | The list is checked in the set up (2.1): a name outside `[a-z0-9-]`, two names with one  | Jonas |
-|      | id, the name `list`, or a list larger than a buffer is a failure: no command mode        |       |
-| 11   | A list entry has the name, no id: the host computes `pb_id()` of it (5.6)                | Jonas |
-| 12   | The board's `command()` is removed, an accepted break of the porting API in 3.0.0        | Jonas |
-|      | (D-031): every command is declared (5.6)                                                 |       |
-| 13   | The reset request is named for every command, `cm_request_reset_on_success()`, and works | Jonas |
-|      | as before (5.6)                                                                          |       |
+| Item | Rule                                                                                     |
+| ---- | ---------------------------------------------------------------------------------------- |
+| 9    | A list entry is 128 bytes: a name of 1 to 31 characters, a help line of at most 79 (5.6) |
+| 10   | The list is checked in the set up (2.1): a name outside `[a-z0-9-]`, two names with one  |
+|      | id, the name `list`, or a list larger than a buffer is a failure: no command mode        |
+| 11   | A list entry has the name, no id: the host computes `pb_id()` of it (5.6)                |
+| 12   | The board's `command()` is removed, an accepted break of the porting API in 3.0.0        |
+|      | (D-031): every command is declared (5.6)                                                 |
+| 13   | The reset request is named for every command, `cm_request_reset_on_success()`, and works |
+|      | as before (5.6)                                                                          |
 
 ## 1. Words and scope
 
@@ -163,8 +162,8 @@ authenticated and has no stream.
 
 What isn't the session's: the life cycle (the device's), the buffers' content (4.3).
 
-**No idle timeout** (Jonas, D-058). An authenticated session stays authenticated for as long as
-the transport is up. Taking the cable over means a bus reset, which ends the session. A timeout
+**No idle timeout** (D-058). An authenticated session stays authenticated for as long as the
+transport is up. Taking the cable over means a bus reset, which ends the session. A timeout
 would change what released hosts and factory flows see, for a host that walked away from its
 own cable.
 
@@ -197,8 +196,8 @@ authentication (`CONFIG_CM_AUTH`, below):
   `AUTHENTICATE` (`security.md` 4.7). The set never grows.
 - **Everything else answers `NOT_AUTHENTICATED`**, also a command this release of pb doesn't
   define and a frame that isn't a command: a closed device doesn't tell which commands it has
-  (Jonas, D-058). A host that wants to know whether a closed device has a command
-  authenticates first (`compatibility.md`).
+  (D-058). A host that wants to know whether a closed device has a command authenticates
+  first (`compatibility.md`).
 - **The gate follows the life cycle at once.** The life cycle is read again after every command
   that changes it. A session that locks the device is behind the gate from its next command, as
   every later session is.
@@ -208,7 +207,7 @@ authentication (`CONFIG_CM_AUTH`, below):
   `boot.md` 2). Without the root of trust no token verifies (`board.md` 2.1); a password can
   still open the session.
 
-**`CONFIG_CM_AUTH` is the product's switch** (Jonas, D-059), on by default.
+**`CONFIG_CM_AUTH` is the product's switch** (D-059), on by default.
 
 - **Off**: the build has no gate. Every session counts as authenticated, so command mode is
   open in every life cycle state, on a locked device too. That is a product's explicit choice
@@ -218,7 +217,7 @@ authentication (`CONFIG_CM_AUTH`, below):
   build with no method would answer `NOT_SUPPORTED` to `AUTHENTICATE` for good once locked.
   The token costs a product nothing: whoever signs its images can sign a token, with the EC
   keys pb verifies today (3.3).
-- pb can't keep a product from weak authentication, and doesn't try (Jonas): what a board's
+- pb can't keep a product from weak authentication, and doesn't try: what a board's
   `password_auth()` accepts is the board's (`board.md` 4.4).
 
 ### 3.3 Authentication
@@ -255,18 +254,18 @@ transfer of 1024 bytes (4.4). Methods are added, never changed (`security.md` 4.
 - A device that is open accepts `AUTHENTICATE` like any command; it changes nothing a host
   notices.
 
-**A failed attempt is answered after 1 s** (Jonas, D-058): the result is sent 1 s after the
-data arrived, with every method, the watchdog kicked meanwhile. A host can then try a password
-a second, not as fast as the transport carries them. The token can't be guessed; the
-password's strength is the product's (`system.md` 6). No counter and no lockout: a lockout
-would let anyone with a cable close the device for its service staff.
+**A failed attempt is answered after 1 s** (D-058): the result is sent 1 s after the data
+arrived, with every method, the watchdog kicked meanwhile. A host can then try a password a
+second, not as fast as the transport carries them. The token can't be guessed; the password's
+strength is the product's (`system.md` 6). No counter and no lockout: a lockout would let
+anyone with a cable close the device for its service staff.
 
 ### 3.4 What a method grants
 
 A session is authenticated or not, and both methods grant every command.
 
-A method that grants less is on the roadmap and not designed here (Jonas, D-058): a token for
-a return analysis that only reads the logs, or one limited in time (`security.md` 4.7,
+A method that grants less is on the roadmap and not designed here (D-058): a token for a
+return analysis that only reads the logs, or one limited in time (`security.md` 4.7,
 `roadmap.md`). How a grant is expressed is decided with the first such method. One idea is a
 manifest of the commands a session may run, signed and sent as the token.
 
@@ -406,9 +405,9 @@ The watchdog covers command mode's commands (`system.md` 5.4).
   driver's erase of the blocks the host named; hosts erase in pieces.
 - While a command runs, no other task runs (`board.md` 4.5).
 
-**A host that stops in the middle of an exchange** (Jonas, D-058). Without a timeout the
-device would reset with the watchdog, or without one wait for ever with no task running, and
-an unauthenticated host can do it (`AUTHENTICATE`, then no data).
+**A host that stops in the middle of an exchange** (D-058). Without a timeout the device
+would reset with the watchdog, or without one wait for ever with no task running, and an
+unauthenticated host can do it (`AUTHENTICATE`, then no data).
 
 - A transfer inside a command has a timeout, `CONFIG_CM_TRANSFER_TIMEOUT`, 10 s like the
   hosts' own. pb kicks while it waits. When the time is up the session ends (3.1) and the
@@ -495,23 +494,23 @@ flags, which the board's partition table and the drivers set (`board.md` 2.4):
 | `READABLE` | `STREAM_READ_BUFFER` is allowed                                             |
 | `BOOTABLE` | A candidate for `BOOT_PART` and `PART_ACTIVATE` (`boot.md` 6, 3.4)          |
 
-**A hidden partition is internal to pb** (Jonas, D-058). A partition without `VISIBLE`
-doesn't exist for the host: it isn't in the table, and every command that reaches a partition
-by its UUID answers `NOT_FOUND` for it, `BOOT_PART` and `PART_ACTIVATE` too. A board hides
-what no host may reach. The UUID `BOOT_BPAK` carries reaches no partition: it is a label for
-the handover, taken as given (`boot.md` 5.6), and the device doesn't say whether a partition
-has it. No board in the tree hides a partition, and the device a table is installed on is
-visible, so no released flow changes.
+**A hidden partition is internal to pb** (D-058). A partition without `VISIBLE` doesn't exist
+for the host: it isn't in the table, and every command that reaches a partition by its UUID
+answers `NOT_FOUND` for it, `BOOT_PART` and `PART_ACTIVATE` too. A board hides what no host
+may reach. The UUID `BOOT_BPAK` carries reaches no partition: it is a label for the handover,
+taken as given (`boot.md` 5.6), and the device doesn't say whether a partition has it. No
+board in the tree hides a partition, and the device a table is installed on is visible, so no
+released flow changes.
 
-**`PART_VERIFY` needs no `READABLE`** (Jonas): the host hashes its file and asks pb for the
-same over the partition, which is how every factory flow checks what it wrote. `READABLE`
-gates the bulk read (`STREAM_READ_BUFFER`) and nothing else. It is not a promise that a
-visible partition's content stays unknown to an authenticated host, since a hash of any
-length can be compared (F-186): a secret belongs on a hidden partition. The board names the
-partitions that get `READABLE` (`board.md` 2.4), none by default; the boards in the tree name
-those that can't hold a secret, pb's boot partitions and its A/B state. A read of any other
-answers `NOT_SUPPORTED` (Jonas, D-092, F-083): every release answered `IO_ERROR`, which said
-nothing of why, and no board in the tree set the flag.
+**`PART_VERIFY` needs no `READABLE`**: the host hashes its file and asks pb for the same over
+the partition, which is how every factory flow checks what it wrote. `READABLE` gates the
+bulk read (`STREAM_READ_BUFFER`) and nothing else. It is not a promise that a visible
+partition's content stays unknown to an authenticated host, since a hash of any length can be
+compared (F-186): a secret belongs on a hidden partition. The board names the partitions that
+get `READABLE` (`board.md` 2.4), none by default; the boards in the tree name those that
+can't hold a secret, pb's boot partitions and its A/B state. A read of any other answers
+`NOT_SUPPORTED` (D-092, F-083): every release answered `IO_ERROR`, which said nothing of why,
+and no board in the tree set the flag.
 
 | Command            | Means                                                            | Needs                  |
 | ------------------ | ---------------------------------------------------------------- | ---------------------- |
@@ -597,13 +596,13 @@ The flow is `boot.md` 6's, a stop in it `board.md` 5.4's. Here: what the host se
   (`boot.md` 2).
 - `verbose` only changes what pb logs.
 
-**A boot that is refused before the image is read** (Jonas, D-058). `BOOT_BPAK` answers OK
-and then starts the boot, and the host sends the header at once. When the boot is refused
-before the header is read (a precondition, `early_boot()`'s stop, a board without a handover),
-the device still reads the header's transfer, and the header's result carries the refusal.
-Hosts stop at an error there. Nothing changes in the sequence, and it doesn't rest on a host
-checking the first result. `boot.md` 2 puts more before the load than the code has today, so
-this becomes the common refusal.
+**A boot that is refused before the image is read** (D-058). `BOOT_BPAK` answers OK and then
+starts the boot, and the host sends the header at once. When the boot is refused before the
+header is read (a precondition, `early_boot()`'s stop, a board without a handover), the device
+still reads the header's transfer, and the header's result carries the refusal. Hosts stop at
+an error there. Nothing changes in the sequence, and it doesn't rest on a host checking the
+first result. `boot.md` 2 puts more before the load than the code has today, so this becomes
+the common refusal.
 
 ### 5.6 Named commands and the board's status
 
@@ -685,7 +684,7 @@ slots are never reused (`compatibility.md`, F-032).
   (`board.md` 2.4).
 - `AUTH_SET_PASSWORD` was never implemented: its slot is reserved. Until 2.0.0 it was named
   `AUTH_SET_OTP_PASSWORD`, and a closed device answered it before authentication; since
-  2.0.0 it is behind the gate. Implementing it is on the roadmap (Jonas, 2026-11-12,
+  2.0.0 it is behind the gate. Implementing it is on the roadmap (2026-11-12,
   `roadmap.md`): it is written here and in `board.md` 4.4 first, with a decision entry, and
   where the secret is kept is the board's.
 
@@ -720,11 +719,10 @@ and not designed here. What this contract keeps for it:
 - **Which formats a build accepts** a host learns through the capabilities (5.1,
   `compatibility.md`). A device that says nothing accepts bpak alone, as every release.
 - **A build that leaves a format out** answers `NOT_SUPPORTED` to that format's commands
-  (4.5). That goes for bpak too, which a product's build may leave out (Jonas, D-061,
-  `system.md` 3). `PART_BPAK_READ` and a `PART_VERIFY` with the `bpak` flag then answer
-  `NOT_SUPPORTED` as their first result. `BOOT_BPAK` is refused like any boot that is refused
-  before the image is read (5.5): the header's transfer is read, and its result is
-  `NOT_SUPPORTED`.
+  (4.5). That goes for bpak too, which a product's build may leave out (D-061, `system.md`
+  3). `PART_BPAK_READ` and a `PART_VERIFY` with the `bpak` flag then answer `NOT_SUPPORTED`
+  as their first result. `BOOT_BPAK` is refused like any boot that is refused before the
+  image is read (5.5): the header's transfer is read, and its result is `NOT_SUPPORTED`.
 - **Writing and verifying** an image whose file is the partition's bytes needs nothing new:
   the streams and `PART_VERIFY`.
 
