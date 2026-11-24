@@ -1132,7 +1132,7 @@ static int imx_ci_udc_init_internal(void)
      * 6UL's 54.6.33): with it set, in high speed "all packets received are
      * responded to with a NYET handshake", and it "substantially limits
      * the overall USB performance that can be achieved". Without it jiffy
-     * writes at 16.1 MiB/s, 13.6 with it (F-140, Jonas).
+     * writes at 16.1 MiB/s, 13.6 with it (F-140).
      */
     mmio_write_32(imx_ci_udc_base + CI_USBMODE, USBMODE_SLOM | USBMODE_CM_DEVICE);
 

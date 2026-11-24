@@ -33,7 +33,7 @@
 #define PB_USB_VID 0x1209
 #endif
 
-/* pid.codes' test product id, which the SPL reuses (D-089, Jonas) */
+/* pid.codes' test product id, which the SPL reuses (D-089) */
 #ifndef PB_SPL_USB_PID
 #define PB_SPL_USB_PID 0x0001
 #endif

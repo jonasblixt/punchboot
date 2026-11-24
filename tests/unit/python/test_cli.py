@@ -300,7 +300,7 @@ def test_slc_write_with_one_device_uses_it(
     "args", [("slc", "show"), ("dev", "show"), ("part", "list"), ("dev", "reset")]
 )
 def test_other_commands_with_two_devices_are_refused(args: tuple[str, ...]) -> None:
-    # F-227 (Jonas): they used the first device found, with a warning
+    # F-227: they used the first device found, with a warning
     result = run(*args)
 
     assert result.exit_code == 1

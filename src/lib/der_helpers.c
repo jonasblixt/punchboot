@@ -121,7 +121,7 @@ int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *
      * is every byte after its header, and the two INTEGERs are every byte of
      * it. A signature with bytes after it, or a SEQUENCE length that is
      * another, verified on the CAAM in every release and was refused in
-     * software: security before D-008 (Jonas, D-092, F-286 (6)) */
+     * software: security before D-008 (D-092, F-286 (6)) */
     rc = asn1_size(&p, &sz);
 
     if (rc != PB_OK)
